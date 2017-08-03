@@ -28,9 +28,9 @@ import javax.ws.rs.core.MediaType;
 @Path("/todos")
 public interface TodoResource {
     @POST
-    @Path("/")
+    @Path("/put")
     @Consumes(MediaType.APPLICATION_JSON)
-    void addTodo(@QueryParam("todo") Todo todo);
+    void addTodo(@QueryParam("todo") String todo);
 
     @GET
     @Path("/")
@@ -39,5 +39,5 @@ public interface TodoResource {
 
     @GET
     @Path("/healthcheck")
-    void isHealthy();
+    boolean isHealthy();
 }

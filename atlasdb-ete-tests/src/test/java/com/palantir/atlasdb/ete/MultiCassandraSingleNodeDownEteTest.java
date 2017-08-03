@@ -45,7 +45,7 @@ public class MultiCassandraSingleNodeDownEteTest {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         Todo todo = getUniqueTodo();
 
-        todos.addTodo(todo);
+        todos.addTodo(todo.text());
     }
 
     @Test
@@ -53,7 +53,7 @@ public class MultiCassandraSingleNodeDownEteTest {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         Todo todo = getUniqueTodo();
 
-        todos.addTodo(todo);
+        todos.addTodo(todo.text());
         assertThat(todos.getTodoList()).contains(todo);
     }
 

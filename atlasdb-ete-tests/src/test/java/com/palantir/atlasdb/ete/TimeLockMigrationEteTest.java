@@ -81,7 +81,7 @@ public class TimeLockMigrationEteTest {
         TimestampService timestampClient = createEteClientFor(TimestampService.class);
         TodoResource todoClient = createEteClientFor(TodoResource.class);
 
-        todoClient.addTodo(TODO);
+        todoClient.addTodo(TODO.text());
         softAssertions.assertThat(todoClient.getTodoList())
                 .as("contains one todo pre-migration")
                 .contains(TODO);
@@ -99,7 +99,7 @@ public class TimeLockMigrationEteTest {
                 .as("can still read todo after migration to TimeLock")
                 .contains(TODO);
 
-        todoClient.addTodo(TODO_2);
+        todoClient.addTodo(TODO_2.text());
         softAssertions.assertThat(todoClient.getTodoList())
                 .as("can add a new todo using TimeLock")
                 .contains(TODO, TODO_2);
@@ -136,7 +136,7 @@ public class TimeLockMigrationEteTest {
 
     private void assertCanNeitherReadNorWrite() {
         TodoResource todoClient = createEteClientFor(TodoResource.class);
-        softAssertions.assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
+        softAssertions.assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3.text())))
                 .as("cannot write using embedded service after migration to TimeLock")
                 .hasMessageContaining("Connection refused");
         softAssertions.assertThat(catchThrowable(todoClient::getTodoList))

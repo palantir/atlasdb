@@ -31,7 +31,7 @@ public class TodoEteTest {
     public void shouldBeAbleToWriteAndListTodos() {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
-        todoClient.addTodo(TODO);
+        todoClient.addTodo(TODO.text());
         assertThat(todoClient.getTodoList(), hasItem(TODO));
     }
 }

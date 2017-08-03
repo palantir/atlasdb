@@ -26,9 +26,13 @@ public class SimpleTodoResource implements TodoResource {
         this.atlas = atlas;
     }
 
-    @Override
     public void addTodo(Todo todo) {
         atlas.addTodo(todo);
+    }
+
+    @Override
+    public void addTodo(String todo) {
+        addTodo(ImmutableTodo.of(todo));
     }
 
     @Override
@@ -37,8 +41,9 @@ public class SimpleTodoResource implements TodoResource {
     }
 
     @Override
-    public void isHealthy() {
+    public boolean isHealthy() {
         Preconditions.checkState(atlas.getTodoList() != null);
+        return true;
     }
 }
 
