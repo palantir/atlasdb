@@ -76,7 +76,7 @@ public final class BackgroundSweeperImpl implements Runnable {
                 grabLocksAndRun();
             }
         } catch (InterruptedException e) {
-            log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
+            log.error("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
@@ -86,7 +86,7 @@ public final class BackgroundSweeperImpl implements Runnable {
             if (sweepLocks.lockOrRefreshSweepLease()) {
                 sweptSuccessfully = runOnce();
             } else {
-                log.debug("Skipping sweep because sweep is running elsewhere.");
+                log.error("Skipping sweep because sweep is running elsewhere.");
             }
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
@@ -116,7 +116,7 @@ public final class BackgroundSweeperImpl implements Runnable {
         Optional<TableToSweep> tableToSweep = getTableToSweep();
         if (!tableToSweep.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
-            log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
+            log.error("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             sweepLocks.unlockSweepLease();
             return false;
         } else {
@@ -162,6 +162,7 @@ public final class BackgroundSweeperImpl implements Runnable {
             return Optional.empty();
         });
 
+        log.error(String.format("Returning existing table to sweep %s", tablesWithProgress));
         return tableWithProgress.map(tableRef -> new TableToSweep(tableRef, tableRefToProgress.get(tableRef)));
     }
 
@@ -170,6 +171,8 @@ public final class BackgroundSweeperImpl implements Runnable {
         Optional<TableReference> newTable = acquireTableLock(allTables, () ->
                 nextTableToSweepProvider.chooseNextTableToSweep(
                         tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(), allTables));
+
+        log.error(String.format("Returning new table to sweep %s", newTable));
         return newTable.map(table -> new TableToSweep(table, null));
     }
 
@@ -179,15 +182,19 @@ public final class BackgroundSweeperImpl implements Runnable {
 
         while (!allTables.isEmpty()) {
             nextTable = nextTableSupplier.get();
+            nextTable.ifPresent((table) -> log.error(String.format("Trying to lock table %s", table)));
+
             if (!nextTable.isPresent()) {
                 break;
             }
+
             if (sweepLocks.lockTableToSweep(nextTable.get())) {
                 // If we've successfully acquired the sweep lock of a table, we can start to sweep it.
+                log.error(String.format("Was able to lock table name %s", nextTable.get()));
                 break;
-            } else {
-                allTables.remove(nextTable.get());
             }
+            log.error(String.format("Wasn't able to lock table name %s", nextTable.get()));
+            allTables.remove(nextTable.get());
         }
 
         return nextTable;

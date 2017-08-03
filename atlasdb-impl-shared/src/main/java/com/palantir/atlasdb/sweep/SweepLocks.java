@@ -132,6 +132,7 @@ class SweepLocks implements AutoCloseable {
                 .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MINUTES))
                 .build();
         sweepTableToken = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
+        log.error(String.format("Lock Token: %s", sweepTableToken));
         return sweepTableToken != null;
     }
 

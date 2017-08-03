@@ -136,7 +136,7 @@ public class SpecificTableSweeper {
                     batchConfig,
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.info("Swept successfully.",
+            log.error("Swept successfully.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
                     SafeArg.of("unique cells swept", results.getCellTsPairsExamined()),
@@ -154,7 +154,7 @@ public class SpecificTableSweeper {
             }
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
-            log.info("Failed to sweep.",
+            log.error("Failed to sweep.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
                     SafeArg.of("batchConfig", batchConfig));
@@ -198,7 +198,7 @@ public class SpecificTableSweeper {
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.debug("Finished sweeping.",
+            log.error("Finished sweeping.",
                     LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                     SafeArg.of("unique cells examined count", cellsExamined),
                     SafeArg.of("stale values deleted count", staleValuesDeleted));
@@ -238,7 +238,7 @@ public class SpecificTableSweeper {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(tableRef);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.debug("Finished performing compactInternally on {} in {} ms.",
+            log.error("Finished performing compactInternally on {} in {} ms.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     SafeArg.of("elapsedMillis", elapsedMillis));
             sweepPerfLogger.logInternalCompaction(

@@ -333,14 +333,16 @@ public final class TransactionManagers {
         Supplier<SweepBatchConfig> sweepBatchConfig = () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
         SweepMetrics sweepMetrics = new SweepMetrics();
 
-        SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
-                env,
-                kvs,
+        Supplier<SpecificTableSweeper> specificTableSweeperSupplier = () -> SpecificTableSweeper.create(
                 transactionManager,
+                kvs,
                 sweepRunner,
-                sweepPerfLogger,
                 sweepBatchConfig,
+                SweepTableFactory.of(),
+                sweepPerfLogger,
                 sweepMetrics);
+        SpecificTableSweeper specificTableSweeper = specificTableSweeperSupplier.get();
+        env.register(new SweeperServiceImpl(specificTableSweeper));
 
         ParallelBackgroundSweeperImpl backgroundSweeper = ParallelBackgroundSweeperImpl.create(
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
@@ -349,26 +351,6 @@ public final class TransactionManagers {
                 2);
 
         backgroundSweeper.runInBackground();
-    }
-
-    private static SpecificTableSweeper initializeSweepEndpoint(
-            Environment env,
-            KeyValueService kvs,
-            SerializableTransactionManager transactionManager,
-            SweepTaskRunner sweepRunner,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            Supplier<SweepBatchConfig> sweepBatchConfig,
-            SweepMetrics sweepMetrics) {
-        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
-                transactionManager,
-                kvs,
-                sweepRunner,
-                sweepBatchConfig,
-                SweepTableFactory.of(),
-                sweepPerfLogger,
-                sweepMetrics);
-        env.register(new SweeperServiceImpl(specificTableSweeper));
-        return specificTableSweeper;
     }
 
     private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {

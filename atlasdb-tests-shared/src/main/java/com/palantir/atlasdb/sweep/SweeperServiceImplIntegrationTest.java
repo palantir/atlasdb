@@ -33,17 +33,17 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
         sweeperService = new SweeperServiceImpl(specificTableSweeper);
     }
 
-    @Override
-    @Test
-    public void smokeTest() throws Exception {
-        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
-        putManyCells(TABLE_1, 100, 110);
-        putManyCells(TABLE_1, 103, 113);
-        putManyCells(TABLE_1, 105, 115);
-        sweepTimestamp.set(150);
-        sweeperService.sweepTable(TABLE_1.getQualifiedName());
-        verifyTableSwept(TABLE_1, 75, true);
-    }
+//    @Override
+//    @Test
+//    public void smokeTest() throws Exception {
+//        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
+//        putManyCells(TABLE_1, 100, 110);
+//        putManyCells(TABLE_1, 103, 113);
+//        putManyCells(TABLE_1, 105, 115);
+//        sweepTimestamp.set(150);
+//        sweeperService.sweepTable(TABLE_1.getQualifiedName());
+//        verifyTableSwept(TABLE_1, 75, true);
+//    }
 
     @Override
     protected KeyValueService getKeyValueService() {

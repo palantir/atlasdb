@@ -119,16 +119,17 @@ public class SweepTaskRunner {
             // start this sweeper without doing the full normally ordered KVSModule startup.
             // I did check and sweep.stats did contain the FQ table name for all of the tables,
             // so it is at least broken in some way that still allows namespaced tables to eventually be swept.
-            log.warn("The sweeper should not be run on tables passed through namespace mapping.");
+            log.error("The sweeper should not be run on tables passed through namespace mapping.");
             return SweepResults.createEmptySweepResult();
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
-            log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
+            log.error("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
                     UnsafeArg.of("table name", tableRef));
             return SweepResults.createEmptySweepResult();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
         Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
+        log.error(String.format("Starting to sweep table %s", tableRef));
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResult();
         }

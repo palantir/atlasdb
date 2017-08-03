@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
@@ -28,7 +28,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -37,8 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.sweep.priority.SweepPriority;
-import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -78,7 +75,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
-        sweepLocks = new SweepLocks(txManager.getLockService(), NUMBER_OF_PARALLEL_SWEEPS);
+        sweepLocks = new SweepLocks(txManager.getLockService(), NUMBER_OF_PARALLEL_SWEEPS, new AtomicInteger(0));
         LongSupplier tsSupplier = sweepTimestamp::get;
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
@@ -98,27 +95,103 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 specificTableSweeper);
     }
 
+//    @Test
+//    public void smokeTest() throws Exception {
+//        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
+//        createTable(TABLE_2, SweepStrategy.THOROUGH);
+//        createTable(TABLE_3, SweepStrategy.NOTHING);
+//        putManyCells(TABLE_1, 100, 110);
+//        putManyCells(TABLE_1, 103, 113);
+//        putManyCells(TABLE_1, 105, 115);
+//        putManyCells(TABLE_2, 101, 111);
+//        putManyCells(TABLE_2, 104, 114);
+//        putManyCells(TABLE_3, 120, 130);
+//        sweepTimestamp.set(150);
+//        for (int i = 0; i < 50; ++i) {
+//            backgroundSweeper.run();
+//        }
+//        verifyTableSwept(TABLE_1, 75, true);
+//        verifyTableSwept(TABLE_2, 58, false);
+//        List<SweepPriority> priorities = txManager.runTaskReadOnly(
+//                tx -> new SweepPriorityStore(SweepTableFactory.of()).loadNewPriorities(tx));
+//        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)));
+//        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)));
+//    }
+
+//    @Test
+//    public void benchmark1() throws InterruptedException {
+//        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
+//        createTable(TABLE_2, SweepStrategy.THOROUGH);
+//        createTable(TABLE_3, SweepStrategy.NOTHING);
+//        putManyCells(TABLE_1, 100, 110);
+//        putManyCells(TABLE_1, 103, 113);
+//        putManyCells(TABLE_1, 105, 115);
+//        putManyCells(TABLE_2, 101, 111);
+//        putManyCells(TABLE_2, 104, 114);
+//        putManyCells(TABLE_3, 120, 130);
+//
+//        ParallelBackgroundSweeperImpl parallelBackgroundSweeper = ParallelBackgroundSweeperImpl.create(
+//                () -> Boolean.TRUE,
+//                () -> 2L,
+//                specificTableSweeper,
+//                2
+//        );
+//        parallelBackgroundSweeper.runInBackground();
+//
+//        while (!parallelBackgroundSweeper.isSweepRunning()) {
+//            Thread.sleep(1);
+//        }
+//
+//        long sweepStarted = System.nanoTime();
+//
+//        while (parallelBackgroundSweeper.isSweepRunning()) {
+//            Thread.sleep(1);
+//        }
+//
+//        long sweepFinished = System.nanoTime();
+//        System.out.println(sweepFinished - sweepStarted);
+//    }
+
     @Test
-    public void smokeTest() throws Exception {
-        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
-        createTable(TABLE_2, SweepStrategy.THOROUGH);
-        createTable(TABLE_3, SweepStrategy.NOTHING);
-        putManyCells(TABLE_1, 100, 110);
-        putManyCells(TABLE_1, 103, 113);
-        putManyCells(TABLE_1, 105, 115);
-        putManyCells(TABLE_2, 101, 111);
-        putManyCells(TABLE_2, 104, 114);
-        putManyCells(TABLE_3, 120, 130);
-        sweepTimestamp.set(150);
-        for (int i = 0; i < 50; ++i) {
-            backgroundSweeper.run();
+    public void benchmark2() throws InterruptedException {
+        long setupStarted = System.nanoTime();
+
+        for (int i = 0; i < 10; i++) {
+            TableReference tableReference = TableReference.createFromFullyQualifiedName("foo.bar" + i);
+            createTable(tableReference, SweepStrategy.CONSERVATIVE);
+            putManyCells(tableReference, 1000, 1010);
+            putManyCells(tableReference, 1013, 1015);
+            putManyCells(tableReference, 1017, 1019);
         }
-        verifyTableSwept(TABLE_1, 75, true);
-        verifyTableSwept(TABLE_2, 58, false);
-        List<SweepPriority> priorities = txManager.runTaskReadOnly(
-                tx -> new SweepPriorityStore(SweepTableFactory.of()).loadNewPriorities(tx));
-        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)));
-        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)));
+        txService.putUnlessExists(1000, 1010);
+        txService.putUnlessExists(1013, 1015);
+        txService.putUnlessExists(1017, 1019);
+
+        ParallelBackgroundSweeperImpl parallelBackgroundSweeper = ParallelBackgroundSweeperImpl.create(
+                () -> Boolean.TRUE,
+                () -> 2L,
+                specificTableSweeper,
+                1
+        );
+
+        long setupEnded = System.nanoTime();
+        System.out.println("Setup duration: " + (setupEnded - setupStarted));
+
+        parallelBackgroundSweeper.runInBackground();
+
+        while (!parallelBackgroundSweeper.isSweepRunning()) {
+            Thread.sleep(1);
+        }
+
+        long sweepStarted = System.nanoTime();
+
+        while (parallelBackgroundSweeper.isSweepRunning()) {
+            Thread.sleep(1);
+        }
+
+        long sweepFinished = System.nanoTime();
+
+        System.out.println("Sweep duration: " + (sweepFinished - sweepStarted));
     }
 
     protected abstract KeyValueService getKeyValueService();
@@ -154,7 +227,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     protected void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = Maps.newHashMap();
-        for (int i = 0; i < 50; ++i) {
+        for (int i = 0; i < 1000; ++i) {
             cells.put(Cell.create(Ints.toByteArray(i), "c".getBytes()),
                     (i % 3 == 0) ? new byte[] {} : Ints.toByteArray(123456 + i));
             if (i % 2 == 0) {
@@ -162,6 +235,5 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             }
         }
         kvs.put(tableRef, cells, startTs);
-        txService.putUnlessExists(startTs, commitTs);
     }
 }
