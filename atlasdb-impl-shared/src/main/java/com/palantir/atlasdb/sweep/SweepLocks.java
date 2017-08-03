@@ -120,7 +120,7 @@ class SweepLocks implements AutoCloseable {
         LockRequest request = LockRequest.builder(
                 ImmutableSortedMap.of(lock, LockMode.WRITE)).blockForAtMost(SimpleTimeDuration.of(2, TimeUnit.MINUTES)).build();
         sweepTableToken = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
-        return sweepLeaseToken != null;
+        return sweepTableToken != null;
     }
 
     void unlockTableToSweep() {
