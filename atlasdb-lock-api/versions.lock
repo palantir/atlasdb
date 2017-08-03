@@ -73,7 +73,7 @@
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
@@ -203,7 +203,7 @@
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]

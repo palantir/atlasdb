@@ -121,10 +121,10 @@
             "project": true
         },
         "com.palantir.remoting2:error-handling": {
-            "locked": "2.6.3-6-g3c8cb83"
+            "locked": "2.6.3-8-g6528869"
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.remoting2:error-handling"
             ]
@@ -306,10 +306,10 @@
             "project": true
         },
         "com.palantir.remoting2:error-handling": {
-            "locked": "2.6.3-6-g3c8cb83"
+            "locked": "2.6.3-8-g6528869"
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.remoting2:error-handling"
             ]

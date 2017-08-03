@@ -509,33 +509,33 @@
             ]
         },
         "com.palantir.remoting2:error-handling": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing"
             ]
         },
         "com.palantir.remoting2:jersey-servers": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.remoting2:tracing": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -1455,33 +1455,33 @@
             ]
         },
         "com.palantir.remoting2:error-handling": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.remoting2:jersey-servers"
             ]
         },
         "com.palantir.remoting2:jackson-support": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing"
             ]
         },
         "com.palantir.remoting2:jersey-servers": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.remoting2:ssl-config": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.remoting2:tracing": {
-            "locked": "2.6.3-6-g3c8cb83",
+            "locked": "2.6.3-8-g6528869",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
