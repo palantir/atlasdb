@@ -22,6 +22,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 @Path("/todos")
@@ -29,7 +30,7 @@ public interface TodoResource {
     @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
-    void addTodo(Todo todo);
+    void addTodo(@QueryParam("todo") Todo todo);
 
     @GET
     @Path("/")
