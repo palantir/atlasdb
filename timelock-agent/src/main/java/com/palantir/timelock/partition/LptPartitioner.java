@@ -57,14 +57,14 @@ public class LptPartitioner implements TimeLockPartitioner {
 
         clients.forEach(client -> {
             if (!clientToWeight.containsKey(client)) {
-                clientToWeight.put(client, 0.2);
+                clientToWeight.put(client, 0.1);
             }
         });
 
         Map<String, Double> jitterWeights = clientToWeight.entrySet().stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getKey(),
-                        entry -> entry.getValue() + random.nextDouble() * 0.2
+                        entry -> entry.getValue() + random.nextDouble() * 0.1
                 ));
 
         PriorityQueue<HostAndWeight> queue = new PriorityQueue<>(Comparator.comparingDouble(HostAndWeight::weight));
