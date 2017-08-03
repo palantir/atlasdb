@@ -62,6 +62,10 @@ develop
          - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
 
+    *    - |fixed|
+         - The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
