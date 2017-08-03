@@ -16,12 +16,17 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import org.slf4j.Logger;
@@ -111,27 +116,37 @@ public final class FeignOkHttpClients {
                 .retryOnConnectionFailure(false);
         if (sslSocketFactory.isPresent()) {
             // TODO (jkong): ONLY FOR TESTING DO NOT USE IN PRODUCTION
-            builder.sslSocketFactory(sslSocketFactory.get(),
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
-                                throws CertificateException {
-                            log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
-                        }
+            X509TrustManager nonProduction = new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                        throws CertificateException {
+                    log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
+                }
 
-                        @Override
-                        public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
-                                throws CertificateException {
-                            log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
-                        }
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                        throws CertificateException {
+                    log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
+                }
 
-                        @Override
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[]{};
-                        }
-                    }
-            );
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[]{};
+                }
+            };
+            TrustManager[] tms = new TrustManager[] {nonProduction};
+
+            SSLContext context = null;
+            try {
+                context = SSLContext.getInstance("SSL");
+                context.init(null, tms, new SecureRandom());
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                log.error("wat", e);
+                throw new RuntimeException(e);
+            }
+            builder.sslSocketFactory(context.getSocketFactory(), nonProduction);
         }
+        builder.hostnameVerifier((x, y) -> true);
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
         return builder.build();
     }
