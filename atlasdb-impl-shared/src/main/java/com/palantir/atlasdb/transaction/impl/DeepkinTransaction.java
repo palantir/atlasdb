@@ -18,23 +18,16 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.util.AbstractMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.deepkin.CachedBatchingVisitable;
-import com.palantir.atlasdb.deepkin.TransformedBatchingVisitable;
+import com.palantir.atlasdb.deepkin.TransactionCall;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -79,8 +72,11 @@ public class DeepkinTransaction extends SerializableTransaction {
     public SortedMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef, Iterable<byte[]> rows,
             ColumnSelection columnSelection) {
-        Iterable<byte[]> rowsSer = Lists.newLinkedList(rows);
-        return delegate("getRows", () -> super.getRows(tableRef, rowsSer, columnSelection), tableRef, rows, columnSelection);
+        return delegate(
+                TransactionCall.GET_ROWS,
+                () -> super.getRows(tableRef, rows, columnSelection),
+                tableRef, rows, columnSelection
+        );
     }
 
     @Override
@@ -88,22 +84,11 @@ public class DeepkinTransaction extends SerializableTransaction {
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
-        Iterable<byte[]> rowsSer = Lists.newLinkedList(rows);
-        return this.<Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>>, Map<byte[], BatchingVisitable<AbstractMap.SimpleEntry<Cell, byte[]>>>> transformingDelegate(
-                "getRowsColumnRange",
-                () -> super.getRowsColumnRange(tableRef, rowsSer, columnRangeSelection),
-                result -> Maps.transformValues(
-                        result,
-                        v -> (BatchingVisitable<AbstractMap.SimpleEntry<Cell, byte[]>>) CachedBatchingVisitable.cache(
-                                new TransformedBatchingVisitable<>(v, AbstractMap.SimpleEntry::new)
-                        )),
-                s -> Maps.transformValues(
-                        s,
-                        v -> (BatchingVisitable<Map.Entry<Cell, byte[]>>) new TransformedBatchingVisitable<AbstractMap.SimpleEntry<Cell, byte[]>, Map.Entry<Cell, byte[]>>(
-                                v, e -> e
-                        )
-                ),
-                tableRef, rowsSer, columnRangeSelection);
+        return delegate(
+                TransactionCall.GET_ROWS_COLUMN_RANGE,
+                () -> super.getRowsColumnRange(tableRef, rows, columnRangeSelection),
+                tableRef, rows, columnRangeSelection
+        );
     }
 
     @Override
@@ -111,16 +96,11 @@ public class DeepkinTransaction extends SerializableTransaction {
     public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterable<byte[]> rowsSer = Lists.newLinkedList(rows);
-        return this.<Iterator<Map.Entry<Cell, byte[]>>, List<Map.Entry<Cell, byte[]>>> transformingDelegate(
-                "getRowsColumnRange",
-                () -> super.getRowsColumnRange(tableRef, rowsSer, columnRangeSelection, batchHint),
-                result -> Lists.newArrayList(Iterators.<Map.Entry<Cell, byte[]>, Map.Entry<Cell, byte[]>>transform(
-                        result,
-                        AbstractMap.SimpleEntry::new)
-                ),
-                List::iterator,
-                tableRef, rowsSer, columnRangeSelection, batchHint);
+        return delegate(
+                TransactionCall.GET_BATCHED_ROWS_COLUMN_RANGE,
+                () -> super.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint),
+                tableRef, rows, columnRangeSelection, batchHint
+        );
     }
 
     @Override
@@ -128,7 +108,7 @@ public class DeepkinTransaction extends SerializableTransaction {
     public Map<Cell, byte[]> get(
             TableReference tableRef,
             Set<Cell> cells) {
-        return delegate("get", () -> super.get(tableRef, cells), tableRef, cells);
+        return delegate(TransactionCall.GET, () -> super.get(tableRef, cells), tableRef, cells);
     }
 
     @Override
@@ -136,12 +116,7 @@ public class DeepkinTransaction extends SerializableTransaction {
     public BatchingVisitable<RowResult<byte[]>> getRange(
             TableReference tableRef,
             RangeRequest rangeRequest) {
-        return this.<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RowResult<byte[]>>> transformingDelegate(
-                "getRange",
-                () -> super.getRange(tableRef, rangeRequest),
-                CachedBatchingVisitable::cache,
-                s -> s,
-                tableRef, rangeRequest);
+        return delegate(TransactionCall.GET_RANGE, () -> super.getRange(tableRef, rangeRequest), tableRef, rangeRequest);
     }
 
     @Override
@@ -149,22 +124,13 @@ public class DeepkinTransaction extends SerializableTransaction {
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests) {
-        return this.<Iterable<BatchingVisitable<RowResult<byte[]>>>, Iterable<BatchingVisitable<RowResult<byte[]>>>>transformingDelegate(
-                "getRanges",
-                () -> super.getRanges(tableRef, rangeRequests),
-                result -> {
-                    List<BatchingVisitable<RowResult<byte[]>>> serialized = Lists.newArrayList();
-                    result.forEach(item -> serialized.add(CachedBatchingVisitable.cache(item)));
-                    return serialized;
-                },
-                s -> s,
-                tableRef, rangeRequests);
+        return delegate(TransactionCall.GET_RANGES, () -> super.getRanges(tableRef, rangeRequests), tableRef, rangeRequests);
     }
 
     @Override
     @Idempotent
     public void commit() throws TransactionFailedException {
-        TransactionFailedException failure = delegate("commit", () -> {
+        TransactionFailedException failure = delegate(TransactionCall.COMMIT, () -> {
             try {
                 super.commit();
             } catch (TransactionFailedException e) {
@@ -180,7 +146,7 @@ public class DeepkinTransaction extends SerializableTransaction {
     @Override
     @Idempotent
     public void commit(TransactionService transactionService) throws TransactionFailedException {
-        TransactionFailedException failure = delegate("commit", () -> {
+        TransactionFailedException failure = delegate(TransactionCall.COMMIT_SERVICE, () -> {
             try {
                 super.commit(transactionService);
             } catch (TransactionFailedException e) {
@@ -196,23 +162,19 @@ public class DeepkinTransaction extends SerializableTransaction {
     @Override
     @Idempotent
     public long getTimestamp() {
-        return delegate("getTimestamp", super::getTimestamp);
+        return delegate(TransactionCall.GET_TIMESTAMP, super::getTimestamp);
     }
 
-    private <T> T delegate(String methodName, Supplier<T> getResult, Object... arguments) {
-        return transformingDelegate(methodName, getResult, Function.identity(), Function.identity());
-    }
-
-    private <T, Y> T transformingDelegate(String methodName, Supplier<T> getResult, Function<T, Y> serializer, Function<Y, T> reverter, Object... arguments) {
+    private <T, Y> T delegate(TransactionCall<Y, T> call, Supplier<T> resulter, Object... arguments) {
         if (!Tracer.isTraceObservable()) {
-            return getResult.get();
+            return resulter.get();
         }
-        OpenSpan span = Tracer.startSpan(methodName, SpanType.CLIENT_OUTGOING);
-        span.getRequestBuffer().ifPresent(buffer -> unsafeBufferWrite(buffer, arguments));
-        Y result = serializer.apply(getResult.get());
-        span.getResponseBuffer().ifPresent(buffer -> unsafeBufferWrite(buffer, result));
-        Tracer.completeSpan();
-        return reverter.apply(result);
+        OpenSpan span = Tracer.startSpan(call.name(), SpanType.CLIENT_OUTGOING);
+        span.getRequestBuffer().ifPresent(buffer -> unsafeBufferWrite(buffer, call.transformArguments(arguments)));
+        T result = resulter.get();
+        Y serialized = call.resultTransform().serializer().apply(result);
+        span.getResponseBuffer().ifPresent(buffer -> unsafeBufferWrite(buffer, serialized));
+        return call.resultTransform().deserializer().apply(serialized);
     }
 
     private void unsafeBufferWrite(Buffer buffer, Object object) {
