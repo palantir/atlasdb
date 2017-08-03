@@ -16,10 +16,16 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -35,6 +41,8 @@ import okhttp3.Response;
 import okhttp3.TlsVersion;
 
 public final class FeignOkHttpClients {
+    private static final Logger log = LoggerFactory.getLogger(FeignOkHttpClients.class);
+
     @VisibleForTesting
     static final String USER_AGENT_HEADER = "User-Agent";
     private static final int CONNECTION_POOL_SIZE = 100;
@@ -102,7 +110,27 @@ public final class FeignOkHttpClients {
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
                 .retryOnConnectionFailure(false);
         if (sslSocketFactory.isPresent()) {
-            builder.sslSocketFactory(sslSocketFactory.get());
+            // TODO (jkong): ONLY FOR TESTING DO NOT USE IN PRODUCTION
+            builder.sslSocketFactory(sslSocketFactory.get(),
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                                throws CertificateException {
+                            log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
+                        }
+
+                        @Override
+                        public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                                throws CertificateException {
+                            log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
+                        }
+
+                        @Override
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[]{};
+                        }
+                    }
+            );
         }
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
         return builder.build();
