@@ -727,7 +727,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public BatchingVisitable<RowResult<byte[]>> getRange(final TableReference tableRef,
                                                          final RangeRequest range) {
-        checkGetPreconditions(tableRef);
+//        checkGetPreconditions(tableRef);
         if (range.isEmptyRange()) {
             return BatchingVisitables.emptyBatchingVisitable();
         }
