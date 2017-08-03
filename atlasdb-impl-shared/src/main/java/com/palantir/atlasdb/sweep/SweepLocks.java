@@ -20,6 +20,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -32,17 +36,19 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.TimeDuration;
 
 class SweepLocks implements AutoCloseable {
     private final RemoteLockService lockService;
     private final int numberOfParallelSweeps;
+    private final AtomicInteger numberOfSweepsRunning;
 
     private LockRefreshToken token = null;
+    private Logger log = LoggerFactory.getLogger(SweepLocks.class);
 
-    SweepLocks(RemoteLockService lockService, int numberOfParallelSweeps) {
+    SweepLocks(RemoteLockService lockService, int numberOfParallelSweeps, AtomicInteger numberOfSweepsRunning) {
         this.lockService = lockService;
         this.numberOfParallelSweeps = numberOfParallelSweeps;
+        this.numberOfSweepsRunning = numberOfSweepsRunning;
     }
 
     void lockOrRefresh() throws InterruptedException {
@@ -96,11 +102,14 @@ class SweepLocks implements AutoCloseable {
 
         for (int i : possibleGrants) {
             LockDescriptor lock = StringLockDescriptor.of("sweep" + i);
-            LockRequest request = LockRequest.builder(
-                    ImmutableSortedMap.of(lock, LockMode.WRITE)).doNotBlock().build();
+            LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
+                    .doNotBlock()
+                    .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MINUTES))
+                    .build();
             LockRefreshToken possibleGrant = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
 
             if (possibleGrant != null) {
+                numberOfSweepsRunning.incrementAndGet();
                 return possibleGrant;
             }
         }
@@ -110,6 +119,7 @@ class SweepLocks implements AutoCloseable {
 
     void unlockSweepLease() {
         lockService.unlock(sweepLeaseToken);
+        numberOfSweepsRunning.decrementAndGet();
         sweepLeaseToken = null;
     }
 
@@ -117,14 +127,18 @@ class SweepLocks implements AutoCloseable {
 
     boolean lockTableToSweep(TableReference tableRef) throws InterruptedException {
         LockDescriptor lock = StringLockDescriptor.of("sweep-" + tableRef.getQualifiedName());
-        LockRequest request = LockRequest.builder(
-                ImmutableSortedMap.of(lock, LockMode.WRITE)).blockForAtMost(SimpleTimeDuration.of(2, TimeUnit.MINUTES)).build();
+        LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
+                .doNotBlock()
+                .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MINUTES))
+                .build();
         sweepTableToken = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
         return sweepTableToken != null;
     }
 
     void unlockTableToSweep() {
-        lockService.unlock(sweepTableToken);
+        if (sweepTableToken != null) {
+            lockService.unlock(sweepTableToken);
+        }
         sweepTableToken = null;
     }
 }

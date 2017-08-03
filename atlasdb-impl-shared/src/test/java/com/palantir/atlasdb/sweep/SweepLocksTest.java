@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +43,7 @@ public class SweepLocksTest {
 
     @Before
     public void setUp() {
-        sweepLocks = new SweepLocks(mockLockService, numberOfParallelSweeps);
+        sweepLocks = new SweepLocks(mockLockService, numberOfParallelSweeps, new AtomicInteger(0));
     }
 
     @Test

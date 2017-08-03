@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Supplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -29,18 +30,21 @@ public final class ParallelBackgroundSweeperImpl {
     private final Supplier<Long> sweepPauseMillis;
     private final SpecificTableSweeper specificTableSweeper;
     private final int numberOfConcurrentSweeps;
-    private final SweepLocks sweepLocks;
+    private final ScheduledExecutorService executorService;
+    private final AtomicInteger numberOfSweepsRunning;
 
     private ParallelBackgroundSweeperImpl(
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             SpecificTableSweeper specificTableSweeper,
-            int numberOfConcurrentSweeps) {
+            int numberOfConcurrentSweeps,
+            ScheduledExecutorService executorService) {
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
         this.specificTableSweeper = specificTableSweeper;
         this.numberOfConcurrentSweeps = numberOfConcurrentSweeps;
-        this.sweepLocks = createSweepLocks();
+        this.executorService = executorService;
+        this.numberOfSweepsRunning = new AtomicInteger(0);
     }
 
     public static ParallelBackgroundSweeperImpl create(
@@ -52,23 +56,31 @@ public final class ParallelBackgroundSweeperImpl {
                 isSweepEnabled,
                 sweepPauseMillis,
                 specificTableSweeper,
-                numberOfConcurrentSweeps);
+                numberOfConcurrentSweeps,
+                Executors.newScheduledThreadPool(numberOfConcurrentSweeps,
+                        new NamedThreadFactory("BackgroundSweeper", true)));
     }
 
     public void runInBackground() {
-        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numberOfConcurrentSweeps,
-                new NamedThreadFactory("BackgroundSweeper", true));
         for (int i = 0; i < numberOfConcurrentSweeps; i++) {
+            BackgroundSweeperImpl sweeper = BackgroundSweeperImpl.create(createSweepLocks(),
+                    isSweepEnabled,
+                    specificTableSweeper);
             executorService.scheduleAtFixedRate(
-                    () -> BackgroundSweeperImpl.create(sweepLocks, isSweepEnabled, specificTableSweeper).run(),
+                    sweeper,
                     getBackoffTimeForFirstRun(),
                     getBackoffTimeBetweenSweepRuns(),
                     TimeUnit.MILLISECONDS);
         }
     }
 
+    public boolean isSweepRunning() {
+        return numberOfSweepsRunning.get() > 0;
+    }
+
     private SweepLocks createSweepLocks() {
-        return new SweepLocks(specificTableSweeper.getTxManager().getLockService(), numberOfConcurrentSweeps);
+        return new SweepLocks(specificTableSweeper.getTxManager().getLockService(), numberOfConcurrentSweeps,
+                numberOfSweepsRunning);
     };
 
     private long getBackoffTimeForFirstRun() {
