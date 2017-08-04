@@ -23,8 +23,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import javax.ws.rs.QueryParam;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -158,8 +156,10 @@ public class BenchmarksResource implements BenchmarksService {
     }
 
     @Override
-    public Map<String, Object> jkongTimestampByNumbers(@QueryParam("clients") int numClients,
-            @QueryParam("threads") int numThreadsPerClient, @QueryParam("timestamps") int numRequestsPerClient) {
+    public Map<String, Object> jkongTimestampByNumbers(
+            int numClients,
+            int numThreadsPerClient,
+            int numRequestsPerClient) {
         Set<String> clients = IntStream.rangeClosed(1, numClients)
                 .mapToObj(x -> String.format("h%d", x))
                 .collect(Collectors.toSet());
@@ -175,7 +175,7 @@ public class BenchmarksResource implements BenchmarksService {
     }
 
     @Override
-    public Map<String, Object> jkongSimpleTimestampByNumbers(@QueryParam("clients") int numClients) {
+    public Map<String, Object> jkongSimpleTimestampByNumbers(int numClients) {
         return jkongTimestampByNumbers(numClients, 10, 1000);
     }
 }
