@@ -40,15 +40,13 @@ import com.palantir.lock.StringLockDescriptor;
 class SweepLocks implements AutoCloseable {
     private final RemoteLockService lockService;
     private final int numberOfParallelSweeps;
-    private final AtomicInteger numberOfSweepsRunning;
 
     private LockRefreshToken token = null;
     private Logger log = LoggerFactory.getLogger(SweepLocks.class);
 
-    SweepLocks(RemoteLockService lockService, int numberOfParallelSweeps, AtomicInteger numberOfSweepsRunning) {
+    SweepLocks(RemoteLockService lockService, int numberOfParallelSweeps) {
         this.lockService = lockService;
         this.numberOfParallelSweeps = numberOfParallelSweeps;
-        this.numberOfSweepsRunning = numberOfSweepsRunning;
     }
 
     void lockOrRefresh() throws InterruptedException {
@@ -79,21 +77,27 @@ class SweepLocks implements AutoCloseable {
     private LockRefreshToken sweepLeaseToken = null;
 
     boolean lockOrRefreshSweepLease() throws InterruptedException {
-        sweepLeaseToken = lockOrRefreshSweepLeaseInternal(sweepLeaseToken);
+        sweepLeaseToken = refreshToken(sweepLeaseToken);
+        if (sweepLeaseToken != null) {
+            return true;
+        }
+
+        sweepLeaseToken = acquireNewSweepLease();
         return sweepLeaseToken != null;
     }
 
-    private LockRefreshToken lockOrRefreshSweepLeaseInternal(LockRefreshToken possibleToken)
-            throws InterruptedException {
+    private LockRefreshToken refreshToken(LockRefreshToken possibleToken) {
         if (possibleToken != null) {
             Set<LockRefreshToken> refreshedTokens = lockService.refreshLockRefreshTokens(ImmutableList.of(
                     possibleToken));
-
             if (!refreshedTokens.isEmpty()) {
                 return possibleToken;
             }
         }
+        return null;
+    }
 
+    private LockRefreshToken acquireNewSweepLease() throws InterruptedException {
         List<Integer> possibleGrants = new ArrayList<>(numberOfParallelSweeps);
         for (int i = 1; i <= numberOfParallelSweeps; i++) {
             possibleGrants.add(i);
@@ -109,7 +113,6 @@ class SweepLocks implements AutoCloseable {
             LockRefreshToken possibleGrant = lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
 
             if (possibleGrant != null) {
-                numberOfSweepsRunning.incrementAndGet();
                 return possibleGrant;
             }
         }
@@ -119,7 +122,6 @@ class SweepLocks implements AutoCloseable {
 
     void unlockSweepLease() {
         lockService.unlock(sweepLeaseToken);
-        numberOfSweepsRunning.decrementAndGet();
         sweepLeaseToken = null;
     }
 

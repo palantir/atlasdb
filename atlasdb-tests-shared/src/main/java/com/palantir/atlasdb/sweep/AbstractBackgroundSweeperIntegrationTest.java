@@ -17,6 +17,9 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
@@ -45,6 +48,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -75,7 +79,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
-        sweepLocks = new SweepLocks(txManager.getLockService(), NUMBER_OF_PARALLEL_SWEEPS, new AtomicInteger(0));
+        sweepLocks = new SweepLocks(txManager.getLockService(), NUMBER_OF_PARALLEL_SWEEPS);
         LongSupplier tsSupplier = sweepTimestamp::get;
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
@@ -92,7 +96,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         backgroundSweeper = BackgroundSweeperImpl.create(
                 sweepLocks,
                 () -> true, // sweepEnabled
-                specificTableSweeper);
+                specificTableSweeper,
+                new AtomicInteger(0),
+                new AtomicInteger(0));
     }
 
 //    @Test
@@ -138,13 +144,13 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 //        );
 //        parallelBackgroundSweeper.runInBackground();
 //
-//        while (!parallelBackgroundSweeper.isSweepRunning()) {
+//        while (!parallelBackgroundSweeper.isSweepComplete()) {
 //            Thread.sleep(1);
 //        }
 //
 //        long sweepStarted = System.nanoTime();
 //
-//        while (parallelBackgroundSweeper.isSweepRunning()) {
+//        while (parallelBackgroundSweeper.isSweepComplete()) {
 //            Thread.sleep(1);
 //        }
 //
@@ -167,11 +173,16 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         txService.putUnlessExists(1013, 1015);
         txService.putUnlessExists(1017, 1019);
 
-        ParallelBackgroundSweeperImpl parallelBackgroundSweeper = ParallelBackgroundSweeperImpl.create(
+        int numberOfConcurrentSweeps = 1;
+        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numberOfConcurrentSweeps,
+                new NamedThreadFactory("BackgroundSweeper", true));
+
+        ParallelBackgroundSweeperImpl parallelBackgroundSweeper = new ParallelBackgroundSweeperImpl(
                 () -> Boolean.TRUE,
                 () -> 2L,
                 specificTableSweeper,
-                1
+                numberOfConcurrentSweeps,
+                executorService
         );
 
         long setupEnded = System.nanoTime();
@@ -179,19 +190,22 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
         parallelBackgroundSweeper.runInBackground();
 
-        while (!parallelBackgroundSweeper.isSweepRunning()) {
+        while (!parallelBackgroundSweeper.hasSweepStarted()) {
             Thread.sleep(1);
         }
 
         long sweepStarted = System.nanoTime();
 
-        while (parallelBackgroundSweeper.isSweepRunning()) {
+        while (!parallelBackgroundSweeper.isSweepComplete()) {
             Thread.sleep(1);
         }
 
         long sweepFinished = System.nanoTime();
 
         System.out.println("Sweep duration: " + (sweepFinished - sweepStarted));
+
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     protected abstract KeyValueService getKeyValueService();

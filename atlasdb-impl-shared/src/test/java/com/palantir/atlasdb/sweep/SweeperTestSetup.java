@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.mockito.Mockito;
@@ -61,7 +62,9 @@ public class SweeperTestSetup {
                 sweepLocks,
                 nextTableToSweepProvider,
                 () -> sweepEnabled,
-                specificTableSweeper);
+                specificTableSweeper,
+                new AtomicInteger(0),
+                new AtomicInteger(0));
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {

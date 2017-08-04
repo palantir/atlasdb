@@ -43,7 +43,7 @@ public class SweepLocksTest {
 
     @Before
     public void setUp() {
-        sweepLocks = new SweepLocks(mockLockService, numberOfParallelSweeps, new AtomicInteger(0));
+        sweepLocks = new SweepLocks(mockLockService, numberOfParallelSweeps);
     }
 
     @Test

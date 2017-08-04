@@ -18,6 +18,8 @@ package com.palantir.atlasdb.sweep;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,6 +43,10 @@ public final class BackgroundSweeperImpl implements Runnable {
     private final Supplier<Boolean> isSweepEnabled;
     private final SpecificTableSweeper specificTableSweeper;
     private final SweepLocks sweepLocks;
+    private final AtomicInteger numberOfSweepsStarted;
+    private final AtomicInteger numberOfSweepsCompleted;
+    private AtomicBoolean hasStarted = new AtomicBoolean(false);
+    private AtomicBoolean hasFinished = new AtomicBoolean(false);
 
     static volatile double batchSizeMultiplier = 1.0;
 
@@ -49,24 +55,32 @@ public final class BackgroundSweeperImpl implements Runnable {
             SweepLocks sweepLocks,
             NextTableToSweepProvider nextTableToSweepProvider,
             Supplier<Boolean> isSweepEnabled,
-            SpecificTableSweeper specificTableSweeper) {
+            SpecificTableSweeper specificTableSweeper,
+            AtomicInteger numberOfSweepsStarted,
+            AtomicInteger numberOfSweepsCompleted) {
         this.sweepLocks = sweepLocks;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
         this.isSweepEnabled = isSweepEnabled;
         this.specificTableSweeper = specificTableSweeper;
+        this.numberOfSweepsStarted = numberOfSweepsStarted;
+        this.numberOfSweepsCompleted = numberOfSweepsCompleted;
     }
 
     public static BackgroundSweeperImpl create(
             SweepLocks sweepLocks,
             Supplier<Boolean> isSweepEnabled,
-            SpecificTableSweeper specificTableSweeper) {
+            SpecificTableSweeper specificTableSweeper,
+            AtomicInteger numberOfSweepsStarted,
+            AtomicInteger numberOfSweepsCompleted) {
         NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
                 specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
         return new BackgroundSweeperImpl(
                 sweepLocks,
                 nextTableToSweepProvider,
                 isSweepEnabled,
-                specificTableSweeper);
+                specificTableSweeper,
+                numberOfSweepsStarted,
+                numberOfSweepsCompleted);
     }
 
     @Override
@@ -84,6 +98,9 @@ public final class BackgroundSweeperImpl implements Runnable {
         boolean sweptSuccessfully = false;
         try {
             if (sweepLocks.lockOrRefreshSweepLease()) {
+                if (hasStarted.compareAndSet(false, true)) {
+                    numberOfSweepsStarted.incrementAndGet();
+                }
                 sweptSuccessfully = runOnce();
             } else {
                 log.error("Skipping sweep because sweep is running elsewhere.");
@@ -108,6 +125,8 @@ public final class BackgroundSweeperImpl implements Runnable {
 
         if (sweptSuccessfully) {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
+        } else if (hasFinished.compareAndSet(false, true)) {
+            numberOfSweepsCompleted.incrementAndGet();
         }
     }
 
@@ -116,7 +135,7 @@ public final class BackgroundSweeperImpl implements Runnable {
         Optional<TableToSweep> tableToSweep = getTableToSweep();
         if (!tableToSweep.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
-            log.error("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
+//            log.error("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             sweepLocks.unlockSweepLease();
             return false;
         } else {
@@ -162,7 +181,7 @@ public final class BackgroundSweeperImpl implements Runnable {
             return Optional.empty();
         });
 
-        log.error(String.format("Returning existing table to sweep %s", tablesWithProgress));
+//        log.error(String.format("Returning existing table to sweep %s", tablesWithProgress));
         return tableWithProgress.map(tableRef -> new TableToSweep(tableRef, tableRefToProgress.get(tableRef)));
     }
 
@@ -172,7 +191,7 @@ public final class BackgroundSweeperImpl implements Runnable {
                 nextTableToSweepProvider.chooseNextTableToSweep(
                         tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(), allTables));
 
-        log.error(String.format("Returning new table to sweep %s", newTable));
+//        log.error(String.format("Returning new table to sweep %s", newTable));
         return newTable.map(table -> new TableToSweep(table, null));
     }
 
