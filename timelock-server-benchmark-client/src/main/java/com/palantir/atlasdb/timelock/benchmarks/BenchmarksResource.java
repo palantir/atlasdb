@@ -18,9 +18,12 @@ package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import javax.ws.rs.QueryParam;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -152,5 +155,27 @@ public class BenchmarksResource implements BenchmarksService {
                         .put("h5", 500)
                         .build(),
                 config).execute();
+    }
+
+    @Override
+    public Map<String, Object> jkongTimestampByNumbers(@QueryParam("clients") int numClients,
+            @QueryParam("threads") int numThreadsPerClient, @QueryParam("timestamps") int numRequestsPerClient) {
+        Set<String> clients = IntStream.rangeClosed(1, numClients)
+                .mapToObj(x -> String.format("h%d", x))
+                .collect(Collectors.toSet());
+        Map<String, Integer> clientsToThreads = clients.stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        unused -> numThreadsPerClient));
+        Map<String, Integer> clientsToNumRequests = clients.stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        unused -> numRequestsPerClient));
+        return new MultiServiceTimestampBenchmark(clientsToThreads, clientsToNumRequests, config).execute();
+    }
+
+    @Override
+    public Map<String, Object> jkongSimpleTimestampByNumbers(@QueryParam("clients") int numClients) {
+        return jkongTimestampByNumbers(numClients, 10, 1000);
     }
 }

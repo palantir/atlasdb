@@ -16,11 +16,22 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -38,6 +49,8 @@ import okhttp3.Response;
 import okhttp3.TlsVersion;
 
 public final class FeignOkHttpClients {
+    private static final Logger log = LoggerFactory.getLogger(FeignOkHttpClients.class);
+
     @VisibleForTesting
     static final String USER_AGENT_HEADER = "User-Agent";
     private static final int CONNECTION_POOL_SIZE = 100;
@@ -105,15 +118,46 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             String userAgent,
             boolean retryOnConnectionFailure) {
+        // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
-                .hostnameVerifier((a, b) -> true)
-                .retryOnConnectionFailure(retryOnConnectionFailure);
+                .retryOnConnectionFailure(false);
         if (sslSocketFactory.isPresent()) {
-            builder.sslSocketFactory(sslSocketFactory.get());
+            // TODO (jkong): ONLY FOR TESTING DO NOT USE IN PRODUCTION
+            X509TrustManager nonProduction = new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                        throws CertificateException {
+                    log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                        throws CertificateException {
+                    log.error("ONLY FOR TESTING DO NOT USE IN PRODUCTION!");
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[]{};
+                }
+            };
+            TrustManager[] tms = new TrustManager[] {nonProduction};
+
+            SSLContext context = null;
+            try {
+                context = SSLContext.getInstance("SSL");
+                context.init(null, tms, new SecureRandom());
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                log.error("wat", e);
+                throw new RuntimeException(e);
+            }
+            builder.sslSocketFactory(context.getSocketFactory(), nonProduction);
         }
+        builder.hostnameVerifier((x, y) -> true);
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
+
         return new OkHttpClient(builder.build());
     }
 

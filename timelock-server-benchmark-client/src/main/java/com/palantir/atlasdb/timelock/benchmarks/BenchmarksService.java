@@ -83,4 +83,16 @@ public interface BenchmarksService {
     @GET
     @Path("/jkong-timestamp-ah")
     Map<String, Object> jkongTimestampAH();
+
+    @GET
+    @Path("/jkong-ts")
+    Map<String, Object> jkongTimestampByNumbers(
+            @QueryParam("clients") int numClients,
+            @QueryParam("threads") int numThreadsPerClient,
+            @QueryParam("timestamps") int numRequestsPerClient);
+
+    @GET
+    @Path("/jkong-simple-ts")
+    Map<String, Object> jkongSimpleTimestampByNumbers(
+            @QueryParam("clients") int numClients);
 }
