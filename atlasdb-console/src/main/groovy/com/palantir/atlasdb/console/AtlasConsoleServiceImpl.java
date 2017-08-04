@@ -107,7 +107,7 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
                 ImmutableMap.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(colName)),
                         PtBytes.toBytes(value)));
         service.put(token, tableCellVal);
-        return "nice";
+        return "{\"response\" : \"put_successful\"}";
     }
 
     @Override
