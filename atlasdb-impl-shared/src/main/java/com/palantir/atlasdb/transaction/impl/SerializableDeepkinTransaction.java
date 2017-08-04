@@ -24,8 +24,7 @@ import java.util.SortedMap;
 
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.deepkin.ReplayerService;
-import com.palantir.atlasdb.deepkin.TransactionMethod;
+import com.palantir.atlasdb.deepkin.DeepkinTransaction;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -35,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -44,12 +44,10 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-public class DeepkinReplayingTransaction extends SerializableTransaction {
-    private final ReplayerService replayerService;
+public class SerializableDeepkinTransaction extends SerializableTransaction {
+    private final DeepkinTransaction delegate;
 
-    public DeepkinReplayingTransaction(
-            ReplayerService replayerService,
-            KeyValueService keyValueService, RemoteLockService remoteLockService,
+    public SerializableDeepkinTransaction(KeyValueService keyValueService, RemoteLockService remoteLockService,
             TimestampService timestampService,
             TransactionService transactionService, Cleaner cleaner,
             com.google.common.base.Supplier<Long> startTimeStamp,
@@ -62,7 +60,7 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
         super(keyValueService, remoteLockService, timestampService, transactionService, cleaner, startTimeStamp, conflictDetectionManager,
                 sweepStrategyManager, immutableTimestamp, immutableTsLock, constraintCheckingMode,
                 transactionTimeoutMillis, readSentinelBehavior, allowHiddenTableAccess, timestampCache);
-        this.replayerService = replayerService;
+        this.delegate = new DeepkinTransaction(this);
     }
 
     @Override
@@ -70,7 +68,7 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
     public SortedMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef, Iterable<byte[]> rows,
             ColumnSelection columnSelection) {
-        return replayerService.getResult(TransactionMethod.GET_ROWS, tableRef, rows, columnSelection);
+        return delegate.getRows(tableRef, rows, columnSelection);
     }
 
     @Override
@@ -78,7 +76,7 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
-        return replayerService.getResult(TransactionMethod.GET_ROWS_COLUMN_RANGE, tableRef, rows, columnRangeSelection);
+        return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
     @Override
@@ -86,7 +84,7 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
     public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection, int batchHint) {
-        return replayerService.getResult(TransactionMethod.GET_BATCHED_ROWS_COLUMN_RANGE, tableRef, rows, columnRangeSelection, batchHint);
+        return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
     @Override
@@ -94,7 +92,7 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
     public Map<Cell, byte[]> get(
             TableReference tableRef,
             Set<Cell> cells) {
-        return replayerService.getResult(TransactionMethod.GET, tableRef, cells);
+        return delegate.get(tableRef, cells);
     }
 
     @Override
@@ -102,7 +100,7 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
     public BatchingVisitable<RowResult<byte[]>> getRange(
             TableReference tableRef,
             RangeRequest rangeRequest) {
-        return replayerService.getResult(TransactionMethod.GET_RANGE, tableRef, rangeRequest);
+        return delegate.getRange(tableRef, rangeRequest);
     }
 
     @Override
@@ -110,30 +108,60 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests) {
-        return replayerService.getResult(TransactionMethod.GET_RANGES, tableRef, rangeRequests);
+        return delegate.getRanges(tableRef, rangeRequests);
     }
 
     @Override
     @Idempotent
     public void commit() throws TransactionFailedException {
-        TransactionFailedException failure = replayerService.getResult(TransactionMethod.COMMIT);
-        if (failure != null) {
-            throw failure;
-        }
+        delegate.commit();
     }
 
     @Override
     @Idempotent
     public void commit(TransactionService transactionService) throws TransactionFailedException {
-        TransactionFailedException failure = replayerService.getResult(TransactionMethod.COMMIT_SERVICE);
-        if (failure != null) {
-            throw failure;
-        }
+        delegate.commit(transactionService);
     }
 
     @Override
     @Idempotent
     public long getTimestamp() {
-        return replayerService.getResult(TransactionMethod.GET_TIMESTAMP);
+        return delegate.getTimestamp();
+    }
+
+    @Override
+    @Idempotent
+    public void put(TableReference tableRef,
+            Map<Cell, byte[]> values) {
+        delegate.put(tableRef, values);
+    }
+
+    @Override
+    @Idempotent
+    public void abort() {
+        delegate.abort();
+    }
+
+    @Override
+    @Idempotent
+    public boolean isAborted() {
+        return delegate.isAborted();
+    }
+
+    @Override
+    @Idempotent
+    public boolean isUncommitted() {
+        return delegate.isUncommitted();
+    }
+
+    @Override
+    public TransactionReadSentinelBehavior getReadSentinelBehavior() {
+        return delegate.getReadSentinelBehavior();
+    }
+
+    @Override
+    public void useTable(TableReference tableRef,
+            ConstraintCheckable table) {
+        delegate.useTable(tableRef, table);
     }
 }

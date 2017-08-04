@@ -35,10 +35,10 @@ public interface CallArgument<T, V> {
     TypeToken<V> serializedType();
     Function<T, V> serializer();
 
-    CallArgument<TableReference, TableReference> TABLE_REFERENCE = ImmutableCallArgument.<TableReference, TableReference> builder()
+    CallArgument<TableReference, SerializableTableReference> TABLE_REFERENCE = ImmutableCallArgument.<TableReference, SerializableTableReference> builder()
             .name("tableRef")
-            .serializedType(new TypeToken<TableReference>(){})
-            .serializer(Function.identity())
+            .serializedType(new TypeToken<SerializableTableReference>(){})
+            .serializer(SerializableTableReference::from)
             .build();
     CallArgument<Iterable<byte[]>, List<byte[]>> ROWS = ImmutableCallArgument.<Iterable<byte[]>, List<byte[]>> builder()
             .name("rows")

@@ -36,7 +36,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.common.base.BatchingVisitable;
 
 @Value.Immutable
-public interface TransactionCall<T, V> {
+public interface TransactionMethod<T, V> {
     String name();
     List<CallArgument<?, ?>> callArguments();
     ResultTransform<T, V> resultTransform();
@@ -53,7 +53,7 @@ public interface TransactionCall<T, V> {
         return serialized;
     }
 
-    TransactionCall<SortedMap<byte[], RowResult<byte[]>>, SortedMap<byte[], RowResult<byte[]>>> GET_ROWS = ImmutableTransactionCall.<SortedMap<byte[], RowResult<byte[]>>, SortedMap<byte[], RowResult<byte[]>>> builder()
+    TransactionMethod<SortedMap<byte[], RowResult<byte[]>>, SortedMap<byte[], RowResult<byte[]>>> GET_ROWS = ImmutableTransactionMethod.<SortedMap<byte[], RowResult<byte[]>>, SortedMap<byte[], RowResult<byte[]>>> builder()
             .name("getRows")
             .addCallArguments(
                     CallArgument.TABLE_REFERENCE,
@@ -67,7 +67,7 @@ public interface TransactionCall<T, V> {
                     .build()
             )
             .build();
-    TransactionCall<Map<byte[], CachedBatchingVisitable<AbstractMap.SimpleEntry<Cell, byte[]>>>, Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>>> GET_ROWS_COLUMN_RANGE = ImmutableTransactionCall.<Map<byte[], CachedBatchingVisitable<AbstractMap.SimpleEntry<Cell, byte[]>>>, Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>>>builder()
+    TransactionMethod<Map<byte[], CachedBatchingVisitable<AbstractMap.SimpleEntry<Cell, byte[]>>>, Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>>> GET_ROWS_COLUMN_RANGE = ImmutableTransactionMethod.<Map<byte[], CachedBatchingVisitable<AbstractMap.SimpleEntry<Cell, byte[]>>>, Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>>>builder()
             .name("getRowsColumnRange")
             .addCallArguments(
                     CallArgument.TABLE_REFERENCE,
@@ -93,7 +93,7 @@ public interface TransactionCall<T, V> {
                     .build()
             )
             .build();
-    TransactionCall<List<Map.Entry<Cell, byte[]>>, Iterator<Map.Entry<Cell, byte[]>>> GET_BATCHED_ROWS_COLUMN_RANGE = ImmutableTransactionCall.<List<Map.Entry<Cell, byte[]>>, Iterator<Map.Entry<Cell, byte[]>>> builder()
+    TransactionMethod<List<Map.Entry<Cell, byte[]>>, Iterator<Map.Entry<Cell, byte[]>>> GET_BATCHED_ROWS_COLUMN_RANGE = ImmutableTransactionMethod.<List<Map.Entry<Cell, byte[]>>, Iterator<Map.Entry<Cell, byte[]>>> builder()
             .name("getBatchedRowsColumnRange")
             .addCallArguments(
                     CallArgument.TABLE_REFERENCE,
@@ -110,7 +110,7 @@ public interface TransactionCall<T, V> {
                     .build()
             )
             .build();
-    TransactionCall<Map<Cell, byte[]>, Map<Cell, byte[]>> GET = ImmutableTransactionCall.<Map<Cell, byte[]>, Map<Cell, byte[]>> builder()
+    TransactionMethod<Map<Cell, byte[]>, Map<Cell, byte[]>> GET = ImmutableTransactionMethod.<Map<Cell, byte[]>, Map<Cell, byte[]>> builder()
             .name("get")
             .addCallArguments(
                     CallArgument.TABLE_REFERENCE,
@@ -123,7 +123,7 @@ public interface TransactionCall<T, V> {
                     .build()
             )
             .build();
-    TransactionCall<CachedBatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RowResult<byte[]>>> GET_RANGE = ImmutableTransactionCall.<CachedBatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RowResult<byte[]>>> builder()
+    TransactionMethod<CachedBatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RowResult<byte[]>>> GET_RANGE = ImmutableTransactionMethod.<CachedBatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RowResult<byte[]>>> builder()
             .name("getRange")
             .addCallArguments(
                     CallArgument.TABLE_REFERENCE,
@@ -136,7 +136,7 @@ public interface TransactionCall<T, V> {
                     .build()
             )
             .build();
-    TransactionCall<List<CachedBatchingVisitable<RowResult<byte[]>>>, Iterable<BatchingVisitable<RowResult<byte[]>>>> GET_RANGES = ImmutableTransactionCall.<List<CachedBatchingVisitable<RowResult<byte[]>>>, Iterable<BatchingVisitable<RowResult<byte[]>>>> builder()
+    TransactionMethod<List<CachedBatchingVisitable<RowResult<byte[]>>>, Iterable<BatchingVisitable<RowResult<byte[]>>>> GET_RANGES = ImmutableTransactionMethod.<List<CachedBatchingVisitable<RowResult<byte[]>>>, Iterable<BatchingVisitable<RowResult<byte[]>>>> builder()
             .name("getRanges")
             .addCallArguments(
                     CallArgument.TABLE_REFERENCE,
@@ -149,7 +149,7 @@ public interface TransactionCall<T, V> {
                     .build()
             )
             .build();
-    TransactionCall<TransactionFailedException, TransactionFailedException> COMMIT = ImmutableTransactionCall.<TransactionFailedException, TransactionFailedException> builder()
+    TransactionMethod<TransactionFailedException, TransactionFailedException> COMMIT = ImmutableTransactionMethod.<TransactionFailedException, TransactionFailedException> builder()
             .name("commit")
             .resultTransform(ImmutableResultTransform.<TransactionFailedException, TransactionFailedException> builder()
                     .serializedType(new TypeToken<TransactionFailedException>() {})
@@ -158,7 +158,7 @@ public interface TransactionCall<T, V> {
                     .build()
             )
             .build();
-    TransactionCall<TransactionFailedException, TransactionFailedException> COMMIT_SERVICE = ImmutableTransactionCall.<TransactionFailedException, TransactionFailedException> builder()
+    TransactionMethod<TransactionFailedException, TransactionFailedException> COMMIT_SERVICE = ImmutableTransactionMethod.<TransactionFailedException, TransactionFailedException> builder()
             .name("commitService")
             .resultTransform(ImmutableResultTransform.<TransactionFailedException, TransactionFailedException> builder()
                     .serializedType(new TypeToken<TransactionFailedException>() {})
@@ -166,7 +166,7 @@ public interface TransactionCall<T, V> {
                     .deserializer(Function.identity())
                     .build())
             .build();
-    TransactionCall<Long, Long> GET_TIMESTAMP = ImmutableTransactionCall.<Long, Long> builder()
+    TransactionMethod<Long, Long> GET_TIMESTAMP = ImmutableTransactionMethod.<Long, Long> builder()
             .name("getTimestamp")
             .resultTransform(ImmutableResultTransform.<Long, Long> builder()
                     .serializedType(new TypeToken<Long>() {})

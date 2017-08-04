@@ -14,55 +14,35 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.deepkin;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.deepkin.ReplayerService;
-import com.palantir.atlasdb.deepkin.TransactionMethod;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
 
-public class DeepkinReplayingTransaction extends SerializableTransaction {
+public class DeepkinReplayingTransaction implements Transaction {
     private final ReplayerService replayerService;
+    private final Transaction delegate;
 
-    public DeepkinReplayingTransaction(
-            ReplayerService replayerService,
-            KeyValueService keyValueService, RemoteLockService remoteLockService,
-            TimestampService timestampService,
-            TransactionService transactionService, Cleaner cleaner,
-            com.google.common.base.Supplier<Long> startTimeStamp,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager, long immutableTimestamp,
-            List<LockRefreshToken> immutableTsLock,
-            AtlasDbConstraintCheckingMode constraintCheckingMode, Long transactionTimeoutMillis,
-            TransactionReadSentinelBehavior readSentinelBehavior, boolean allowHiddenTableAccess,
-            TimestampCache timestampCache) {
-        super(keyValueService, remoteLockService, timestampService, transactionService, cleaner, startTimeStamp, conflictDetectionManager,
-                sweepStrategyManager, immutableTimestamp, immutableTsLock, constraintCheckingMode,
-                transactionTimeoutMillis, readSentinelBehavior, allowHiddenTableAccess, timestampCache);
+    public DeepkinReplayingTransaction(ReplayerService replayerService, Transaction delegate) {
         this.replayerService = replayerService;
+        this.delegate = delegate;
     }
 
     @Override
@@ -135,5 +115,50 @@ public class DeepkinReplayingTransaction extends SerializableTransaction {
     @Idempotent
     public long getTimestamp() {
         return replayerService.getResult(TransactionMethod.GET_TIMESTAMP);
+    }
+
+    @Override
+    public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        // no-op
+    }
+
+    @Override
+    public void delete(TableReference tableRef, Set<Cell> keys) {
+        // no-op
+    }
+
+    @Override
+    public TransactionType getTransactionType() {
+        return delegate.getTransactionType();
+    }
+
+    @Override
+    public void setTransactionType(TransactionType transactionType) {
+        delegate.setTransactionType(transactionType);
+    }
+
+    @Override
+    public void abort() {
+        // no-op
+    }
+
+    @Override
+    public boolean isAborted() {
+        return delegate.isAborted();
+    }
+
+    @Override
+    public boolean isUncommitted() {
+        return delegate.isUncommitted();
+    }
+
+    @Override
+    public TransactionReadSentinelBehavior getReadSentinelBehavior() {
+        return delegate.getReadSentinelBehavior();
+    }
+
+    @Override
+    public void useTable(TableReference tableRef, ConstraintCheckable table) {
+        delegate.useTable(tableRef, table);
     }
 }

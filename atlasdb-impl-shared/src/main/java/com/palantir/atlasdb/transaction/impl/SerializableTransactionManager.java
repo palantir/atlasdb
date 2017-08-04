@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.deepkin.DeepkinTransaction;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -77,7 +78,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     protected SnapshotTransaction createTransaction(long immutableLockTs,
                                                   Supplier<Long> startTimestampSupplier,
                                                   ImmutableList<LockRefreshToken> allTokens) {
-        return new DeepkinTransaction(
+        return new SerializableDeepkinTransaction(
                 keyValueService,
                 lockService,
                 timestampService,

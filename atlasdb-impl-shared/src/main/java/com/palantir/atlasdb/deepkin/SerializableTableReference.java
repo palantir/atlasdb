@@ -16,6 +16,20 @@
 
 package com.palantir.atlasdb.deepkin;
 
-public interface ReplayerService {
-    <Y, T> T getResult(TransactionMethod<Y, T> call, Object... arguments);
+import java.io.Serializable;
+
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
+public class SerializableTableReference implements Serializable {
+    protected String namespace;
+    protected String tableName;
+
+    protected SerializableTableReference(String namespace, String tableName) {
+        this.namespace = namespace;
+        this.tableName = tableName;
+    }
+
+    public static SerializableTableReference from(TableReference reference) {
+        return new SerializableTableReference(reference.getNamespace().getName(), reference.getTablename());
+    }
 }
