@@ -78,7 +78,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     protected SnapshotTransaction createTransaction(long immutableLockTs,
                                                   Supplier<Long> startTimestampSupplier,
                                                   ImmutableList<LockRefreshToken> allTokens) {
-        return new SerializableDeepkinTransaction(
+        return new DeepkinTransaction(
                 keyValueService,
                 lockService,
                 timestampService,

@@ -25,31 +25,51 @@ import java.util.SortedMap;
 import java.util.function.Supplier;
 
 import com.google.common.base.Throwables;
+import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
-import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransaction;
+import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.RemoteLockService;
 import com.palantir.remoting2.tracing.OpenSpan;
 import com.palantir.remoting2.tracing.SpanType;
 import com.palantir.remoting2.tracing.Tracer;
+import com.palantir.timestamp.TimestampService;
 
 import okio.Buffer;
 
-public class DeepkinTransaction implements Transaction {
-    private final Transaction delegate;
+public class DeepkinTransaction extends SerializableTransaction {
 
-    public DeepkinTransaction(Transaction delegate) {
-        this.delegate = delegate;
+    public DeepkinTransaction(KeyValueService keyValueService,
+            RemoteLockService lockService, TimestampService timestampService,
+            TransactionService transactionService, Cleaner cleaner,
+            com.google.common.base.Supplier<Long> startTimeStamp,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager, long immutableTimestamp,
+            Iterable<LockRefreshToken> tokensValidForCommit,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Long transactionTimeoutMillis,
+            TransactionReadSentinelBehavior readSentinelBehavior, boolean allowHiddenTableAccess,
+            TimestampCache timestampCache) {
+        super(keyValueService, lockService, timestampService, transactionService, cleaner, startTimeStamp,
+                conflictDetectionManager, sweepStrategyManager, immutableTimestamp, tokensValidForCommit,
+                constraintCheckingMode, transactionTimeoutMillis, readSentinelBehavior, allowHiddenTableAccess,
+                timestampCache);
     }
 
     @Override
@@ -59,7 +79,7 @@ public class DeepkinTransaction implements Transaction {
             ColumnSelection columnSelection) {
         return delegate(
                 TransactionMethod.GET_ROWS,
-                () -> delegate.getRows(tableRef, rows, columnSelection),
+                () -> super.getRows(tableRef, rows, columnSelection),
                 tableRef, rows, columnSelection
         );
     }
@@ -71,7 +91,7 @@ public class DeepkinTransaction implements Transaction {
             BatchColumnRangeSelection columnRangeSelection) {
         return delegate(
                 TransactionMethod.GET_ROWS_COLUMN_RANGE,
-                () -> delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection),
+                () -> super.getRowsColumnRange(tableRef, rows, columnRangeSelection),
                 tableRef, rows, columnRangeSelection
         );
     }
@@ -83,7 +103,7 @@ public class DeepkinTransaction implements Transaction {
             ColumnRangeSelection columnRangeSelection, int batchHint) {
         return delegate(
                 TransactionMethod.GET_BATCHED_ROWS_COLUMN_RANGE,
-                () -> delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint),
+                () -> super.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint),
                 tableRef, rows, columnRangeSelection, batchHint
         );
     }
@@ -93,7 +113,7 @@ public class DeepkinTransaction implements Transaction {
     public Map<Cell, byte[]> get(
             TableReference tableRef,
             Set<Cell> cells) {
-        return delegate(TransactionMethod.GET, () -> delegate.get(tableRef, cells), tableRef, cells);
+        return delegate(TransactionMethod.GET, () -> super.get(tableRef, cells), tableRef, cells);
     }
 
     @Override
@@ -101,7 +121,7 @@ public class DeepkinTransaction implements Transaction {
     public BatchingVisitable<RowResult<byte[]>> getRange(
             TableReference tableRef,
             RangeRequest rangeRequest) {
-        return delegate(TransactionMethod.GET_RANGE, () -> delegate.getRange(tableRef, rangeRequest), tableRef, rangeRequest);
+        return delegate(TransactionMethod.GET_RANGE, () -> super.getRange(tableRef, rangeRequest), tableRef, rangeRequest);
     }
 
     @Override
@@ -109,7 +129,7 @@ public class DeepkinTransaction implements Transaction {
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests) {
-        return delegate(TransactionMethod.GET_RANGES, () -> delegate.getRanges(tableRef, rangeRequests), tableRef, rangeRequests);
+        return delegate(TransactionMethod.GET_RANGES, () -> super.getRanges(tableRef, rangeRequests), tableRef, rangeRequests);
     }
 
     @Override
@@ -117,7 +137,7 @@ public class DeepkinTransaction implements Transaction {
     public void commit() throws TransactionFailedException {
         TransactionFailedException failure = delegate(TransactionMethod.COMMIT, () -> {
             try {
-                delegate.commit();
+                super.commit();
             } catch (TransactionFailedException e) {
                 return e;
             }
@@ -133,7 +153,7 @@ public class DeepkinTransaction implements Transaction {
     public void commit(TransactionService transactionService) throws TransactionFailedException {
         TransactionFailedException failure = delegate(TransactionMethod.COMMIT_SERVICE, () -> {
             try {
-                delegate.commit(transactionService);
+                super.commit(transactionService);
             } catch (TransactionFailedException e) {
                 return e;
             }
@@ -147,7 +167,7 @@ public class DeepkinTransaction implements Transaction {
     @Override
     @Idempotent
     public long getTimestamp() {
-        return delegate(TransactionMethod.GET_TIMESTAMP, delegate::getTimestamp);
+        return delegate(TransactionMethod.GET_TIMESTAMP, super::getTimestamp);
     }
 
     private <T, Y> T delegate(TransactionMethod<Y, T> call, Supplier<T> resulter, Object... arguments) {
@@ -169,60 +189,5 @@ public class DeepkinTransaction implements Transaction {
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
-    }
-
-    @Override
-    @Idempotent
-    public void put(TableReference tableRef,
-            Map<Cell, byte[]> values) {
-        delegate.put(tableRef, values);
-    }
-
-    @Override
-    @Idempotent
-    public void delete(TableReference tableRef,
-            Set<Cell> keys) {
-        delegate.delete(tableRef, keys);
-    }
-
-    @Override
-    @Idempotent
-    public TransactionType getTransactionType() {
-        return delegate.getTransactionType();
-    }
-
-    @Override
-    @Idempotent
-    public void setTransactionType(TransactionType transactionType) {
-        delegate.setTransactionType(transactionType);
-    }
-
-    @Override
-    @Idempotent
-    public void abort() {
-        delegate.abort();
-    }
-
-    @Override
-    @Idempotent
-    public boolean isAborted() {
-        return delegate.isAborted();
-    }
-
-    @Override
-    @Idempotent
-    public boolean isUncommitted() {
-        return delegate.isUncommitted();
-    }
-
-    @Override
-    public TransactionReadSentinelBehavior getReadSentinelBehavior() {
-        return delegate.getReadSentinelBehavior();
-    }
-
-    @Override
-    public void useTable(TableReference tableRef,
-            ConstraintCheckable table) {
-        delegate.useTable(tableRef, table);
     }
 }
