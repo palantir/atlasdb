@@ -69,6 +69,11 @@ public interface AtlasConsoleService {
 
 
     @POST
+    @Path("put-nice/{token}")
+    @Produces(MediaType.APPLICATION_JSON)
+    void put(@PathParam("token") TransactionToken token, @QueryParam("tableName") String tableName, @QueryParam("rowName") String rowName, @QueryParam("colName") String colName, @QueryParam("value") String value) throws IOException;
+
+    @POST
     @Path("delete/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     void delete(@PathParam("token") TransactionToken token, @QueryParam("data") String data) throws IOException;

@@ -20,6 +20,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TableCell;
@@ -29,7 +30,9 @@ import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.common.annotation.Immutable;
 
 public class AtlasConsoleServiceImpl implements AtlasConsoleService {
 
@@ -95,6 +98,15 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
     public void put(TransactionToken token, String data) throws IOException {
         TableCellVal cells = fromJson(data, TableCellVal.class);
         service.put(token, cells);
+    }
+
+    @Override
+    public void put(TransactionToken token, String tableName, String rowName, String colName, String value)
+            throws IOException {
+        TableCellVal tableCellVal = new TableCellVal(tableName,
+                ImmutableMap.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(colName)),
+                        PtBytes.toBytes(value)));
+        service.put(token, tableCellVal);
     }
 
     @Override
