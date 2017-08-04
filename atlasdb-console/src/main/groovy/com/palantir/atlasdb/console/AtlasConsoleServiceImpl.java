@@ -101,12 +101,13 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
     }
 
     @Override
-    public void put(TransactionToken token, String tableName, String rowName, String colName, String value)
+    public String put(TransactionToken token, String tableName, String rowName, String colName, String value)
             throws IOException {
         TableCellVal tableCellVal = new TableCellVal(tableName,
                 ImmutableMap.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(colName)),
                         PtBytes.toBytes(value)));
         service.put(token, tableCellVal);
+        return "nice";
     }
 
     @Override

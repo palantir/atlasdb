@@ -61,9 +61,9 @@ public class DisconnectedAtlasConsoleService implements AtlasConsoleService {
     }
 
     @Override
-    public void put(TransactionToken token, String tableName, String rowName, String colName, String value)
+    public String put(TransactionToken token, String tableName, String rowName, String colName, String value)
             throws IOException {
-        fail();
+        return fail();
     }
 
     @Override
