@@ -16,12 +16,17 @@
 package com.palantir.atlasdb.console;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.api.AtlasDbService;
+import com.palantir.atlasdb.api.RangeResult;
 import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TableCell;
 import com.palantir.atlasdb.api.TableCellVal;
@@ -31,8 +36,9 @@ import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.common.annotation.Immutable;
 
 public class AtlasConsoleServiceImpl implements AtlasConsoleService {
 
@@ -84,7 +90,20 @@ public class AtlasConsoleServiceImpl implements AtlasConsoleService {
     public String getFullRange(TransactionToken token, String tableName) throws IOException {
         TableRange range = new TableRange(tableName, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, ImmutableList.of(), 100);
         RangeToken result = service.getRange(token, range);
-        return toJson(result, RangeToken.class);
+
+
+        List<RangeResult> results = new ArrayList<>();
+
+        for (RowResult<byte[]> s: result.getResults().getResults()) {
+            Iterator<Map.Entry<byte[], byte[]>> iterator = s.getColumns().entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<byte[], byte[]> next = iterator.next();
+                results.add(new RangeResult(PtBytes.toString(s.getRowName()), PtBytes.toString(next.getKey()), PtBytes.toString(next.getValue())));
+            }
+        }
+        RangeResultsList rangeResults = new RangeResultsList(results, result.getNextRange());
+
+        return toJson(rangeResults, RangeResultsList.class);
     }
 
     @Override
