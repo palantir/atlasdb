@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 
@@ -30,6 +31,8 @@ public class NameComponentDescriptionTest {
             TableMetadataPersistence.ValueByteOrder.ASCENDING;
     private static final UniformRowNamePartitioner UNIFORM_ROW_NAME_PARTITIONER =
             new UniformRowNamePartitioner(VALUE_TYPE);
+    private static final ExplicitRowNamePartitioner EXPLICIT_ROW_NAME_PARTITIONER =
+            new ExplicitRowNamePartitioner(VALUE_TYPE, ImmutableSet.of());
 
     private static final NameComponentDescription DEFAULT_UNNAMED_DESCRIPTION = new NameComponentDescription();
     private static final NameComponentDescription LOGGABILITY_UNSPECIFIED_DESCRIPTION =
@@ -44,6 +47,25 @@ public class NameComponentDescriptionTest {
             createWithSpecifiedLogSafety(LogSafety.SAFE);
     private static final NameComponentDescription NAME_NOT_LOGGABLE_DESCRIPTION =
             createWithSpecifiedLogSafety(LogSafety.UNSAFE);
+
+    @Test
+    public void builderCanCreateNameComponentDescription() {
+        NameComponentDescription description = new NameComponentDescription.Builder()
+                .componentName(COMPONENT_NAME)
+                .type(VALUE_TYPE)
+                .byteOrder(VALUE_BYTE_ORDER)
+                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                .logSafety(LogSafety.SAFE)
+                .build();
+
+        assertThat(description.getComponentName()).isEqualTo(COMPONENT_NAME);
+        assertThat(description.getType()).isEqualTo(VALUE_TYPE);
+        assertThat(description.getOrder()).isEqualTo(VALUE_BYTE_ORDER);
+        assertThat(description.uniformPartitioner).isEqualTo(UNIFORM_ROW_NAME_PARTITIONER);
+        assertThat(description.getExplicitPartitioner()).isEqualTo(EXPLICIT_ROW_NAME_PARTITIONER);
+        assertThat(description.getLogSafety()).isEqualTo(LogSafety.SAFE);
+    }
 
     @Test
     public void nameIsNotLoggableInDefaultDescription() {

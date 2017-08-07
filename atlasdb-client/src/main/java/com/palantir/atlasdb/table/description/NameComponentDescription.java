@@ -25,7 +25,6 @@ import org.apache.commons.lang.Validate;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 
 @Immutable
@@ -36,6 +35,52 @@ public class NameComponentDescription {
     @Nullable final UniformRowNamePartitioner uniformPartitioner;
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
     final LogSafety logSafety;
+
+    // TODO: make references use the builder
+    // TODO 2: remove all of these constructors
+    public static final class Builder {
+        private String componentName;
+        private ValueType type;
+        private ValueByteOrder order;
+        private UniformRowNamePartitioner uniformPartitioner;
+        private ExplicitRowNamePartitioner explicitPartitioner;
+        private LogSafety logSafety;
+
+        Builder componentName(String name) {
+            this.componentName = name;
+            return this;
+        }
+
+        Builder type(ValueType valueType) {
+            this.type = valueType;
+            return this;
+        }
+
+        Builder byteOrder(ValueByteOrder byteOrder) {
+            this.order = byteOrder;
+            return this;
+        }
+
+        Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
+            this.uniformPartitioner = partitioner;
+            return this;
+        }
+
+        Builder explicitRowNamePartitioner(ExplicitRowNamePartitioner partitioner) {
+            this.explicitPartitioner = partitioner;
+            return this;
+        }
+
+        Builder logSafety(LogSafety safety) {
+            this.logSafety = safety;
+            return this;
+        }
+
+        NameComponentDescription build() {
+            return new NameComponentDescription(componentName, type, order, uniformPartitioner, explicitPartitioner, logSafety);
+        }
+//
+    }
 
     public NameComponentDescription() {
         this("name", ValueType.BLOB);
@@ -114,7 +159,8 @@ public class NameComponentDescription {
     }
 
     public TableMetadataPersistence.NameComponentDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.NameComponentDescription.newBuilder();
+        TableMetadataPersistence.NameComponentDescription.Builder builder
+                = TableMetadataPersistence.NameComponentDescription.newBuilder();
         builder.setComponentName(componentName);
         builder.setType(type.persistToProto());
         builder.setOrder(getOrder());
