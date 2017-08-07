@@ -82,21 +82,33 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.ignoreTableNameLengthChecks();
         String longTableName = String.join("", Collections.nCopies(100, "x"));
-        schema.addTableDefinition(longTableName, getSimpleTableDefinition(TABLE_REF));
+        TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testLongTableNameLengthFailsCassandra() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(49, "x"));
-        schema.addTableDefinition(longTableName, getSimpleTableDefinition(TABLE_REF));
+        TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testLongTableNameLengthFailsPostgres() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(64, "x"));
-        schema.addTableDefinition(longTableName, getSimpleTableDefinition(TABLE_REF));
+        TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testLongTableNameLengthFailsNamespace() throws IOException {
+        // If namespace is non-empty, internal table name length is |namespace| + |tableName| + 2
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+        String longTableName = String.join("", Collections.nCopies(40, "x"));
+        TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, longTableName);
+        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
