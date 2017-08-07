@@ -218,7 +218,7 @@ public class TableDefinitionTest {
     }
 
     @Test
-    public void cannotSpecifyTableNameLogSafetyMultipleTimes() {
+    public void cannotSpecifyTableNameLogSafetyAsBothSafeAndUnsafe() {
         assertThatThrownBy(() -> new TableDefinition() {{
             javaTableName(TABLE_REF.getTablename());
             tableNameLogSafety(LogSafety.SAFE);
@@ -231,7 +231,7 @@ public class TableDefinitionTest {
     }
 
     @Test
-    public void cannotSpecifyTableNameIsUnsafeWithAllComponentsAsSafe() {
+    public void cannotSpecifyTableNameIsUnsafeWithEverythingSafe() {
         assertThatThrownBy(() -> new TableDefinition() {{
             javaTableName(TABLE_REF.getTablename());
             tableNameLogSafety(LogSafety.UNSAFE);
@@ -241,6 +241,23 @@ public class TableDefinitionTest {
             columns();
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }}).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void canSpecifyTableNameAsUnsafeWithAllComponentsAsSafe() {
+        TableDefinition definition = new TableDefinition() {{
+            tableNameLogSafety(LogSafety.UNSAFE);
+            namedComponentsSafeByDefault();
+            javaTableName(TABLE_REF.getTablename());
+            rowName();
+            rowComponent(ROW_NAME, ValueType.STRING);
+            columns();
+            column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
+        }};
+
+        assertThat(definition.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
+        assertRowComponentSafety(definition, LogSafety.SAFE);
+        assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
 
     /**
