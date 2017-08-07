@@ -85,7 +85,8 @@ public class NameComponentDescription {
                 uniformPartitioner = new UniformRowNamePartitioner(type);
             }
 
-            return new NameComponentDescription(componentName, type, order, uniformPartitioner, explicitPartitioner, logSafety);
+            return new NameComponentDescription(componentName, type, order,
+                    uniformPartitioner, explicitPartitioner, logSafety);
         }
 //
     }
