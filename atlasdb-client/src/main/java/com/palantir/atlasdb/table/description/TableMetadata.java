@@ -290,11 +290,11 @@ public class TableMetadata implements Persistable {
         result = prime * result + ((partitionStrategy == null) ? 0 : partitionStrategy.hashCode());
         result = prime * result + (rangeScanAllowed ? 1231 : 1237);
         result = prime * result + ((rowMetadata == null) ? 0 : rowMetadata.hashCode());
-        result = prime * result + (rangeScanAllowed? 0 : 1);
-        result = prime * result + (explicitCompressionBlockSizeKB);
-        result = prime * result + (negativeLookups? 0 : 1);
-        result = prime * result + (sweepStrategy.hashCode());
-        result = prime * result + (appendHeavyAndReadLight? 0 : 1);
+        result = prime * result + (rangeScanAllowed ? 0 : 1);
+        result = prime * result + explicitCompressionBlockSizeKB;
+        result = prime * result + (negativeLookups ? 0 : 1);
+        result = prime * result + sweepStrategy.hashCode();
+        result = prime * result + (appendHeavyAndReadLight ? 0 : 1);
         result = prime * result + nameLogSafety.hashCode(); // Nonnull, because it has a default value
         return result;
     }
