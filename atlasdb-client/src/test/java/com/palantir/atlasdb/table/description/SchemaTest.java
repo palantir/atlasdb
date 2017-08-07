@@ -95,7 +95,7 @@ public class SchemaTest {
     @Test(expected = IllegalArgumentException.class)
     public void testLongTableNameLengthFailsPostgres() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String longTableName = String.join("", Collections.nCopies(65, "x"));
+        String longTableName = String.join("", Collections.nCopies(64, "x"));
         schema.addTableDefinition(longTableName, getSimpleTableDefinition(TABLE_REF));
     }
 

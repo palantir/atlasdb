@@ -42,9 +42,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -69,9 +71,6 @@ public class Schema {
     private final Namespace namespace;
     private final OptionalType optionalType;
     private boolean ignoreTableNameLengthChecks = false;
-    private static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
-    private static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
-
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
     private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
@@ -113,17 +112,25 @@ public class Schema {
                 Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
         if (!ignoreTableNameLengthChecks) {
-            int internalTableNameLength = Schemas.getInternalTableNameLength(tableName, namespace);
+            String internalTableName = AbstractKeyValueService.internalTableName(
+                    TableReference.create(namespace, tableName));
             Preconditions.checkArgument(
-                    internalTableNameLength <= POSTGRES_TABLE_NAME_CHAR_LIMIT,
-                    "Table name %s is too long, exceeds Cassandra and Postgres limits. " +
+                    internalTableName.length() <= AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT,
+                    "Internal table name %s is too long, exceeds Cassandra limit (%s) " +
+                            "and Postgres limit (%s). If using a table prefix, please ensure that the concatenation " +
+                            "of the prefix with the internal table name is below the KVS limit. " +
                             "If running using a different KVS, set the ignoreTableNameLength flag.",
-                    tableName);
+                    internalTableName,
+                    AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT,
+                    AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT);
             Preconditions.checkArgument(
-                    internalTableNameLength <= CASSANDRA_TABLE_NAME_CHAR_LIMIT,
-                    "Table name %s is too long, exceeds Cassandra limit. " +
+                    internalTableName.length() <= AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT,
+                    "Internal table name %s is too long, exceeds Cassandra limit (%s). " +
+                            "If using a table prefix, please ensure that the concatenation " +
+                            "of the prefix with the internal table name is below the KVS limit. " +
                             "If running using a different KVS, set the ignoreTableNameLength flag.",
-                    tableName);
+                    internalTableName,
+                    AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT);
         }
         tableDefinitions.put(tableName, definition);
     }
