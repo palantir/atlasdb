@@ -83,12 +83,6 @@ public final class Schemas {
         return true;
     }
 
-    public static int getInternalTableNameLength(String tableName, Namespace namespace) {
-        // The table name computed at run-time is (generally) the concatenation of the namespace name
-        // with the raw table name, separated by two underscores.
-        return tableName.length() + namespace.getName().length() + 2;
-    }
-
     private Schemas() {
         //
     }
