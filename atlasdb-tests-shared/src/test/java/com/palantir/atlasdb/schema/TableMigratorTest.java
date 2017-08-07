@@ -41,7 +41,6 @@ import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -87,16 +86,13 @@ public class TableMigratorTest extends AtlasDbTestCase {
 
         final Cell theCell = Cell.create(PtBytes.toBytes("r1"), PtBytes.toBytes("c"));
         final byte[] theValue = PtBytes.toBytes("v1");
-        txManager.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction txn) {
-                Map<Cell, byte[]> values = ImmutableMap.of(
-                        theCell,
-                        theValue);
-                txn.put(tableRef, values);
-                txn.put(namespacedTableRef, values);
-                return null;
-            }
+        txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
+            Map<Cell, byte[]> values = ImmutableMap.of(
+                    theCell,
+                    theValue);
+            txn.put(tableRef, values);
+            txn.put(namespacedTableRef, values);
+            return null;
         });
 
         // migration doesn't use namespace mapping
@@ -149,24 +145,21 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 verifySsm);
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
-            verifyTxManager.runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
-                @Override
-                public Void execute(Transaction txn) {
-                    BatchingVisitable<RowResult<byte[]>> bv = txn.getRange(name, RangeRequest.all());
-                    bv.batchAccept(1000, AbortingVisitors.batching(
-                            new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-                                @Override
-                                public boolean visit(RowResult<byte[]> item) throws RuntimeException {
-                                    Iterable<Entry<Cell, byte[]>> cells = item.getCells();
-                                    Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
-                                    Assert.assertEquals(theCell, entry.getKey());
-                                    Assert.assertArrayEquals(theValue, entry.getValue());
-                                    count.increment();
-                                    return true;
-                                }
-                            }));
-                    return null;
-                }
+            verifyTxManager.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {
+                BatchingVisitable<RowResult<byte[]>> bv = txn.getRange(name, RangeRequest.all());
+                bv.batchAccept(1000, AbortingVisitors.batching(
+                        new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
+                            @Override
+                            public boolean visit(RowResult<byte[]> item) throws RuntimeException {
+                                Iterable<Entry<Cell, byte[]>> cells = item.getCells();
+                                Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
+                                Assert.assertEquals(theCell, entry.getKey());
+                                Assert.assertArrayEquals(theValue, entry.getValue());
+                                count.increment();
+                                return true;
+                            }
+                        }));
+                return null;
             });
         }
         Assert.assertEquals(2L, count.longValue());

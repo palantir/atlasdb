@@ -59,14 +59,12 @@ public class KeyValueServicePuncherStoreTest {
 
     @Test
     public void getTimestampForMillisReturnsTimestampIfQueryingPreciseClockTime() {
-        PUNCHER_HISTORY.entrySet().forEach(
-                entry -> assertThat(puncherStore.get(entry.getValue())).isEqualTo(entry.getKey()));
+        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.get(value)).isEqualTo(key));
     }
 
     @Test
     public void getTimestampForMillisReturnsLastTimestampKnownToOccurBeforeQueriedTime() {
-        PUNCHER_HISTORY.entrySet().forEach(
-                entry -> assertThat(puncherStore.get(entry.getValue() + 1)).isEqualTo(entry.getKey()));
+        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.get(value + 1)).isEqualTo(key));
     }
 
     @Test
@@ -77,15 +75,13 @@ public class KeyValueServicePuncherStoreTest {
 
     @Test
     public void getMillisForTimestampReturnsClockTimeIfQueryingPreciseTimestamp() {
-        PUNCHER_HISTORY.entrySet().forEach(
-                entry -> assertThat(puncherStore.getMillisForTimestamp(entry.getKey())).isEqualTo(entry.getValue()));
+        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.getMillisForTimestamp(key)).isEqualTo(value));
     }
 
     @Test
     public void getMillisForTimestampReturnsLastTimeKnownToOccurBeforeQueriedTimestamp() {
-        PUNCHER_HISTORY.entrySet().forEach(
-                entry -> assertThat(puncherStore.getMillisForTimestamp(entry.getKey() + 1))
-                        .isEqualTo(entry.getValue()));
+        PUNCHER_HISTORY.forEach((key, value) -> assertThat(puncherStore.getMillisForTimestamp(key + 1))
+                .isEqualTo(value));
     }
 
     @Test
@@ -119,7 +115,7 @@ public class KeyValueServicePuncherStoreTest {
 
     private static PuncherStore initializePuncherStore(Map<Long, Long> timestampMap) {
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(new InMemoryKeyValueService(false));
-        timestampMap.entrySet().forEach(entry -> puncherStore.put(entry.getKey(), entry.getValue()));
+        timestampMap.forEach((key, value) -> puncherStore.put(key, value));
         return puncherStore;
     }
 }

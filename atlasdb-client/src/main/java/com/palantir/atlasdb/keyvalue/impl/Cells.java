@@ -59,21 +59,11 @@ public class Cells {
     private Cells() { /* */ }
 
     public static Function<Cell, byte[]> getRowFunction() {
-        return new Function<Cell, byte[]>() {
-            @Override
-            public byte[] apply(Cell from) {
-                return from.getRowName();
-            }
-        };
+        return from -> from.getRowName();
     }
 
     public static Function<Cell, byte[]> getColumnFunction() {
-        return new Function<Cell, byte[]>() {
-            @Override
-            public byte[] apply(Cell from) {
-                return from.getColumnName();
-            }
-        };
+        return from -> from.getColumnName();
     }
 
     public static SortedSet<byte[]> getRows(Iterable<Cell> cells) {
@@ -122,11 +112,8 @@ public class Cells {
         NavigableMap<byte[], SortedMap<byte[], T>> ret = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<Cell, T> e : map) {
             byte[] row = e.getKey().getRowName();
-            SortedMap<byte[], T> sortedMap = ret.get(row);
-            if (sortedMap == null) {
-                sortedMap = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-                ret.put(row, sortedMap);
-            }
+            SortedMap<byte[], T> sortedMap = ret.computeIfAbsent(row,
+                    rowName -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
             sortedMap.put(e.getKey().getColumnName(), e.getValue());
         }
         return ret;
@@ -187,12 +174,7 @@ public class Cells {
     }
 
     public static Function<byte[], String> getNameFromBytesFunction() {
-        return new Function<byte[], String>() {
-            @Override
-            public String apply(@Nullable byte[] input) {
-                return getNameFromBytes(input);
-            }
-        };
+        return input -> getNameFromBytes(input);
     }
 
     public static String getNameFromBytes(byte[] name) {

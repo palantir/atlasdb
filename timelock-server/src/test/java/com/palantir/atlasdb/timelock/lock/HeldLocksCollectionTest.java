@@ -123,16 +123,12 @@ public class HeldLocksCollectionTest {
 
     private LockToken mockExpiredRequest() {
         return mockHeldLocksForNewRequest(
-                heldLocks -> {
-                    when(heldLocks.unlockIfExpired()).thenReturn(true);
-                });
+                heldLocks -> when(heldLocks.unlockIfExpired()).thenReturn(true));
     }
 
     private LockToken mockNonExpiredRequest() {
         return mockHeldLocksForNewRequest(
-                heldLocks -> {
-                    when(heldLocks.unlockIfExpired()).thenReturn(false);
-                });
+                heldLocks -> when(heldLocks.unlockIfExpired()).thenReturn(false));
     }
 
     private LockToken mockRefreshableRequest() {

@@ -41,15 +41,12 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     final String leaderUuid;
     final long seq;
 
-    public static final Hydrator<PaxosValue> BYTES_HYDRATOR = new Hydrator<PaxosValue>() {
-        @Override
-        public PaxosValue hydrateFromBytes(byte[] input) {
-            try {
-                PaxosPersistence.PaxosValue message = PaxosPersistence.PaxosValue.parseFrom(input);
-                return hydrateFromProto(message);
-            } catch (InvalidProtocolBufferException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
+    public static final Hydrator<PaxosValue> BYTES_HYDRATOR = input -> {
+        try {
+            PaxosPersistence.PaxosValue message = PaxosPersistence.PaxosValue.parseFrom(input);
+            return hydrateFromProto(message);
+        } catch (InvalidProtocolBufferException e) {
+            throw Throwables.throwUncheckedException(e);
         }
     };
 

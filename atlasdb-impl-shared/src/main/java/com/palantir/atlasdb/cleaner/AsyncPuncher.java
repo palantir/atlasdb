@@ -57,13 +57,10 @@ public final class AsyncPuncher implements Puncher {
     }
 
     private void start() {
-        service.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
-                if (timestamp != INVALID_TIMESTAMP) {
-                    delegate.punch(timestamp);
-                }
+        service.scheduleAtFixedRate(() -> {
+            long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
+            if (timestamp != INVALID_TIMESTAMP) {
+                delegate.punch(timestamp);
             }
         }, 0, interval, TimeUnit.MILLISECONDS);
     }

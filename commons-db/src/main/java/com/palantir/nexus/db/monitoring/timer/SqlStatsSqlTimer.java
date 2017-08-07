@@ -37,12 +37,9 @@ final class SqlStatsSqlTimer implements SqlTimer {
         } else {
             timingState = null;
         }
-        return new Handle() {
-            @Override
-            public void stop() {
-                if (timingState != null && logger.isTraceEnabled()) {
-                    timingState.end();
-                }
+        return () -> {
+            if (timingState != null && logger.isTraceEnabled()) {
+                timingState.end();
             }
         };
     }

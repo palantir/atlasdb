@@ -446,11 +446,10 @@ public final class ProfilingKeyValueService implements KeyValueService {
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
                 batchColumnRangeSelection, timestamp),
-                (logger, stopwatch) -> {
-                    logger.log("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                            tableRef, Iterables.size(rows), batchColumnRangeSelection,
-                            stopwatch.elapsed(TimeUnit.MILLISECONDS));
-                });
+                (logger, stopwatch) ->
+                        logger.log("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
+                        tableRef, Iterables.size(rows), batchColumnRangeSelection,
+                        stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
 
     @Override
@@ -461,16 +460,14 @@ public final class ProfilingKeyValueService implements KeyValueService {
             long timestamp) {
         return maybeLog(() ->
                         delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
-                (logger, stopwatch) -> {
-                    logger.log(
-                            "Call to KVS.getRowsColumnRange - CellBatch on table {} for {} rows with range {} "
-                                    + "and batch hint {} took {} ms.",
-                            tableRef,
-                            Iterables.size(rows),
-                            columnRangeSelection,
-                            cellBatchHint,
-                            stopwatch.elapsed(TimeUnit.MILLISECONDS));
-                });
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.getRowsColumnRange - CellBatch on table {} for {} rows with range {} "
+                                + "and batch hint {} took {} ms.",
+                        tableRef,
+                        Iterables.size(rows),
+                        columnRangeSelection,
+                        cellBatchHint,
+                        stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
 
     private static <T> long byteSize(Map<Cell, T> values) {

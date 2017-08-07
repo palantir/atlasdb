@@ -92,27 +92,24 @@ public final class TableTasks {
                                     final CopyTask task) throws InterruptedException {
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
-            pool.submitTask(new Runnable() {
-                @Override
-                public void run() {
-                    do {
-                        final RangeRequest request = range.getRangeRequest();
-                        try {
-                            long startTime = System.currentTimeMillis();
-                            PartialCopyStats partialStats = task.call(request, range);
-                            stats.rowsCopied.addAndGet(partialStats.rowsCopied);
-                            stats.cellsCopied.addAndGet(partialStats.cellsCopied);
-                            log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
-                                    partialStats.rowsCopied,
-                                    partialStats.cellsCopied,
-                                    srcTable,
-                                    dstTable,
-                                    System.currentTimeMillis() - startTime);
-                        } catch (InterruptedException e) {
-                            throw Throwables.rewrapAndThrowUncheckedException(e);
-                        }
-                    } while (!range.isComplete());
-                }
+            pool.submitTask(() -> {
+                do {
+                    final RangeRequest request = range.getRangeRequest();
+                    try {
+                        long startTime = System.currentTimeMillis();
+                        PartialCopyStats partialStats = task.call(request, range);
+                        stats.rowsCopied.addAndGet(partialStats.rowsCopied);
+                        stats.cellsCopied.addAndGet(partialStats.cellsCopied);
+                        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
+                                partialStats.rowsCopied,
+                                partialStats.cellsCopied,
+                                srcTable,
+                                dstTable,
+                                System.currentTimeMillis() - startTime);
+                    } catch (InterruptedException e) {
+                        throw Throwables.rewrapAndThrowUncheckedException(e);
+                    }
+                } while (!range.isComplete());
             });
         }
         pool.waitForSubmittedTasks();
@@ -212,44 +209,41 @@ public final class TableTasks {
                                      final DiffTask task) throws InterruptedException {
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
-            pool.submitTask(new Runnable() {
-                @Override
-                public void run() {
-                    do {
-                        final RangeRequest request = range.getRangeRequest();
-                        try {
-                            long startTime = System.currentTimeMillis();
-                            PartialDiffStats partialStats = task.call(request, range, strategy);
-                            stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
-                            stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
-                            stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
-                            stats.rowsVisited.addAndGet(partialStats.rowsVisited);
-                            stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
-                            stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
-                            if (log.isInfoEnabled()) {
-                                log.info("Processed diff of "
-                                        + "{} rows "
-                                        + "{} rows only in source "
-                                        + "{} rows partially in common "
-                                        + "{} rows completely in common "
-                                        + "{} cells only in source "
-                                        + "{} cells in common "
-                                        + "between {} and {} in {} ms.",
-                                        partialStats.rowsVisited,
-                                        partialStats.rowsOnlyInSource,
-                                        partialStats.rowsPartiallyInCommon,
-                                        partialStats.rowsCompletelyInCommon,
-                                        partialStats.cellsOnlyInSource,
-                                        partialStats.cellsInCommon,
-                                        plusTable,
-                                        minusTable,
-                                        System.currentTimeMillis() - startTime);
-                            }
-                        } catch (InterruptedException e) {
-                            throw Throwables.rewrapAndThrowUncheckedException(e);
+            pool.submitTask(() -> {
+                do {
+                    final RangeRequest request = range.getRangeRequest();
+                    try {
+                        long startTime = System.currentTimeMillis();
+                        PartialDiffStats partialStats = task.call(request, range, strategy);
+                        stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
+                        stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
+                        stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
+                        stats.rowsVisited.addAndGet(partialStats.rowsVisited);
+                        stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
+                        stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
+                        if (log.isInfoEnabled()) {
+                            log.info("Processed diff of "
+                                    + "{} rows "
+                                    + "{} rows only in source "
+                                    + "{} rows partially in common "
+                                    + "{} rows completely in common "
+                                    + "{} cells only in source "
+                                    + "{} cells in common "
+                                    + "between {} and {} in {} ms.",
+                                    partialStats.rowsVisited,
+                                    partialStats.rowsOnlyInSource,
+                                    partialStats.rowsPartiallyInCommon,
+                                    partialStats.rowsCompletelyInCommon,
+                                    partialStats.cellsOnlyInSource,
+                                    partialStats.cellsInCommon,
+                                    plusTable,
+                                    minusTable,
+                                    System.currentTimeMillis() - startTime);
                         }
-                    } while (!range.isComplete());
-                }
+                    } catch (InterruptedException e) {
+                        throw Throwables.rewrapAndThrowUncheckedException(e);
+                    }
+                } while (!range.isComplete());
             });
         }
         pool.waitForSubmittedTasks();
@@ -375,29 +369,24 @@ public final class TableTasks {
     }
 
     private static Iterable<Cell> asCells(final Iterable<RowResult<byte[]>> results) {
-        return new Iterable<Cell>() {
+        return () -> new AbstractIterator<Cell>() {
+            private final Iterator<RowResult<byte[]>> outerIter = results.iterator();
+            private byte[] row = null;
+            private Iterator<byte[]> innerIter = null;
             @Override
-            public Iterator<Cell> iterator() {
-                return new AbstractIterator<Cell>() {
-                    private final Iterator<RowResult<byte[]>> outerIter = results.iterator();
-                    private byte[] row = null;
-                    private Iterator<byte[]> innerIter = null;
-                    @Override
-                    protected Cell computeNext() {
-                        while (true) {
-                            if (innerIter != null && innerIter.hasNext()) {
-                                byte[] col = innerIter.next();
-                                return Cell.create(row, col);
-                            }
-                            if (!outerIter.hasNext()) {
-                                return endOfData();
-                            }
-                            RowResult<byte[]> result = outerIter.next();
-                            row = result.getRowName();
-                            innerIter = result.getColumns().keySet().iterator();
-                        }
+            protected Cell computeNext() {
+                while (true) {
+                    if (innerIter != null && innerIter.hasNext()) {
+                        byte[] col = innerIter.next();
+                        return Cell.create(row, col);
                     }
-                };
+                    if (!outerIter.hasNext()) {
+                        return endOfData();
+                    }
+                    RowResult<byte[]> result = outerIter.next();
+                    row = result.getRowName();
+                    innerIter = result.getColumns().keySet().iterator();
+                }
             }
         };
     }

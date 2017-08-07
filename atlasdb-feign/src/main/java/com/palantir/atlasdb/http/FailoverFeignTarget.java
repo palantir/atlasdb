@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +32,6 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import feign.Client;
 import feign.Request;
-import feign.Request.Options;
 import feign.RequestTemplate;
 import feign.Response;
 import feign.RetryableException;
@@ -217,15 +215,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     public Client wrapClient(final Client client)  {
-        return new Client() {
-            @Override
-            public Response execute(Request request, Options options) throws IOException {
-                Response response = client.execute(request, options);
-                if (response.status() >= 200 && response.status() < 300) {
-                    sucessfulCall();
-                }
-                return response;
+        return (request, options) -> {
+            Response response = client.execute(request, options);
+            if (response.status() >= 200 && response.status() < 300) {
+                sucessfulCall();
             }
+            return response;
         };
     }
 }

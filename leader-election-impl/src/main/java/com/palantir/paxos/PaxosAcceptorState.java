@@ -36,15 +36,12 @@ public class PaxosAcceptorState implements Persistable, Versionable {
     final PaxosValue lastAcceptedValue; // latest accepted value, null if no accepted value
     final long version;
 
-    public static final Hydrator<PaxosAcceptorState> BYTES_HYDRATOR = new Hydrator<PaxosAcceptorState>() {
-        @Override
-        public PaxosAcceptorState hydrateFromBytes(byte[] input) {
-            try {
-                PaxosPersistence.PaxosAcceptorState message = PaxosPersistence.PaxosAcceptorState.parseFrom(input);
-                return hydrateFromProto(message);
-            } catch (InvalidProtocolBufferException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
+    public static final Hydrator<PaxosAcceptorState> BYTES_HYDRATOR = input -> {
+        try {
+            PaxosPersistence.PaxosAcceptorState message = PaxosPersistence.PaxosAcceptorState.parseFrom(input);
+            return hydrateFromProto(message);
+        } catch (InvalidProtocolBufferException e) {
+            throw Throwables.throwUncheckedException(e);
         }
     };
 
