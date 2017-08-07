@@ -45,6 +45,10 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
+    public static Arg<TableReference> tableRef(TableReference tableReference) {
+        return tableRef("tableRef", tableReference);
+    }
+
     public static Arg<TableReference> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
