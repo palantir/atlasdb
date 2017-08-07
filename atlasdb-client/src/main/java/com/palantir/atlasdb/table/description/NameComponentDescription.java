@@ -44,7 +44,7 @@ public class NameComponentDescription {
         private ValueByteOrder order;
         private UniformRowNamePartitioner uniformPartitioner;
         private ExplicitRowNamePartitioner explicitPartitioner;
-        private LogSafety logSafety;
+        private LogSafety logSafety = LogSafety.UNSAFE;
 
         Builder componentName(String name) {
             this.componentName = name;
@@ -77,6 +77,14 @@ public class NameComponentDescription {
         }
 
         NameComponentDescription build() {
+            Validate.notNull(componentName, "componentName must be set when building a NameComponentDescription");
+            Validate.notNull(type, "type must be set when building a NameComponentDescription");
+            Validate.notNull(order, "order must be set when building a NameComponentDescription");
+
+            if (uniformPartitioner == null) {
+                uniformPartitioner = new UniformRowNamePartitioner(type);
+            }
+
             return new NameComponentDescription(componentName, type, order, uniformPartitioner, explicitPartitioner, logSafety);
         }
 //

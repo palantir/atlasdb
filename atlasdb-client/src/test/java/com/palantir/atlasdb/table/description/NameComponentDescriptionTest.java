@@ -67,6 +67,52 @@ public class NameComponentDescriptionTest {
         assertThat(description.getLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void builderRequiresComponentName() {
+        new NameComponentDescription.Builder()
+                .type(VALUE_TYPE)
+                .byteOrder(VALUE_BYTE_ORDER)
+                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                .logSafety(LogSafety.SAFE)
+                .build();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void builderRequiresType() {
+        new NameComponentDescription.Builder()
+                .componentName(COMPONENT_NAME)
+                .byteOrder(VALUE_BYTE_ORDER)
+                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                .logSafety(LogSafety.SAFE)
+                .build();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void builderRequiresByteOrder() {
+        new NameComponentDescription.Builder()
+                .componentName(COMPONENT_NAME)
+                .type(VALUE_TYPE)
+                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                .logSafety(LogSafety.SAFE)
+                .build();
+    }
+
+    @Test
+    public void builderSetsSaneDefaults() {
+        NameComponentDescription description = new NameComponentDescription.Builder()
+                .componentName(COMPONENT_NAME)
+                .type(VALUE_TYPE)
+                .byteOrder(VALUE_BYTE_ORDER)
+                .build();
+
+        assertThat(description.uniformPartitioner).isEqualTo(new UniformRowNamePartitioner(VALUE_TYPE));
+        assertThat(description.explicitPartitioner).isNull();
+        assertThat(description.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
+    }
+
     @Test
     public void nameIsNotLoggableInDefaultDescription() {
         assertThat(DEFAULT_UNNAMED_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
