@@ -89,25 +89,14 @@ public class NameComponentDescriptionTest {
                 .build();
     }
 
-    @Test(expected = NullPointerException.class)
-    public void builderRequiresByteOrder() {
-        new NameComponentDescription.Builder()
-                .componentName(COMPONENT_NAME)
-                .type(VALUE_TYPE)
-                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
-                .logSafety(LogSafety.SAFE)
-                .build();
-    }
-
     @Test
     public void builderSetsSaneDefaults() {
         NameComponentDescription description = new NameComponentDescription.Builder()
                 .componentName(COMPONENT_NAME)
                 .type(VALUE_TYPE)
-                .byteOrder(VALUE_BYTE_ORDER)
                 .build();
 
+        assertThat(description.getOrder()).isEqualTo(TableMetadataPersistence.ValueByteOrder.ASCENDING);
         assertThat(description.uniformPartitioner).isEqualTo(new UniformRowNamePartitioner(VALUE_TYPE));
         assertThat(description.explicitPartitioner).isNull();
         assertThat(description.getLogSafety()).isEqualTo(LogSafety.UNSAFE);

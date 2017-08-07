@@ -41,7 +41,7 @@ public class NameComponentDescription {
     public static final class Builder {
         private String componentName;
         private ValueType type;
-        private ValueByteOrder order;
+        private ValueByteOrder order = ValueByteOrder.ASCENDING;
         private UniformRowNamePartitioner uniformPartitioner;
         private ExplicitRowNamePartitioner explicitPartitioner;
         private LogSafety logSafety = LogSafety.UNSAFE;
@@ -79,7 +79,6 @@ public class NameComponentDescription {
         NameComponentDescription build() {
             Validate.notNull(componentName, "componentName must be set when building a NameComponentDescription");
             Validate.notNull(type, "type must be set when building a NameComponentDescription");
-            Validate.notNull(order, "order must be set when building a NameComponentDescription");
 
             if (uniformPartitioner == null) {
                 uniformPartitioner = new UniformRowNamePartitioner(type);
