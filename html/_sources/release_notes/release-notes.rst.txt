@@ -44,6 +44,30 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.52.0
+=======
+
+1 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a critical bug in Oracle that limits the number of writes with values greater than 2000 bytes to ``Integer.MAX_VALUE``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2224>`__)
+
+    *    - |fixed|
+         - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
+
     *    - |devbreak|
          - Removed unused classes on AtlasDB.
 
@@ -53,14 +77,6 @@ develop
 
            If any issues arise from this change, please contact the development team.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
-
-    *    - |fixed|
-         - Fixed a critical bug in Oracle that limits the number of writes with values greater than 2000 bytes to ``Integer.MAX_VALUE``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2224>`__)
-
-    *    - |fixed|
-         - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
