@@ -44,6 +44,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.52.0
+=======
+
+1 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak|
          - Removed unused classes on AtlasDB.
 
