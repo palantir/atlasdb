@@ -45,7 +45,7 @@ develop
          - Change
 
     *    - |devbreak|
-         - Throw an error during schema code generation stage if table length exceeds KVS limits.
+         - Throw an error during schema code generation stage if table name length exceeds KVS limits.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2220>`__)
 
 =======
