@@ -65,11 +65,16 @@ public class TableDefinition extends AbstractDefinition {
 
     /**
      * Indicates that the name of the table being defined is safe or unsafe for logging.
-     * If specified multiple times, the last value passed in is used.
+     *
+     * Note that this method throws an exception if exposed to contradictory information (e.g. is called twice, with
+     * values of both SAFE and UNSAFE).
      */
     public void tableNameLogSafety(LogSafety logSafety) {
+        Preconditions.checkState(!(logSafetyDeclared && tableNameSafety != logSafety),
+                "This table name's safety for logging has already been declared.");
         Preconditions.checkState(state == State.NONE, "Specifying a table name is safe or unsafe should be done outside"
                 + " of the subscopes of TableDefinition.");
+        logSafetyDeclared = true;
         tableNameSafety = logSafety;
     }
 
@@ -89,7 +94,6 @@ public class TableDefinition extends AbstractDefinition {
      * If specified, makes both the table name and ALL named components safe by default.
      * Individual row components or named columns may still be marked as unsafe by explicitly creating them as unsafe.
      *
-     * This method has UNDEFINED BEHAVIOUR if used with tableNameLogSafety(LogSafety.UNSAFE) on the same table.
      * If you wish to have a table with an unsafe name but safe components, please use namedComponentsSafeByDefault()
      * instead.
      */
@@ -327,7 +331,11 @@ public class TableDefinition extends AbstractDefinition {
         DEFINING_CONSTRAINTS,
     }
 
+    // State machine variables, that ensure the table definition is well-formed
     private State state = State.NONE;
+    private boolean logSafetyDeclared = false;
+
+    // Table definition properties
     private int maxValueSize = Integer.MAX_VALUE;
     private String genericTableName = null;
     private String javaTableName = null;

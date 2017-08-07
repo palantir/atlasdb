@@ -217,6 +217,32 @@ public class TableDefinitionTest {
         assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
 
+    @Test
+    public void cannotSpecifyTableNameLogSafetyMultipleTimes() {
+        assertThatThrownBy(() -> new TableDefinition() {{
+            javaTableName(TABLE_REF.getTablename());
+            tableNameLogSafety(LogSafety.SAFE);
+            tableNameLogSafety(LogSafety.UNSAFE);
+            rowName();
+            rowComponent(ROW_NAME, ValueType.STRING);
+            columns();
+            column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
+        }}).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void cannotSpecifyTableNameIsUnsafeWithAllComponentsAsSafe() {
+        assertThatThrownBy(() -> new TableDefinition() {{
+            javaTableName(TABLE_REF.getTablename());
+            tableNameLogSafety(LogSafety.UNSAFE);
+            allSafeForLoggingByDefault();
+            rowName();
+            rowComponent(ROW_NAME, ValueType.STRING);
+            columns();
+            column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
+        }}).isInstanceOf(IllegalStateException.class);
+    }
+
     /**
      * Asserts that the only row component for the TableDefinition object passed in has loggability matching
      * expectedSafety. Throws if the actual safety doesn't match the expected safety, or if it is not the case that
