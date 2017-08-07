@@ -242,18 +242,15 @@ columns are assumed unsafe unless specifically indicated as safe.
 Note that specifying named components as safe by default does not
 also make the table name considered safe.
 
-.. warning::
-
-   The method below should not be invoked in conjunction with a call to
-   ``tableNameLogSafety(LogSafety.UNSAFE)``! AtlasDB treats this as
-   undefined behaviour.
-
 .. code:: java
 
     public void allSafeForLoggingByDefault();
 
 If called, this marks the table name as safe, and all named components as
-safe unless they are explicitly marked as unsafe.
+safe unless they are explicitly marked as unsafe. Note that an exception
+will be thrown if this method is called alongside ``tableNameLogSafety(LogSafety.UNSAFE)``;
+to achieve that effect (table names unsafe, but all row/column components safe),
+please use ``namedComponentsSafeByDefault()`` instead.
 
 Index-specific Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
