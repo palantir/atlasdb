@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.io.BaseEncoding;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -80,6 +81,18 @@ public class KvsRangeMigrator implements RangeMigrator {
 
     @Override
     public void migrateRange(RangeRequest range, long rangeId) {
+        // Report (a) completion or (b) start row, before attempting the migration
+        byte[] start = txManager.runTaskWithRetry(t -> getCheckpoint(rangeId, t));
+        if (start == null) {
+            log.info("Skipping migration from {} to {}, as it has already been completed", srcTable, destTable);
+            return;
+        }
+        log.info("Beginning migration from {} to {}. Migration timestamp: {}; starting point: {}",
+                srcTable,
+                destTable,
+                migrationTimestamp,
+                PtBytes.encodeHexString(start));
+
         byte[] lastRow;
         do {
             lastRow = copyOneTransaction(range, rangeId);
@@ -111,7 +124,7 @@ public class KvsRangeMigrator implements RangeMigrator {
                                               Transaction readT,
                                               Transaction writeT) {
         final long maxBytes = TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES / 2;
-        byte[] start = checkpointer.getCheckpoint(srcTable.getQualifiedName(), rangeId, writeT);
+        byte[] start = getCheckpoint(rangeId, writeT);
         if (start == null) {
             return null;
         }
@@ -139,6 +152,10 @@ public class KvsRangeMigrator implements RangeMigrator {
         checkpointer.checkpoint(srcTable.getQualifiedName(), rangeId, nextRow, writeT);
 
         return lastRow;
+    }
+
+    private byte[] getCheckpoint(long rangeId, Transaction writeT) {
+        return checkpointer.getCheckpoint(srcTable.getQualifiedName(), rangeId, writeT);
     }
 
     protected void writeToKvs(Map<Cell, byte[]> writeMap) {
