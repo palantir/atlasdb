@@ -64,10 +64,17 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
 
     public static ScrubberStore create(KeyValueService keyValueService) {
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, new TableMetadata(
-                NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("cell", ValueType.BLOB))),
+                NameMetadataDescription.create(ImmutableList.of(
+                        new NameComponentDescription.Builder()
+                                .componentName("cell")
+                                .type(ValueType.BLOB)
+                                .build())),
                 new ColumnMetadataDescription(new DynamicColumnDescription(
                         NameMetadataDescription.create(ImmutableList.of(
-                                new NameComponentDescription("name", ValueType.STRING))),
+                                new NameComponentDescription.Builder()
+                                        .componentName("name")
+                                        .type(ValueType.STRING)
+                                        .build())),
                         ColumnValueDescription.forType(ValueType.STRING))),
                         ConflictHandler.IGNORE_ALL).persistToBytes());
         return new KeyValueServiceScrubberStore(keyValueService);

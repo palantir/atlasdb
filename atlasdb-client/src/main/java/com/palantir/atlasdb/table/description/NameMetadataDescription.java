@@ -67,7 +67,10 @@ public class NameMetadataDescription {
             return new NameMetadataDescription(components, false);
         } else {
             List<NameComponentDescription> withHashRowComponent = Lists.newArrayListWithCapacity(components.size() + 1);
-            withHashRowComponent.add(new NameComponentDescription(HASH_ROW_COMPONENT_NAME, ValueType.FIXED_LONG));
+            withHashRowComponent.add(new NameComponentDescription.Builder()
+                    .componentName(HASH_ROW_COMPONENT_NAME)
+                    .type(ValueType.FIXED_LONG)
+                    .build());
             withHashRowComponent.addAll(components);
             return new NameMetadataDescription(withHashRowComponent, true);
         }

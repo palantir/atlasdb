@@ -91,11 +91,8 @@ public class NameComponentDescription {
     }
 
     public NameComponentDescription() {
-        this("name", ValueType.BLOB);
-    }
-
-    public NameComponentDescription(String componentName, ValueType type) {
-        this(componentName, type, ValueByteOrder.ASCENDING, new UniformRowNamePartitioner(type), null, LogSafety.UNSAFE);
+        this("name", ValueType.BLOB, ValueByteOrder.ASCENDING,
+                new UniformRowNamePartitioner(ValueType.BLOB), null, LogSafety.UNSAFE);
     }
 
     public NameComponentDescription(String componentName,
