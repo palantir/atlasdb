@@ -167,7 +167,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
         try {
             initialise();
         } catch (Throwable th) {
-            log.error("Synchronous initialisation failed, initialisation will be done asynchronously", th);
+            log.info("Synchronous initialisation failed, initialisation will be done asynchronously", th);
             initialiseAsync();
         }
     }
