@@ -50,7 +50,7 @@ develop
 
     *   - |devbreak|
 	    - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)git statu
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
 
 =======
 v0.52.0

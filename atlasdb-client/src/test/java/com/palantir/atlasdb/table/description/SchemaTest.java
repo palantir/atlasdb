@@ -123,13 +123,21 @@ public class SchemaTest {
                         AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLongTableNameLengthFailsNamespace() throws IOException {
         // If namespace is non-empty, internal table name length is |namespace| + |tableName| + 2
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(40, "x"));
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, longTableName);
-        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
+        assertThatThrownBy(() ->
+                schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Internal table name %s is too long, exceeds Cassandra limit (%s). " +
+                                "If using a table prefix, please ensure that the concatenation " +
+                                "of the prefix with the internal table name is below the KVS limit. " +
+                                "If running using a different KVS, set the ignoreTableNameLength flag.",
+                        "default__" + longTableName,
+                        AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT);
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
