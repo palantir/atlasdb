@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
-import com.palantir.lock.LockClient;
 
 final class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> {
     private static final Logger log = LoggerFactory.getLogger(ImmutableTimestampSupplierProgressMonitor.class);
@@ -32,7 +31,7 @@ final class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> 
     private static final long TIME_TO_WARN_HOUR = 1L;
     private static final long TIME_TO_ERROR_HOUR = 24L;
     private static final String LONG_RUNNING_TRANSACTION_ERROR_MESSAGE = "Immutable timestamp has not been updated for"
-            + " [{}] hour(s) for LockClient [{}]. This indicates to a very long running transaction.";
+            + " [{}]. This indicates to a very long running transaction.";
 
     private final Supplier<Long> supplier;
 
@@ -44,13 +43,13 @@ final class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> 
         this.monitors = monitors;
     }
 
-    static Supplier<Long> createWithDefaultMonitoring(Supplier<Long> supplier, LockClient lockClient) {
+    static Supplier<Long> createWithDefaultMonitoring(Supplier<Long> supplier) {
         List<ImmutableTimestampMonitor> defaultMonitors = Lists.newArrayList();
         defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_WARN_HOUR),
-                () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN_HOUR, lockClient.getClientId())));
+                () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN_HOUR)));
 
         defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_ERROR_HOUR),
-                () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR_HOUR, lockClient.getClientId())));
+                () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR_HOUR)));
 
         return new ImmutableTimestampSupplierProgressMonitor(supplier, defaultMonitors);
     }

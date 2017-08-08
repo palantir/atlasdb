@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -281,13 +280,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         Metadata metadata = cluster.getMetadata();
 
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        String partitioner = metadata.getPartitioner();
-        if (!config.safetyDisabled()) {
-            Validate.isTrue(
-                    CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner),
-                    "partitioner is: " + partitioner);
-        }
-
+        CassandraVerifier.validatePartitioner(metadata.getPartitioner(), config);
 
         Set<Peer> peers = CqlKeyValueServices.getPeers(session);
 
@@ -1249,7 +1242,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         } finally {
             alterTableForCompaction(
                     tableRef,
-                    CassandraConstants.GC_GRACE_SECONDS,
+                    config.gcGraceSeconds(),
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
             CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
         }

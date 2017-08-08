@@ -26,13 +26,13 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 public class DefaultCleanerBuilder {
     private final KeyValueService keyValueService;
-    private final RemoteLockService lockService;
-    private final TimestampService timestampService;
-    private final LockClient lockClient;
+    private final TimelockService timelockService;
     private final List<Follower> followerList;
     private final TransactionService transactionService;
 
@@ -45,15 +45,21 @@ public class DefaultCleanerBuilder {
     private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
-                                 RemoteLockService lockService,
-                                 TimestampService timestampService,
-                                 LockClient lockClient,
-                                 List<? extends Follower> followerList,
-                                 TransactionService transactionService) {
+            RemoteLockService lockService,
+            TimestampService timestampService,
+            LockClient lockClient,
+            List<? extends Follower> followerList,
+            TransactionService transactionService) {
+        this(keyValueService, new LegacyTimelockService(timestampService, lockService, lockClient), followerList,
+                transactionService);
+    }
+
+    public DefaultCleanerBuilder(KeyValueService keyValueService,
+            TimelockService timelockService,
+            List<? extends Follower> followerList,
+            TransactionService transactionService) {
         this.keyValueService = keyValueService;
-        this.lockService = lockService;
-        this.timestampService = timestampService;
-        this.lockClient = lockClient;
+        this.timelockService = timelockService;
         this.followerList = ImmutableList.copyOf(followerList);
         this.transactionService = transactionService;
     }
@@ -98,7 +104,7 @@ public class DefaultCleanerBuilder {
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
                 punchIntervalMillis * 3);
-        Clock clock = GlobalClock.create(lockService);
+        Clock clock = GlobalClock.create(timelockService);
         SimplePuncher simplePuncher = SimplePuncher.create(
                 cachingPuncherStore,
                 clock,
@@ -127,10 +133,10 @@ public class DefaultCleanerBuilder {
     public Cleaner buildCleaner() {
         Puncher puncher = buildPuncher();
         Supplier<Long> immutableTs = ImmutableTimestampSupplier
-                .createMemoizedWithExpiration(lockService, timestampService, lockClient);
+                .createMemoizedWithExpiration(timelockService);
 
         Supplier<Long> immutableTsWithDefaultProgressMonitoring = ImmutableTimestampSupplierProgressMonitor
-                .createWithDefaultMonitoring(immutableTs, lockClient);
+                .createWithDefaultMonitoring(immutableTs);
 
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTsWithDefaultProgressMonitoring);
         return new SimpleCleaner(

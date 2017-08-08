@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Defaults;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -186,11 +187,27 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             Future<Boolean> pingFuture = pingCompletionService.poll(
                     leaderPingResponseWaitMs,
                     TimeUnit.MILLISECONDS);
-            return pingFuture != null && pingFuture.get();
-        } catch (InterruptedException e) {
+            return getAndRecordLeaderPingResult(pingFuture);
+        } catch (InterruptedException ex) {
             return false;
+        }
+    }
+
+    @VisibleForTesting
+    boolean getAndRecordLeaderPingResult(@Nullable Future<Boolean> pingFuture) throws InterruptedException {
+        if (pingFuture == null) {
+            eventRecorder.recordLeaderPingTimeout();
+            return false;
+        }
+
+        try {
+            boolean isLeader = pingFuture.get();
+            if (!isLeader) {
+                eventRecorder.recordLeaderPingReturnedFalse();
+            }
+            return isLeader;
         } catch (ExecutionException e) {
-            log.warn("cannot ping leader", e);
+            eventRecorder.recordLeaderPingFailure(e.getCause());
             return false;
         }
     }

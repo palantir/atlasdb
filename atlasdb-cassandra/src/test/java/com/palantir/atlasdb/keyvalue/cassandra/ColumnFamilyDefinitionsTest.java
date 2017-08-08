@@ -32,7 +32,7 @@ public class ColumnFamilyDefinitionsTest {
         CfDef standard = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("test_table"),
-                new byte[0]);
+                CassandraConstants.DEFAULT_GC_GRACE_SECONDS, new byte[0]);
 
         CfDef fullyQualified = standard.setCompaction_strategy("com.palantir.AwesomeCompactionStrategy");
         CfDef onlyClassName = standard.deepCopy().setCompaction_strategy("AwesomeCompactionStrategy");
@@ -50,11 +50,13 @@ public class ColumnFamilyDefinitionsTest {
         CfDef clientSideTable = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("test_table"),
+                CassandraConstants.DEFAULT_GC_GRACE_SECONDS,
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
         CfDef clusterSideTable = ColumnFamilyDefinitions.getCfDef(
                 "test_keyspace",
                 TableReference.fromString("test_table"),
-                AtlasDbConstants.GENERIC_TABLE_METADATA).setGc_grace_seconds(FOUR_DAYS_IN_SECONDS);
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));

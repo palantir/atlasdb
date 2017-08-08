@@ -19,6 +19,7 @@ import java.io.File;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -32,7 +33,8 @@ public class CheckAndSetSchema implements AtlasSchema {
         Schema schema = new Schema(
                 CheckAndSetSchema.class.getSimpleName(),
                 CheckAndSetSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE,
+                OptionalType.JAVA8);
 
         schema.addTableDefinition(CAS_TABLE, new TableDefinition() {{
                 rowName();

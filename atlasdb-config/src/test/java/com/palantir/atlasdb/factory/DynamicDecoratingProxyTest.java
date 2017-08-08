@@ -14,83 +14,62 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.factory.timestamp;
+package com.palantir.atlasdb.factory;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
-import com.palantir.atlasdb.config.TimestampClientConfig;
-import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-public class DynamicDecoratedTimestampServiceTest {
+public class DynamicDecoratingProxyTest {
     private final TimestampService decorated = mock(TimestampService.class);
     private final TimestampService delegate = mock(TimestampService.class);
 
     private final AtomicBoolean atomicBoolean = new AtomicBoolean(false);
 
-    private final TimestampService dynamicDecorated = new DynamicDecoratedTimestampService(
+    private final TimestampService proxy = DynamicDecoratingProxy.newProxyInstance(
             decorated,
             delegate,
-            atomicBoolean::get);
+            atomicBoolean::get,
+            TimestampService.class);
 
     @Test
-    public void dynamicallySwitchesBetweenServicesForSingleFreshTimestamp() throws Exception {
-        dynamicDecorated.getFreshTimestamp();
+    public void dynamicallySwitchesCorrectlyForNoArgMethods() throws Exception {
+        proxy.getFreshTimestamp();
         verify(decorated, never()).getFreshTimestamp();
         verify(delegate, times(1)).getFreshTimestamp();
 
         atomicBoolean.set(true);
-        dynamicDecorated.getFreshTimestamp();
+        proxy.getFreshTimestamp();
         verify(decorated, times(1)).getFreshTimestamp();
         verify(delegate, times(1)).getFreshTimestamp();
 
         atomicBoolean.set(false);
-        dynamicDecorated.getFreshTimestamp();
+        proxy.getFreshTimestamp();
         verify(decorated, times(1)).getFreshTimestamp();
         verify(delegate, times(2)).getFreshTimestamp();
     }
 
     @Test
-    public void dynamicallySwitchesBetweenServicesForFreshTimestamps() throws Exception {
-        dynamicDecorated.getFreshTimestamps(10);
+    public void dynamicallySwitchesCorrectlyForMethodsWithArguments() throws Exception {
+        proxy.getFreshTimestamps(10);
         verify(decorated, never()).getFreshTimestamps(10);
         verify(delegate, times(1)).getFreshTimestamps(10);
 
         atomicBoolean.set(true);
-        dynamicDecorated.getFreshTimestamps(20);
+        proxy.getFreshTimestamps(20);
         verify(decorated, times(1)).getFreshTimestamps(20);
         verify(delegate, never()).getFreshTimestamps(20);
 
         atomicBoolean.set(false);
-        dynamicDecorated.getFreshTimestamps(30);
+        proxy.getFreshTimestamps(30);
         verify(decorated, never()).getFreshTimestamps(30);
         verify(delegate, times(1)).getFreshTimestamps(30);
-    }
-
-    @Test
-    public void dynamicallyBatchesOnConfigChange() throws Exception {
-        TimestampService inMemory = spy(InMemoryTimestampService.class);
-
-        Supplier<TimestampClientConfig> configSupplier = () -> ImmutableTimestampClientConfig.of(atomicBoolean.get());
-        TimestampService dynamicRateLimited = DynamicDecoratedTimestampService.createWithRateLimiting(
-                inMemory, configSupplier);
-
-        atomicBoolean.set(true);
-        dynamicRateLimited.getFreshTimestamp();
-        verify(inMemory, never()).getFreshTimestamp();
-
-        atomicBoolean.set(false);
-        dynamicRateLimited.getFreshTimestamp();
-        verify(inMemory, times(1)).getFreshTimestamp();
     }
 }

@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.console.groovy
 
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
+import com.palantir.atlasdb.console.exceptions.IllegalConsoleCommandException
 import com.palantir.atlasdb.console.module.Range
 import com.palantir.atlasdb.console.module.Table
 import org.junit.Assert
@@ -10,9 +11,11 @@ import static groovy.test.GroovyAssert.shouldFail
 
 import org.gmock.WithGMock
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 import com.palantir.atlasdb.api.TransactionToken
+import org.junit.rules.ExpectedException
 
 @WithGMock
 class TableTest {
@@ -38,10 +41,13 @@ class TableTest {
         (tableQuery4): serviceQuery4
     ]
 
+    @Rule
+    public ExpectedException exceptions = ExpectedException.none();
+
     @Before
     void setup() {
         service = mock(AtlasConsoleServiceWrapper)
-        table = new Table(TABLE_NAME, service)
+        table = new Table(TABLE_NAME, service, true)
     }
 
     @Test
@@ -233,7 +239,6 @@ class TableTest {
         def secondInput = [row: [2], cols: [a: [value: 1], b: [value: 2]]]
         def secondOutput = [row: [2], a: [value: 1], b: [value: 2]]
         def thirdInput = [row: 3, cols: [a: [value: 1], c: [value: 2]]]
-        def fourthInput = [row: 4, cols: [a: [value: 1, fake_field: 0]]]
         service.put(queryize([firstOutput]), token).once()
         service.put(queryize([firstOutput, secondOutput]), token).once()
         play {
@@ -243,10 +248,6 @@ class TableTest {
                 table.put([firstInput, secondInput, thirdInput], token)
             }
             assertEquals("Column c does not exist", message.message)
-            message = shouldFail(IllegalArgumentException) {
-                table.put(fourthInput, token)
-            }
-            assertEquals("The following fields do not exist: [fake_field]", message.message)
         }
     }
 
@@ -267,5 +268,23 @@ class TableTest {
             assertEquals(null, table.put([secondInput], token))
             assertEquals(null, table.put([firstInput, secondInput], token))
         }
+    }
+
+    @Test
+    void testPutFailsWhenMutationsDisabled() {
+        AtlasConsoleServiceWrapper tmpService = mock(AtlasConsoleServiceWrapper)
+        Table tmpTable = new Table(TABLE_NAME, tmpService, false)
+        def token = mock(TransactionToken)
+        exceptions.expect(IllegalConsoleCommandException.class)
+        tmpTable.put([row: 1, col: 'a', val: 11], token)
+    }
+
+    @Test
+    void testDeleteFailsWhenMutationsDisabled() {
+        AtlasConsoleServiceWrapper tmpService = mock(AtlasConsoleServiceWrapper)
+        Table tmpTable = new Table(TABLE_NAME, tmpService, false)
+        def token = mock(TransactionToken)
+        exceptions.expect(IllegalConsoleCommandException.class)
+        tmpTable.delete([row: 1, cols: 'a'], token)
     }
 }

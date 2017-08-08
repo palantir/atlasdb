@@ -17,7 +17,6 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -25,8 +24,6 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.RemoteLockService;
 
 import feign.Client;
 import feign.okhttp.OkHttpClient;
@@ -42,10 +39,6 @@ public final class FeignOkHttpClients {
     static final String USER_AGENT_HEADER = "User-Agent";
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
-
-    // See internal ticket PDS-50301, and/or #1680
-    @VisibleForTesting
-    static final Set<Class<?>> CLASSES_TO_NOT_RETRY = ImmutableSet.of(RemoteLockService.class);
 
     private static final ImmutableList<ConnectionSpec> CONNECTION_SPEC_WITH_CYPHER_SUITES = ImmutableList.of(
             new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
@@ -96,30 +89,23 @@ public final class FeignOkHttpClients {
      */
     public static <T> Client newOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
-            String userAgent,
-            Class<T> clazz) {
-        return newOkHttpClient(sslSocketFactory, userAgent, shouldAllowRetrying(clazz));
+            String userAgent) {
+        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, userAgent));
     }
 
-    private static Client newOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
-            String userAgent,
-            boolean retryOnConnectionFailure) {
+    @VisibleForTesting
+    static okhttp3.OkHttpClient newRawOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory,
+            String userAgent) {
+        // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
-                .retryOnConnectionFailure(retryOnConnectionFailure);
+                .retryOnConnectionFailure(false);
         if (sslSocketFactory.isPresent()) {
             builder.sslSocketFactory(sslSocketFactory.get());
         }
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
-        return new OkHttpClient(builder.build());
-    }
-
-    @VisibleForTesting
-    static <T> boolean shouldAllowRetrying(Class<T> clazz) {
-        // Subclasses of this class should NOT be considered for retrying.
-        return !CLASSES_TO_NOT_RETRY.contains(clazz);
+        return builder.build();
     }
 
     private static final class UserAgentAddingInterceptor implements Interceptor {

@@ -42,7 +42,7 @@ public final class OverflowSequenceSupplier implements Supplier<Long> {
             return currentBatchStartId + currentIdIndex++;
         }
         currentBatchStartId = conns.get()
-                .selectIntegerUnregisteredQuery(
+                .selectLongUnregisteredQuery(
                         "SELECT " + tablePrefix + AtlasDbConstants.ORACLE_OVERFLOW_SEQUENCE + ".NEXTVAL FROM DUAL");
         currentIdIndex = 0;
         return currentBatchStartId + currentIdIndex++;
