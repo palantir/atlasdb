@@ -44,8 +44,11 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - KVS migrations will no longer verify equality between the from and to KVSes for the sweep priority and progress tables.
+           Note that these tables are still *migrated* across, as they provide heuristics for timely sweeping of tables.
+           However, these tables are expected to change as the migration process performs writes to the to-KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
 
 =======
 v0.52.0
