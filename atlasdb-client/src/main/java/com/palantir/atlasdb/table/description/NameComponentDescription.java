@@ -36,8 +36,6 @@ public class NameComponentDescription {
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
     final LogSafety logSafety;
 
-    // TODO: make references use the builder
-    // TODO 2: remove all of these constructors
     public static final class Builder {
         private String componentName;
         private ValueType type;
@@ -87,11 +85,6 @@ public class NameComponentDescription {
             return new NameComponentDescription(componentName, type, order,
                     uniformPartitioner, explicitPartitioner, logSafety);
         }
-    }
-
-    public NameComponentDescription() {
-        this("name", ValueType.BLOB, ValueByteOrder.ASCENDING,
-                new UniformRowNamePartitioner(ValueType.BLOB), null, LogSafety.UNSAFE);
     }
 
     private NameComponentDescription(String componentName,

@@ -43,7 +43,7 @@ public class NameMetadataDescription {
     private final boolean hasFirstComponentHash;
 
     public NameMetadataDescription() {
-        this(ImmutableList.of(new NameComponentDescription()), false);
+        this(ImmutableList.of(new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), false);
     }
 
     private NameMetadataDescription(List<NameComponentDescription> components, boolean hasFirstComponentHash) {

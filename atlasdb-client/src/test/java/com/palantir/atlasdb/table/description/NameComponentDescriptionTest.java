@@ -34,7 +34,10 @@ public class NameComponentDescriptionTest {
     private static final ExplicitRowNamePartitioner EXPLICIT_ROW_NAME_PARTITIONER =
             new ExplicitRowNamePartitioner(VALUE_TYPE, ImmutableSet.of());
 
-    private static final NameComponentDescription DEFAULT_UNNAMED_DESCRIPTION = new NameComponentDescription();
+    private static final NameComponentDescription DEFAULT_UNNAMED_DESCRIPTION = new NameComponentDescription.Builder()
+            .componentName("name")
+            .type(ValueType.BLOB)
+            .build();
     private static final NameComponentDescription LOGGABILITY_UNSPECIFIED_DESCRIPTION
             = new NameComponentDescription.Builder()
                     .componentName(COMPONENT_NAME)
