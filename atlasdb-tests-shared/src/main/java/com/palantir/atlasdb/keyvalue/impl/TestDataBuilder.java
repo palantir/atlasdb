@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -70,6 +70,6 @@ public class TestDataBuilder {
     }
 
     public static byte[] value(String valueStr) {
-        return valueStr.getBytes(Charsets.UTF_8);
+        return valueStr.getBytes(StandardCharsets.UTF_8);
     }
 }

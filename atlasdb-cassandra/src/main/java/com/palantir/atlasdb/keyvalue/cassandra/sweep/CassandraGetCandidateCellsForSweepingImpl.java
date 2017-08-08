@@ -24,6 +24,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -56,7 +57,7 @@ public class CassandraGetCandidateCellsForSweepingImpl {
         Iterator<List<CassandraRawCellValue>> rawIter = cellPager.createCellIterator(
                 tableRef,
                 request.startRowInclusive(),
-                request.batchSizeHint().orElse(100),
+                request.batchSizeHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT),
                 consistencyLevel);
         return new CellGroupingIterator(rawIter, request);
     }

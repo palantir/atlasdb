@@ -48,6 +48,11 @@ develop
 	 - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
 
+    *    - |improved|
+         - New efficient and OOM-proof implementation of sweep for Cassandra KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2231>`__)
+
+
 =======
 v0.52.0
 =======
