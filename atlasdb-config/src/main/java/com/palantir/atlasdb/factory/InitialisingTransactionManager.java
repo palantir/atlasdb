@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ForwardingObject;
@@ -285,7 +286,8 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 .orElse(ImmutableTimestampClientConfig.of());
     }
 
-    private LockAndTimestampServices createLockAndTimestampServices(
+    @VisibleForTesting
+    LockAndTimestampServices createLockAndTimestampServices(
             java.util.function.Supplier<TimestampClientConfig> runtimeTimestampConfigSupplier,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
@@ -415,11 +417,13 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
                     .timestamp(dynamicTimeService)
+                    .timelock(new LegacyTimelockService(dynamicTimeService, dynamicLockService, LOCK_CLIENT))
                     .build();
         } else {
             return ImmutableLockAndTimestampServices.builder()
                     .lock(remoteLock)
                     .timestamp(remoteTime)
+                    .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
     }
@@ -432,19 +436,28 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(timeService)
+                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
 
 
     private LockAndTimestampServices createNamespacedRawRemoteServices(TimeLockClientConfig timeLockClientConfig) {
         ServerListConfig namespacedServerListConfig = timeLockClientConfig.toNamespacedServerList();
+        return getLockAndTimestampServices(namespacedServerListConfig, userAgent);
+    }
+
+    private static LockAndTimestampServices getLockAndTimestampServices(
+            ServerListConfig timelockServerListConfig,
+            String userAgent) {
         RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
-                .apply(namespacedServerListConfig);
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
-                .apply(namespacedServerListConfig);
+                .apply(timelockServerListConfig);
+        TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
+                .apply(timelockServerListConfig);
+
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .timestamp(timeService)
+                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
+                .timelock(timelockService)
                 .build();
     }
 

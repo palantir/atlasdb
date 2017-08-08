@@ -212,22 +212,6 @@ public final class TransactionManagers {
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
-    @VisibleForTesting
-    static LockAndTimestampServices createLockAndTimestampServices(
-            AtlasDbConfig config,
-            java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
-            Environment env,
-            Supplier<RemoteLockService> lock,
-            Supplier<TimestampService> time,
-            TimestampStoreInvalidator invalidator,
-            String userAgent) {
-        LockAndTimestampServices lockAndTimestampServices =
-                createRawServices(config, env, lock, time, invalidator, userAgent);
-        return withRequestBatchingTimestampService(
-                runtimeConfigSupplier,
-                withRefreshingLockService(lockAndTimestampServices));
-    }
-
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
