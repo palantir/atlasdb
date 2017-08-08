@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -30,6 +31,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.io.Files;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
@@ -81,25 +83,44 @@ public class SchemaTest {
     public void testIgnoreTableNameLengthFlag() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.ignoreTableNameLengthChecks();
-        String longTableName = String.join("", Collections.nCopies(100, "x"));
+        String longTableName = String.join("", Collections.nCopies(1000, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
         schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLongTableNameLengthFailsCassandra() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String longTableName = String.join("", Collections.nCopies(49, "x"));
+        int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT + 1;
+        String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
+        assertThatThrownBy(() ->
+                schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Internal table name %s is too long, exceeds Cassandra limit (%s). " +
+                        "If using a table prefix, please ensure that the concatenation " +
+                        "of the prefix with the internal table name is below the KVS limit. " +
+                        "If running using a different KVS, set the ignoreTableNameLength flag.",
+                    longTableName,
+                    AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLongTableNameLengthFailsPostgres() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String longTableName = String.join("", Collections.nCopies(64, "x"));
+        int longLengthPostgres = AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT + 1;
+        String longTableName = String.join("", Collections.nCopies(longLengthPostgres, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
+        assertThatThrownBy(() ->
+                schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Internal table name %s is too long, exceeds Cassandra limit (%s) and " +
+                                "Postgres limit (%s). If using a table prefix, please ensure that the concatenation " +
+                                "of the prefix with the internal table name is below the KVS limit. " +
+                                "If running using a different KVS, set the ignoreTableNameLength flag.",
+                        longTableName,
+                        AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT,
+                        AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT);
     }
 
     @Test(expected = IllegalArgumentException.class)
