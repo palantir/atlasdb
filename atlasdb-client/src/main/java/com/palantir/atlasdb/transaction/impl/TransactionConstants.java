@@ -38,15 +38,15 @@ public class TransactionConstants {
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
 
-    public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10*1024*1024;
+    public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10 * 1024 * 1024;
 
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
-    public static final byte[] getValueForTimestamp(long transactionTimestamp) {
+    public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);
     }
 
-    public static final long getTimestampForValue(byte[] encodedTimestamp) {
+    public static long getTimestampForValue(byte[] encodedTimestamp) {
         return EncodingUtils.decodeVarLong(encodedTimestamp);
     }
 
