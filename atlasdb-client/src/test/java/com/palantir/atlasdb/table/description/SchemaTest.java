@@ -97,13 +97,12 @@ public class SchemaTest {
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT + 1;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>() {{
-            add(CharacterLimitType.CASSANDRA);
-        }};
+        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
+        kvsList.add(CharacterLimitType.CASSANDRA);
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage(getErrorMessage(longTableName, kvsList));
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(getErrorMessage(longTableName, kvsList));
     }
 
     @Test
@@ -111,10 +110,9 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(1000, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>() {{
-            add(CharacterLimitType.CASSANDRA);
-            add(CharacterLimitType.POSTGRES);
-        }};
+        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
+        kvsList.add(CharacterLimitType.CASSANDRA);
+        kvsList.add(CharacterLimitType.POSTGRES);
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -127,9 +125,8 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(40, "x"));
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, longTableName);
-        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>() {{
-            add(CharacterLimitType.CASSANDRA);
-        }};
+        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
+        kvsList.add(CharacterLimitType.CASSANDRA);
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
