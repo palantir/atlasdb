@@ -182,15 +182,12 @@ public class TableMetadata implements Persistable {
         return persistToProto().build().toByteArray();
     }
 
-    public static final Hydrator<TableMetadata> BYTES_HYDRATOR = new Hydrator<TableMetadata>() {
-        @Override
-        public TableMetadata hydrateFromBytes(byte[] input) {
-            try {
-                TableMetadataPersistence.TableMetadata message = TableMetadataPersistence.TableMetadata.parseFrom(input);
-                return hydrateFromProto(message);
-            } catch (InvalidProtocolBufferException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
+    public static final Hydrator<TableMetadata> BYTES_HYDRATOR = input -> {
+        try {
+            TableMetadataPersistence.TableMetadata message = TableMetadataPersistence.TableMetadata.parseFrom(input);
+            return hydrateFromProto(message);
+        } catch (InvalidProtocolBufferException e) {
+            throw Throwables.throwUncheckedException(e);
         }
     };
 

@@ -44,7 +44,7 @@ jar {
 libsDirName = file('build/artifacts')
 
 dependencies {
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+    // Dont add Java8 compile/runtime dependencies here as commons-executors needs to be compatible with Java6 clients
     compile group: 'com.google.code.findbugs', name: 'annotations'
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
@@ -89,6 +89,8 @@ tasks.withType(Test) {
     if (System.env.CIRCLE_TEST_REPORTS) {
         reports.junitXml.destination = new File(System.env.CIRCLE_TEST_REPORTS, it.getName())
     }
+
+    enableAssertions = true
 
     testLogging {
         showExceptions true

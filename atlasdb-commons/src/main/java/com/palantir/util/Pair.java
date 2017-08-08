@@ -216,21 +216,11 @@ public final class Pair<V, W> implements java.io.Serializable {
     }
 
     public static <L, R> Function<Pair<L, R>, L> getLeftFunc() {
-        return new Function<Pair<L,R>, L>() {
-            @Override
-            public L apply(Pair<L, R> from) {
-                return from.lhSide;
-            }
-        };
+        return from -> from.lhSide;
     }
 
     public static <L, R> Function<Pair<L, R>, R> getRightFunc() {
-        return new Function<Pair<L,R>, R>() {
-            @Override
-            public R apply(Pair<L, R> from) {
-                return from.rhSide;
-            }
-        };
+        return from -> from.rhSide;
     }
 
 }

@@ -175,6 +175,51 @@ fairly.
        stream. This margin is specified as a ratio of the smallest idle timeout - hence it must be strictly between
        0 and 1 (default: ``0.03``).
 
+.. _async-lock-service:
+
+Async Lock Service
+------------------
+
+.. danger::
+
+   If disabling legacy safety checks, note that clients for each namespace **MUST** either use pre- or post-0.49.0
+   versions of AtlasDB. This also precludes rolling upgrades of clients (as there is an intermediate state where some
+   clients are using pre-0.49.0 and some using post-0.49.0). Failure to ensure this may result in
+   **SEVERE DATA CORRUPTION** as transactions which would otherwise have run into a write-write conflict might
+   successfully commit.
+
+Since AtlasDB 0.49.0, the TimeLock Server by default runs an asynchronous implementation of the lock service.
+This relies on new ``/timelock`` APIs (as opposed to the previous ``/timestamp`` and ``/lock`` APIs). Configuring
+the asynchronous lock service may be done as follows:
+
+   .. code:: yaml
+
+      asyncLock:
+        useAsyncLockService: true
+        disableLegacySafetyChecksWarningPotentialDataCorruption: false
+
+.. list-table::
+   :widths: 5 40
+   :header-rows: 1
+
+   * - Property
+     - Description
+
+   * - useAsyncLockService
+     - Whether to enable the asynchronous lock service or not (default: ``true``).
+
+   * - disableLegacySafetyChecksWarningPotentialDataCorruption
+     - A value indicating whether safety checks to prohibit legacy lock services from participating in the AtlasDB
+       transaction protocol should be disabled. The safety checks are important for avoiding concurrency issues if
+       clients for a given namespace may be running both pre- and post-0.49.0 versions of AtlasDB, but may need to be
+       disabled if one is running clients for multiple namespaces that separately run both pre- and post-0.49.0
+       versions of AtlasDB.
+
+If ``useAsyncLockService`` is specified whilst ``disableLegacySafetyChecksWarningPotentialDataCorruption`` is not, then
+``disableLegacySafetyChecksWarningPotentialDataCorruption`` defaults to the complement of ``useAsyncLockService``.
+Note that we do not support enabling safety checks whilst not using the async lock service (as there will be no way for
+client transactions to commit)!
+
 .. _timelock-server-further-config:
 
 Further Configuration Parameters
@@ -233,3 +278,31 @@ Note that because Timelock Server uses the OkHttp library, it is currently not c
    Thus, clients that are unable to use HTTP/2 may see a significant slowdown when the Timelock Server switches from an
    ``https`` connector to an ``h2`` connector. It may be possible to get around this by exposing multiple application
    connectors, though the AtlasDB team has not tested this approach.
+
+.. _non-blocking-appender:
+
+Non-Blocking Appender
+~~~~~~~~~~~~~~~~~~~~~
+
+We have experienced issues with Logback (the logging library which Dropwizard uses) under high load.
+This is because rolling of request logs required synchronization among threads that wanted to write logs; given high
+load it was possible for requests to build up and, eventually, servers being unable to respond to pings quickly enough.
+
+We thus implemented a ``NonBlockingFileAppenderFactory`` which never blocks when writing logs (even when files are
+rolled), though this could mean that a very small proportion of log lines may be dropped.
+
+This is configured in the same way as a standard Dropwizard
+`file <http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#file>`__ appender, except that the ``type``
+should be ``non-blocking-file`` instead of just ``file``.
+
+.. code:: yaml
+
+   requestLog:
+     appenders:
+       - archivedFileCount: 10
+         maxFileSize: 1GB
+         archivedLogFilenamePattern: "var/log/timelock-server-request-%i.log.gz"
+         currentLogFilename: var/log/timelock-server-request.log
+         threshold: INFO
+         timeZone: UTC
+         type: non-blocking-file

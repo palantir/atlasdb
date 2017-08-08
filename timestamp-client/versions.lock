@@ -50,14 +50,6 @@
         "com.palantir.atlasdb:timestamp-api": {
             "project": true
         },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:timestamp-api"
-            ]
-        },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2",
             "transitive": [
@@ -135,14 +127,6 @@
         },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true
-        },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:timestamp-api"
-            ]
         },
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.2",

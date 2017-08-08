@@ -9,9 +9,6 @@
         "com.google.guava:guava": {
             "locked": "18.0"
         },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
-        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "requested": "2.0.1"
@@ -26,9 +23,6 @@
         },
         "com.google.guava:guava": {
             "locked": "18.0"
-        },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",

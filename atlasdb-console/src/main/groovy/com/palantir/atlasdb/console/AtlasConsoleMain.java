@@ -47,6 +47,8 @@ public class AtlasConsoleMain {
     private static final String CLASSPATH_FLAG_LONG = "classpath";
     private static final String SCRIPT_FLAG_SHORT = "s";
     private static final String SCRIPT_FLAG_LONG = "script";
+    private static final String MUTATIONS_ENABLED_FLAG_SHORT = "m";
+    private static final String MUTATIONS_ENABLED_FLAG_LONG = "mutations_enabled";
     private static final String EVAL_FLAG_SHORT = "e";
     private static final String EVAL_FLAG_LONG = "evaluate";
     private static final String BIND_FLAG_SHORT = "b";
@@ -55,6 +57,8 @@ public class AtlasConsoleMain {
     public static final Options OPTIONS = new Options()
             .addOption(HELP_FLAG_SHORT, HELP_FLAG_LONG, false, "Prints help message.")
             .addOption(SCRIPT_FLAG_SHORT, SCRIPT_FLAG_LONG, false, "Path to .groovy file to execute as non-interactive application")
+            .addOption(MUTATIONS_ENABLED_FLAG_SHORT, MUTATIONS_ENABLED_FLAG_LONG, false, "Enable put() and delete() commands for database mutation. "
+                                                                + "THIS SHOULD ONLY BE ENABLED IF YOU REALLY KNOW WHAT YOU ARE DOING")
             .addOption(EVAL_FLAG_SHORT, EVAL_FLAG_LONG, true, "Groovy code to evaluate prior to startup in interactive mode")
             .addOption(CLASSPATH_FLAG_SHORT, CLASSPATH_FLAG_LONG, true, "Additional locations to include on the classpath")
             .addOption(OptionBuilder
@@ -94,9 +98,10 @@ public class AtlasConsoleMain {
         }
         else {
             String setupScript = "-e//Starting AtlasConsole...please wait.\n" +
+                    ":set verbosity QUIET\n" +
                     ":set interpreterMode\n" +
                     ":set show-last-result false\n" +
-                    getJavaCallbackString();
+                    getJavaCallbackString(cli.hasOption(MUTATIONS_ENABLED_FLAG_SHORT));
 
             if(cli.hasOption(BIND_FLAG_SHORT)) {
                 additionalBindingsToSetUp = cli.getOptionValues(BIND_FLAG_SHORT);
@@ -129,7 +134,7 @@ public class AtlasConsoleMain {
     }
 
     private void evalFiles(String[] filepaths, CommandLine cli) throws CompilationFailedException, IOException {
-        Binding binding = setupBinding(new Binding());
+        Binding binding = setupBinding(new Binding(), cli.hasOption(MUTATIONS_ENABLED_FLAG_SHORT));
         GroovyShell shell = new GroovyShell(binding);
         if(cli.hasOption(CLASSPATH_FLAG_SHORT)) {
             shell.getClassLoader().addClasspath(cli.getOptionValue(CLASSPATH_FLAG_SHORT));
@@ -140,22 +145,22 @@ public class AtlasConsoleMain {
         }
     }
 
-    protected String getJavaCallbackString() {
-        return "com.palantir.atlasdb.console.AtlasConsoleMain.callback(this)";
+    protected String getJavaCallbackString(boolean mutationsEnabled) {
+        return "com.palantir.atlasdb.console.AtlasConsoleMain.callback(this, " + mutationsEnabled + ")";
     }
 
     public static void main(String[] args) {
         new AtlasConsoleMain().run(args);
     }
 
-    private static Binding setupBinding(Binding binding) {
+    private static Binding setupBinding(Binding binding, boolean mutationsEnabled) {
         for(int i = 0; i < additionalBindingsToSetUp.length; i += 2) {
             binding.setVariable(additionalBindingsToSetUp[i], additionalBindingsToSetUp[i + 1]);
         }
 
         AtlasConsoleService atlasConsoleService = new DisconnectedAtlasConsoleService();
         AtlasConsoleServiceWrapper atlasConsoleServiceWrapper = AtlasConsoleServiceWrapper.init(atlasConsoleService);
-        return AtlasConsoleBinder.create(binding, new AtlasCoreModule(atlasConsoleServiceWrapper));
+        return AtlasConsoleBinder.create(binding, new AtlasCoreModule(atlasConsoleServiceWrapper, mutationsEnabled));
     }
 
     /**
@@ -167,9 +172,9 @@ public class AtlasConsoleMain {
      * access (removes the need for users to create an explicit ~/.java.policy
      * file).
      */
-    public static void callback(Script script) throws CompilationFailedException, IOException {
+    public static void callback(Script script, boolean mutationsEnabled) throws CompilationFailedException, IOException {
         System.setSecurityManager(null);
-        setupBinding(script.getBinding());
+        setupBinding(script.getBinding(), mutationsEnabled);
     }
 
 }

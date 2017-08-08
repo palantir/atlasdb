@@ -23,7 +23,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -51,12 +50,9 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
 
     protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
         Preconditions.checkNotNull(txnMgr);
-        txnMgr.runTaskThrowOnConflict(new TxTask() {
-            @Override
-            public Void execute(Transaction t) {
-                putMetadataAndHashIndexTask(t, streamId, metadata);
-                return null;
-            }
+        txnMgr.runTaskThrowOnConflict((TxTask) t -> {
+            putMetadataAndHashIndexTask(t, streamId, metadata);
+            return null;
         });
     }
 
@@ -99,12 +95,9 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
 
     protected long storeEmptyMetadata() {
         Preconditions.checkNotNull(txnMgr);
-        return txnMgr.runTaskThrowOnConflict(new TransactionTask<Long, RuntimeException>() {
-            @Override
-            public Long execute(Transaction t) {
-                putMetadataAndHashIndexTask(t, t.getTimestamp(), getEmptyMetadata());
-                return t.getTimestamp();
-            }
+        return txnMgr.runTaskThrowOnConflict(t -> {
+            putMetadataAndHashIndexTask(t, t.getTimestamp(), getEmptyMetadata());
+            return t.getTimestamp();
         });
     }
 
@@ -127,20 +120,12 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         Map<Long, StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams, Functions.constant(getEmptyMetadata()));
         putMetadataAndHashIndexTask(t, idsToEmptyMetadata);
 
-        Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams, new Maps.EntryTransformer<Long, InputStream, StreamMetadata>() {
-            @Override
-            public StreamMetadata transformEntry(Long id, InputStream stream) {
-                return storeBlocksAndGetFinalMetadata(t, id, stream);
-            }
-        });
+        Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams,
+                (id, stream) -> storeBlocksAndGetFinalMetadata(t, id, stream));
         putMetadataAndHashIndexTask(t, idsToMetadata);
 
-        Map<Long, Sha256Hash> hashes = Maps.transformValues(idsToMetadata, new Function<StreamMetadata, Sha256Hash>() {
-            @Override
-            public Sha256Hash apply(StreamMetadata metadata) {
-                return new Sha256Hash(metadata.getHash().toByteArray());
-            }
-        });
+        Map<Long, Sha256Hash> hashes = Maps.transformValues(idsToMetadata,
+                metadata -> new Sha256Hash(metadata.getHash().toByteArray()));
         return hashes;
     }
 
@@ -211,12 +196,9 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         } else {
             Preconditions.checkNotNull(txnMgr);
             txnMgr.runTaskThrowOnConflict(
-                    new TransactionTask<Void, RuntimeException>() {
-                        @Override
-                        public Void execute(Transaction t) throws RuntimeException {
-                            storeBlock(t, id, blockNumber, bytesToStore);
-                            return null;
-                        }
+                    (TransactionTask<Void, RuntimeException>) t1 -> {
+                        storeBlock(t1, id, blockNumber, bytesToStore);
+                        return null;
                     });
         }
     }

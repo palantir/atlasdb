@@ -24,9 +24,12 @@ The full list of metrics exposed by AtlasDB can be found below.
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.<host>.requestFailureProportion``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestConnectionExceptionProportion``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestFailureProportion``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.approximatePoolSize``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.meanActiveTimeMillis``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.meanBorrowWaitTimeMillis``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.meanIdleTimeMillis``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.numIdle``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.numActive``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.proportionDestroyedByBorrower``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.proportionDestroyedByEvictor``
  - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.estimated.size``

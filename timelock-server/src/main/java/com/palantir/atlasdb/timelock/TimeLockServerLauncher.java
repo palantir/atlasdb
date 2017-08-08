@@ -17,14 +17,12 @@ package com.palantir.atlasdb.timelock;
 
 import java.util.Map;
 
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
-
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -43,26 +41,15 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
+        bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         super.initialize(bootstrap);
     }
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
         TimeLockServer serverImpl = configuration.algorithm().createServerImpl(environment);
-        try {
-            serverImpl.onStartup(configuration);
-            registerResources(configuration, environment, serverImpl);
-        } catch (Exception e) {
-            serverImpl.onStartupFailure();
-            throw e;
-        }
-
-        environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
-            @Override
-            public void lifeCycleStopped(LifeCycle event) {
-                serverImpl.onStop();
-            }
-        });
+        serverImpl.onStartup(configuration);
+        registerResources(configuration, environment, serverImpl);
     }
 
     private static void registerResources(

@@ -94,7 +94,6 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
@@ -111,6 +110,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.remoting2.tracing.Tracers;
 
 @SuppressWarnings("checkstyle:all")
@@ -190,19 +190,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
         t1.commit();
         for (int i = 0 ; i < 1000 ; i++) {
-            executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    txManager.runTaskWithRetry(new TxTask() {
-                        @Override
-                        public Void execute(Transaction t) throws RuntimeException {
-                            long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
-                            t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
-                            return null;
-                        }
-                    });
+            executor.submit(() -> {
+                txManager.runTaskWithRetry((TxTask) t -> {
+                    long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
+                    t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
                     return null;
-                }
+                });
+                return null;
             });
         }
         for (int i = 0; i < 1000 ; i++) {
@@ -223,19 +217,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
         t1.commit();
         for (int i = 0 ; i < 1000 ; i++) {
-            executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    txManager.runTaskWithRetry(new TxTask() {
-                        @Override
-                        public Void execute(Transaction t) throws RuntimeException {
-                            long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
-                            t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
-                            return null;
-                        }
-                    });
+            executor.submit(() -> {
+                txManager.runTaskWithRetry((TxTask) t -> {
+                    long prev = EncodingUtils.decodeVarLong(t.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
+                    t.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(prev+1)));
                     return null;
-                }
+                });
+                return null;
             });
         }
         for (int i = 0; i < 1000 ; i++) {
@@ -250,14 +238,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void testImmutableTs() throws Exception {
         final long firstTs = timestampService.getFreshTimestamp();
-        long startTs = txManager.runTaskThrowOnConflict(new TransactionTask<Long, RuntimeException>() {
-            @Override
-            public Long execute(Transaction t) throws RuntimeException {
-                Assert.assertTrue(firstTs < txManager.getImmutableTimestamp());
-                Assert.assertTrue(txManager.getImmutableTimestamp() < t.getTimestamp());
-                Assert.assertTrue(t.getTimestamp() < timestampService.getFreshTimestamp());
-                return t.getTimestamp();
-            }
+        long startTs = txManager.runTaskThrowOnConflict(t -> {
+            Assert.assertTrue(firstTs < txManager.getImmutableTimestamp());
+            Assert.assertTrue(txManager.getImmutableTimestamp() < t.getTimestamp());
+            Assert.assertTrue(t.getTimestamp() < timestampService.getFreshTimestamp());
+            return t.getTimestamp();
         });
         Assert.assertTrue(firstTs < txManager.getImmutableTimestamp());
         Assert.assertTrue(startTs < txManager.getImmutableTimestamp());
@@ -285,8 +270,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 kvMock,
-                lock,
-                timestampService,
+                new LegacyTimelockService(timestampService, lock, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,
@@ -341,8 +325,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         SnapshotTransaction snapshot = new SnapshotTransaction(
                 kv,
-                lockService,
-                timestampService,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 transactionTs,
@@ -380,43 +363,38 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         for (int i = 0; i < 30; i++) {
             final int threadNumber = i;
-            service.schedule(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    if (threadNumber == 10) {
-                        unstableKvs.setRandomlyThrow(true);
-                    }
-                    if (threadNumber == 20) {
-                        unstableKvs.setRandomlyHang(true);
-                    }
+            service.schedule((Callable<Void>) () -> {
+                if (threadNumber == 10) {
+                    unstableKvs.setRandomlyThrow(true);
+                }
+                if (threadNumber == 20) {
+                    unstableKvs.setRandomlyHang(true);
+                }
 
-                    Transaction transaction = unstableTransactionManager.createNewTransaction();
-                    BatchingVisitable<RowResult<byte[]>> results =
-                            transaction.getRange(tableRef, RangeRequest.builder().build());
+                Transaction transaction = unstableTransactionManager.createNewTransaction();
+                BatchingVisitable<RowResult<byte[]>> results =
+                        transaction.getRange(tableRef, RangeRequest.builder().build());
 
-                    final MutableInt nextIndex = new MutableInt(0);
-                    results.batchAccept(1, AbortingVisitors.batching(new AbortingVisitor<RowResult<byte[]>, Exception>() {
-                        @Override
-                        public boolean visit(RowResult<byte[]> row) throws Exception {
+                final MutableInt nextIndex = new MutableInt(0);
+                results.batchAccept(1, AbortingVisitors.batching(
+                        (AbortingVisitor<RowResult<byte[]>, Exception>) row -> {
                             byte[] dataBytes = row.getColumns().get(PtBytes.toBytes("data"));
                             BigInteger dataValue = new BigInteger(dataBytes);
                             nextIndex.setValue(Math.max(nextIndex.toInteger(), dataValue.intValue() + 1));
                             return true;
-                        }
-                    }));
+                        }));
 
-                    // nextIndex now contains the least row number not already in the table. Add 5 more
-                    // rows to the table.
-                    for (int j = 0; j < 5; j++) {
-                        int rowNumber = nextIndex.toInteger() + j;
-                        Cell cell = Cell.create(PtBytes.toBytes("row" + rowNumber), PtBytes.toBytes("data"));
-                        transaction.put(tableRef,
-                                ImmutableMap.of(cell, BigInteger.valueOf(rowNumber).toByteArray()));
-                        Thread.yield();
-                    }
-                    transaction.commit();
-                    return null;
+                // nextIndex now contains the least row number not already in the table. Add 5 more
+                // rows to the table.
+                for (int j = 0; j < 5; j++) {
+                    int rowNumber = nextIndex.toInteger() + j;
+                    Cell cell = Cell.create(PtBytes.toBytes("row" + rowNumber), PtBytes.toBytes("data"));
+                    transaction.put(tableRef,
+                            ImmutableMap.of(cell, BigInteger.valueOf(rowNumber).toByteArray()));
+                    Thread.yield();
                 }
+                transaction.commit();
+                return null;
             }, i * 20, TimeUnit.MILLISECONDS);
         }
 
@@ -430,13 +408,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         final MutableInt numRows = new MutableInt(0);
         results.batchAccept(1,
-                AbortingVisitors.batching(new AbortingVisitor<RowResult<byte[]>, Exception>() {
-            @Override
-            public boolean visit(RowResult<byte[]> row) throws Exception {
-                numRows.increment();
-                return true;
-            }
-        }));
+                AbortingVisitors.batching((AbortingVisitor<RowResult<byte[]>, Exception>) row -> {
+                    numRows.increment();
+                    return true;
+                }));
 
         Assert.assertEquals(0, numRows.toInteger() % 5);
     }

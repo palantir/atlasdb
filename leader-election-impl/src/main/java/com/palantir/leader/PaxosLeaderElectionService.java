@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -40,6 +39,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Defaults;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -175,22 +175,33 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 executor);
 
         // kick off all the requests
-        pingCompletionService.submit(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                return leader.ping();
-            }
-        });
+        pingCompletionService.submit(() -> leader.ping());
 
         try {
             Future<Boolean> pingFuture = pingCompletionService.poll(
                     leaderPingResponseWaitMs,
                     TimeUnit.MILLISECONDS);
-            return pingFuture != null && pingFuture.get();
-        } catch (InterruptedException e) {
+            return getAndRecordLeaderPingResult(pingFuture);
+        } catch (InterruptedException ex) {
             return false;
+        }
+    }
+
+    @VisibleForTesting
+    boolean getAndRecordLeaderPingResult(@Nullable Future<Boolean> pingFuture) throws InterruptedException {
+        if (pingFuture == null) {
+            eventRecorder.recordLeaderPingTimeout();
+            return false;
+        }
+
+        try {
+            boolean isLeader = pingFuture.get();
+            if (!isLeader) {
+                eventRecorder.recordLeaderPingReturnedFalse();
+            }
+            return isLeader;
         } catch (ExecutionException e) {
-            log.warn("cannot ping leader", e);
+            eventRecorder.recordLeaderPingFailure(e.getCause());
             return false;
         }
     }
@@ -230,14 +241,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         // kick off requests to get leader uuids
         List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
         for (final PingableLeader potentialLeader : potentialLeadersToHosts.keySet()) {
-            allFutures.add(pingService.submit(new Callable<Entry<String, PingableLeader>>() {
-                @Override
-                public Entry<String, PingableLeader> call() throws Exception {
-                    return new AbstractMap.SimpleEntry<String, PingableLeader>(
-                            potentialLeader.getUUID(),
-                            potentialLeader);
-                }
-            }));
+            allFutures.add(pingService.submit(() -> new AbstractMap.SimpleEntry<String, PingableLeader>(
+                    potentialLeader.getUUID(),
+                    potentialLeader)));
         }
 
         // collect responses

@@ -68,50 +68,44 @@ public class PrefetchingBatchingVisitable<T> implements BatchingVisitable<T> {
         final Stopwatch visitTime = Stopwatch.createUnstarted();
         final Stopwatch visitBlockedTime = Stopwatch.createUnstarted();
 
-        Future<?> future = exec.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    fetchTime.start();
-                    delegate.batchAccept(batchSize, new AbortingVisitor<List<T>, InterruptedException>() {
-                        @Override
-                        public boolean visit(List<T> item) throws InterruptedException {
-                            fetchTime.stop();
-                            fetchBlockedTime.start();
-                            lock.lock();
-                            try {
-                                while (queue.size() >= capacity) {
-                                    spaceAvailable.await();
-                                }
-                                fetchBlockedTime.stop();
-                                queue.add(item);
-                                itemAvailable.signalAll();
-                            } finally {
-                                lock.unlock();
-                            }
-                            fetchTime.start();
-                            return true;
-                        }
-                    });
+        Future<?> future = exec.submit(() -> {
+            try {
+                fetchTime.start();
+                delegate.batchAccept(batchSize, item -> {
                     fetchTime.stop();
-                } catch (InterruptedException e) {
-                    // shutting down
-                } catch (Throwable t) {
-                    exception.set(t);
-                } finally {
-                    if (fetchTime.isRunning()) {
-                        fetchTime.stop();
-                    }
-                    if (fetchBlockedTime.isRunning()) {
-                        fetchBlockedTime.stop();
-                    }
+                    fetchBlockedTime.start();
                     lock.lock();
                     try {
-                        futureIsDone.set(true);
+                        while (queue.size() >= capacity) {
+                            spaceAvailable.await();
+                        }
+                        fetchBlockedTime.stop();
+                        queue.add(item);
                         itemAvailable.signalAll();
                     } finally {
                         lock.unlock();
                     }
+                    fetchTime.start();
+                    return true;
+                });
+                fetchTime.stop();
+            } catch (InterruptedException e) {
+                // shutting down
+            } catch (Throwable t) {
+                exception.set(t);
+            } finally {
+                if (fetchTime.isRunning()) {
+                    fetchTime.stop();
+                }
+                if (fetchBlockedTime.isRunning()) {
+                    fetchBlockedTime.stop();
+                }
+                lock.lock();
+                try {
+                    futureIsDone.set(true);
+                    itemAvailable.signalAll();
+                } finally {
+                    lock.unlock();
                 }
             }
         });

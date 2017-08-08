@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -93,35 +91,6 @@ public class TimeLockServerLauncherTest {
         verify(timeLockServer, times(1)).onStartup(any());
     }
 
-    @Test
-    public void verifyOnStartupFailureIsCalledExactlyOnceIfStartupFails() {
-        causeFailedStartup();
-        verify(timeLockServer, times(1)).onStartupFailure();
-    }
-
-    @Test
-    public void verifyOnStopIsNeverCalledIfStartupFails() {
-        causeFailedStartup();
-        verify(timeLockServer, never()).onStop();
-    }
-
-    private void causeFailedStartup() {
-        RuntimeException expectedException = new RuntimeException("jersey throw");
-        when(environment.jersey()).thenThrow(expectedException);
-
-        assertThatThrownBy(() -> server.run(getConfiguration(), environment))
-                .isEqualTo(expectedException);
-    }
-
-    @Test
-    public void verifyOnStopIsCalledExactlyOnceIfServerShutsDown() {
-        server.run(getConfiguration(), environment);
-
-        sendShutdownToListeners();
-        listeners.clear();
-        verify(timeLockServer, times(1)).onStop();
-    }
-
     private TimeLockServerConfiguration getConfiguration() {
         return new TimeLockServerConfiguration(
                 algorithmConfiguration,
@@ -130,6 +99,7 @@ public class TimeLockServerLauncherTest {
                         .addServers(LOCAL_ADDRESS)
                         .build(),
                 ImmutableSet.of(TEST_CLIENT),
+                null,
                 false,
                 null);
     }

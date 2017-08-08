@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -30,7 +31,6 @@ import java.util.concurrent.Future;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Function;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -39,6 +39,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -57,7 +58,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.remoting2.tracing.Tracers;
 
 
@@ -86,28 +87,24 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
-                ImmutableList.<LockRefreshToken>of(),
+                Optional.empty(),
+                AdvisoryLockPreCommitCheck.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
-                timestampCache) {
+                timestampCache,
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
-                return Maps.transformValues(map, new Function<byte[], byte[]>() {
-                    @Override
-                    public byte[] apply(byte[] input) {
-                        return input.clone();
-                    }
-                });
+                return Maps.transformValues(map, input -> input.clone());
             }
         };
     }
@@ -182,14 +179,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         final Transaction t1 = startTransaction();
         ExecutorService exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
-        Future<?> future = exec.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                withdrawMoney(t1, true, false);
-                barrier.await();
-                t1.commit();
-                return null;
-            }
+        Future<?> future = exec.submit((Callable<Void>) () -> {
+            withdrawMoney(t1, true, false);
+            barrier.await();
+            t1.commit();
+            return null;
         });
 
         Transaction t2 = startTransaction();

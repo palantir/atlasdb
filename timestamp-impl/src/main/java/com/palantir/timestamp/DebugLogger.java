@@ -18,6 +18,9 @@ package com.palantir.timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -37,14 +40,15 @@ public final class DebugLogger {
 
     public static void handedOutTimestamps(TimestampRange range) {
         long count = range.getUpperBound() - range.getLowerBound() + 1L;
-        logger.trace("Handing out {} timestamps, taking us to {}.", count, range.getUpperBound());
+        logger.trace("Handing out {} timestamps, taking us to {}.", SafeArg.of("count", count),
+                SafeArg.of("rangeUpperBound", range.getUpperBound()));
     }
 
     public static void createdPersistentTimestamp() {
         logger.info("Creating PersistentTimestamp object on thread {}."
                         + " If you are running embedded AtlasDB, this should only happen once."
                         + " If you are using Timelock, this should happen once per client per leadership election",
-                Thread.currentThread().getName());
+                UnsafeArg.of("threadName", Thread.currentThread().getName()));
     }
 
     public static void willStoreNewUpperLimit(long newLimit) {
@@ -52,7 +56,7 @@ public final class DebugLogger {
     }
 
     public static void didStoreNewUpperLimit(long newLimit) {
-        logger.trace("Stored; upper limit is now {}.", newLimit);
+        logger.trace("Stored; upper limit is now {}.", SafeArg.of("newLimit", newLimit));
     }
 
 }

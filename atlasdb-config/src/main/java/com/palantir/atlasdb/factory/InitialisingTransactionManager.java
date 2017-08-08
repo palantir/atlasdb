@@ -50,7 +50,7 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timestamp.DynamicDecoratedTimestampService;
+import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -58,6 +58,7 @@ import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.InitialisingPersistentLockService;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
@@ -92,6 +93,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -109,7 +111,9 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.InitialisingTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -209,7 +213,8 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
-        kvs = SweepStatsKeyValueService.create(kvs, lockAndTimestampServices.time());
+        kvs = SweepStatsKeyValueService.create(kvs,
+                new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
                 MetricRegistry.name(KeyValueService.class, userAgent));
@@ -231,16 +236,13 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             Schemas.createTablesAndIndexes(schema, kvs);
         }
 
-        // Prime the key value service with logging information.
-        //TODO: After merge with develop, LoggingArgs.hydrate(kvs.getMetadataForTables());
+        LoggingArgs.hydrate(kvs.getMetadataForTables());
 
         CleanupFollower follower = CleanupFollower.create(schemas);
 
         Cleaner cleaner = new DefaultCleanerBuilder(
                 kvs,
-                lockAndTimestampServices.lock(),
-                lockAndTimestampServices.time(),
-                LOCK_CLIENT,
+                lockAndTimestampServices.timelock(),
                 ImmutableList.of(follower),
                 transactionService)
                 .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
@@ -252,23 +254,21 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 .buildCleaner();
 
         SerializableTransactionManagerImpl transactionManager = new SerializableTransactionManagerImpl(kvs,
-                lockAndTimestampServices.time(),
-                LOCK_CLIENT,
+                lockAndTimestampServices.timelock(),
                 lockAndTimestampServices.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess);
-        //TODO: add arg, () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
+                allowHiddenTableAccess,
+                () -> getAtlasDbRuntimeConfig().transaction().getLockAcquireTimeoutMillis());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
 
-        initializeSweepEndpointAndBackgroundProcess(
-                //TODO: pass runtimeConfigSupplier
+        initializeSweepEndpointAndBackgroundProcess(() -> getAtlasDbRuntimeConfig(),
                 kvs,
                 transactionService,
                 sweepStrategyManager,
@@ -281,8 +281,8 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
 
     private Function<Optional<AtlasDbRuntimeConfig>, TimestampClientConfig> getTimestampClientConfigFunction() {
         return runtimeConfig -> runtimeConfig
-                        .map(AtlasDbRuntimeConfig::timestampClient)
-                        .orElse(ImmutableTimestampClientConfig.of());
+                .map(AtlasDbRuntimeConfig::timestampClient)
+                .orElse(ImmutableTimestampClientConfig.of());
     }
 
     private LockAndTimestampServices createLockAndTimestampServices(
@@ -292,7 +292,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             TimestampStoreInvalidator invalidator) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawServices(lock, time, invalidator);
-        return withRateLimitedTimestampService(
+        return withRequestBatchingTimestampService(
                 runtimeTimestampConfigSupplier,
                 withRefreshingLockService(lockAndTimestampServices));
     }
@@ -304,29 +304,35 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 .build();
     }
 
-    private LockAndTimestampServices withRateLimitedTimestampService(
+    private static LockAndTimestampServices withRequestBatchingTimestampService(
             java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
             LockAndTimestampServices lockAndTimestampServices) {
+        TimelockService timelockServiceWithBatching =
+                DecoratedTimelockServices.createTimelockServiceWithTimestampBatching(
+                        lockAndTimestampServices.timelock(), timestampClientConfigSupplier);
+
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .time(DynamicDecoratedTimestampService.createWithRateLimiting(
-                        lockAndTimestampServices.time(),
-                        timestampClientConfigSupplier))
+                .timestamp(new TimelockTimestampServiceAdapter(timelockServiceWithBatching))
+                .timelock(timelockServiceWithBatching)
                 .build();
     }
+
 
     private LockAndTimestampServices createRawServices(
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator) {
-
         if (config.leader().isPresent()) {
             LockAndTimestampServices services = createRawLeaderServices(config.leader().get(), lock, time);
             remoteLockService.initialise(services.lock());
-            timestampService.initialise(services.time());
+            timestampService.initialise(services.timestamp());
             return services;
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
-            return createRawRemoteServices();
+            LockAndTimestampServices services = createRawRemoteServices();
+            remoteLockService.initialise(services.lock());
+            timestampService.initialise(services.timestamp());
+            return services;
         } else if (config.timelock().isPresent()) {
             TimeLockClientConfig timeLockClientConfig = config.timelock().get();
             TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
@@ -334,7 +340,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
         } else {
             LockAndTimestampServices services = createRawEmbeddedServices(lock, time);
             remoteLockService.initialise(services.lock());
-            timestampService.initialise(services.time());
+            timestampService.initialise(services.timestamp());
             return services;
         }
     }
@@ -408,12 +414,12 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
 
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
-                    .time(dynamicTimeService)
+                    .timestamp(dynamicTimeService)
                     .build();
         } else {
             return ImmutableLockAndTimestampServices.builder()
                     .lock(remoteLock)
-                    .time(remoteTime)
+                    .timestamp(remoteTime)
                     .build();
         }
     }
@@ -425,7 +431,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 .apply(config.timestamp().get());
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
                 .build();
     }
 
@@ -438,7 +444,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 .apply(namespacedServerListConfig);
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
                 .build();
     }
 
@@ -453,7 +459,8 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 userAgent);
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
+                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
 
@@ -465,6 +472,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
     }
 
     private void initializeSweepEndpointAndBackgroundProcess(
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfig,
             KeyValueService kvs,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
@@ -617,6 +625,11 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
     @Override
     public RemoteLockService getLockService() {
         return getDelegate().getLockService();
+    }
+
+    @Override
+    public TimelockService getTimelockService() {
+        return getDelegate().getTimelockService();
     }
 
     private SerializableTransactionManagerImpl getDelegate() {

@@ -39,20 +39,27 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
+import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.impl.LockRefreshingTimelockService;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -61,6 +68,7 @@ public final class TransactionManagers {
 
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
+    public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     @VisibleForTesting
     static Consumer<Runnable> runAsync = task -> {
@@ -178,6 +186,7 @@ public final class TransactionManagers {
         }
     }
 
+
     /**
      * This method should not be used directly. It remains here to support the AtlasDB-Dagger module and the CLIs, but
      * may be removed at some point in the future.
@@ -203,11 +212,42 @@ public final class TransactionManagers {
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
+    @VisibleForTesting
+    static LockAndTimestampServices createLockAndTimestampServices(
+            AtlasDbConfig config,
+            java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
+            Environment env,
+            Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
+        LockAndTimestampServices lockAndTimestampServices =
+                createRawServices(config, env, lock, time, invalidator, userAgent);
+        return withRequestBatchingTimestampService(
+                runtimeConfigSupplier,
+                withRefreshingLockService(lockAndTimestampServices));
+    }
+
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
+                .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
+                .build();
+    }
+
+    private static LockAndTimestampServices withRequestBatchingTimestampService(
+            java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
+            LockAndTimestampServices lockAndTimestampServices) {
+        TimelockService timelockServiceWithBatching =
+                DecoratedTimelockServices.createTimelockServiceWithTimestampBatching(
+                        lockAndTimestampServices.timelock(), timestampClientConfigSupplier);
+
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timestamp(new TimelockTimestampServiceAdapter(timelockServiceWithBatching))
+                .timelock(timelockServiceWithBatching)
                 .build();
     }
 
@@ -244,12 +284,13 @@ public final class TransactionManagers {
             String userAgent) {
         RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
                 .apply(timelockServerListConfig);
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
+        TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
                 .apply(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
+                .timelock(timelockService)
                 .build();
     }
 
@@ -261,7 +302,6 @@ public final class TransactionManagers {
             String userAgent) {
         // Create local services, that may or may not end up being registered in an environment.
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
-
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         RemoteLockService localLock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader);
         TimestampService localTime = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader);
@@ -327,13 +367,15 @@ public final class TransactionManagers {
                     TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
-                    .time(dynamicTimeService)
+                    .timestamp(dynamicTimeService)
+                    .timelock(new LegacyTimelockService(dynamicTimeService, dynamicLockService, LOCK_CLIENT))
                     .build();
 
         } else {
             return ImmutableLockAndTimestampServices.builder()
                     .lock(remoteLock)
-                    .time(remoteTime)
+                    .timestamp(remoteTime)
+                    .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
     }
@@ -346,7 +388,8 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
+                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
 
@@ -367,14 +410,16 @@ public final class TransactionManagers {
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .time(timeService)
+                .timestamp(timeService)
+                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
 
     @Value.Immutable
     public interface LockAndTimestampServices {
         RemoteLockService lock();
-        TimestampService time();
+        TimestampService timestamp();
+        TimelockService timelock();
     }
 
     public interface Environment {
