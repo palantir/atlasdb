@@ -47,7 +47,6 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private static String timestampServiceCreationInfo = null;
 
-    private final AtlasDbConfig atlasDbConfig;
     private final KeyValueServiceConfig keyValueServiceConfig;
     private final Optional<LeaderConfig> leaderConfig;
 
@@ -58,7 +57,6 @@ public class ServiceDiscoveringAtlasSupplier {
     private KeyValueService keyValueService = null;
 
     public ServiceDiscoveringAtlasSupplier(AtlasDbConfig config) {
-        atlasDbConfig = config;
         keyValueServiceConfig = config.keyValueService();
         leaderConfig = config.leader();
         AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
@@ -68,7 +66,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + keyValueServiceConfig.type()
                                 + " could be found. Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueServiceSupplier = () -> pollOrCreateRawKeyValueService(atlasFactory);
+        keyValueServiceSupplier = () -> atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
@@ -78,16 +76,6 @@ public class ServiceDiscoveringAtlasSupplier {
             keyValueService = keyValueServiceSupplier.get();
         }
         return keyValueService;
-    }
-
-    private KeyValueService pollOrCreateRawKeyValueService(AtlasDbFactory atlasFactory) {
-        return atlasDbConfig.pollForDataBaseOnStartup() ? pollForKeyValueService(atlasFactory)
-                : atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
-    }
-
-    // todo implement
-    private KeyValueService pollForKeyValueService(AtlasDbFactory atlasFactory) {
-        return atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
     }
 
     public synchronized TimestampService getTimestampService() {

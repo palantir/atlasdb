@@ -44,16 +44,6 @@ public abstract class AtlasDbConfig {
     public abstract Optional<ServerListConfig> timestamp();
 
     /**
-     * The application can throw a RuntimeException if the key value service is not available on startup. If the
-     * pollForDataBaseOnStartup option is set to true, the application will keep retrying indefinitely with backoff
-     * for the key value service to be available.
-     */
-    @Value.Default
-    public boolean pollForDataBaseOnStartup() {
-        return true;
-    }
-
-    /**
      * The transaction read timeout is the maximum amount of
      * time a read only transaction can safely run. Read only
      * transactions that run any longer may fail if they attempt
