@@ -35,13 +35,14 @@ public class NameComponentDescriptionTest {
             new ExplicitRowNamePartitioner(VALUE_TYPE, ImmutableSet.of());
 
     private static final NameComponentDescription DEFAULT_UNNAMED_DESCRIPTION = new NameComponentDescription();
-    private static final NameComponentDescription LOGGABILITY_UNSPECIFIED_DESCRIPTION =
-            new NameComponentDescription(
-                    COMPONENT_NAME,
-                    VALUE_TYPE,
-                    VALUE_BYTE_ORDER,
-                    UNIFORM_ROW_NAME_PARTITIONER,
-                    null);
+    private static final NameComponentDescription LOGGABILITY_UNSPECIFIED_DESCRIPTION
+            = new NameComponentDescription.Builder()
+                    .componentName(COMPONENT_NAME)
+                    .type(VALUE_TYPE)
+                    .byteOrder(VALUE_BYTE_ORDER)
+                    .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                    .explicitRowNamePartitioner(null)
+                    .build();
 
     private static final NameComponentDescription NAME_LOGGABLE_DESCRIPTION =
             createWithSpecifiedLogSafety(LogSafety.SAFE);
@@ -163,12 +164,12 @@ public class NameComponentDescriptionTest {
     }
 
     private static NameComponentDescription createWithSpecifiedLogSafety(LogSafety logSafety) {
-        return new NameComponentDescription(
-                COMPONENT_NAME,
-                VALUE_TYPE,
-                VALUE_BYTE_ORDER,
-                UNIFORM_ROW_NAME_PARTITIONER,
-                null,
-                logSafety);
+        return new NameComponentDescription.Builder()
+                .componentName(COMPONENT_NAME)
+                .type(VALUE_TYPE)
+                .byteOrder(VALUE_BYTE_ORDER)
+                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .logSafety(logSafety)
+                .build();
     }
 }

@@ -43,13 +43,13 @@ public class SafeLoggableDataUtilsTest {
     private static final String COLUMN_LONG_NAME = "barrrr";
     private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
             ImmutableList.of(
-                    new NameComponentDescription(
-                            ROW_COMPONENT_NAME,
-                            ValueType.VAR_LONG,
-                            TableMetadataPersistence.ValueByteOrder.ASCENDING,
-                            new UniformRowNamePartitioner(ValueType.VAR_LONG),
-                            null,
-                            LogSafety.SAFE)),
+                    new NameComponentDescription.Builder()
+                            .componentName(ROW_COMPONENT_NAME)
+                            .type(ValueType.VAR_LONG)
+                            .byteOrder(TableMetadataPersistence.ValueByteOrder.ASCENDING)
+                            .uniformRowNamePartitioner(new UniformRowNamePartitioner(ValueType.VAR_LONG))
+                            .logSafety(LogSafety.SAFE)
+                            .build()),
             false);
     private static final ColumnMetadataDescription COLUMN_METADATA_DESCRIPTION =
             new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription("bar", COLUMN_LONG_NAME,

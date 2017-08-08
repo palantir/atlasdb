@@ -46,37 +46,37 @@ public class NameComponentDescription {
         private ExplicitRowNamePartitioner explicitPartitioner;
         private LogSafety logSafety = LogSafety.UNSAFE;
 
-        Builder componentName(String name) {
+        public Builder componentName(String name) {
             this.componentName = name;
             return this;
         }
 
-        Builder type(ValueType valueType) {
+        public Builder type(ValueType valueType) {
             this.type = valueType;
             return this;
         }
 
-        Builder byteOrder(ValueByteOrder byteOrder) {
+        public Builder byteOrder(ValueByteOrder byteOrder) {
             this.order = byteOrder;
             return this;
         }
 
-        Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
+        public Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
             this.uniformPartitioner = partitioner;
             return this;
         }
 
-        Builder explicitRowNamePartitioner(ExplicitRowNamePartitioner partitioner) {
+        public Builder explicitRowNamePartitioner(ExplicitRowNamePartitioner partitioner) {
             this.explicitPartitioner = partitioner;
             return this;
         }
 
-        Builder logSafety(LogSafety safety) {
+        public Builder logSafety(LogSafety safety) {
             this.logSafety = safety;
             return this;
         }
 
-        NameComponentDescription build() {
+        public NameComponentDescription build() {
             Validate.notNull(componentName, "componentName must be set when building a NameComponentDescription");
             Validate.notNull(type, "type must be set when building a NameComponentDescription");
 
@@ -95,7 +95,7 @@ public class NameComponentDescription {
     }
 
     public NameComponentDescription(String componentName, ValueType type) {
-        this(componentName, type, ValueByteOrder.ASCENDING, new UniformRowNamePartitioner(type), null);
+        this(componentName, type, ValueByteOrder.ASCENDING, new UniformRowNamePartitioner(type), null, LogSafety.UNSAFE);
     }
 
     public NameComponentDescription(String componentName,
@@ -111,15 +111,7 @@ public class NameComponentDescription {
         this(componentName, type, order, new UniformRowNamePartitioner(type), null, logSafety);
     }
 
-    public NameComponentDescription(String componentName,
-                                    ValueType type,
-                                    ValueByteOrder order,
-                                    UniformRowNamePartitioner uniform,
-                                    ExplicitRowNamePartitioner explicit) {
-        this(componentName, type, order, uniform, explicit, LogSafety.UNSAFE);
-    }
-
-    public NameComponentDescription(String componentName,
+    private NameComponentDescription(String componentName,
                                     ValueType type,
                                     ValueByteOrder order,
                                     UniformRowNamePartitioner uniform,
