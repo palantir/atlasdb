@@ -29,13 +29,13 @@ import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 
-public class ClockCreator {
+public class ClockSkewMonitorCreator {
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
     private final Consumer<Object> registrar;
 
     @VisibleForTesting
-    ClockCreator(Set<String> remoteServers,
+    ClockSkewMonitorCreator(Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
             Consumer<Object> registrar) {
         this.remoteServers = remoteServers;
@@ -43,12 +43,12 @@ public class ClockCreator {
         this.registrar = registrar;
     }
 
-    public static ClockCreator create(TimeLockInstallConfiguration install, Consumer<Object> registrar) {
+    public static ClockSkewMonitorCreator create(TimeLockInstallConfiguration install, Consumer<Object> registrar) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
         Optional<SSLSocketFactory> optionalSecurity =
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
 
-        return new ClockCreator(remoteServers, optionalSecurity, registrar);
+        return new ClockSkewMonitorCreator(remoteServers, optionalSecurity, registrar);
     }
 
     public void registerClockServices() {

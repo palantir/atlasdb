@@ -28,16 +28,16 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
 
-public class ClockCreatorTest {
+public class ClockSkewMonitorCreatorTest {
     private final Consumer<Object> registrar = mock(Consumer.class);
 
     @Test
     public void registersClockServiceImpl() {
-        ClockCreator clockCreator = new ClockCreator(
+        ClockSkewMonitorCreator clockSkewMonitorCreator = new ClockSkewMonitorCreator(
                 ImmutableSet.of("foo:1"),
                 Optional.empty(),
                 registrar);
-        clockCreator.registerClockServices();
+        clockSkewMonitorCreator.registerClockServices();
         verify(registrar).accept(any(ClockServiceImpl.class));
     }
 }

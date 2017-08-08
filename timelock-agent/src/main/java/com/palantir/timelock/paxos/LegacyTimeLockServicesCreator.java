@@ -56,11 +56,11 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
                 rawLockServiceSupplier,
                 client);
 
-        // The underlying primitives are already wrapped in a leadership proxy (and must be
+        // The underlying primitives are already wrapped in a leadership proxy (and must be).
         // Wrapping this means that we will make 2 paxos checks per request, which is silly.
         TimelockService legacyTimelockService = instrument(
                 TimelockService.class,
-                createRawLegacyTimelockService(() -> timestampService, () -> remoteLockService),
+                createRawLegacyTimelockService(timestampService, remoteLockService),
                 client);
         return TimeLockServices.create(
                 timestampService,
@@ -70,11 +70,11 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private static LegacyTimelockService createRawLegacyTimelockService(
-            Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            Supplier<RemoteLockService> lockService) {
+            ManagedTimestampService timestampService,
+            RemoteLockService lockService) {
         return new LegacyTimelockService(
-                rawTimestampServiceSupplier.get(),
-                lockService.get(),
+                timestampService,
+                lockService,
                 LEGACY_LOCK_CLIENT);
     }
 

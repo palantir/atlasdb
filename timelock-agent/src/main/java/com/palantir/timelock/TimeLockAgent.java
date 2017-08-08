@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
-import com.palantir.timelock.clock.ClockCreator;
+import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -74,6 +74,6 @@ public abstract class TimeLockAgent {
                         this::createInvalidatingTimeLockServices));
         registrar.accept(new TimeLockResource(clientToServices));
 
-        ClockCreator.create(install, registrar).registerClockServices();
+        ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
     }
 }

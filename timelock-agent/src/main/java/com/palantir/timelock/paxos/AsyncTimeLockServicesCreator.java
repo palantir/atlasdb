@@ -58,14 +58,16 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
                 new AsyncTimelockResource(asyncTimelockService));
 
-        Supplier<RemoteLockService> lockServiceSupplier =
+        RemoteLockService remoteLockService = instrumentInLeadershipProxy(
+                RemoteLockService.class,
                 asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
                         ? rawLockServiceSupplier
-                        : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier);
+                        : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
+                client);
 
         return TimeLockServices.create(
                 asyncTimelockService,
-                instrumentInLeadershipProxy(RemoteLockService.class, lockServiceSupplier, client),
+                remoteLockService,
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
     }
