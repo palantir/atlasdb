@@ -117,13 +117,13 @@ public class Schema {
         if (!ignoreTableNameLengthChecks) {
             String internalTableName = AbstractKeyValueService.internalTableName(
                     TableReference.create(namespace, tableName));
-            List<ClientCharacterLimitType> kvsExceeded = new ArrayList<>();
+            List<CharacterLimitType> kvsExceeded = new ArrayList<>();
 
             if (internalTableName.length() > AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT) {
-                kvsExceeded.add(ClientCharacterLimitType.CASSANDRA);
+                kvsExceeded.add(CharacterLimitType.CASSANDRA);
             }
             if (internalTableName.length() > AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT) {
-                kvsExceeded.add(ClientCharacterLimitType.POSTGRES);
+                kvsExceeded.add(CharacterLimitType.POSTGRES);
             }
             Preconditions.checkArgument(
                     kvsExceeded.isEmpty(),

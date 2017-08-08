@@ -97,8 +97,8 @@ public class SchemaTest {
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT + 1;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        List<ClientCharacterLimitType> kvsList = new ArrayList<ClientCharacterLimitType>() {{
-            add(ClientCharacterLimitType.CASSANDRA);
+        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>() {{
+            add(CharacterLimitType.CASSANDRA);
         }};
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
@@ -111,9 +111,9 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(1000, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        List<ClientCharacterLimitType> kvsList = new ArrayList<ClientCharacterLimitType>() {{
-            add(ClientCharacterLimitType.CASSANDRA);
-            add(ClientCharacterLimitType.POSTGRES);
+        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>() {{
+            add(CharacterLimitType.CASSANDRA);
+            add(CharacterLimitType.POSTGRES);
         }};
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
@@ -127,8 +127,8 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(40, "x"));
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, longTableName);
-        List<ClientCharacterLimitType> kvsList = new ArrayList<ClientCharacterLimitType>() {{
-            add(ClientCharacterLimitType.CASSANDRA);
+        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>() {{
+            add(CharacterLimitType.CASSANDRA);
         }};
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
@@ -150,7 +150,7 @@ public class SchemaTest {
         }};
     }
 
-    private String getErrorMessage(String tableName, List<ClientCharacterLimitType> kvsExceeded) {
+    private String getErrorMessage(String tableName, List<CharacterLimitType> kvsExceeded) {
         return String.format("Internal table name %s is too long, known to exceed character limits for " +
                         "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
                         "of the prefix with the internal table name is below the KVS limit. " +

@@ -18,13 +18,17 @@ package com.palantir.atlasdb.table.description;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 
-public enum ClientCharacterLimitType{
+/**
+ * CharacterLimitType which indicates the different types of character limits imposed on table names.
+ * These depend on the KVS being used.
+ */
+public enum CharacterLimitType{
     CASSANDRA ("Cassandra", AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT),
     POSTGRES ("Postgres", AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT);
 
     private String kvsName;
     private int charLimit;
-    ClientCharacterLimitType(String name, int limit) {
+    CharacterLimitType(String name, int limit) {
         kvsName = name;
         charLimit = limit;
     }
