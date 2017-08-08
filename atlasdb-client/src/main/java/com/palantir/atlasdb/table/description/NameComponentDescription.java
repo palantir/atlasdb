@@ -87,7 +87,6 @@ public class NameComponentDescription {
             return new NameComponentDescription(componentName, type, order,
                     uniformPartitioner, explicitPartitioner, logSafety);
         }
-//
     }
 
     public NameComponentDescription() {
@@ -98,14 +97,7 @@ public class NameComponentDescription {
     public NameComponentDescription(String componentName,
             ValueType type,
             ValueByteOrder order) {
-        this(componentName, type, order, LogSafety.UNSAFE);
-    }
-
-    public NameComponentDescription(String componentName,
-            ValueType type,
-            ValueByteOrder order,
-            LogSafety logSafety) {
-        this(componentName, type, order, new UniformRowNamePartitioner(type), null, logSafety);
+        this(componentName, type, order, new UniformRowNamePartitioner(type), null, LogSafety.UNSAFE);
     }
 
     private NameComponentDescription(String componentName,

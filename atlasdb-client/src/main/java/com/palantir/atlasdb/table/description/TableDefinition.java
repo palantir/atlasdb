@@ -191,11 +191,12 @@ public class TableDefinition extends AbstractDefinition {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME,
                 "Can only declare a row component inside the rowName scope.");
         rowNameComponents.add(
-                new NameComponentDescription(
-                        componentName,
-                        valueType,
-                        valueByteOrder,
-                        rowNameLoggable));
+                new NameComponentDescription.Builder()
+                        .componentName(componentName)
+                        .type(valueType)
+                        .byteOrder(valueByteOrder)
+                        .logSafety(rowNameLoggable)
+                        .build());
     }
 
     /**
