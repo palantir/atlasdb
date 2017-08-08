@@ -28,7 +28,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 
 @Immutable
-public class NameComponentDescription {
+public final class NameComponentDescription {
     final String componentName;
     final ValueType type;
     final ValueByteOrder order;
@@ -93,9 +93,6 @@ public class NameComponentDescription {
                                     UniformRowNamePartitioner uniform,
                                     ExplicitRowNamePartitioner explicit,
                                     LogSafety logSafety) {
-        Validate.notNull(componentName);
-        Validate.notNull(type);
-        Validate.notNull(order);
         this.componentName = componentName;
         this.type = type;
         this.order = order;
