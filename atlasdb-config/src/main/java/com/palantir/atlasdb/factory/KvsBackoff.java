@@ -15,14 +15,18 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.Uninterruptibles;
 
 public final class KvsBackoff {
     private static final Logger log = LoggerFactory.getLogger(KvsBackoff.class);
 
     private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
-    private static final int QUICK_MAX_BACKOFF_SECONDS = 1000;
+    private static final int QUICK_MAX_BACKOFF_SECONDS = 100;
 
     private KvsBackoff() {
         // utility
@@ -30,12 +34,7 @@ public final class KvsBackoff {
 
     public static void pauseForBackOff(int failureCount) {
         long timeoutInSeconds = Math.min(QUICK_MAX_BACKOFF_SECONDS, Math.round(Math.pow(GOLDEN_RATIO, failureCount)));
-        try {
-            log.trace("Pausing {}s before retrying", timeoutInSeconds);
-            Thread.sleep(timeoutInSeconds * 1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("The thread was interrupted during backoff when creating the KVS.");
-        }
+        log.debug("Pausing {}s before retrying", timeoutInSeconds);
+        Uninterruptibles.sleepUninterruptibly(timeoutInSeconds, TimeUnit.SECONDS);
     }
 }
