@@ -98,16 +98,6 @@ public class NameComponentDescription {
         this(componentName, type, ValueByteOrder.ASCENDING, new UniformRowNamePartitioner(type), null);
     }
 
-    @Deprecated
-    public NameComponentDescription(String componentName, ValueType type, boolean reverseOrder) {
-        this.componentName = componentName;
-        this.type = type;
-        this.order = reverseOrder ? ValueByteOrder.DESCENDING : ValueByteOrder.ASCENDING;
-        this.uniformPartitioner = new UniformRowNamePartitioner(type);
-        this.explicitPartitioner = null;
-        this.logSafety = LogSafety.UNSAFE;
-    }
-
     public NameComponentDescription(String componentName,
             ValueType type,
             ValueByteOrder order) {
