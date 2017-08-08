@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -42,21 +43,18 @@ public final class ClockSkewMonitor {
     static final Duration PAUSE_BETWEEN_REQUESTS = Duration.of(1, ChronoUnit.SECONDS);
 
     private final ClockSkewEvents events;
-    private final Map<String, ClockService> monitorByServer;
-    private final Map<String, RequestTime> previousRequestsByServer;
+    private final Map<String, ReversalDetectingClockService> clocksByServer;
+    private final Map<String, RequestTime> previousRequestsByServer = Maps.newHashMap();
     private final ScheduledExecutorService executorService;
-    private final ClockService localClockService;
+    private final ReversalDetectingClockService localClockService;
 
     public static ClockSkewMonitor create(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
-        Map<String, ClockService> monitors = Maps.toMap(remoteServers,
+        Map<String, ClockService> monitors = Maps.toMap(
+                remoteServers,
                 (remoteServer) -> AtlasDbHttpClients.createProxy(optionalSecurity, remoteServer, ClockService.class));
 
-        Map<String, RequestTime> previousRequests = Maps.newHashMap();
-        for (String server : remoteServers) {
-            previousRequests.put(server, RequestTime.EMPTY);
-        }
-
-        return new ClockSkewMonitor(monitors, previousRequests,
+        return new ClockSkewMonitor(
+                monitors,
                 new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry()),
                 Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("clock-skew-monitor", true)),
                 new ClockServiceImpl());
@@ -64,16 +62,17 @@ public final class ClockSkewMonitor {
 
     @VisibleForTesting
     ClockSkewMonitor(
-            Map<String, ClockService> monitorByServer,
-            Map<String, RequestTime> previousRequestsByServer,
+            Map<String, ClockService> clocksByServer,
             ClockSkewEvents events,
             ScheduledExecutorService executorService,
             ClockService localClockService) {
-        this.monitorByServer = monitorByServer;
-        this.previousRequestsByServer = previousRequestsByServer;
         this.events = events;
         this.executorService = executorService;
-        this.localClockService = localClockService;
+
+        this.clocksByServer = ImmutableMap.copyOf(Maps.transformEntries(
+                clocksByServer,
+                (server, clock) -> new ReversalDetectingClockService(clock, server, events)));
+        this.localClockService = new ReversalDetectingClockService(localClockService, "local", events);
     }
 
     public void runInBackground() {
@@ -89,14 +88,19 @@ public final class ClockSkewMonitor {
     }
 
     private void runInternal() {
-        monitorByServer.forEach((server, remoteClockService) -> {
+        clocksByServer.forEach((server, remoteClockService) -> {
             long localTimeAtStart = localClockService.getSystemTimeInNanos();
             long remoteSystemTime = remoteClockService.getSystemTimeInNanos();
             long localTimeAtEnd = localClockService.getSystemTimeInNanos();
 
             RequestTime previousRequest = previousRequestsByServer.get(server);
-            RequestTime newRequest = new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
-            if (!previousRequest.equals(RequestTime.EMPTY)) {
+            RequestTime newRequest = RequestTime.builder()
+                    .localTimeAtStart(localTimeAtStart)
+                    .localTimeAtEnd(localTimeAtEnd)
+                    .remoteSystemTime(remoteSystemTime)
+                    .build();
+
+            if (previousRequest != null) {
                 new ClockSkewComparer(server, events, previousRequest, newRequest).compare();
             }
 

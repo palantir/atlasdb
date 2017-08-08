@@ -40,9 +40,9 @@ public class ClockSkewComparer {
         this.server = server;
         this.events = events;
 
-        maxElapsedTime = newRequest.localTimeAtEnd - previousRequest.localTimeAtStart;
-        minElapsedTime = newRequest.localTimeAtStart - previousRequest.localTimeAtEnd;
-        remoteElapsedTime = newRequest.remoteSystemTime - previousRequest.remoteSystemTime;
+        maxElapsedTime = newRequest.localTimeAtEnd() - previousRequest.localTimeAtStart();
+        minElapsedTime = newRequest.localTimeAtStart() - previousRequest.localTimeAtEnd();
+        remoteElapsedTime = newRequest.remoteSystemTime() - previousRequest.remoteSystemTime();
     }
 
     public void compare() {
@@ -64,11 +64,7 @@ public class ClockSkewComparer {
         }
 
         long skew = getSkew();
-        if (skew != 0) {
-            events.clockSkew(server, skew);
-        }
-
-        events.requestPace(server, minElapsedTime, maxElapsedTime, remoteElapsedTime);
+        events.clockSkew(server, skew);
     }
 
     private long getSkew() {
