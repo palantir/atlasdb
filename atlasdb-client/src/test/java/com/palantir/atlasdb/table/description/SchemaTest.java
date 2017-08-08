@@ -24,8 +24,11 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -94,33 +97,28 @@ public class SchemaTest {
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT + 1;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
+        List<ClientCharacterLimitType> kvsList = new ArrayList<ClientCharacterLimitType>() {{
+            add(ClientCharacterLimitType.CASSANDRA);
+        }};
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Internal table name %s is too long, exceeds Cassandra limit (%s). " +
-                        "If using a table prefix, please ensure that the concatenation " +
-                        "of the prefix with the internal table name is below the KVS limit. " +
-                        "If running using a different KVS, set the ignoreTableNameLength flag.",
-                    longTableName,
-                    AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT);
+            .hasMessage(getErrorMessage(longTableName, kvsList));
     }
 
     @Test
-    public void testLongTableNameLengthFailsPostgres() throws IOException {
+    public void testLongTableNameLengthFailsBoth() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        int longLengthPostgres = AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT + 1;
-        String longTableName = String.join("", Collections.nCopies(longLengthPostgres, "x"));
+        String longTableName = String.join("", Collections.nCopies(1000, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
+        List<ClientCharacterLimitType> kvsList = new ArrayList<ClientCharacterLimitType>() {{
+            add(ClientCharacterLimitType.CASSANDRA);
+            add(ClientCharacterLimitType.POSTGRES);
+        }};
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Internal table name %s is too long, exceeds Cassandra limit (%s) and " +
-                                "Postgres limit (%s). If using a table prefix, please ensure that the concatenation " +
-                                "of the prefix with the internal table name is below the KVS limit. " +
-                                "If running using a different KVS, set the ignoreTableNameLength flag.",
-                        longTableName,
-                        AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT,
-                        AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT);
+                .hasMessage(getErrorMessage(longTableName, kvsList));
     }
 
     @Test
@@ -129,15 +127,13 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(40, "x"));
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, longTableName);
+        List<ClientCharacterLimitType> kvsList = new ArrayList<ClientCharacterLimitType>() {{
+            add(ClientCharacterLimitType.CASSANDRA);
+        }};
         assertThatThrownBy(() ->
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Internal table name %s is too long, exceeds Cassandra limit (%s). " +
-                                "If using a table prefix, please ensure that the concatenation " +
-                                "of the prefix with the internal table name is below the KVS limit. " +
-                                "If running using a different KVS, set the ignoreTableNameLength flag.",
-                        "default__" + longTableName,
-                        AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT);
+                .hasMessage(getErrorMessage(longTableName, kvsList));
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
@@ -152,6 +148,14 @@ public class SchemaTest {
             columns();
             column("col1", "1", ValueType.VAR_LONG);
         }};
+    }
+
+    private String getErrorMessage(String tableName, List<ClientCharacterLimitType> kvsExceeded) {
+        return String.format("Internal table name %s is too long, known to exceed character limits for " +
+                        "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
+                        "of the prefix with the internal table name is below the KVS limit. " +
+                        "If running only against a different KVS, set the ignoreTableNameLength flag.",
+                tableName, StringUtils.join(kvsExceeded, ", "));
     }
 
 }

@@ -18,6 +18,8 @@ package com.palantir.atlasdb.table.description;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,23 +117,21 @@ public class Schema {
         if (!ignoreTableNameLengthChecks) {
             String internalTableName = AbstractKeyValueService.internalTableName(
                     TableReference.create(namespace, tableName));
+            List<ClientCharacterLimitType> kvsExceeded = new ArrayList<>();
+
+            if (internalTableName.length() > AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT) {
+                kvsExceeded.add(ClientCharacterLimitType.CASSANDRA);
+            }
+            if (internalTableName.length() > AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT) {
+                kvsExceeded.add(ClientCharacterLimitType.POSTGRES);
+            }
             Preconditions.checkArgument(
-                    internalTableName.length() <= AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT,
-                    "Internal table name %s is too long, exceeds Cassandra limit (%s) " +
-                            "and Postgres limit (%s). If using a table prefix, please ensure that the concatenation " +
+                    kvsExceeded.isEmpty(),
+                    "Internal table name %s is too long, known to exceed character limits for " +
+                            "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
                             "of the prefix with the internal table name is below the KVS limit. " +
-                            "If running using a different KVS, set the ignoreTableNameLength flag.",
-                    internalTableName,
-                    AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT,
-                    AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT);
-            Preconditions.checkArgument(
-                    internalTableName.length() <= AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT,
-                    "Internal table name %s is too long, exceeds Cassandra limit (%s). " +
-                            "If using a table prefix, please ensure that the concatenation " +
-                            "of the prefix with the internal table name is below the KVS limit. " +
-                            "If running using a different KVS, set the ignoreTableNameLength flag.",
-                    internalTableName,
-                    AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT);
+                            "If running only against a different KVS, set the ignoreTableNameLength flag.",
+                    tableName, StringUtils.join(kvsExceeded, ", "));
         }
         tableDefinitions.put(tableName, definition);
     }
@@ -381,5 +382,14 @@ public class Schema {
 
     public void ignoreTableNameLengthChecks() {
         ignoreTableNameLengthChecks = true;
+    }
+
+    private String getExceededLengthMessage(String tableName, List <String> dbExceeded) {
+        return String.format("Internal table name %s is too long, known to exceed character limits for following " +
+                "KVS: %s. If using a table prefix, please ensure that the concatenation " +
+                "of the prefix with the internal table name is below the KVS limit. " +
+                "If running using a different KVS, set the ignoreTableNameLength flag.",
+                tableName, dbExceeded.toString());
+
     }
 }
