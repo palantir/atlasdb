@@ -217,6 +217,49 @@ public class TableDefinitionTest {
         assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
 
+    @Test
+    public void cannotSpecifyTableNameLogSafetyAsBothSafeAndUnsafe() {
+        assertThatThrownBy(() -> new TableDefinition() {{
+            javaTableName(TABLE_REF.getTablename());
+            tableNameLogSafety(LogSafety.SAFE);
+            tableNameLogSafety(LogSafety.UNSAFE);
+            rowName();
+            rowComponent(ROW_NAME, ValueType.STRING);
+            columns();
+            column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
+        }}).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void cannotSpecifyTableNameIsUnsafeWithEverythingSafe() {
+        assertThatThrownBy(() -> new TableDefinition() {{
+            javaTableName(TABLE_REF.getTablename());
+            tableNameLogSafety(LogSafety.UNSAFE);
+            allSafeForLoggingByDefault();
+            rowName();
+            rowComponent(ROW_NAME, ValueType.STRING);
+            columns();
+            column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
+        }}).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void canSpecifyTableNameAsUnsafeWithAllComponentsAsSafe() {
+        TableDefinition definition = new TableDefinition() {{
+            tableNameLogSafety(LogSafety.UNSAFE);
+            namedComponentsSafeByDefault();
+            javaTableName(TABLE_REF.getTablename());
+            rowName();
+            rowComponent(ROW_NAME, ValueType.STRING);
+            columns();
+            column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
+        }};
+
+        assertThat(definition.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
+        assertRowComponentSafety(definition, LogSafety.SAFE);
+        assertNamedColumnSafety(definition, LogSafety.SAFE);
+    }
+
     /**
      * Asserts that the only row component for the TableDefinition object passed in has loggability matching
      * expectedSafety. Throws if the actual safety doesn't match the expected safety, or if it is not the case that
