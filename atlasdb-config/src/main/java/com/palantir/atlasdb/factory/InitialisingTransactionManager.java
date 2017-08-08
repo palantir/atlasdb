@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.ClientErrorException;
@@ -118,6 +119,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
     public static final Logger log = LoggerFactory.getLogger(InitialisingTransactionManager.class);
     private static final int LOGGING_INTERVAL = 60;
     private static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+    private static final int RETRY_AFTER_SECONDS = 5;
 
     private volatile SerializableTransactionManagerImpl delegate = null;
     private Leaders.LocalPaxosServices localPaxosServices = null;
@@ -189,8 +191,8 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 try {
                     initialise();
                 } catch (Throwable th) {
-                    log.warn("Async initialisation failed, retrying in 30 seconds.", th);
-                    Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+                    log.info("Async initialisation failed, retrying in {} seconds.", RETRY_AFTER_SECONDS, th);
+                    Uninterruptibles.sleepUninterruptibly(RETRY_AFTER_SECONDS, TimeUnit.SECONDS);
                 }
             }
         });
@@ -200,9 +202,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
-                JavaSuppliers.compose(runtimeConfig ->
-                        runtimeConfig.map(AtlasDbRuntimeConfig::timestampClient)
-                                .orElse(ImmutableTimestampClientConfig.of()), runtimeConfigSupplier),
+                JavaSuppliers.compose(getTimestampClientConfigFunction(), runtimeConfigSupplier),
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator());
@@ -231,6 +231,9 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             Schemas.createTablesAndIndexes(schema, kvs);
         }
 
+        // Prime the key value service with logging information.
+        //TODO: After merge with develop, LoggingArgs.hydrate(kvs.getMetadataForTables());
+
         CleanupFollower follower = CleanupFollower.create(schemas);
 
         Cleaner cleaner = new DefaultCleanerBuilder(
@@ -258,12 +261,14 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess);
+        //TODO: add arg, () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
 
         initializeSweepEndpointAndBackgroundProcess(
+                //TODO: pass runtimeConfigSupplier
                 kvs,
                 transactionService,
                 sweepStrategyManager,
@@ -272,6 +277,12 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
                 persistentLockManager);
 
         delegate = transactionManager;
+    }
+
+    private Function<Optional<AtlasDbRuntimeConfig>, TimestampClientConfig> getTimestampClientConfigFunction() {
+        return runtimeConfig -> runtimeConfig
+                        .map(AtlasDbRuntimeConfig::timestampClient)
+                        .orElse(ImmutableTimestampClientConfig.of());
     }
 
     private LockAndTimestampServices createLockAndTimestampServices(
