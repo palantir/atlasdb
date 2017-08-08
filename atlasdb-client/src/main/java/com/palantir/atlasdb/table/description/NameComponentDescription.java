@@ -94,12 +94,6 @@ public class NameComponentDescription {
                 new UniformRowNamePartitioner(ValueType.BLOB), null, LogSafety.UNSAFE);
     }
 
-    public NameComponentDescription(String componentName,
-            ValueType type,
-            ValueByteOrder order) {
-        this(componentName, type, order, new UniformRowNamePartitioner(type), null, LogSafety.UNSAFE);
-    }
-
     private NameComponentDescription(String componentName,
                                     ValueType type,
                                     ValueByteOrder order,

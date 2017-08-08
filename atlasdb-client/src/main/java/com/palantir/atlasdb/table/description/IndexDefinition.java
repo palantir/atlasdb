@@ -74,7 +74,7 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public void componentFromRow(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceComponentName) {
-        addComponent(IndexComponent.createFromRow(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceComponentName));
+        addComponent(IndexComponent.createFromRow(new NameComponentDescription.Builder().componentName(componentName).type(valueType).byteOrder(valueByteOrder).build(), sourceComponentName));
     }
 
     public void componentFromDynamicColumn(String componentName, ValueType valueType) {
@@ -90,7 +90,7 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceComponentName) {
-        addComponent(IndexComponent.createFromDynamicColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceComponentName));
+        addComponent(IndexComponent.createFromDynamicColumn(new NameComponentDescription.Builder().componentName(componentName).type(valueType).byteOrder(valueByteOrder).build(), sourceComponentName));
     }
 
     /**
@@ -139,7 +139,7 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     public void componentFromColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceColumnName, String codeToAccessValue) {
-        addComponent(IndexComponent.createFromColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceColumnName, codeToAccessValue));
+        addComponent(IndexComponent.createFromColumn(new NameComponentDescription.Builder().componentName(componentName).type(valueType).byteOrder(valueByteOrder).build(), sourceColumnName, codeToAccessValue));
     }
 
     /**
@@ -147,7 +147,7 @@ public class IndexDefinition extends AbstractDefinition {
      * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable<valueType> using codeToAccessValue.
      */
     public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceColumnName, String codeToAccessValue) {
-        addComponent(IndexComponent.createIterableFromColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceColumnName, codeToAccessValue));
+        addComponent(IndexComponent.createIterableFromColumn(new NameComponentDescription.Builder().componentName(componentName).type(valueType).byteOrder(valueByteOrder).build(), sourceColumnName, codeToAccessValue));
     }
 
     private void addComponent(IndexComponent c) {

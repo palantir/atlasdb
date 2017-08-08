@@ -244,7 +244,11 @@ public class TableDefinition extends AbstractDefinition {
     public void columnComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
                 "Can only define a dynamic column component inside the dynamicColumns scope.");
-        dynamicColumnNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
+        dynamicColumnNameComponents.add(new NameComponentDescription.Builder()
+                .componentName(componentName)
+                .type(valueType)
+                .byteOrder(valueByteOrder)
+                .build());
     }
 
     public void value(Class<?> protoOrPersistable) {
