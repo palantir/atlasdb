@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -252,12 +251,9 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     private void createMetadataTable() {
-        runInitialization(new Function<DbTableInitializer, Void>() {
-            @Override
-            public Void apply(@Nonnull DbTableInitializer initializer) {
-                initializer.createMetadataTable(config.metadataTable().getQualifiedName());
-                return null;
-            }
+        runInitialization((Function<DbTableInitializer, Void>) initializer -> {
+            initializer.createMetadataTable(config.metadataTable().getQualifiedName());
+            return null;
         });
     }
     @Override
@@ -509,36 +505,27 @@ public final class DbKvs extends AbstractKeyValueService {
                 getMultiPutBatchSizeBytes(),
                 tableRef,
                 entry -> Cells.getApproxSizeOfCell(entry.getKey()) + 8);
-        runWriteForceAutocommit(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                for (List<Entry<Cell, Long>> partition : partitions) {
-                    table.delete(partition);
-                }
-                return null;
+        runWriteForceAutocommit(tableRef, (Function<DbWriteTable, Void>) table -> {
+            for (List<Entry<Cell, Long>> partition : partitions) {
+                table.delete(partition);
             }
+            return null;
         });
     }
 
-    private static final Ordering<Entry<Cell, Long>> ORDERING = Ordering.from(new Comparator<Entry<Cell, Long>>() {
-        @Override
-        public int compare(Entry<Cell, Long> entry1, Entry<Cell, Long> entry2) {
-            int comparison = Ordering.natural().compare(entry1.getKey(), entry2.getKey());
-            if (comparison == 0) {
-                comparison = Ordering.natural().compare(entry1.getValue(), entry2.getValue());
-            }
-            return comparison;
+    private static final Ordering<Entry<Cell, Long>> ORDERING = Ordering.from((entry1, entry2) -> {
+        int comparison = Ordering.natural().compare(entry1.getKey(), entry2.getKey());
+        if (comparison == 0) {
+            comparison = Ordering.natural().compare(entry1.getValue(), entry2.getValue());
         }
+        return comparison;
     });
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        runWriteForceAutocommit(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                table.delete(range);
-                return null;
-            }
+        runWriteForceAutocommit(tableRef, (Function<DbWriteTable, Void>) table -> {
+            table.delete(range);
+            return null;
         });
     }
 
@@ -1072,34 +1059,25 @@ public final class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.truncate();
-                return null;
-            }
+        runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
+            table.truncate();
+            return null;
         });
     }
 
     @Override
     public void dropTable(TableReference tableRef) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.drop();
-                return null;
-            }
+        runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
+            table.drop();
+            return null;
         });
     }
 
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.create(tableMetadata);
-                return null;
-            }
+        runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
+            table.create(tableMetadata);
+            return null;
         });
         // it would be kind of nice if this was in a transaction with the DbDdlTable create,
         // but the code currently isn't well laid out to accommodate that
@@ -1108,66 +1086,48 @@ public final class DbKvs extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return run(new Function<SqlConnection, Set<TableReference>>() {
-            @Override
-            public Set<TableReference> apply(SqlConnection conn) {
-                AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name FROM " + config.metadataTable().getQualifiedName());
-                Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
-                for (AgnosticResultRow row : results.rows()) {
-                    ret.add(TableReference.createUnsafe(row.getString("table_name")));
-                }
-                return ret;
+        return run(conn -> {
+            AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                    "SELECT table_name FROM " + config.metadataTable().getQualifiedName());
+            Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
+            for (AgnosticResultRow row : results.rows()) {
+                ret.add(TableReference.createUnsafe(row.getString("table_name")));
             }
+            return ret;
         });
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        return runMetadata(tableRef, new Function<DbMetadataTable, byte[]>() {
-            @Override
-            public byte[] apply(DbMetadataTable table) {
-                return table.getMetadata();
-            }
-        });
+        return runMetadata(tableRef, table -> table.getMetadata());
     }
 
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-        runMetadata(tableRef, new Function<DbMetadataTable, Void>() {
-            @Override
-            public Void apply(DbMetadataTable table) {
-                table.putMetadata(metadata);
-                return null;
-            }
+        runMetadata(tableRef, (Function<DbMetadataTable, Void>) table -> {
+            table.putMetadata(metadata);
+            return null;
         });
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        return run(new Function<SqlConnection, Map<TableReference, byte[]>>() {
-            @Override
-            @SuppressWarnings("deprecation")
-            public Map<TableReference, byte[]> apply(SqlConnection conn) {
-                AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name, value FROM " + config.metadataTable().getQualifiedName());
-                Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
-                for (AgnosticResultRow row : results.rows()) {
-                    ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));
-                }
-                return ret;
+        return run(conn -> {
+            AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                    "SELECT table_name, value FROM " + config.metadataTable().getQualifiedName());
+            Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
+            for (AgnosticResultRow row : results.rows()) {
+                ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));
             }
+            return ret;
         });
     }
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
-        runWrite(tableRef, new Function<DbWriteTable, Void>() {
-            @Override
-            public Void apply(DbWriteTable table) {
-                table.putSentinels(cells);
-                return null;
-            }
+        runWrite(tableRef, (Function<DbWriteTable, Void>) table -> {
+            table.putSentinels(cells);
+            return null;
         });
     }
 
@@ -1195,12 +1155,9 @@ public final class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        runDdl(tableRef, new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.compactInternally();
-                return null;
-            }
+        runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
+            table.compactInternally();
+            return null;
         });
     }
 
@@ -1217,12 +1174,9 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     public void checkDatabaseVersion() {
-        runDdl(TableReference.createWithEmptyNamespace(""), new Function<DbDdlTable, Void>() {
-            @Override
-            public Void apply(DbDdlTable table) {
-                table.checkDatabaseVersion();
-                return null;
-            }
+        runDdl(TableReference.createWithEmptyNamespace(""), (Function<DbDdlTable, Void>) table -> {
+            table.checkDatabaseVersion();
+            return null;
         });
     }
 

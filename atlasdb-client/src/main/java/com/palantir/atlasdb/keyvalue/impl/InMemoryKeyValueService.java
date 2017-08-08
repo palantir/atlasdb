@@ -167,23 +167,20 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
-        return getRangeInternal(tableRef, range, new ResultProducer<Value>() {
-            @Override
-            public Value apply(Iterator<Entry<Key, byte[]>> entries) {
-                Entry<Key, byte[]> lastEntry = null;
-                while (entries.hasNext()) {
-                    Entry<Key, byte[]> entry = entries.next();
-                    if (entry.getKey().ts >= timestamp) {
-                        break;
-                    }
-                    lastEntry = entry;
+        return getRangeInternal(tableRef, range, entries -> {
+            Entry<Key, byte[]> lastEntry = null;
+            while (entries.hasNext()) {
+                Entry<Key, byte[]> entry = entries.next();
+                if (entry.getKey().ts >= timestamp) {
+                    break;
                 }
-                if (lastEntry != null) {
-                    long ts = lastEntry.getKey().ts;
-                    return Value.createWithCopyOfData(lastEntry.getValue(), ts);
-                } else {
-                    return null;
-                }
+                lastEntry = entry;
+            }
+            if (lastEntry != null) {
+                long ts = lastEntry.getKey().ts;
+                return Value.createWithCopyOfData(lastEntry.getValue(), ts);
+            } else {
+                return null;
             }
         });
     }
@@ -193,23 +190,20 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
-        return getRangeInternal(tableRef, range, new ResultProducer<Set<Long>>() {
-            @Override
-            public Set<Long> apply(Iterator<Entry<Key, byte[]>> entries) {
-                Set<Long> timestamps = Sets.newTreeSet();
-                while (entries.hasNext()) {
-                    Entry<Key, byte[]> entry = entries.next();
-                    Key key = entry.getKey();
-                    if (key.ts >= timestamp) {
-                        break;
-                    }
-                    timestamps.add(key.ts);
+        return getRangeInternal(tableRef, range, entries -> {
+            Set<Long> timestamps = Sets.newTreeSet();
+            while (entries.hasNext()) {
+                Entry<Key, byte[]> entry = entries.next();
+                Key key = entry.getKey();
+                if (key.ts >= timestamp) {
+                    break;
                 }
-                if (!timestamps.isEmpty()) {
-                    return timestamps;
-                } else {
-                    return null;
-                }
+                timestamps.add(key.ts);
+            }
+            if (!timestamps.isEmpty()) {
+                return timestamps;
+            } else {
+                return null;
             }
         });
     }

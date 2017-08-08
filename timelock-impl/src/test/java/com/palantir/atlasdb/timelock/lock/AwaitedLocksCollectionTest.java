@@ -82,11 +82,10 @@ public class AwaitedLocksCollectionTest {
 
     @Test
     public void removesRequestIfSupplierThrows() {
-        assertThatThrownBy(() -> {
-            awaitedLocks.getExistingOrAwait(REQUEST_1, () -> {
-                throw new RuntimeException("foo");
-            });
-        }).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() ->
+                awaitedLocks.getExistingOrAwait(REQUEST_1, () -> {
+                    throw new RuntimeException("foo");
+                })).isInstanceOf(RuntimeException.class);
 
         assertRequestsWereRemoved(REQUEST_1);
     }

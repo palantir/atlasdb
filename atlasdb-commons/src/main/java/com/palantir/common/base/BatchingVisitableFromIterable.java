@@ -44,12 +44,7 @@ public class BatchingVisitableFromIterable<T> extends AbstractBatchingVisitable<
     @SuppressWarnings("unchecked")
     public static <T> BatchingVisitable<T> create(final Iterator<? extends T> iterator) {
         return SingleCallProxy.newProxyInstance(BatchingVisitable.class,
-            create(new Iterable<T>() {
-                @Override
-                public Iterator<T> iterator() {
-                    return IteratorUtils.wrap(iterator);
-                }
-            })
+            create((Iterable<T>) () -> IteratorUtils.wrap(iterator))
         );
     }
 

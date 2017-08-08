@@ -981,17 +981,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                         ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
 
-                        Map<String, List<Mutation>> rowPuts = map.get(rowName);
-                        if (rowPuts == null) {
-                            rowPuts = Maps.newHashMap();
-                            map.put(rowName, rowPuts);
-                        }
+                        Map<String, List<Mutation>> rowPuts = map.computeIfAbsent(rowName, row -> Maps.newHashMap());
 
-                        List<Mutation> tableMutations = rowPuts.get(internalTableName(tableRef));
-                        if (tableMutations == null) {
-                            tableMutations = Lists.newArrayList();
-                            rowPuts.put(internalTableName(tableRef), tableMutations);
-                        }
+                        List<Mutation> tableMutations = rowPuts.computeIfAbsent(
+                                internalTableName(tableRef),
+                                k -> Lists.newArrayList());
 
                         tableMutations.add(mutation);
                     }
@@ -1102,17 +1096,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
 
-            Map<String, List<Mutation>> rowPuts = map.get(rowName);
-            if (rowPuts == null) {
-                rowPuts = Maps.<String, List<Mutation>>newHashMap();
-                map.put(rowName, rowPuts);
-            }
+            Map<String, List<Mutation>> rowPuts = map.computeIfAbsent(rowName,
+                    row -> Maps.<String, List<Mutation>>newHashMap());
 
-            List<Mutation> tableMutations = rowPuts.get(internalTableName(tableCellAndValue.tableRef));
-            if (tableMutations == null) {
-                tableMutations = Lists.<Mutation>newArrayList();
-                rowPuts.put(internalTableName(tableCellAndValue.tableRef), tableMutations);
-            }
+            List<Mutation> tableMutations = rowPuts.computeIfAbsent(
+                    internalTableName(tableCellAndValue.tableRef),
+                    k -> Lists.<Mutation>newArrayList());
 
             tableMutations.add(mutation);
         }
@@ -1599,9 +1588,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
 
         if (!tablesToActuallyCreate.isEmpty()) {
-            schemaMutationLock.runWithLock(() -> {
-                createTablesInternal(tablesToActuallyCreate);
-            });
+            schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1989,12 +1976,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            putInternal(tableRef, Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
-                @Override
-                public Entry<Cell, Value> apply(Cell cell) {
-                    return Maps.immutableEntry(cell, value);
-                }
-            }));
+            putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -2326,12 +2308,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
         Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
-                partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
-                    @Override
-                    public byte[] apply(Entry<Cell, V> entry) {
-                        return entry.getKey().getRowName();
-                    }
-                });
+                partitionByHost(cells, entry -> entry.getKey().getRowName());
         Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
         for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());

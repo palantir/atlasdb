@@ -47,64 +47,53 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
 
     public static JdbcTimestampBoundStore create(final JdbcKeyValueService kvs) {
         final JdbcTimestampBoundStore store = new JdbcTimestampBoundStore(kvs);
-        kvs.run(new Function<DSLContext, Void>() {
-            @Override
-            public Void apply(DSLContext ctx) {
-                String partialSql = ctx.createTable(store.TABLE)
-                        .column(DUMMY_COLUMN, INTEGER.nullable(false))
-                        .column(LATEST_TIMESTAMP, BIGINT.nullable(false))
-                        .getSQL();
-                int endIndex = partialSql.lastIndexOf(')');
-                String fullSql = partialSql.substring(0, endIndex) + "," +
-                        " CONSTRAINT " + kvs.primaryKey(TIMESTAMP_TABLE) +
-                        " PRIMARY KEY (" + DUMMY_COLUMN.getName() + ")" +
-                        partialSql.substring(endIndex);
-                try {
-                    ctx.execute(fullSql);
-                } catch (DataAccessException e) {
-                    kvs.handleTableCreationException(e);
-                }
-                ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
-                    .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
-                            .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, 10000L)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
-                            .whereNotExists(ctx.selectOne()
-                                    .from(store.TABLE)
-                                    .where(DUMMY_COLUMN.eq(0))))
-                    .execute();
-                return null;
+        kvs.run((Function<DSLContext, Void>) ctx -> {
+            String partialSql = ctx.createTable(store.TABLE)
+                    .column(DUMMY_COLUMN, INTEGER.nullable(false))
+                    .column(LATEST_TIMESTAMP, BIGINT.nullable(false))
+                    .getSQL();
+            int endIndex = partialSql.lastIndexOf(')');
+            String fullSql = partialSql.substring(0, endIndex) + "," +
+                    " CONSTRAINT " + kvs.primaryKey(TIMESTAMP_TABLE) +
+                    " PRIMARY KEY (" + DUMMY_COLUMN.getName() + ")" +
+                    partialSql.substring(endIndex);
+            try {
+                ctx.execute(fullSql);
+            } catch (DataAccessException e) {
+                kvs.handleTableCreationException(e);
             }
+            ctx.insertInto(store.TABLE, DUMMY_COLUMN, LATEST_TIMESTAMP)
+                .select(ctx.select(DUMMY_COLUMN, LATEST_TIMESTAMP)
+                        .from(kvs.values(ctx, new RowN[] {(RowN) DSL.row(0, 10000L)}, "t", DUMMY_COLUMN.getName(), LATEST_TIMESTAMP.getName()))
+                        .whereNotExists(ctx.selectOne()
+                                .from(store.TABLE)
+                                .where(DUMMY_COLUMN.eq(0))))
+                .execute();
+            return null;
         });
         return store;
     }
 
     @Override
     public synchronized long getUpperLimit() {
-        return kvs.run(new Function<DSLContext, Long>() {
-            @Override
-            public Long apply(DSLContext ctx) {
-                return latestTimestamp = getLatestTimestamp(ctx);
-            }
-        });
+        return kvs.run(ctx -> latestTimestamp = getLatestTimestamp(ctx));
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) throws MultipleRunningTimestampServiceError {
-        kvs.runInTransaction(new Function<DSLContext, Void>() {
-            @Override
-            public Void apply(DSLContext ctx) {
-                int rowsUpdated = ctx.update(TABLE)
-                    .set(LATEST_TIMESTAMP, limit)
-                    .where(DUMMY_COLUMN.eq(0).and(LATEST_TIMESTAMP.eq(latestTimestamp)))
-                    .execute();
-                if (rowsUpdated != 1) {
-                    long actualLatestTimestamp = getLatestTimestamp(ctx);
-                    throw new MultipleRunningTimestampServiceError("Timestamp limit changed underneath " +
-                            "us (limit in memory: " + latestTimestamp + ", limit in db: " + actualLatestTimestamp +
-                            "). This may indicate that another timestamp service is running against this db!");
-                }
-                latestTimestamp = limit;
-                return null;
+        kvs.runInTransaction((Function<DSLContext, Void>) ctx -> {
+            int rowsUpdated = ctx.update(TABLE)
+                .set(LATEST_TIMESTAMP, limit)
+                .where(DUMMY_COLUMN.eq(0).and(LATEST_TIMESTAMP.eq(latestTimestamp)))
+                .execute();
+            if (rowsUpdated != 1) {
+                long actualLatestTimestamp = getLatestTimestamp(ctx);
+                throw new MultipleRunningTimestampServiceError("Timestamp limit changed underneath " +
+                        "us (limit in memory: " + latestTimestamp + ", limit in db: " + actualLatestTimestamp +
+                        "). This may indicate that another timestamp service is running against this db!");
             }
+            latestTimestamp = limit;
+            return null;
         });
     }
 
