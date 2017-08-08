@@ -34,6 +34,18 @@ public class ImmutableTimestampMonitorTest {
     }
 
     @Test
+    public void testProgressFailureLoggedOnlyOnce() {
+        Runnable mockRunnableIfFailed = mock(Runnable.class);
+        ImmutableTimestampMonitor monitor = new ImmutableTimestampMonitor(0L, mockRunnableIfFailed);
+        monitor.update(100L);
+        monitor.update(100L);
+        monitor.update(100L);
+
+        verify(mockRunnableIfFailed, times(1)).run();
+    }
+
+
+    @Test
     public void testProgressOk() {
         Runnable mockRunnableIfFailed = mock(Runnable.class);
         ImmutableTimestampMonitor monitor = new ImmutableTimestampMonitor(0L, mockRunnableIfFailed);

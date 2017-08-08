@@ -29,8 +29,8 @@ import com.palantir.lock.LockClient;
 final class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> {
     private static final Logger log = LoggerFactory.getLogger(ImmutableTimestampSupplierProgressMonitor.class);
 
-    private static final long TIME_TO_WARN_HR = 1L;
-    private static final long TIME_TO_ERROR_HR = 24L;
+    private static final long TIME_TO_WARN_HOUR = 1L;
+    private static final long TIME_TO_ERROR_HOUR = 24L;
     private static final String LONG_RUNNING_TRANSACTION_ERROR_MESSAGE = "Immutable timestamp has not been updated for"
             + " [{}] hour(s) for LockClient [{}]. This indicates to a very long running transaction.";
 
@@ -46,11 +46,11 @@ final class ImmutableTimestampSupplierProgressMonitor implements Supplier<Long> 
 
     static Supplier<Long> createWithDefaultMonitoring(Supplier<Long> supplier, LockClient lockClient) {
         List<ImmutableTimestampMonitor> defaultMonitors = Lists.newArrayList();
-        defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_WARN_HR),
-                () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN_HR, lockClient.getClientId())));
+        defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_WARN_HOUR),
+                () -> log.warn(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_WARN_HOUR, lockClient.getClientId())));
 
-        defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_ERROR_HR),
-                () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR_HR, lockClient.getClientId())));
+        defaultMonitors.add(new ImmutableTimestampMonitor(TimeUnit.HOURS.toMillis(TIME_TO_ERROR_HOUR),
+                () -> log.error(LONG_RUNNING_TRANSACTION_ERROR_MESSAGE, TIME_TO_ERROR_HOUR, lockClient.getClientId())));
 
         return new ImmutableTimestampSupplierProgressMonitor(supplier, defaultMonitors);
     }
