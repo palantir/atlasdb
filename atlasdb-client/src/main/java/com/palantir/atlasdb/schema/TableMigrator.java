@@ -97,6 +97,9 @@ public class TableMigrator {
         }
         checkpointer.createCheckpoints(srcTable.getQualifiedName(), boundaryById);
 
+        // Look up the checkpoints and log start point (or done)
+        rangeMigrator.checkStatus(rangeBoundaries.size());
+
         List<Future<Void>> futures = Lists.newArrayList();
         for (long rangeId = 0; rangeId < rangeBoundaries.size() - 1; rangeId++) {
             byte[] end = rangeBoundaries.get((int)rangeId + 1);

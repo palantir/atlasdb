@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
@@ -79,20 +80,34 @@ public class KvsRangeMigrator implements RangeMigrator {
         this.rowTransform = rowTransform;
     }
 
+    // Report (a) completion or (b) start row. Intended to be called before migration has started.
+    @Override
+    public void checkStatus(int size) {
+        txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) transaction -> {
+            checkStatus(transaction, size);
+            return null;
+        });
+    }
+
+    private void checkStatus(Transaction tx, int numRangeBoundaries) {
+        for (int rangeId = 0; rangeId < numRangeBoundaries; rangeId++) {
+            byte[] checkpoint = getCheckpoint(rangeId, tx);
+            if (checkpoint != null) {
+                log.info("({}/{}) Migration from table {} to table {} will start/resume at {}",
+                        rangeId,
+                        numRangeBoundaries,
+                        srcTable,
+                        destTable,
+                        PtBytes.encodeHexString(checkpoint)
+                );
+                return;
+            }
+        }
+        log.info("Migration from table {} to {} has already been completed", srcTable, destTable);
+    }
+
     @Override
     public void migrateRange(RangeRequest range, long rangeId) {
-        // Report (a) completion or (b) start row, before attempting the migration
-        byte[] start = txManager.runTaskWithRetry(t -> getCheckpoint(rangeId, t));
-        if (start == null) {
-            log.info("Skipping migration from {} to {}, as it has already been completed", srcTable, destTable);
-            return;
-        }
-        log.info("Beginning migration from {} to {}. Migration timestamp: {}; starting point: {}",
-                srcTable,
-                destTable,
-                migrationTimestamp,
-                PtBytes.encodeHexString(start));
-
         byte[] lastRow;
         do {
             lastRow = copyOneTransaction(range, rangeId);

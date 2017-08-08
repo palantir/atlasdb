@@ -62,6 +62,11 @@ public class TransactionRangeMigrator implements RangeMigrator {
     }
 
     @Override
+    public void checkStatus(int size) {
+        // TODO
+    }
+
+    @Override
     public void migrateRange(RangeRequest range, long rangeId) {
         byte[] lastRow;
         do {

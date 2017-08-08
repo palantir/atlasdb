@@ -18,5 +18,6 @@ package com.palantir.atlasdb.schema;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
 public interface RangeMigrator {
+    void checkStatus(int size);
     void migrateRange(RangeRequest range, long rangeId);
 }
