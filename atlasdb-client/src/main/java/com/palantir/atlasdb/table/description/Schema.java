@@ -383,13 +383,4 @@ public class Schema {
     public void ignoreTableNameLengthChecks() {
         ignoreTableNameLengthChecks = true;
     }
-
-    private String getExceededLengthMessage(String tableName, List <String> dbExceeded) {
-        return String.format("Internal table name %s is too long, known to exceed character limits for following " +
-                "KVS: %s. If using a table prefix, please ensure that the concatenation " +
-                "of the prefix with the internal table name is below the KVS limit. " +
-                "If running using a different KVS, set the ignoreTableNameLength flag.",
-                tableName, dbExceeded.toString());
-
-    }
 }
