@@ -44,8 +44,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Fixed a case where logging an expection suppressing itself would cause a stack overflow.
+           See https://jira.qos.ch/browse/LOGBACK-1027.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2242>`__)
 
 =======
 v0.52.0
