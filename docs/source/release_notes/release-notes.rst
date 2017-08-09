@@ -45,7 +45,11 @@ develop
          - Change
 
     *    - |devbreak|
-	 - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
+         - Throw an error during schema code generation stage if table length exceeds KVS limits.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2220>`__)
+
+    *    - |devbreak|
+         - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
 
 =======
