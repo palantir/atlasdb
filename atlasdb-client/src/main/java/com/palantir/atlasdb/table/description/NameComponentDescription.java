@@ -36,6 +36,10 @@ public final class NameComponentDescription {
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
     final LogSafety logSafety;
 
+    /**
+     * Builder for NameComponentDescription. componentName and valueType are required.
+     * uniformRowNamePartitioner will be set to a default value unless explicitly set to null.
+     */
     public static final class Builder {
         private String componentName;
         private ValueType type;
@@ -43,6 +47,8 @@ public final class NameComponentDescription {
         private UniformRowNamePartitioner uniformPartitioner;
         private ExplicitRowNamePartitioner explicitPartitioner;
         private LogSafety logSafety = LogSafety.UNSAFE;
+
+        private boolean uniformPartitionerExplictlyNull = false;
 
         public Builder componentName(String name) {
             this.componentName = name;
@@ -61,6 +67,7 @@ public final class NameComponentDescription {
 
         public Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
             this.uniformPartitioner = partitioner;
+            uniformPartitionerExplictlyNull = (partitioner == null);
             return this;
         }
 
@@ -78,7 +85,7 @@ public final class NameComponentDescription {
             Validate.notNull(componentName, "componentName must be set when building a NameComponentDescription");
             Validate.notNull(type, "type must be set when building a NameComponentDescription");
 
-            if (uniformPartitioner == null) {
+            if (uniformPartitioner == null && !uniformPartitionerExplictlyNull) {
                 uniformPartitioner = new UniformRowNamePartitioner(type);
             }
 

@@ -107,6 +107,17 @@ public class NameComponentDescriptionTest {
     }
 
     @Test
+    public void builderCanSetUniformPartitionerToNull() {
+        NameComponentDescription description = new NameComponentDescription.Builder()
+                .componentName(COMPONENT_NAME)
+                .type(VALUE_TYPE)
+                .uniformRowNamePartitioner(null)
+                .build();
+
+        assertThat(description.uniformPartitioner).isNull();
+    }
+
+    @Test
     public void nameIsNotLoggableInDefaultDescription() {
         assertThat(DEFAULT_UNNAMED_DESCRIPTION.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
