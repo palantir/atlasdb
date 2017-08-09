@@ -193,6 +193,11 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             while (uninitialised()) {
                 try {
                     initialise();
+                //TODO: catch some other exceptions that shouldn't be thrown to the user.
+                } catch (IllegalArgumentException ex) {
+                    log.info("Async initialisation failed, "
+                            + "looks like the service in a state which will require manual intervention to start again.", ex);
+                    break;
                 } catch (Throwable th) {
                     log.info("Async initialisation failed, retrying in {} seconds.", RETRY_AFTER_SECONDS, th);
                     Uninterruptibles.sleepUninterruptibly(RETRY_AFTER_SECONDS, TimeUnit.SECONDS);
