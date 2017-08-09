@@ -18,6 +18,7 @@ package com.palantir.atlasdb.table.description;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,9 +44,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -68,7 +72,7 @@ public class Schema {
     private final String packageName;
     private final Namespace namespace;
     private final OptionalType optionalType;
-
+    private boolean ignoreTableNameLengthChecks = false;
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
     private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
@@ -109,6 +113,25 @@ public class Schema {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(tableName),
                 "Invalid table name " + tableName);
+        if (!ignoreTableNameLengthChecks) {
+            String internalTableName = AbstractKeyValueService.internalTableName(
+                    TableReference.create(namespace, tableName));
+            List<CharacterLimitType> kvsExceeded = new ArrayList<>();
+
+            if (internalTableName.length() > AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT) {
+                kvsExceeded.add(CharacterLimitType.CASSANDRA);
+            }
+            if (internalTableName.length() > AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT) {
+                kvsExceeded.add(CharacterLimitType.POSTGRES);
+            }
+            Preconditions.checkArgument(
+                    kvsExceeded.isEmpty(),
+                    "Internal table name %s is too long, known to exceed character limits for " +
+                            "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
+                            "of the prefix with the internal table name is below the KVS limit. " +
+                            "If running only against a different KVS, set the ignoreTableNameLength flag.",
+                    tableName, StringUtils.join(kvsExceeded, ", "));
+        }
         tableDefinitions.put(tableName, definition);
     }
 
@@ -178,7 +201,8 @@ public class Schema {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(idxName),
                 "Invalid table name " + idxName);
-        Preconditions.checkArgument(!tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns() || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
+        Preconditions.checkArgument(
+                !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns() || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
     }
 
@@ -353,5 +377,9 @@ public class Schema {
             ret.put(TableReference.create(namespace, e.getKey()), e.getValue().get());
         }
         return ret;
+    }
+
+    public void ignoreTableNameLengthChecks() {
+        ignoreTableNameLengthChecks = true;
     }
 }
