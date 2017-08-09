@@ -47,6 +47,8 @@ public class ReversalDetectingClockServiceTest {
                 .thenReturn(3L);
 
         clock.getSystemTimeInNanos();
+        clock.getSystemTimeInNanos();
+        clock.getSystemTimeInNanos();
     }
 
     @Test
