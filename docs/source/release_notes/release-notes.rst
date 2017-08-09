@@ -44,6 +44,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - KVS migrations will no longer verify equality between the from and to KVSes for the sweep priority and progress tables.
+           Note that these tables are still *migrated* across, as they provide heuristics for timely sweeping of tables.
+           However, these tables may change (e.g. the from-kvs could be swept).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2244>`__)
+
     *    - |new|
          - AtlasDB now supports specifying the safety of table names as well as row and column component names following the `palantir/safe-logging <https://github.com/palantir/safe-logging>`__ library.
            Please consult the documentation for :ref:`Tables and Indices <tables-and-indices>` for details on how to set this up.
