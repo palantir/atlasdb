@@ -18,13 +18,9 @@ package com.palantir.atlasdb.factory;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import javax.net.ssl.SSLSocketFactory;
-import javax.ws.rs.ClientErrorException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +32,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -52,7 +47,6 @@ import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
-import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
@@ -101,7 +95,6 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.InitialisingRemoteLockService;
@@ -122,7 +115,6 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 public class InitialisingTransactionManager extends ForwardingObject implements SerializableTransactionManager {
 
     public static final Logger log = LoggerFactory.getLogger(InitialisingTransactionManager.class);
-    private static final int LOGGING_INTERVAL = 60;
     private static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
     private static final int RETRY_AFTER_SECONDS = 5;
 
@@ -180,14 +172,20 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
     }
 
     private void registerEndpoints() {
-        env.register(remoteLockService);
-        env.register(timestampService);
         if (config.leader().isPresent()) {
+            registerTimestampAndLockEndpoints();
             localPaxosServices = Leaders.createAndRegisterLocalServices(env, config.leader().get(), userAgent);
+        } else if (!((config.timestamp().isPresent() && config.lock().isPresent()) || config.timelock().isPresent())) {
+            registerTimestampAndLockEndpoints();
         }
         env.register(persistentLockService);
         env.register(new CheckAndSetExceptionMapper());
         env.register(sweeperService);
+    }
+
+    private void registerTimestampAndLockEndpoints() {
+        env.register(remoteLockService);
+        env.register(timestampService);
     }
 
     private void initialiseAsync() {
@@ -331,7 +329,7 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
             timestampService.initialise(services.timestamp());
             return services;
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
-            LockAndTimestampServices services = createRawRemoteServices();
+            LockAndTimestampServices services = TransactionManagers.createRawRemoteServices(config, userAgent);
             remoteLockService.initialise(services.lock());
             timestampService.initialise(services.timestamp());
             return services;
@@ -356,109 +354,13 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
         RemoteLockService localLock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader);
         TimestampService localTime = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader);
 
-        // Create remote services, that may end up calling our own local services.
-        Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(
-                leaderConfig.sslConfiguration());
-        RemoteLockService remoteLock = ServiceCreator.createService(
-                sslSocketFactory,
-                leaderConfig.leaders(),
-                RemoteLockService.class,
-                userAgent);
-        TimestampService remoteTime = ServiceCreator.createService(
-                sslSocketFactory,
-                leaderConfig.leaders(),
-                TimestampService.class,
-                userAgent);
-
-        if (leaderConfig.leaders().size() == 1) {
-            // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
-            // volume is high, as all Jetty threads end up waiting for the timestamp server, and no threads remain to
-            // actually handle the timestamp server requests. If we are the only single leader, we can avoid the
-            // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
-            // call.
-
-            PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
-            String localServerId = localPingableLeader.getUUID();
-            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
-                    sslSocketFactory,
-                    Iterables.getOnlyElement(leaderConfig.leaders()),
-                    PingableLeader.class,
-                    userAgent);
-
-            // Determine asynchronously whether the remote services are talking to our local services.
-            CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
-            runAsync.accept(() -> {
-                int logAfter = LOGGING_INTERVAL;
-                while (true) {
-                    try {
-                        String remoteServerId = remotePingableLeader.getUUID();
-                        useLocalServicesFuture.complete(localServerId.equals(remoteServerId));
-                        return;
-                    } catch (ClientErrorException e) {
-                        useLocalServicesFuture.complete(false);
-                        return;
-                    } catch (Throwable e) {
-                        if (--logAfter == 0) {
-                            log.warn("Failed to read remote timestamp server ID", e);
-                            logAfter = LOGGING_INTERVAL;
-                        }
-                    }
-                    Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-                }
-            });
-
-            // Create dynamic service proxies, that switch to talking directly to our local services if it turns out our
-            // remote services are pointed at them anyway.
-            RemoteLockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
-                    RemoteLockService.class, localLock, remoteLock, useLocalServicesFuture);
-            TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
-
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(dynamicLockService)
-                    .timestamp(dynamicTimeService)
-                    .timelock(new LegacyTimelockService(dynamicTimeService, dynamicLockService, LOCK_CLIENT))
-                    .build();
-        } else {
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(remoteLock)
-                    .timestamp(remoteTime)
-                    .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
-                    .build();
-        }
+        return TransactionManagers.setupProxyAroundTimeAndLockServices(leaderConfig, userAgent, localPaxosServices,
+                localLock, localTime);
     }
-
-    private LockAndTimestampServices createRawRemoteServices() {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
-                .apply(config.lock().get());
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
-                .apply(config.timestamp().get());
-        return ImmutableLockAndTimestampServices.builder()
-                .lock(lockService)
-                .timestamp(timeService)
-                .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
-                .build();
-    }
-
 
     private LockAndTimestampServices createNamespacedRawRemoteServices(TimeLockClientConfig timeLockClientConfig) {
         ServerListConfig namespacedServerListConfig = timeLockClientConfig.toNamespacedServerList();
-        return getLockAndTimestampServices(namespacedServerListConfig, userAgent);
-    }
-
-    private static LockAndTimestampServices getLockAndTimestampServices(
-            ServerListConfig timelockServerListConfig,
-            String userAgent) {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
-                .apply(timelockServerListConfig);
-        TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
-                .apply(timelockServerListConfig);
-
-        return ImmutableLockAndTimestampServices.builder()
-                .lock(lockService)
-                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
-                .timelock(timelockService)
-                .build();
+        return TransactionManagers.getLockAndTimestampServices(namespacedServerListConfig, userAgent);
     }
 
     private LockAndTimestampServices createRawEmbeddedServices(
@@ -655,13 +557,13 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
         return delegate;
     }
 
-    void checkInitialised() {
+    private void checkInitialised() {
         if (uninitialised()) {
             throw new IllegalStateException("Not initialised");
         }
     }
 
-    boolean uninitialised() {
+    private boolean uninitialised() {
         return delegate == null;
     }
 }
