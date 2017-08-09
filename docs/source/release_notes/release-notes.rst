@@ -47,8 +47,8 @@ develop
     *    - |fixed|
          - KVS migrations will no longer verify equality between the from and to KVSes for the sweep priority and progress tables.
            Note that these tables are still *migrated* across, as they provide heuristics for timely sweeping of tables.
-           However, these tables are expected to change as the migration process performs writes to the to-KVS.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
+           However, these tables may change (e.g. the from-kvs could be swept).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2244>`__)
 
     *    - |devbreak|
          - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
