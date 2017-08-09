@@ -97,7 +97,6 @@ public final class LoggingArgs {
         return getArg("sizeInBytes", sizeInBytes, true);
     }
 
-
     public static Arg<Integer> columnCount(ColumnSelection columnSelection) {
         return getArg("columnCount", Iterables.size(columnSelection.getSelectedColumns()), true);
     }
