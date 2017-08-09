@@ -190,13 +190,13 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
 
     private void initialiseAsync() {
         runAsync.accept(() -> {
-            while (uninitialised()) {
+            while (!isInitialized()) {
                 try {
                     initialise();
-                //TODO: catch some other exceptions that shouldn't be thrown to the user.
+                    // TODO(hsaraogi): catch some other exceptions that shouldn't be thrown to the user.
                 } catch (IllegalArgumentException ex) {
-                    log.info("Async initialisation failed, "
-                            + "looks like the service in a state which will require manual intervention to start again.", ex);
+                    log.info("Async initialisation failed, the service is in a state which will require "
+                            + "manual intervention to start.", ex);
                     break;
                 } catch (Throwable th) {
                     log.info("Async initialisation failed, retrying in {} seconds.", RETRY_AFTER_SECONDS, th);
@@ -563,12 +563,12 @@ public class InitialisingTransactionManager extends ForwardingObject implements 
     }
 
     private void checkInitialised() {
-        if (uninitialised()) {
-            throw new IllegalStateException("Not initialised");
+        if (!isInitialized()) {
+            throw new IllegalStateException("The transaction manager is not initialized.");
         }
     }
 
-    private boolean uninitialised() {
-        return delegate == null;
+    public boolean isInitialized() {
+        return delegate != null;
     }
 }

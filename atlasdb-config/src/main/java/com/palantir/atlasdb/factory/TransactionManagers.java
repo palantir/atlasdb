@@ -279,8 +279,10 @@ public final class TransactionManagers {
 
     }
 
-     static LockAndTimestampServices setupProxyAroundTimeAndLockServices(
-            LeaderConfig leaderConfig, String userAgent, LocalPaxosServices localPaxosServices,
+    static LockAndTimestampServices setupProxyAroundTimeAndLockServices(
+            LeaderConfig leaderConfig,
+            String userAgent,
+            LocalPaxosServices localPaxosServices,
             RemoteLockService localLock,
             TimestampService localTime) {
         // Create remote services, that may end up calling our own local services.
