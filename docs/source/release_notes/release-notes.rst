@@ -41,6 +41,23 @@ develop
     :widths: 5 40
     :header-rows: 1
 
+        *    - Type
+             - Change
+
+        *    -
+             -
+
+
+=======
+v0.53.0
+=======
+
+9 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
     *    - Type
          - Change
 
