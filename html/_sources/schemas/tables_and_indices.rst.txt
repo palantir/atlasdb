@@ -1,3 +1,5 @@
+.. _tables-and-indices:
+
 ==================
 Tables and Indices
 ==================
@@ -213,6 +215,43 @@ as descriptive as is useful. If this method is not called, the value
 will be derived by converting the table's AtlasDB name from snake\_case
 to CamelCase.
 
+Logging Parameters
+~~~~~~~~~~~~~~~~~~
+
+.. code:: java
+
+    public void tableNameLogSafety(LogSafety logSafety);
+
+If called, this marks the table name as either safe or unsafe
+for logging, depending on the argument passed. When AtlasDB logs
+a table reference for this table, this will be logged as a ``SafeArg``
+or ``UnsafeArg`` respectively, following the Palantir
+`safe-logging <https://github.com/palantir/safe-logging>`__ library.
+
+If this is not specified, the table name defaults as UNSAFE.
+
+.. code:: java
+
+    public void namedComponentsSafeByDefault();
+
+If called, then row components and named columns that are subsequently
+defined for this table will be assumed to be safe for logging unless
+specifically indicated as unsafe. By default, row components and named
+columns are assumed unsafe unless specifically indicated as safe.
+
+Note that specifying named components as safe by default does not
+also make the table name considered safe.
+
+.. code:: java
+
+    public void allSafeForLoggingByDefault();
+
+If called, this marks the table name as safe, and all named components as
+safe unless they are explicitly marked as unsafe. Note that an exception
+will be thrown if this method is called alongside ``tableNameLogSafety(LogSafety.UNSAFE)``;
+to achieve that effect (table names unsafe, but all row/column components safe),
+please use ``namedComponentsSafeByDefault()`` instead.
+
 Index-specific Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -269,6 +308,14 @@ range results are iterated in ascending order. If you need to access
 rows in reverse order, then adding the ``ValueByteOrder.DESCENDING``
 argument will store them in descending order instead.
 
+.. code:: java
+
+   public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, LogSafety logSafety = LogSafety.UNSAFE);
+
+You may also identify a row component as being explicitly safe or unsafe
+for logging. (If this is not specified it defaults to unsafe, or safe if
+the table was set to default components as being safe.)
+
 .. _tables-and-indices-partitioners:
 
 Partitioners
@@ -324,6 +371,7 @@ type referenced by each column is specified by a single command.
 
     public void column(String columnName, String shortName, ValueType valueType)
     public void column(String columnName, String shortName, Class<?> protoOrPersistable, Compression compression = Compression.NONE)
+    public void column(String columnName, String shortName, Class<?> protoOrPersistable, Compression compression, LogSafety logSafety = LogSafety.UNSAFE)
 
 The column name is the name of the column that will be used in the
 generated java code and table metadata. The short name is a one or two
@@ -336,8 +384,14 @@ space using the method you specify. Columns can not be overloaded with
 multiple types - each ``column()`` call must contain unique column names
 and short names.
 
-If instead you don't need the a row to have multiple columns and all
-table information can be encapsulted in the row components, then the
+Also, you may explicitly identify the name of this column to be safe or
+unsafe for logging. We don't currently support having different safety
+levels for the column name and the short name.
+(If this is not specified it defaults to unsafe, or safe if
+the table was set to default components as being safe.)
+
+If instead you don't need a row to have multiple columns and all
+table information can be encapsulated in the row components, then the
 section can instead be specified with ``noColumns()``, which defines the
 table to contain a single column "exists" with short name "e" and value
 type VAR\_LONG (always zero).

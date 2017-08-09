@@ -183,16 +183,16 @@
            <div itemprop="articleBody">
             
   <div class="section" id="tables-and-indices">
-<h1>Tables and Indices<a class="headerlink" href="#tables-and-indices" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Tables and Indices<a class="headerlink" href="#tables-and-indices" title="Permalink to this headline">¶</a></h1>
 <div class="contents local topic" id="contents">
 <ul class="simple">
-<li><a class="reference internal" href="#tables" id="id1">Tables</a></li>
-<li><a class="reference internal" href="#indices" id="id2">Indices</a></li>
-<li><a class="reference internal" href="#table-index-definitions" id="id3">Table/Index Definitions</a></li>
+<li><a class="reference internal" href="#tables" id="id2">Tables</a></li>
+<li><a class="reference internal" href="#indices" id="id3">Indices</a></li>
+<li><a class="reference internal" href="#table-index-definitions" id="id4">Table/Index Definitions</a></li>
 </ul>
 </div>
 <div class="section" id="tables">
-<h2><a class="toc-backref" href="#id1">Tables</a><a class="headerlink" href="#tables" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id2">Tables</a><a class="headerlink" href="#tables" title="Permalink to this headline">¶</a></h2>
 <p>Tables are the base structure for storing data in AtlasDB. Every table
 has a name, a row specification, a column-value specification, an
 optional set of constraints on the table, and an optional set of
@@ -238,7 +238,7 @@ AtlasDB queries, and thus have never used it themselves, and thus have
 never tested to see if it actually works.</p>
 </div>
 <div class="section" id="indices">
-<h2><a class="toc-backref" href="#id2">Indices</a><a class="headerlink" href="#indices" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id3">Indices</a><a class="headerlink" href="#indices" title="Permalink to this headline">¶</a></h2>
 <p>A common pattern in database schemas is to define an index table whose
 values are derived from and kept in sync with values from a base table.
 In standard RDBMS’s these are user-defined and db-managed, but AtlasDB
@@ -330,7 +330,7 @@ being stored in a given table.</p>
 </div>
 </div>
 <div class="section" id="table-index-definitions">
-<h2><a class="toc-backref" href="#id3">Table/Index Definitions</a><a class="headerlink" href="#table-index-definitions" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id4">Table/Index Definitions</a><a class="headerlink" href="#table-index-definitions" title="Permalink to this headline">¶</a></h2>
 <p>The <code class="docutils literal"><span class="pre">TableDefinition</span></code> and <code class="docutils literal"><span class="pre">IndexDefinition</span></code> is often created as an
 anonymous class using “double-brace initialization”, which allows for
 more readable code than a conventional builder. Certain initialization
@@ -370,6 +370,35 @@ code for the schema. It should be specified in CamelCase and be as long
 as descriptive as is useful. If this method is not called, the value
 will be derived by converting the table’s AtlasDB name from snake_case
 to CamelCase.</p>
+<div class="section" id="logging-parameters">
+<h4>Logging Parameters<a class="headerlink" href="#logging-parameters" title="Permalink to this headline">¶</a></h4>
+<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">tableNameLogSafety</span><span class="p">(</span><span class="n">LogSafety</span> <span class="n">logSafety</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>If called, this marks the table name as either safe or unsafe
+for logging, depending on the argument passed. When AtlasDB logs
+a table reference for this table, this will be logged as a <code class="docutils literal"><span class="pre">SafeArg</span></code>
+or <code class="docutils literal"><span class="pre">UnsafeArg</span></code> respectively, following the Palantir
+<a class="reference external" href="https://github.com/palantir/safe-logging">safe-logging</a> library.</p>
+<p>If this is not specified, the table name defaults as UNSAFE.</p>
+<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">namedComponentsSafeByDefault</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>If called, then row components and named columns that are subsequently
+defined for this table will be assumed to be safe for logging unless
+specifically indicated as unsafe. By default, row components and named
+columns are assumed unsafe unless specifically indicated as safe.</p>
+<p>Note that specifying named components as safe by default does not
+also make the table name considered safe.</p>
+<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">allSafeForLoggingByDefault</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>If called, this marks the table name as safe, and all named components as
+safe unless they are explicitly marked as unsafe. Note that an exception
+will be thrown if this method is called alongside <code class="docutils literal"><span class="pre">tableNameLogSafety(LogSafety.UNSAFE)</span></code>;
+to achieve that effect (table names unsafe, but all row/column components safe),
+please use <code class="docutils literal"><span class="pre">namedComponentsSafeByDefault()</span></code> instead.</p>
+</div>
 <div class="section" id="index-specific-parameters">
 <h4>Index-specific Parameters<a class="headerlink" href="#index-specific-parameters" title="Permalink to this headline">¶</a></h4>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">onTable</span><span class="p">(</span><span class="n">String</span> <span class="n">name</span><span class="p">);</span>
@@ -416,6 +445,12 @@ See the ValueTypes section for more information</p>
 range results are iterated in ascending order. If you need to access
 rows in reverse order, then adding the <code class="docutils literal"><span class="pre">ValueByteOrder.DESCENDING</span></code>
 argument will store them in descending order instead.</p>
+<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">rowComponent</span><span class="p">(</span><span class="n">String</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">ValueByteOrder</span> <span class="n">valueByteOrder</span><span class="p">,</span> <span class="n">LogSafety</span> <span class="n">logSafety</span> <span class="o">=</span> <span class="n">LogSafety</span><span class="o">.</span><span class="n">UNSAFE</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>You may also identify a row component as being explicitly safe or unsafe
+for logging. (If this is not specified it defaults to unsafe, or safe if
+the table was set to default components as being safe.)</p>
 <div class="section" id="partitioners">
 <span id="tables-and-indices-partitioners"></span><h4>Partitioners<a class="headerlink" href="#partitioners" title="Permalink to this headline">¶</a></h4>
 <p>Each row component, after being defined, may then have a partitioner
@@ -462,6 +497,7 @@ a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.</p>
 type referenced by each column is specified by a single command.</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span>public void column(String columnName, String shortName, ValueType valueType)
 public void column(String columnName, String shortName, Class&lt;?&gt; protoOrPersistable, Compression compression = Compression.NONE)
+public void column(String columnName, String shortName, Class&lt;?&gt; protoOrPersistable, Compression compression, LogSafety logSafety = LogSafety.UNSAFE)
 </pre></div>
 </div>
 <p>The column name is the name of the column that will be used in the
@@ -474,8 +510,13 @@ representation, and will optionally also compress the byte array to save
 space using the method you specify. Columns can not be overloaded with
 multiple types - each <code class="docutils literal"><span class="pre">column()</span></code> call must contain unique column names
 and short names.</p>
-<p>If instead you don’t need the a row to have multiple columns and all
-table information can be encapsulted in the row components, then the
+<p>Also, you may explicitly identify the name of this column to be safe or
+unsafe for logging. We don’t currently support having different safety
+levels for the column name and the short name.
+(If this is not specified it defaults to unsafe, or safe if
+the table was set to default components as being safe.)</p>
+<p>If instead you don’t need a row to have multiple columns and all
+table information can be encapsulated in the row components, then the
 section can instead be specified with <code class="docutils literal"><span class="pre">noColumns()</span></code>, which defines the
 table to contain a single column “exists” with short name “e” and value
 type VAR_LONG (always zero).</p>

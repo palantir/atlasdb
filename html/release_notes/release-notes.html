@@ -196,11 +196,29 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now supports specifying the safety of table names as well as row and column component names following the <a class="reference external" href="https://github.com/palantir/safe-logging">palantir/safe-logging</a> library.
+Please consult the documentation for <a class="reference internal" href="../schemas/tables_and_indices.html#tables-and-indices"><span class="std std-ref">Tables and Indices</span></a> for details on how to set this up.
+As AtlasDB regenerates its metadata on startup, changes will take effect after restarting your AtlasDB client (in particular, you do NOT need to rerender your schemas.)
+Previously, all table names, row component names and column names were always treated as unsafe.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1988">Pull Request 1</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2000">Pull Request 2</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2172">Pull Request 3</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The <code class="docutils literal"><span class="pre">ProfilingKeyValueService</span></code> and <code class="docutils literal"><span class="pre">SpecificTableSweeper</span></code> now log table names as safe arguments, if and only if these have been specified as safe in one’s schemas.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2172">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal"><span class="pre">NameComponentDescription</span></code> is now a <code class="docutils literal"><span class="pre">final</span></code> class and has a builder instead of constructors.
+This will affect any products which have subclassed <code class="docutils literal"><span class="pre">NameComponentDescription</span></code>, although we are not aware of any.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2238">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Throw an error during schema code generation stage if table length exceeds KVS limits.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2220">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>IteratorUtils.forEach removed; it’s not needed in a Java 8 codebase.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2207">Pull Request</a>)</td>
 </tr>
