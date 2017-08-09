@@ -50,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -89,7 +90,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
             int numCells, long sizeInBytes) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} for {} cells of overall size {} bytes took {} ms.",
-                        method, tableRef, numCells, sizeInBytes, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                        method,
+                        LoggingArgs.tableRef(tableRef),
+                        numCells,
+                        sizeInBytes,
+                        stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTime(String method) {
@@ -100,7 +105,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTable(String method, TableReference tableRef) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} took {} ms.",
-                        method, tableRef, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                        method, LoggingArgs.tableRef(tableRef), stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableCount(String method, int tableCount) {
@@ -114,7 +119,10 @@ public final class ProfilingKeyValueService implements KeyValueService {
             RangeRequest range) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
-                        method, tableRef, range, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                        method,
+                        LoggingArgs.tableRef(tableRef),
+                        range,
+                        stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private static BiConsumer<LoggingFunction, Map<Cell, Value>> logCellResultSize(long overhead) {
@@ -226,7 +234,9 @@ public final class ProfilingKeyValueService implements KeyValueService {
         maybeLog(() -> delegate.addGarbageCollectionSentinelValues(tableRef, cells),
                 (logger, stopwatch) -> logger.log(
                         "Call to KVS.addGarbageCollectionSentinelValues on table {} over {} cells took {} ms.",
-                        tableRef, Iterables.size(cells), stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+                        LoggingArgs.tableRef(tableRef),
+                        Iterables.size(cells),
+                        stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
 
     @Override
@@ -345,7 +355,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                 (logger, stopwatch) ->
                         logger.log(
                                 "Call to KVS.getRows on table {} requesting {} columns from {} rows took {} ms ",
-                                tableRef,
+                                LoggingArgs.tableRef(tableRef),
                                 columnSelection.allColumnsSelected() ? "all"
                                         : Iterables.size(columnSelection.getSelectedColumns()),
                                 Iterables.size(rows),
@@ -448,7 +458,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                 batchColumnRangeSelection, timestamp),
                 (logger, stopwatch) ->
                         logger.log("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                        tableRef, Iterables.size(rows), batchColumnRangeSelection,
+                        LoggingArgs.tableRef(tableRef), Iterables.size(rows), batchColumnRangeSelection,
                         stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
 
@@ -463,7 +473,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                 (logger, stopwatch) -> logger.log(
                         "Call to KVS.getRowsColumnRange - CellBatch on table {} for {} rows with range {} "
                                 + "and batch hint {} took {} ms.",
-                        tableRef,
+                        LoggingArgs.tableRef(tableRef),
                         Iterables.size(rows),
                         columnRangeSelection,
                         cellBatchHint,

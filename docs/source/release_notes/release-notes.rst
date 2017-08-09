@@ -50,6 +50,24 @@ develop
            However, these tables may change (e.g. the from-kvs could be swept).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2244>`__)
 
+    *    - |new|
+         - AtlasDB now supports specifying the safety of table names as well as row and column component names following the `palantir/safe-logging <https://github.com/palantir/safe-logging>`__ library.
+           Please consult the documentation for :ref:`Tables and Indices <tables-and-indices>` for details on how to set this up.
+           As AtlasDB regenerates its metadata on startup, changes will take effect after restarting your AtlasDB client (in particular, you do NOT need to rerender your schemas.)
+           Previously, all table names, row component names and column names were always treated as unsafe.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1988>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2000>`__ and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/2172>`__)
+
+    *    - |improved|
+         - The ``ProfilingKeyValueService`` and ``SpecificTableSweeper`` now log table names as safe arguments, if and only if these have been specified as safe in one's schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2172>`__)
+
+    *    - |devbreak|
+         - ``NameComponentDescription`` is now a ``final`` class and has a builder instead of constructors.
+           This will affect any products which have subclassed ``NameComponentDescription``, although we are not aware of any.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2238>`__)
+
     *    - |devbreak|
          - Throw an error during schema code generation stage if table length exceeds KVS limits.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2220>`__)
