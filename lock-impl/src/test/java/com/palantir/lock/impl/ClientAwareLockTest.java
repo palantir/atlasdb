@@ -158,27 +158,21 @@ public final class ClientAwareLockTest {
     /** Tests that a timed try lock can block but eventually succeed. */
     @Test public void testTimedTryLockCanSucceed() throws Exception {
         anonymousReadLock.lock();
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                Assert.assertNotNull(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
-                barrier.await();
-                Assert.assertNull(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS));
-                return null;
-            }
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            Assert.assertNotNull(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
+            barrier.await();
+            Assert.assertNull(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS));
+            return null;
         });
         barrier.await();
         Thread.sleep(10);
         anonymousReadLock.unlock();
         future.get();
-        future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                Assert.assertNotNull(anonymousReadLock.tryLock(10, TimeUnit.MILLISECONDS));
-                barrier.await();
-                Assert.assertNull(anonymousReadLock.tryLock(100, TimeUnit.MILLISECONDS));
-                return null;
-            }
+        future = executor.submit((Callable<Void>) () -> {
+            Assert.assertNotNull(anonymousReadLock.tryLock(10, TimeUnit.MILLISECONDS));
+            barrier.await();
+            Assert.assertNull(anonymousReadLock.tryLock(100, TimeUnit.MILLISECONDS));
+            return null;
         });
         barrier.await();
         Thread.sleep(10);
@@ -192,22 +186,16 @@ public final class ClientAwareLockTest {
         anonymousReadLock.lock();
         Assert.assertNull(anonymousReadLock.tryLock());
         anonymousReadLock.unlock();
-        Future<?> future1 = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                Assert.assertNotNull(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS));
-                return null;
-            }
+        Future<?> future1 = executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            Assert.assertNotNull(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS));
+            return null;
         });
         barrier.await();
         Thread.sleep(10);
-        Future<?> future2 = executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                Assert.assertNotNull(anonymousReadLock.tryLock());
-                anonymousReadLock.lock();
-            }
+        Future<?> future2 = executor.submit(() -> {
+            Assert.assertNotNull(anonymousReadLock.tryLock());
+            anonymousReadLock.lock();
         });
         try {
             future2.get(10, TimeUnit.MILLISECONDS);
@@ -238,15 +226,12 @@ public final class ClientAwareLockTest {
 
     private <T> void addLockToQueue(final KnownClientLock lock, final Queue<? super T> queue,
             final T index) throws Exception {
-        executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                lock.lock();
-                queue.add(index);
-                lock.unlock();
-                return null;
-            }
+        executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            lock.lock();
+            queue.add(index);
+            lock.unlock();
+            return null;
         });
         barrier.await();
         Thread.sleep(20);
@@ -300,14 +285,11 @@ public final class ClientAwareLockTest {
         } catch (TimeoutException expected) {
             /* Expected. */
         }
-        Future<?> futureToSucceed = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                Assert.assertNotNull(anonymousReadLock.tryLock());
-                barrier.await();
-                anonymousReadLock.lock();
-                return null;
-            }
+        Future<?> futureToSucceed = executor.submit((Callable<Void>) () -> {
+            Assert.assertNotNull(anonymousReadLock.tryLock());
+            barrier.await();
+            anonymousReadLock.lock();
+            return null;
         });
         barrier.await();
         try {

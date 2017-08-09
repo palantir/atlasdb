@@ -51,7 +51,6 @@ import javax.management.remote.JMXServiceURL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
 /**
@@ -163,22 +162,19 @@ public final class JMXUtils {
         private final static ReferenceQueue<DynamicMBean> refQueue = new ReferenceQueue<DynamicMBean>();
 
         static {
-            final Runnable task = new Runnable() {
-                @Override
-                public void run() {
-                    while (true) {
-                        try {
-                            // Blocks until available, or throws InterruptedException
-                            @SuppressWarnings("unchecked")
-                            final KeyedWeakReference<String, DynamicMBean> ref =
-                                (KeyedWeakReference<String, DynamicMBean>) refQueue.remove();
-                            unregisterMBeanCatchAndLogExceptions(ref.getKey());
-                        } catch (final InterruptedException e) {
-                            // Stop the cleanup thread when interrupted.
-                            break;
-                        } catch (final Throwable t) {
-                            // Any other exception should not stop operation, for daemons.
-                        }
+            final Runnable task = () -> {
+                while (true) {
+                    try {
+                        // Blocks until available, or throws InterruptedException
+                        @SuppressWarnings("unchecked")
+                        final KeyedWeakReference<String, DynamicMBean> ref =
+                            (KeyedWeakReference<String, DynamicMBean>) refQueue.remove();
+                        unregisterMBeanCatchAndLogExceptions(ref.getKey());
+                    } catch (final InterruptedException e) {
+                        // Stop the cleanup thread when interrupted.
+                        break;
+                    } catch (final Throwable t) {
+                        // Any other exception should not stop operation, for daemons.
                     }
                 }
             };
@@ -289,11 +285,6 @@ public final class JMXUtils {
     public static <T> Iterable<T> getInstanceBeanProxies(final Class<T> mbeanClazz){
         return Iterables.transform(
                 ManagementFactory.getPlatformMBeanServer().queryNames(ObjectName.WILDCARD, Query.isInstanceOf(new StringValueExp(mbeanClazz.getName())))
-                , new Function<ObjectName, T>() {
-                    @Override
-                    public T apply(ObjectName obj) {
-                        return JMXUtils.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), obj, mbeanClazz);
-                    }
-                });
+                , obj -> JMXUtils.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), obj, mbeanClazz));
     }
 }

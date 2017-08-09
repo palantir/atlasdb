@@ -629,61 +629,57 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         return FluentIterable.from(Iterables.partition(rangeRequests, BATCH_SIZE_GET_FIRST_PAGE))
-                .transformAndConcat(new Function<List<RangeRequest>, List<BatchingVisitable<RowResult<byte[]>>>>() {
-                    @Override
-                    public List<BatchingVisitable<RowResult<byte[]>>> apply(List<RangeRequest> input) {
-                        Timer.Context timer = getTimer("processedRangeMillis").time();
-                        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
-                                keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
-                        validateExternalAndCommitLocksIfNecessary(tableRef);
+                .transformAndConcat(input -> {
+                    Timer.Context timer = getTimer("processedRangeMillis").time();
+                    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
+                            keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
+                    validateExternalAndCommitLocksIfNecessary(tableRef);
 
-                        SortedMap<Cell, byte[]> postFiltered = postFilterPages(
+                    SortedMap<Cell, byte[]> postFiltered = postFilterPages(
+                            tableRef,
+                            firstPages.values());
+
+                    List<BatchingVisitable<RowResult<byte[]>>> ret = Lists.newArrayListWithCapacity(input.size());
+                    for (RangeRequest rangeRequest : input) {
+                        TokenBackedBasicResultsPage<RowResult<Value>, byte[]> prePostFilter =
+                                firstPages.get(rangeRequest);
+                        byte[] nextStartRowName = getNextStartRowName(
+                                rangeRequest,
+                                prePostFilter);
+                        List<Entry<Cell, byte[]>> mergeIterators = getPostFilteredWithLocalWrites(
                                 tableRef,
-                                firstPages.values());
-
-                        List<BatchingVisitable<RowResult<byte[]>>> ret = Lists.newArrayListWithCapacity(input.size());
-                        for (RangeRequest rangeRequest : input) {
-                            TokenBackedBasicResultsPage<RowResult<Value>, byte[]> prePostFilter =
-                                    firstPages.get(rangeRequest);
-                            byte[] nextStartRowName = getNextStartRowName(
-                                    rangeRequest,
-                                    prePostFilter);
-                            List<Entry<Cell, byte[]>> mergeIterators = getPostFilteredWithLocalWrites(
-                                    tableRef,
-                                    postFiltered,
-                                    rangeRequest,
-                                    prePostFilter.getResults(),
-                                    nextStartRowName);
-                            ret.add(new AbstractBatchingVisitable<RowResult<byte[]>>() {
-                                @Override
-                                protected <K extends Exception> void batchAcceptSizeHint(
-                                        int batchSizeHint,
-                                        ConsistentVisitor<RowResult<byte[]>, K> visitor)
-                                        throws K {
-                                    checkGetPreconditions(tableRef);
-                                    final Iterator<RowResult<byte[]>> rowResults = Cells.createRowView(mergeIterators);
-                                    while (rowResults.hasNext()) {
-                                        if (!visitor.visit(ImmutableList.of(rowResults.next()))) {
-                                            return;
-                                        }
-                                    }
-                                    if ((nextStartRowName.length == 0) || !prePostFilter.moreResultsAvailable()) {
+                                postFiltered,
+                                rangeRequest,
+                                prePostFilter.getResults(),
+                                nextStartRowName);
+                        ret.add(new AbstractBatchingVisitable<RowResult<byte[]>>() {
+                            @Override
+                            protected <K extends Exception> void batchAcceptSizeHint(
+                                    int batchSizeHint,
+                                    ConsistentVisitor<RowResult<byte[]>, K> visitor)
+                                    throws K {
+                                checkGetPreconditions(tableRef);
+                                final Iterator<RowResult<byte[]>> rowResults = Cells.createRowView(mergeIterators);
+                                while (rowResults.hasNext()) {
+                                    if (!visitor.visit(ImmutableList.of(rowResults.next()))) {
                                         return;
                                     }
-                                    RangeRequest newRange = rangeRequest.getBuilder()
-                                            .startRowInclusive(nextStartRowName)
-                                            .build();
-                                    getRange(tableRef, newRange)
-                                            .batchAccept(batchSizeHint, visitor);
                                 }
-                            });
-                        }
-                        long processedRangeMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
-                        log.trace("Processed {} range requests for {} in {}ms",
-                                input.size(), tableRef, processedRangeMillis);
-                        return ret;
+                                if ((nextStartRowName.length == 0) || !prePostFilter.moreResultsAvailable()) {
+                                    return;
+                                }
+                                RangeRequest newRange = rangeRequest.getBuilder()
+                                        .startRowInclusive(nextStartRowName)
+                                        .build();
+                                getRange(tableRef, newRange)
+                                        .batchAccept(batchSizeHint, visitor);
+                            }
+                        });
                     }
-
+                    long processedRangeMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+                    log.trace("Processed {} range requests for {} in {}ms",
+                            input.size(), tableRef, processedRangeMillis);
+                    return ret;
                 });
     }
 

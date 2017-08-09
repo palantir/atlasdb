@@ -115,9 +115,7 @@ public class LockServiceStateLogger {
 
     private Map<String, Object> generateHeldLocks(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
         Map<String, Object> mappedLocksToToken = Maps.newHashMap();
-        heldLocksTokenMap.forEach((token, locks) -> {
-            mappedLocksToToken.putAll(getDescriptorToTokenMap(token, locks));
-        });
+        heldLocksTokenMap.forEach((token, locks) -> mappedLocksToToken.putAll(getDescriptorToTokenMap(token, locks)));
 
         return nameObjectForYamlConvertion(HELD_LOCKS_TITLE, mappedLocksToToken);
     }

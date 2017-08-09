@@ -154,15 +154,12 @@ public class SerializableTransaction extends SnapshotTransaction {
                     int batchSize,
                     AbortingVisitor<? super List<Entry<Cell, byte[]>>, K> visitor)
                     throws K {
-                boolean hitEnd = visitable.batchAccept(batchSize, new AbortingVisitor<List<Entry<Cell, byte[]>>, K>() {
-                    @Override
-                    public boolean visit(List<Entry<Cell, byte[]>> items) throws K {
-                        if (items.size() < batchSize) {
-                            reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                        }
-                        markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
-                        return visitor.visit(items);
+                boolean hitEnd = visitable.batchAccept(batchSize, items -> {
+                    if (items.size() < batchSize) {
+                        reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
                     }
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
+                    return visitor.visit(items);
                 });
                 if (hitEnd) {
                     reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
@@ -205,15 +202,12 @@ public class SerializableTransaction extends SnapshotTransaction {
                     int batchSize,
                     AbortingVisitor<? super List<RowResult<byte[]>>, K> visitor)
                     throws K {
-                boolean hitEnd = ret.batchAccept(batchSize, new AbortingVisitor<List<RowResult<byte[]>>, K>() {
-                    @Override
-                    public boolean visit(List<RowResult<byte[]>> items) throws K {
-                        if (items.size() < batchSize) {
-                            reachedEndOfRange(tableRef, rangeRequest);
-                        }
-                        markRangeRead(tableRef, rangeRequest, items);
-                        return visitor.visit(items);
+                boolean hitEnd = ret.batchAccept(batchSize, items -> {
+                    if (items.size() < batchSize) {
+                        reachedEndOfRange(tableRef, rangeRequest);
                     }
+                    markRangeRead(tableRef, rangeRequest, items);
+                    return visitor.visit(items);
                 });
                 if (hitEnd) {
                     reachedEndOfRange(tableRef, rangeRequest);

@@ -62,9 +62,8 @@ public final class KeyValueServiceMigrators {
                 migratorSpec.threads(),
                 migratorSpec.batchSize(),
                 ImmutableMap.of(),
-                (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                    printer.info(level.toString() + ": " + message);
-                },
+                (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) ->
+                        printer.info(level.toString() + ": " + message),
                 new TaskProgress() {
                     @Override
                     public void beginTask(String message, int tasks) {

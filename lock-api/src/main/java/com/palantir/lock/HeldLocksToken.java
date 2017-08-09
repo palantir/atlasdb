@@ -50,12 +50,7 @@ import com.google.common.collect.Iterables;
     private static final long serialVersionUID = 0x99b3bb32bb98f83aL;
 
     private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
-            new Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode>() {
-        @Override
-        public LockWithMode apply(Map.Entry<LockDescriptor, LockMode> input) {
-            return new LockWithMode(input.getKey(), input.getValue());
-        }
-    };
+            input -> new LockWithMode(input.getKey(), input.getValue());
 
     private final BigInteger tokenId;
     private final LockClient client;

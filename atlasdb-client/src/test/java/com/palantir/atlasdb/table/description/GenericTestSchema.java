@@ -28,7 +28,8 @@ public class GenericTestSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("GenericTestSchema",
                 GenericTestSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE,
+                OptionalType.JAVA8);
 
         // use for testing rangeScanAllowed code
         schema.addTableDefinition("rangeScanTest", new TableDefinition() {{
