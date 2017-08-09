@@ -223,6 +223,14 @@ public abstract class AtlasDbConfig {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
 
+    /**
+     * The number of sweep threads to run in parallel.
+     */
+    @Value.Default
+    public int numberOfSweepThreads() {
+        return 1;
+    }
+
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {

@@ -165,15 +165,15 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         for (int i = 0; i < 10; i++) {
             TableReference tableReference = TableReference.createFromFullyQualifiedName("foo.bar" + i);
             createTable(tableReference, SweepStrategy.CONSERVATIVE);
-            putManyCells(tableReference, 1000, 1010);
-            putManyCells(tableReference, 1013, 1015);
-            putManyCells(tableReference, 1017, 1019);
+            putManyCells(tableReference, 100000, 100010);
+            putManyCells(tableReference, 100013, 100015);
+            putManyCells(tableReference, 100017, 100019);
         }
-        txService.putUnlessExists(1000, 1010);
-        txService.putUnlessExists(1013, 1015);
-        txService.putUnlessExists(1017, 1019);
+        txService.putUnlessExists(100000, 100010);
+        txService.putUnlessExists(100013, 100015);
+        txService.putUnlessExists(100017, 100019);
 
-        int numberOfConcurrentSweeps = 1;
+        int numberOfConcurrentSweeps = 4;
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numberOfConcurrentSweeps,
                 new NamedThreadFactory("BackgroundSweeper", true));
 
@@ -241,7 +241,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     protected void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = Maps.newHashMap();
-        for (int i = 0; i < 1000; ++i) {
+        for (int i = 0; i < 10000; ++i) {
             cells.put(Cell.create(Ints.toByteArray(i), "c".getBytes()),
                     (i % 3 == 0) ? new byte[] {} : Ints.toByteArray(123456 + i));
             if (i % 2 == 0) {

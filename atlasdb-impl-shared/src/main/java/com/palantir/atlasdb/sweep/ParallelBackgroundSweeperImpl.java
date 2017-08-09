@@ -21,17 +21,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
 
 public final class ParallelBackgroundSweeperImpl {
-
-    Logger log = LoggerFactory.getLogger(ParallelBackgroundSweeperImpl.class);
-
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final SpecificTableSweeper specificTableSweeper;

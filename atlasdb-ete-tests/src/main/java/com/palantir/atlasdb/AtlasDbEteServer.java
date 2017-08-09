@@ -28,14 +28,22 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -72,6 +80,27 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+        setupSweepTest();
+        runSweepTest();
+    }
+
+    private void setupSweepTest() {
+        TimestampService tsService = new InMemoryTimestampService();
+//        KeyValueService kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService);
+    }
+
+//    private KeyValueService getKeyValueService() {
+//        CassandraKeyValueServiceConfig config = useColumnBatchSize
+//                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+//                .withTimestampsGetterBatchSize(10)
+//                : CassandraContainer.KVS_CONFIG;
+//        return CassandraKeyValueService.create(
+//                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+//                CassandraContainer.LEADER_CONFIG);
+//    }
+
+    private void runSweepTest() {
+
     }
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
