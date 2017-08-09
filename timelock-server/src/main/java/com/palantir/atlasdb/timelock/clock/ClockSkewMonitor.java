@@ -49,12 +49,12 @@ public final class ClockSkewMonitor {
     private final ReversalDetectingClockService localClockService;
 
     public static ClockSkewMonitor create(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
-        Map<String, ClockService> monitors = Maps.toMap(
+        Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
                 (remoteServer) -> AtlasDbHttpClients.createProxy(optionalSecurity, remoteServer, ClockService.class));
 
         return new ClockSkewMonitor(
-                monitors,
+                clocksByServer,
                 new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry()),
                 Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("clock-skew-monitor", true)),
                 new ClockServiceImpl());
