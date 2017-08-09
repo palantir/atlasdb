@@ -44,6 +44,11 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - AtlasDB now produces a new artifact, ``timelock-agent``.
+           Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a *registrar* that knows how to register Java resources and expose suitable HTTP endpoints.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2247>`__)
+
     *    - |devbreak|
          - Throw an error during schema code generation stage if table length exceeds KVS limits.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2220>`__)
