@@ -31,7 +31,6 @@ import java.util.concurrent.Future;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Function;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -105,12 +104,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
-                return Maps.transformValues(map, new Function<byte[], byte[]>() {
-                    @Override
-                    public byte[] apply(byte[] input) {
-                        return input.clone();
-                    }
-                });
+                return Maps.transformValues(map, input -> input.clone());
             }
         };
     }
@@ -185,14 +179,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         final Transaction t1 = startTransaction();
         ExecutorService exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
-        Future<?> future = exec.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                withdrawMoney(t1, true, false);
-                barrier.await();
-                t1.commit();
-                return null;
-            }
+        Future<?> future = exec.submit((Callable<Void>) () -> {
+            withdrawMoney(t1, true, false);
+            barrier.await();
+            t1.commit();
+            return null;
         });
 
         Transaction t2 = startTransaction();

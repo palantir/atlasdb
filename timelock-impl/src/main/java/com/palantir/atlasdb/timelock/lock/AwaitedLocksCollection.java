@@ -45,9 +45,7 @@ public class AwaitedLocksCollection {
         // Modifying the map synchronously in this callback can deadlock.
         // The thread that completes this result will be inside a synchronized method on AsyncLock; if a supplier
         // passed to #computeIfAbsent simultaneously tries to call a method on the same AsyncLock, we will deadlock.
-        result.onCompleteAsync(() -> {
-            requestsById.remove(requestId);
-        });
+        result.onCompleteAsync(() -> requestsById.remove(requestId));
     }
 
 }

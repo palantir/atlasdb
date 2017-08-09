@@ -72,35 +72,29 @@ public class StreamStoreDefinition {
 
         // We use reflection and wrap these in suppliers because these classes are generated classes that
         // might not always exist.
-        cleanupTasks.put(StreamTableType.METADATA.getTableName(shortName), new Supplier<OnCleanupTask>() {
-            @Override
-            public OnCleanupTask get() {
+        cleanupTasks.put(StreamTableType.METADATA.getTableName(shortName), () -> {
+            try {
+                Class<?> clazz = Class.forName(packageName + "." + renderer.getMetadataCleanupTaskClassName());
                 try {
-                    Class<?> clazz = Class.forName(packageName + "." + renderer.getMetadataCleanupTaskClassName());
-                    try {
-                        return (OnCleanupTask) clazz.getConstructor(Namespace.class).newInstance(namespace);
-                    } catch (Exception e) {
-                        return (OnCleanupTask) clazz.getConstructor().newInstance();
-                    }
+                    return (OnCleanupTask) clazz.getConstructor(Namespace.class).newInstance(namespace);
                 } catch (Exception e) {
-                    throw Throwables.rewrapAndThrowUncheckedException(e);
+                    return (OnCleanupTask) clazz.getConstructor().newInstance();
                 }
+            } catch (Exception e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e);
             }
         });
 
-        cleanupTasks.put(StreamTableType.INDEX.getTableName(shortName), new Supplier<OnCleanupTask>() {
-            @Override
-            public OnCleanupTask get() {
+        cleanupTasks.put(StreamTableType.INDEX.getTableName(shortName), () -> {
+            try {
+                Class<?> clazz = Class.forName(packageName + "." + renderer.getIndexCleanupTaskClassName());
                 try {
-                    Class<?> clazz = Class.forName(packageName + "." + renderer.getIndexCleanupTaskClassName());
-                    try {
-                        return (OnCleanupTask) clazz.getConstructor(Namespace.class).newInstance(namespace);
-                    } catch (Exception e) {
-                        return (OnCleanupTask) clazz.getConstructor().newInstance();
-                    }
+                    return (OnCleanupTask) clazz.getConstructor(Namespace.class).newInstance(namespace);
                 } catch (Exception e) {
-                    throw Throwables.rewrapAndThrowUncheckedException(e);
+                    return (OnCleanupTask) clazz.getConstructor().newInstance();
                 }
+            } catch (Exception e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e);
             }
         });
 

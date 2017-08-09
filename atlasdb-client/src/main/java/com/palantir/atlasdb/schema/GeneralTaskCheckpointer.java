@@ -78,30 +78,27 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
                                   final Map<Long, byte[]> startById) {
         Schemas.createTable(getSchema(), kvs, checkpointTable);
 
-        txManager.runTaskWithRetry(new TransactionTask<Map<Long, byte[]>, RuntimeException>() {
-            @Override
-            public Map<Long, byte[]> execute(Transaction t) {
-                Set<byte[]> rows = Sets.newHashSet();
-                for (long rangeId : startById.keySet()) {
-                    rows.add(getRowName(extraId, rangeId));
-                }
-
-                Map<byte[], RowResult<byte[]>> rr = t.getRows(
-                        checkpointTable,
-                        rows,
-                        ColumnSelection.all());
-
-                if (rr.isEmpty()) {
-                    Map<Cell, byte[]> values = Maps.newHashMap();
-                    for (Entry<Long, byte[]> e : startById.entrySet()) {
-                        Cell cell = getCell(extraId, e.getKey());
-                        byte[] value = toDb(e.getValue(), true);
-                        values.put(cell, value);
-                    }
-                    t.put(checkpointTable, values);
-                }
-                return null;
+        txManager.runTaskWithRetry((TransactionTask<Map<Long, byte[]>, RuntimeException>) t -> {
+            Set<byte[]> rows = Sets.newHashSet();
+            for (long rangeId : startById.keySet()) {
+                rows.add(getRowName(extraId, rangeId));
             }
+
+            Map<byte[], RowResult<byte[]>> rr = t.getRows(
+                    checkpointTable,
+                    rows,
+                    ColumnSelection.all());
+
+            if (rr.isEmpty()) {
+                Map<Cell, byte[]> values = Maps.newHashMap();
+                for (Entry<Long, byte[]> e : startById.entrySet()) {
+                    Cell cell = getCell(extraId, e.getKey());
+                    byte[] value = toDb(e.getValue(), true);
+                    values.put(cell, value);
+                }
+                t.put(checkpointTable, values);
+            }
+            return null;
         });
     }
 

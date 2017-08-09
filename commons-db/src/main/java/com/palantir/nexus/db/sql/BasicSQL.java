@@ -395,20 +395,17 @@ public abstract class BasicSQL {
             SqlLoggers.CANCEL_LOGGER.debug("interrupted prior to executing uninterruptable SQL call");
             throw new PalantirInterruptedException("interrupted prior to executing uninterruptable SQL call");
         }
-        return BasicSQLUtils.runUninterruptably(new Callable<T>() {
-            @Override
-            public T call() throws SQLException {
-                if (fetchSize != null) {
-                    ps.setFetchSize(fetchSize);
-                }
-                ResultSet rs = null;
-                try {
-                    rs = ps.executeQuery();
-                    return visitor.visit(rs);
-                } finally {
-                    if (rs != null && autoClose == AutoClose.TRUE) {
-                        rs.close();
-                    }
+        return BasicSQLUtils.runUninterruptably(() -> {
+            if (fetchSize != null) {
+                ps.setFetchSize(fetchSize);
+            }
+            ResultSet rs = null;
+            try {
+                rs = ps.executeQuery();
+                return visitor.visit(rs);
+            } finally {
+                if (rs != null && autoClose == AutoClose.TRUE) {
+                    rs.close();
                 }
             }
         },
@@ -419,20 +416,17 @@ public abstract class BasicSQL {
     private static <T> T runCancellablyInternal(final PreparedStatement ps, ResultSetVisitor<T> visitor, final FinalSQLString sql,
                                         AutoClose autoClose, @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
         final String threadString = sql.toString();
-        Future<ResultSet> result = service.submit(ThreadNamingCallable.wrapWithThreadName(new Callable<ResultSet>() {
-            @Override
-            public ResultSet call() throws Exception {
-                if(Thread.currentThread().isInterrupted()) {
-                    SqlLoggers.CANCEL_LOGGER.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
-                    //we want to clear the interrupted status here -
-                    //we cancel via the prepared statement, not interrupts
-                    Thread.interrupted();
-                }
-                if (fetchSize != null) {
-                    ps.setFetchSize(fetchSize);
-                }
-                return ps.executeQuery();
+        Future<ResultSet> result = service.submit(ThreadNamingCallable.wrapWithThreadName(() -> {
+            if(Thread.currentThread().isInterrupted()) {
+                SqlLoggers.CANCEL_LOGGER.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
+                //we want to clear the interrupted status here -
+                //we cancel via the prepared statement, not interrupts
+                Thread.interrupted();
             }
+            if (fetchSize != null) {
+                ps.setFetchSize(fetchSize);
+            }
+            return ps.executeQuery();
         }, threadString, ThreadNamingCallable.Type.APPEND));
 
         ResultSet rs = null;
@@ -482,12 +476,7 @@ public abstract class BasicSQL {
         PreparedStatement ps = null;
 
         try {
-            ps = BasicSQLUtils.runUninterruptably(new Callable<PreparedStatement>() {
-                @Override
-                public PreparedStatement call() throws Exception {
-                    return createPreparedStatement(c, query.getQuery(), vs);
-                }
-            }, "SQL createPreparedStatement", c);
+            ps = BasicSQLUtils.runUninterruptably(() -> createPreparedStatement(c, query.getQuery(), vs), "SQL createPreparedStatement", c);
             return visitor.visit(ps);
         } catch (PalantirSqlException sqle) {
             throw wrapSQLExceptionWithVerboseLogging(sqle, query.getQuery(), vs);
@@ -553,17 +542,11 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL execution query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (new Callable<PreparedStatement>() {
-            @Override
-            public PreparedStatement call() throws PalantirSqlException {
-                return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<PreparedStatement>() {
-                    @Override
-                    public PreparedStatement visit(PreparedStatement ps) throws PalantirSqlException {
-                        PreparedStatements.execute(ps);
-                        return ps;
-                    }
-                }, "execute", autoClose); //$NON-NLS-1$
-            }
+        return BasicSQLUtils.runUninterruptably (() -> {
+            return wrapPreparedStatement(c, sql, vs, ps -> {
+                PreparedStatements.execute(ps);
+                return ps;
+            }, "execute", autoClose); //$NON-NLS-1$
         }, sql.toString(), c);
     }
 
@@ -572,18 +555,10 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL selectExistsInternal query: {}", sql.getQuery());
         }
-        return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Boolean>() {
-            @Override
-            public Boolean visit(PreparedStatement ps) throws PalantirSqlException {
-                PreparedStatements.setMaxRows(ps, 1);
+        return wrapPreparedStatement(c, sql, vs, ps -> {
+            PreparedStatements.setMaxRows(ps, 1);
 
-                return runCancellably(ps, new ResultSetVisitor<Boolean>() {
-                    @Override
-                    public Boolean visit(ResultSet rs) throws PalantirSqlException {
-                        return ResultSets.next(rs);
-                    }
-                }, sql, null);
-            }
+            return runCancellably(ps, rs -> ResultSets.next(rs), sql, null);
         }, "selectExists"); //$NON-NLS-1$
     }
 
@@ -592,28 +567,21 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL selectIntegerInternal query: {}", sql.getQuery());
         }
-        return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Integer>() {
-            @Override
-            public Integer visit(PreparedStatement ps) throws PalantirSqlException {
-                return runCancellably(ps, new ResultSetVisitor<Integer>() {
-                    @Override
-                    public Integer visit(ResultSet rs) throws PalantirSqlException {
-                        if (ResultSets.next(rs)) {
-                            int ret = ResultSets.getInt(rs, 1);
-                            if (ResultSets.next(rs)) {
-                                SqlLoggers.LOGGER.error(
-                                        "In selectIntegerInternal more than one row was returned for query: {}",
-                                        sql); //$NON-NLS-1$
-                                assert false : "Found more than one row in SQL#selectInteger"; //$NON-NLS-1$
-                            }
-                            return ret;
-                        }
-
-                        // indicate failure
-                        throw PalantirSqlException.create("No rows returned."); //$NON-NLS-1$
-                    }}, sql, null);
+        return wrapPreparedStatement(c, sql, vs, ps -> runCancellably(ps, rs -> {
+            if (ResultSets.next(rs)) {
+                int ret = ResultSets.getInt(rs, 1);
+                if (ResultSets.next(rs)) {
+                    SqlLoggers.LOGGER.error(
+                            "In selectIntegerInternal more than one row was returned for query: {}",
+                            sql); //$NON-NLS-1$
+                    assert false : "Found more than one row in SQL#selectInteger"; //$NON-NLS-1$
+                }
+                return ret;
             }
-        }, "selectInteger"); //$NON-NLS-1$
+
+            // indicate failure
+            throw PalantirSqlException.create("No rows returned."); //$NON-NLS-1$
+        }, sql, null), "selectInteger"); //$NON-NLS-1$
     }
 
     protected Long selectLongInternal(final Connection c, final FinalSQLString sql, Object vs[], final Long defaultVal,
@@ -621,46 +589,38 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL selectLongInternal query: {}", sql.getQuery());
         }
-        return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Long>() {
-            @Override
-            public Long visit(PreparedStatement ps) throws PalantirSqlException {
-                return runCancellably(ps, new ResultSetVisitor<Long>() {
-                    @Override
-                    public Long visit(ResultSet rs) throws PalantirSqlException {
-                        if (ResultSets.next(rs)) {
-                            Long ret = null;
-                            if (ResultSets.getObject(rs, 1) != null) {
-                                ret = ResultSets.getLong(rs, 1);
-                            }
+        return wrapPreparedStatement(c, sql, vs, ps -> runCancellably(ps, rs -> {
+            if (ResultSets.next(rs)) {
+                Long ret = null;
+                if (ResultSets.getObject(rs, 1) != null) {
+                    ret = ResultSets.getLong(rs, 1);
+                }
 
-                            if (ResultSets.next(rs)) {
-                                SqlLoggers.LOGGER.error(
-                                        "In selectLongInternal more than one row was returned for query: {}",
-                                        sql); //$NON-NLS-1$
-                                assert false : "Found more than one row in SQL#selectLong"; //$NON-NLS-1$
-                            }
+                if (ResultSets.next(rs)) {
+                    SqlLoggers.LOGGER.error(
+                            "In selectLongInternal more than one row was returned for query: {}",
+                            sql); //$NON-NLS-1$
+                    assert false : "Found more than one row in SQL#selectLong"; //$NON-NLS-1$
+                }
 
-                            if (ret != null) {
-                                return ret;
-                            } else if (useBrokenBehaviorWithNullAndZero) {
-                                SqlLoggers.LOGGER.error(
-                                        "In selectLongInternal null was returned in the one row for this query: {}",
-                                        sql); //$NON-NLS-1$
-                                assert false : "If this case is hit, it is a programming error. "
-                                        + "You should use a default value."; //$NON-NLS-1$
-                                return 0L;
-                            }
-                        }
-
-                        if (useBrokenBehaviorWithNullAndZero && defaultVal == null) {
-                            throw PalantirSqlException.create("No rows returned."); //$NON-NLS-1$
-                        } else {
-                            return defaultVal;
-                        }
-                    }
-                }, sql, null);
+                if (ret != null) {
+                    return ret;
+                } else if (useBrokenBehaviorWithNullAndZero) {
+                    SqlLoggers.LOGGER.error(
+                            "In selectLongInternal null was returned in the one row for this query: {}",
+                            sql); //$NON-NLS-1$
+                    assert false : "If this case is hit, it is a programming error. "
+                            + "You should use a default value."; //$NON-NLS-1$
+                    return 0L;
+                }
             }
-        }, "selectLong"); //$NON-NLS-1$
+
+            if (useBrokenBehaviorWithNullAndZero && defaultVal == null) {
+                throw PalantirSqlException.create("No rows returned."); //$NON-NLS-1$
+            } else {
+                return defaultVal;
+            }
+        }, sql, null), "selectLong"); //$NON-NLS-1$
     }
 
     protected AgnosticLightResultSet selectLightResultSetSpecifyingDBType(final Connection c,
@@ -674,39 +634,32 @@ public abstract class BasicSQL {
         }
 
         final ResourceCreationLocation alrsCreationException = new ResourceCreationLocation("This is where the AgnosticLightResultSet wrapper was created"); //$NON-NLS-1$
-        PreparedStatementVisitor<AgnosticLightResultSet> preparedStatementVisitor = new PreparedStatementVisitor<AgnosticLightResultSet>() {
-            @Override
-            public AgnosticLightResultSet visit(final PreparedStatement ps)
-                    throws PalantirSqlException {
-                final ResourceCreationLocation creationException = new ResourceCreationLocation("This is where the ResultsSet was created", alrsCreationException); //$NON-NLS-1$
-                final ResultSetVisitor<AgnosticLightResultSet> resultSetVisitor = new ResultSetVisitor<AgnosticLightResultSet>() {
-                    @Override
-                    public AgnosticLightResultSet visit(ResultSet rs) throws PalantirSqlException {
-                        try {
-                            return new AgnosticLightResultSetImpl(
-                                    rs,
-                                    dbType,
-                                    rs.getMetaData(),
-                                    ps,
-                                    "selectList", //$NON-NLS-1$
-                                    sql,
-                                    getSqlTimer(),
-                                    creationException);
-                        } catch (Exception e) {
-                            closeSilently(rs);
-                            BasicSQLUtils.throwUncheckedIfSQLException(e);
-                            throw Throwables.throwUncheckedException(e);
-                        }
-                    }
-                };
-
+        PreparedStatementVisitor<AgnosticLightResultSet> preparedStatementVisitor = ps -> {
+            final ResourceCreationLocation creationException = new ResourceCreationLocation("This is where the ResultsSet was created", alrsCreationException); //$NON-NLS-1$
+            final ResultSetVisitor<AgnosticLightResultSet> resultSetVisitor = rs -> {
                 try {
-                    return runCancellably(ps, resultSetVisitor, sql, AutoClose.FALSE, fetchSize);
+                    return new AgnosticLightResultSetImpl(
+                            rs,
+                            dbType,
+                            rs.getMetaData(),
+                            ps,
+                            "selectList", //$NON-NLS-1$
+                            sql,
+                            getSqlTimer(),
+                            creationException);
                 } catch (Exception e) {
-                    closeSilently(ps);
+                    closeSilently(rs);
                     BasicSQLUtils.throwUncheckedIfSQLException(e);
                     throw Throwables.throwUncheckedException(e);
                 }
+            };
+
+            try {
+                return runCancellably(ps, resultSetVisitor, sql, AutoClose.FALSE, fetchSize);
+            } catch (Exception e) {
+                closeSilently(ps);
+                BasicSQLUtils.throwUncheckedIfSQLException(e);
+                throw Throwables.throwUncheckedException(e);
             }
         };
 
@@ -725,32 +678,24 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL result set query: {}", sql.getQuery());
         }
-        return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<AgnosticResultSet>() {
-            @Override
-            public AgnosticResultSet visit(PreparedStatement ps) throws PalantirSqlException {
-                return runCancellably(ps, new ResultSetVisitor<AgnosticResultSet>() {
-                    @Override
-                    public AgnosticResultSet visit(ResultSet rs) throws PalantirSqlException {
-                        List<List<Object>> rvs = new ArrayList<List<Object>>();
-                        ResultSetMetaData meta = ResultSets.getMetaData(rs);
-                        int columnCount = ResultSets.getColumnCount(meta);
-                        Map<String, Integer> columnMap = ResultSets.buildInMemoryColumnMap(meta, dbType);
-                        while (ResultSets.next(rs)) {
+        return wrapPreparedStatement(c, sql, vs, ps -> runCancellably(ps, (ResultSetVisitor<AgnosticResultSet>) rs -> {
+            List<List<Object>> rvs = new ArrayList<List<Object>>();
+            ResultSetMetaData meta = ResultSets.getMetaData(rs);
+            int columnCount = ResultSets.getColumnCount(meta);
+            Map<String, Integer> columnMap = ResultSets.buildInMemoryColumnMap(meta, dbType);
+            while (ResultSets.next(rs)) {
 
-                            List<Object> row = Lists.newArrayListWithCapacity(columnCount);
+                List<Object> row = Lists.newArrayListWithCapacity(columnCount);
 
-                            for (int i=0; i < columnCount; i++) {
-                                row.add(ResultSets.getObject(rs, i+1));
-                            }
+                for (int i=0; i < columnCount; i++) {
+                    row.add(ResultSets.getObject(rs, i+1));
+                }
 
-                            rvs.add(row);
-                        }
-
-                        return new AgnosticResultSetImpl(rvs, dbType, columnMap);
-                    }
-                }, sql, null);
+                rvs.add(row);
             }
-        }, "selectList"); //$NON-NLS-1$
+
+            return new AgnosticResultSetImpl(rvs, dbType, columnMap);
+        }, sql, null), "selectList"); //$NON-NLS-1$
     }
 
     PreparedStatement updateInternal(final Connection c, final FinalSQLString sql, final Object vs[],
@@ -758,17 +703,11 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL update interval query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (new Callable<PreparedStatement>() {
-            @Override
-                   public PreparedStatement call() throws PalantirSqlException {
-         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<PreparedStatement>() {
-                    @Override
-                    public PreparedStatement visit(PreparedStatement ps) throws PalantirSqlException {
-                        PreparedStatements.execute(ps);
-                        return ps;
-                    }
-                }, "update", autoClose); //$NON-NLS-1$
-            }
+        return BasicSQLUtils.runUninterruptably (() -> {
+     return wrapPreparedStatement(c, sql, vs, ps -> {
+         PreparedStatements.execute(ps);
+         return ps;
+     }, "update", autoClose); //$NON-NLS-1$
         }, sql.toString(), c);
     }
 
@@ -777,41 +716,38 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL update many query: {}", sql.getQuery());
         }
-        BasicSQLUtils.runUninterruptably (new Callable<Void>() {
-            @Override
-            public Void call() throws PalantirSqlException {
-                List<BlobHandler> cleanups = Lists.newArrayList();
-                PreparedStatement ps = null;
-                SqlTimer.Handle timerKey = getSqlTimer().start("updateMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
-                try {
-                    ps = c.prepareStatement(sql.getQuery());
-                    for (int i=0; i < vs.length; i++) {
-                        for (int j=0; j < vs[i].length; j++) {
-                            Object obj = vs[i][j];
-                            BlobHandler cleanup = setObject(c, ps, j+1, obj);
-                            if (cleanup != null) {
-                                cleanups.add(cleanup);
-                            }
+        BasicSQLUtils.runUninterruptably ((Callable<Void>) () -> {
+            List<BlobHandler> cleanups = Lists.newArrayList();
+            PreparedStatement ps = null;
+            SqlTimer.Handle timerKey = getSqlTimer().start("updateMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
+            try {
+                ps = c.prepareStatement(sql.getQuery());
+                for (int i=0; i < vs.length; i++) {
+                    for (int j=0; j < vs[i].length; j++) {
+                        Object obj = vs[i][j];
+                        BlobHandler cleanup = setObject(c, ps, j+1, obj);
+                        if (cleanup != null) {
+                            cleanups.add(cleanup);
                         }
-                        ps.addBatch();
                     }
-                    ps.executeBatch();
-                } catch (SQLException sqle) {
-                    SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", sqle);
-                    throw wrapSQLExceptionWithVerboseLogging(sqle, sql.getQuery(), vs);
-                } finally {
-                    closeSilently(ps);
-                    timerKey.stop();
-                    for (BlobHandler cleanup : cleanups) {
-                        try {
-                            cleanup.freeTemporary();
-                        } catch (Exception e) {
-                            SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
-                        }
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            } catch (SQLException sqle) {
+                SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", sqle);
+                throw wrapSQLExceptionWithVerboseLogging(sqle, sql.getQuery(), vs);
+            } finally {
+                closeSilently(ps);
+                timerKey.stop();
+                for (BlobHandler cleanup : cleanups) {
+                    try {
+                        cleanup.freeTemporary();
+                    } catch (Exception e) {
+                        SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
                     }
                 }
-                return null;
             }
+            return null;
         }, sql.toString(), c);
     }
 
@@ -820,17 +756,11 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL insert one count rows internal query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (new Callable<Integer>() {
-            @Override
-            public Integer call() throws PalantirSqlException {
-                return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Integer>() {
-                    @Override
-                    public Integer visit(PreparedStatement ps) throws PalantirSqlException {
-                        PreparedStatements.execute(ps);
-                        return PreparedStatements.getUpdateCount(ps);
-                    }
-                }, "insertOne"); //$NON-NLS-1$
-            }
+        return BasicSQLUtils.runUninterruptably (() -> {
+            return wrapPreparedStatement(c, sql, vs, ps -> {
+                PreparedStatements.execute(ps);
+                return PreparedStatements.getUpdateCount(ps);
+            }, "insertOne"); //$NON-NLS-1$
         }, sql.toString(), c);
     }
 
@@ -838,54 +768,51 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL insert many query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws PalantirSqlException {
-                int[] inserted = null;
-                PreparedStatement ps = null;
+        return BasicSQLUtils.runUninterruptably (() -> {
+            int[] inserted = null;
+            PreparedStatement ps = null;
 
-                SqlTimer.Handle timerKey = getSqlTimer().start("insertMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
-                List<BlobHandler> cleanups = Lists.newArrayList();
-                try {
-                    ps = c.prepareStatement(sql.getQuery());
-                    for (int i=0; i < vs.length; i++) {
-                        for (int j=0; j < vs[i].length; j++) {
-                            Object obj = vs[i][j];
-                            BlobHandler cleanup = setObject(c, ps, j+1, obj);
-                            if (cleanup != null) {
-                                cleanups.add(cleanup);
-                            }
+            SqlTimer.Handle timerKey = getSqlTimer().start("insertMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
+            List<BlobHandler> cleanups = Lists.newArrayList();
+            try {
+                ps = c.prepareStatement(sql.getQuery());
+                for (int i=0; i < vs.length; i++) {
+                    for (int j=0; j < vs[i].length; j++) {
+                        Object obj = vs[i][j];
+                        BlobHandler cleanup = setObject(c, ps, j+1, obj);
+                        if (cleanup != null) {
+                            cleanups.add(cleanup);
                         }
-                        ps.addBatch();
                     }
+                    ps.addBatch();
+                }
 
-                    inserted = ps.executeBatch();
-                } catch (SQLException sqle) {
-                    SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", sqle);
-                    throw wrapSQLExceptionWithVerboseLogging(sqle, sql.getQuery(), vs);
-                } finally {
-                    closeSilently(ps);
-                    timerKey.stop();
-                    for (BlobHandler cleanup : cleanups) {
-                        try {
-                            cleanup.freeTemporary();
-                        } catch (Exception e) {
-                            SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
-                        }
+                inserted = ps.executeBatch();
+            } catch (SQLException sqle) {
+                SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", sqle);
+                throw wrapSQLExceptionWithVerboseLogging(sqle, sql.getQuery(), vs);
+            } finally {
+                closeSilently(ps);
+                timerKey.stop();
+                for (BlobHandler cleanup : cleanups) {
+                    try {
+                        cleanup.freeTemporary();
+                    } catch (Exception e) {
+                        SqlLoggers.LOGGER.error("failed to free temp blob", e); //$NON-NLS-1$
                     }
                 }
-                if (inserted == null || inserted.length != vs.length) {
-                    assert false;
+            }
+            if (inserted == null || inserted.length != vs.length) {
+                assert false;
+                return false;
+            }
+            for (int numInsertedForRow : inserted) {
+                if (numInsertedForRow == Statement.EXECUTE_FAILED) {
+                    assert DBType.getTypeFromConnection(c) != DBType.ORACLE : "numInsertedForRow: " + numInsertedForRow; //$NON-NLS-1$
                     return false;
                 }
-                for (int numInsertedForRow : inserted) {
-                    if (numInsertedForRow == Statement.EXECUTE_FAILED) {
-                        assert DBType.getTypeFromConnection(c) != DBType.ORACLE : "numInsertedForRow: " + numInsertedForRow; //$NON-NLS-1$
-                        return false;
-                    }
-                }
-                return true;
             }
+            return true;
         }, sql.toString(), c);
     }
 

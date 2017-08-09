@@ -29,7 +29,6 @@ import org.jooq.Result;
 import org.jooq.Row3;
 import org.jooq.impl.DSL;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
@@ -66,12 +65,8 @@ public class MultiTimestampPutBatch implements PutBatch {
 
     @Override
     public Collection<Row3<byte[], byte[], Long>> getRowsForSelect() {
-        return Collections2.transform(data.entries(), new Function<Entry<Cell, Value>, Row3<byte[], byte[], Long>>() {
-            @Override
-            public Row3<byte[], byte[], Long> apply(Entry<Cell, Value> entry) {
-                return DSL.row(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue().getTimestamp());
-            }
-        });
+        return Collections2.transform(data.entries(),
+                entry -> DSL.row(entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue().getTimestamp()));
     }
 
     @Override

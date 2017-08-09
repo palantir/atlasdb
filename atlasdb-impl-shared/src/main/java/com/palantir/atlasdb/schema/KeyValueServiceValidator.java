@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -101,17 +100,14 @@ public class KeyValueServiceValidator {
         ExecutorService executor = Tracers.wrap(PTExecutors.newFixedThreadPool(threads));
         List<Future<Void>> futures = Lists.newArrayList();
         for (final TableReference table : tables) {
-            Future<Void> future = executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() {
-                    try {
-                        validateTable(table);
-                    } catch (RuntimeException e) {
-                        Throwables.rewrapAndThrowUncheckedException("Exception while validating "
-                                + table, e);
-                    }
-                    return null;
+            Future<Void> future = executor.submit(() -> {
+                try {
+                    validateTable(table);
+                } catch (RuntimeException e) {
+                    Throwables.rewrapAndThrowUncheckedException("Exception while validating "
+                            + table, e);
                 }
+                return null;
             });
             futures.add(future);
         }
@@ -123,12 +119,9 @@ public class KeyValueServiceValidator {
         final int limit = getBatchSize(table);
         // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
         validationFromTransactionManager.runTaskWithRetry(
-                new TransactionTask<Map<Cell, byte[]>, RuntimeException>() {
-                    @Override
-                    public Map<Cell, byte[]> execute(Transaction t1) {
-                        validateTable(table, limit, t1);
-                        return null;
-                    }
+                (TransactionTask<Map<Cell, byte[]>, RuntimeException>) t1 -> {
+                    validateTable(table, limit, t1);
+                    return null;
                 });
         KeyValueServiceMigrators.processMessage(messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
@@ -136,12 +129,9 @@ public class KeyValueServiceValidator {
     private void validateTable(final TableReference table, final int limit, final Transaction t1) {
         // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
         validationToTransactionManager.runTaskWithRetry(
-                new TransactionTask<Map<Cell, byte[]>, RuntimeException>() {
-                    @Override
-                    public Map<Cell, byte[]> execute(Transaction t2) {
-                        validateTable(table, limit, t1, t2);
-                        return null;
-                    }
+                (TransactionTask<Map<Cell, byte[]>, RuntimeException>) t2 -> {
+                    validateTable(table, limit, t1, t2);
+                    return null;
                 });
     }
 

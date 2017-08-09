@@ -122,14 +122,11 @@ public class PaxosProposerImpl implements PaxosProposer {
                 continue;
             }
 
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        learner.learn(seq, finalValue);
-                    } catch (Throwable e) {
-                        log.warn("failed to teach learner", e);
-                    }
+            executor.execute(() -> {
+                try {
+                    learner.learn(seq, finalValue);
+                } catch (Throwable e) {
+                    log.warn("failed to teach learner", e);
                 }
             });
         }

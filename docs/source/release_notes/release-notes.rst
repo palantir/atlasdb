@@ -50,6 +50,10 @@ develop
            However, these tables are expected to change as the migration process performs writes to the to-KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
 
+    *    - |devbreak|
+	       - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
 =======
 v0.52.0
 =======

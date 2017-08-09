@@ -214,12 +214,8 @@ public class Schema {
         for (Entry<String, String> e : indexesByTable.entries()) {
             TableMetadata tableMetadata = tableDefinitions.get(e.getKey()).toTableMetadata();
 
-            Collection<String> rowNames = Collections2.transform(tableMetadata.getRowMetadata().getRowParts(), new Function<NameComponentDescription, String>() {
-                @Override
-                public String apply(NameComponentDescription input) {
-                    return input.getComponentName();
-                }
-            });
+            Collection<String> rowNames = Collections2.transform(tableMetadata.getRowMetadata().getRowParts(),
+                    input -> input.getComponentName());
 
             IndexMetadata indexMetadata = indexDefinitions.get(e.getValue()).toIndexMetadata(e.getValue());
             for (IndexComponent c : Iterables.concat(indexMetadata.getRowComponents(), indexMetadata.getColumnComponents())) {
@@ -230,12 +226,8 @@ public class Schema {
 
             if(indexMetadata.getColumnNameToAccessData() != null) {
                 Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null, "Indexes accessing columns not supported for tables with dynamic columns.");
-                Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(), new Function<NamedColumnDescription, String>() {
-                    @Override
-                    public String apply(NamedColumnDescription input) {
-                        return input.getLongName();
-                    }
-                });
+                Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
+                        input -> input.getLongName());
                 Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()));
             }
 
@@ -279,12 +271,7 @@ public class Schema {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
             ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(Ordering.natural().onResultOf(
-                    new Function<IndexMetadata, String>() {
-                @Override
-                public String apply(IndexMetadata index) {
-                    return index.getIndexName();
-                }
-            }));
+                    (Function<IndexMetadata, String>) index -> index.getIndexName()));
             if (table.getGenericTableName() != null) {
                 Preconditions.checkState(!indexesByTable.containsKey(rawTableName), "Generic tables cannot have indices");
             } else {

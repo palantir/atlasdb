@@ -100,16 +100,15 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ForkJoinPool threadPool = new ForkJoinPool(threadCount);
 
-        threadPool.submit(() -> {
-            IntStream.range(0, threadCount).parallel().forEach(i -> {
-                try {
-                    barrier.await();
-                    slowTimeoutKvs.createTable(GOOD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                } catch (BrokenBarrierException | InterruptedException e) {
-                    // Do nothing
-                }
-            });
-        });
+        threadPool.submit(() ->
+                IntStream.range(0, threadCount).parallel().forEach(i -> {
+                    try {
+                        barrier.await();
+                        slowTimeoutKvs.createTable(GOOD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                    } catch (BrokenBarrierException | InterruptedException e) {
+                        // Do nothing
+                    }
+                }));
 
         threadPool.shutdown();
         Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),

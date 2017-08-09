@@ -134,13 +134,10 @@ public class TableMigrator {
 
     private Callable<Void> createMigrationTask(final RangeRequest range,
                                                final long rangeId) {
-        return new Callable<Void>() {
-            @Override
-            public Void call() {
-                migrateTableRange(range, rangeId);
-                taskComplete();
-                return null;
-            }
+        return () -> {
+            migrateTableRange(range, rangeId);
+            taskComplete();
+            return null;
         };
     }
 
