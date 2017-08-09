@@ -36,11 +36,8 @@ public interface OperationTimer {
     public interface TimingState {
         public void end();
 
-        public static final TimingState NULL = new TimingState() {
-            @Override
-            public void end() {
-                //empty
-            }
+        public static final TimingState NULL = () -> {
+            //empty
         };
     }
 }

@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -25,7 +24,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.ResultSetHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,47 +150,38 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
-        return runOperation(new Operation() {
-            @Override
-            public long run(Connection connection, Long oldLimit) throws SQLException {
-                if (oldLimit != null) {
-                    return oldLimit;
-                }
-
-                final long startVal = 10000;
-                createLimit(connection, startVal);
-                return startVal;
+        return runOperation((connection, oldLimit) -> {
+            if (oldLimit != null) {
+                return oldLimit;
             }
+
+            final long startVal = 10000;
+            createLimit(connection, startVal);
+            return startVal;
         });
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
-        runOperation(new Operation() {
-            @Override
-            public long run(Connection connection, Long oldLimit) throws SQLException {
-                if (oldLimit != null) {
-                    writeLimit(connection, limit);
-                } else {
-                    createLimit(connection, limit);
-                }
-
-                return limit;
+        runOperation((connection, oldLimit) -> {
+            if (oldLimit != null) {
+                writeLimit(connection, limit);
+            } else {
+                createLimit(connection, limit);
             }
+
+            return limit;
         });
     }
 
     private Long readLimit(Connection connection) throws SQLException {
         String sql = "SELECT last_allocated FROM " + prefixedTimestampTableName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
-        return run.query(connection, sql, new ResultSetHandler<Long>() {
-            @Override
-            public Long handle(ResultSet rs) throws SQLException {
-                if (rs.next()) {
-                    return rs.getLong("last_allocated");
-                } else {
-                    return null;
-                }
+        return run.query(connection, sql, rs -> {
+            if (rs.next()) {
+                return rs.getLong("last_allocated");
+            } else {
+                return null;
             }
         });
     }

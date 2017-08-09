@@ -88,14 +88,12 @@ public class PostgresDdlTable implements DbDdlTable {
             }
         }
 
-        ignoringError(() -> {
-            conns.get().insertOneUnregisteredQuery(
-                    String.format(
-                            "INSERT INTO %s (table_name, table_size) VALUES (?, ?)",
-                            config.metadataTable().getQualifiedName()),
-                    tableName.getQualifiedName(),
-                    TableValueStyle.RAW.getId());
-        }, ExceptionCheck::isUniqueConstraintViolation);
+        ignoringError(() -> conns.get().insertOneUnregisteredQuery(
+                String.format(
+                        "INSERT INTO %s (table_name, table_size) VALUES (?, ?)",
+                        config.metadataTable().getQualifiedName()),
+                tableName.getQualifiedName(),
+                TableValueStyle.RAW.getId()), ExceptionCheck::isUniqueConstraintViolation);
     }
 
     @Override

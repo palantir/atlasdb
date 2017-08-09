@@ -29,17 +29,10 @@ public class MathUtils {
     // COMBINATORICS
 
     public static <T> Iterable<Object[]> mChooseN(final List<T> list, final int n) {
-        return new Iterable<Object[]>() {
-            // =========================
-            // <code>Iterable</code> implementation
-
-            @Override
-            public Iterator<Object[]> iterator() {
-                return mChooseNIterator( list, n );
-            }
-
-            // =========================
-        };
+        // =========================
+        // <code>Iterable</code> implementation
+        // =========================
+        return () -> mChooseNIterator( list, n );
     }
 
     /**
@@ -80,17 +73,10 @@ public class MathUtils {
 
 
     public static Iterable<int[]> mChooseNIndices(final int m, final int n) {
-        return new Iterable<int[]>() {
-            // =========================
-            // <code>Iterable</code> implementation
-
-            @Override
-            public Iterator<int[]> iterator() {
-                return mChooseNIndicesIterator( m, n );
-            }
-
-            // =========================
-        };
+        // =========================
+        // <code>Iterable</code> implementation
+        // =========================
+        return () -> mChooseNIndicesIterator( m, n );
     }
 
     public static Iterator<int[]> mChooseNIndicesIterator(final int m, final int n) {

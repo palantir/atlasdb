@@ -134,14 +134,11 @@ public class ProfileStoreTest {
             store.deleteImage(userId);
             return userId;
         });
-        txnMgr.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction txn) {
-                ProfileTableFactory tables = ProfileTableFactory.of();
-                UserPhotosStreamValueTable streams = tables.getUserPhotosStreamValueTable(txn);
-                Assert.assertTrue(streams.getAllRowsUnordered().isEmpty());
-                return null;
-            }
+        txnMgr.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
+            ProfileTableFactory tables = ProfileTableFactory.of();
+            UserPhotosStreamValueTable streams = tables.getUserPhotosStreamValueTable(txn);
+            Assert.assertTrue(streams.getAllRowsUnordered().isEmpty());
+            return null;
         });
     }
 

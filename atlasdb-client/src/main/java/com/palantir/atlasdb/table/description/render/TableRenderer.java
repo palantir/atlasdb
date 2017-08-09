@@ -38,7 +38,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -1248,12 +1247,7 @@ public class TableRenderer {
     }
 
     private static Collection<IndexMetadata> getCellReferencingIndices(SortedSet<IndexMetadata> indices) {
-        return Collections2.filter(indices, new Predicate<IndexMetadata>() {
-            @Override
-            public boolean apply(IndexMetadata index) {
-                return index.getIndexType() == IndexType.CELL_REFERENCING;
-            }
-        });
+        return Collections2.filter(indices, index -> index.getIndexType() == IndexType.CELL_REFERENCING);
     }
 
     private static List<Class<?>> getImports(OptionalType optionalType) {

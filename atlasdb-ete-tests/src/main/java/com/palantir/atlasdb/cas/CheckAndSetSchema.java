@@ -37,6 +37,7 @@ public class CheckAndSetSchema implements AtlasSchema {
                 OptionalType.JAVA8);
 
         schema.addTableDefinition(CAS_TABLE, new TableDefinition() {{
+                allSafeForLoggingByDefault();
                 rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
                 columns();

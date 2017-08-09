@@ -90,8 +90,10 @@ public final class ProfilingKeyValueService implements KeyValueService {
             int numCells, long sizeInBytes) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} for {} cells of overall size {} bytes took {} ms.",
-                        LoggingArgs.method(method), LoggingArgs.tableRef(tableRef),
-                        LoggingArgs.cellCount(numCells), LoggingArgs.sizeInBytes(sizeInBytes),
+                        LoggingArgs.method(method),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.cellCount(numCells),
+                        LoggingArgs.sizeInBytes(sizeInBytes),
                         LoggingArgs.duration(stopwatch));
     }
 
@@ -120,7 +122,8 @@ public final class ProfilingKeyValueService implements KeyValueService {
             RangeRequest range) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
-                        LoggingArgs.method(method), LoggingArgs.range(tableRef, range),
+                        LoggingArgs.method(method),
+                        LoggingArgs.range(tableRef, range),
                         LoggingArgs.duration(stopwatch));
     }
 
@@ -459,13 +462,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
                 batchColumnRangeSelection, timestamp),
-                (logger, stopwatch) -> {
-                    logger.log("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                            LoggingArgs.tableRef(tableRef),
-                            LoggingArgs.rowCount(Iterables.size(rows)),
-                            LoggingArgs.batchColumnRangeSelection(tableRef, batchColumnRangeSelection),
-                            LoggingArgs.duration(stopwatch));
-                });
+                (logger, stopwatch) ->
+                        logger.log("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
+                                LoggingArgs.tableRef(tableRef),
+                                LoggingArgs.rowCount(Iterables.size(rows)),
+                                LoggingArgs.batchColumnRangeSelection(tableRef, batchColumnRangeSelection),
+                                LoggingArgs.duration(stopwatch)));
     }
 
     @Override
@@ -476,16 +478,14 @@ public final class ProfilingKeyValueService implements KeyValueService {
             long timestamp) {
         return maybeLog(() ->
                         delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
-                (logger, stopwatch) -> {
-                    logger.log(
-                            "Call to KVS.getRowsColumnRange - CellBatch on table {} for {} rows with range {} "
-                                    + "and batch hint {} took {} ms.",
-                            LoggingArgs.tableRef(tableRef),
-                            LoggingArgs.rowCount(Iterables.size(rows)),
-                            LoggingArgs.columnRangeSelection(tableRef, columnRangeSelection),
-                            LoggingArgs.batchHint(cellBatchHint),
-                            LoggingArgs.duration(stopwatch));
-                });
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.getRowsColumnRange - CellBatch on table {} for {} rows with range {} "
+                                + "and batch hint {} took {} ms.",
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.rowCount(Iterables.size(rows)),
+                        LoggingArgs.columnRangeSelection(tableRef, columnRangeSelection),
+                        LoggingArgs.batchHint(cellBatchHint),
+                        LoggingArgs.duration(stopwatch)));
     }
 
     private static <T> long byteSize(Map<Cell, T> values) {

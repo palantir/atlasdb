@@ -28,7 +28,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -124,12 +123,7 @@ public class KeyValueServices {
         BlockingWorkerPool pool = new BlockingWorkerPool(executor, maxConcurrentRequests);
         try {
             for (final RangeRequest request : rangeRequests) {
-                pool.submitTask(new Runnable() {
-                    @Override
-                    public void run() {
-                        getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret);
-                    }
-                });
+                pool.submitTask(() -> getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret));
             }
             pool.waitForSubmittedTasks();
             return ret;
@@ -151,12 +145,8 @@ public class KeyValueServices {
     }
 
     public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
-        return Collections2.transform(cells, new Function<Map.Entry<Cell, byte[]>, Map.Entry<Cell, Value>>() {
-            @Override
-            public Map.Entry<Cell, Value> apply(Map.Entry<Cell, byte[]> entry) {
-                return Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp));
-            }
-        });
+        return Collections2.transform(cells,
+                entry -> Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp)));
     }
 
     // TODO: kill this when we can properly implement this on all KVSes
