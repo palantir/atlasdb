@@ -33,7 +33,6 @@ import org.apache.cassandra.utils.Hex;
 import org.apache.cassandra.utils.Pair;
 import org.apache.commons.lang3.ArrayUtils;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
@@ -138,14 +137,11 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
      */
     @Override
     public Map<Token, Float> describeOwnership(final List<Token> sortedTokens) {
-        return Maps.asMap(ImmutableSet.copyOf(sortedTokens), new Function<Token, Float>() {
-            @Override
-            public Float apply(Token token) {
-                if (sortedTokens.size() > 0) {
-                    return 1f / sortedTokens.size();
-                } else {
-                    return 0f;
-                }
+        return Maps.asMap(ImmutableSet.copyOf(sortedTokens), token -> {
+            if (sortedTokens.size() > 0) {
+                return 1f / sortedTokens.size();
+            } else {
+                return 0f;
             }
         });
     }

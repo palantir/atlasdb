@@ -286,11 +286,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
         Map<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> mapByDelegate = Maps.newHashMap();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             KeyValueService delegate = getDelegate(e.getKey());
-            Map<TableReference, Map<Cell, byte[]>> map = mapByDelegate.get(delegate);
-            if (map == null) {
-                map = Maps.newHashMap();
-                mapByDelegate.put(delegate, map);
-            }
+            Map<TableReference, Map<Cell, byte[]>> map = mapByDelegate.computeIfAbsent(delegate,
+                    table -> Maps.newHashMap());
             map.put(e.getKey(), e.getValue());
         }
         for (Entry<KeyValueService, Map<TableReference, Map<Cell, byte[]>>> e : mapByDelegate.entrySet()) {

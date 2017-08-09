@@ -32,12 +32,9 @@ public class AbortingVisitors {
      * visitor than consumes Objects, it could also consume any other more specific type.
      */
     public static <T, K extends Exception> AbortingVisitor<T, K> wrap(final VisitorCheckedException<? super T, ? extends K> v) {
-        return new AbortingVisitor<T, K>() {
-            @Override
-            public boolean visit(T item) throws K {
-                v.visit(item);
-                return true;
-            }
+        return item -> {
+            v.visit(item);
+            return true;
         };
     }
 
@@ -49,25 +46,17 @@ public class AbortingVisitors {
      * @param <T> to type
      */
     public static <F, T extends F, K extends Exception> AbortingVisitor<List<T>, K> wrapBatching(final AbortingVisitor<? super List<F>, ? extends K> v) {
-        return new AbortingVisitor<List<T>, K>() {
-            @Override
-            public boolean visit(List<T> item) throws K {
-                return v.visit(Collections.<F>unmodifiableList(item));
-            }
-        };
+        return item -> v.visit(Collections.<F>unmodifiableList(item));
     }
 
     public static <T, K extends Exception> AbortingVisitor<Iterable<T>, K> batching(final AbortingVisitor<? super T, ? extends K> v) {
-        return new AbortingVisitor<Iterable<T>, K>() {
-            @Override
-            public boolean visit(Iterable<T> item) throws K {
-                for (T t : item) {
-                    if (!v.visit(t)) {
-                        return false;
-                    }
+        return item -> {
+            for (T t : item) {
+                if (!v.visit(t)) {
+                    return false;
                 }
-                return true;
             }
+            return true;
         };
     }
 
@@ -77,35 +66,22 @@ public class AbortingVisitors {
     @Deprecated
     public static <T, K extends Exception> AbortingVisitor<Iterable<T>, K> filterBatch(
             final AbortingVisitor<? super List<T>, K> v, final Predicate<? super T> p)  {
-        return new AbortingVisitor<Iterable<T>, K>() {
-            @Override
-            public boolean visit(Iterable<T> item) throws K {
-                List<T> list = ImmutableList.copyOf(Iterables.filter(item, p));
-                if (list.isEmpty()) {
-                    return true;
-                } else {
-                    return v.visit(list);
-                }
+        return item -> {
+            List<T> list = ImmutableList.copyOf(Iterables.filter(item, p));
+            if (list.isEmpty()) {
+                return true;
+            } else {
+                return v.visit(list);
             }
         };
     }
 
     public static <T> AbortingVisitor<T, RuntimeException> alwaysFalse() {
-        return new AbortingVisitor<T, RuntimeException>() {
-            @Override
-            public boolean visit(T item) throws RuntimeException {
-                return false;
-            }
-        };
+        return item -> false;
     }
 
     public static <T> AbortingVisitor<T, RuntimeException> alwaysTrue() {
-        return new AbortingVisitor<T, RuntimeException>() {
-            @Override
-            public boolean visit(T item) throws RuntimeException {
-                return true;
-            }
-        };
+        return item -> true;
     }
 
 }

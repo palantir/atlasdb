@@ -187,31 +187,28 @@ public final class Scrubber {
         if (scrubTaskLaunched) {
             throw new IllegalStateException("Background scrub task has already been launched");
         }
-        Runnable scrubTask = new Runnable() {
-            @Override
-            public void run() {
-                int numberOfAttempts = 0;
-                while (numberOfAttempts < MAX_RETRY_ATTEMPTS) {
-                    try {
-                        runBackgroundScrubTask(txManager);
+        Runnable scrubTask = () -> {
+            int numberOfAttempts = 0;
+            while (numberOfAttempts < MAX_RETRY_ATTEMPTS) {
+                try {
+                    runBackgroundScrubTask(txManager);
 
-                        long sleepDuration = backgroundScrubFrequencyMillisSupplier.get();
-                        log.debug("Sleeping {} millis until next execution of scrub task", sleepDuration);
-                        Thread.sleep(sleepDuration);
+                    long sleepDuration = backgroundScrubFrequencyMillisSupplier.get();
+                    log.debug("Sleeping {} millis until next execution of scrub task", sleepDuration);
+                    Thread.sleep(sleepDuration);
+                } catch (InterruptedException e) {
+                    break;
+                } catch (Throwable t) { // (authorized)
+                    if (Thread.interrupted()) {
+                        break;
+                    }
+                    log.error("Encountered the following error during background scrub task,"
+                            + " but continuing anyway", t);
+                    numberOfAttempts++;
+                    try {
+                        Thread.sleep(RETRY_SLEEP_INTERVAL_IN_MILLIS);
                     } catch (InterruptedException e) {
                         break;
-                    } catch (Throwable t) { // (authorized)
-                        if (Thread.interrupted()) {
-                            break;
-                        }
-                        log.error("Encountered the following error during background scrub task,"
-                                + " but continuing anyway", t);
-                        numberOfAttempts++;
-                        try {
-                            Thread.sleep(RETRY_SLEEP_INTERVAL_IN_MILLIS);
-                        } catch (InterruptedException e) {
-                            break;
-                        }
                     }
                 }
             }

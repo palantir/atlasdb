@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
@@ -75,12 +74,7 @@ public class TransactionRangeMigrator implements RangeMigrator {
     }
 
     private byte[] copyOneTransaction(final RangeRequest range, final long rangeId) {
-        return txManager.runTaskWithRetry(new TransactionTask<byte[], RuntimeException>() {
-            @Override
-            public byte[] execute(final Transaction writeT) {
-                return copyOneTransactionFromReadTxManager(range, rangeId, writeT);
-            }
-        });
+        return txManager.runTaskWithRetry(writeT -> copyOneTransactionFromReadTxManager(range, rangeId, writeT));
     }
 
     private byte[] copyOneTransactionFromReadTxManager(final RangeRequest range,
@@ -91,12 +85,7 @@ public class TransactionRangeMigrator implements RangeMigrator {
             return copyOneTransactionInternal(range, rangeId, writeT, writeT);
         } else {
             // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-            return readTxManager.runTaskWithRetry(new TransactionTask<byte[], RuntimeException>() {
-                @Override
-                public byte[] execute(Transaction readT) {
-                    return copyOneTransactionInternal(range, rangeId, readT, writeT);
-                }
-            });
+            return readTxManager.runTaskWithRetry(readT -> copyOneTransactionInternal(range, rangeId, readT, writeT));
         }
     }
 
@@ -139,11 +128,11 @@ public class TransactionRangeMigrator implements RangeMigrator {
         final MutableLong bytesPut = new MutableLong(0L);
         bv.batchAccept(readBatchSize, AbortingVisitors.batching(
                 new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-            @Override
-            public boolean visit(RowResult<byte[]> rr) {
-                return internalCopyRow(rr, maxBytes, t, bytesPut, lastRowName);
-            }
-        }));
+                    @Override
+                    public boolean visit(RowResult<byte[]> rr) {
+                        return internalCopyRow(rr, maxBytes, t, bytesPut, lastRowName);
+                    }
+                }));
         return lastRowName.get();
     }
 

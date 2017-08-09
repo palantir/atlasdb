@@ -77,12 +77,7 @@ public class ColumnValues {
     }
 
     public static <T> Function<ColumnValue<T>, T> getValuesFun() {
-        return new Function<ColumnValue<T>, T>() {
-            @Override
-            public T apply(ColumnValue<T> input) {
-                return input.getValue();
-            }
-        };
+        return input -> input.getValue();
     }
 
     @SuppressWarnings("unchecked")

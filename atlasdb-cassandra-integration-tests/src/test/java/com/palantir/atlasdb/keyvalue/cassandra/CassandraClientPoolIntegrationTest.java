@@ -151,17 +151,14 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     private void changeReplicationFactor(int replicationFactor) throws TException {
-        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws TException {
-                KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.keyspace());
-                KsDef modifiedKsDef = originalKsDef.deepCopy();
-                modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
-                modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));
-                modifiedKsDef.setCf_defs(ImmutableList.of());
-                client.system_update_keyspace(modifiedKsDef);
-                return null;
-            }
+        clientPool.run((FunctionCheckedException<Cassandra.Client, Void, TException>) client -> {
+            KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.keyspace());
+            KsDef modifiedKsDef = originalKsDef.deepCopy();
+            modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
+            modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));
+            modifiedKsDef.setCf_defs(ImmutableList.of());
+            client.system_update_keyspace(modifiedKsDef);
+            return null;
         });
     }
 

@@ -271,18 +271,15 @@ public class BasicSQLUtils {
                                            final @Nullable Connection connection) throws PalantirSqlException {
         Future<T> future = BasicSQL.executeService.submit(ThreadNamingCallable.wrapWithThreadName(
                 ThreadConfinedProxy.threadLendingCallable(connection,
-                        new Callable<T>() {
-                            @Override
-                            public T call() throws Exception {
+                        () -> {
 
-                                if(Thread.currentThread().isInterrupted()) {
-                                    cancelLogger.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
-                                    //we want to clear the interrupted status here -
-                                    //we cancel via the prepared statement, not interrupts
-                                    Thread.interrupted();
-                                }
-                                return callable.call();
+                            if(Thread.currentThread().isInterrupted()) {
+                                cancelLogger.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
+                                //we want to clear the interrupted status here -
+                                //we cancel via the prepared statement, not interrupts
+                                Thread.interrupted();
                             }
+                            return callable.call();
                         }),
                 threadString, ThreadNamingCallable.Type.APPEND));
 

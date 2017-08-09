@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -1207,8 +1208,13 @@ public abstract class AbstractKeyValueServiceTest {
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, value00);
         keyValueService.checkAndSet(request);
 
-        CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, value01, value00);
-        keyValueService.checkAndSet(secondRequest);
+        try {
+            CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, value01, value00);
+            keyValueService.checkAndSet(secondRequest);
+        } catch (CheckAndSetException ex) {
+            assertThat(ex.getActualValues(), contains(value00));
+            throw ex;
+        }
     }
 
     @Test(expected = CheckAndSetException.class)

@@ -62,6 +62,59 @@ develop
            This will affect any products which have subclassed ``NameComponentDescription``, although we are not aware of any.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2238>`__)
 
+    *    - |devbreak|
+         - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
+=======
+v0.52.0
+=======
+
+1 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a critical bug in Oracle that limits the number of writes with values greater than 2000 bytes to ``Integer.MAX_VALUE``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2224>`__)
+
+    *    - |fixed|
+         - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
+
+    *    - |devbreak|
+         - Removed unused classes on AtlasDB.
+
+              - ``FutureClosableIteratorTask``
+              - ``ClosableMergedIterator``
+              - ``ThrowingKeyValueService``
+
+           If any issues arise from this change, please contact the development team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.51.0
+=======
+
+28 July 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - For DbKvs, the ``actualValues`` field is now populated when a ``CheckAndSetException`` is thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2196>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -18,7 +18,6 @@ package com.palantir.paxos;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
@@ -61,12 +60,9 @@ public class PaxosConsensusSlowTest {
 
         CompletionService<Void> leadershipCompletionService = new ExecutorCompletionService<Void>(
                 executor);
-        leadershipCompletionService.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                state.gainLeadership(NUM_POTENTIAL_LEADERS - 1);
-                return null;
-            }
+        leadershipCompletionService.submit(() -> {
+            state.gainLeadership(NUM_POTENTIAL_LEADERS - 1);
+            return null;
         });
 
         for (int i = 0; i < NUM_POTENTIAL_LEADERS - 1; i++) {

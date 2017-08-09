@@ -73,11 +73,8 @@ public class SQLString extends BasicSQLString {
     }
 
     //by default, no callback. This is set in OverridableSQLString
-    protected static OnUseCallback callbackOnUse = new OnUseCallback() {
-        @Override
-        public void noteUse(SQLString used) {
-            //do nothing
-        }
+    protected static OnUseCallback callbackOnUse = used -> {
+        //do nothing
     };
 
     protected interface CallableCheckedException<T, E extends Exception> {
