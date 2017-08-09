@@ -20,16 +20,15 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 
 @Immutable
-public class NameComponentDescription {
+public final class NameComponentDescription {
     final String componentName;
     final ValueType type;
     final ValueByteOrder order;
@@ -37,54 +36,70 @@ public class NameComponentDescription {
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
     final LogSafety logSafety;
 
-    public NameComponentDescription() {
-        this("name", ValueType.BLOB);
+    /**
+     * Builder for NameComponentDescription. componentName and valueType are required.
+     * uniformRowNamePartitioner will be set to a default value unless explicitly set to null.
+     */
+    public static final class Builder {
+        private String componentName;
+        private ValueType type;
+        private ValueByteOrder order = ValueByteOrder.ASCENDING;
+        private UniformRowNamePartitioner uniformPartitioner;
+        private ExplicitRowNamePartitioner explicitPartitioner;
+        private LogSafety logSafety = LogSafety.UNSAFE;
+
+        private boolean uniformPartitionerExplicitlyNull = false;
+
+        public Builder componentName(String name) {
+            this.componentName = name;
+            return this;
+        }
+
+        public Builder type(ValueType valueType) {
+            this.type = valueType;
+            return this;
+        }
+
+        public Builder byteOrder(ValueByteOrder byteOrder) {
+            this.order = byteOrder;
+            return this;
+        }
+
+        public Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
+            this.uniformPartitioner = partitioner;
+            uniformPartitionerExplicitlyNull = (partitioner == null);
+            return this;
+        }
+
+        public Builder explicitRowNamePartitioner(ExplicitRowNamePartitioner partitioner) {
+            this.explicitPartitioner = partitioner;
+            return this;
+        }
+
+        public Builder logSafety(LogSafety safety) {
+            this.logSafety = safety;
+            return this;
+        }
+
+        public NameComponentDescription build() {
+            Validate.notNull(componentName, "componentName must be set when building a NameComponentDescription");
+            Validate.notNull(type, "type must be set when building a NameComponentDescription");
+
+            if (uniformPartitioner == null && !uniformPartitionerExplicitlyNull) {
+                uniformPartitioner = new UniformRowNamePartitioner(type);
+            }
+
+            return new NameComponentDescription(componentName, type, order,
+                    uniformPartitioner, explicitPartitioner, logSafety);
+        }
     }
 
-    public NameComponentDescription(String componentName, ValueType type) {
-        this(componentName, type, ValueByteOrder.ASCENDING, new UniformRowNamePartitioner(type), null);
-    }
-
-    @Deprecated
-    public NameComponentDescription(String componentName, ValueType type, boolean reverseOrder) {
-        this.componentName = componentName;
-        this.type = type;
-        this.order = reverseOrder ? ValueByteOrder.DESCENDING : ValueByteOrder.ASCENDING;
-        this.uniformPartitioner = new UniformRowNamePartitioner(type);
-        this.explicitPartitioner = null;
-        this.logSafety = LogSafety.UNSAFE;
-    }
-
-    public NameComponentDescription(String componentName,
-            ValueType type,
-            ValueByteOrder order) {
-        this(componentName, type, order, LogSafety.UNSAFE);
-    }
-
-    public NameComponentDescription(String componentName,
-            ValueType type,
-            ValueByteOrder order,
-            LogSafety logSafety) {
-        this(componentName, type, order, new UniformRowNamePartitioner(type), null, logSafety);
-    }
-
-    public NameComponentDescription(String componentName,
-                                    ValueType type,
-                                    ValueByteOrder order,
-                                    UniformRowNamePartitioner uniform,
-                                    ExplicitRowNamePartitioner explicit) {
-        this(componentName, type, order, uniform, explicit, LogSafety.UNSAFE);
-    }
-
-    public NameComponentDescription(String componentName,
+    private NameComponentDescription(String componentName,
                                     ValueType type,
                                     ValueByteOrder order,
                                     UniformRowNamePartitioner uniform,
                                     ExplicitRowNamePartitioner explicit,
                                     LogSafety logSafety) {
-        Validate.notNull(componentName);
-        Validate.notNull(type);
-        Validate.notNull(order);
         this.componentName = componentName;
         this.type = type;
         this.order = order;
@@ -114,7 +129,8 @@ public class NameComponentDescription {
     }
 
     public TableMetadataPersistence.NameComponentDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.NameComponentDescription.newBuilder();
+        TableMetadataPersistence.NameComponentDescription.Builder builder
+                = TableMetadataPersistence.NameComponentDescription.newBuilder();
         builder.setComponentName(componentName);
         builder.setType(type.persistToProto());
         builder.setOrder(getOrder());

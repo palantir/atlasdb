@@ -57,6 +57,12 @@ develop
          - The ``ProfilingKeyValueService`` and ``SpecificTableSweeper`` now log table names as safe arguments, if and only if these have been specified as safe in one's schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2172>`__)
 
+    *    - |devbreak|
+         - ``NameComponentDescription`` is now a ``final`` class and has a builder instead of constructors.
+           This will affect any products which have subclassed ``NameComponentDescription``, although we are not aware of any.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2238>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

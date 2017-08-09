@@ -195,11 +195,12 @@ public class TableDefinition extends AbstractDefinition {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME,
                 "Can only declare a row component inside the rowName scope.");
         rowNameComponents.add(
-                new NameComponentDescription(
-                        componentName,
-                        valueType,
-                        valueByteOrder,
-                        rowNameLoggable));
+                new NameComponentDescription.Builder()
+                        .componentName(componentName)
+                        .type(valueType)
+                        .byteOrder(valueByteOrder)
+                        .logSafety(rowNameLoggable)
+                        .build());
     }
 
     /**
@@ -247,7 +248,11 @@ public class TableDefinition extends AbstractDefinition {
     public void columnComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN,
                 "Can only define a dynamic column component inside the dynamicColumns scope.");
-        dynamicColumnNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
+        dynamicColumnNameComponents.add(new NameComponentDescription.Builder()
+                .componentName(componentName)
+                .type(valueType)
+                .byteOrder(valueByteOrder)
+                .build());
     }
 
     public void value(Class<?> protoOrPersistable) {
