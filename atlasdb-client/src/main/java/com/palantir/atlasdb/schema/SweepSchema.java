@@ -30,12 +30,7 @@ public enum SweepSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("sweep");
-    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(new Supplier<Schema>() {
-        @Override
-        public Schema get() {
-            return generateSchema();
-        }
-    });
+    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(() -> generateSchema());
 
     private static Schema generateSchema() {
         Schema schema = new Schema("Sweep",

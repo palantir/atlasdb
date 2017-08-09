@@ -20,7 +20,6 @@ import java.util.Map;
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -59,11 +58,6 @@ public class LockClientIndices {
     }
 
     Iterable<LockClient> fromIndices(Iterable<Integer> indices) {
-        return Iterables.transform(indices, new Function<Integer, LockClient>() {
-            @Override
-            public LockClient apply(Integer index) {
-                return fromIndex(index);
-            }
-        });
+        return Iterables.transform(indices, index -> fromIndex(index));
     }
 }

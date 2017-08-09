@@ -29,7 +29,6 @@ import org.jooq.Result;
 import org.jooq.Row3;
 import org.jooq.impl.DSL;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -58,12 +57,8 @@ public class SingleTimestampPutBatch implements PutBatch {
 
     @Override
     public Collection<Row3<byte[], byte[], Long>> getRowsForSelect() {
-        return Collections2.transform(data.keySet(), new Function<Cell, Row3<byte[], byte[], Long>>() {
-            @Override
-            public Row3<byte[], byte[], Long> apply(Cell cell) {
-                return DSL.row(cell.getRowName(), cell.getColumnName(), timestamp);
-            }
-        });
+        return Collections2.transform(data.keySet(),
+                cell -> DSL.row(cell.getRowName(), cell.getColumnName(), timestamp));
     }
 
     @Override

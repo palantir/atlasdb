@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -870,16 +869,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t, "row2", "col2", "v8");
 
         final Map<Cell, byte[]> vals = Maps.newHashMap();
-        visitable.batchAccept(100, AbortingVisitors.batching(new RowVisitor() {
-            @Override
-            public boolean visit(RowResult<byte[]> item) throws RuntimeException {
-                MapEntries.putAll(vals, item.getCells());
-                if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                    assertEquals(3, IterableView.of(item.getCells()).size());
-                    assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
-                }
-                return true;
+        visitable.batchAccept(100, AbortingVisitors.batching((RowVisitor) item -> {
+            MapEntries.putAll(vals, item.getCells());
+            if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
+                assertEquals(3, IterableView.of(item.getCells()).size());
+                assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
             }
+            return true;
         }));
         assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
         assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
@@ -912,37 +908,31 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         final CountDownLatch latch2 = new CountDownLatch(1);
         final BatchingVisitable<RowResult<byte[]>> visitable = t.getRange(TEST_TABLE, RangeRequest.builder().build());
 
-        FutureTask<Void> futureTask = new FutureTask<Void>(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                final Map<Cell, byte[]> vals = Maps.newHashMap();
-                try {
-                    visitable.batchAccept(1, AbortingVisitors.batching(new RowVisitor() {
-                        @Override
-                        public boolean visit(RowResult<byte[]> item) throws RuntimeException {
-                            try {
-                                latch.countDown();
-                                latch2.await();
-                            } catch (InterruptedException e) {
-                                throw Throwables.throwUncheckedException(e);
-                            }
-                            MapEntries.putAll(vals, item.getCells());
-                            if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                                assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
-                                assertEquals(3, IterableView.of(item.getCells()).size());
-                            }
-                            return true;
-                        }
-                    }));
-                    assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
-                    assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
-                    assertFalse(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes())));
-                    return null;
-                } catch (Throwable t) {
-                    latch.countDown();
-                    Throwables.throwIfInstance(t, Exception.class);
-                    throw Throwables.throwUncheckedException(t);
-                }
+        FutureTask<Void> futureTask = new FutureTask<Void>(() -> {
+            final Map<Cell, byte[]> vals = Maps.newHashMap();
+            try {
+                visitable.batchAccept(1, AbortingVisitors.batching((RowVisitor) item -> {
+                    try {
+                        latch.countDown();
+                        latch2.await();
+                    } catch (InterruptedException e) {
+                        throw Throwables.throwUncheckedException(e);
+                    }
+                    MapEntries.putAll(vals, item.getCells());
+                    if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
+                        assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
+                        assertEquals(3, IterableView.of(item.getCells()).size());
+                    }
+                    return true;
+                }));
+                assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
+                assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
+                assertFalse(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes())));
+                return null;
+            } catch (Throwable t1) {
+                latch.countDown();
+                Throwables.throwIfInstance(t1, Exception.class);
+                throw Throwables.throwUncheckedException(t1);
             }
         });
         Thread thread = new Thread(futureTask);
@@ -963,39 +953,30 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testReadMyWritesManager() {
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                put(t, "row1", "col2", "v2");
-                put(t, "row2", "col1", "v3");
-                assertEquals("v1", get(t, "row1", "col1"));
-                assertEquals("v2", get(t, "row1", "col2"));
-                assertEquals("v3", get(t, "row2", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            put(t, "row1", "col2", "v2");
+            put(t, "row2", "col1", "v3");
+            assertEquals("v1", get(t, "row1", "col1"));
+            assertEquals("v2", get(t, "row1", "col2"));
+            assertEquals("v3", get(t, "row2", "col1"));
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                assertEquals("v1", get(t, "row1", "col1"));
-                assertEquals("v2", get(t, "row1", "col2"));
-                assertEquals("v3", get(t, "row2", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            assertEquals("v1", get(t, "row1", "col1"));
+            assertEquals("v2", get(t, "row1", "col2"));
+            assertEquals("v3", get(t, "row2", "col1"));
+            return null;
         });
     }
 
     @Test
     public void testWriteFailsOnReadOnly() {
         try {
-            getManager().runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
-                @Override
-                public Void execute(Transaction t) throws RuntimeException {
-                    put(t, "row1", "col1", "v1");
-                    return null;
-                }
+            getManager().runTaskReadOnly((TransactionTask<Void, RuntimeException>) t -> {
+                put(t, "row1", "col1", "v1");
+                return null;
             });
             fail();
         } catch (RuntimeException e) {
@@ -1005,63 +986,42 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testDelete() {
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                assertEquals("v1", get(t, "row1", "col1"));
-                delete(t, "row1", "col1");
-                assertEquals(null, get(t, "row1", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            assertEquals("v1", get(t, "row1", "col1"));
+            delete(t, "row1", "col1");
+            assertEquals(null, get(t, "row1", "col1"));
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                delete(t, "row1", "col1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            delete(t, "row1", "col1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                assertEquals(null, get(t, "row1", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            assertEquals(null, get(t, "row1", "col1"));
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                delete(t, "row1", "col1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            delete(t, "row1", "col1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                assertEquals(null, get(t, "row1", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            assertEquals(null, get(t, "row1", "col1"));
+            return null;
         });
     }
 

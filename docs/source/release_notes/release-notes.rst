@@ -45,14 +45,21 @@ develop
          - Change
 
     *    - |devbreak|
-         - Removed unused classes on AtlasDB.
+	 - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
 
-              - ``FutureClosableIteratorTask``
-              - ``ClosableMergedIterator``
-              - ``ThrowingKeyValueService``
+=======
+v0.52.0
+=======
 
-           If any issues arise from this change, please contact the development team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
+1 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Fixed a critical bug in Oracle that limits the number of writes with values greater than 2000 bytes to ``Integer.MAX_VALUE``.
@@ -65,6 +72,16 @@ develop
     *    - |improved|
          - Default cleaner will be able to track immutable timestamp change over time. Will log on WARN level if the immutable timestamp doesn't change for an hour, on ERROR level - for 24 hours. Useful for debugging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2034>`__)
+
+    *    - |devbreak|
+         - Removed unused classes on AtlasDB.
+
+              - ``FutureClosableIteratorTask``
+              - ``ClosableMergedIterator``
+              - ``ThrowingKeyValueService``
+
+           If any issues arise from this change, please contact the development team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -505,7 +522,8 @@ v0.45.0
            These were designed to help debugging the ``MultipleRunningTimestampServicesException`` issues but we no longer require them to log all the time.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2048>`__)
 
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+.. <<<<-------------------------------------------------------------------------------------------------------------
+
 
 =======
 v0.44.0
