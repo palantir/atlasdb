@@ -8,6 +8,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
+import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.
@@ -19,4 +21,9 @@ public interface TimeLockInstallConfiguration {
     PaxosInstallConfiguration algorithm();
 
     ClusterConfiguration cluster();
+
+    @Value.Default
+    default AsyncLockConfiguration asyncLock() {
+        return ImmutableAsyncLockConfiguration.builder().build();
+    }
 }
