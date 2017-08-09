@@ -125,7 +125,8 @@ public final class LoggingArgs {
                 logArbitrator.isColumnNameSafe(tableReference, endCol));
     }
 
-    public static Arg<ColumnRangeSelection> columnRangeSelection(TableReference tableReference, ColumnRangeSelection columnRangeSelection) {
+    public static Arg<ColumnRangeSelection> columnRangeSelection(TableReference tableReference,
+            ColumnRangeSelection columnRangeSelection) {
         String startCol = PtBytes.toString(columnRangeSelection.getStartCol());
         String endCol = PtBytes.toString(columnRangeSelection.getEndCol());
         return getArg("columnRangeSelection", columnRangeSelection,
