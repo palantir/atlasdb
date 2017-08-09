@@ -42,6 +42,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - KVS migrations will no longer verify equality between the from and to KVSes for the sweep priority and progress tables.
+           Note that these tables are still *migrated* across, as they provide heuristics for timely sweeping of tables.
+           However, these tables may change (e.g. the from-kvs could be swept).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2244>`__)
+
     *    - |improved|
          - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1783>`__)
