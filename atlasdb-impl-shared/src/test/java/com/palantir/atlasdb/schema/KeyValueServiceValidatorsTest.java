@@ -23,14 +23,20 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
+import com.palantir.atlasdb.schema.generated.SweepProgressTable;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class KeyValueServiceValidatorsTest {
-    private static final TableReference SWEEP_PRIORITY = TableReference.createFromFullyQualifiedName("sweep.priority");
-    private static final TableReference SWEEP_PROGRESS = TableReference.createFromFullyQualifiedName("sweep.progress");
-    private static final TableReference OTHER_PRIORITY = TableReference.createFromFullyQualifiedName("foo.priority");
+    private static final TableReference SWEEP_PRIORITY = TableReference.create(
+            SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
+    private static final TableReference SWEEP_PROGRESS = TableReference.create(
+            SweepSchema.INSTANCE.getNamespace(), SweepProgressTable.getRawTableName());
+    private static final TableReference OTHER_PRIORITY = TableReference.create(
+            Namespace.create("foo"), SweepPriorityTable.getRawTableName());
 
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
 

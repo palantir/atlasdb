@@ -30,8 +30,9 @@ public final class KeyValueServiceValidators {
 
     /**
      * Returns tables that need to be validated.
-     * Generally speaking, this excludes tables that are not controlled by the transaction table, as well as
-     * tables which are not  (e.g. the sweep priority table).
+     * Generally speaking, this excludes tables that are modified outside of the transaction protocol
+     * (e.g. timestamp, transaction), and tables which are not required to be equal in the to- and from- KVSes
+     * (e.g. the sweep priority table).
      *
      * Clearly, the tables to be validated are a subset of that to be migrated.
      */
@@ -42,9 +43,6 @@ public final class KeyValueServiceValidators {
         return removeSweepTableReferences(tableNames);
     }
 
-    /**
-     * Removes any table references that are part of Sweep, defined as being a part of the Sweep namespace.
-     */
     private static Set<TableReference> removeSweepTableReferences(Set<TableReference> tableNames) {
         return tableNames.stream()
                 .filter(tableReference -> !isSweepTableReference(tableReference))
