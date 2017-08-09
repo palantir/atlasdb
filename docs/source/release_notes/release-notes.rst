@@ -83,14 +83,14 @@ v0.53.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2172>`__)
 
     *    - |devbreak|
-         - ``NameComponentDescription`` is now a ``final`` class and has a builder instead of constructors.
-           This will affect any products which have subclassed ``NameComponentDescription``, although we are not aware of any.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2238>`__)
-
-    *    - |devbreak|
          - AtlasDB now throws an error during schema code generation stage if table length exceeds KVS limits.
            To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2220>`__)
+
+    *    - |devbreak|
+         - ``NameComponentDescription`` is now a ``final`` class and has a builder instead of constructors.
+           This will affect any products which have subclassed ``NameComponentDescription``, although we are not aware of any.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2238>`__)
 
     *    - |devbreak|
          - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
