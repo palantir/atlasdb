@@ -16,44 +16,34 @@
 
 package com.palantir.atlasdb.timelock.clock;
 
-public class RequestTime {
-    // Since we expect localTimeAtStart != localTimeAtEnd, it's safe to have an empty request time.
-    public static final RequestTime EMPTY = new RequestTime(0L, 0L, 0L);
 
-    public final long localTimeAtStart;
-    public final long localTimeAtEnd;
-    public final long remoteSystemTime;
+import org.immutables.value.Value;
 
-    RequestTime(long localTimeAtStart, long localTimeAtEnd, long remoteSystemTime) {
-        this.localTimeAtStart = localTimeAtStart;
-        this.localTimeAtEnd = localTimeAtEnd;
-        this.remoteSystemTime = remoteSystemTime;
+@Value.Immutable
+public interface RequestTime {
+
+    long localTimeAtStart();
+
+    long localTimeAtEnd();
+
+    long remoteSystemTime();
+
+    default RequestTime progressLocalClock(long delta) {
+        return builder().from(this)
+                .localTimeAtStart(localTimeAtStart() + delta)
+                .localTimeAtEnd(localTimeAtEnd() + delta)
+                .build();
     }
 
-    public static class Builder {
-        private long localTimeAtStart;
-        private long localTimeAtEnd;
-        private long remoteSystemTime;
-
-        public Builder(RequestTime requestTime) {
-            localTimeAtStart = requestTime.localTimeAtStart;
-            localTimeAtEnd = requestTime.localTimeAtEnd;
-            remoteSystemTime = requestTime.remoteSystemTime;
-        }
-
-        public Builder progressLocalClock(long delta) {
-            localTimeAtStart += delta;
-            localTimeAtEnd += delta;
-            return this;
-        }
-
-        public Builder progressRemoteClock(long delta) {
-            remoteSystemTime += delta;
-            return this;
-        }
-
-        public RequestTime build() {
-            return new RequestTime(localTimeAtStart, localTimeAtEnd, remoteSystemTime);
-        }
+    default RequestTime progressRemoteClock(long delta) {
+        return builder().from(this)
+                .remoteSystemTime(remoteSystemTime() + delta)
+                .build();
     }
+
+
+    static ImmutableRequestTime.Builder builder() {
+        return ImmutableRequestTime.builder();
+    }
+
 }
