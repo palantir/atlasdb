@@ -47,7 +47,8 @@ develop
     *    - |fixed|
          - KVS migrations will no longer verify equality between the from and to KVSes for the sweep priority and progress tables.
            Note that these tables are still *migrated* across, as they provide heuristics for timely sweeping of tables.
-           However, these tables may change (e.g. the from-kvs could be swept).
+           However, these tables may change during the migration, without affecting correctness (e.g. the from-kvs could be swept).
+           Previously, we would attempt to check that the sweep tables were equal on both KVSes, leading to spurious validation failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2244>`__)
 
     *    - |new|
@@ -61,6 +62,7 @@ develop
 
     *    - |improved|
          - The ``ProfilingKeyValueService`` and ``SpecificTableSweeper`` now log table names as safe arguments, if and only if these have been specified as safe in one's schemas.
+           Previously, these were always logged as unsafe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2172>`__)
 
     *    - |devbreak|
@@ -69,7 +71,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2238>`__)
 
     *    - |devbreak|
-         - Throw an error during schema code generation stage if table length exceeds KVS limits.
+         - AtlasDB now throws an error during schema code generation stage if table length exceeds KVS limits.
+           To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2220>`__)
 
     *    - |devbreak|
