@@ -360,8 +360,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         logger.log(
                                 "Call to KVS.getRows on table {} requesting {} columns from {} rows took {} ms ",
                                 LoggingArgs.tableRef(tableRef),
-                                columnSelection.allColumnsSelected() ? LoggingArgs.allColumns()
-                                        : LoggingArgs.columnCount(columnSelection),
+                                LoggingArgs.columnCount(columnSelection),
                                 LoggingArgs.rowCount(Iterables.size(rows)),
                                 LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(0L));

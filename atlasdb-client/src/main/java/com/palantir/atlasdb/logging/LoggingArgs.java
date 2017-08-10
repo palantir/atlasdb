@@ -100,12 +100,9 @@ public final class LoggingArgs {
         return getArg("sizeInBytes", sizeInBytes, true);
     }
 
-    public static Arg<Integer> columnCount(ColumnSelection columnSelection) {
-        return getArg("columnCount", Iterables.size(columnSelection.getSelectedColumns()), true);
-    }
-
-    public static Arg<String> allColumns() {
-        return getArg("columnCount", "all", true);
+    public static Arg<?> columnCount(ColumnSelection columnSelection) {
+        return getArg("columnCount", columnSelection.allColumnsSelected() ?
+                "all" : Iterables.size(columnSelection.getSelectedColumns()), true);
     }
 
     public static Arg<Integer> batchHint(int batchHint) {
