@@ -79,6 +79,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.InitialiseCheckerProxy;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -197,7 +198,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = new CassandraClientPool(configManager.getConfig());
+        try {
+            this.clientPool = InitialiseCheckerProxy.newProxyInstance(
+                    new Class<?>[] {CassandraKeyValueServiceConfig.class}, new Object[] {configManager.getConfig()},
+                    CassandraClientPool.class);
+        } catch (Exception e) {
+            throw com.google.common.base.Throwables.propagate(e);
+        }
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -1933,7 +1940,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void close() {
-        clientPool.shutdown();
+        clientPool.cleanResources();
         if (compactionManager.isPresent()) {
             compactionManager.get().close();
         }

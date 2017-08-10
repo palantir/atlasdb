@@ -62,6 +62,8 @@ public class MetricsManager {
         try {
             metricRegistry.register(fullyQualifiedMetricName, metric);
             registeredMetrics.add(fullyQualifiedMetricName);
+        } catch (IllegalArgumentException e) {
+            //Ignore metric already exists, to avoid big stacktraces.
         } catch (Exception e) {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
             log.error("Unable to register metric {}", fullyQualifiedMetricName, e);

@@ -30,9 +30,12 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -63,6 +66,8 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.InitializingObject;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -90,7 +95,7 @@ import com.palantir.remoting2.tracing.Tracers;
  *   ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("VisibilityModifier")
-public class CassandraClientPool {
+public class CassandraClientPool implements InitializingObject {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
     private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
             + " Error writing to Cassandra socket."
@@ -105,16 +110,20 @@ public class CassandraClientPool {
     static final int MAX_TRIES_SAME_HOST = 3;
     @VisibleForTesting
     static final int MAX_TRIES_TOTAL = 6;
+    private final StartupChecks startupChecks;
 
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
     final ScheduledExecutorService refreshDaemon;
+    final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+
+    private final AtomicBoolean isInitialised = new AtomicBoolean(false);
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -204,29 +213,61 @@ public class CassandraClientPool {
 
     private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
-        config.servers().forEach(this::addPool);
         refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
-        refreshDaemon.scheduleWithFixedDelay(() -> {
-            try {
-                refreshPool();
-            } catch (Throwable t) {
-                log.error("Failed to refresh Cassandra KVS pool."
-                        + " Extended periods of being unable to refresh will cause perf degradation.", t);
-            }
-        }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
-
-        // for testability, mock/spy are bad at mockability of things called in constructors
-        if (startupChecks == StartupChecks.RUN) {
-            runOneTimeStartupChecks();
-        }
-        refreshPool(); // ensure we've initialized before returning
-        registerAggregateMetrics();
+        this.startupChecks = startupChecks;
+        isInitialised.compareAndSet(false, false);
+        initialize();
     }
 
-    public void shutdown() {
+    @Override
+    public void initialize() {
+        executorService.execute(() -> {
+            while (!isInitialised.get()) {
+                initWithoutThrowing();
+            }
+        });
+    }
+
+    private void initWithoutThrowing() {
+        try {
+            config.servers().forEach(this::addPool);
+            refreshDaemon.scheduleWithFixedDelay(() -> {
+                try {
+                    refreshPool();
+                } catch (Throwable t) {
+                    log.error("Failed to refresh Cassandra KVS pool."
+                                    + " Extended periods of being unable to refresh will cause perf degradation.",
+                            t);
+                }
+            }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+
+            // for testability, mock/spy are bad at mockability of things called in constructors
+            if (startupChecks == StartupChecks.RUN) {
+                runOneTimeStartupChecks();
+            }
+            refreshPool(); // ensure we've initialized before returning
+            registerAggregateMetrics();
+            isInitialised.compareAndSet(false, true);
+            log.info("Initialization of the ClientPool was successful.");
+        } catch (Exception ex) {
+            cleanResources();
+            log.error(
+                    "Failed to initialize the Cassandra clientPool most likely because Cassandra is not healthy, "
+                            + "retrying after 5 seconds.");
+            Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        }
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialised.get();
+    }
+
+    @Override
+    public void cleanResources() {
         refreshDaemon.shutdown();
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
