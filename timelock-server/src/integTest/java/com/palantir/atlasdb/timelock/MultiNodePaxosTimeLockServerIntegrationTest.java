@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +41,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
@@ -193,6 +195,18 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
             assertThat(CLUSTER.unlock(token)).isFalse();
             token = CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+        }
+    }
+
+    @Test
+    public void canCreateNewClientsDynamically() {
+        for (int i = 0; i < 5; i++) {
+            String client = UUID.randomUUID().toString();
+            TimelockService timelock = CLUSTER.timelockServiceForClient(client);
+
+            timelock.getFreshTimestamp();
+            LockToken token = timelock.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+            CLUSTER.unlock(token);
         }
     }
 
