@@ -18,7 +18,7 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
 public interface TimeLockInstallConfiguration {
-    PaxosInstallConfiguration algorithm();
+    PaxosInstallConfiguration paxos();
 
     ClusterConfiguration cluster();
 

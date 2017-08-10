@@ -94,10 +94,10 @@ public class PaxosLeadershipCreator {
                 .leaders(PaxosRemotingUtils.addProtocols(install, PaxosRemotingUtils.getClusterAddresses(install)))
                 .localServer(PaxosRemotingUtils.addProtocol(install,
                         PaxosRemotingUtils.getClusterConfiguration(install).localServer()))
-                .acceptorLogDir(Paths.get(install.algorithm().dataDirectory().toString(),
+                .acceptorLogDir(Paths.get(install.paxos().dataDirectory().toString(),
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                         PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toFile())
-                .learnerLogDir(Paths.get(install.algorithm().dataDirectory().toString(),
+                .learnerLogDir(Paths.get(install.paxos().dataDirectory().toString(),
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                         PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile())
                 .pingRateMs(paxosRuntimeConfiguration.pingRateMs())
