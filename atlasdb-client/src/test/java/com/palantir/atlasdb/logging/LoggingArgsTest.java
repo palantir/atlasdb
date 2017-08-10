@@ -174,7 +174,6 @@ public class LoggingArgsTest {
     public void returnsUnsafeRangeWhenAllColumnsUnsafe() {
         assertThat(LoggingArgs.range(SAFE_TABLE_REFERENCE, UNSAFE_RANGE_REQUEST))
                 .isInstanceOf(UnsafeArg.class);
-
     }
 
     @Test

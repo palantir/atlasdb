@@ -94,27 +94,27 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.cellCount(numCells),
                         LoggingArgs.sizeInBytes(sizeInBytes),
-                        LoggingArgs.duration(stopwatch));
+                        LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTime(String method) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} took {} ms.", LoggingArgs.method(method),
-                        LoggingArgs.duration(stopwatch));
+                        LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTable(String method, TableReference tableRef) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} took {} ms.",
                         LoggingArgs.method(method), LoggingArgs.tableRef(tableRef),
-                        LoggingArgs.duration(stopwatch));
+                        LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableCount(String method, int tableCount) {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} for {} tables took {} ms.",
                         LoggingArgs.method(method), LoggingArgs.tableCount(tableCount),
-                        LoggingArgs.duration(stopwatch));
+                        LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRange(String method,
@@ -124,7 +124,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                 logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
                         LoggingArgs.method(method),
                         LoggingArgs.range(tableRef, range),
-                        LoggingArgs.duration(stopwatch));
+                        LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Map<Cell, Value>> logCellResultSize(long overhead) {
@@ -238,7 +238,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         "Call to KVS.addGarbageCollectionSentinelValues on table {} over {} cells took {} ms.",
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.cellCount(Iterables.size(cells)),
-                        LoggingArgs.duration(stopwatch)));
+                        LoggingArgs.durationMillis(stopwatch)));
     }
 
     @Override
@@ -285,7 +285,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         logger.log("Call to KVS.get on table {}, requesting {} cells took {} ms ",
                                 LoggingArgs.tableRef(tableRef),
                                 LoggingArgs.cellCount(timestampByCell.size()),
-                                LoggingArgs.duration(stopwatch)),
+                                LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(4L));
     }
 
@@ -363,7 +363,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                                 columnSelection.allColumnsSelected() ? LoggingArgs.allColumns()
                                         : LoggingArgs.columnCount(columnSelection),
                                 LoggingArgs.rowCount(Iterables.size(rows)),
-                                LoggingArgs.duration(stopwatch)),
+                                LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(0L));
     }
 
@@ -382,7 +382,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                             LoggingArgs.tableCount(valuesByTable.keySet().size()),
                             LoggingArgs.cellCount(totalCells),
                             LoggingArgs.sizeInBytes(totalBytes),
-                            LoggingArgs.duration(stopwatch));
+                            LoggingArgs.durationMillis(stopwatch));
                 });
     }
 
@@ -467,7 +467,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                                 LoggingArgs.tableRef(tableRef),
                                 LoggingArgs.rowCount(Iterables.size(rows)),
                                 LoggingArgs.batchColumnRangeSelection(tableRef, batchColumnRangeSelection),
-                                LoggingArgs.duration(stopwatch)));
+                                LoggingArgs.durationMillis(stopwatch)));
     }
 
     @Override
@@ -485,7 +485,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.rowCount(Iterables.size(rows)),
                         LoggingArgs.columnRangeSelection(tableRef, columnRangeSelection),
                         LoggingArgs.batchHint(cellBatchHint),
-                        LoggingArgs.duration(stopwatch)));
+                        LoggingArgs.durationMillis(stopwatch)));
     }
 
     private static <T> long byteSize(Map<Cell, T> values) {

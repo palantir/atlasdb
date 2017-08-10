@@ -76,8 +76,8 @@ public final class LoggingArgs {
                 logArbitrator.isColumnNameSafe(tableReference, columnName));
     }
 
-    public static Arg<Long> duration(Stopwatch stopwatch) {
-        return getArg("duration", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
+    public static Arg<Long> durationMillis(Stopwatch stopwatch) {
+        return getArg("durationMillis", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
     }
 
     public static Arg<String> method(String method) {
