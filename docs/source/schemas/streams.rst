@@ -32,16 +32,24 @@ The minimal parameters required to define a stream store are shown below:
 
 Additional options for the builder include:
 
-- ``hashFirstRowComponent``
-- ``isAppendHeavyAndReadLight``
-- ``compressBlocksInDb``
-- ``compressStreamInClient``: transparently decompresses and compresses the 
-  stream via the LZ4 algorithm upon reads and writes, respectively. 
-  Compression is performed client side before any network communication to 
-  the underlying database.
-- ``inMemoryThreshold(int inMemoryThreshold)``: specifies the largest size
-  object (in bytes) which AtlasDB will cache in memory in order to boost
-  retrieval performance.
+.. list-table::
+    :widths: 20 80
+    :header-rows: 1
+
+    *    - Option
+         - Description
+
+    *    - ``hashFirstRowComponent``
+         - Hashes the ``id`` component of the table.
+
+    *    - ``isAppendHeavyAndReadLight``
+         - ``false`` by default. If set to ``true``, some optimisations will be made in Cassandra KVS assuming that these streams will be changed often but not read often.
+
+    *    - ``compressStreamInClient``
+         - Transparently decompresses and compresses the stream via the LZ4 algorithm upon reads and writes, respectively. Compression is performed client side before any network communication to the underlying database.
+
+    *   - ``inMemoryThreshold``
+        - Specifies the largest size object (in bytes) which AtlasDB will cache in memory in order to boost retrieval performance.
   
 For an example of streams in use, see `ProfileSchema`_ and `ProfileStore`_.
 
