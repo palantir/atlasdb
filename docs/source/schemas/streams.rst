@@ -51,11 +51,10 @@ Additional options for the builder include:
     *   - ``inMemoryThreshold``
         - Specifies the largest size object (in bytes) which AtlasDB will cache in memory in order to boost retrieval performance.
   
-For an example of streams in use, see `ProfileSchema`_ and `ProfileStore`_.
+For an example of streams in use, see the `user_profile` table and `user_photos` stream store in `ProfileSchema`_, and the `updateImage` method in `ProfileStore`_.
 
-.. _ProfileSchema: ../../../examples/profile-client/src/main/java/com/palantir/example/profile/schema/ProfileSchema.java
-.. _ProfileStore: ../../../examples/profile-client/src/main/java/com/palantir/example/profile/ProfileStore.java
-
+.. _ProfileSchema: https://github.com/palantir/atlasdb/blob/cd4f33dfcaa95acb90374f698158a4aae8c28945/examples/profile-client/src/main/java/com/palantir/example/profile/schema/ProfileSchema.java
+.. _ProfileStore: https://github.com/palantir/atlasdb/blob/cd4f33dfcaa95acb90374f698158a4aae8c28945/examples/profile-client/src/main/java/com/palantir/example/profile/ProfileStore.java
 .. note::
 
     In some places, we load whole numbers of blocks into memory, so if the in-memory threshold is smaller than the block size (1MB), we will still load a whole block.
@@ -71,7 +70,7 @@ Regular AtlasDB tables should refer to the object stored in stream stores by the
 
 .. note::
     
-    References to streams are *manually* added and removed by users. AtlasDB monitors the number of references to each stream, and streams that are unreferenced will be garbage collected.
+    References to streams are *manually* added (via either ``getByHashOrStoreStreamAndMarkAsUsed`` or ``markStreamAsUsed``) and removed (via the method ``markStreamAsUnused``) by users. AtlasDB monitors the number of references to each stream, and streams that are unreferenced will be garbage collected.
 
 Performance
 ===========
