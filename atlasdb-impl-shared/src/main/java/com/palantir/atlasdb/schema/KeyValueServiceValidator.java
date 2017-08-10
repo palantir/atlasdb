@@ -83,8 +83,8 @@ public class KeyValueServiceValidator {
     }
 
     public void validate(boolean logOnly) {
-        Set<TableReference> tables = KeyValueServiceMigrators
-                .getMigratableTableNames(validationFromKvs, unmigratableTables);
+        Set<TableReference> tables = KeyValueServiceValidators.getValidatableTableNames(
+                validationFromKvs, unmigratableTables);
         try {
             validateTables(tables);
         } catch (Throwable t) {
