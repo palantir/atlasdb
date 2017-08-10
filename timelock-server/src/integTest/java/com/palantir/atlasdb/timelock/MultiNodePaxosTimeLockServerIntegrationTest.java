@@ -211,6 +211,19 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void clientsCreatedDynamicallyOnNonLeadersAreFunctionalAfterFailover() {
+        String client = UUID.randomUUID().toString();
+        CLUSTER.nonLeaders().forEach(server -> {
+            assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
+                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+        });
+
+        CLUSTER.failoverToNewLeader();
+
+        CLUSTER.getFreshTimestamp();
+    }
+
+    @Test
     public void clockSkewMetricsSmokeTest() {
         Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
 

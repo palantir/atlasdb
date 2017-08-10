@@ -89,7 +89,11 @@ public class TestableTimelockServer {
     }
 
     public TimelockService timelockService() {
-        return proxies.singleNodeForClient(defaultClient, serverHolder, TimelockService.class);
+        return timelockServiceForClient(defaultClient);
+    }
+
+    public TimelockService timelockServiceForClient(String client) {
+        return proxies.singleNodeForClient(client, serverHolder, TimelockService.class);
     }
 
     public MetricsOutput getMetricsOutput() {
