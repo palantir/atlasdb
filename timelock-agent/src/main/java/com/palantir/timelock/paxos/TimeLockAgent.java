@@ -43,7 +43,7 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
 import io.reactivex.Observable;
 
-public class PaxosAgent {
+public class TimeLockAgent {
     private final TimeLockInstallConfiguration install;
     private final Observable<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
@@ -54,13 +54,13 @@ public class PaxosAgent {
     private final PaxosTimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
 
-    public PaxosAgent(TimeLockInstallConfiguration install,
+    public TimeLockAgent(TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
             Consumer<Object> registrar) {
         this(install, runtime, ImmutableTimeLockDeprecatedConfiguration.builder().build(), registrar);
     }
 
-    public PaxosAgent(TimeLockInstallConfiguration install,
+    public TimeLockAgent(TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
@@ -74,7 +74,7 @@ public class PaxosAgent {
         this.timestampCreator = new PaxosTimestampCreator(paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
-                runtime.map(PaxosAgent::getAlgorithmConfigOrDefault));
+                runtime.map(TimeLockAgent::getAlgorithmConfigOrDefault));
         this.timelockCreator = install.asyncLock().useAsyncLockService()
                 ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
                 : new LegacyTimeLockServicesCreator(leadershipCreator);
