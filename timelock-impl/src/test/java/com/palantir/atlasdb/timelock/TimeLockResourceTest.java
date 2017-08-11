@@ -37,8 +37,8 @@ public class TimeLockResourceTest {
 
     private static final int DEFAULT_MAX_NUMBER_OF_CLIENTS = 5;
 
-    private final TimeLockServices SERVICES_A = mock(TimeLockServices.class);
-    private final TimeLockServices SERVICES_B = mock(TimeLockServices.class);
+    private final TimeLockServices servicesA = mock(TimeLockServices.class);
+    private final TimeLockServices servicesB = mock(TimeLockServices.class);
 
     private final Function<String, TimeLockServices> serviceFactory = mock(Function.class);
     private final Supplier<Integer> maxNumberOfClientsSupplier = mock(Supplier.class);
@@ -50,16 +50,16 @@ public class TimeLockResourceTest {
     @Before
     public void before() {
         when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
-        when(serviceFactory.apply(CLIENT_A)).thenReturn(SERVICES_A);
-        when(serviceFactory.apply(CLIENT_B)).thenReturn(SERVICES_B);
+        when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
+        when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
 
     @Test
     public void returnsProperServiceForEachClient() {
-        assertThat(resource.getOrCreateServices(CLIENT_A)).isEqualTo(SERVICES_A);
-        assertThat(resource.getOrCreateServices(CLIENT_B)).isEqualTo(SERVICES_B);
+        assertThat(resource.getOrCreateServices(CLIENT_A)).isEqualTo(servicesA);
+        assertThat(resource.getOrCreateServices(CLIENT_B)).isEqualTo(servicesB);
     }
 
     @Test

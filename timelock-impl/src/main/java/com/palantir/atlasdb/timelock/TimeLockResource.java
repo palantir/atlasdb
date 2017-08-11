@@ -42,7 +42,9 @@ public class TimeLockResource {
     private final ConcurrentMap<String, TimeLockServices> servicesByClient = Maps.newConcurrentMap();
     private final Supplier<Integer> maxNumberOfClients;
 
-    public TimeLockResource(Function<String, TimeLockServices> clientServicesFactory, Supplier<Integer> maxNumberOfClients) {
+    public TimeLockResource(
+            Function<String, TimeLockServices> clientServicesFactory,
+            Supplier<Integer> maxNumberOfClients) {
         this.clientServicesFactory = clientServicesFactory;
         this.maxNumberOfClients = maxNumberOfClients;
     }
