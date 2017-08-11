@@ -29,12 +29,13 @@ import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
-import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.factory.TransactionManagerBuilder;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
@@ -79,12 +80,14 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
             try {
-                return TransactionManagers.create(
-                        config.getAtlasDbConfig(),
-                        Optional::empty,
-                        ETE_SCHEMAS,
-                        environment.jersey()::register,
-                        DONT_SHOW_HIDDEN_TABLES);
+                return new TransactionManagerBuilder()
+                        .config(config.getAtlasDbConfig())
+                        .runtimeConfig(Optional::empty)
+                        .schemas(ETE_SCHEMAS)
+                        .environment(environment.jersey()::register)
+                        .lockServerOptions(LockServerOptions.DEFAULT)
+                        .disallowHiddenTableAccess()
+                        .build();
             } catch (RuntimeException e) {
                 log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);

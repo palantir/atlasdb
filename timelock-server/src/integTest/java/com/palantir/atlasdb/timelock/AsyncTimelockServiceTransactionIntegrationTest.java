@@ -42,10 +42,11 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.factory.TransactionManagerBuilder;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -55,6 +56,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.StringLockDescriptor;
 
 public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
@@ -85,8 +87,15 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
                                 .build())
                         .build())
                 .build();
-        txnManager = TransactionManagers.create(config, () -> Optional.empty(), ImmutableSet.of(),
-                ignored -> { }, false);
+        java.util.function.Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier = () -> Optional.empty();
+        txnManager = new TransactionManagerBuilder()
+                .config(config)
+                .runtimeConfig(runtimeConfigSupplier)
+                .schemas(ImmutableSet.of())
+                .environment(ignored -> { })
+                .lockServerOptions(LockServerOptions.DEFAULT)
+                .disallowHiddenTableAccess()
+                .build();
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 

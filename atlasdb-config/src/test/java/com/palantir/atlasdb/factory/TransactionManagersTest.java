@@ -69,6 +69,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
@@ -279,8 +280,14 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
-        TransactionManagers.create(realConfig, Optional::empty,
-                ImmutableSet.of(), environment, false);
+        new TransactionManagerBuilder()
+                .config(realConfig)
+                .runtimeConfig(Optional::empty)
+                .schemas(ImmutableSet.of())
+                .environment(environment)
+                .lockServerOptions(LockServerOptions.DEFAULT)
+                .disallowHiddenTableAccess()
+                .build();
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
 
@@ -319,8 +326,14 @@ public class TransactionManagersTest {
 
         Runnable callback = mock(Runnable.class);
 
-        SerializableTransactionManager manager = TransactionManagers.create(
-                realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        SerializableTransactionManager manager = new TransactionManagerBuilder()
+                .config(realConfig)
+                .runtimeConfig(Optional::empty)
+                .schemas(ImmutableSet.of())
+                .environment(environment)
+                .lockServerOptions(LockServerOptions.DEFAULT)
+                .disallowHiddenTableAccess()
+                .build();
         manager.registerClosingCallback(callback);
         manager.close();
         verify(callback, times(1)).run();
