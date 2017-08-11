@@ -27,6 +27,7 @@ import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
 import com.palantir.atlasdb.console.exceptions.InvalidTableException
+import com.palantir.atlasdb.factory.TransactionManagerBuilder
 import com.palantir.atlasdb.factory.TransactionManagers
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
@@ -226,7 +227,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
                     }
                 },
                 ImmutableSet.<Schema>of(),
-                new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
+                new TransactionManagerBuilder.Environment() {
                     @Override
                     public void register(Object resource) {
                     }

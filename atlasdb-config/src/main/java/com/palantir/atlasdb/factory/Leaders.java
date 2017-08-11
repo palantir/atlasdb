@@ -36,7 +36,7 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.factory.TransactionManagers.Environment;
+import com.palantir.atlasdb.factory.TransactionManagerBuilder.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;

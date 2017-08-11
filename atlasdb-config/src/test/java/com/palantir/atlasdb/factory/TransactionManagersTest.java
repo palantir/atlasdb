@@ -111,7 +111,7 @@ public class TransactionManagersTest {
 
     private AtlasDbConfig config;
     private AtlasDbRuntimeConfig runtimeConfig;
-    private TransactionManagers.Environment environment;
+    private TransactionManagerBuilder.Environment environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
@@ -124,8 +124,8 @@ public class TransactionManagersTest {
     @Before
     public void setup() throws JsonProcessingException {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
-        originalAsyncMethod = TransactionManagers.runAsync;
-        TransactionManagers.runAsync = task -> Awaitility.await().atMost(2, TimeUnit.SECONDS).until(task);
+        originalAsyncMethod = TransactionManagerBuilder.runAsync;
+        TransactionManagerBuilder.runAsync = task -> Awaitility.await().atMost(2, TimeUnit.SECONDS).until(task);
 
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
@@ -155,7 +155,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
-        environment = mock(TransactionManagers.Environment.class);
+        environment = mock(TransactionManagerBuilder.Environment.class);
 
         invalidator = mock(TimestampStoreInvalidator.class);
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
@@ -169,7 +169,7 @@ public class TransactionManagersTest {
 
     @After
     public void restoreAsyncExecution() {
-        TransactionManagers.runAsync = originalAsyncMethod;
+        TransactionManagerBuilder.runAsync = originalAsyncMethod;
     }
 
     @Test
@@ -214,8 +214,8 @@ public class TransactionManagersTest {
                 .quorumSize(1)
                 .build()));
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
+        LockAndTimestampServices lockAndTimestampServices =
+                TransactionManagerBuilder.createLockAndTimestampServices(
                         config,
                         () -> runtimeConfig.timestampClient(),
                         environment,
@@ -252,8 +252,8 @@ public class TransactionManagersTest {
                 .quorumSize(1)
                 .build()));
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
+        LockAndTimestampServices lockAndTimestampServices =
+                TransactionManagerBuilder.createLockAndTimestampServices(
                         config,
                         () -> runtimeConfig.timestampClient(),
                         environment,
@@ -340,8 +340,8 @@ public class TransactionManagersTest {
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
+        LockAndTimestampServices lockAndTimestampServices =
+                TransactionManagerBuilder.createLockAndTimestampServices(
                         config,
                         () -> ImmutableTimestampClientConfig.of(false),
                         environment,
@@ -371,9 +371,9 @@ public class TransactionManagersTest {
                 .build();
     }
 
-    private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
+    private LockAndTimestampServices createLockAndTimestampServicesForConfig(
             AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
-        return TransactionManagers.createLockAndTimestampServices(
+        return TransactionManagerBuilder.createLockAndTimestampServices(
                 atlasDbConfig,
                 atlasDbRuntimeConfig::timestampClient,
                 environment,
