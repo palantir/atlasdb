@@ -34,9 +34,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timelock.Observables;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
-import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
-import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -74,7 +72,7 @@ public class TimeLockAgent {
         this.timestampCreator = new PaxosTimestampCreator(paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
-                runtime.map(TimeLockAgent::getAlgorithmConfigOrDefault));
+                runtime.map(TimeLockRuntimeConfiguration::paxos));
         this.timelockCreator = install.asyncLock().useAsyncLockService()
                 ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
                 : new LegacyTimeLockServicesCreator(leadershipCreator);
@@ -124,10 +122,5 @@ public class TimeLockAgent {
         Supplier<RemoteLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
-    }
-
-    private static PaxosRuntimeConfiguration getAlgorithmConfigOrDefault(
-            TimeLockRuntimeConfiguration runtimeConfiguration) {
-        return runtimeConfiguration.algorithm().orElse(ImmutablePaxosRuntimeConfiguration.builder().build());
     }
 }

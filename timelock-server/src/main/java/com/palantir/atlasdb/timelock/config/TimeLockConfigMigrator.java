@@ -45,7 +45,7 @@ public final class TimeLockConfigMigrator {
                 .build();
 
         TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                .algorithm(ImmutablePaxosRuntimeConfiguration.builder()
+                .paxos(ImmutablePaxosRuntimeConfiguration.builder()
                         .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
                         .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
                         .pingRateMs(paxos.pingRateMs())

@@ -4,7 +4,6 @@
 
 package com.palantir.timelock.config;
 
-import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;
@@ -24,7 +23,10 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 public abstract class TimeLockRuntimeConfiguration {
     private static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
 
-    public abstract Optional<PaxosRuntimeConfiguration> algorithm();
+    @Value.Default
+    public PaxosRuntimeConfiguration paxos() {
+        return ImmutablePaxosRuntimeConfiguration.builder().build();
+    }
 
     public abstract Set<String> clients();
 
