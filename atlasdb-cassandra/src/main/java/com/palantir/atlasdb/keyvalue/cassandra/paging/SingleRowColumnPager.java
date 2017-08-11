@@ -33,6 +33,7 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.thrift.TException;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -45,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.util.Pair;
 
+/** Iterates over raw Cassandra Columns of a single given row in batches. */
 public class SingleRowColumnPager {
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
@@ -71,7 +73,7 @@ public class SingleRowColumnPager {
         private final int pageSize;
         private final ConsistencyLevel consistencyLevel;
         private Column lastSeenColumn;
-        private boolean end = false;
+        private boolean reachedEnd = false;
 
         PageIterator(TableReference tableRef, ColumnParent columnParent, ByteBuffer rowKey, int pageSize,
                 ConsistencyLevel consistencyLevel, Column lastSeenColumn) {
@@ -85,13 +87,13 @@ public class SingleRowColumnPager {
 
         @Override
         protected List<ColumnOrSuperColumn> computeNext() {
-            if (end) {
+            if (reachedEnd) {
                 return endOfData();
             } else {
                 InetSocketAddress host = clientPool.getRandomHostForKey(rowKey.array());
                 try {
                     List<ColumnOrSuperColumn> cells = clientPool.runWithRetryOnHost(host, this::getPage);
-                    end = cells.size() < pageSize;
+                    reachedEnd = cells.size() < pageSize;
                     if (cells.isEmpty()) {
                         return endOfData();
                     } else {
@@ -105,7 +107,7 @@ public class SingleRowColumnPager {
         }
 
         private List<ColumnOrSuperColumn> getPage(Cassandra.Client client) throws TException {
-            Optional<ByteBuffer> startColumn = getStartColumn();
+            Optional<ByteBuffer> startColumn = getStartColumn(lastSeenColumn);
             if (startColumn.isPresent()) {
                 SliceRange sliceRange = new SliceRange(
                         startColumn.get(),
@@ -120,37 +122,38 @@ public class SingleRowColumnPager {
                 return ImmutableList.of();
             }
         }
+    }
 
-        // Given the last seen column, compute the next start column
-        private Optional<ByteBuffer> getStartColumn() {
-            if (lastSeenColumn == null) {
-                // An empty byte array means "start from the beginning of the row"
-                return Optional.of(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY));
-            } else {
-                // We need to "increment" the last seen (colName, ts) pair to the lexicographically next pair.
-                // Note that timestamps are stored in descending order. For example, the next pair for ("a", 5)
-                // will be ("a", 4).
-                Pair<byte[], Long> colNameAndTs = CassandraKeyValueServices.decomposeName(lastSeenColumn);
-                if (colNameAndTs.getRhSide() == Long.MIN_VALUE) {
-                    // This is an edge case that will never happen in reality, but technically we have
-                    // to handle it anyway. If the last seen timestamp equals minimum possible value of a 64-bit
-                    // signed integer, we can't decrement it, so we have to carry over to the colName.
-                    // E.g. ("a", Long.MIN_VALUE) -> ("b", Long.MAX_VALUE)
-                    byte[] nextColName = RangeRequests.getNextStartRowUnlessTerminal(false, colNameAndTs.getLhSide());
-                    if (nextColName == null) {
-                        // An even "edgier" case: in addition to reaching the minimum timestamp, we also reached
-                        // the last possible colName, so there is nowhere to increment.
-                        return Optional.empty();
-                    } else {
-                        return Optional.of(CassandraKeyValueServices.makeCompositeBuffer(nextColName, Long.MAX_VALUE));
-                    }
+    // Given the last seen column, compute the next start column
+    @VisibleForTesting
+    static Optional<ByteBuffer> getStartColumn(@Nullable Column lastSeenColumn) {
+        if (lastSeenColumn == null) {
+            // An empty byte array means "start from the beginning of the row"
+            return Optional.of(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY));
+        } else {
+            // We need to "increment" the last seen (colName, ts) pair to the lexicographically next pair.
+            // Note that timestamps are stored in descending order. For example, the next pair for ("a", 5)
+            // will be ("a", 4).
+            Pair<byte[], Long> colNameAndTs = CassandraKeyValueServices.decomposeName(lastSeenColumn);
+            if (colNameAndTs.getRhSide() == Long.MIN_VALUE) {
+                // This is an edge case that will never happen in reality, but technically we have
+                // to handle it anyway. If the last seen timestamp equals minimum possible value of a 64-bit
+                // signed integer, we can't decrement it, so we have to carry over to the colName.
+                // E.g. ("a", Long.MIN_VALUE) -> ("b", Long.MAX_VALUE)
+                byte[] nextColName = RangeRequests.getNextStartRowUnlessTerminal(false, colNameAndTs.getLhSide());
+                if (nextColName == null) {
+                    // An even "edgier" case: in addition to reaching the minimum timestamp, we also reached
+                    // the last possible colName, so there is nowhere to increment.
+                    return Optional.empty();
                 } else {
-                    // Timestamps are in descending order, so just decrement the timestamp to find the next column.
-                    // E.g., ("a", 4) -> ("a", 3)
-                    return Optional.of(CassandraKeyValueServices.makeCompositeBuffer(
-                            colNameAndTs.getLhSide(),
-                            colNameAndTs.getRhSide() - 1));
+                    return Optional.of(CassandraKeyValueServices.makeCompositeBuffer(nextColName, Long.MAX_VALUE));
                 }
+            } else {
+                // Timestamps are in descending order, so just decrement the timestamp to find the next column.
+                // E.g., ("a", 4) -> ("a", 3)
+                return Optional.of(CassandraKeyValueServices.makeCompositeBuffer(
+                        colNameAndTs.getLhSide(),
+                        colNameAndTs.getRhSide() - 1));
             }
         }
     }

@@ -44,6 +44,9 @@ import gnu.trove.list.array.TLongArrayList;
  * Simply use the CellPager to iterate over raw cells in a table and group the returned entries by the cell key.
  */
 public class CassandraGetCandidateCellsForSweepingImpl {
+
+    private static final long[] EMPTY_LONG_ARRAY = new long[0];
+
     private final CellPager cellPager;
 
     public CassandraGetCandidateCellsForSweepingImpl(CellPager cellPager) {
@@ -63,13 +66,14 @@ public class CassandraGetCandidateCellsForSweepingImpl {
     }
 
     private static class CellGroupingIterator extends AbstractIterator<List<CandidateCellForSweeping>> {
-        private final Iterator<List<CassandraRawCellValue>> rawIter;
         private final CandidateCellForSweepingRequest request;
+
+        private final Iterator<List<CassandraRawCellValue>> rawIter;
         private Cell currentCell = null;
         private final TLongList currentTimestamps = new TLongArrayList();
         private boolean currentLatestValEmpty;
         private long numCellTsPairsExamined = 0;
-        private boolean end = false;
+        private boolean reachedEnd = false;
 
         CellGroupingIterator(Iterator<List<CassandraRawCellValue>> rawIter, CandidateCellForSweepingRequest request) {
             this.rawIter = rawIter;
@@ -78,7 +82,7 @@ public class CassandraGetCandidateCellsForSweepingImpl {
 
         @Override
         protected List<CandidateCellForSweeping> computeNext() {
-            if (end) {
+            if (reachedEnd) {
                 return endOfData();
             } else {
                 List<CandidateCellForSweeping> candidates = Lists.newArrayList();
@@ -89,8 +93,10 @@ public class CassandraGetCandidateCellsForSweepingImpl {
                     }
                 }
                 if (candidates.isEmpty()) {
-                    end = true;
+                    reachedEnd = true;
                     if (!currentTimestamps.isEmpty()) {
+                        // Since we reached the end of data, we know there can't be more timestamps for this cell,
+                        // so create a candidate from them.
                         return ImmutableList.of(createCandidate());
                     } else {
                         return endOfData();
@@ -151,5 +157,4 @@ public class CassandraGetCandidateCellsForSweepingImpl {
         }
     }
 
-    private static final long[] EMPTY_LONG_ARRAY = new long[0];
 }

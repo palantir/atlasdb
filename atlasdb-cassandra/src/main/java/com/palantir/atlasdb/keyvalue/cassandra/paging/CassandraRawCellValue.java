@@ -16,53 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-import java.util.Arrays;
-
 import org.apache.cassandra.thrift.Column;
+import org.immutables.value.Value;
 
-public class CassandraRawCellValue {
-    private final byte[] rowKey;
-    private final Column column;
+@Value.Immutable
+public interface CassandraRawCellValue {
 
-    public CassandraRawCellValue(byte[] rowKey, Column column) {
-        this.rowKey = rowKey;
-        this.column = column;
-    }
+    byte[] getRowKey();
 
-    public byte[] getRowKey() {
-        return rowKey;
-    }
+    Column getColumn();
 
-    public Column getColumn() {
-        return column;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (other == null || getClass() != other.getClass()) {
-            return false;
-        }
-
-        CassandraRawCellValue that = (CassandraRawCellValue) other;
-
-        if (!Arrays.equals(rowKey, that.rowKey)) {
-            return false;
-        }
-        return column != null ? column.equals(that.column) : that.column == null;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Arrays.hashCode(rowKey);
-        result = 31 * result + (column != null ? column.hashCode() : 0);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "CassandraRawCellValue{" + "rowKey=" + Arrays.toString(rowKey) + ", column=" + column + '}';
-    }
 }

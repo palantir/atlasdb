@@ -28,6 +28,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
@@ -40,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy.PageSizes;
+import com.palantir.common.annotation.Output;
 
 /*
  * A class for iterating uniformly through raw cells, i.e. (rowName, columnName, timestamp) triplets, in a given table
@@ -136,7 +138,7 @@ public class CellPager {
 
         private byte[] nextRow;
 
-        private final Queue<Iterator<List<CassandraRawCellValue>>> queuedTasks = new ArrayDeque<>();
+        private final Queue<Iterator<List<CassandraRawCellValue>>> cellsToReturn = new ArrayDeque<>();
         private final StatsAccumulator stats = new StatsAccumulator();
         private PageSizes pageSizes = null;
 
@@ -152,16 +154,20 @@ public class CellPager {
         @Override
         protected List<CassandraRawCellValue> computeNext() {
             while (true) {
-                if (queuedTasks.isEmpty()) {
+                if (cellsToReturn.isEmpty()) {
+                    // We have no pre-loaded rows from the previous "rectangle", so we need to fetch more if we can
                     if (nextRow == null) {
                         return endOfData();
                     } else {
+                        // Get the next "rectangle" of data (step 8 in the example above) and try again
                         fetchNextRange();
                     }
-                } else if (queuedTasks.peek().hasNext()) {
-                    return queuedTasks.peek().next();
+                } else if (cellsToReturn.peek().hasNext()) {
+                    // Scan through the remainder of the row (steps 3, 6 and 10 in the example above)
+                    return cellsToReturn.peek().next();
                 } else {
-                    queuedTasks.poll();
+                    // We exhausted an iterator - pop it from the queue and try again
+                    cellsToReturn.poll();
                 }
             }
         }
@@ -174,39 +180,14 @@ public class CellPager {
             if (slices.isEmpty()) {
                 nextRow = null;
             } else {
-                splitFetchedRowsIntoTasks(slices);
+                cellsToReturn.addAll(splitFetchedRowsIntoTasks(
+                        slices,
+                        pageSizes.columnPerRowLimit,
+                        (rowKey, lastSeenColumn) -> singleRowPager.createColumnIterator(
+                            tableRef, rowKey, cellBatchHint, lastSeenColumn, consistencyLevel),
+                        stats));
                 computeNextStartRow(slices);
             }
-        }
-
-        private void splitFetchedRowsIntoTasks(List<KeySlice> slices) {
-            // Split the returned slices into single partially fetched rows and contiguous runs of fully fetched rows
-            List<KeySlice> loadedRows = new ArrayList<>();
-            for (KeySlice slice : slices) {
-                loadedRows.add(slice);
-                if (isFullyFetched(slice)) {
-                    stats.add(slice.getColumnsSize());
-                } else {
-                    queuedTasks.add(ImmutableList.of(keySlicesToCells(loadedRows)).iterator());
-                    loadedRows.clear();
-                    // If the row was only partially fetched, we enqueue an iterator to page through
-                    // the remainder of that single row.
-                    Column lastSeenColumn = Iterables.getLast(slice.getColumns()).column;
-                    Iterator<List<ColumnOrSuperColumn>> rawColumnIter = singleRowPager.createColumnIterator(
-                            tableRef, slice.getKey(), cellBatchHint, lastSeenColumn, consistencyLevel);
-                    Iterator<List<ColumnOrSuperColumn>> statsUpdatingIter = new StatsUpdatingIterator(
-                            rawColumnIter, stats, slice.getColumnsSize());
-                    queuedTasks.add(Iterators.transform(
-                            statsUpdatingIter, cols -> columnsToCells(cols, slice.getKey())));
-                }
-            }
-            if (!loadedRows.isEmpty()) {
-                queuedTasks.add(ImmutableList.of(keySlicesToCells(loadedRows)).iterator());
-            }
-        }
-
-        private boolean isFullyFetched(KeySlice slice) {
-            return slice.getColumnsSize() < pageSizes.columnPerRowLimit;
         }
 
         private void computeNextStartRow(List<KeySlice> slices) {
@@ -218,6 +199,48 @@ public class CellPager {
                         false, RangeRequests.nextLexicographicName(lastSeenRow));
             }
         }
+    }
+
+    @VisibleForTesting
+    interface RowRemainderIteratorFactory {
+        Iterator<List<ColumnOrSuperColumn>> createIteratorForRemainderOfRow(byte[] rowKey, Column lastSeenColumn);
+    }
+
+    @VisibleForTesting
+    static List<Iterator<List<CassandraRawCellValue>>> splitFetchedRowsIntoTasks(
+            List<KeySlice> slices,
+            int columnPerRowLimit,
+            RowRemainderIteratorFactory rowRemainderIteratorFactory,
+            @Output StatsAccumulator statsToAccumulate) {
+        // Split the returned slices into single partially fetched rows and contiguous runs of fully fetched rows
+        List<Iterator<List<CassandraRawCellValue>>> ret = new ArrayList<>();
+        List<KeySlice> loadedRows = new ArrayList<>();
+        for (KeySlice slice : slices) {
+            loadedRows.add(slice);
+            if (isFullyFetched(slice, columnPerRowLimit)) {
+                statsToAccumulate.add(slice.getColumnsSize());
+            } else {
+                ret.add(ImmutableList.of(keySlicesToCells(loadedRows)).iterator());
+                loadedRows.clear();
+                // If the row was only partially fetched, we enqueue an iterator to page through
+                // the remainder of that single row.
+                Column lastSeenColumn = Iterables.getLast(slice.getColumns()).column;
+                Iterator<List<ColumnOrSuperColumn>> rawColumnIter = rowRemainderIteratorFactory
+                        .createIteratorForRemainderOfRow(slice.getKey(), lastSeenColumn);
+                Iterator<List<ColumnOrSuperColumn>> statsUpdatingIter = new StatsUpdatingIterator(
+                        rawColumnIter, statsToAccumulate, slice.getColumnsSize());
+                ret.add(Iterators.transform(
+                        statsUpdatingIter, cols -> columnsToCells(cols, slice.getKey())));
+            }
+        }
+        if (!loadedRows.isEmpty()) {
+            ret.add(ImmutableList.of(keySlicesToCells(loadedRows)).iterator());
+        }
+        return ret;
+    }
+
+    private static boolean isFullyFetched(KeySlice slice, int columnPerRowLimit) {
+        return slice.getColumnsSize() < columnPerRowLimit;
     }
 
     private static class StatsUpdatingIterator extends AbstractIterator<List<ColumnOrSuperColumn>> {
@@ -248,14 +271,20 @@ public class CellPager {
         List<CassandraRawCellValue> ret = new ArrayList<>();
         for (KeySlice slice : slices) {
             for (ColumnOrSuperColumn col : slice.getColumns()) {
-                ret.add(new CassandraRawCellValue(slice.getKey(), col.getColumn()));
+                ret.add(ImmutableCassandraRawCellValue.builder()
+                        .rowKey(slice.getKey())
+                        .column(col.getColumn())
+                        .build());
             }
         }
         return ret;
     }
 
     private static List<CassandraRawCellValue> columnsToCells(List<ColumnOrSuperColumn> columns, byte[] rowKey) {
-        return Lists.transform(columns, col -> new CassandraRawCellValue(rowKey, col.getColumn()));
+        return Lists.transform(columns, col -> ImmutableCassandraRawCellValue.builder()
+                .rowKey(rowKey)
+                .column(col.getColumn())
+                .build());
     }
 
 }

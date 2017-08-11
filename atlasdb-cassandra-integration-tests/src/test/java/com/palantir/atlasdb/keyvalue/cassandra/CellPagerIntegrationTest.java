@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -38,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRawCellValue;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ImmutableCassandraRawCellValue;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.SingleRowColumnPager;
 import com.palantir.atlasdb.keyvalue.impl.TestDataBuilder;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
@@ -54,14 +56,16 @@ public class CellPagerIntegrationTest {
     private CellPagerBatchSizingStrategy pageSizingStrategy = Mockito.mock(CellPagerBatchSizingStrategy.class);
     private CellPager cellPager = null;
 
+    @BeforeClass
+    public static void setUpKvs() {
+        kvs = CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraContainer.LEADER_CONFIG,
+                Mockito.mock(Logger.class));
+    }
+
     @Before
     public void setUp() {
-        if (kvs == null) {
-            kvs = CassandraKeyValueService.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
-                    CassandraContainer.LEADER_CONFIG,
-                    Mockito.mock(Logger.class));
-        }
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.truncateTable(TEST_TABLE);
         TracingQueryRunner queryRunner = new TracingQueryRunner(
@@ -127,7 +131,10 @@ public class CellPagerIntegrationTest {
         column.setName(CassandraKeyValueServices.makeCompositeBuffer(TestDataBuilder.row(col), ts));
         column.setValue(TestDataBuilder.value(value));
         column.setTimestamp(ts);
-        return new CassandraRawCellValue(TestDataBuilder.row(row), column);
+        return ImmutableCassandraRawCellValue.builder()
+                .rowKey(TestDataBuilder.row(row))
+                .column(column)
+                .build();
     }
 
     private TestDataBuilder testDataBuilder() {

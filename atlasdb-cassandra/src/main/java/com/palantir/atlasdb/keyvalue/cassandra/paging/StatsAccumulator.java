@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-// Replate this with StatsAccumulator from Guava 20.0 if we ever bump the dependency.
+// TODO(gsheasby): Replace this with StatsAccumulator from Guava 20.0 if we ever bump the dependency.
 public class StatsAccumulator {
     private double mean = 0.0;
     private double sumOfDeltaSquares = 0.0;

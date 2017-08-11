@@ -20,7 +20,7 @@ public class CellPagerBatchSizingStrategy {
     public PageSizes computePageSizes(int cellBatchHint, StatsAccumulator stats) {
         if (stats.count() == 0) {
             // No data yet: go with a square
-            return negotiateExactPageSize(Math.round(Math.sqrt(cellBatchHint)), cellBatchHint);
+            return getExactPageSize(Math.round(Math.sqrt(cellBatchHint)), cellBatchHint);
         } else {
             return computePageSizesAssumingNormalDistribution(
                     cellBatchHint, stats.mean(), stats.populationStandardDeviation());
@@ -47,12 +47,12 @@ public class CellPagerBatchSizingStrategy {
      * Here, the height of the rectangle "h" is KeyRange.count and the width "w" is SliceRange.count.
      * We want the area of our rectangle to be on the order of "cellBatchHint" supplied by the user, i.e.
      *
-     *     w * h ~ cellBatchHint                  (*)
+     *     w * h ~ cellBatchHint                  (1)
      *
      * The question is how to choose "w" and "h" appropriately. If a row contains "w" or more columns (like rows 1 and
      * 4 in the picture above), we need to make at least one extra round trip to retrieve that row individually
      * using the "get_slice" call. Thus, setting "w" too low will result in extra round trips to retrieve the individual
-     * rows, while setting it too high would make "h" low (since "w" and "h" are inversely proportional as in (*)),
+     * rows, while setting it too high would make "h" low (since "w" and "h" are inversely proportional as in (1)),
      * resulting in more round trips to make progress "vertically".
      *
      * It makes sense to try to minimize the number of round trips to Cassandra. Let's assume that rows will be short
@@ -65,16 +65,16 @@ public class CellPagerBatchSizingStrategy {
      *
      *     (N / h) + (# of rows with >= w columns)
      *
-     * Let F(k) be the cumulative distribution function of the number of columns per row. Also, remember from (*)
+     * Let F(k) be the cumulative distribution function of the number of columns per row. Also, remember from (1)
      * that "h" is on the order of "cellBatchHint / w". Hence the above expression is approximately equal to
      *
      *     N * w / cellBatchHint + N * (1 - F(w - 1))
      *
      * Minimizing this is equivalent to minimizing
      *
-     *     w / cellBatchHint - F(w - 1)            (**)
+     *     w / cellBatchHint - F(w - 1)            (2)
      *
-     * So if we had an adequate model of F, we could estimate its parameters and minimize (**) with respect to "w".
+     * So if we had an adequate model of F, we could estimate its parameters and minimize (2) with respect to "w".
      * The problem is that the nature of F can depend on the format of a particular table. For example, an append-only
      * table with five named columns where all five columns are always written at once for every row, will have
      * a degenerate distribution localized at 5; a single-column table with mutations might exhibit a Poisson-like
@@ -86,20 +86,20 @@ public class CellPagerBatchSizingStrategy {
      *
      * Pragmatically speaking, we want a formula like
      *
-     *     w = < estimated mean # columns per row > + 1 + g(sigma, cellBatchHint)    (***)
+     *     w = < estimated mean # columns per row > + 1 + g(sigma, cellBatchHint)    (3)
      *
      * where g(sigma, cellBatchHint) is some term that grows with variance sigma^2. The term is necessary to efficiently
      * handle both the "append-only fixed-column table" (zero variance) and the "partially dirty table" (high variance)
      * cases.
      *
-     * If we minimize (**) in the case of F being the normal distribution, we get (after doing all the calculus):
+     * If we minimize (2) in the case of F being the normal distribution, we get (after doing all the calculus):
      *
-     *     w = mu + 1 + sigma * sqrt(-2 * ln(sqrt(2*pi*sigma^2) / cellBatchHint))       (****)
+     *     w = mu + 1 + sigma * sqrt(-2 * ln(sqrt(2*pi*sigma^2) / cellBatchHint))       (4)
      *
-     * where "mu" is the mean and "sigma" is the standard deviation. This actually looks like (***) for sufficiently
+     * where "mu" is the mean and "sigma" is the standard deviation. This actually looks like (3) for sufficiently
      * small values of sigma, with
      *
-     *    g(sigma, cellBatchHint) = sigma * sqrt(-2 * ln(sqrt(2*pi*sigma^2) / cellBatchHint))     (*****)
+     *    g(sigma, cellBatchHint) = sigma * sqrt(-2 * ln(sqrt(2*pi*sigma^2) / cellBatchHint))     (5)
      *
      * Of course, a real table can't have normally distributed row widths (simply because the
      * row width is a discrete quantity), but:
@@ -107,7 +107,7 @@ public class CellPagerBatchSizingStrategy {
      *      - the normal distribution approximates the "clean narrow table" (low variance) case quite well,
      *        and is a half-decent approximation to the Poisson distribution (the "single-column dirty" case);
      *      - it's easy to estimate the parameters for it (mu and sigma), as well as to do the calculus exercise
-     *        to get (****);
+     *        to get (4);
      *      - the numbers it produces actually seem reasonable.
      *
      * To illustrate the last point, here is a table of g(sigma, cellBatchHint) for some values of sigma. (The physical
@@ -137,19 +137,20 @@ public class CellPagerBatchSizingStrategy {
         // just use the minimum columnPerRowLimit to at least minimize the number of calls
         // to get_range_slice.
         double logArg = Math.min(1.0, SQRT_2_PI * sigma / cellBatchHint);
-        // "extraColumnsToFetch" is the value of "g" defined in (*****)
+        // "extraColumnsToFetch" is the value of "g" defined in (5)
         // Mathematically, the limit of x*ln(x) is 0 as x->0, but numerically we need to compute the logarithm
         // separately (unless we use a Taylor approximation to x*ln(x) instead, which we don't want),
         // so we handle the case of small "s" separately to avoid the logarithm blow up at 0.
         double extraColumnsToFetch = logArg < 1e-12 ? 0.0 : sigma * Math.sqrt(-2.0 * Math.log(logArg));
-        return negotiateExactPageSize(columnsPerRowMean + 1.0 + extraColumnsToFetch, cellBatchHint);
+        return getExactPageSize(columnsPerRowMean + 1.0 + extraColumnsToFetch, cellBatchHint);
     }
 
-    private static PageSizes negotiateExactPageSize(double desiredColumnPerRowLimit, int cellBatchHint) {
-        int columnPerRowLimit1 = Math.max(2, Math.min(cellBatchHint, (int) Math.round(desiredColumnPerRowLimit)));
-        int rowLimit = Math.max(1, cellBatchHint / columnPerRowLimit1);
-        int columnPerRowLimit2 = Math.max(2, cellBatchHint / rowLimit);
-        return new PageSizes(rowLimit, columnPerRowLimit2);
+    private static PageSizes getExactPageSize(double desiredColumnPerRowLimit, int cellBatchHint) {
+        int approximateColumnPerRowLimit = Math.max(2,
+                Math.min(cellBatchHint, (int) Math.round(desiredColumnPerRowLimit)));
+        int rowLimit = Math.max(1, cellBatchHint / approximateColumnPerRowLimit);
+        int finalColumnPerRowLimit = Math.max(2, cellBatchHint / rowLimit);
+        return new PageSizes(rowLimit, finalColumnPerRowLimit);
     }
 
     public static class PageSizes {
