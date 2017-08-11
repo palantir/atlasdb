@@ -70,7 +70,10 @@ public final class TransactionManagers {
     /**
      * Create a {@link SerializableTransactionManager} with provided configurations, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
+     *
+     * @deprecated use TransactionManagerBuilder instead.
      */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
@@ -110,7 +113,10 @@ public final class TransactionManagers {
     /**
      * Create a {@link SerializableTransactionManager} with provided configurations, a set of
      * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
+
+     * @deprecated use TransactionManagerBuilder instead.
      */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
@@ -128,6 +134,10 @@ public final class TransactionManagers {
                 .build();
     }
 
+    /**
+     * @deprecated use TransactionManagerBuilder instead.
+     */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
@@ -147,6 +157,10 @@ public final class TransactionManagers {
                 .build();
     }
 
+    /**
+     * @deprecated use TransactionManagerBuilder instead.
+     */
+    @Deprecated
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier,
