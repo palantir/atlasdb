@@ -47,6 +47,5 @@ public abstract class TimeLockRuntimeConfiguration {
     public void check() {
         Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
                 "Slow lock log trigger threshold must be nonnegative, but found %s", slowLockLogTriggerMillis());
-
     }
 }

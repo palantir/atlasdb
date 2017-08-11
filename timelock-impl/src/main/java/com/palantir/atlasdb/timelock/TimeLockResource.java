@@ -81,7 +81,8 @@ public class TimeLockResource {
         if (servicesByClient.size() >= maxNumberOfClients.get()) {
             log.error(
                     "Unable to create timelock services for client {}, as it would exceed the maximum number of "
-                            + "allowed clients ({}).",
+                            + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
+                            + "increased via the maximum-number-of-clients config property.",
                     SafeArg.of("client", client),
                     SafeArg.of("maxNumberOfClients", maxNumberOfClients));
             throw new IllegalStateException("Maximum number of clients exceeded");
