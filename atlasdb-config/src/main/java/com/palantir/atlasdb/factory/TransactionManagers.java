@@ -210,151 +210,8 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             String userAgent) {
-        checkInstallConfig(config);
-
-        AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
-                () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
-
-        ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
-
-        KeyValueService rawKvs = atlasFactory.getKeyValueService();
-
-        LockRequest.setDefaultLockTimeout(
-                SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
-        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
-                config,
-                () -> runtimeConfigSupplier.get().timestampClient(),
-                env,
-                () -> LockServiceImpl.create(lockServerOptions),
-                atlasFactory::getTimestampService,
-                atlasFactory.getTimestampStoreInvalidator(),
-                userAgent);
-
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
-        kvs = SweepStatsKeyValueService.create(kvs,
-                new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
-        kvs = TracingKeyValueService.create(kvs);
-        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
-                MetricRegistry.name(KeyValueService.class, userAgent));
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
-
-        TransactionTables.createTables(kvs);
-
-        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
-
-        TransactionService transactionService = TransactionServices.createTransactionService(kvs);
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
-
-        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
-                .add(SweepSchema.INSTANCE.getLatestSchema())
-                .addAll(schemas)
-                .build();
-        for (Schema schema : allSchemas) {
-            Schemas.createTablesAndIndexes(schema, kvs);
-        }
-
-        // Prime the key value service with logging information.
-        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
-        LoggingArgs.hydrate(kvs.getMetadataForTables());
-
-        CleanupFollower follower = CleanupFollower.create(schemas);
-
-        Cleaner cleaner = new DefaultCleanerBuilder(
-                kvs,
-                lockAndTimestampServices.timelock(),
-                ImmutableList.of(follower),
-                transactionService)
-                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
-                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
-                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
-                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
-                .setPunchIntervalMillis(config.getPunchIntervalMillis())
-                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
-                .buildCleaner();
-
-        SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lockAndTimestampServices.timelock(),
-                lockAndTimestampServices.lock(),
-                transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
-                conflictManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess,
-                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
-
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis());
-        initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
-                env,
-                kvs,
-                transactionService,
-                sweepStrategyManager,
-                follower,
-                transactionManager,
-                persistentLockManager);
-
-        return transactionManager;
-    }
-
-    private static void checkInstallConfig(AtlasDbConfig config) {
-        if (config.getSweepBatchSize() != null
-                || config.getSweepCellBatchSize() != null
-                || config.getSweepReadLimit() != null
-                || config.getSweepCandidateBatchHint() != null
-                || config.getSweepDeleteBatchHint() != null) {
-            log.error("Your configuration specifies sweep parameters on the install config. They will be ignored."
-                    + " Please use the runtime config to specify them.");
-        }
-    }
-
-    private static void initializeSweepEndpointAndBackgroundProcess(
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Environment env,
-            KeyValueService kvs,
-            TransactionService transactionService,
-            SweepStrategyManager sweepStrategyManager,
-            CleanupFollower follower,
-            SerializableTransactionManager transactionManager,
-            PersistentLockManager persistentLockManager) {
-        CellsSweeper cellsSweeper = new CellsSweeper(
-                transactionManager,
-                kvs,
-                persistentLockManager,
-                ImmutableList.of(follower));
-        SweepTaskRunner sweepRunner = new SweepTaskRunner(
-                kvs,
-                transactionManager::getUnreadableTimestamp,
-                transactionManager::getImmutableTimestamp,
-                transactionService,
-                sweepStrategyManager,
-                cellsSweeper);
-        BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        Supplier<SweepBatchConfig> sweepBatchConfig = () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
-        SweepMetrics sweepMetrics = new SweepMetrics();
-
-        SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
-                env,
-                kvs,
-                transactionManager,
-                sweepRunner,
-                sweepPerfLogger,
-                sweepBatchConfig,
-                sweepMetrics);
-
-        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
-                () -> runtimeConfigSupplier.get().sweep().enabled(),
-                () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
-                persistentLockManager,
-                specificTableSweeper);
-
-        transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
-        backgroundSweeper.runInBackground();
+        return new TransactionManagerBuilder(config, optionalRuntimeConfigSupplier, schemas, env, lockServerOptions,
+                allowHiddenTableAccess, userAgent).build();
     }
 
     private static SpecificTableSweeper initializeSweepEndpoint(
@@ -383,17 +240,6 @@ public final class TransactionManagers {
                 .candidateBatchSize(sweepConfig.candidateBatchHint())
                 .deleteBatchSize(sweepConfig.deleteBatchHint())
                 .build();
-    }
-
-    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
-        if (!kvs.supportsCheckAndSet()) {
-            return new NoOpPersistentLockService();
-        }
-
-        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
-        env.register(pls);
-        env.register(new CheckAndSetExceptionMapper());
-        return pls;
     }
 
     /**
@@ -633,5 +479,187 @@ public final class TransactionManagers {
 
     public interface Environment {
         void register(Object resource);
+    }
+
+    public static class TransactionManagerBuilder {
+        private AtlasDbConfig config;
+        private java.util.function.Supplier<Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier;
+        private Set<Schema> schemas;
+        private Environment env;
+        private LockServerOptions lockServerOptions;
+        private boolean allowHiddenTableAccess;
+        private String userAgent;
+
+        public TransactionManagerBuilder(AtlasDbConfig config,
+                java.util.function.Supplier<Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier,
+                Set<Schema> schemas, Environment env, LockServerOptions lockServerOptions,
+                boolean allowHiddenTableAccess, String userAgent) {
+            this.config = config;
+            this.optionalRuntimeConfigSupplier = optionalRuntimeConfigSupplier;
+            this.schemas = schemas;
+            this.env = env;
+            this.lockServerOptions = lockServerOptions;
+            this.allowHiddenTableAccess = allowHiddenTableAccess;
+            this.userAgent = userAgent;
+        }
+
+        public SerializableTransactionManager build() {
+            checkInstallConfig(config);
+
+            AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
+                    () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
+
+            ServiceDiscoveringAtlasSupplier atlasFactory =
+                    new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+
+            KeyValueService rawKvs = atlasFactory.getKeyValueService();
+
+            LockRequest.setDefaultLockTimeout(
+                    SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
+            LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
+                    config,
+                    () -> runtimeConfigSupplier.get().timestampClient(),
+                    env,
+                    () -> LockServiceImpl.create(lockServerOptions),
+                    atlasFactory::getTimestampService,
+                    atlasFactory.getTimestampStoreInvalidator(),
+                    userAgent);
+
+            KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+            kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
+            kvs = SweepStatsKeyValueService.create(kvs,
+                    new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
+            kvs = TracingKeyValueService.create(kvs);
+            kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
+                    MetricRegistry.name(KeyValueService.class, userAgent));
+            kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
+
+            TransactionTables.createTables(kvs);
+
+            PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
+
+            TransactionService transactionService = TransactionServices.createTransactionService(kvs);
+            ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
+            SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
+
+            Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
+                    .add(SweepSchema.INSTANCE.getLatestSchema())
+                    .addAll(schemas)
+                    .build();
+            for (Schema schema : allSchemas) {
+                Schemas.createTablesAndIndexes(schema, kvs);
+            }
+
+            // Prime the key value service with logging information.
+            // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
+            LoggingArgs.hydrate(kvs.getMetadataForTables());
+
+            CleanupFollower follower = CleanupFollower.create(schemas);
+
+            Cleaner cleaner = new DefaultCleanerBuilder(
+                    kvs,
+                    lockAndTimestampServices.timelock(),
+                    ImmutableList.of(follower),
+                    transactionService)
+                    .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
+                    .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
+                    .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
+                    .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
+                    .setPunchIntervalMillis(config.getPunchIntervalMillis())
+                    .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                    .buildCleaner();
+
+            SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
+                    lockAndTimestampServices.timelock(),
+                    lockAndTimestampServices.lock(),
+                    transactionService,
+                    Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                    conflictManager,
+                    sweepStrategyManager,
+                    cleaner,
+                    allowHiddenTableAccess,
+                    () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
+
+            PersistentLockManager persistentLockManager = new PersistentLockManager(
+                    persistentLockService,
+                    config.getSweepPersistentLockWaitMillis());
+            initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
+                    env,
+                    kvs,
+                    transactionService,
+                    sweepStrategyManager,
+                    follower,
+                    transactionManager,
+                    persistentLockManager);
+
+            return transactionManager;
+        }
+
+        private static void checkInstallConfig(AtlasDbConfig config) {
+            if (config.getSweepBatchSize() != null
+                    || config.getSweepCellBatchSize() != null
+                    || config.getSweepReadLimit() != null
+                    || config.getSweepCandidateBatchHint() != null
+                    || config.getSweepDeleteBatchHint() != null) {
+                log.error("Your configuration specifies sweep parameters on the install config. They will be ignored."
+                        + " Please use the runtime config to specify them.");
+            }
+        }
+
+        private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+            if (!kvs.supportsCheckAndSet()) {
+                return new NoOpPersistentLockService();
+            }
+
+            PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
+            env.register(pls);
+            env.register(new CheckAndSetExceptionMapper());
+            return pls;
+        }
+
+        private static void initializeSweepEndpointAndBackgroundProcess(
+                java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+                Environment env,
+                KeyValueService kvs,
+                TransactionService transactionService,
+                SweepStrategyManager sweepStrategyManager,
+                CleanupFollower follower,
+                SerializableTransactionManager transactionManager,
+                PersistentLockManager persistentLockManager) {
+            CellsSweeper cellsSweeper = new CellsSweeper(
+                    transactionManager,
+                    kvs,
+                    persistentLockManager,
+                    ImmutableList.of(follower));
+            SweepTaskRunner sweepRunner = new SweepTaskRunner(
+                    kvs,
+                    transactionManager::getUnreadableTimestamp,
+                    transactionManager::getImmutableTimestamp,
+                    transactionService,
+                    sweepStrategyManager,
+                    cellsSweeper);
+            BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
+            Supplier<SweepBatchConfig> sweepBatchConfig = () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
+            SweepMetrics sweepMetrics = new SweepMetrics();
+
+            SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
+                    env,
+                    kvs,
+                    transactionManager,
+                    sweepRunner,
+                    sweepPerfLogger,
+                    sweepBatchConfig,
+                    sweepMetrics);
+
+            BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+                    () -> runtimeConfigSupplier.get().sweep().enabled(),
+                    () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
+                    persistentLockManager,
+                    specificTableSweeper);
+
+            transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
+            backgroundSweeper.runInBackground();
+        }
     }
 }
