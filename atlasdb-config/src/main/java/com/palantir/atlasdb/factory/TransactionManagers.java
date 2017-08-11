@@ -32,7 +32,6 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 
 public final class TransactionManagers {
@@ -58,7 +57,6 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        logTransactionManagerCreation();
         return new TransactionManagerBuilder()
                 .config(config)
                 .runtimeConfig(java.util.Optional::empty)
@@ -79,7 +77,6 @@ public final class TransactionManagers {
             Schema schema,
             TransactionManagerBuilder.Environment env,
             boolean allowHiddenTableAccess) {
-        logTransactionManagerCreation();
         return new TransactionManagerBuilder()
                 .config(config)
                 .runtimeConfig(runtimeConfigSupplier)
@@ -100,7 +97,6 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             TransactionManagerBuilder.Environment env,
             boolean allowHiddenTableAccess) {
-        logTransactionManagerCreation();
         return new TransactionManagerBuilder()
                 .config(config)
                 .runtimeConfig(runtimeConfigSupplier)
@@ -168,11 +164,6 @@ public final class TransactionManagers {
                 .withHiddenTableAccess(allowHiddenTableAccess)
                 .userAgent(userAgent)
                 .build();
-    }
-
-    private static void logTransactionManagerCreation() {
-        log.info("Called TransactionManagers.create. This should only happen once.",
-                UnsafeArg.of("thread name", Thread.currentThread().getName()));
     }
 
     /**

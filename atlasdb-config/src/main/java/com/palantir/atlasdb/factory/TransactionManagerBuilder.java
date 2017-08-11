@@ -100,6 +100,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -159,6 +160,9 @@ public class TransactionManagerBuilder {
     }
 
     public SerializableTransactionManager build() {
+        log.info("Building a TransactionManager. This should only happen once.",
+                UnsafeArg.of("thread name", Thread.currentThread().getName()));
+
         checkInstallConfig(config);
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
