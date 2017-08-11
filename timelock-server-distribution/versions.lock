@@ -173,6 +173,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:commons-executors",
@@ -291,6 +292,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-init-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -1005,8 +1012,10 @@
             ]
         },
         "org.javassist:javassist": {
-            "locked": "3.20.0-GA",
+            "locked": "3.18.2-GA",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "org.glassfish.hk2:hk2-locator"
             ]
         },
@@ -1051,6 +1060,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",

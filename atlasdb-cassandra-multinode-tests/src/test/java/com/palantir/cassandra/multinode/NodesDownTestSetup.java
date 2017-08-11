@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.AfterClass;
@@ -133,7 +134,9 @@ public abstract class NodesDownTestSetup {
                 ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            new CassandraClientPool(manager.getConfig());
+            new CassandraClientPool(manager.getConfig(),
+                    Executors.newSingleThreadScheduledExecutor(),
+                    Executors.newSingleThreadExecutor());
             return true;
         } catch (Exception e) {
             return false;

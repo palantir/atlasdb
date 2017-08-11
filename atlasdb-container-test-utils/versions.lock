@@ -108,6 +108,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
@@ -204,6 +205,13 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-init-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:commons-annotations": {
@@ -494,6 +502,12 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-init-api"
+            ]
+        },
         "org.jboss.marshalling:jboss-marshalling": {
             "locked": "1.4.11.Final",
             "transitive": [
@@ -528,6 +542,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",
@@ -657,6 +672,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
@@ -753,6 +769,13 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-init-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:commons-annotations": {
@@ -1043,6 +1066,12 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-init-api"
+            ]
+        },
         "org.jboss.marshalling:jboss-marshalling": {
             "locked": "1.4.11.Final",
             "transitive": [
@@ -1077,6 +1106,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",

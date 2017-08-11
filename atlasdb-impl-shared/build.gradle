@@ -27,6 +27,7 @@ dependencies {
     exclude module: 'jersey-server'
   }
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  compile group: 'org.javassist', name: 'javassist'
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'

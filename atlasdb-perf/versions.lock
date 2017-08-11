@@ -165,6 +165,7 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-service",
@@ -343,6 +344,13 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-init-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -812,6 +820,8 @@
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "org.reflections:reflections"
             ]
         },
@@ -870,6 +880,7 @@
             "transitive": [
                 "ch.qos.logback:logback-classic",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:error-handling",
@@ -1067,6 +1078,7 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:atlasdb-service",
@@ -1245,6 +1257,13 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-init-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:atlasdb-lock-api": {
@@ -1714,6 +1733,8 @@
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "org.reflections:reflections"
             ]
         },
@@ -1772,6 +1793,7 @@
             "transitive": [
                 "ch.qos.logback:logback-classic",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:error-handling",

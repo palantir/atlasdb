@@ -1,0 +1,24 @@
+{
+    "compileClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3"
+        },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA"
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5"
+        }
+    },
+    "runtime": {
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3"
+        },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA"
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5"
+        }
+    }
+}
