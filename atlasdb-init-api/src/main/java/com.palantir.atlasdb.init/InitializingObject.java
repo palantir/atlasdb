@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb;
+package com.palantir.atlasdb.init;
 
 public interface InitializingObject {
 
