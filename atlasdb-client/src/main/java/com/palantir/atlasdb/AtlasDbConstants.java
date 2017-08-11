@@ -91,6 +91,7 @@ public class AtlasDbConstants {
     public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 3600000L;
     public static final int DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE = 2000;
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
+    public static final char OLD_SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
     public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;

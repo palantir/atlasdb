@@ -79,11 +79,10 @@ public class KeyValueServiceScrubberStoreTest {
                 getScrubQueue());
         scrubStore.markCellsAsScrubbed(ImmutableMap.of(
                 ref2, ImmutableMultimap.of(cell3, timestamp2),
-                ref1, ImmutableMultimap.of(cell1, timestamp1)), 1000);
+                ref1, ImmutableMultimap.of(cell1, timestamp1, cell1, timestamp2)), 1000);
         Assert.assertEquals(
                 ImmutableList.of(ImmutableSortedMap.of(
-                        timestamp1, ImmutableMultimap.of(ref1, cell2),
-                        timestamp2, ImmutableMultimap.of(ref1, cell1))),
+                        timestamp1, ImmutableMultimap.of(ref1, cell2))),
                 getScrubQueue());
     }
 

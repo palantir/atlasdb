@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -34,7 +35,7 @@ import io.airlift.airline.Option;
         description = "Move the contents of the old scrub queue into the new "
                 + "scrub queue. This operation is resumable.")
 public class ScrubQueueMigrationCommand extends SingleBackendCommand {
-    private static final byte[] EMPTY_CONTENTS = new byte[] {1};
+    private static final byte[] DUMMY_CONTENTS = new byte[] {1};
 
     @Option(name = {"--truncate"},
             description = "Truncate the old scrub queue instead of moving it. "
@@ -50,6 +51,8 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
 
     @Override
     public int execute(AtlasDbServices services) {
+        Preconditions.checkArgument(!truncateOldQueue || batchSize == null,
+                "Truncating the old scrub queue and specifying a batch size are mutually exclusive options.");
         PrintWriter output = new PrintWriter(System.out, true);
         if (truncateOldQueue) {
             services.getKeyValueService().truncateTable(AtlasDbConstants.OLD_SCRUB_TABLE);
@@ -98,12 +101,12 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
                 Value value = entry.getValue();
                 long timestamp = value.getTimestamp();
                 String[] tableNames = StringUtils.split(
-                        PtBytes.toString(value.getContents()), '\0');
+                        PtBytes.toString(value.getContents()), AtlasDbConstants.OLD_SCRUB_TABLE_SEPARATOR_CHAR);
                 for (String tableName : tableNames) {
                     byte[] tableBytes = EncodingUtils.encodeVarString(tableName);
                     byte[] newCol = EncodingUtils.add(tableBytes, col);
                     Cell newCell = Cell.create(row, newCol);
-                    batchToCreate.put(newCell, Value.create(EMPTY_CONTENTS, timestamp));
+                    batchToCreate.put(newCell, Value.create(DUMMY_CONTENTS, timestamp));
                 }
                 batchToDelete.put(Cell.create(row, col), timestamp);
                 if (batchToDelete.size() >= context.batchSize) {
