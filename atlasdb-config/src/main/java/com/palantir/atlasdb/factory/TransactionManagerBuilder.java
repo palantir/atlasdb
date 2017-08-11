@@ -118,24 +118,48 @@ public class TransactionManagerBuilder {
     private java.util.function.Supplier<Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier;
     private Set<Schema> schemas;
     private Environment env;
-    private LockServerOptions lockServerOptions;
+    private LockServerOptions lockOptions;
     private boolean allowHiddenTableAccess;
     private String userAgent;
 
-    public TransactionManagerBuilder(AtlasDbConfig config,
-            java.util.function.Supplier<Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess,
-            String userAgent) {
-        this.config = config;
-        this.optionalRuntimeConfigSupplier = optionalRuntimeConfigSupplier;
-        this.schemas = schemas;
-        this.env = env;
-        this.lockServerOptions = lockServerOptions;
-        this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.userAgent = userAgent;
+    public TransactionManagerBuilder config(AtlasDbConfig atlasDbConfig) {
+        config = atlasDbConfig;
+        return this;
+    }
+
+    public TransactionManagerBuilder runtimeConfig(java.util.function.Supplier<Optional<AtlasDbRuntimeConfig>> orcs) {
+        optionalRuntimeConfigSupplier = orcs;
+        return this;
+    }
+
+    public TransactionManagerBuilder schemas(Set<Schema> schemaSet) {
+        schemas = schemaSet;
+        return this;
+    }
+
+    public TransactionManagerBuilder environment(Environment environment) {
+        env = environment;
+        return this;
+    }
+
+    public TransactionManagerBuilder lockServerOptions(LockServerOptions lockServerOptions) {
+        lockOptions = lockServerOptions;
+        return this;
+    }
+
+    public TransactionManagerBuilder withHiddenTableAccess() {
+        allowHiddenTableAccess = true;
+        return this;
+    }
+
+    public TransactionManagerBuilder withHiddenTableAccess(boolean hiddenTableAccess) {
+        allowHiddenTableAccess = hiddenTableAccess;
+        return this;
+    }
+
+    public TransactionManagerBuilder userAgent(String agent) {
+        userAgent = agent;
+        return this;
     }
 
     public SerializableTransactionManager build() {
@@ -156,7 +180,7 @@ public class TransactionManagerBuilder {
                 config,
                 () -> runtimeConfigSupplier.get().timestampClient(),
                 env,
-                () -> LockServiceImpl.create(lockServerOptions),
+                () -> LockServiceImpl.create(lockOptions),
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent);

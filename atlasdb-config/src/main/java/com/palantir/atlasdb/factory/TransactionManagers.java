@@ -128,8 +128,14 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             String userAgent) {
-        return new TransactionManagerBuilder(config, optionalRuntimeConfigSupplier, schemas, env, lockServerOptions,
-                allowHiddenTableAccess, userAgent).build();
+        return new TransactionManagerBuilder()
+                .config(config)
+                .runtimeConfig(optionalRuntimeConfigSupplier)
+                .schemas(schemas)
+                .environment(env)
+                .lockServerOptions(lockServerOptions)
+                .withHiddenTableAccess(allowHiddenTableAccess)
+                .userAgent(userAgent).build();
     }
 
     /**
