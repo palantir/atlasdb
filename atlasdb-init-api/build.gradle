@@ -1,0 +1,7 @@
+apply from: "../gradle/publish-jars.gradle"
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    compile group: 'org.javassist', name: 'javassist'
+    compile group: 'org.slf4j', name: 'slf4j-api'
+}

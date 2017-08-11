@@ -67,8 +67,8 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.InitializingObject;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.init.InitializingObject;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
@@ -86,7 +86,7 @@ import com.palantir.remoting2.tracing.Tracers;
  *   - Pool member error tracking / blacklisting*
  *   - Pool refreshing
  *   - Pool node autodiscovery
- *   - Pool member health checking*
+ *   - Pool member health checking*`
  *
  *   *entirely new features
  *

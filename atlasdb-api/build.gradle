@@ -5,7 +5,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile project(":atlasdb-commons")
-  compile project(":atlasdb-impl-shared")
+  compile project(":atlasdb-init-api")
   compile project(":timestamp-api")
   compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
   compile group: 'org.apache.commons', name: 'commons-lang3'

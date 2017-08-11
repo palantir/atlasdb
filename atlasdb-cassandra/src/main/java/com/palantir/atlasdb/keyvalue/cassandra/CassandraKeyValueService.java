@@ -79,12 +79,12 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.InitialiseCheckerProxy;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.init.InitializationCheckerProxy;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -199,7 +199,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.log = log;
         this.configManager = configManager;
         try {
-            this.clientPool = InitialiseCheckerProxy.newProxyInstance(
+            this.clientPool = InitializationCheckerProxy.newProxyInstance(
                     new Class<?>[] {CassandraKeyValueServiceConfig.class}, new Object[] {configManager.getConfig()},
                     CassandraClientPool.class);
         } catch (Exception e) {

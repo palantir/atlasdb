@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb;
+package com.palantir.atlasdb.init;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,10 +29,10 @@ import javassist.util.proxy.MethodHandler;
 import javassist.util.proxy.Proxy;
 import javassist.util.proxy.ProxyFactory;
 
-public final class InitialiseCheckerProxy {
-    private static Logger log = LoggerFactory.getLogger(InitializingObject.class);
+public final class InitializationCheckerProxy {
+    private static Logger log = LoggerFactory.getLogger(InitializationCheckerProxy.class);
 
-    private InitialiseCheckerProxy() {
+    private InitializationCheckerProxy() {
         //factory
     }
 
