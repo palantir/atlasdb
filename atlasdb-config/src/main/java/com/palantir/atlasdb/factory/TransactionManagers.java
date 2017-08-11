@@ -58,11 +58,15 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        return create(config,
-                java.util.Optional::empty,
-                schemas,
-                x -> { },
-                false);
+        logTransactionManagerCreation();
+        return new TransactionManagerBuilder()
+                .config(config)
+                .runtimeConfig(java.util.Optional::empty)
+                .schemas(schemas)
+                .environment(x -> { })
+                .lockServerOptions(LockServerOptions.DEFAULT)
+                .withHiddenTableAccess(false)
+                .build();
     }
 
     /**
