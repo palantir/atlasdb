@@ -154,6 +154,11 @@ public class TransactionManagerBuilder {
         return this;
     }
 
+    public TransactionManagerBuilder disallowHiddenTableAccess() {
+        allowHiddenTableAccess = false;
+        return this;
+    }
+
     public TransactionManagerBuilder userAgent(String agent) {
         userAgent = agent;
         return this;
