@@ -71,6 +71,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
@@ -142,6 +143,12 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-init-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.atlasdb:commons-executors": {
@@ -275,6 +282,12 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-init-api"
+            ]
+        },
         "org.jooq:jooq": {
             "locked": "3.6.4",
             "requested": "3.6.4"
@@ -289,6 +302,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -376,6 +390,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
@@ -447,6 +462,12 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-init-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.atlasdb:commons-executors": {
@@ -580,6 +601,12 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
+        "org.javassist:javassist": {
+            "locked": "3.18.2-GA",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-init-api"
+            ]
+        },
         "org.jooq:jooq": {
             "locked": "3.6.4",
             "requested": "3.6.4"
@@ -594,6 +621,7 @@
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-init-api",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
