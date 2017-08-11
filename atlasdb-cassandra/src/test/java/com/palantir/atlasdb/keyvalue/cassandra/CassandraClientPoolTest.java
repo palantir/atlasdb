@@ -241,7 +241,7 @@ public class CassandraClientPoolTest {
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.servers()).thenReturn(servers);
 
-        //TODO: add tests that refreshDaemon and initExecutor are used correctly
+        // TODO(hsaraogi): add tests that refreshDaemon and initExecutor are used correctly
         ScheduledExecutorService refreshDaemon = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("TestCassandraClientPoolRefresh-%d")

@@ -36,7 +36,7 @@ public final class InitializationCheckerProxy {
         //factory
     }
 
-    public static  <T> T newProxyInstance(Class<?>[] classes,
+    public static <T> T newProxyInstance(Class<?>[] classes,
             Object[] objects,
             Class<T> clazz)
             throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
@@ -54,8 +54,11 @@ public final class InitializationCheckerProxy {
             if (isInitialized.get()) {
                 return proceed.invoke(self, args);
             }
-            log.error("The object of type {} is not initialised yet. Hence cannot call method {}.", self.getClass(), method.getName());
-            throw new IllegalStateException(String.format("The class %s is not initialised yet. Hence cannot call method %s.", self.getClass(), method.getName()));
+            log.error("The object of type {} is not initialised yet. Hence cannot call method {}.", self.getClass(),
+                    method.getName());
+            throw new IllegalStateException(
+                    String.format("The class %s is not initialised yet. Hence cannot call method %s.", self.getClass(),
+                            method.getName()));
         };
         ((Proxy) toReturn).setHandler(handler);
         return (T) toReturn;
