@@ -29,6 +29,9 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.junit.Before;
@@ -39,6 +42,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.base.FunctionCheckedException;
@@ -237,7 +241,19 @@ public class CassandraClientPoolTest {
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.servers()).thenReturn(servers);
 
-        CassandraClientPool cassandraClientPool = CassandraClientPool.createWithoutChecksForTesting(config);
+        //TODO: add tests that refreshDaemon and initExecutor are used correctly
+        ScheduledExecutorService refreshDaemon = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("TestCassandraClientPoolRefresh-%d")
+                .build());
+
+        ExecutorService initExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("TestCassandraClientPoolInit-%d")
+                .build());
+
+        CassandraClientPool cassandraClientPool = CassandraClientPool
+                .createWithoutChecksForTesting(config, refreshDaemon, initExecutor);
 
         serversInPool.forEach(address ->
                 cassandraClientPool.addPool(address, getMockPoolingContainerForHost(address, failureMode)));

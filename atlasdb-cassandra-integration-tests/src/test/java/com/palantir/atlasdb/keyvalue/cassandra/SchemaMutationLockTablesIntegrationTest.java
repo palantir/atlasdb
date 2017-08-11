@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
 import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
 
@@ -58,7 +59,9 @@ public class SchemaMutationLockTablesIntegrationTest {
     public void setupKvs() throws TException, InterruptedException {
         config = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
-        clientPool = new CassandraClientPool(config);
+        clientPool = new CassandraClientPool(config,
+                Executors.newSingleThreadScheduledExecutor(),
+                Executors.newSingleThreadExecutor());
         clientPool.runOneTimeStartupChecks();
         lockTables = new SchemaMutationLockTables(clientPool, config);
     }

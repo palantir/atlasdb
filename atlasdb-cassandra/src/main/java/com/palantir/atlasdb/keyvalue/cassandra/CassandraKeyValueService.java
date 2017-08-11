@@ -31,7 +31,11 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -78,6 +82,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -124,9 +129,11 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -199,8 +206,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.log = log;
         this.configManager = configManager;
         try {
+
+            ScheduledExecutorService refreshDaemon = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
+                    new ThreadFactoryBuilder()
+                    .setDaemon(true)
+                    .setNameFormat("TestCassandraClientPoolRefresh-%d")
+                    .build()));
+
+            ExecutorService initExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+                    .setDaemon(true)
+                    .setNameFormat("TestCassandraClientPoolInit-%d")
+                    .build());
+
             this.clientPool = InitializationCheckerProxy.newProxyInstance(
-                    new Class<?>[] {CassandraKeyValueServiceConfig.class}, new Object[] {configManager.getConfig()},
+                    new Class<?>[] {CassandraKeyValueServiceConfig.class,
+                                    ScheduledExecutorService.class,
+                                    ExecutorService.class},
+                    new Object[] {configManager.getConfig(), refreshDaemon, initExecutor},
                     CassandraClientPool.class);
         } catch (Exception e) {
             throw com.google.common.base.Throwables.propagate(e);

@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -66,15 +67,16 @@ public class HeartbeatServiceIntegrationTest {
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = new CassandraClientPool(simpleManager.getConfig());
+        clientPool = new CassandraClientPool(simpleManager.getConfig(), Executors.newSingleThreadScheduledExecutor(),
+                Executors.newSingleThreadExecutor());
         lockTable = new UniqueSchemaMutationLockTable(
                 new SchemaMutationLockTables(clientPool, CassandraContainer.KVS_CONFIG),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
-                                                queryRunner,
-                                                heartbeatTimePeriodMillis,
-                                                lockTable.getOnlyTable(),
-                                                writeConsistency);
+                queryRunner,
+                heartbeatTimePeriodMillis,
+                lockTable.getOnlyTable(),
+                writeConsistency);
         lockTestTools = new SchemaMutationLockTestTools(clientPool, lockTable);
         lockTestTools.setLocksTableValue(lockId, 0);
     }

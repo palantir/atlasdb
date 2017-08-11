@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +64,6 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.init.InitializingObject;
@@ -75,8 +73,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCrea
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 /**
  * Feature breakdown:
@@ -117,13 +113,13 @@ public class CassandraClientPool implements InitializingObject {
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
     final ScheduledExecutorService refreshDaemon;
-    final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
     private final AtomicBoolean isInitialised = new AtomicBoolean(false);
+    private final ExecutorService initExecutor;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -203,28 +199,33 @@ public class CassandraClientPool implements InitializingObject {
     }
 
     @VisibleForTesting
-    static CassandraClientPool createWithoutChecksForTesting(CassandraKeyValueServiceConfig config) {
-        return new CassandraClientPool(config, StartupChecks.DO_NOT_RUN);
+    static CassandraClientPool createWithoutChecksForTesting(CassandraKeyValueServiceConfig config,
+            ScheduledExecutorService refreshDameon,
+            ExecutorService initExecutor) {
+        return new CassandraClientPool(config, StartupChecks.DO_NOT_RUN, refreshDameon, initExecutor);
     }
 
-    public CassandraClientPool(CassandraKeyValueServiceConfig config) {
-        this(config, StartupChecks.RUN);
+    public CassandraClientPool(CassandraKeyValueServiceConfig config,
+            ScheduledExecutorService refreshDaemon,
+            ExecutorService initExecutor) {
+        this(config, StartupChecks.RUN, refreshDaemon, initExecutor);
     }
 
-    private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
+    private CassandraClientPool(CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            ScheduledExecutorService refreshDaemon,
+            ExecutorService initExecutor) {
         this.config = config;
-        refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("CassandraClientPoolRefresh-%d")
-                .build()));
+        this.refreshDaemon = refreshDaemon;
         this.startupChecks = startupChecks;
+        this.initExecutor = initExecutor;
         isInitialised.compareAndSet(false, false);
         initialize();
     }
 
     @Override
     public void initialize() {
-        executorService.execute(() -> {
+        initExecutor.execute(() -> {
             while (!isInitialised.get()) {
                 initWithoutThrowing();
             }
