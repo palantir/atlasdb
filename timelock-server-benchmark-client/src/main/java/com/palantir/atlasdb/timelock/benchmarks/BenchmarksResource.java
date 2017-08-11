@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -30,7 +31,7 @@ public class BenchmarksResource implements BenchmarksService {
 
     public BenchmarksResource(AtlasDbConfig config) {
         this.config = config;
-        this.txnManager = TransactionManagers.create(config, ImmutableSet.of(), res -> { }, true);
+        this.txnManager = TransactionManagers.create(config, () -> Optional.empty(), ImmutableSet.of(), res -> { }, true);
     }
 
     @Override

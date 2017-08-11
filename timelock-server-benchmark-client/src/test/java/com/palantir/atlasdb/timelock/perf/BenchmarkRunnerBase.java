@@ -17,30 +17,19 @@
 package com.palantir.atlasdb.timelock.perf;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.palantir.atlasdb.http.AtlasDbErrorDecoder;
-import com.palantir.atlasdb.http.TextDelegateDecoder;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
-
-import feign.Client;
-import feign.Contract;
-import feign.Feign;
-import feign.Request;
-import feign.codec.Decoder;
-import feign.codec.Encoder;
-import feign.codec.ErrorDecoder;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import feign.jaxrs.JAXRSContract;
-import feign.okhttp.OkHttpClient;
 
 public class BenchmarkRunnerBase {
 
+    // TODO(nziebart): read this from servers.txt
     private static final String BENCHMARK_SERVER = "http://il-pg-alpha-1086751.usw1.palantir.global:9425";
     private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -66,25 +55,8 @@ public class BenchmarkRunnerBase {
     }
 
     protected static final BenchmarksService createClient() {
-        ObjectMapper mapper = new ObjectMapper();
-        Contract contract = new JAXRSContract();
-        Encoder encoder = new JacksonEncoder(mapper);
-        Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
-        ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
-
-        okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
-                .hostnameVerifier((a, b) -> true)
-                .retryOnConnectionFailure(false);
-        Client client = new OkHttpClient(builder.build());
-
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .client(client)
-                .options(new Request.Options(10_000, 600_000))
-                .target(BenchmarksService.class, BENCHMARK_SERVER);
+        // TODO(nziebart): set a longer timeout here
+        return AtlasDbHttpClients.createProxy(Optional.empty(), BENCHMARK_SERVER, BenchmarksService.class);
     }
 
 }

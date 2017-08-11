@@ -1,31 +1,23 @@
 /*
  * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
- *
- * Licensed under the BSD-3 License (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.benchmarks;
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLongArray;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public abstract class AbstractBenchmark {
@@ -36,15 +28,22 @@ public abstract class AbstractBenchmark {
     private final int requestsPerClient;
 
     private final ExecutorService executor;
-    private final List<Long> times = Lists.newArrayList();
+    private final AtomicLongArray times;
     private volatile long totalTime;
     private volatile Throwable error = null;
+    private volatile long[] sortedTimes;
+    private final AtomicInteger counter = new AtomicInteger(0);
+    private final CountDownLatch completionLatch;
 
     protected AbstractBenchmark(int numClients, int requestsPerClient) {
         this.numClients = numClients;
         this.requestsPerClient = requestsPerClient;
 
         executor = Executors.newFixedThreadPool(numClients);
+
+        int totalNumberOfRequests = numClients * requestsPerClient;
+        times = new AtomicLongArray(totalNumberOfRequests);
+        completionLatch = new CountDownLatch(totalNumberOfRequests);
     }
 
     public Map<String, Object> execute() {
@@ -82,36 +81,17 @@ public abstract class AbstractBenchmark {
     }
 
     private void recordTimesForSingleClient() {
-        List<Long> timesForClient = getTimesForSingleClient();
-        synchronized (times) {
-            times.addAll(timesForClient);
-            if (areTestsCompleted()) {
-                times.notifyAll();
-            }
+        for (int i = 0; i < requestsPerClient && error == null; i++) {
+            long duration = timeOneCall();
+            times.set(counter.getAndIncrement(), duration);
+            completionLatch.countDown();
         }
-    }
-
-    private List<Long> getTimesForSingleClient() {
-        List<Long> timesForClient = Lists.newArrayList();
-        for (int i = 0; i < requestsPerClient; i++) {
-            timesForClient.add(timeOneCall());
-        }
-        return timesForClient;
     }
 
     private void waitForTestsToComplete() throws InterruptedException {
-        synchronized (times) {
-            while (!areTestsCompleted()) {
-                throwIfAnyCallsFailed();
-                times.wait(500);
-            }
-        }
-    }
-
-    private boolean areTestsCompleted() {
-        synchronized (times) {
-            log.info("{} calls completed", times.size());
-            return times.size() >= numClients * requestsPerClient;
+        while (!completionLatch.await(1, TimeUnit.SECONDS)) {
+            throwIfAnyCallsFailed();
+            log.info("completed {} calls", counter.get());
         }
     }
 
@@ -125,12 +105,12 @@ public abstract class AbstractBenchmark {
         executor.shutdownNow();
     }
 
-
     private long timeOneCall() {
         long start = System.nanoTime();
         performOneCall();
         long end = System.nanoTime();
 
+        counter.incrementAndGet();
         return end - start;
     }
 
@@ -141,6 +121,8 @@ public abstract class AbstractBenchmark {
     }
 
     private Map<String, Object> getStatistics() {
+        sortTimes();
+
         Map<String, Object> result = Maps.newHashMap();
         result.put("numClients", numClients);
         result.put("requestsPerClient", requestsPerClient);
@@ -155,17 +137,28 @@ public abstract class AbstractBenchmark {
         return result;
     }
 
+    private void sortTimes() {
+        long[] result = new long[times.length()];
+        for (int i = 0; i < times.length(); i++) {
+            result[i] = times.get(i);
+        }
+        Arrays.sort(result);
+
+        sortedTimes = result;
+    }
+
     private double getAverageTimeInMillis() {
-        return times.stream().mapToLong(t -> t).average().getAsDouble() / 1_000_000.0;
+        return Arrays.stream(sortedTimes).average().getAsDouble() / 1_000_000f;
     }
 
     private double getPercentile(double percentile) {
-        double count = times.size();
-        int n = (int)(count * percentile);
-        return times.stream().sorted().skip(n).iterator().next() / 1_000_000.0;
+        double count = sortedTimes.length;
+        int index = (int)(count * percentile);
+        return sortedTimes[index] / 1_000_000.0;
     }
 
     public double getThroughput() {
         return (double)(numClients * requestsPerClient) / (totalTime / 1_000_000_000.0);
     }
+
 }

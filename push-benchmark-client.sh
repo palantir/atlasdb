@@ -6,22 +6,21 @@ source scripts/benchmarks/servers.txt
 ./scripts/benchmarks/render-configs.sh
 
 SERVER_SIDE_SCRIPT="run-on-il.sh"
-server="$CLIENT"
+SERVER="$CLIENT"
+YML_FILE="benchmark-server.yml"
+REMOTE_DIR="/opt/palantir/timelock"
 
 rm -rf timelock-server-benchmark-client/build/distributions/
 ./gradlew --parallel timelock-server-benchmark-client:distTar
 
-SLS_FILE="$(find ./timelock-server-benchmark-client/build/distributions/ -name 'timelock*sls.tgz' | tail -1)"
+SLS_FILE="$(find ./timelock-server-benchmark-client/build/distributions/ -name '*sls.tgz' | tail -1)"
 
-echo "sls file: $SLS_FILE ..."
+echo "copying sls file to $SERVER"
 
-echo "copying sls file"
-REMOTE_DIR="/opt/palantir/timelock"
-ssh $server "rm -rf $REMOTE_DIR/*"
-scp $SLS_FILE "$server:$REMOTE_DIR"
+ssh $SERVER "rm -rf $REMOTE_DIR/*"
+scp $SLS_FILE "$SERVER:$REMOTE_DIR"
 
 echo "running remote script"
-scp scripts/benchmarks/$SERVER_SIDE_SCRIPT "$server:$REMOTE_DIR"
 
-YML_FILE="benchmark-server.yml"
-ssh $server "$REMOTE_DIR/$SERVER_SIDE_SCRIPT $YML_FILE"
+scp scripts/benchmarks/$SERVER_SIDE_SCRIPT "$SERVER:$REMOTE_DIR"
+ssh $SERVER "$REMOTE_DIR/$SERVER_SIDE_SCRIPT $YML_FILE"
