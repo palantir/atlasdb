@@ -292,8 +292,10 @@ public class IndexMetadata {
 
     private static ColumnMetadataDescription getCellReferencingIndexColumn(List<NameComponentDescription> components) {
         components = ImmutableList.<NameComponentDescription>builder()
-                .add(new NameComponentDescription("row_name", ValueType.SIZED_BLOB))
-                .add(new NameComponentDescription("column_name", ValueType.SIZED_BLOB))
+                .add(new NameComponentDescription.Builder().componentName("row_name").type(ValueType.SIZED_BLOB)
+                        .build())
+                .add(new NameComponentDescription.Builder().componentName("column_name").type(ValueType.SIZED_BLOB)
+                        .build())
                 .addAll(components)
                 .build();
         NameMetadataDescription columnDescription = NameMetadataDescription.create(components);

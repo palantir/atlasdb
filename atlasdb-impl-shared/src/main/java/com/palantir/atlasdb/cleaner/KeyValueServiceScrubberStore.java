@@ -24,7 +24,6 @@ import java.util.SortedMap;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -63,15 +62,23 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     public static ScrubberStore create(KeyValueService keyValueService) {
         TableMetadata scrubTableMeta = new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
-                        new NameComponentDescription("row", ValueType.BLOB))),
+                        new NameComponentDescription.Builder()
+                            .componentName("row")
+                            .type(ValueType.BLOB)
+                            .build())),
                 new ColumnMetadataDescription(new DynamicColumnDescription(
                         NameMetadataDescription.create(ImmutableList.of(
-                                new NameComponentDescription("table", ValueType.VAR_STRING),
-                                new NameComponentDescription("col", ValueType.BLOB))),
+                                new NameComponentDescription.Builder()
+                                    .componentName("table")
+                                    .type(ValueType.VAR_STRING)
+                                    .build(),
+                                new NameComponentDescription.Builder()
+                                    .componentName("col")
+                                    .type(ValueType.BLOB)
+                                    .build())),
                         ColumnValueDescription.forType(ValueType.VAR_LONG))),
                 ConflictHandler.IGNORE_ALL);
-        keyValueService.createTables(ImmutableMap.of(
-                AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes()));
+        keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
         return new KeyValueServiceScrubberStore(keyValueService);
     }
 

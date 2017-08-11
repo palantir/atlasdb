@@ -18,6 +18,7 @@ package com.palantir.atlasdb.table.description;
 import javax.annotation.concurrent.Immutable;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NamedColumnDescription.Builder;
 
 @Immutable
@@ -25,20 +26,20 @@ public class NamedColumnDescription {
     final String shortName;
     final String longName;
     final ColumnValueDescription value;
-    final boolean nameLoggable;
+    final LogSafety logSafety;
 
     public NamedColumnDescription(String shortName, String longName, ColumnValueDescription value) {
-        this(shortName, longName, value, false);
+        this(shortName, longName, value, LogSafety.UNSAFE);
     }
 
     public NamedColumnDescription(String shortName,
                                   String longName,
                                   ColumnValueDescription value,
-                                  boolean nameLoggable) {
+                                  LogSafety logSafety) {
         this.shortName = shortName;
         this.longName = longName;
         this.value = value;
-        this.nameLoggable = nameLoggable;
+        this.logSafety = logSafety;
     }
 
     public String getShortName() {
@@ -53,8 +54,8 @@ public class NamedColumnDescription {
         return value;
     }
 
-    public boolean isNameLoggable() {
-        return nameLoggable;
+    public LogSafety getLogSafety() {
+        return logSafety;
     }
 
     public TableMetadataPersistence.NamedColumnDescription.Builder persistToProto() {
@@ -62,7 +63,7 @@ public class NamedColumnDescription {
         builder.setShortName(shortName);
         builder.setLongName(longName);
         builder.setValue(value.persistToProto());
-        builder.setNameLoggable(nameLoggable);
+        builder.setLogSafety(logSafety);
         return builder;
     }
 
@@ -71,13 +72,13 @@ public class NamedColumnDescription {
                 message.getShortName(),
                 message.getLongName(),
                 ColumnValueDescription.hydrateFromProto(message.getValue()),
-                message.hasNameLoggable() && message.getNameLoggable());
+                message.getLogSafety());
     }
 
     @Override
     public String toString() {
         return "NamedColumnDescription [shortName=" + shortName + ", longName=" + longName
-                + ", value=" + value + ", nameLoggable=" + nameLoggable + "]";
+                + ", value=" + value + ", logSafety=" + logSafety + "]";
     }
 
     @Override
@@ -88,7 +89,7 @@ public class NamedColumnDescription {
         result = prime * result + (shortName == null ? 0 : shortName.hashCode());
         result = prime * result + (longName == null ? 0 : longName.hashCode());
         result = prime * result + (value == null ? 0 : value.hashCode());
-        result = prime * result + (nameLoggable ? 0 : 1);
+        result = prime * result + logSafety.hashCode();
         return result;
     }
 
@@ -122,7 +123,7 @@ public class NamedColumnDescription {
         } else if (!value.equals(other.getValue())) {
             return false;
         }
-        if (nameLoggable != other.nameLoggable) {
+        if (logSafety != other.logSafety) {
             return false;
         }
         return true;

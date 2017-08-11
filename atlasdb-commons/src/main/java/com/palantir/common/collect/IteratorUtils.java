@@ -59,24 +59,6 @@ public class IteratorUtils {
         }
     }
 
-    /**
-     * This simply returns an iterable that returns the passed iterator.
-     * This is so we can use iterators in a for loop.
-     * The only good use for this is in a foreach loop.
-     * <p>
-     * <code>
-     * for (Long l : IteratorUtils.forEach(it)) {
-     * </code>
-     */
-    public static <T> Iterable<T> forEach(final Iterator<T> it) {
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return it;
-            }
-        };
-    }
-
     public static <T> Collection<T> chooseRandomElements(Iterator<? extends T> it, final int k) {
         Preconditions.checkArgument(k >= 0);
         List<T> ret = Lists.newArrayList();

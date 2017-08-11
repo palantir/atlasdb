@@ -105,4 +105,7 @@ public class AtlasDbConstants {
     public static final int MAX_OVERFLOW_TABLE_PREFIX_LENGTH = 6;
 
     public static final int DEFAULT_LOCK_TIMEOUT_SECONDS = 120;
+
+    public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
+    public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
 }

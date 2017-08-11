@@ -168,30 +168,27 @@ public abstract class LockServiceTest {
         Assert.assertTrue(token1.getExpirationDateMs()
                 <= System.currentTimeMillis() + lockTimeoutMs);
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                LockResponse response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock2, LockMode.READ))
-                        .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS)).build());
-                Assert.assertFalse(response.success());
-                Assert.assertFalse(response.getLockHolders().isEmpty());
-                Assert.assertEquals(ImmutableSortedMap.of(lock2, client), response.getLockHolders());
-                HeldLocksToken nullToken = response.getToken();
-                Assert.assertNull(nullToken);
-                barrier.await();
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            LockResponse response1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock2, LockMode.READ))
+                    .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS)).build());
+            Assert.assertFalse(response1.success());
+            Assert.assertFalse(response1.getLockHolders().isEmpty());
+            Assert.assertEquals(ImmutableSortedMap.of(lock2, client), response1.getLockHolders());
+            HeldLocksToken nullToken = response1.getToken();
+            Assert.assertNull(nullToken);
+            barrier.await();
 
-                response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock2, LockMode.READ))
-                        .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS)).build());
-                Assert.assertTrue(response.success());
-                Assert.assertTrue(response.getLockHolders().isEmpty());
-                HeldLocksToken validToken = response.getToken();
-                Assert.assertNotNull(validToken);
-                server.unlock(validToken);
+            response1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock2, LockMode.READ))
+                    .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS)).build());
+            Assert.assertTrue(response1.success());
+            Assert.assertTrue(response1.getLockHolders().isEmpty());
+            HeldLocksToken validToken = response1.getToken();
+            Assert.assertNotNull(validToken);
+            server.unlock(validToken);
 
-                return null;
-            }
+            return null;
         });
 
         barrier.await();
@@ -263,17 +260,14 @@ public abstract class LockServiceTest {
         Assert.assertTrue(token1.getExpirationDateMs()
                 <= System.currentTimeMillis() + lockTimeoutMs);
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock2, LockMode.READ)).build()).getToken();
-                Assert.assertNotNull(validToken);
-                server.unlock(validToken);
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock2, LockMode.READ)).build()).getToken();
+            Assert.assertNotNull(validToken);
+            server.unlock(validToken);
 
-                return null;
-            }
+            return null;
         });
 
         barrier.await();
@@ -323,14 +317,11 @@ public abstract class LockServiceTest {
         LockResponse resp2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, hasLock2);
         Assert.assertTrue(resp2.success());
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws InterruptedException {
-                LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-                Assert.assertNotNull(resp);
-                Assert.assertTrue(resp.success());
-                return null;
-            }
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
+            Assert.assertNotNull(resp);
+            Assert.assertTrue(resp.success());
+            return null;
         });
 
         try {
@@ -357,14 +348,11 @@ public abstract class LockServiceTest {
         LockResponse resp2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, hasLock2);
         Assert.assertTrue(resp2.success());
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws InterruptedException {
-                LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-                Assert.assertNotNull(resp);
-                Assert.assertTrue(resp.success());
-                return null;
-            }
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
+            Assert.assertNotNull(resp);
+            Assert.assertTrue(resp.success());
+            return null;
         });
 
         Thread.sleep(10);
@@ -445,17 +433,14 @@ public abstract class LockServiceTest {
                 <= System.currentTimeMillis() + lockTimeoutMs);
 
         // Second request grabs corresponding WRITE lock, will block inside LockServer until READ lock expires
-        executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                LockRequest request2 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE)).build();
-                LockResponse response2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
-                HeldLocksToken validToken = response2.getToken();
-                Assert.assertNotNull(validToken);
-                server.unlock(validToken);
-                return null;
-            }
+        executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            LockRequest request2 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE)).build();
+            LockResponse response2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
+            HeldLocksToken validToken = response2.getToken();
+            Assert.assertNotNull(validToken);
+            server.unlock(validToken);
+            return null;
         });
 
         /* Now make the logCurrentState() request; with the WRITE lock request blocked inside LockServer.lock(),
@@ -466,12 +451,9 @@ public abstract class LockServiceTest {
          */
         barrier.await();
         Thread.sleep(500);
-        Future<?> logCallFuture = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() {
-                server.logCurrentState();
-                return null;
-            }
+        Future<?> logCallFuture = executor.submit((Callable<Void>) () -> {
+            server.logCurrentState();
+            return null;
         });
 
         try {
@@ -591,17 +573,14 @@ public abstract class LockServiceTest {
         token1 = server.lockWithFullLockResponse(client, requestWrite).getToken();
         Assert.assertNotNull(token1);
         Assert.assertEquals(client, token1.getClient());
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws InterruptedException {
-                HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock1, LockMode.WRITE)).build()).getToken();
-                Assert.assertNotNull(validToken);
-                Assert.assertEquals(LockClient.ANONYMOUS, validToken.getClient());
-                server.unlock(validToken);
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            HeldLocksToken validToken1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock1, LockMode.WRITE)).build()).getToken();
+            Assert.assertNotNull(validToken1);
+            Assert.assertEquals(LockClient.ANONYMOUS, validToken1.getClient());
+            server.unlock(validToken1);
 
-                return null;
-            }
+            return null;
         });
         grantToken = server.convertToGrant(token1);
         Assert.assertNull(grantToken.getClient());
@@ -954,17 +933,14 @@ public abstract class LockServiceTest {
         Assert.assertEquals(client, token1.getClient());
         Assert.assertEquals(request1.getLockDescriptors(), token1.getLockDescriptors());
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2).getToken();
-                Assert.assertNotNull(validToken);
-                Assert.assertEquals(LockClient.ANONYMOUS, validToken.getClient());
-                Assert.assertEquals(request2.getLockDescriptors(), validToken.getLockDescriptors());
-                Assert.assertTrue(server.unlock(validToken));
-                return null;
-            }
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2).getToken();
+            Assert.assertNotNull(validToken);
+            Assert.assertEquals(LockClient.ANONYMOUS, validToken.getClient());
+            Assert.assertEquals(request2.getLockDescriptors(), validToken.getLockDescriptors());
+            Assert.assertTrue(server.unlock(validToken));
+            return null;
         });
         barrier.await();
         Thread.sleep(50);

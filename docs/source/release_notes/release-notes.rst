@@ -44,15 +44,70 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
+
+=======
+v0.53.0
+=======
+
+9 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - KVS migrations will no longer verify equality between the from and to KVSes for the sweep priority and progress tables.
+           Note that these tables are still *migrated* across, as they provide heuristics for timely sweeping of tables.
+           However, these tables may change during the migration, without affecting correctness (e.g. the from-kvs could be swept).
+           Previously, we would attempt to check that the sweep tables were equal on both KVSes, leading to spurious validation failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2244>`__)
+
+    *    - |new|
+         - AtlasDB now supports specifying the safety of table names as well as row and column component names following the `palantir/safe-logging <https://github.com/palantir/safe-logging>`__ library.
+           Please consult the documentation for :ref:`Tables and Indices <tables-and-indices>` for details on how to set this up.
+           As AtlasDB regenerates its metadata on startup, changes will take effect after restarting your AtlasDB client (in particular, you do NOT need to rerender your schemas.)
+           Previously, all table names, row component names and column names were always treated as unsafe.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1988>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2000>`__ and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/2172>`__)
+
+    *    - |improved|
+         - The ``ProfilingKeyValueService`` and ``SpecificTableSweeper`` now log table names as safe arguments, if and only if these have been specified as safe in one's schemas.
+           Previously, these were always logged as unsafe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2172>`__)
+
     *    - |devbreak|
-         - Removed unused classes on AtlasDB.
+         - AtlasDB now throws an error during schema code generation stage if table length exceeds KVS limits.
+           To override this, please specify ``ignoreTableNameLengthChecks()`` on your schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2220>`__)
 
-              - ``FutureClosableIteratorTask``
-              - ``ClosableMergedIterator``
-              - ``ThrowingKeyValueService``
+    *    - |devbreak|
+         - ``NameComponentDescription`` is now a ``final`` class and has a builder instead of constructors.
+           This will affect any products which have subclassed ``NameComponentDescription``, although we are not aware of any.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2238>`__)
 
-           If any issues arise from this change, please contact the development team.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
+    *    - |devbreak|
+         - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
+=======
+v0.52.0
+=======
+
+1 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Fixed a critical bug in Oracle that limits the number of writes with values greater than 2000 bytes to ``Integer.MAX_VALUE``.
@@ -62,9 +117,15 @@ develop
          - Change schemas in the codebase so that they use JAVA8 Optionals instead of Guava.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2210>`__)
 
-    *    - |fixed|
-         - The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
+    *    - |devbreak|
+         - Removed unused classes on AtlasDB.
+
+              - ``FutureClosableIteratorTask``
+              - ``ClosableMergedIterator``
+              - ``ThrowingKeyValueService``
+
+           If any issues arise from this change, please contact the development team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1933>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

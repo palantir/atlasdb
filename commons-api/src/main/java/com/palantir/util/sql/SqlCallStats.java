@@ -16,8 +16,6 @@
 package com.palantir.util.sql;
 
 
-import java.util.Comparator;
-
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.Longs;
 import com.palantir.util.jmx.AbstractOperationStats;
@@ -59,15 +57,12 @@ public class SqlCallStats extends AbstractOperationStats implements SqlCallStats
         return getPercentileMillis(75.0);
     }
 
-    private static final Ordering<SqlCallStats> TOTAL_TIME_ORDERING = Ordering.from(new Comparator<SqlCallStats>() {
-        @Override
-        public int compare(SqlCallStats o1, SqlCallStats o2) {
-            int cmp = Longs.compare(o1.getTotalTime(), o2.getTotalTime());
-            if (cmp != 0) {
-                return cmp;
-            }
-            return o1.rawSql.compareTo(o2.rawSql);
+    private static final Ordering<SqlCallStats> TOTAL_TIME_ORDERING = Ordering.from((o1, o2) -> {
+        int cmp = Longs.compare(o1.getTotalTime(), o2.getTotalTime());
+        if (cmp != 0) {
+            return cmp;
         }
+        return o1.rawSql.compareTo(o2.rawSql);
     });
 
     public static Ordering<SqlCallStats> getTotalTimeOrderingAscending() {

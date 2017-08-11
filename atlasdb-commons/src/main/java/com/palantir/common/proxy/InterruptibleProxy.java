@@ -18,7 +18,6 @@ package com.palantir.common.proxy;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -57,16 +56,13 @@ public final class InterruptibleProxy implements DelegatingInvocationHandler {
 
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-        Future<Object> future = executor.submit(new Callable<Object>(){
-            @Override
-            public Object call() throws Exception {
-                try {
-                    return method.invoke(delegate, args);
-                } catch (InvocationTargetException e) {
-                    Throwables.rewrapAndThrowIfInstance(e.getCause(), Exception.class);
-                    Throwables.rewrapAndThrowIfInstance(e.getCause(), Error.class);
-                    throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
-                }
+        Future<Object> future = executor.submit(() -> {
+            try {
+                return method.invoke(delegate, args);
+            } catch (InvocationTargetException e) {
+                Throwables.rewrapAndThrowIfInstance(e.getCause(), Exception.class);
+                Throwables.rewrapAndThrowIfInstance(e.getCause(), Error.class);
+                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
             }
         });
         try {

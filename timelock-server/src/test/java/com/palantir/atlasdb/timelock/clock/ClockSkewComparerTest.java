@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.clock;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,17 +34,20 @@ public class ClockSkewComparerTest {
 
     @Before
     public void setUp() {
-        originalRequest = new RequestTime(0L, 1L, 0L);
+        originalRequest = RequestTime.builder()
+                .localTimeAtStart(0)
+                .localTimeAtEnd(1)
+                .remoteSystemTime(0)
+                .build();
     }
 
     @Test
     public void throwsIfElapsedTimeIsNegative() {
         // Make remote clock go back in time. Since time just goes forward, this would only happen when time
         // overflows.
-        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+        RequestTime nextRequest = originalRequest
                 .progressLocalClock(1L)
-                .progressRemoteClock(-1L)
-                .build();
+                .progressRemoteClock(-1L);
 
         assertThatThrownBy(() -> compare(originalRequest, nextRequest))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -55,10 +57,9 @@ public class ClockSkewComparerTest {
     public void throwsOnLocalOverflow() {
         // Make local clock go back in time. Since time just goes forward, this would only happen when time
         // overflows.
-        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+        RequestTime nextRequest = originalRequest
                 .progressLocalClock(-1L)
-                .progressRemoteClock(1L)
-                .build();
+                .progressRemoteClock(1L);
 
         assertThatThrownBy(() -> compare(originalRequest, nextRequest))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -66,10 +67,9 @@ public class ClockSkewComparerTest {
 
     @Test
     public void logsWhenServerHasNotBeenQueriedForTooLong() {
-        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+        RequestTime nextRequest = originalRequest
                 .progressLocalClock(ClockSkewComparer.MAX_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos() + 2)
-                .progressRemoteClock(1L)
-                .build();
+                .progressRemoteClock(1L);
         compare(originalRequest, nextRequest);
 
         verify(mockedEvents, times(1)).tooMuchTimeSincePreviousRequest(anyLong());
@@ -77,52 +77,48 @@ public class ClockSkewComparerTest {
 
     @Test
     public void logsWhenRequestsTakeTooLong() {
-        originalRequest = new RequestTime(0L, ClockSkewComparer.MAX_REQUEST_DURATION.toNanos() + 1, 0L);
-        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
-                .progressLocalClock(ClockSkewComparer.MAX_REQUEST_DURATION.toNanos() + 2)
-                .progressRemoteClock(1L)
+        RequestTime request = RequestTime.builder()
+                .localTimeAtStart(0L)
+                .localTimeAtEnd(ClockSkewComparer.MAX_REQUEST_DURATION.toNanos() + 1)
+                .remoteSystemTime(0L)
                 .build();
-        compare(originalRequest, nextRequest);
+        RequestTime nextRequest = request
+                .progressLocalClock(ClockSkewComparer.MAX_REQUEST_DURATION.toNanos() + 2)
+                .progressRemoteClock(1L);
+        compare(request, nextRequest);
 
         verify(mockedEvents, times(1)).requestsTookTooLong(anyLong(), anyLong());
     }
 
     @Test
     public void logsRequestsWithoutSkew() {
-        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+        RequestTime nextRequest = originalRequest
                 .progressLocalClock(100L)
-                .progressRemoteClock(100L)
-                .build();
+                .progressRemoteClock(100L);
         compare(originalRequest, nextRequest);
 
         verify(mockedEvents, times(1))
-                .requestPace(anyString(), anyLong(), anyLong(), anyLong());
+                .clockSkew(server, 0L);
     }
 
     @Test
     public void logsRequestsWithSlowRemote() {
-        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+        RequestTime nextRequest = originalRequest
                 .progressLocalClock(3L)
-                .progressRemoteClock(1L)
-                .build();
+                .progressRemoteClock(1L);
         compare(originalRequest, nextRequest);
 
-        verify(mockedEvents, times(1))
-                .requestPace(anyString(), anyLong(), anyLong(), anyLong());
         verify(mockedEvents, times(1))
                 .clockSkew(server, 1L);
     }
 
     @Test
     public void logsRequestsWithFastRemote() {
-        RequestTime nextRequest = new RequestTime.Builder(originalRequest)
+        RequestTime nextRequest = originalRequest
                 .progressLocalClock(2L)
-                .progressRemoteClock(4L)
-                .build();
+                .progressRemoteClock(4L);
         compare(originalRequest, nextRequest);
 
-        verify(mockedEvents, times(1))
-                .requestPace(anyString(), anyLong(), anyLong(), anyLong());
         verify(mockedEvents, times(1))
                 .clockSkew(server, 1L);
     }
