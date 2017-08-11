@@ -75,7 +75,15 @@ public final class TransactionManagers {
             Schema schema,
             TransactionManagerBuilder.Environment env,
             boolean allowHiddenTableAccess) {
-        return create(config, runtimeConfigSupplier, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+        logTransactionManagerCreation();
+        return new TransactionManagerBuilder()
+                .config(config)
+                .runtimeConfig(runtimeConfigSupplier)
+                .schemas(ImmutableSet.of(schema))
+                .environment(env)
+                .lockServerOptions(LockServerOptions.DEFAULT)
+                .withHiddenTableAccess(allowHiddenTableAccess)
+                .build();
     }
 
     /**
@@ -88,9 +96,15 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             TransactionManagerBuilder.Environment env,
             boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create. This should only happen once.",
-                UnsafeArg.of("thread name", Thread.currentThread().getName()));
-        return create(config, runtimeConfigSupplier, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+        logTransactionManagerCreation();
+        return new TransactionManagerBuilder()
+                .config(config)
+                .runtimeConfig(runtimeConfigSupplier)
+                .schemas(schemas)
+                .environment(env)
+                .lockServerOptions(LockServerOptions.DEFAULT)
+                .withHiddenTableAccess(allowHiddenTableAccess)
+                .build();
     }
 
     /**
@@ -104,8 +118,14 @@ public final class TransactionManagers {
             TransactionManagerBuilder.Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
-        return create(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
-                UserAgents.DEFAULT_USER_AGENT);
+        return new TransactionManagerBuilder()
+                .config(config)
+                .runtimeConfig(runtimeConfigSupplier)
+                .schemas(schemas)
+                .environment(env)
+                .lockServerOptions(lockServerOptions)
+                .withHiddenTableAccess(allowHiddenTableAccess)
+                .build();
     }
 
     public static SerializableTransactionManager create(
@@ -116,8 +136,15 @@ public final class TransactionManagers {
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess,
             Class<?> callingClass) {
-        return create(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
-                UserAgents.fromClass(callingClass));
+        return new TransactionManagerBuilder()
+                .config(config)
+                .runtimeConfig(runtimeConfigSupplier)
+                .schemas(schemas)
+                .environment(env)
+                .lockServerOptions(lockServerOptions)
+                .withHiddenTableAccess(allowHiddenTableAccess)
+                .userAgent(UserAgents.fromClass(callingClass))
+                .build();
     }
 
     public static SerializableTransactionManager create(
@@ -135,7 +162,13 @@ public final class TransactionManagers {
                 .environment(env)
                 .lockServerOptions(lockServerOptions)
                 .withHiddenTableAccess(allowHiddenTableAccess)
-                .userAgent(userAgent).build();
+                .userAgent(userAgent)
+                .build();
+    }
+
+    private static void logTransactionManagerCreation() {
+        log.info("Called TransactionManagers.create. This should only happen once.",
+                UnsafeArg.of("thread name", Thread.currentThread().getName()));
     }
 
     /**

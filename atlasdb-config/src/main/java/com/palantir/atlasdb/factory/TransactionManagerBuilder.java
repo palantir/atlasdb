@@ -49,6 +49,7 @@ import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
@@ -120,7 +121,7 @@ public class TransactionManagerBuilder {
     private Environment env;
     private LockServerOptions lockOptions;
     private boolean allowHiddenTableAccess;
-    private String userAgent;
+    private String userAgent = UserAgents.DEFAULT_USER_AGENT;
 
     public TransactionManagerBuilder config(AtlasDbConfig atlasDbConfig) {
         config = atlasDbConfig;
@@ -144,11 +145,6 @@ public class TransactionManagerBuilder {
 
     public TransactionManagerBuilder lockServerOptions(LockServerOptions lockServerOptions) {
         lockOptions = lockServerOptions;
-        return this;
-    }
-
-    public TransactionManagerBuilder withHiddenTableAccess() {
-        allowHiddenTableAccess = true;
         return this;
     }
 
