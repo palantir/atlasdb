@@ -231,7 +231,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
 
-        long ts1 = CLUSTER.currentLeader().timelockServiceForClient(client).getFreshTimestamp();
+        long ts1 = CLUSTER.timelockServiceForClient(client).getFreshTimestamp();
 
         CLUSTER.failoverToNewLeader();
 
