@@ -44,8 +44,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - 'fixed'
+         - ``kvs-slow-log`` now uses ``logsafe`` to support sls-compatible logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2222>`__)
 
 
 =======
