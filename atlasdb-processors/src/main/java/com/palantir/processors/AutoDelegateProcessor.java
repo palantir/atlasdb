@@ -97,7 +97,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (abortProcessing.get() == Boolean.TRUE) {
-            // Another instance of AutoDelegate is running with the current processing environment.
+            // Another instance of AutoDelegate is running in the current processing environment.
             return false;
         }
 
@@ -210,6 +210,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
         // Add modifiers
         TypeMirror interfaceType = interfaceToExtend.getType();
+        if (interfaceToExtend.getModifiers().contains(Modifier.PUBLIC)) {
+            interfaceBuilder.addModifiers(Modifier.PUBLIC);
+        }
         interfaceBuilder.addSuperinterface(TypeName.get(interfaceType));
 
         // Add delegate method
