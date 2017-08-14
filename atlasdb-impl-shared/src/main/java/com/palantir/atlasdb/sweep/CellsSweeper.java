@@ -98,13 +98,7 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
-        PersistentLockId lockId = acquirePersistentLockWithRetry();
-
-        try {
-            keyValueService.delete(tableRef, cellTsPairsToSweep);
-        } finally {
-            releasePersistentLock(lockId);
-        }
+        keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
 
     private PersistentLockId acquirePersistentLockWithRetry() {
