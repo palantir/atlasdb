@@ -80,16 +80,15 @@ public class KvsRangeMigrator implements RangeMigrator {
         this.rowTransform = rowTransform;
     }
 
-    // Report (a) completion or (b) start row. Intended to be called before migration has started.
     @Override
-    public void checkStatus(int size) {
+    public void logStatus(int size) {
         txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) transaction -> {
-            checkStatus(transaction, size);
+            logStatus(transaction, size);
             return null;
         });
     }
 
-    private void checkStatus(Transaction tx, int numRangeBoundaries) {
+    private void logStatus(Transaction tx, int numRangeBoundaries) {
         for (int rangeId = 0; rangeId < numRangeBoundaries; rangeId++) {
             byte[] checkpoint = getCheckpoint(rangeId, tx);
             if (checkpoint != null) {

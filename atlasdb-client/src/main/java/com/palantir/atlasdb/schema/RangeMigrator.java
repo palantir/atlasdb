@@ -18,6 +18,14 @@ package com.palantir.atlasdb.schema;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
 public interface RangeMigrator {
-    void checkStatus(int size);
+
+    /**
+     * Report (a) completion or (b) start row.
+     * Intended to be called before starting or resuming migration.
+     *
+     * @param size the number of separate ranges in the current table
+     */
+    void logStatus(int size);
+
     void migrateRange(RangeRequest range, long rangeId);
 }
