@@ -246,8 +246,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         for (TestableTimelockServer server : CLUSTER.servers()) {
             MetricsOutput metrics = server.getMetricsOutput();
 
-            metrics.assertContainsHistogram("clock-pace-remote");
-            assertThat(metrics.getHistogram("clock-pace-remote").get("count").intValue()).isGreaterThan(0);
+            metrics.assertContainsHistogram("clock.skew");
+            assertThat(metrics.getHistogram("clock.skew").get("count").intValue()).isGreaterThan(0);
         }
     }
 }

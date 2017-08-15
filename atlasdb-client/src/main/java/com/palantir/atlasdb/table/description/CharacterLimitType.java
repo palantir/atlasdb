@@ -26,8 +26,8 @@ public enum CharacterLimitType {
     CASSANDRA("Cassandra", AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT),
     POSTGRES("Postgres", AtlasDbConstants.POSTGRES_TABLE_NAME_CHAR_LIMIT);
 
-    private String kvsName;
-    private int charLimit;
+    private final String kvsName;
+    private final int charLimit;
     CharacterLimitType(String name, int limit) {
         kvsName = name;
         charLimit = limit;

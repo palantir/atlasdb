@@ -54,7 +54,8 @@ public final class CassandraTimestampUtils {
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription("timestamp_name", ValueType.STRING))),
+                    new NameComponentDescription.Builder().componentName("timestamp_name").type(ValueType.STRING)
+                            .build())),
             new ColumnMetadataDescription(ImmutableList.of(
                     new NamedColumnDescription(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,

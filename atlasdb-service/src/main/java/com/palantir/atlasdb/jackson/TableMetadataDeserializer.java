@@ -65,10 +65,14 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
             String name = rowNode.get("name").asText();
             ValueType type = ValueType.valueOf(rowNode.get("type").asText());
             ValueByteOrder order = ValueByteOrder.valueOf(rowNode.get("order").asText());
-            rowComponents.add(new NameComponentDescription(name, type, order));
+            rowComponents.add(new NameComponentDescription.Builder()
+                    .componentName(name)
+                    .type(type)
+                    .byteOrder(order)
+                    .build());
         }
-        NameMetadataDescription row = NameMetadataDescription.create(rowComponents);
-        return row;
+
+        return NameMetadataDescription.create(rowComponents);
     }
 
     private ColumnMetadataDescription deserializeDynamicCol(JsonNode node) {

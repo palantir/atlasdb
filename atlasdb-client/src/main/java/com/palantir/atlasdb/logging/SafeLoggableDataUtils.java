@@ -18,15 +18,19 @@ package com.palantir.atlasdb.logging;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public final class SafeLoggableDataUtils {
+    private static final Predicate<LogSafety> IS_SAFE = safety -> safety == LogSafety.SAFE;
+
     private SafeLoggableDataUtils() {
         // utility
     }
@@ -47,14 +51,14 @@ public final class SafeLoggableDataUtils {
             ImmutableSafeLoggableData.Builder builder,
             TableReference ref,
             TableMetadata tableMetadata) {
-        if (tableMetadata.isNameLoggable()) {
+        if (IS_SAFE.test(tableMetadata.getNameLogSafety())) {
             builder.addPermittedTableReferences(ref);
         }
 
         Set<String> loggableRowComponentNames = tableMetadata.getRowMetadata()
                 .getRowParts()
                 .stream()
-                .filter(NameComponentDescription::isNameLoggable)
+                .filter(rowComponent -> IS_SAFE.test(rowComponent.getLogSafety()))
                 .map(NameComponentDescription::getComponentName)
                 .collect(Collectors.toSet());
         builder.putPermittedRowComponents(ref, loggableRowComponentNames);
@@ -63,7 +67,7 @@ public final class SafeLoggableDataUtils {
         if (namedColumns != null) {
             Set<String> loggableColumnNames = namedColumns
                     .stream()
-                    .filter(NamedColumnDescription::isNameLoggable)
+                    .filter(columnComponent -> IS_SAFE.test(columnComponent.getLogSafety()))
                     .map(NamedColumnDescription::getLongName)
                     .collect(Collectors.toSet());
             builder.putPermittedColumnNames(ref, loggableColumnNames);

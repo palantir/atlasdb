@@ -60,9 +60,11 @@ import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("row", ValueType.STRING))),
+            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
+                    .componentName("row").type(ValueType.STRING).build())),
             new ColumnMetadataDescription(new DynamicColumnDescription(NameMetadataDescription.create(
-                    ImmutableList.of(new NameComponentDescription("col", ValueType.STRING))),
+                    ImmutableList.of(new NameComponentDescription.Builder()
+                            .componentName("col").type(ValueType.STRING).build())),
                     ColumnValueDescription.forType(ValueType.STRING))),
             ConflictHandler.SERIALIZABLE);
 
