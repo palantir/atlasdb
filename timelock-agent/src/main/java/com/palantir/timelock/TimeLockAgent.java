@@ -15,11 +15,7 @@
  */
 package com.palantir.timelock;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -66,13 +62,8 @@ public abstract class TimeLockAgent {
     protected abstract TimeLockServices createInvalidatingTimeLockServices(String client);
 
     public void createAndRegisterResources() {
-        Set<String> clients =
-                Observables.blockingMostRecent(runtime.map(TimeLockRuntimeConfiguration::clients)).get();
-        Map<String, TimeLockServices> clientToServices =
-                clients.stream().collect(Collectors.toMap(
-                        Function.identity(),
-                        this::createInvalidatingTimeLockServices));
-        registrar.accept(new TimeLockResource(clientToServices));
+        registrar.accept(new TimeLockResource(this::createInvalidatingTimeLockServices, Observables.blockingMostRecent(
+                runtime.map(conf -> conf.maxNumberOfClients()))));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
     }

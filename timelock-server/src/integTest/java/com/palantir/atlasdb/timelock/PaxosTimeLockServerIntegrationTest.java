@@ -81,16 +81,13 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
-    private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
 
-    private static final int NUM_CLIENTS = 5;
     private static final int MAX_SERVER_THREADS = 100;
     private static final int SELECTOR_THREADS = 8;
     private static final int ACCEPTOR_THREADS = 4;
     private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
-    private static final int LOCAL_TC_LIMIT = (AVAILABLE_THREADS / 2) / NUM_CLIENTS;
-    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
+    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS;
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -149,7 +146,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void singleClientCanUseLocalAndSharedThreads() throws Exception {
         List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + SHARED_TC_LIMIT))
+        assertThat(lockAndUnlockAndCountExceptions(lockService, SHARED_TC_LIMIT))
                 .isEqualTo(0);
     }
 
@@ -158,7 +155,7 @@ public class PaxosTimeLockServerIntegrationTest {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + SHARED_TC_LIMIT / 3))
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, SHARED_TC_LIMIT / 3))
                 .isEqualTo(0);
     }
 
@@ -167,7 +164,7 @@ public class PaxosTimeLockServerIntegrationTest {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1));
         int exceedingRequests = 10;
-        int maxRequestsForOneClient = LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
+        int maxRequestsForOneClient = SHARED_TC_LIMIT;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, exceedingRequests + maxRequestsForOneClient))
                 .isEqualTo(exceedingRequests);
@@ -177,11 +174,11 @@ public class PaxosTimeLockServerIntegrationTest {
     public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2));
-        int exceedingRequests = SHARED_TC_LIMIT;
-        int requestsPerClient = LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
+        int exceedingRequests = 10;
+        int requestsPerClient = (SHARED_TC_LIMIT + exceedingRequests) / 2;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(exceedingRequests);
+                .isEqualTo(exceedingRequests - 1);
     }
 
     private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequestsPerClient)
@@ -386,20 +383,6 @@ public class PaxosTimeLockServerIntegrationTest {
         timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByTwoMillion);
         timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
         assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByTwoMillion);
-    }
-
-    @Test
-    public void returnsNotFoundOnQueryingNonexistentClient() {
-        RemoteLockService nonExistentLockService = getLockService(NONEXISTENT_CLIENT);
-        assertThatThrownBy(nonExistentLockService::currentTimeMillis)
-                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
-    }
-
-    @Test
-    public void returnsNotFoundOnQueryingTimestampWithNonexistentClient() {
-        TimestampService nonExistentTimestampService = getTimestampService(NONEXISTENT_CLIENT);
-        assertThatThrownBy(nonExistentTimestampService::getFreshTimestamp)
-                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
     }
 
     @Test
