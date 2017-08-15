@@ -32,19 +32,31 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 public class SingleRowColumnPagerTest {
 
     @Test
-    public void testGetStartColumn() {
+    public void startShouldBeEmptyWhenThereIsNoLastSeenColumn() {
         assertEquals(
                 Optional.of(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)),
                 SingleRowColumnPager.getStartColumn(null));
+    }
+
+    @Test
+    public void startShouldBeOneBelowPreviousTimestamp() {
         assertEquals(
                 Optional.of(CassandraKeyValueServices.makeCompositeBuffer(new byte[] { 1, 2, 3 }, 999L)),
                 SingleRowColumnPager.getStartColumn(new Column(
                         CassandraKeyValueServices.makeCompositeBuffer(new byte[] { 1, 2, 3 }, 1000L))));
+    }
+
+    @Test
+    public void startShouldRollOverToNextColumnNameWhenMinimumTimestampReached() {
         assertEquals(
                 Optional.of(CassandraKeyValueServices.makeCompositeBuffer(
                         RangeRequests.nextLexicographicName(new byte[] {1, 2, 3 }), Long.MAX_VALUE)),
                 SingleRowColumnPager.getStartColumn(new Column(
                         CassandraKeyValueServices.makeCompositeBuffer(new byte[] { 1, 2, 3 }, Long.MIN_VALUE))));
+    }
+
+    @Test
+    public void startShouldBeEmptyWhenLastPossiblePointReached() {
         assertEquals(
                 Optional.empty(),
                 SingleRowColumnPager.getStartColumn(new Column(
