@@ -237,7 +237,7 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <h3>5. Release the Backup Lock<a class="headerlink" href="#release-the-backup-lock" title="Permalink to this headline">¶</a></h3>
 <p>Call the <code class="docutils literal"><span class="pre">persistent-lock/release-backup-lock</span></code> endpoint, passing back the <code class="docutils literal"><span class="pre">PersistentLockId</span></code> that you received in step 1.
 For example (replace the serialised <code class="docutils literal"><span class="pre">PersistentLockId</span></code> with your own from step 1):</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;content-type: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/release-backup-lock&#39; -d &#39;9dbae91b-a35c-4938-82fe-58fb31772738&#39;
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ curl -X POST --header &#39;content-type: application/json&#39; &#39;&lt;product-base-url&gt;/persistent-lock/release-backup-lock&#39; -d &#39;&quot;9dbae91b-a35c-4938-82fe-58fb31772738&quot;&#39;
 </pre></div>
 </div>
 </div>
