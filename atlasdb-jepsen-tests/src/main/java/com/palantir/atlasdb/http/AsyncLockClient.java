@@ -27,7 +27,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
-public class AsyncLockClient implements JepsenLockClient<LockToken> {
+public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private final TimelockService timelockService;
 
     private AsyncLockClient(TimelockService timelockService) {
