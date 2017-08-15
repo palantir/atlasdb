@@ -11,6 +11,7 @@
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.JepsenLockClient)
   (:import com.palantir.atlasdb.http.SynchronousLockClient))
+  (:import com.palantir.atlasdb.http.AsyncLockClient))
 
 (def lock-names ["alpha" "bravo" "charlie" "delta"])
 
@@ -141,3 +142,7 @@
 (defn sync-lock-test
   [nem]
     (lock-test nem (fn [] (SynchronousLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
+
+(defn async-lock-test
+  [nem]
+    (lock-test nem (fn [] (AsyncLockClient/create '("n1" "n2" "n3" "n4" "n5")))))
