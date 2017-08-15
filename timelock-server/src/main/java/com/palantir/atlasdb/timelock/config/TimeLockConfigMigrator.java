@@ -31,7 +31,7 @@ public final class TimeLockConfigMigrator {
         PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
 
         TimeLockInstallConfiguration install = ImmutableTimeLockInstallConfiguration.builder()
-                .algorithm(ImmutablePaxosInstallConfiguration.builder()
+                .paxos(ImmutablePaxosInstallConfiguration.builder()
                         .dataDirectory(paxos.paxosDataDir())
                         .build())
                 .cluster(ImmutableClusterConfiguration.builder()
@@ -45,7 +45,7 @@ public final class TimeLockConfigMigrator {
                 .build();
 
         TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                .algorithm(ImmutablePaxosRuntimeConfiguration.builder()
+                .paxos(ImmutablePaxosRuntimeConfiguration.builder()
                         .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
                         .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
                         .pingRateMs(paxos.pingRateMs())

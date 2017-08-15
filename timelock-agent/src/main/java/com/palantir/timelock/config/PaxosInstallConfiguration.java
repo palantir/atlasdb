@@ -5,19 +5,13 @@
 package com.palantir.timelock.config;
 
 import java.io.File;
-import java.util.function.Consumer;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.timelock.TimeLockAgent;
-import com.palantir.timelock.paxos.PaxosAgent;
-
-import io.reactivex.Observable;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
@@ -37,14 +31,5 @@ public interface PaxosInstallConfiguration {
     default void check() {
         Preconditions.checkArgument(dataDirectory().mkdirs() || dataDirectory().isDirectory(),
                 "Could not create paxos data directory %s", dataDirectory());
-    }
-
-    @JsonIgnore
-    default TimeLockAgent createTimeLockAgent(
-            TimeLockInstallConfiguration install,
-            Observable<TimeLockRuntimeConfiguration> runtime,
-            TimeLockDeprecatedConfiguration deprecated,
-            Consumer<Object> registrar) {
-        return new PaxosAgent(install, runtime, deprecated, registrar);
     }
 }

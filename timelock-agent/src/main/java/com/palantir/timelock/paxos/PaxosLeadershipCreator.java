@@ -17,7 +17,6 @@
 package com.palantir.timelock.paxos;
 
 import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -32,7 +31,6 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.Observables;
-import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -41,7 +39,7 @@ import io.reactivex.Observable;
 
 public class PaxosLeadershipCreator {
     private final TimeLockInstallConfiguration install;
-    private final Observable<Optional<PaxosRuntimeConfiguration>> runtime;
+    private final Observable<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
 
     private LeaderElectionService leaderElectionService;
@@ -51,7 +49,7 @@ public class PaxosLeadershipCreator {
             Observable<TimeLockRuntimeConfiguration> runtime,
             Consumer<Object> registrar) {
         this.install = install;
-        this.runtime = runtime.map(TimeLockRuntimeConfiguration::algorithm);
+        this.runtime = runtime.map(TimeLockRuntimeConfiguration::paxos);
         this.registrar = registrar;
     }
 
@@ -87,17 +85,16 @@ public class PaxosLeadershipCreator {
 
     private LeaderConfig getLeaderConfig() {
         // TODO (jkong): Live Reload Paxos Ping Rates
-        PaxosRuntimeConfiguration paxosRuntimeConfiguration = Observables.blockingMostRecent(runtime).get().orElse(
-                ImmutablePaxosRuntimeConfiguration.builder().build());
+        PaxosRuntimeConfiguration paxosRuntimeConfiguration = Observables.blockingMostRecent(runtime).get();
         return ImmutableLeaderConfig.builder()
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
                 .leaders(PaxosRemotingUtils.addProtocols(install, PaxosRemotingUtils.getClusterAddresses(install)))
                 .localServer(PaxosRemotingUtils.addProtocol(install,
                         PaxosRemotingUtils.getClusterConfiguration(install).localServer()))
-                .acceptorLogDir(Paths.get(install.algorithm().dataDirectory().toString(),
+                .acceptorLogDir(Paths.get(install.paxos().dataDirectory().toString(),
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                         PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toFile())
-                .learnerLogDir(Paths.get(install.algorithm().dataDirectory().toString(),
+                .learnerLogDir(Paths.get(install.paxos().dataDirectory().toString(),
                         PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                         PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile())
                 .pingRateMs(paxosRuntimeConfiguration.pingRateMs())

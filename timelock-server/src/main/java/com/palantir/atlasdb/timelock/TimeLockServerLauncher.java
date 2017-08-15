@@ -25,7 +25,7 @@ import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
-import com.palantir.timelock.TimeLockAgent;
+import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -54,7 +54,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
-        TimeLockAgent agent = combined.install().algorithm().createTimeLockAgent(
+        TimeLockAgent agent = new TimeLockAgent(
                 combined.install(),
                 Observable.just(combined.runtime()), // this won't actually live reload
                 combined.deprecated(),
