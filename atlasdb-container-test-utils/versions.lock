@@ -259,6 +259,12 @@
         "com.palantir.docker.proxy:docker-proxy-rule": {
             "locked": "0.3.0"
         },
+        "com.palantir.patches.sourceforge:trove3": {
+            "locked": "3.0.3-p5",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
+        },
         "com.palantir.remoting2:jackson-support": {
             "locked": "2.3.0",
             "transitive": [
@@ -807,6 +813,12 @@
         },
         "com.palantir.docker.proxy:docker-proxy-rule": {
             "locked": "0.3.0"
+        },
+        "com.palantir.patches.sourceforge:trove3": {
+            "locked": "3.0.3-p5",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
+            ]
         },
         "com.palantir.remoting2:jackson-support": {
             "locked": "2.3.0",
