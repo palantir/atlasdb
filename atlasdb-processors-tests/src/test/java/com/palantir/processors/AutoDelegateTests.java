@@ -16,44 +16,102 @@
 
 package com.palantir.processors;
 
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import processors.AutoDelegate_ChildInterface;
-import processors.AutoDelegate_RandomInterface;
-
 public class AutoDelegateTests {
     @Test
-    public void randomInterfaceComparison() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_RandomInterface.class);
-        Set<String> expectedMethods = extractMethods(ExpectedRandomInterface.class);
+    public void generatedInterfaceHasSamePackageAsOriginal() {
+        Package generatedInterfacePackage = AutoDelegate_InterfaceExtended.class.getPackage();
+        Package originalInterfacePackage = InterfaceExtended.class.getPackage();
 
-        assertTrue(generatedMethods.containsAll(expectedMethods));
-        assertTrue(expectedMethods.containsAll(generatedMethods));
+        assertThat(generatedInterfacePackage, is(originalInterfacePackage));
     }
 
     @Test
-    public void childInterfaceComparison() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_ChildInterface.class);
-        Set<String> expectedMethods = extractMethods(ExpectedChildInterface.class);
+    public void generatedInterfaceIsInterface() {
+        int generatedInterfaceModifiers = AutoDelegate_InterfaceExtended.class.getModifiers();
 
-        assertTrue(generatedMethods.containsAll(expectedMethods));
-        assertTrue(expectedMethods.containsAll(generatedMethods));
+        assertThat(Modifier.isInterface(generatedInterfaceModifiers), is(true));
+    }
+
+    @Test
+    public void publicInterfacesGeneratePublicInterfaces() {
+        int originalModifiers = InterfaceExtended.class.getModifiers();
+        int generatedInterfaceModifiers = AutoDelegate_InterfaceExtended.class.getModifiers();
+
+        assertThat(generatedInterfaceModifiers, is(originalModifiers));
+    }
+
+    @Test
+    public void packagePrivateInterfacesGeneratePackagePrivateInterfaces() {
+        int originalModifiers = PackagePrivateInterface.class.getModifiers();
+        int generatedInterfaceModifiers = AutoDelegate_PackagePrivateInterface.class.getModifiers();
+
+        assertThat(generatedInterfaceModifiers, is(originalModifiers));
+    }
+
+    @Test
+    public void generatedInterfaceHasInterfaceMethods() {
+        Set<String> generatedMethods = extractMethods(AutoDelegate_InterfaceExtended.class);
+        Set<String> originalMethods = extractMethods(InterfaceExtended.class);
+
+        assertThat(generatedMethods, hasItems(originalMethods.toArray(new String[0])));
+    }
+
+    @Test
+    public void generatedInterfaceHasDelegateMethod() {
+        Set<String> generatedMethods = extractMethods(AutoDelegate_InterfaceExtended.class);
+        Set<String> originalMethods = extractMethods(InterfaceExtended.class);
+
+        generatedMethods.removeAll(originalMethods);
+        assertThat(generatedMethods.size(), is(1));
+        assertThat(generatedMethods.iterator().next(), containsString("delegate"));
+    }
+
+    @Test
+    public void childInterfaceHasParentAndChildMethods() {
+        Set<String> generatedMethods = extractMethods(AutoDelegate_ChildInterface.class);
+        Set<String> parentMethods = extractMethods(InterfaceExtended.class);
+        Set<String> childMethods = extractMethods(ChildInterface.class);
+
+        assertThat(generatedMethods, hasItems(parentMethods.toArray(new String[0])));
+        assertThat(generatedMethods, hasItems(childMethods.toArray(new String[0])));
+    }
+
+    @Test
+    public void generatedInterfaceCallsMethodOnDelegate() {
+        InterfaceExtendedImpl mockImpl = mock(InterfaceExtendedImpl.class);
+        AutoDelegate_InterfaceExtended instanceOfInterface = () -> mockImpl;
+
+        instanceOfInterface.methodWithReturnType();
+        verify(mockImpl, times(1)).methodWithReturnType();
     }
 
     private Set<String> extractMethods(Class childInterface) {
         return Arrays.stream(childInterface.getDeclaredMethods())
-                .map(method -> String.format("%s,%s,%s",
-                        method.getReturnType(),
-                        method.getName(),
-                        extractParameterTypes(method)))
+                .map(this::methodToString)
                 .collect(Collectors.toSet());
+    }
+
+    private String methodToString(Method method) {
+        return String.format("%s,%s,%s",
+                method.getReturnType(),
+                method.getName(),
+                extractParameterTypes(method));
     }
 
     private String extractParameterTypes(Method method) {

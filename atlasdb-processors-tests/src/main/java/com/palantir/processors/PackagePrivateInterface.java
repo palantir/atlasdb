@@ -16,9 +16,5 @@
 
 package com.palantir.processors;
 
-public interface ChildInterface extends InterfaceExtended {
-    @Override
-    void overridenMethod(Integer p1, Integer p2, Integer p3);
-
-    void methodOnChildInterface();
+interface PackagePrivateInterface {
 }

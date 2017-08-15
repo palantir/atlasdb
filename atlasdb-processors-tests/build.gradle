@@ -9,4 +9,6 @@ repositories {
 
 dependencies {
     processor project(":atlasdb-processors")
+    testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }

@@ -16,12 +16,22 @@
 
 package com.palantir.processors;
 
-public interface RandomInterface {
-    void method1();
-    void method1(int p1);
-    void method2();
-    void method3(int p1);
-    int method4(int p1);
-    int method4(int p1, int p2);
-    default void method5() {}
+public interface InterfaceExtended {
+    void methodWithNoParameters();
+    void methodWithOneParameter(int p1);
+    void methodWithTwoParameters(int p1);
+
+    void methodWithVarArgs(int... parameters);
+
+    int methodWithReturnType();
+    int methodWithReturnTypeAndParameters(int p1);
+    int methodWithReturnTypeAndVarArgs(int... parameters);
+
+    void overloadedMethod();
+    void overloadedMethod(int p1);
+    void overloadedMethod(Integer p1, Integer p2);
+
+    default void defaultMethod() {}
+
+    void overridenMethod(Integer p1, Integer p2, Integer p3);
 }

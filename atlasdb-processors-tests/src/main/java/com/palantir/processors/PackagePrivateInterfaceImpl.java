@@ -16,6 +16,6 @@
 
 package com.palantir.processors;
 
-@AutoDelegate(interfaceToExtend = RandomInterface.class)
-public class RandomInterfaceImpl {
+@AutoDelegate(interfaceToExtend = PackagePrivateInterface.class)
+public class PackagePrivateInterfaceImpl {
 }

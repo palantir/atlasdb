@@ -76,7 +76,7 @@ final class InterfaceToExtend {
     }
 
     String getPackageName() {
-        return interfacePackage.getSimpleName().toString();
+        return interfacePackage.getQualifiedName().toString();
     }
 
     TypeMirror getType() {
