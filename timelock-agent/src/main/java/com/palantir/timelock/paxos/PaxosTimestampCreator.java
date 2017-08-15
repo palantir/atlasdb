@@ -65,8 +65,6 @@ public class PaxosTimestampCreator {
     }
 
     public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(String client) {
-        paxosResource.addInstrumentedClient(client);
-
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
                 .setDaemon(true)

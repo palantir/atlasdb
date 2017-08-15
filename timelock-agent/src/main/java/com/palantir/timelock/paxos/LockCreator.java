@@ -52,9 +52,13 @@ public class LockCreator {
         }
 
         int availableThreads = deprecated.availableThreads();
-        int numClients = timeLockRuntimeConfiguration.clients().size();
-        int localThreadPoolSize = (availableThreads / numClients) / 2;
-        int sharedThreadPoolSize = availableThreads - localThreadPoolSize * numClients;
+        // TODO(nziebart): Since the number of clients can grow dynamically, we can't compute a correct and useful
+        // value for the local threadpool size at this point. Given that async lock service exists, and doesn't need
+        // a thread pool, it's likely we won't fix this and will eventually remove the thread pooled lock service.
+        // However, for the time being, it's still useful to have global limiting for services that need to use the
+        // legacy lock service.
+        int localThreadPoolSize = -1;
+        int sharedThreadPoolSize = availableThreads;
 
         synchronized (this) {
             if (sharedThreadPool.availablePermits() == -1) {

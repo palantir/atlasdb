@@ -15,54 +15,81 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.lock.RemoteLockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
 public class TimeLockResource {
-    private final Supplier<Map<String, TimeLockServices>> clientToServices;
+    private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
 
-    public TimeLockResource(Map<String, TimeLockServices> clientToServices) {
-        this.clientToServices = () -> clientToServices;
-    }
+    private final Function<String, TimeLockServices>  clientServicesFactory;
+    private final ConcurrentMap<String, TimeLockServices> servicesByClient = Maps.newConcurrentMap();
+    private final Supplier<Integer> maxNumberOfClients;
 
-    public TimeLockResource(Supplier<Map<String, TimeLockServices>> clientToServices) {
-        this.clientToServices = clientToServices;
+    public TimeLockResource(
+            Function<String, TimeLockServices> clientServicesFactory,
+            Supplier<Integer> maxNumberOfClients) {
+        this.clientServicesFactory = clientServicesFactory;
+        this.maxNumberOfClients = maxNumberOfClients;
     }
 
     @Path("/lock")
     public RemoteLockService getLockService(@PathParam("client") String client) {
-        return getTimeLockServicesForClient(client).getLockService();
+        return getOrCreateServices(client).getLockService();
     }
 
     @Path("/timestamp")
     public TimestampService getTimeService(@PathParam("client") String client) {
-        return getTimeLockServicesForClient(client).getTimestampService();
+        return getOrCreateServices(client).getTimestampService();
     }
 
     @Path("/timelock")
     public Object getTimelockService(@PathParam("client") String client) {
-        return getTimeLockServicesForClient(client).getTimelockService().getPresentService();
+        return getOrCreateServices(client).getTimelockService().getPresentService();
     }
 
     @Path("/timestamp-management")
     public TimestampManagementService getTimestampManagementService(@PathParam("client") String client) {
-        return getTimeLockServicesForClient(client).getTimestampManagementService();
+        return getOrCreateServices(client).getTimestampManagementService();
     }
 
-    private TimeLockServices getTimeLockServicesForClient(String client) {
-        TimeLockServices services = clientToServices.get().get(client);
-        if (services == null) {
-            throw new NotFoundException("Client doesn't exist");
+    @VisibleForTesting
+    TimeLockServices getOrCreateServices(String client) {
+        return servicesByClient.computeIfAbsent(client, this::createNewClient);
+    }
+
+    private TimeLockServices createNewClient(String client) {
+        Preconditions.checkArgument(!client.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+                "The client name '%s' is reserved for the leader election service, and may not be "
+                        + "used.",
+                PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
+
+        if (servicesByClient.size() >= maxNumberOfClients.get()) {
+            log.error(
+                    "Unable to create timelock services for client {}, as it would exceed the maximum number of "
+                            + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
+                            + "increased via the maximum-number-of-clients runtime config property.",
+                    SafeArg.of("client", client),
+                    SafeArg.of("maxNumberOfClients", maxNumberOfClients));
+            throw new IllegalStateException("Maximum number of clients exceeded");
         }
-        return services;
+
+        return clientServicesFactory.apply(client);
     }
 }

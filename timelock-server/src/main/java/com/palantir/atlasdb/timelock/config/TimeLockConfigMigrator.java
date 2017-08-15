@@ -50,7 +50,6 @@ public final class TimeLockConfigMigrator {
                         .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
                         .pingRateMs(paxos.pingRateMs())
                         .build())
-                .clients(config.clients())
                 .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
                 .build();
 

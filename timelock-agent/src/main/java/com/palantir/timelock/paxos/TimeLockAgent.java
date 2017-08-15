@@ -16,12 +16,8 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -84,19 +80,10 @@ public class TimeLockAgent {
         leadershipCreator.registerLeaderElectionService();
 
         // Finally, register the endpoints associated with the clients.
-        registerTimeLockResourcesForClients();
+        registrar.accept(new TimeLockResource(this::createInvalidatingTimeLockServices, Observables.blockingMostRecent(
+                runtime.map(conf -> conf.maxNumberOfClients()))));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
-    }
-
-    private void registerTimeLockResourcesForClients() {
-        Set<String> clients =
-                Observables.blockingMostRecent(runtime.map(TimeLockRuntimeConfiguration::clients)).get();
-        Map<String, TimeLockServices> clientToServices =
-                clients.stream().collect(Collectors.toMap(
-                        Function.identity(),
-                        this::createInvalidatingTimeLockServices));
-        registrar.accept(new TimeLockResource(clientToServices));
     }
 
     // No runtime configuration at the moment.
