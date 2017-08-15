@@ -24,62 +24,7 @@ public class TestInterfaceImpl implements AutoDelegate_TestInterface {
     }
 
     @Override
-    public int methodWithReturnTypeAndParameters(int p1) {
-        return 0;
-    }
-
-    @Override
-    public void overloadedMethod(Integer p1, Integer p2) {
-
-    }
-
-    @Override
-    public void overloadedMethod(int p1) {
-
-    }
-
-    @Override
-    public void methodWithOneParameter(int p1) {
-
-    }
-
-    @Override
-    public int methodWithReturnTypeAndVarArgs(int... parameters) {
-        return 0;
-    }
-
-    @Override
-    public void methodWithTwoParameters(int p1, int p2) {
-
-    }
-
-    @Override
     public int methodWithReturnType() {
         return 0;
-    }
-
-    @Override
-    public void defaultMethod() {
-
-    }
-
-    @Override
-    public void methodWithNoParameters() {
-
-    }
-
-    @Override
-    public void methodWithVarArgs(int... parameters) {
-
-    }
-
-    @Override
-    public void overriddenMethod(Integer p1, Integer p2, Integer p3) {
-
-    }
-
-    @Override
-    public void overloadedMethod() {
-
     }
 }
