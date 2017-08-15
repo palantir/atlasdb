@@ -63,8 +63,8 @@ final class InterfaceToExtend {
                 .collect(Collectors.toList());
     }
 
-    Set<Modifier> getModifiers() {
-        return interfaceToExtend.getModifiers();
+    Boolean isPublic() {
+        return interfaceToExtend.getModifiers().contains(Modifier.PUBLIC);
     }
 
     String getCanonicalName() {

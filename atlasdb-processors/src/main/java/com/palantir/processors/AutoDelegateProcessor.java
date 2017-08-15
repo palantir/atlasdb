@@ -90,7 +90,8 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         return ImmutableSet.of(AutoDelegate.class.getCanonicalName());
     }
 
-    @Override public SourceVersion getSupportedSourceVersion() {
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
         return SourceVersion.RELEASE_8;
     }
 
@@ -124,7 +125,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             } catch (IOException | RuntimeException e) {
                 error(annotatedElement, e.getMessage());
             }
-
         }
 
         return false;
@@ -210,7 +210,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
         // Add modifiers
         TypeMirror interfaceType = interfaceToExtend.getType();
-        if (interfaceToExtend.getModifiers().contains(Modifier.PUBLIC)) {
+        if (interfaceToExtend.isPublic()) {
             interfaceBuilder.addModifiers(Modifier.PUBLIC);
         }
         interfaceBuilder.addSuperinterface(TypeName.get(interfaceType));
@@ -245,22 +245,22 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     }
 
     /**
-     * Prints a warn message
+     * Prints a warn message.
      *
-     * @param e The element which has caused the error. Can be null
+     * @param element The element which has caused the error. Can be null
      * @param msg The error message
      */
-    private void warn(Element e, String msg) {
-        messager.printMessage(Diagnostic.Kind.WARNING, msg, e);
+    private void warn(Element element, String msg) {
+        messager.printMessage(Diagnostic.Kind.WARNING, msg, element);
     }
 
     /**
-     * Prints an error message
+     * Prints an error message.
      *
-     * @param e The element which has caused the error. Can be null
+     * @param element The element which has caused the error. Can be null
      * @param msg The error message
      */
-    private void error(Element e, String msg) {
-        messager.printMessage(Diagnostic.Kind.ERROR, msg, e);
+    private void error(Element element, String msg) {
+        messager.printMessage(Diagnostic.Kind.ERROR, msg, element);
     }
 }
