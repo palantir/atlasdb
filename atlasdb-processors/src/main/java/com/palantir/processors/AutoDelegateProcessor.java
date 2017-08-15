@@ -58,6 +58,9 @@ import com.squareup.javapoet.TypeSpec;
 
 @AutoService(Processor.class)
 public final class AutoDelegateProcessor extends AbstractProcessor {
+    // We keep track of if this processor has been registered in a processing environment, to avoid registering it
+    // twice. Therefore, we keep weak references to both the keys and the values, to avoid keeping such references in
+    // memory unnecessarily.
     private static final ConcurrentMap<ProcessingEnvironment, Processor> registeredProcessors =
             new MapMaker().weakKeys().weakValues().concurrencyLevel(1).initialCapacity(1).makeMap();
     private static final String PREFIX = "AutoDelegate_";
@@ -98,7 +101,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (abortProcessing.get() == Boolean.TRUE) {
-            // Another instance of AutoDelegate is running in the current processing environment.
+            // Another instance of AutoDelegateProcessor is running in the current processing environment.
             return false;
         }
 

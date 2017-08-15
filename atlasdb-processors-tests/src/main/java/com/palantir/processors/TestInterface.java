@@ -16,6 +16,22 @@
 
 package com.palantir.processors;
 
-@AutoDelegate(interfaceToExtend = PackagePrivateInterface.class)
-public class PackagePrivateInterfaceImpl {
+public interface TestInterface {
+    void methodWithNoParameters();
+    void methodWithOneParameter(int p1);
+    void methodWithTwoParameters(int p1, int p2);
+
+    void methodWithVarArgs(int... parameters);
+
+    int methodWithReturnType();
+    int methodWithReturnTypeAndParameters(int p1);
+    int methodWithReturnTypeAndVarArgs(int... parameters);
+
+    void overloadedMethod();
+    void overloadedMethod(int p1);
+    void overloadedMethod(Integer p1, Integer p2);
+
+    default void defaultMethod() {}
+
+    void overriddenMethod(Integer p1, Integer p2, Integer p3);
 }

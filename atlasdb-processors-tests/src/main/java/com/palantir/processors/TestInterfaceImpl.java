@@ -16,10 +16,10 @@
 
 package com.palantir.processors;
 
-@AutoDelegate(interfaceToExtend = InterfaceExtended.class)
-public class InterfaceExtendedImpl implements AutoDelegate_InterfaceExtended {
+@AutoDelegate(interfaceToExtend = TestInterface.class)
+public class TestInterfaceImpl implements AutoDelegate_TestInterface {
     @Override
-    public InterfaceExtended delegate() {
+    public TestInterface delegate() {
         return null;
     }
 
@@ -49,7 +49,7 @@ public class InterfaceExtendedImpl implements AutoDelegate_InterfaceExtended {
     }
 
     @Override
-    public void methodWithTwoParameters(int p1) {
+    public void methodWithTwoParameters(int p1, int p2) {
 
     }
 
@@ -74,7 +74,7 @@ public class InterfaceExtendedImpl implements AutoDelegate_InterfaceExtended {
     }
 
     @Override
-    public void overridenMethod(Integer p1, Integer p2, Integer p3) {
+    public void overriddenMethod(Integer p1, Integer p2, Integer p3) {
 
     }
 

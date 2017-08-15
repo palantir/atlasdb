@@ -35,23 +35,23 @@ import org.junit.Test;
 public class AutoDelegateTests {
     @Test
     public void generatedInterfaceHasSamePackageAsOriginal() {
-        Package generatedInterfacePackage = AutoDelegate_InterfaceExtended.class.getPackage();
-        Package originalInterfacePackage = InterfaceExtended.class.getPackage();
+        Package generatedInterfacePackage = AutoDelegate_TestInterface.class.getPackage();
+        Package originalInterfacePackage = TestInterface.class.getPackage();
 
         assertThat(generatedInterfacePackage, is(originalInterfacePackage));
     }
 
     @Test
     public void generatedInterfaceIsInterface() {
-        int generatedInterfaceModifiers = AutoDelegate_InterfaceExtended.class.getModifiers();
+        int generatedInterfaceModifiers = AutoDelegate_TestInterface.class.getModifiers();
 
         assertThat(Modifier.isInterface(generatedInterfaceModifiers), is(true));
     }
 
     @Test
     public void publicInterfacesGeneratePublicInterfaces() {
-        int originalModifiers = InterfaceExtended.class.getModifiers();
-        int generatedInterfaceModifiers = AutoDelegate_InterfaceExtended.class.getModifiers();
+        int originalModifiers = TestInterface.class.getModifiers();
+        int generatedInterfaceModifiers = AutoDelegate_TestInterface.class.getModifiers();
 
         assertThat(generatedInterfaceModifiers, is(originalModifiers));
     }
@@ -66,16 +66,16 @@ public class AutoDelegateTests {
 
     @Test
     public void generatedInterfaceHasInterfaceMethods() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_InterfaceExtended.class);
-        Set<String> originalMethods = extractMethods(InterfaceExtended.class);
+        Set<String> generatedMethods = extractMethods(AutoDelegate_TestInterface.class);
+        Set<String> originalMethods = extractMethods(TestInterface.class);
 
         assertThat(generatedMethods, hasItems(originalMethods.toArray(new String[0])));
     }
 
     @Test
     public void generatedInterfaceHasDelegateMethod() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_InterfaceExtended.class);
-        Set<String> originalMethods = extractMethods(InterfaceExtended.class);
+        Set<String> generatedMethods = extractMethods(AutoDelegate_TestInterface.class);
+        Set<String> originalMethods = extractMethods(TestInterface.class);
 
         generatedMethods.removeAll(originalMethods);
         assertThat(generatedMethods.size(), is(1));
@@ -84,9 +84,9 @@ public class AutoDelegateTests {
 
     @Test
     public void childInterfaceHasParentAndChildMethods() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_ChildInterface.class);
-        Set<String> parentMethods = extractMethods(InterfaceExtended.class);
-        Set<String> childMethods = extractMethods(ChildInterface.class);
+        Set<String> generatedMethods = extractMethods(AutoDelegate_ChildTestInterface.class);
+        Set<String> parentMethods = extractMethods(TestInterface.class);
+        Set<String> childMethods = extractMethods(ChildTestInterface.class);
 
         assertThat(generatedMethods, hasItems(parentMethods.toArray(new String[0])));
         assertThat(generatedMethods, hasItems(childMethods.toArray(new String[0])));
@@ -94,8 +94,8 @@ public class AutoDelegateTests {
 
     @Test
     public void generatedInterfaceCallsMethodOnDelegate() {
-        InterfaceExtendedImpl mockImpl = mock(InterfaceExtendedImpl.class);
-        AutoDelegate_InterfaceExtended instanceOfInterface = () -> mockImpl;
+        TestInterfaceImpl mockImpl = mock(TestInterfaceImpl.class);
+        AutoDelegate_TestInterface instanceOfInterface = () -> mockImpl;
 
         instanceOfInterface.methodWithReturnType();
         verify(mockImpl, times(1)).methodWithReturnType();

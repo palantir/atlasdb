@@ -16,6 +16,6 @@
 
 package com.palantir.processors;
 
-@AutoDelegate(interfaceToExtend = ChildInterface.class)
-public class ChildInterfaceImpl {
+@AutoDelegate(interfaceToExtend = ChildTestInterface.class)
+public class ChildInterfaceWrapper {
 }
