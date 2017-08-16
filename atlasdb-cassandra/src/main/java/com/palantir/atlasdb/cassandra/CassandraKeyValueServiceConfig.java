@@ -23,6 +23,7 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -99,7 +100,19 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
 
-    public abstract String keyspace();
+    @JsonIgnore
+    @Value.Derived
+    public String keyspace() {
+        return rawKeyspace().orElseThrow(() -> new IllegalStateException(
+                "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
+    }
+
+    /**
+     * Done to make keyspace nullable, whilst preserving wire format backwards compatibility.
+     * Note that when the keyspace is read, this field must be present.
+     */
+    @JsonProperty("keyspace")
+    public abstract Optional<String> rawKeyspace();
 
     public abstract Optional<CassandraCredentialsConfig> credentials();
 
@@ -234,7 +247,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         for (InetSocketAddress addr : servers()) {
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
-        Preconditions.checkNotNull(keyspace(), "'keyspace' must be specified");
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");

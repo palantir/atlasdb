@@ -39,11 +39,19 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace) {
+        DbKeyValueServiceConfig dbKvsConfig = preprocessConfig(config, namespace);
+        return ConnectionManagerAwareDbKvs.create(dbKvsConfig);
+    }
+
+    private DbKeyValueServiceConfig preprocessConfig(KeyValueServiceConfig config, Optional<String> namespace) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());
-        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config);
+        return DbKeyValueServiceConfigs.copyWithNamespace((DbKeyValueServiceConfig) config, namespace);
     }
 
     @Override
