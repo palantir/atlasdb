@@ -16,13 +16,10 @@
 package com.palantir.nexus.db.pool.config;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -67,15 +64,7 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
         return "SELECT 1";
     }
 
-    @Value.Lazy
-    @JsonIgnore
-    public String getDbName() {
-        return explicitDbName().orElseThrow(() -> new IllegalStateException(
-                "Tried to read the DB Name from a Postgres connection config, when it hadn't been set."));
-    }
-
-    @JsonProperty("dbName")
-    public abstract Optional<String> explicitDbName();
+    public abstract String getDbName();
 
     @Override
     @Value.Default
