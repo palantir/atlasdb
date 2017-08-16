@@ -34,7 +34,6 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsRule;
 
 public class TimestampCacheTest {
-
     private static final String TEST_CACHE_NAME = MetricRegistry.name(TimestampCacheTest.class, "test");
 
     @Rule
