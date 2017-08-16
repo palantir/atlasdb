@@ -364,7 +364,7 @@ public class TransactionManagersTest {
 
     private static TimeLockClientConfig getTimelockConfigForServers(List<String> servers) {
         return ImmutableTimeLockClientConfig.builder()
-                .client(CLIENT)
+                .rawClient(CLIENT)
                 .serversList(ImmutableServerListConfig.builder()
                         .addAllServers(servers)
                         .build())

@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -27,7 +30,15 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
 @Value.Immutable
 public abstract class TimeLockClientConfig {
-    public abstract String client();
+    @JsonProperty("client")
+    public abstract Optional<String> rawClient();
+
+    @JsonIgnore
+    @Value.Lazy
+    public String client() {
+        return rawClient().orElseThrow(() -> new IllegalStateException(
+                "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
+    }
 
     public abstract ServerListConfig serversList();
 
