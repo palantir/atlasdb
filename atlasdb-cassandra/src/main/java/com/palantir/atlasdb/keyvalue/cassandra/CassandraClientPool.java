@@ -30,7 +30,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -64,7 +63,6 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -92,7 +90,7 @@ import com.palantir.remoting2.tracing.Tracers;
  *   ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("VisibilityModifier")
-public class CassandraClientPool {
+public class CassandraClientPool implements AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
     private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
             + " Error writing to Cassandra socket."
@@ -112,6 +110,7 @@ public class CassandraClientPool {
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
+    private final StartupChecks startupChecks;
     final ScheduledExecutorService refreshDaemon;
 
     private final MetricsManager metricsManager = new MetricsManager();
@@ -206,22 +205,15 @@ public class CassandraClientPool {
 
     private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
+        this.startupChecks = startupChecks;
         refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
-        Executors.newSingleThreadExecutor().execute(
-                () -> {
-                    try {
-                        initialize(startupChecks);
-                    } catch (Exception e) {
-                        Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
-                    }
-                }
-        );
     }
 
-    private void initialize(StartupChecks startupChecks) {
+    @Override
+    public void tryInitialize() {
         config.servers().forEach(this::addPool);
         refreshDaemon.scheduleWithFixedDelay(() -> {
             try {

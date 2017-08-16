@@ -16,20 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+public class UninitializedException extends RuntimeException {
 
-public class AsyncInitializedCassandraClientPool extends AutoDelegate_CassandraClientPool {
-
-    public AsyncInitializedCassandraClientPool(CassandraKeyValueServiceConfig config) {
-        super(config);
-    }
-
-    @Override
-    public CassandraClientPool delegate() {
-        if (isInitialized()) {
-            return this;
-        } else {
-            throw new UninitializedException("CassandraClientPool is not initialized yet.");
-        }
+    public UninitializedException(String message) {
+        super(message);
     }
 }
