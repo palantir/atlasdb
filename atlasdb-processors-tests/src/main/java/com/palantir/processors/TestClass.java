@@ -16,6 +16,7 @@
 
 package com.palantir.processors;
 
+@AutoDelegate(typeToExtend = TestClass.class)
 public class TestClass {
     private static void privateStaticMethod() {}
     protected static int protectedStaticMethod() {

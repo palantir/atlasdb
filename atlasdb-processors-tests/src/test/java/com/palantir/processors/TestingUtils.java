@@ -25,33 +25,33 @@ import java.util.stream.Collectors;
 final class TestingUtils {
     private TestingUtils() {}
 
-    public static Set<String> extractMethods(Class klass) {
+    static Set<String> extractMethods(Class klass) {
         return Arrays.stream(klass.getDeclaredMethods())
                 .map(TestingUtils::methodToString)
                 .collect(Collectors.toSet());
     }
 
-    public static String methodToString(Method method) {
+    static String methodToString(Method method) {
         return String.format("%s,%s,%s",
                 method.getReturnType(),
                 method.getName(),
                 extractMethodParameterTypes(method));
     }
 
-    private static String extractMethodParameterTypes(Method method) {
+    static String extractMethodParameterTypes(Method method) {
         return Arrays.stream(method.getParameterTypes())
                 .map(Class::getCanonicalName)
                 .collect(Collectors.toList())
                 .toString();
     }
 
-    public static Set<String> extractConstructors(Class klass) {
+    static Set<String> extractConstructors(Class klass) {
         return Arrays.stream(klass.getConstructors())
                 .map(TestingUtils::constructorToString)
                 .collect(Collectors.toSet());
     }
 
-    public static String constructorToString(Constructor constructor) {
+    static String constructorToString(Constructor constructor) {
         return String.format("%s", extractConstructorParameterTypes(constructor));
     }
 

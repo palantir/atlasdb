@@ -16,7 +16,6 @@
 
 package com.palantir.processors;
 
-@AutoDelegate(typeToExtend = TestInterface.class)
 public class TestInterfaceImpl implements AutoDelegate_TestInterface {
     @Override
     public TestInterface delegate() {

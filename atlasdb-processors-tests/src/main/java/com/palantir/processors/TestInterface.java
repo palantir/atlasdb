@@ -16,6 +16,7 @@
 
 package com.palantir.processors;
 
+@AutoDelegate(typeToExtend = TestInterface.class)
 public interface TestInterface {
     void methodWithNoParameters();
     void methodWithOneParameter(int p1);

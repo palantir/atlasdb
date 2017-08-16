@@ -16,7 +16,7 @@
 
 package com.palantir.processors;
 
-@AutoDelegate(typeToExtend = TestClass.class)
+@AutoDelegate(typeToExtend = ChildClass.class)
 public class ChildClass extends TestClass {
     @Override
     public void methodWithNoParameters() {}
