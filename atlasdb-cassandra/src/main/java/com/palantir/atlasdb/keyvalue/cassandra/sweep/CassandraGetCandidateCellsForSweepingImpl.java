@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 
@@ -34,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRawCellValue;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
-import com.palantir.common.annotation.Output;
 import com.palantir.util.Pair;
 
 import gnu.trove.list.TLongList;
@@ -89,7 +89,7 @@ public class CassandraGetCandidateCellsForSweepingImpl {
                 while (candidates.isEmpty() && rawIter.hasNext()) {
                     List<CassandraRawCellValue> cols = rawIter.next();
                     for (CassandraRawCellValue col : cols) {
-                        processColumn(col, candidates);
+                        processColumn(col).ifPresent(candidates::add);
                     }
                 }
                 if (candidates.isEmpty()) {
@@ -107,12 +107,13 @@ public class CassandraGetCandidateCellsForSweepingImpl {
             }
         }
 
-        private void processColumn(CassandraRawCellValue col, @Output List<CandidateCellForSweeping> candidates) {
+        private Optional<CandidateCellForSweeping> processColumn(CassandraRawCellValue col) {
+            Optional<CandidateCellForSweeping> maybeCandidate = Optional.empty();
             Pair<byte[], Long> colNameAndTs = CassandraKeyValueServices.decomposeName(col.getColumn());
             Cell cell = Cell.create(col.getRowKey(), colNameAndTs.getLhSide());
             if (!cell.equals(currentCell)) {
                 if (!currentTimestamps.isEmpty()) {
-                    candidates.add(createCandidate());
+                    maybeCandidate = Optional.of(createCandidate());
                 }
                 currentCell = cell;
             }
@@ -127,6 +128,7 @@ public class CassandraGetCandidateCellsForSweepingImpl {
                 currentTimestamps.add(ts);
                 numCellTsPairsExamined += 1;
             }
+            return maybeCandidate;
         }
 
         private CandidateCellForSweeping createCandidate() {
