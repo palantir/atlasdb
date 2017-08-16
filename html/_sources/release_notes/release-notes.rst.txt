@@ -52,6 +52,9 @@ develop
          - ``kvs-slow-log`` now uses ``logsafe`` to support sls-compatible logging.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2222>`__)
 
+    *    - |fixed|
+         - The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
 
 =======
 v0.53.0
