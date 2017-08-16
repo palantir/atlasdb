@@ -79,7 +79,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .timelock(ImmutableTimeLockClientConfig.builder()
-                        .client(CLIENT)
+                        .rawClient(CLIENT)
                         .serversList(ImmutableServerListConfig.builder()
                                 .servers(serverUris)
                                 .build())
