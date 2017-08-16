@@ -20,6 +20,7 @@ dependencies {
   compile project(":timestamp-api")
   compile project(":timestamp-client")
   compile project(":atlasdb-client")
+  compile project(":atlasdb-processors")
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.remoting2', name: 'tracing'

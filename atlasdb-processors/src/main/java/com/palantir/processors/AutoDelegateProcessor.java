@@ -53,6 +53,7 @@ import com.google.common.collect.MapMaker;
 import com.google.common.collect.Sets;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
@@ -118,6 +119,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 TypeToExtend typeToExtend = validateAnnotationAndCreateTypeToExtend(annotation, typeElement);
                 debug(annotatedElement, "Annotation validated");
                 debug(annotatedElement, String.format("Methods to extend %s", typeToExtend.getMethods()));
+                debug(annotatedElement, String.format("Constructors to extend %s", typeToExtend.getConstructors()));
 
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
@@ -242,7 +244,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     private TypeElement extractSuperType(TypeMirror superTypeMirror) {
         TypeElement superType;
         try {
-            // Throws a MirroredTypeException if the interface is not compiled.
+            // Throws a MirroredTypeException if the type is not compiled.
             superType = (TypeElement) typeUtils.asElement(superTypeMirror);
         } catch (MirroredTypeException mte) {
             DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
@@ -271,6 +273,17 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             typeBuilder.superclass(TypeName.get(typeMirror)).addModifiers(Modifier.ABSTRACT);
         }
 
+        // Add constructors
+        for (ExecutableElement constructor : typeToExtend.getConstructors()) {
+            MethodSpec.Builder constructorBuilder = MethodSpec
+                    .constructorBuilder()
+                    .addModifiers(constructor.getModifiers())
+                    .addParameters(extractParameters(constructor))
+                    .addStatement("super($L)", constructor.getParameters());
+
+            typeBuilder.addMethod(constructorBuilder.build());
+        }
+
         // Add delegate method
         MethodSpec.Builder delegateMethod = MethodSpec
                 .methodBuilder(DELEGATE_METHOD)
@@ -278,29 +291,35 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 .returns(TypeName.get(typeMirror));
         typeBuilder.addMethod(delegateMethod.build());
 
-        // Add interface methods
+        // Add methods
         for (ExecutableElement methodElement : typeToExtend.getMethods()) {
             String returnStatement = (methodElement.getReturnType().getKind() == TypeKind.VOID) ? "" : "return ";
 
-            MethodSpec.Builder interfaceMethod = MethodSpec
+            MethodSpec.Builder method = MethodSpec
                     .overriding(methodElement)
                     .addStatement("$L$L().$L($L)",
                             returnStatement,
                             DELEGATE_METHOD,
                             methodElement.getSimpleName(),
                             methodElement.getParameters());
-
             if (typeToExtend.isInterface()) {
-                interfaceMethod.addModifiers(Modifier.DEFAULT);
+                method.addModifiers(Modifier.DEFAULT);
             }
 
-            typeBuilder.addMethod(interfaceMethod.build());
+            typeBuilder.addMethod(method.build());
         }
 
         JavaFile
                 .builder(typeToExtend.getPackageName(), typeBuilder.build())
                 .build()
                 .writeTo(filer);
+    }
+
+    private List<ParameterSpec> extractParameters(ExecutableElement constructor) {
+        return constructor.getParameters()
+                .stream()
+                .map(ParameterSpec::get)
+                .collect(Collectors.toList());
     }
 
     /**

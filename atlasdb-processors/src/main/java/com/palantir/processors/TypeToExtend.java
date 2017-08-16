@@ -36,7 +36,8 @@ import com.google.common.collect.Sets;
 final class TypeToExtend {
     private TypeElement typeToExtend;
     private PackageElement typePackage;
-    private Set<ExecutableElement> executableElements;
+    private Set<ExecutableElement> methods;
+    private Set<ExecutableElement> constructors;
 
     TypeToExtend(PackageElement typePackage,
             TypeElement typeToExtend,
@@ -54,7 +55,8 @@ final class TypeToExtend {
                 .stream()
                 .collect(Collectors.toMap(ExecutableElement::toString, Function.identity(), (name1, name2) -> name1));
 
-        executableElements = Sets.newHashSet(unifiedMethods.values());
+        methods = Sets.newHashSet(unifiedMethods.values());
+        constructors = extractConstructors(typeToExtend);
     }
 
     private List<ExecutableElement> extractMethods(TypeElement typeToExtractMethodsFrom) {
@@ -82,8 +84,22 @@ final class TypeToExtend {
                 && element.getModifiers().contains(Modifier.PUBLIC)
                 && !element.getModifiers().contains(Modifier.FINAL)
                 && !element.getModifiers().contains(Modifier.NATIVE)
-                && !element.getSimpleName().toString().contains("equals")
-                && !element.getSimpleName().toString().contains("toString");
+                && !element.getModifiers().contains(Modifier.STATIC)
+                && !element.getSimpleName().contentEquals("equals")
+                && !element.getSimpleName().contentEquals("toString");
+    }
+
+    private Set<ExecutableElement> extractConstructors(TypeElement typeToExtractConstructorsFrom) {
+        return typeToExtractConstructorsFrom.getEnclosedElements()
+                .stream()
+                .filter(this::constructorFilter)
+                .map(element -> (ExecutableElement) element)
+                .collect(Collectors.toSet());
+    }
+
+    private Boolean constructorFilter(Element element) {
+        return element.getKind() == ElementKind.CONSTRUCTOR
+                && element.getSimpleName().contentEquals("<init>");
     }
 
     Boolean isPublic() {
@@ -111,6 +127,10 @@ final class TypeToExtend {
     }
 
     Set<ExecutableElement> getMethods() {
-        return executableElements;
+        return methods;
+    }
+
+    Set<ExecutableElement> getConstructors() {
+        return constructors;
     }
 }

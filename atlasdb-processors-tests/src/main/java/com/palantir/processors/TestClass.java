@@ -17,6 +17,13 @@
 package com.palantir.processors;
 
 public class TestClass {
+    static TestClass staticMethod() {
+        return null;
+    }
+
+    protected TestClass() {}
+    protected TestClass(int constructorWithArguments) {}
+
     public void methodWithNoParameters() {}
 
     protected void protectedMethod() {}
