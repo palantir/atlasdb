@@ -39,8 +39,6 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
@@ -150,7 +148,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                     annotatedElement, AutoDelegate.class.getSimpleName());
         }
 
-        TypeElement baseType = extractTypeFromAnnotation(annotation);
+        TypeElement baseType = ProcessorUtils.extractTypeFromAnnotation(elementUtils, annotation);
         PackageElement typePackage = elementUtils.getPackageOf(baseType);
 
         if (typePackage.isUnnamed()) {
@@ -163,20 +161,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
         List<TypeElement> superTypes = fetchSuperTypes(baseType);
         return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
-    }
-
-    private TypeElement extractTypeFromAnnotation(AutoDelegate annotation) {
-        TypeElement type;
-        try {
-            // Throws a MirroredTypeException if the type is not compiled.
-            Class typeClass = annotation.typeToExtend();
-            type = elementUtils.getTypeElement(typeClass.getCanonicalName());
-        } catch (MirroredTypeException mte) {
-            DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            type = (TypeElement) typeMirror.asElement();
-        }
-
-        return type;
     }
 
     private List<TypeElement> fetchSuperTypes(TypeElement baseType) {
@@ -193,7 +177,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         TypeMirror superclass = baseClass.getSuperclass();
         TypeElement classIterator;
         while (superclass.getKind() != TypeKind.NONE) {
-            classIterator = extractSuperType(superclass);
+            classIterator = ProcessorUtils.extractType(typeUtils, superclass);
             superclasses.add(classIterator);
             superclass = classIterator.getSuperclass();
         }
@@ -208,7 +192,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
         for (int i = 0; i < interfacesQueue.size(); i++) {
             TypeMirror superInterfaceMirror = interfacesQueue.get(i);
-            TypeElement superInterfaceType = extractSuperType(superInterfaceMirror);
+            TypeElement superInterfaceType = ProcessorUtils.extractType(typeUtils, superInterfaceMirror);
             superInterfaceElements.add(superInterfaceType);
 
             List<TypeMirror> newInterfaces = superInterfaceType.getInterfaces()
@@ -220,18 +204,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
 
         return superInterfaceElements;
-    }
-
-    private TypeElement extractSuperType(TypeMirror superTypeMirror) {
-        TypeElement superType;
-        try {
-            // Throws a MirroredTypeException if the type is not compiled.
-            superType = (TypeElement) typeUtils.asElement(superTypeMirror);
-        } catch (MirroredTypeException mte) {
-            DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            superType = (TypeElement) typeMirror.asElement();
-        }
-        return superType;
     }
 
     private void generateCode(TypeToExtend typeToExtend) throws IOException {
@@ -259,7 +231,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             MethodSpec.Builder constructorBuilder = MethodSpec
                     .constructorBuilder()
                     .addModifiers(constructor.getModifiers())
-                    .addParameters(extractParameters(constructor))
+                    .addParameters(ProcessorUtils.extractParameters(constructor))
                     .addStatement("super($L)", constructor.getParameters());
 
             typeBuilder.addMethod(constructorBuilder.build());
@@ -294,13 +266,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 .builder(typeToExtend.getPackageName(), typeBuilder.build())
                 .build()
                 .writeTo(filer);
-    }
-
-    private List<ParameterSpec> extractParameters(ExecutableElement constructor) {
-        return constructor.getParameters()
-                .stream()
-                .map(ParameterSpec::get)
-                .collect(Collectors.toList());
     }
 
     /**
