@@ -16,23 +16,6 @@
 
 package com.palantir.processors;
 
-public class TestClass {
-    private static void privateStaticMethod() {}
-    protected static int protectedStaticMethod() {
-        return 0;
-    }
-    public static Boolean publicStaticMethod() {
-        return Boolean.TRUE;
-    }
-
-    private TestClass(boolean privateConstructor) {}
-    protected TestClass(String protectedConstructor) {}
-    public TestClass(int publicConstructor) {}
-    public TestClass() {}
-
-    public void methodWithNoParameters() {}
-    public void methodWithOneParameter(int integer) {}
-
-    protected void protectedMethod() {}
-    private void privateMethod() {}
+@AutoDelegate(typeToExtend = ChildClass.class)
+public class ChildClassWrapper {
 }

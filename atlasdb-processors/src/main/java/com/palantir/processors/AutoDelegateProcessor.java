@@ -153,7 +153,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         TypeElement baseType = extractTypeFromAnnotation(annotation);
         PackageElement typePackage = elementUtils.getPackageOf(baseType);
 
-
         if (typePackage.isUnnamed()) {
             throw new ProcessingException(baseType, "Type %s doesn't have a package", baseType);
         }

@@ -24,15 +24,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-public class AutoDelegateTests {
+public class AutoDelegateInterfaceTests {
     @Test
     public void generatedInterfaceHasSamePackageAsOriginal() {
         Package generatedInterfacePackage = AutoDelegate_TestInterface.class.getPackage();
@@ -66,16 +63,16 @@ public class AutoDelegateTests {
 
     @Test
     public void generatedInterfaceHasInterfaceMethods() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_TestInterface.class);
-        Set<String> originalMethods = extractMethods(TestInterface.class);
+        Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestInterface.class);
+        Set<String> originalMethods = TestingUtils.extractMethods(TestInterface.class);
 
         assertThat(generatedMethods, hasItems(originalMethods.toArray(new String[0])));
     }
 
     @Test
     public void generatedInterfaceHasDelegateMethod() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_TestInterface.class);
-        Set<String> originalMethods = extractMethods(TestInterface.class);
+        Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestInterface.class);
+        Set<String> originalMethods = TestingUtils.extractMethods(TestInterface.class);
 
         generatedMethods.removeAll(originalMethods);
         assertThat(generatedMethods.size(), is(1));
@@ -84,9 +81,9 @@ public class AutoDelegateTests {
 
     @Test
     public void childInterfaceHasParentAndChildMethods() {
-        Set<String> generatedMethods = extractMethods(AutoDelegate_ChildTestInterface.class);
-        Set<String> parentMethods = extractMethods(TestInterface.class);
-        Set<String> childMethods = extractMethods(ChildTestInterface.class);
+        Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_ChildTestInterface.class);
+        Set<String> parentMethods = TestingUtils.extractMethods(TestInterface.class);
+        Set<String> childMethods = TestingUtils.extractMethods(ChildTestInterface.class);
 
         assertThat(generatedMethods, hasItems(parentMethods.toArray(new String[0])));
         assertThat(generatedMethods, hasItems(childMethods.toArray(new String[0])));
@@ -99,25 +96,5 @@ public class AutoDelegateTests {
 
         instanceOfInterface.methodWithReturnType();
         verify(mockImpl, times(1)).methodWithReturnType();
-    }
-
-    private Set<String> extractMethods(Class childInterface) {
-        return Arrays.stream(childInterface.getDeclaredMethods())
-                .map(this::methodToString)
-                .collect(Collectors.toSet());
-    }
-
-    private String methodToString(Method method) {
-        return String.format("%s,%s,%s",
-                method.getReturnType(),
-                method.getName(),
-                extractParameterTypes(method));
-    }
-
-    private String extractParameterTypes(Method method) {
-        return Arrays.stream(method.getParameterTypes())
-                .map(Class::getCanonicalName)
-                .collect(Collectors.toList())
-                .toString();
     }
 }
