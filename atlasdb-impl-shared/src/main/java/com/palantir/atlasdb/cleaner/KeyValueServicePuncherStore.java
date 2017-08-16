@@ -16,11 +16,11 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.async.initializer.AsyncInitializer;
-import com.palantir.async.initializer.UninitializedException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -38,17 +38,16 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
  *
  * @author jweel
  */
-@AutoDelegate(typeToExtend = PuncherStore.class)
-public final class KeyValueServicePuncherStore implements AutoDelegate_PuncherStore, AsyncInitializer {
+public final class KeyValueServicePuncherStore implements PuncherStore, AsyncInitializer {
     private static final byte[] COLUMN = "t".getBytes(StandardCharsets.UTF_8);
     private final KeyValueService keyValueService;
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
         KeyValueServicePuncherStore keyValueServicePuncherStore = new KeyValueServicePuncherStore(keyValueService);
@@ -58,6 +57,11 @@ public final class KeyValueServicePuncherStore implements AutoDelegate_PuncherSt
 
     private KeyValueServicePuncherStore(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
     }
 
     @Override
@@ -72,10 +76,14 @@ public final class KeyValueServicePuncherStore implements AutoDelegate_PuncherSt
                 new ColumnMetadataDescription(ImmutableList.of(
                         new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
                         ConflictHandler.IGNORE_ALL).persistToBytes());
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("The {} was initialized underneath us.", this.getClass().getName());
+        }
     }
 
     @Override
     public void put(long timestamp, long timeMillis) {
+        checkInitialize();
         byte[] row = EncodingUtils.encodeUnsignedVarLong(timeMillis);
         EncodingUtils.flipAllBitsInPlace(row);
         Cell cell = Cell.create(row, COLUMN);
@@ -84,16 +92,8 @@ public final class KeyValueServicePuncherStore implements AutoDelegate_PuncherSt
     }
 
     @Override
-    public PuncherStore delegate() {
-        if (isInitialized()) {
-            return this;
-        } else {
-            throw new UninitializedException("The PuncherStore is not initialized yet.");
-        }
-    }
-
-    @Override
     public Long get(Long timeMillis) {
+        checkInitialize();
         byte[] row = EncodingUtils.encodeUnsignedVarLong(timeMillis);
         EncodingUtils.flipAllBitsInPlace(row);
         RangeRequest rangeRequest =
@@ -113,6 +113,7 @@ public final class KeyValueServicePuncherStore implements AutoDelegate_PuncherSt
 
     @Override
     public long getMillisForTimestamp(long timestamp) {
+        checkInitialize();
         return getMillisForTimestamp(keyValueService, timestamp);
     }
 
@@ -139,5 +140,4 @@ public final class KeyValueServicePuncherStore implements AutoDelegate_PuncherSt
             result.close();
         }
     }
-
 }

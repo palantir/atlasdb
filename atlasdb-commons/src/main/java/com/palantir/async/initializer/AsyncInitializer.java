@@ -18,39 +18,40 @@ package com.palantir.async.initializer;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 public interface AsyncInitializer {
     Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    AtomicBoolean isInitialized = new AtomicBoolean(false);
-
     default void asyncInitialize() {
-        Executors.newSingleThreadExecutor().execute(
-                () -> {
-                    while (!isInitialized.get()) {
-                        try {
-                            tryInitialize();
-                            if (!isInitialized.compareAndSet(false, true)) {
-                                log.warn("Someone set initialized for the instance while another thread was initializing it.");
-                            };
-                            break;
-                        } catch (Exception e) {
-                            Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+        try {
+            tryInitialize();
+        } catch (Exception e) {
+            log.warn("Failed to initialize in the first attempt, will initialize Asynchronously.", e);
+            Executors.newSingleThreadExecutor().execute(
+                    () -> {
+                        while (!isInitialized()) {
+                            try {
+                                tryInitialize();
+                            } catch (Exception ex) {
+                                Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+                            }
                         }
                     }
-                }
-        );
+            );
+        }
     }
 
-    default boolean isInitialized() {
-        return isInitialized.get();
+    default void checkInitialize() {
+        Preconditions.checkArgument(isInitialized(), String.format("The instance of %s is not initialized yet.", this.getClass().getName()));
     }
+
+    boolean isInitialized();
 
     void tryInitialize();
 }

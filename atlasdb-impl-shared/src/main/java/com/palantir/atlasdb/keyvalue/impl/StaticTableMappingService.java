@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class StaticTableMappingService extends AbstractTableMappingService implements AsyncInitializer {
     private final KeyValueService kv;
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     protected StaticTableMappingService(KeyValueService kv) {
         this.kv = kv;
@@ -60,7 +62,15 @@ public class StaticTableMappingService extends AbstractTableMappingService imple
     }
 
     @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
     public void tryInitialize() {
         updateTableMap();
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the instance while we were trying too.");
+        }
     }
 }

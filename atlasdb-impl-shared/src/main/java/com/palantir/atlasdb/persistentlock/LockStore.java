@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -61,8 +62,9 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 @SuppressWarnings("checkstyle:FinalClass") // Non-final as we'd like to mock it.
 public class LockStore implements AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(LockStore.class);
-
     private static final String BACKUP_LOCK_NAME = "BackupLock";
+
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
     private final KeyValueService keyValueService;
 
     public static final LockEntry LOCK_OPEN = ImmutableLockEntry.builder()
@@ -71,7 +73,7 @@ public class LockStore implements AsyncInitializer {
             .reason("Available")
             .build();
 
-    protected LockStore(KeyValueService kvs) {
+    public LockStore(KeyValueService kvs) {
         this.keyValueService = kvs;
     }
 
@@ -81,7 +83,19 @@ public class LockStore implements AsyncInitializer {
         return lockStore;
     }
 
+    @Override
+    public void tryInitialize() {
+        keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        if (allLockEntries().isEmpty()) {
+            new LockStorePopulator(keyValueService).populate();
+        }
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the instance of {} underneath us.", this.getClass().getName());
+        }
+    }
+
     public LockEntry acquireBackupLock(String reason) throws CheckAndSetException {
+        checkInitialize();
         LockEntry lockEntry = generateUniqueBackupLockEntry(reason);
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
                 lockEntry.cell(),
@@ -94,6 +108,7 @@ public class LockStore implements AsyncInitializer {
     }
 
     public void releaseLock(LockEntry lockEntry) throws CheckAndSetException {
+        checkInitialize();
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
                 lockEntry.cell(),
                 lockEntry.value(),
@@ -104,6 +119,7 @@ public class LockStore implements AsyncInitializer {
     }
 
     public LockEntry getLockEntryWithLockId(PersistentLockId lockId) {
+        checkInitialize();
         List<LockEntry> locksWithId = allLockEntries().stream()
                 .filter(lockEntry -> Objects.equals(lockEntry.instanceId(), lockId.value()))
                 .collect(Collectors.toList());
@@ -138,11 +154,8 @@ public class LockStore implements AsyncInitializer {
     }
 
     @Override
-    public void tryInitialize() {
-        keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        if (allLockEntries().isEmpty()) {
-            new LockStorePopulator(keyValueService).populate();
-        }
+    public boolean isInitialized() {
+        return isInitialized.get();
     }
 
     static class LockStorePopulator {

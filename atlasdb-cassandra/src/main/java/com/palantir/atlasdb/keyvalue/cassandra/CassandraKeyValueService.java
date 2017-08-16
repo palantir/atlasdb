@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -169,6 +170,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
+
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
@@ -198,7 +201,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = new AsyncInitializedCassandraClientPool(configManager.getConfig());
+        this.clientPool = new CassandraClientPool(configManager.getConfig());
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -214,6 +217,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
         return leaderConfig
                 .map((config) -> config.whoIsTheLockLeader())
                 .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
     }
 
     @Override
@@ -242,6 +250,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the instance of {} underneath us.", this.getClass().getName());
+        }
     }
 
     private void upgradeFromOlderInternalSchema() {
@@ -344,6 +355,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
             Iterable<byte[]> rows,
             ColumnSelection selection,
             long startTs) {
+        checkInitialize();
         if (!selection.allColumnsSelected()) {
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
@@ -467,6 +479,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        checkInitialize();
         if (timestampByCell.isEmpty()) {
             log.info("Attempted get on '{}' table with empty cells", UnsafeArg.of("tableRef", tableRef));
             return ImmutableMap.of();
@@ -629,6 +642,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
                                                                   Iterable<byte[]> rows,
                                                                   BatchColumnRangeSelection batchColumnRangeSelection,
                                                                   long timestamp) {
+        checkInitialize();
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
                 partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
@@ -893,6 +907,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
+        checkInitialize();
         try {
             putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
@@ -913,6 +928,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
+        checkInitialize();
         try {
             putInternal(tableRef, values.entries());
         } catch (Exception e) {
@@ -1007,6 +1023,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
+        checkInitialize();
         List<TableCellAndValue> flattened = Lists.newArrayList();
         for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> tableAndValues : valuesByTable.entrySet()) {
             for (Map.Entry<Cell, byte[]> entry : tableAndValues.getValue().entrySet()) {
@@ -1160,6 +1177,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void truncateTable(final TableReference tableRef) {
+        checkInitialize();
         truncateTables(ImmutableSet.of(tableRef));
     }
 
@@ -1249,6 +1267,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+        checkInitialize();
         Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = partitionMapByHost(keys.asMap().entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
@@ -1355,6 +1374,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
+        checkInitialize();
         return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor::create);
     }
 
@@ -1378,6 +1398,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
+        checkInitialize();
         Integer timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
         return getTimestampsInBatchesWithPageCreator(
                 tableRef,
@@ -1457,6 +1478,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void dropTable(final TableReference tableRef) {
+        checkInitialize();
         dropTables(ImmutableSet.of(tableRef));
     }
 
@@ -1480,6 +1502,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
+        checkInitialize();
         schemaMutationLock.runWithLock(() -> dropTablesInternal(tablesToDrop));
     }
 
@@ -1532,6 +1555,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void createTable(final TableReference tableRef, final byte[] tableMetadata) {
+        checkInitialize();
         createTables(ImmutableMap.of(tableRef, tableMetadata));
     }
 
@@ -1560,6 +1584,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
+        checkInitialize();
         Map<TableReference, byte[]> tablesToActuallyCreate = filterOutExistingTables(tableNamesToTableMetadata);
         Map<TableReference, byte[]> tablesToUpdateMetadataFor = filterOutNoOpMetadataChanges(tableNamesToTableMetadata);
 
@@ -1676,6 +1701,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public Set<TableReference> getAllTableNames() {
+        checkInitialize();
         return getTableReferencesWithoutFiltering()
                 .filter(tr -> !hiddenTables.isHidden(tr))
                 .collect(Collectors.toSet());
@@ -1693,6 +1719,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
+        checkInitialize();
         // This can be turned into not-a-full-table-scan if someone makes an upgrade task
         // that makes sure we only write the metadata keys based on lowercased table names
 
@@ -1732,6 +1759,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
+        checkInitialize();
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
 
         // we don't even have a metadata table yet. Return empty map.
@@ -1803,6 +1831,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void putMetadataForTable(final TableReference tableRef, final byte[] meta) {
+        checkInitialize();
         putMetadataForTables(ImmutableMap.of(tableRef, meta));
     }
 
@@ -1818,6 +1847,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
+        checkInitialize();
         internalPutMetadataForTables(tableRefToMetadata, true);
     }
 
@@ -1915,6 +1945,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
 
     @Override
     public void deleteRange(final TableReference tableRef, final RangeRequest range) {
+        checkInitialize();
         if (range.equals(RangeRequest.all())) {
             try {
                 runTruncateInternal(ImmutableSet.of(tableRef));
@@ -1954,6 +1985,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+        checkInitialize();
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
             putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
@@ -2001,6 +2033,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
     @Override
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
+        checkInitialize();
         try {
             clientPool.runWithRetry(client -> {
                 for (Entry<Cell, byte[]> e : values.entrySet()) {
@@ -2031,6 +2064,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
+        checkInitialize();
         try {
             clientPool.runWithRetry(client -> {
                 CASResult casResult = executeCheckAndSet(client, request);
@@ -2098,6 +2132,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      */
     @Override
     public void compactInternally(TableReference tableRef) {
+        checkInitialize();
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
                 "tableRef:[%s] should not be null or empty.", tableRef);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
@@ -2270,6 +2305,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      */
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
+        checkInitialize();
         Set<TableReference> tables = lockTables.getAllLockTables();
         java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();
         if (!tableToKeep.isPresent()) {

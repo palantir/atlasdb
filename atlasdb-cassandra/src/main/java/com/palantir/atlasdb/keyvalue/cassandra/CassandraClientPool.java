@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -117,6 +118,7 @@ public class CassandraClientPool implements AsyncInitializer {
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -215,6 +217,11 @@ public class CassandraClientPool implements AsyncInitializer {
     }
 
     @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
     public void tryInitialize() {
         config.servers().forEach(this::addPool);
         refreshDaemon.scheduleWithFixedDelay(() -> {
@@ -232,6 +239,9 @@ public class CassandraClientPool implements AsyncInitializer {
         }
         refreshPool(); // ensure we've initialized before returning
         registerAggregateMetrics();
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the instance of {} underneath us.", this.getClass().getName());
+        }
     }
 
     public void shutdown() {
@@ -581,12 +591,14 @@ public class CassandraClientPool implements AsyncInitializer {
             };
 
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+        checkInitialize();
         return runWithRetryOnHost(getRandomGoodHost().getHost(), fn);
     }
 
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
             FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+        checkInitialize();
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
         Set<InetSocketAddress> triedHosts = Sets.newHashSet();
@@ -626,6 +638,7 @@ public class CassandraClientPool implements AsyncInitializer {
     }
 
     public <V, K extends Exception> V run(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+        checkInitialize();
         return runOnHost(getRandomGoodHost().getHost(), fn);
     }
 
