@@ -12,6 +12,7 @@ dependencies {
     compile group: 'net.jpountz.lz4', name: 'lz4'
 
     testCompile group: 'junit', name: 'junit'
+    testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
     testCompile group: 'org.hamcrest', name: 'hamcrest-core'
     testCompile group: 'org.hamcrest', name: 'hamcrest-library'
