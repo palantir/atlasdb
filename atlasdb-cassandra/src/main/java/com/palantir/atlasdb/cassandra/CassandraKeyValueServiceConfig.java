@@ -103,7 +103,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @JsonIgnore
     @Value.Lazy
     public String keyspace() {
-        return rawKeyspace().orElseThrow(() -> new IllegalStateException(
+        return explicitKeyspace().orElseThrow(() -> new IllegalStateException(
                 "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
     }
 
@@ -112,7 +112,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * Note that when the keyspace is read, this field must be present.
      */
     @JsonProperty("keyspace")
-    public abstract Optional<String> rawKeyspace();
+    public abstract Optional<String> explicitKeyspace();
 
     public abstract Optional<CassandraCredentialsConfig> credentials();
 

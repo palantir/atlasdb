@@ -26,7 +26,7 @@ public final class TimeLockClientConfigs {
     }
 
     public static TimeLockClientConfig setClient(TimeLockClientConfig config, Optional<String> namespace) {
-        String resolvedClient = OptionalResolver.resolve(config.rawClient(), namespace);
+        String resolvedClient = OptionalResolver.resolve(config.explicitClient(), namespace);
         return ImmutableTimeLockClientConfig.builder()
                 .from(config)
                 .rawClient(resolvedClient)
