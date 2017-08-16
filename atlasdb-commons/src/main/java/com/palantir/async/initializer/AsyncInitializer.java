@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.async.initializer;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +30,7 @@ public interface AsyncInitializer {
 
     AtomicBoolean isInitialized = new AtomicBoolean(false);
 
-    default void ayncInitialize() {
+    default void asyncInitialize() {
         Executors.newSingleThreadExecutor().execute(
                 () -> {
                     while (!isInitialized.get()) {

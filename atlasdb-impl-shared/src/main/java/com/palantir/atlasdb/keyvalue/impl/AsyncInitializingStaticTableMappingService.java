@@ -14,25 +14,32 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.impl;
 
 import com.palantir.async.initializer.UninitializedException;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.TableMappingService;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = CassandraClientPool.class)
-public class AsyncInitializedCassandraClientPool extends AutoDelegate_CassandraClientPool {
+@AutoDelegate(typeToExtend = StaticTableMappingService.class)
+public class AsyncInitializingStaticTableMappingService extends AutoDelegate_StaticTableMappingService {
 
-    public AsyncInitializedCassandraClientPool(CassandraKeyValueServiceConfig config) {
-        super(config);
+    public AsyncInitializingStaticTableMappingService(KeyValueService kv) {
+        super(kv);
+    }
+
+    public static TableMappingService create(KeyValueService kv) {
+        AsyncInitializingStaticTableMappingService ret = new AsyncInitializingStaticTableMappingService(kv);
+        ret.asyncInitialize();
+        return ret;
     }
 
     @Override
-    public CassandraClientPool delegate() {
+    public StaticTableMappingService delegate() {
         if (isInitialized()) {
             return this;
         } else {
-            throw new UninitializedException("CassandraClientPool is not initialized yet.");
+            throw new UninitializedException("StaticTableMappingService is not initialized yet.");
         }
     }
 }

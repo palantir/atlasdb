@@ -34,9 +34,9 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AsyncInitializingStaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -81,7 +81,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         keyValueService.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
         keyValueService.putMetadataForTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
-        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
+        TableMappingService tableMap = AsyncInitializingStaticTableMappingService.create(keyValueService);
         final TableReference shortTableRef = tableMap.getMappedTableName(namespacedTableRef);
 
         final Cell theCell = Cell.create(PtBytes.toBytes("r1"), PtBytes.toBytes("c"));

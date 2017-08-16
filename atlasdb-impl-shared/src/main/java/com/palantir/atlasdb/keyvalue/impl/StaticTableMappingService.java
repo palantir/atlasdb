@@ -20,20 +20,14 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.palantir.atlasdb.keyvalue.TableMappingService;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public final class StaticTableMappingService extends AbstractTableMappingService {
+public class StaticTableMappingService extends AbstractTableMappingService implements AsyncInitializer {
     private final KeyValueService kv;
 
-    public static TableMappingService create(KeyValueService kv) {
-        StaticTableMappingService ret = new StaticTableMappingService(kv);
-        ret.updateTableMap();
-        return ret;
-    }
-
-    private StaticTableMappingService(KeyValueService kv) {
+    protected StaticTableMappingService(KeyValueService kv) {
         this.kv = kv;
     }
 
@@ -65,4 +59,8 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         // any name is ok for the static mapper
     }
 
+    @Override
+    public void tryInitialize() {
+        updateTableMap();
+    }
 }

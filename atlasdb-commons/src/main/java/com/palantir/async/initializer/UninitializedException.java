@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.async.initializer;
 
 public class UninitializedException extends RuntimeException {
 

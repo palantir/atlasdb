@@ -99,7 +99,8 @@ final class TypeToExtend {
 
     private Boolean constructorFilter(Element element) {
         return element.getKind() == ElementKind.CONSTRUCTOR
-                && element.getSimpleName().contentEquals("<init>");
+                && element.getSimpleName().contentEquals("<init>")
+                && !element.getModifiers().contains(Modifier.PRIVATE);
     }
 
     Boolean isPublic() {

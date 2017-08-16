@@ -105,7 +105,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
-        return CassandraKeyValueService.create(
+        return AsyncInitializedCassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 CassandraContainer.LEADER_CONFIG,
                 testLogger);

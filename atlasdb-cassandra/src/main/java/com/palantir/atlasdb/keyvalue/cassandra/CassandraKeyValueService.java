@@ -54,6 +54,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.async.initializer.AsyncInitializer;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -143,7 +144,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * if some nodes are down, and the change can be detected through active hosts,
  * and these inactive nodes will be removed afterwards.
  */
-public class CassandraKeyValueService extends AbstractKeyValueService {
+public class CassandraKeyValueService extends AbstractKeyValueService implements AsyncInitializer {
     private final Logger log;
 
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
@@ -185,7 +186,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 configManager,
                 compactionManager,
                 leaderConfig);
-        ret.init();
+        ret.asyncInitialize();
         return ret;
     }
 
@@ -215,7 +216,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
-    protected void init() {
+    @Override
+    public void tryInitialize() {
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 

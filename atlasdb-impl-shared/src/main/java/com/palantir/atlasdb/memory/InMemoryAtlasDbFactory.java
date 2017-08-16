@@ -30,6 +30,7 @@ import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.AsyncInitializingStaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
@@ -154,6 +155,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv);
+        return AsyncInitializingStaticTableMappingService.create(kv);
     }
 }
