@@ -20,6 +20,7 @@ dependencies {
   explicitShadow group: 'com.carrotsearch', name: 'hppc', version: '0.5.4'
 
   explicitShadow project(":atlasdb-client")
+  explicitShadow project(":atlasdb-processors")
   explicitShadow project(":atlasdb-api")
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')

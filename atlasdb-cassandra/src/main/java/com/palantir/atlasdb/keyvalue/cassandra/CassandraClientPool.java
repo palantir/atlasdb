@@ -30,6 +30,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +64,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -188,7 +190,7 @@ public class CassandraClientPool {
         }
     }
 
-    private enum StartupChecks {
+    protected enum StartupChecks {
         RUN,
         DO_NOT_RUN
     }
@@ -204,11 +206,23 @@ public class CassandraClientPool {
 
     private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
-        config.servers().forEach(this::addPool);
         refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
+        Executors.newSingleThreadExecutor().execute(
+                () -> {
+                    try {
+                        initialize(startupChecks);
+                    } catch (Exception e) {
+                        Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+                    }
+                }
+        );
+    }
+
+    private void initialize(StartupChecks startupChecks) {
+        config.servers().forEach(this::addPool);
         refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
