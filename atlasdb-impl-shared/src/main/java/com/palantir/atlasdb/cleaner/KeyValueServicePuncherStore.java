@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.async.initializer.UninitializedException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,16 +38,30 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.processors.AutoDelegate;
 
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
  *
  * @author jweel
  */
-public final class KeyValueServicePuncherStore implements PuncherStore {
+@AutoDelegate(typeToExtend = PuncherStore.class)
+public final class KeyValueServicePuncherStore implements AutoDelegate_PuncherStore, AsyncInitializer {
     private static final byte[] COLUMN = "t".getBytes(StandardCharsets.UTF_8);
+    private final KeyValueService keyValueService;
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
+        KeyValueServicePuncherStore keyValueServicePuncherStore = new KeyValueServicePuncherStore(keyValueService);
+        keyValueServicePuncherStore.asyncInitialize();
+        return keyValueServicePuncherStore;
+    }
+
+    private KeyValueServicePuncherStore(KeyValueService keyValueService) {
+        this.keyValueService = keyValueService;
+    }
+
+    @Override
+    public void tryInitialize() {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
                         new NameComponentDescription.Builder()
@@ -56,13 +72,6 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
                 new ColumnMetadataDescription(ImmutableList.of(
                         new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
                         ConflictHandler.IGNORE_ALL).persistToBytes());
-        return new KeyValueServicePuncherStore(keyValueService);
-    }
-
-    private final KeyValueService keyValueService;
-
-    private KeyValueServicePuncherStore(KeyValueService keyValueService) {
-        this.keyValueService = keyValueService;
     }
 
     @Override
@@ -72,6 +81,15 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         Cell cell = Cell.create(row, COLUMN);
         byte[] value = EncodingUtils.encodeUnsignedVarLong(timestamp);
         keyValueService.put(AtlasDbConstants.PUNCH_TABLE, ImmutableMap.of(cell, value), timestamp);
+    }
+
+    @Override
+    public PuncherStore delegate() {
+        if (isInitialized()) {
+            return this;
+        } else {
+            throw new UninitializedException("The PuncherStore is not initialized yet.");
+        }
     }
 
     @Override

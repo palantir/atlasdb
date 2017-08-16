@@ -242,24 +242,14 @@ public final class TransactionManagers {
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
-
-        TransactionTables.createTables(kvs);
+        PersistentLockManager persistentLockManager = new PersistentLockManager(
+                persistentLockService,
+                config.getSweepPersistentLockWaitMillis());
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
-        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
-                .add(SweepSchema.INSTANCE.getLatestSchema())
-                .addAll(schemas)
-                .build();
-        for (Schema schema : allSchemas) {
-            Schemas.createTablesAndIndexes(schema, kvs);
-        }
-
-        // Prime the key value service with logging information.
-        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
-        LoggingArgs.hydrate(kvs.getMetadataForTables());
 
         CleanupFollower follower = CleanupFollower.create(schemas);
 
@@ -287,9 +277,6 @@ public final class TransactionManagers {
                 allowHiddenTableAccess,
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
 
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
-                persistentLockService,
-                config.getSweepPersistentLockWaitMillis());
         initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
                 env,
                 kvs,
@@ -299,7 +286,25 @@ public final class TransactionManagers {
                 transactionManager,
                 persistentLockManager);
 
+        tryInitialize(schemas, kvs);
+
         return transactionManager;
+    }
+
+    private static void tryInitialize(Set<Schema> schemas,
+            KeyValueService kvs) {// Prime the key value service with logging information.
+        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
+        LoggingArgs.hydrate(kvs.getMetadataForTables());
+
+        TransactionTables.createTables(kvs);
+
+        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
+                .add(SweepSchema.INSTANCE.getLatestSchema())
+                .addAll(schemas)
+                .build();
+        for (Schema schema : allSchemas) {
+            Schemas.createTablesAndIndexes(schema, kvs);
+        }
     }
 
     private static void checkInstallConfig(AtlasDbConfig config) {
