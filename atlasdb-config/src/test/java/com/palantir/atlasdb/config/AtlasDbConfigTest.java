@@ -39,7 +39,7 @@ public class AtlasDbConfigTest {
             .addServers("server")
             .build();
     private static final TimeLockClientConfig TIMELOCK_CONFIG = ImmutableTimeLockClientConfig.builder()
-            .client("testClient")
+            .rawClient("testClient")
             .serversList(DEFAULT_SERVER_LIST)
             .build();
     private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
@@ -102,7 +102,7 @@ public class AtlasDbConfigTest {
         ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG)
                 .timelock(ImmutableTimeLockClientConfig.builder()
-                        .client("testClient")
+                        .rawClient("testClient")
                         .serversList(DEFAULT_SERVER_LIST).build())
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)

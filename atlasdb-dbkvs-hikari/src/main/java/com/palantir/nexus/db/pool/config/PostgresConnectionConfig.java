@@ -67,7 +67,7 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
         return "SELECT 1";
     }
 
-    @Value.Derived
+    @Value.Lazy
     @JsonIgnore
     public String getDbName() {
         return rawDbName().orElseThrow(() -> new IllegalStateException(

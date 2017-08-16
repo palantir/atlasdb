@@ -216,7 +216,7 @@ public final class TransactionManagers {
                 () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader(), config.namespace());
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 

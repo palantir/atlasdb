@@ -59,7 +59,7 @@ public class AtlasDbCommandUtilsTest {
             .addServers(LOCAL_SERVER_NAME)
             .build();
     private static final TimeLockClientConfig TIME_LOCK_CLIENT_CONFIG = ImmutableTimeLockClientConfig.builder()
-            .client(LOCAL_SERVER_NAME)
+            .rawClient(LOCAL_SERVER_NAME)
             .serversList(LOCAL_SERVER_LIST_CONFIG)
             .build();
     private static final AtlasDbConfig TIME_LOCK_CONFIG = ImmutableAtlasDbConfig.builder()
@@ -168,7 +168,7 @@ public class AtlasDbCommandUtilsTest {
                         .acceptorLogDir(new File("var/data/paxos/acceptor").getAbsoluteFile())
                         .build())
                 .keyValueService(ImmutableCassandraKeyValueServiceConfig.builder()
-                        .keyspace("test")
+                        .rawKeyspace("test")
                         .replicationFactor(3)
                         .servers(ImmutableSet.of(
                                 new InetSocketAddress("host1", 9160),

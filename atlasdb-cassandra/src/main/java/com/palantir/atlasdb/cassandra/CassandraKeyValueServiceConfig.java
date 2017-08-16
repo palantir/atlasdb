@@ -101,7 +101,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @JsonIgnore
-    @Value.Derived
+    @Value.Lazy
     public String keyspace() {
         return rawKeyspace().orElseThrow(() -> new IllegalStateException(
                 "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));

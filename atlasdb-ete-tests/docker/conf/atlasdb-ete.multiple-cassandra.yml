@@ -16,17 +16,18 @@ atlasdb:
       - cassandra1:9160
       - cassandra2:9160
       - cassandra3:9160
-    keyspace: atlasete
     credentials:
       username: cassandra
       password: cassandra
     ssl: false
     replicationFactor: 3
 
+  namespace: atlasete
+
   leader:
     quorumSize: 1
     learnerLogDir: var/data/paxosLog/learner1
     acceptorLogDir: var/data/paxosLog/acceptor1
-    localServer: http://${ME}:3828
+    localServer: http://localhost:3828
     leaders:
-      - http://ete1:3828
+      - http://localhost:3828
