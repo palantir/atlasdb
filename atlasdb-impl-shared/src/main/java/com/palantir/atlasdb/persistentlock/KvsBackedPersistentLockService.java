@@ -35,7 +35,7 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
     }
 
     public static PersistentLockService create(KeyValueService kvs) {
-        LockStore lockStore = LockStore.create(kvs);
+        LockStore lockStore = AsyncInitializingLockStore.create(kvs);
         return new KvsBackedPersistentLockService(lockStore);
     }
 

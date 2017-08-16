@@ -47,12 +47,12 @@ public class LockStoreTest {
     @Before
     public void setUp() throws Exception {
         kvs = spy(new InMemoryKeyValueService(false));
-        lockStore = LockStore.create(kvs);
+        lockStore = AsyncInitializingLockStore.create(kvs);
     }
 
     @Test
     public void createsPersistedLocksTable() {
-        LockStore.create(kvs);
+        AsyncInitializingLockStore.create(kvs);
         verify(kvs, atLeastOnce()).createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
     }
 
@@ -67,7 +67,7 @@ public class LockStoreTest {
     public void noErrorIfLockOpenedWhileCreatingTable() {
         doThrow(new CheckAndSetException("foo", null, null, ImmutableList.of())).when(kvs).checkAndSet(anyObject());
 
-        new LockStore.LockStorePopulator(kvs).populate(); // should not throw
+        new AsyncInitializingLockStore.LockStorePopulator(kvs).populate(); // should not throw
     }
 
     @Test
@@ -91,7 +91,7 @@ public class LockStoreTest {
 
     @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockThatWasTakenOutByAnotherStore() throws Exception {
-        LockStore otherLockStore = LockStore.create(kvs);
+        LockStore otherLockStore = AsyncInitializingLockStore.create(kvs);
         otherLockStore.acquireBackupLock("grabbed by other store");
 
         lockStore.acquireBackupLock(REASON);
@@ -99,7 +99,7 @@ public class LockStoreTest {
 
     @Test
     public void canViewLockAcquiredByAnotherLockStore() {
-        LockStore otherLockStore = LockStore.create(kvs);
+        LockStore otherLockStore = AsyncInitializingLockStore.create(kvs);
         LockEntry otherLockEntry = otherLockStore.acquireBackupLock("grabbed by other store");
 
         assertThat(lockStore.allLockEntries(), contains(otherLockEntry));

@@ -86,7 +86,8 @@ final class TypeToExtend {
                 && !element.getModifiers().contains(Modifier.NATIVE)
                 && !element.getModifiers().contains(Modifier.STATIC)
                 && !element.getSimpleName().contentEquals("equals")
-                && !element.getSimpleName().contentEquals("toString");
+                && !element.getSimpleName().contentEquals("toString")
+                && !element.getSimpleName().contentEquals("tryInitialize");
     }
 
     private Set<ExecutableElement> extractConstructors(TypeElement typeToExtractConstructorsFrom) {

@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -58,7 +59,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  * This is actually OK - all we care about is that we're in the state machine _somewhere_.
  */
 @SuppressWarnings("checkstyle:FinalClass") // Non-final as we'd like to mock it.
-public class LockStore {
+public class LockStore implements AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(LockStore.class);
 
     private static final String BACKUP_LOCK_NAME = "BackupLock";
@@ -70,16 +71,13 @@ public class LockStore {
             .reason("Available")
             .build();
 
-    private LockStore(KeyValueService kvs) {
+    protected LockStore(KeyValueService kvs) {
         this.keyValueService = kvs;
     }
 
     public static LockStore create(KeyValueService kvs) {
-        kvs.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         LockStore lockStore = new LockStore(kvs);
-        if (lockStore.allLockEntries().isEmpty()) {
-            new LockStorePopulator(kvs).populate();
-        }
+        lockStore.asyncInitialize();
         return lockStore;
     }
 
@@ -137,6 +135,14 @@ public class LockStore {
                 .instanceId(randomLockId)
                 .reason(reason)
                 .build();
+    }
+
+    @Override
+    public void tryInitialize() {
+        keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        if (allLockEntries().isEmpty()) {
+            new LockStorePopulator(keyValueService).populate();
+        }
     }
 
     static class LockStorePopulator {
