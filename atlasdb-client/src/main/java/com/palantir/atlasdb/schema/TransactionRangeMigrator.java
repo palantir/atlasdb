@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema;
 
 import java.util.Map;
 
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +33,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
-import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.util.Mutable;
@@ -157,16 +156,11 @@ public class TransactionRangeMigrator implements RangeMigrator {
 
     private byte[] internalCopyRange(BatchingVisitable<RowResult<byte[]>> bv,
                                      final long maxBytes,
-                                     final Transaction t) {
+                                     final Transaction txn) {
         final Mutable<byte[]> lastRowName = Mutables.newMutable(null);
         final MutableLong bytesPut = new MutableLong(0L);
         bv.batchAccept(readBatchSize, AbortingVisitors.batching(
-                new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-                    @Override
-                    public boolean visit(RowResult<byte[]> rr) {
-                        return internalCopyRow(rr, maxBytes, t, bytesPut, lastRowName);
-                    }
-                }));
+                rr -> internalCopyRow(rr, maxBytes, txn, bytesPut, lastRowName)));
         return lastRowName.get();
     }
 
