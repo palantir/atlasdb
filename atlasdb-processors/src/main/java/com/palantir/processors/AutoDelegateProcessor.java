@@ -137,7 +137,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             } catch (ProcessingException e) {
                 error(e.getElement(), e.getMessage());
             } catch (IOException | RuntimeException e) {
-                error(e.getMessage());
+                error(annotatedElement, e.getMessage());
             }
         }
 
@@ -340,15 +340,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
      */
     private void warn(Element element, String msg) {
         messager.printMessage(Diagnostic.Kind.WARNING, msg, element);
-    }
-
-    /**
-     * Prints an error message.
-     *
-     * @param msg The error message
-     */
-    private void error(String msg) {
-        messager.printMessage(Diagnostic.Kind.ERROR, msg);
     }
 
     /**
