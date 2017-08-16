@@ -45,8 +45,13 @@ develop
          - Change
 
     *    - |devbreak|
-	 - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
+         - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
+    *    - |changed|
+         - The ``RangeMigrator`` interface now contains an additional method ``logStatus(int numRangeBoundaries)``.
+           This method is used to log the state of migration for each table when starting or resuming a KVS migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2241>`__)
 
 =======
 v0.52.0
