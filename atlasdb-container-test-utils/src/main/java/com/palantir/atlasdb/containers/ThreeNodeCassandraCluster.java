@@ -48,7 +48,7 @@ public class ThreeNodeCassandraCluster extends Container {
             .addServers(new InetSocketAddress(SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT))
             .addServers(new InetSocketAddress(THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT))
             .poolSize(20)
-            .keyspace("atlasdb")
+            .rawKeyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()
                     .username(CassandraContainer.USERNAME)
                     .password(CassandraContainer.PASSWORD)
