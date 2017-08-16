@@ -132,6 +132,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
@@ -161,6 +162,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
@@ -249,6 +251,12 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
@@ -420,6 +428,12 @@
             "locked": "1.9.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "commons-io:commons-io": {
@@ -681,6 +695,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-api-protobufs",
@@ -710,6 +725,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
@@ -798,6 +814,12 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-persistent-lock-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
@@ -969,6 +991,12 @@
             "locked": "1.9.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "commons-io:commons-io": {
