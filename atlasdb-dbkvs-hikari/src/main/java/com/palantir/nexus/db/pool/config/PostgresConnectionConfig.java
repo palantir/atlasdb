@@ -70,12 +70,12 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     @Value.Lazy
     @JsonIgnore
     public String getDbName() {
-        return rawDbName().orElseThrow(() -> new IllegalStateException(
+        return explicitDbName().orElseThrow(() -> new IllegalStateException(
                 "Tried to read the DB Name from a Postgres connection config, when it hadn't been set."));
     }
 
     @JsonProperty("dbName")
-    public abstract Optional<String> rawDbName();
+    public abstract Optional<String> explicitDbName();
 
     @Override
     @Value.Default

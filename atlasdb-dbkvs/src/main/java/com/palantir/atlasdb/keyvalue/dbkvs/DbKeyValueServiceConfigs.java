@@ -48,7 +48,7 @@ public final class DbKeyValueServiceConfigs {
     private static ConnectionConfig replacePostgresDbName(
             PostgresConnectionConfig connectionConfig,
             Optional<String> namespace) {
-        String resolvedNamespace = OptionalResolver.resolve(connectionConfig.rawDbName(), namespace);
+        String resolvedNamespace = OptionalResolver.resolve(connectionConfig.explicitDbName(), namespace);
         return ImmutablePostgresConnectionConfig.builder()
                 .from(connectionConfig)
                 .rawDbName(resolvedNamespace)

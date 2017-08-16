@@ -31,12 +31,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Immutable
 public abstract class TimeLockClientConfig {
     @JsonProperty("client")
-    public abstract Optional<String> rawClient();
+    public abstract Optional<String> explicitClient();
 
     @JsonIgnore
     @Value.Lazy
     public String client() {
-        return rawClient().orElseThrow(() -> new IllegalStateException(
+        return explicitClient().orElseThrow(() -> new IllegalStateException(
                 "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
     }
 
