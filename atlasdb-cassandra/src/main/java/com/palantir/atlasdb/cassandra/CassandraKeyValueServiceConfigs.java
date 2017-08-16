@@ -26,7 +26,7 @@ public final class CassandraKeyValueServiceConfigs {
             String recommendedKeyspace) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(cassandraConfig)
-                .rawKeyspace(recommendedKeyspace)
+                .keyspace(recommendedKeyspace)
                 .build();
     }
 }

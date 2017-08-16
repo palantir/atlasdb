@@ -187,7 +187,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
                 .add("host", this.host)
-                .add("keyspace", config.keyspace())
+                .add("keyspace", config.getKeyspaceOrThrow())
                 .add("usingSsl", config.usingSsl())
                 .add("sslConfiguration", config.sslConfiguration().isPresent()
                         ? config.sslConfiguration().get()

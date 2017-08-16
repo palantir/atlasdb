@@ -52,7 +52,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                         + " CassandraKeyValueServiceConfig, found %s", config.getClass());
         CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
 
-        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.explicitKeyspace());
+        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
         return CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
     }
 

@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -30,13 +29,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
 @Value.Immutable
 public abstract class TimeLockClientConfig {
-    @JsonProperty("client")
-    public abstract Optional<String> explicitClient();
+    public abstract Optional<String> client();
 
     @JsonIgnore
     @Value.Lazy
-    public String client() {
-        return explicitClient().orElseThrow(() -> new IllegalStateException(
+    public String getClientOrThrow() {
+        return client().orElseThrow(() -> new IllegalStateException(
                 "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
     }
 
@@ -46,7 +44,7 @@ public abstract class TimeLockClientConfig {
         Set<String> serversWithNamespaces = serversList()
                 .servers()
                 .stream()
-                .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + client())
+                .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + getClientOrThrow())
                 .collect(Collectors.toSet());
         return ImmutableServerListConfig.copyOf(serversList())
                 .withServers(serversWithNamespaces);

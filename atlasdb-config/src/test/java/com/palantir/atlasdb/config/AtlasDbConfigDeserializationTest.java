@@ -56,7 +56,7 @@ public class AtlasDbConfigDeserializationTest {
     }
 
     private void assertTimeLockConfigDeserializedCorrectly(TimeLockClientConfig timeLockClientConfig) {
-        assertThat(timeLockClientConfig.client()).isEqualTo("myatlasdb");
+        assertThat(timeLockClientConfig.getClientOrThrow()).isEqualTo("myatlasdb");
         assertThat(timeLockClientConfig.serversList().servers()).containsExactlyInAnyOrder(
                 "timelock1:8080", "timelock2:8080", "timelock3:8080");
         assertThat(timeLockClientConfig.serversList().sslConfiguration().isPresent()).isTrue();
