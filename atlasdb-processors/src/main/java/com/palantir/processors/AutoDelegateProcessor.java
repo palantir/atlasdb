@@ -109,28 +109,18 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         Set<String> generatedTypes = new HashSet<>();
         for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(AutoDelegate.class)) {
             try {
-                debug(annotatedElement, "Starting to analyze element");
-
                 validateAnnotatedElement(annotatedElement);
                 TypeElement typeElement = (TypeElement) annotatedElement;
-                debug(annotatedElement, "Annotated element validated");
 
                 AutoDelegate annotation = annotatedElement.getAnnotation(AutoDelegate.class);
                 TypeToExtend typeToExtend = validateAnnotationAndCreateTypeToExtend(annotation, typeElement);
-                debug(annotatedElement, "Annotation validated");
-                debug(annotatedElement, String.format("Methods to extend %s", typeToExtend.getMethods()));
-                debug(annotatedElement, String.format("Constructors to extend %s", typeToExtend.getConstructors()));
 
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
                 }
                 generatedTypes.add(typeToExtend.getCanonicalName());
 
-                debug(annotatedElement, "Starting to generate code");
-
                 generateCode(typeToExtend);
-
-                debug(annotatedElement, "Code generated");
             } catch (FilerException e) {
                 // Happens when same file is written twice.
                 warn(annotatedElement, e.getMessage());
@@ -160,12 +150,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                     annotatedElement, AutoDelegate.class.getSimpleName());
         }
 
-        debug(annotatedElement, "Annotation validated");
-
         TypeElement baseType = extractTypeFromAnnotation(annotation);
         PackageElement typePackage = elementUtils.getPackageOf(baseType);
 
-        debug(annotatedElement, "Type extracted");
 
         if (typePackage.isUnnamed()) {
             throw new ProcessingException(baseType, "Type %s doesn't have a package", baseType);
@@ -175,12 +162,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             throw new ProcessingException(annotatedElement, "Trying to extend final type %s", baseType);
         }
 
-        debug(baseType, "BaseType checked");
-
         List<TypeElement> superTypes = fetchSuperTypes(baseType);
-
-        debug(annotatedElement, "Supertypes fetched");
-
         return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
     }
 
@@ -320,16 +302,6 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 .stream()
                 .map(ParameterSpec::get)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Prints a debug message.
-     *
-     * @param element The element which has caused the error. Can be null
-     * @param msg The error message
-     */
-    private void debug(Element element, String msg) {
-        messager.printMessage(Diagnostic.Kind.NOTE, msg, element);
     }
 
     /**
