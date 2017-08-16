@@ -33,6 +33,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.util.Mutable;
@@ -160,7 +161,14 @@ public class TransactionRangeMigrator implements RangeMigrator {
         final Mutable<byte[]> lastRowName = Mutables.newMutable(null);
         final MutableLong bytesPut = new MutableLong(0L);
         bv.batchAccept(readBatchSize, AbortingVisitors.batching(
-                rr -> internalCopyRow(rr, maxBytes, txn, bytesPut, lastRowName)));
+                // Replacing this with a lambda results in an unreported exception compile error
+                // even though no exception can be thrown :-(
+                new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
+                    @Override
+                    public boolean visit(RowResult<byte[]> rr) throws RuntimeException {
+                        return TransactionRangeMigrator.this.internalCopyRow(rr, maxBytes, txn, bytesPut, lastRowName);
+                    }
+                }));
         return lastRowName.get();
     }
 
