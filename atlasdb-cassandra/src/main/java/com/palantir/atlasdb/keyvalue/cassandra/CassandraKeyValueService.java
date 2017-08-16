@@ -248,7 +248,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final Collection<CfDef> updatedCfs = Lists.newArrayListWithExpectedSize(metadataForTables.size());
 
             List<CfDef> knownCfs = clientPool.runWithRetry(client ->
-                    client.describe_keyspace(configManager.getConfig().keyspace()).getCf_defs());
+                    client.describe_keyspace(configManager.getConfig().getKeyspaceOrThrow()).getCf_defs());
 
             for (CfDef clusterSideCf : knownCfs) {
                 TableReference tableRef = tableReferenceFromCfDef(clusterSideCf);
@@ -298,7 +298,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             client,
                             config));
             KsDef ksDef = clientPool.runWithRetry(client ->
-                    client.describe_keyspace(config.keyspace()));
+                    client.describe_keyspace(config.getKeyspaceOrThrow()));
             strategyOptions = Maps.newHashMap(ksDef.getStrategy_options());
 
             if (dcs.size() == 1) {
@@ -1319,7 +1319,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata, int gcGraceSeconds) {
         return ColumnFamilyDefinitions
-                .getCfDef(configManager.getConfig().keyspace(), tableRef, gcGraceSeconds, rawMetadata);
+                .getCfDef(configManager.getConfig().getKeyspaceOrThrow(), tableRef, gcGraceSeconds, rawMetadata);
     }
 
     // TODO(unknown): after cassandra change: handle multiRanges
@@ -1484,7 +1484,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private void dropTablesInternal(final Set<TableReference> tablesToDrop) throws Exception {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
-                KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+                KsDef ks = client.describe_keyspace(configManager.getConfig().getKeyspaceOrThrow());
                 Set<TableReference> existingTables = Sets.newHashSet();
 
                 existingTables.addAll(ks.getCf_defs().stream()
@@ -1640,7 +1640,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
-                            configManager.getConfig().keyspace(),
+                            configManager.getConfig().getKeyspaceOrThrow(),
                             tableEntry.getKey(),
                             configManager.getConfig().gcGraceSeconds(),
                             tableEntry.getValue()));
@@ -2103,12 +2103,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             log.error("No compaction client was configured, but compact was called."
                     + " If you actually want to clear deleted data immediately"
                     + " from Cassandra, lower your gc_grace_seconds setting and"
-                    + " run `nodetool compact {} {}`.", UnsafeArg.of("keyspace", config.keyspace()),
+                    + " run `nodetool compact {} {}`.", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
                     UnsafeArg.of("table", internalTableName(tableRef)));
             return;
         }
         long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
-        String keyspace = config.keyspace();
+        String keyspace = config.getKeyspaceOrThrow();
         try {
             alterGcAndTombstone(keyspace, tableRef, 0, 0.0f);
             compactionManager.get().performTombstoneCompaction(timeoutInSeconds, keyspace, tableRef);

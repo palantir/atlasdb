@@ -23,7 +23,6 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -102,17 +101,15 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @JsonIgnore
     @Value.Lazy
-    public String keyspace() {
-        return explicitKeyspace().orElseThrow(() -> new IllegalStateException(
+    public String getKeyspaceOrThrow() {
+        return keyspace().orElseThrow(() -> new IllegalStateException(
                 "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
     }
 
     /**
-     * Done to make keyspace nullable, whilst preserving wire format backwards compatibility.
      * Note that when the keyspace is read, this field must be present.
      */
-    @JsonProperty("keyspace")
-    public abstract Optional<String> explicitKeyspace();
+    public abstract Optional<String> keyspace();
 
     public abstract Optional<CassandraCredentialsConfig> credentials();
 

@@ -43,15 +43,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace) {
-        DbKeyValueServiceConfig dbKvsConfig = preprocessConfig(config, namespace);
-        return ConnectionManagerAwareDbKvs.create(dbKvsConfig);
-    }
-
-    private DbKeyValueServiceConfig preprocessConfig(KeyValueServiceConfig config, Optional<String> namespace) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());
-        return DbKeyValueServiceConfigs.copyWithNamespace((DbKeyValueServiceConfig) config, namespace);
+        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config);
     }
 
     @Override

@@ -168,7 +168,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         Collection<InetSocketAddress> configuredHosts = config.servers();
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPointsWithPorts(configuredHosts);
-        clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.keyspace()); // for JMX metrics
+        clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.getKeyspaceOrThrow()); // for JMX metrics
         clusterBuilder.withCompression(Compression.LZ4);
 
         if (config.sslConfiguration().isPresent()) {
@@ -301,8 +301,8 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         }
         dcsInCluster.add(getLocalDataCenter());
 
-        if (metadata.getKeyspace(config.keyspace()) == null) { // keyspace previously didn't exist; we need to set it up
-            createKeyspace(config.keyspace(), dcsInCluster);
+        if (metadata.getKeyspace(config.getKeyspaceOrThrow()) == null) { // keyspace previously didn't exist; we need to set it up
+            createKeyspace(config.getKeyspaceOrThrow(), dcsInCluster);
             return;
         }
 
@@ -1063,7 +1063,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     public void createTables(final Map<TableReference, byte[]> tableRefsToTableMetadata) {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Collection<com.datastax.driver.core.TableMetadata> tables = cluster.getMetadata()
-                .getKeyspace(config.keyspace()).getTables();
+                .getKeyspace(config.getKeyspaceOrThrow()).getTables();
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(tables,
                 input -> TableReference.createUnsafe(input.getName())));
 
@@ -1098,7 +1098,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         List<Row> rows = session.execute(cqlStatementCache.normalQuery.getUnchecked(
                 "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ?")
-                .bind(config.keyspace()))
+                .bind(config.getKeyspaceOrThrow()))
                 .all();
 
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(rows,
@@ -1202,7 +1202,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     }
 
     String getFullTableName(TableReference tableRef) {
-        return configManager.getConfig().keyspace() + ".\"" + internalTableName(tableRef) + "\"";
+        return configManager.getConfig().getKeyspaceOrThrow() + ".\"" + internalTableName(tableRef) + "\"";
     }
 
     @Override
@@ -1214,7 +1214,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             log.error("No compaction client was configured, but compact was called."
                     + " If you actually want to clear deleted data immediately"
                     + " from Cassandra, lower your gc_grace_seconds setting and"
-                    + " run `nodetool compact {} {}`.", config.keyspace(), tableRef);
+                    + " run `nodetool compact {} {}`.", config.getKeyspaceOrThrow(), tableRef);
             return;
         }
 
@@ -1222,12 +1222,12 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         try {
             alterTableForCompaction(tableRef, 0, 0.0f);
             CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables for compaction", this);
-            compactionManager.get().performTombstoneCompaction(compactionTimeoutSeconds, config.keyspace(), tableRef);
+            compactionManager.get().performTombstoneCompaction(compactionTimeoutSeconds, config.getKeyspaceOrThrow(), tableRef);
         } catch (TimeoutException e) {
             log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
             log.error("Compaction status: {}", compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interrupted.", config.keyspace(), tableRef);
+            log.error("Compaction for {}.{} was interrupted.", config.getKeyspaceOrThrow(), tableRef);
         } finally {
             alterTableForCompaction(
                     tableRef,

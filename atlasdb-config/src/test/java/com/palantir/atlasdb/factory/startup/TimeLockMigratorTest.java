@@ -74,7 +74,7 @@ public class TimeLockMigratorTest {
                 wireMockRule.port());
         defaultServerListConfig = ImmutableServerListConfig.builder().addServers(serverUri).build();
         timelockConfig = ImmutableTimeLockClientConfig.builder()
-                .rawClient("testClient")
+                .client("testClient")
                 .serversList(defaultServerListConfig)
                 .build();
     }

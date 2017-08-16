@@ -41,7 +41,7 @@ public class TimeLockClientConfigTest {
             .sslConfiguration(SSL_CONFIGURATION)
             .build();
     private static final TimeLockClientConfig CLIENT_CONFIG = ImmutableTimeLockClientConfig.builder()
-            .rawClient(CLIENT)
+            .client(CLIENT)
             .serversList(SERVERS_LIST)
             .build();
 
@@ -68,7 +68,7 @@ public class TimeLockClientConfigTest {
 
     private static TimeLockClientConfig getTimelockConfigForServers(List<String> servers) {
         return ImmutableTimeLockClientConfig.builder()
-                .rawClient(CLIENT)
+                .client(CLIENT)
                 .serversList(ImmutableServerListConfig.builder()
                         .addAllServers(servers)
                         .build())
