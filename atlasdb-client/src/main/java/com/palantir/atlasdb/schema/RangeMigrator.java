@@ -23,9 +23,9 @@ public interface RangeMigrator {
      * Report (a) completion or (b) start row.
      * Intended to be called before starting or resuming migration.
      *
-     * @param size the number of separate ranges in the current table
+     * @param numRangeBoundaries the number of separate ranges in the current table
      */
-    void logStatus(int size);
+    void logStatus(int numRangeBoundaries);
 
     void migrateRange(RangeRequest range, long rangeId);
 }

@@ -31,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
@@ -68,9 +67,9 @@ public class TransactionRangeMigrator implements RangeMigrator {
     }
 
     @Override
-    public void logStatus(int size) {
-        txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) transaction -> {
-            logStatus(transaction, size);
+    public void logStatus(int numRangeBoundaries) {
+        txManager.runTaskWithRetry(transaction -> {
+            logStatus(transaction, numRangeBoundaries);
             return null;
         });
     }
