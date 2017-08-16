@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface AutoDelegate {
     /**
-     * The type of the interface to be extend.
+     * The type to be extended. Can be either a class or an interface.
      */
-    Class interfaceToExtend();
+    Class typeToExtend();
 }

@@ -105,28 +105,37 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             return false;
         }
 
-        Set<String> generatedInterfaces = new HashSet<>();
+        Set<String> generatedTypes = new HashSet<>();
         for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(AutoDelegate.class)) {
             try {
+                debug(annotatedElement, "Starting to analyze element");
+
                 validateAnnotatedElement(annotatedElement);
                 TypeElement typeElement = (TypeElement) annotatedElement;
+                debug(annotatedElement, "Annotated element validated");
 
                 AutoDelegate annotation = annotatedElement.getAnnotation(AutoDelegate.class);
-                InterfaceToExtend interfaceToExtend = validateAnnotationAndCreateTypeToExtend(annotation, typeElement);
+                TypeToExtend typeToExtend = validateAnnotationAndCreateTypeToExtend(annotation, typeElement);
+                debug(annotatedElement, "Annotation validated");
+                debug(annotatedElement, String.format("Methods to extend %s", typeToExtend.getMethods()));
 
-                if (generatedInterfaces.contains(interfaceToExtend.getCanonicalName())) {
+                if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
                 }
-                generatedInterfaces.add(interfaceToExtend.getCanonicalName());
+                generatedTypes.add(typeToExtend.getCanonicalName());
 
-                generateCode(interfaceToExtend);
+                debug(annotatedElement, "Starting to generate code");
+
+                generateCode(typeToExtend);
+
+                debug(annotatedElement, "Code generated");
             } catch (FilerException e) {
                 // Happens when same file is written twice.
                 warn(annotatedElement, e.getMessage());
             } catch (ProcessingException e) {
                 error(e.getElement(), e.getMessage());
             } catch (IOException | RuntimeException e) {
-                error(annotatedElement, e.getMessage());
+                error(e.getMessage());
             }
         }
 
@@ -141,8 +150,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
     }
 
-    private InterfaceToExtend validateAnnotationAndCreateTypeToExtend(AutoDelegate annotation,
-            TypeElement annotatedElement)
+    private TypeToExtend validateAnnotationAndCreateTypeToExtend(AutoDelegate annotation, TypeElement annotatedElement)
             throws ProcessingException {
 
         if (annotation == null) {
@@ -150,39 +158,74 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                     annotatedElement, AutoDelegate.class.getSimpleName());
         }
 
-        TypeElement baseInterface = extractInterfaceFromAnnotation(annotation);
-        PackageElement interfacePackage = elementUtils.getPackageOf(baseInterface);
+        debug(annotatedElement, "Annotation validated");
 
-        if (interfacePackage.isUnnamed()) {
-            throw new ProcessingException(baseInterface, "Interface %s doesn't have a package", baseInterface);
+        TypeElement baseType = extractTypeFromAnnotation(annotation);
+        PackageElement typePackage = elementUtils.getPackageOf(baseType);
+
+        debug(annotatedElement, "Type extracted");
+
+        if (typePackage.isUnnamed()) {
+            throw new ProcessingException(baseType, "Type %s doesn't have a package", baseType);
         }
 
-        List<TypeElement> superInterfaces = fetchSuperInterfaces(baseInterface);
-        return new InterfaceToExtend(interfacePackage, baseInterface, superInterfaces.toArray(new TypeElement[0]));
+        if (baseType.getModifiers().contains(Modifier.FINAL)) {
+            throw new ProcessingException(annotatedElement, "Trying to extend final type %s", baseType);
+        }
+
+        debug(baseType, "BaseType checked");
+
+        List<TypeElement> superTypes = fetchSuperTypes(baseType);
+
+        debug(annotatedElement, "Supertypes fetched");
+
+        return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
     }
 
-    private TypeElement extractInterfaceFromAnnotation(AutoDelegate annotation) {
-        TypeElement interfaceType;
+    private TypeElement extractTypeFromAnnotation(AutoDelegate annotation) {
+        TypeElement type;
         try {
-            // Throws a MirroredTypeException if the interface is not compiled.
-            Class interfaceClass = annotation.interfaceToExtend();
-            interfaceType = elementUtils.getTypeElement(interfaceClass.getCanonicalName());
+            // Throws a MirroredTypeException if the type is not compiled.
+            Class typeClass = annotation.typeToExtend();
+            type = elementUtils.getTypeElement(typeClass.getCanonicalName());
         } catch (MirroredTypeException mte) {
             DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            interfaceType = (TypeElement) typeMirror.asElement();
+            type = (TypeElement) typeMirror.asElement();
         }
 
-        return interfaceType;
+        return type;
     }
 
-    private List<TypeElement> fetchSuperInterfaces(TypeElement baseInterface) {
+    private List<TypeElement> fetchSuperTypes(TypeElement baseType) {
+        if (baseType.getKind() == ElementKind.INTERFACE) {
+            return fetchSuperinterfaces(baseType);
+        } else {
+            return fetchSuperclasses(baseType);
+        }
+    }
+
+    private List<TypeElement> fetchSuperclasses(TypeElement baseClass) {
+        List<TypeElement> superclasses = new ArrayList<>();
+
+        TypeMirror superclass = baseClass.getSuperclass();
+        TypeElement classIterator;
+        while (superclass.getKind() != TypeKind.NONE) {
+            classIterator = extractSuperType(superclass);
+            superclasses.add(classIterator);
+            superclass = classIterator.getSuperclass();
+        }
+
+        return superclasses;
+    }
+
+    private List<TypeElement> fetchSuperinterfaces(TypeElement baseInterface) {
         List<TypeMirror> interfacesQueue = new ArrayList<>(baseInterface.getInterfaces());
         Set<TypeMirror> interfacesSet = Sets.newHashSet(interfacesQueue);
         List<TypeElement> superInterfaceElements = new ArrayList<>();
 
         for (int i = 0; i < interfacesQueue.size(); i++) {
             TypeMirror superInterfaceMirror = interfacesQueue.get(i);
-            TypeElement superInterfaceType = extractSuperInterface(superInterfaceMirror);
+            TypeElement superInterfaceType = extractSuperType(superInterfaceMirror);
             superInterfaceElements.add(superInterfaceType);
 
             List<TypeMirror> newInterfaces = superInterfaceType.getInterfaces()
@@ -196,55 +239,78 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         return superInterfaceElements;
     }
 
-    private TypeElement extractSuperInterface(TypeMirror superInterfaceMirror) {
-        TypeElement superInterface;
+    private TypeElement extractSuperType(TypeMirror superTypeMirror) {
+        TypeElement superType;
         try {
             // Throws a MirroredTypeException if the interface is not compiled.
-            superInterface = (TypeElement) typeUtils.asElement(superInterfaceMirror);
+            superType = (TypeElement) typeUtils.asElement(superTypeMirror);
         } catch (MirroredTypeException mte) {
             DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            superInterface = (TypeElement) typeMirror.asElement();
+            superType = (TypeElement) typeMirror.asElement();
         }
-        return superInterface;
+        return superType;
     }
 
-    private void generateCode(InterfaceToExtend interfaceToExtend) throws IOException {
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(PREFIX + interfaceToExtend.getSimpleName());
+    private void generateCode(TypeToExtend typeToExtend) throws IOException {
+        String newTypeName = PREFIX + typeToExtend.getSimpleName();
+        TypeSpec.Builder typeBuilder;
+        if (typeToExtend.isInterface()) {
+            typeBuilder = TypeSpec.interfaceBuilder(newTypeName);
+        } else {
+            typeBuilder = TypeSpec.classBuilder(newTypeName);
+        }
 
         // Add modifiers
-        TypeMirror interfaceType = interfaceToExtend.getType();
-        if (interfaceToExtend.isPublic()) {
-            interfaceBuilder.addModifiers(Modifier.PUBLIC);
+        TypeMirror typeMirror = typeToExtend.getType();
+        if (typeToExtend.isPublic()) {
+            typeBuilder.addModifiers(Modifier.PUBLIC);
         }
-        interfaceBuilder.addSuperinterface(TypeName.get(interfaceType));
+        if (typeToExtend.isInterface()) {
+            typeBuilder.addSuperinterface(TypeName.get(typeMirror));
+        } else {
+            typeBuilder.superclass(TypeName.get(typeMirror)).addModifiers(Modifier.ABSTRACT);
+        }
 
         // Add delegate method
         MethodSpec.Builder delegateMethod = MethodSpec
                 .methodBuilder(DELEGATE_METHOD)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .returns(TypeName.get(interfaceType));
-        interfaceBuilder.addMethod(delegateMethod.build());
+                .returns(TypeName.get(typeMirror));
+        typeBuilder.addMethod(delegateMethod.build());
 
         // Add interface methods
-        for (ExecutableElement methodElement : interfaceToExtend.getMethods()) {
+        for (ExecutableElement methodElement : typeToExtend.getMethods()) {
             String returnStatement = (methodElement.getReturnType().getKind() == TypeKind.VOID) ? "" : "return ";
 
             MethodSpec.Builder interfaceMethod = MethodSpec
                     .overriding(methodElement)
-                    .addModifiers(Modifier.DEFAULT)
                     .addStatement("$L$L().$L($L)",
                             returnStatement,
                             DELEGATE_METHOD,
                             methodElement.getSimpleName(),
                             methodElement.getParameters());
 
-            interfaceBuilder.addMethod(interfaceMethod.build());
+            if (typeToExtend.isInterface()) {
+                interfaceMethod.addModifiers(Modifier.DEFAULT);
+            }
+
+            typeBuilder.addMethod(interfaceMethod.build());
         }
 
         JavaFile
-                .builder(interfaceToExtend.getPackageName(), interfaceBuilder.build())
+                .builder(typeToExtend.getPackageName(), typeBuilder.build())
                 .build()
                 .writeTo(filer);
+    }
+
+    /**
+     * Prints a debug message.
+     *
+     * @param element The element which has caused the error. Can be null
+     * @param msg The error message
+     */
+    private void debug(Element element, String msg) {
+        messager.printMessage(Diagnostic.Kind.NOTE, msg, element);
     }
 
     /**
@@ -255,6 +321,15 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
      */
     private void warn(Element element, String msg) {
         messager.printMessage(Diagnostic.Kind.WARNING, msg, element);
+    }
+
+    /**
+     * Prints an error message.
+     *
+     * @param msg The error message
+     */
+    private void error(String msg) {
+        messager.printMessage(Diagnostic.Kind.ERROR, msg);
     }
 
     /**

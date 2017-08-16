@@ -16,6 +16,6 @@
 
 package com.palantir.processors;
 
-@AutoDelegate(interfaceToExtend = PackagePrivateInterface.class)
+@AutoDelegate(typeToExtend = PackagePrivateInterface.class)
 public class PackagePrivateInterfaceWrapper {
 }
