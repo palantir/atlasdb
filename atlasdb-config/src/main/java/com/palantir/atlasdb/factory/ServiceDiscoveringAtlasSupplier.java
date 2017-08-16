@@ -54,6 +54,11 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+        this(config, leaderConfig, Optional.empty());
+    }
+
+    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace) {
         this.config = config;
         this.leaderConfig = leaderConfig;
 
@@ -64,7 +69,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + config.type() + " could be found."
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
+        keyValueService = Suppliers.memoize(
+                () -> atlasFactory.createRawKeyValueService(config, leaderConfig, namespace));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }

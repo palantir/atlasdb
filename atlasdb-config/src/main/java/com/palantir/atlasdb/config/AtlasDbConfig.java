@@ -44,6 +44,16 @@ public abstract class AtlasDbConfig {
     public abstract Optional<ServerListConfig> timestamp();
 
     /**
+     * A namespace refers to a String that is used to identify this
+     * AtlasDB client to the relevant timestamp, lock and key value
+     * services. S
+     *
+     * For backwards compatibility reasons:
+     *   - if no namespace is specified, then
+     */
+    public abstract Optional<String> namespace();
+
+    /**
      * The transaction read timeout is the maximum amount of
      * time a read only transaction can safely run. Read only
      * transactions that run any longer may fail if they attempt
