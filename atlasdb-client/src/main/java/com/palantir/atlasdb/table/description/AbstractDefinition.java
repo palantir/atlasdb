@@ -42,7 +42,7 @@ abstract class AbstractDefinition {
     ExpirationStrategy expirationStrategy = ExpirationStrategy.NEVER;
     boolean ignoreHotspottingChecks = false;
     boolean explicitCompressionRequested = false;
-    int explicitCompressionBlockSizeKB = 0;
+    int explicitCompressionBlockSizeKb = 0;
     boolean rangeScanAllowed = false;
     boolean negativeLookups = false;
     boolean appendHeavyAndReadLight = false;
@@ -87,7 +87,7 @@ abstract class AbstractDefinition {
         return rangeScanAllowed;
     }
 
-    public boolean isExplicitCompressionRequested(){
+    public boolean isExplicitCompressionRequested() {
         return explicitCompressionRequested;
     }
 
@@ -96,12 +96,13 @@ abstract class AbstractDefinition {
     }
 
     public int getExplicitCompressionBlockSizeKB() {
-        return explicitCompressionBlockSizeKB;
+        return explicitCompressionBlockSizeKb;
     }
 
     public void explicitCompressionBlockSizeKB(int blockSizeKB) {
-        Preconditions.checkArgument(IntMath.isPowerOfTwo(blockSizeKB), "explicitCompressionBlockSizeKB must be a power of 2");
-        explicitCompressionBlockSizeKB = blockSizeKB;
+        Preconditions.checkArgument(IntMath.isPowerOfTwo(blockSizeKB),
+                "explicitCompressionBlockSizeKB must be a power of 2");
+        explicitCompressionBlockSizeKb = blockSizeKB;
     }
 
     public void negativeLookups() {
@@ -124,13 +125,15 @@ abstract class AbstractDefinition {
 
     void validateFirstRowComp(NameComponentDescription comp) {
         if (!ignoreHotspottingChecks && CRITICAL_ROW_TYPES.contains(comp.getType())) {
-            throw new IllegalStateException(String.format("First row component %s of type %s will likely cause hot-spotting with the partitioner in "
-                            + "Cassandra. This is caused by the structure of variable-sized types which will state their "
-                            + "length prior to their value resulting in them being partitioned predominantly by the LENGTH of "
-                            + "the values which is likely to be similar. If you anticipate never running on Cassandra or feel "
-                            + "you can safely ignore this case (for instance, if this table will never be very large) then you "
-                            + "should add ignoreHotspottingChecks() to the table schema. This is directed at the developer of "
-                            + "this AtlasDB application, they may need to change their schema.",
+            throw new IllegalStateException(String.format(
+                    "First row component %s of type %s will likely cause hot-spotting with the partitioner in "
+                            + "Cassandra. This is caused by the structure of variable-sized types which will state "
+                            + "their length prior to their value resulting in them being partitioned predominantly by "
+                            + "the LENGTH of the values which is likely to be similar. If you anticipate never running "
+                            + "on Cassandra or feel you can safely ignore this case (for instance, if this table will "
+                            + "never be very large) then you should add ignoreHotspottingChecks() to the table schema. "
+                            + "This is directed at the developer of this AtlasDB application, they may need to change "
+                            + "their schema.",
                     comp.getComponentName(), comp.getType()));
         }
     }

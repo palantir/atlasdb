@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb;
 
-public class AtlasDbPerformanceConstants {
+public final class AtlasDbPerformanceConstants {
     private AtlasDbPerformanceConstants() {/**/}
 
     /**

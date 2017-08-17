@@ -63,7 +63,7 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
         final byte[] prefix;
         final RowNamePartitioner nextPartition;
 
-        public CompoundRowNamePartitioner(byte[] prefix, RowNamePartitioner nextPartition) {
+        CompoundRowNamePartitioner(byte[] prefix, RowNamePartitioner nextPartition) {
             this.prefix = prefix;
             this.nextPartition = nextPartition;
         }
@@ -109,20 +109,26 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             CompoundRowNamePartitioner other = (CompoundRowNamePartitioner) obj;
             if (nextPartition == null) {
-                if (other.nextPartition != null)
+                if (other.nextPartition != null) {
                     return false;
-            } else if (!nextPartition.equals(other.nextPartition))
+                }
+            } else if (!nextPartition.equals(other.nextPartition)) {
                 return false;
-            if (!Arrays.equals(prefix, other.prefix))
+            }
+            if (!Arrays.equals(prefix, other.prefix)) {
                 return false;
+            }
             return true;
         }
 
@@ -144,20 +150,26 @@ public class ExplicitRowNamePartitioner implements RowNamePartitioner {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         ExplicitRowNamePartitioner other = (ExplicitRowNamePartitioner) obj;
-        if (valueType != other.valueType)
+        if (valueType != other.valueType) {
             return false;
+        }
         if (values == null) {
-            if (other.values != null)
+            if (other.values != null) {
                 return false;
-        } else if (!values.equals(other.values))
+            }
+        } else if (!values.equals(other.values)) {
             return false;
+        }
         return true;
     }
 
