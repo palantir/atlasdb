@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -54,6 +55,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -78,12 +80,15 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.protobuf.UninitializedMessageException;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -94,6 +99,7 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -126,6 +132,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -143,7 +150,25 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * if some nodes are down, and the change can be detected through active hosts,
  * and these inactive nodes will be removed afterwards.
  */
-public class CassandraKeyValueService extends AbstractKeyValueService {
+@AutoDelegate(typeToExtend = KeyValueService.class)
+public class CassandraKeyValueService extends AbstractKeyValueService implements AsyncInitializer {
+
+    public static class InitializeCheckingWrapper implements AutoDelegate_KeyValueService {
+        private CassandraKeyValueService kvs;
+
+        public InitializeCheckingWrapper(CassandraKeyValueService kvs) {
+            this.kvs = kvs;
+        }
+
+        @Override
+        public KeyValueService delegate() {
+            if (kvs.isInitialized()) {
+                return kvs;
+            }
+            throw new RuntimeException("The CassandraKeyValueService is not initialized.");
+        }
+    }
+
     private final Logger log;
 
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
@@ -168,6 +193,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
+    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
@@ -185,7 +212,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 configManager,
                 compactionManager,
                 leaderConfig);
-        ret.init();
+        ret.asyncInitialize();
         return ret;
     }
 
@@ -215,7 +242,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
-    protected void init() {
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
@@ -240,6 +273,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the class underneath us.");
+        }
     }
 
     private void upgradeFromOlderInternalSchema() {
@@ -2252,7 +2288,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    public CassandraClientPool getClientPool() {
+    @VisibleForTesting
+    CassandraClientPool getClientPool() {
         return clientPool;
     }
 

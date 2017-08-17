@@ -58,7 +58,7 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraExpiringKeyValueService kvs =
                 new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig);
-        kvs.init();
+        kvs.asyncInitialize();
         return kvs;
     }
 
