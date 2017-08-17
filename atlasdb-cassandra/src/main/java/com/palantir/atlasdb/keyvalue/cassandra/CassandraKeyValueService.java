@@ -179,6 +179,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
 
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     private final CassandraClientPool clientPool;
+    private final CassandraClientPoolImpl clientPoolImpl;
+
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
     private final HiddenTables hiddenTables;
@@ -224,7 +226,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = new CassandraClientPool(configManager.getConfig());
+        this.clientPoolImpl = new CassandraClientPoolImpl(configManager.getConfig());
+        this.clientPool = new CassandraClientPoolImpl.InitializingWrapper(clientPoolImpl);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -2193,7 +2196,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
 
     private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
-        for (InetSocketAddress host : clientPool.currentPools.keySet()) {
+        for (InetSocketAddress host : clientPoolImpl.currentPools.keySet()) {
             try {
                 clientPool.runOnHost(host, CassandraVerifier.healthCheck);
                 if (!partitionerIsValid(host)) {
@@ -2208,7 +2211,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
 
     private boolean partitionerIsValid(InetSocketAddress host) {
         try {
-            clientPool.runOnHost(host, clientPool.validatePartitioner);
+            clientPool.runOnHost(host, clientPoolImpl.validatePartitioner);
             return true;
         } catch (Exception e) {
             return false;
@@ -2289,8 +2292,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService implements
     }
 
     @VisibleForTesting
-    CassandraClientPool getClientPool() {
-        return clientPool;
+    CassandraClientPoolImpl getClientPool() {
+        return clientPoolImpl;
     }
 
     public TracingQueryRunner getTracingQueryRunner() {
