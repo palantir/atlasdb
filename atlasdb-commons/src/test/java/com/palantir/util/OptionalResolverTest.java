@@ -38,9 +38,26 @@ public class OptionalResolverTest {
     }
 
     @Test
+    public void throwsOnTwoNullOptionals() {
+        assertThatThrownBy(() -> OptionalResolver.resolve(null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void throwsOnOneEmptyAndOneNullOptional() {
+        assertThatThrownBy(() -> OptionalResolver.resolve(null, Optional.empty()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     public void resolvesToValueIfOneOptionalPresent() {
         assertThat(OptionalResolver.resolve(PRESENT_OPTIONAL_1, EMPTY_OPTIONAL)).isEqualTo(STRING_1);
         assertThat(OptionalResolver.resolve(EMPTY_OPTIONAL, PRESENT_OPTIONAL_2)).isEqualTo(STRING_2);
+    }
+
+    @Test
+    public void resolvesToValueIfOneOptionalPresentAndOneIsNull() {
+        assertThat(OptionalResolver.resolve(PRESENT_OPTIONAL_1, null)).isEqualTo(STRING_1);
     }
 
     @Test

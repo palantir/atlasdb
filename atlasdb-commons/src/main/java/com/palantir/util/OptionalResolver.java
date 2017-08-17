@@ -16,6 +16,7 @@
 
 package com.palantir.util;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,10 +34,12 @@ public final class OptionalResolver {
      * Returns a single value corresponding to the value that is present in one or more of the Optionals provided.
      * This method throws if no Optionals provided contain values, or if the Optionals provided contain multiple
      * values that are not equal.
+     * Null Optionals are considered not-present.
      */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Used to process existing configuration files.
     public static <T> T resolve(Optional<T> optional1, Optional<T> optional2) {
         Set<T> values = Stream.of(optional1, optional2)
+                .filter(Objects::nonNull)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
