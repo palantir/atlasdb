@@ -101,6 +101,13 @@ develop
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
 
+    *    - |new|
+         - AtlasDB introduces a top-level ``namespace`` configuration parameter, which is used to set the keyspace in Cassandra *and* the client in TimeLock.
+           It is suggested that users update their configuration to use this parameter instead of separate ``keyspace`` and ``client`` configuration parameters if possible; this was done to avoid risks of data corruption if these are accidentally changed independently.
+           The old configuration parameters will still be respected, though note that AtlasDB will fail to start if the ``keyspace`` and/or ``client`` that were explicitly configured contradict the top-level ``namespace``.
+           Please consult the documentation for :ref:`AtlasDB Configuration <atlas-config>` for details on how to set this up.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
 =======
 v0.53.0
 =======

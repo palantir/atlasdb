@@ -14,6 +14,12 @@ blocks must be absent from the config if you are using the Timelock Server.
 Timelock
 --------
 
+.. danger::
+
+    Changing the TimeLock ``client`` will mean that one receives timestamps from a different timestamp service.
+    This may result in **SEVERE DATA CORRUPTION** as the timestamp service's guarantees may be broken.
+    Doing this safely requires a fast forward of the new client to at least the highest timestamp given out from the old client.
+
 Required parameters:
 
 .. list-table::
@@ -24,9 +30,9 @@ Required parameters:
          - Description
 
     *    - client
-         - The name of your client, generally the same as your application name. This client
-           must also be on the ``clients`` list of the Timelock Server, as discussed in
-           :ref:`timelock-server-configuration`.
+         - The name of your client, generally the same as your application name.
+           Note that if the top-level AtlasDB ``namespace`` configuration parameter is set, then this parameter need not be set.
+           However, if it is, then this parameter MUST be equal to the AtlasDB ``namespace``, or AtlasDB will fail to start.
 
     *    - serversList::servers
          - A list of all hosts. The hosts must be specified as addresses, i.e. ``https://host:port``.
@@ -58,13 +64,14 @@ You must ensure that you have migrated to the Timelock Server before adding a ``
 
 .. code-block:: yaml
 
+    namespace: yourapp
+
     atlasdb:
       keyValueService:
         type: cassandra
         servers:
           - cassandra:9160
         poolSize: 20
-        keyspace: yourapp
         credentials:
           username: cassandra
           password: cassandra
@@ -77,7 +84,6 @@ You must ensure that you have migrated to the Timelock Server before adding a ``
         autoRefreshNodes: false
 
       timelock:
-        client: yourapp
         serversList:
           servers:
             - palantir-1.com:8080
@@ -85,3 +91,5 @@ You must ensure that you have migrated to the Timelock Server before adding a ``
             - palantir-3.com:8080
           sslConfiguration:
             trustStorePath: var/security/truststore.jks
+
+The example above uses the ``namespace`` parameter; the ``client`` we will use when connecting to TimeLock will be ``yourapp``.

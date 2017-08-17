@@ -29,6 +29,11 @@ In addition to the ``keyValueServiceConfig``, you must specify a configuration f
 If you are using an embedded timestamp and lock service, see the :ref:`Leader Configuration <leader-config>` documentation.
 If you are using the :ref:`external Timelock service <external-timelock-service>`, then see the :ref:`Timelock client configuration <timelock-client-configuration>`.
 
+Furthermore, you may configure a ``namespace`` for your AtlasDB client.
+If using TimeLock, this will be the name of your TimeLock client; if using Cassandra, this will also be the name of your keyspace.
+If this is not configured, we will read the ``client`` from the TimeLock client block, and the ``keyspace`` directly from the Cassandra KVS config block respectively.
+Note that AtlasDB will fail to start if the ``namespace`` and (Cassandra ``keyspace`` or TimeLock ``client``) are not equal.
+Previously, users' Cassandra keyspaces and TimeLock clients were configured independently; this could lead to data corruption if one misconfigured one of the parameters.
 
 For a full list of the configurations available at the ``atlasdb`` root level, see
 `AtlasDbConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
@@ -45,6 +50,8 @@ Example Configuration
 .. code-block:: yaml
 
     atlasdb:
+      namespace: yourapp
+
       keyValueService:
         type: cassandra
         servers:
@@ -52,7 +59,6 @@ Example Configuration
           - cassandra-2:9160
           - cassandra-3:9160
         poolSize: 30
-        keyspace: yourapp
         credentials:
           username: cassandra
           password: cassandra
