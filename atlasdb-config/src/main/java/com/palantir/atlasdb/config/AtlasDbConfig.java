@@ -44,12 +44,16 @@ public abstract class AtlasDbConfig {
     public abstract Optional<ServerListConfig> timestamp();
 
     /**
-     * A namespace refers to a String that is used to identify this
-     * AtlasDB client to the relevant timestamp, lock and key value
-     * services. S
+     * A namespace refers to a String that is used to identify this AtlasDB client to the relevant timestamp, lock and
+     * key value services. Currently, this only applies to external timelock services, and Cassandra KVS (where it is
+     * used as the keyspace).
      *
-     * For backwards compatibility reasons:
-     *   - if no namespace is specified, then
+     * For backwards compatibility reasons, this is optional. If no namespace is specified:
+     *   - if using Cassandra, the keyspace must be explicitly specified.
+     *   - if using TimeLock, the client name must be explicitly specified.
+     *
+     * If a namespace is specified and a Cassandra keyspace / TimeLock client name is also explicitly specified, then
+     * AtlasDB will fail to start if these are contradictory.
      */
     public abstract Optional<String> namespace();
 

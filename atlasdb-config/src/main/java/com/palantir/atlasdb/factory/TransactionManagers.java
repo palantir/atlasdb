@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -107,6 +108,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.util.OptionalResolver;
 
 public final class TransactionManagers {
 
@@ -476,13 +478,24 @@ public final class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
-            TimeLockClientConfig timeLockClientConfig =
-                    TimeLockClientConfigs.setClient(config.timelock().get(), config.namespace());
-            TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
-            return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
+            return createRawServicesFromTimeLock(config, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time, userAgent);
         }
+    }
+
+    private static LockAndTimestampServices createRawServicesFromTimeLock(
+            AtlasDbConfig config,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
+        Preconditions.checkState(config.timelock().isPresent(),
+                "Cannot create raw services from a config without a timelock block!");
+        TimeLockClientConfig clientConfig = config.timelock().get();
+        String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
+        TimeLockClientConfig timeLockClientConfig =
+                TimeLockClientConfigs.copyWithClient(config.timelock().get(), resolvedClient);
+        TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
+        return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
     }
 
     private static LockAndTimestampServices createNamespacedRawRemoteServices(
