@@ -34,13 +34,14 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
 .. code-block:: yaml
 
     atlasdb:
+      namespace: yourapp
+
       keyValueService:
         type: cassandra
         servers:
           - cassandra:9160
         poolSize: 20
         maxConnectionBurstSize: 100 # defaults to 5x poolSize if not set
-        keyspace: yourapp
         credentials:
           username: cassandra
           password: cassandra
