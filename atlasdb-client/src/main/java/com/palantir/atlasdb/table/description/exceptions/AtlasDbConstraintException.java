@@ -21,8 +21,8 @@ import com.palantir.common.exception.PalantirRuntimeException;
 public class AtlasDbConstraintException extends PalantirRuntimeException {
     private static final long serialVersionUID = 1L;
 
-    public AtlasDbConstraintException(String msg, Throwable n) {
-        super(msg, n);
+    public AtlasDbConstraintException(String msg, Throwable th) {
+        super(msg, th);
     }
 
     public AtlasDbConstraintException(String msg) {
