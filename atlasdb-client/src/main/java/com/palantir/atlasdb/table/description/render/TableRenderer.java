@@ -114,6 +114,7 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableRenderer {
     private final String packageName;
     private final Namespace namespace;

@@ -84,7 +84,7 @@ import com.palantir.util.file.TempFileUtils;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 
-@SuppressWarnings("CheckStyle")
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamStoreRenderer {
     private final String name;
     private final ValueType streamIdType;
