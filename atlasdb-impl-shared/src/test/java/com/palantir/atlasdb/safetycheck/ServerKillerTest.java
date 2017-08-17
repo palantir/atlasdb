@@ -33,9 +33,12 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+//CHECKSTYLE:OFF: checkstyle:illegalimport
+// We use Logback as part of the test fixtures, to register our test appender.
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
+//CHECKSTYLE:ON: checkstyle:illegalimport
 
 public class ServerKillerTest {
     @Rule
