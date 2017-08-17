@@ -49,6 +49,7 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.startup.TimestampSafetyCheck;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
@@ -298,6 +299,11 @@ public final class TransactionManagers {
                 follower,
                 transactionManager,
                 persistentLockManager);
+
+        TimestampSafetyCheck.create(
+                lockAndTimestampServices.timelock(),
+                cleaner,
+                config).check();
 
         return transactionManager;
     }

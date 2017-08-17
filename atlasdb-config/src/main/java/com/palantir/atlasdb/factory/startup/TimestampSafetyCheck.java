@@ -86,10 +86,10 @@ public class TimestampSafetyCheck {
 
     private void checkTimestampAgainstLowerBound(long timestamp) {
         long lowerBound = lowerBoundSupplier.get();
-        if (timestamp < lowerBound) {
+        if (timestamp <= lowerBound) {
             String errorMessage = String.format(
                     "AtlasDB appears to have gone back in time!"
-                            + " We observed a fresh timestamp of [%d], but the Unreadable Timestamp was lower at [%d]."
+                            + " We observed a fresh timestamp of [%d], not higher than the Unreadable Timestamp [%d]."
                             + " This may have occurred if the timestamp client was changed, or if the timelock"
                             + " server lost its logs.",
                     timestamp,
