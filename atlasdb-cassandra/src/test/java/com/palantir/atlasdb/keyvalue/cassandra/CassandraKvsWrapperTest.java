@@ -31,8 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CassandraKvsWrapperTest {
-    private static final CassandraKeyValueService kvs = mock(CassandraKeyValueService.class);
-    private static final KeyValueService kvsWrapper = new CassandraKeyValueService.InitializeCheckingWrapper(kvs);
+    private static final CassandraKeyValueServiceImpl kvs = mock(CassandraKeyValueServiceImpl.class);
+    private static final KeyValueService kvsWrapper = new CassandraKeyValueServiceImpl.InitializeCheckingWrapper(kvs);
 
     @Test
     public void ifWrapperIsInitializedDelegateIsCalled() {

@@ -104,8 +104,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
     }
 
-    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
-        return CassandraKeyValueService.create(
+    private CassandraKeyValueServiceImpl createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 CassandraContainer.LEADER_CONFIG,
                 testLogger);
@@ -173,14 +173,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testCfEqualityChecker() throws TException {
-        CassandraKeyValueService kvs;
+        CassandraKeyValueServiceImpl kvs;
         if (keyValueService instanceof CassandraKeyValueService) {
-            kvs = (CassandraKeyValueService) keyValueService;
+            kvs = (CassandraKeyValueServiceImpl) keyValueService;
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
             assertTrue("The nesting of Key Value Services has apparently changed",
                     delegate instanceof CassandraKeyValueService);
-            kvs = (CassandraKeyValueService) delegate;
+            kvs = (CassandraKeyValueServiceImpl) delegate;
         } else {
             throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
         }
@@ -230,7 +230,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
-        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
+        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.getClientPool(),
                 CassandraContainer.KVS_CONFIG);

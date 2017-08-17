@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 
 public abstract class NodesDownTestSetup {
 
@@ -60,7 +61,7 @@ public abstract class NodesDownTestSetup {
     static final long OLD_TIMESTAMP = 1L;
     static final Value DEFAULT_VALUE = Value.create(DEFAULT_CONTENTS, DEFAULT_TIMESTAMP);
 
-    static CassandraKeyValueService kvs;
+    static CassandraKeyValueServiceImpl kvs;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
@@ -91,11 +92,11 @@ public abstract class NodesDownTestSetup {
         setupDb.close();
     }
 
-    protected static CassandraKeyValueService createCassandraKvs() {
+    protected static CassandraKeyValueServiceImpl createCassandraKvs() {
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
                 .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(3_000);
-        return CassandraKeyValueService.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 ThreeNodeCassandraCluster.LEADER_CONFIG);
     }

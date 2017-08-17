@@ -63,7 +63,7 @@ public class CassandraClientPoolIntegrationTest {
             .with(new CassandraContainer());
     private static final int MODIFIED_REPLICATION_FACTOR = CassandraContainer.KVS_CONFIG.replicationFactor() + 1;
 
-    private CassandraKeyValueService kv = CassandraKeyValueService.create(
+    private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
     private CassandraClientPoolImpl clientPool = kv.getClientPool();

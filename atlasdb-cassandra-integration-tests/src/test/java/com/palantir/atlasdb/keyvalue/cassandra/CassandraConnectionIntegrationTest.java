@@ -41,7 +41,7 @@ public class CassandraConnectionIntegrationTest {
 
     @Test
     public void testAuthProvided() {
-        CassandraKeyValueService.create(
+        CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
                 CassandraContainer.LEADER_CONFIG).close();
     }
@@ -50,7 +50,7 @@ public class CassandraConnectionIntegrationTest {
     @Test
     public void testAuthMissing() {
         try {
-            CassandraKeyValueService.create(
+            CassandraKeyValueServiceImpl.create(
                     CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG),
                     CassandraContainer.LEADER_CONFIG);
             fail();
