@@ -16,20 +16,15 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-
-import com.palantir.util.OptionalResolver;
-
 public final class TimeLockClientConfigs {
     private TimeLockClientConfigs() {
         // Utility
     }
 
-    public static TimeLockClientConfig setClient(TimeLockClientConfig config, Optional<String> namespace) {
-        String resolvedClient = OptionalResolver.resolve(config.client(), namespace);
+    public static TimeLockClientConfig copyWithClient(TimeLockClientConfig config, String namespace) {
         return ImmutableTimeLockClientConfig.builder()
                 .from(config)
-                .client(resolvedClient)
+                .client(namespace)
                 .build();
     }
 }

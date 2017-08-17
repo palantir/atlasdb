@@ -1,4 +1,6 @@
 atlasdb:
+  namespace: myatlasdb
+
   keyValueService:
     type: memory
 

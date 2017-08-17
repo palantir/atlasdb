@@ -37,9 +37,12 @@ public class AtlasDbConfigDeserializationTest {
     @Test
     public void canDeserializeAtlasDbConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(TEST_CONFIG_FILE);
+        assertThat(config.namespace().get()).isEqualTo("myatlasdb");
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
+
         assertThat(config.timelock().isPresent()).isTrue();
         assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
+
         assertThat(config.leader().isPresent()).isFalse();
         assertThat(config.enableSweep()).isTrue();
     }
@@ -47,6 +50,7 @@ public class AtlasDbConfigDeserializationTest {
     @Test
     public void canDeserializeMinimalAtlasDbConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(MINIMAL_TEST_CONFIG_FILE);
+        assertThat(config.namespace().isPresent()).isFalse();
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
         assertThat(config.timelock().isPresent()).isFalse();
