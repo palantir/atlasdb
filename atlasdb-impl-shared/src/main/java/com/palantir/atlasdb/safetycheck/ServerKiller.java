@@ -16,8 +16,15 @@
 
 package com.palantir.atlasdb.safetycheck;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class ServerKiller {
     private static final Logger log = LoggerFactory.getLogger(ServerKiller.class);
@@ -27,9 +34,17 @@ public final class ServerKiller {
     }
 
     public static void kill(Throwable throwable) {
+        kill(throwable, Optional.empty());
+    }
+
+    public static void kill(Throwable throwable, Optional<String> loggableMessage) {
+        List<Object> loggingObjects = Lists.newArrayList(UnsafeArg.of("cause", throwable));
+        if (loggableMessage.isPresent()) {
+            loggingObjects.add(SafeArg.of("message", loggableMessage));
+        }
         log.error(
                 "AtlasDB is in a bad state and we can't continue, so we're preemptively killing the server.",
-                throwable);
+                loggingObjects.toArray());
         System.exit(1);
     }
 }

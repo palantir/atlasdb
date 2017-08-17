@@ -17,12 +17,15 @@
 package com.palantir.atlasdb.safetycheck;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
@@ -38,6 +41,13 @@ public class ServerKillerTest {
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
 
+    private final TestAppender appender = new TestAppender();
+
+    @Before
+    public void setUp() {
+        registerAppender(appender);
+    }
+
     @Test
     public void killsTheServerWithExitCodeOfOne() {
         exit.expectSystemExitWithStatus(1);
@@ -46,12 +56,11 @@ public class ServerKillerTest {
 
     @Test
     public void logsTheRelevantExceptionMessage() {
-        TestAppender appender = new TestAppender();
-        registerAppender(appender);
-
         String errorId = UUID.randomUUID().toString();
-        exit.expectSystemExitWithStatus(1);
-        ServerKiller.kill(new RuntimeException("Something bad happened - " + errorId));
+        exit.expectSystemExit();
+
+        assertThatThrownBy(() -> ServerKiller.kill(new RuntimeException("Something bad happened - " + errorId)))
+                .isInstanceOf(RuntimeException.class);
 
         Set<String> relevantMessages = appender.logBuffer.stream()
                 .filter(message -> message.contains(errorId))
@@ -59,19 +68,40 @@ public class ServerKillerTest {
         assertThat(relevantMessages).isNotEmpty();
     }
 
+    @Test
+    public void logsSafeLogMessageIfPresent() {
+        exit.expectSystemExit();
+        String loggableMessage = UUID.randomUUID().toString();
+
+        assertThatThrownBy(() ->
+                ServerKiller.kill(new RuntimeException("Something bad happened!"), Optional.of(loggableMessage)))
+                .isInstanceOf(RuntimeException.class);
+
+        Set<String> relevantMessages = appender.logBuffer.stream()
+                .filter(message -> message.contains(loggableMessage))
+                .collect(Collectors.toSet());
+        assertThat(relevantMessages).isNotEmpty();
+    }
+
     private static void registerAppender(TestAppender appender) {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         appender.setContext(context);
+        appender.start();
         context.getLogger(ServerKiller.class).addAppender(appender);
     }
 
     private static class TestAppender extends AppenderBase<ILoggingEvent> {
-        List<String> logBuffer = Lists.newArrayList();
+        private final List<String> logBuffer = Lists.newArrayList();
 
         @Override
         protected void append(ILoggingEvent eventObject) {
-            String logMessage = eventObject.getFormattedMessage();
-            logBuffer.add(logMessage);
+            StringBuilder logMessageBuilder = new StringBuilder();
+            logMessageBuilder.append(eventObject.getFormattedMessage());
+            for (Object object : eventObject.getArgumentArray()) {
+                logMessageBuilder.append("\n");
+                logMessageBuilder.append(object.toString());
+            }
+            logBuffer.add(logMessageBuilder.toString());
         }
     }
 }
