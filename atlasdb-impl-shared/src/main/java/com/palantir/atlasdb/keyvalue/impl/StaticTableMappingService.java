@@ -15,21 +15,42 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.keyvalue.AutoDelegate_TableMappingService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.processors.AutoDelegate;
 
-public final class StaticTableMappingService extends AbstractTableMappingService {
+@AutoDelegate(typeToExtend = TableMappingService.class)
+public final class StaticTableMappingService extends AbstractTableMappingService implements AsyncInitializer {
+    public static class InitializingWrapper implements AutoDelegate_TableMappingService {
+
+        private StaticTableMappingService tableMappingService;
+
+        public InitializingWrapper(StaticTableMappingService tableMappingService) {
+
+            this.tableMappingService = tableMappingService;
+        }
+
+        @Override
+        public TableMappingService delegate() {
+            return tableMappingService;
+        }
+    }
+
+    private AtomicBoolean isInitialized = new AtomicBoolean(false);
     private final KeyValueService kv;
 
-    public static TableMappingService create(KeyValueService kv) {
+    public static StaticTableMappingService create(KeyValueService kv) {
         StaticTableMappingService ret = new StaticTableMappingService(kv);
-        ret.updateTableMap();
+        ret.asyncInitialize();
         return ret;
     }
 
@@ -65,4 +86,21 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         // any name is ok for the static mapper
     }
 
+    @Override
+    public void cleanUpOnInitFailure() {
+
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
+        updateTableMap();
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the instance beneath us.");
+        }
+    }
 }
