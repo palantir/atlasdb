@@ -57,7 +57,9 @@ public class ServiceDiscoveringAtlasSupplier {
         this(config, leaderConfig, Optional.empty());
     }
 
-    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
+    public ServiceDiscoveringAtlasSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace) {
         this.config = config;
         this.leaderConfig = leaderConfig;
