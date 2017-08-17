@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -132,6 +133,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     final CassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;
     final ScheduledExecutorService refreshDaemon;
+    private ScheduledFuture<?> scheduledFuture;
 
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
@@ -236,6 +238,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     }
 
     @Override
+    public void cleanUpOnInitFailure() {
+        metricsManager.deregisterMetrics();
+        scheduledFuture.cancel(true);
+        currentPools.forEach((address, cassandraClientPoolingContainer) ->
+                cassandraClientPoolingContainer.shutdownPooling());
+    }
+
+    @Override
     public boolean isInitialized() {
         return isInitialized.get();
     }
@@ -243,7 +253,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     @Override
     public void tryInitialize() {
         config.servers().forEach(this::addPool);
-        refreshDaemon.scheduleWithFixedDelay(() -> {
+        scheduledFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
             } catch (Throwable t) {

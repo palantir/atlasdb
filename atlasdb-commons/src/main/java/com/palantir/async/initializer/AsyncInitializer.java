@@ -32,6 +32,7 @@ public interface AsyncInitializer {
         try {
             tryInitialize();
         } catch (Exception e) {
+            cleanUpOnInitFailure();
             log.warn("Failed to initialize in the first attempt, will initialize Asynchronously.", e);
             Executors.newSingleThreadExecutor().execute(
                     () -> {
@@ -39,6 +40,7 @@ public interface AsyncInitializer {
                             try {
                                 tryInitialize();
                             } catch (Exception ex) {
+                                cleanUpOnInitFailure();
                                 Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
                             }
                         }
@@ -50,6 +52,8 @@ public interface AsyncInitializer {
     default void checkInitialize() {
         Preconditions.checkArgument(isInitialized(), String.format("The instance of %s is not initialized yet.", this.getClass().getName()));
     }
+
+    void cleanUpOnInitFailure();
 
     boolean isInitialized();
 
