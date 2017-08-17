@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,137 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Optional;
-
-import com.google.common.base.Supplier;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
+import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.timestamp.TimestampService;
 
-public class SerializableTransactionManager extends SnapshotTransactionManager {
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            RemoteLockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner) {
-        this(keyValueService,
-                timestampService,
-                lockClient,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                false);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimestampService timestampService,
-            LockClient lockClient,
-            RemoteLockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            boolean allowHiddenTableAccess) {
-        this(
-                keyValueService,
-                new LegacyTimelockService(timestampService, lockService, lockClient),
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimelockService timelockService,
-            RemoteLockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            boolean allowHiddenTableAccess) {
-        this(
-                keyValueService,
-                timelockService,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimelockService timelockService,
-            RemoteLockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs) {
-        super(
-                keyValueService,
-                timelockService,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess,
-                lockAcquireTimeoutMs);
-    }
-
-    @Override
-    protected SnapshotTransaction createTransaction(long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
-            LockToken immutableTsLock,
-            AdvisoryLockPreCommitCheck advisoryLockCheck) {
-        return new SerializableTransaction(
-                keyValueService,
-                timelockService,
-                transactionService,
-                cleaner,
-                startTimestampSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                immutableTimestamp,
-                Optional.of(immutableTsLock),
-                advisoryLockCheck,
-                constraintModeSupplier.get(),
-                cleaner.getTransactionReadTimeoutMillis(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                lockAcquireTimeoutMs.get());
-    }
-
+public interface SerializableTransactionManager extends LockAwareTransactionManager {
+    RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens);
+    <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
+            TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException;
+    void registerClosingCallback(Runnable closingCallback);
+    Cleaner getCleaner();
+    KeyValueService getKeyValueService();
+    TimestampService getTimestampService();
+    KeyValueServiceStatus getKeyValueServiceStatus();
 }
-

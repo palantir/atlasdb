@@ -119,6 +119,7 @@ import com.palantir.timestamp.TimestampService;
         return finishRunTaskWithLockThrowOnConflict(tx, LockAwareTransactionTasks.asLockUnaware(task, lockTokens));
     }
 
+    //@Override
     public RawTransaction setupRunTaskWithLocksThrowOnConflict(Iterable<LockRefreshToken> lockTokens) {
         LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
                 LockImmutableTimestampRequest.create());
@@ -139,6 +140,7 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
+    //@Override
     public <T, E extends Exception> T finishRunTaskWithLockThrowOnConflict(RawTransaction tx,
                                                                            TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
@@ -212,6 +214,7 @@ import com.palantir.timestamp.TimestampService;
      *
      * Concurrency: If this method races with close(), then closingCallback may not be called.
      */
+    //@Override
     public void registerClosingCallback(Runnable closingCallback) {
         Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
         closingCallbacks.add(closingCallback);
@@ -297,18 +300,22 @@ import com.palantir.timestamp.TimestampService;
         return cleaner.getUnreadableTimestamp();
     }
 
+    //@Override
     public Cleaner getCleaner() {
         return cleaner;
     }
 
+    //@Override
     public KeyValueService getKeyValueService() {
         return keyValueService;
     }
 
+    //@Override
     public TimestampService getTimestampService() {
         return new TimelockTimestampServiceAdapter(timelockService);
     }
 
+    @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
         switch (clusterAvailabilityStatus) {

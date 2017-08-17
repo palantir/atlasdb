@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -47,33 +47,41 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private static String timestampServiceCreationInfo = null;
 
-    private final KeyValueServiceConfig config;
+    private final KeyValueServiceConfig keyValueServiceConfig;
     private final Optional<LeaderConfig> leaderConfig;
-    private final Supplier<KeyValueService> keyValueService;
+
+    private final Supplier<KeyValueService> keyValueServiceSupplier;
     private final Supplier<TimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
-    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        this.config = config;
-        this.leaderConfig = leaderConfig;
+    private KeyValueService keyValueService = null;
 
+    public ServiceDiscoveringAtlasSupplier(AtlasDbConfig config) {
+        keyValueServiceConfig = config.keyValueService();
+        leaderConfig = config.leader();
         AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for KeyValueService type " + config.type() + " could be found."
-                        + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
+                        "No atlas provider for KeyValueService type " + keyValueServiceConfig.type()
+                                + " could be found. Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
+        keyValueServiceSupplier = () -> atlasFactory.createRawKeyValueService(keyValueServiceConfig, leaderConfig);
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
-    public KeyValueService getKeyValueService() {
-        return keyValueService.get();
+    public synchronized KeyValueService getKeyValueService() {
+        if (keyValueService == null) {
+            keyValueService = keyValueServiceSupplier.get();
+        }
+        return keyValueService;
     }
 
     public synchronized TimestampService getTimestampService() {
+        if (getKeyValueService() == null) {
+            return null;
+        }
         log.info("[timestamp-service-creation] Fetching timestamp service from "
                         + "thread {}. This should only happen once.", Thread.currentThread().getName());
 
@@ -149,6 +157,6 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     private Predicate<AtlasDbFactory> producesCorrectType() {
-        return factory -> config.type().equalsIgnoreCase(factory.getType());
+        return factory -> keyValueServiceConfig.type().equalsIgnoreCase(factory.getType());
     }
 }

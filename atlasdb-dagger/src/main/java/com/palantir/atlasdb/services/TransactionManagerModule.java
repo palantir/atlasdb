@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
@@ -85,7 +86,7 @@ public class TransactionManagerModule {
                                                                     ConflictDetectionManager conflictManager,
                                                                     SweepStrategyManager sweepStrategyManager,
                                                                     Cleaner cleaner) {
-        return new SerializableTransactionManager(
+        return new SerializableTransactionManagerImpl(
                 kvs,
                 lts.timelock(),
                 lts.lock(),

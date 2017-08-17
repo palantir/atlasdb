@@ -41,7 +41,7 @@ public class MultiCassandraDoubleNodeDownEteTest {
     }
 
     @Test(expected = RuntimeException.class)
-    public void shouldNotBeAbleToWriteWithTwoCassandraNodseDown() {
+    public void shouldNotBeAbleToWriteWithTwoCassandraNodesDown() {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         todos.addTodo(getUniqueTodo());
     }

@@ -83,7 +83,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
         TimestampService mockTimestampService = mock(TimestampService.class);
         RemoteLockService mockLockService = mock(RemoteLockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(getKeyValueService(),
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManagerImpl(getKeyValueService(),
                 mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE);

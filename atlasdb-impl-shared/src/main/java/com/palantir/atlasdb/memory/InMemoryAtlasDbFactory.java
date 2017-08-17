@@ -43,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
@@ -133,7 +134,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 client,
                 ImmutableList.of(follower),
                 transactionService).buildCleaner();
-        SerializableTransactionManager ret = new SerializableTransactionManager(
+        SerializableTransactionManager ret = new SerializableTransactionManagerImpl(
                 keyValueService,
                 ts,
                 client,

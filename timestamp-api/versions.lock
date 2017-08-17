@@ -6,6 +6,9 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
         },
+        "com.google.guava:guava": {
+            "locked": "18.0"
+        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "requested": "2.0.1"
@@ -17,6 +20,9 @@
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
+        },
+        "com.google.guava:guava": {
+            "locked": "18.0"
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",

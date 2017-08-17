@@ -55,6 +55,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -69,6 +70,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
@@ -99,7 +101,7 @@ public class TransactionManagersTest {
     private static final MappingBuilder TIMELOCK_LOCK_MAPPING = post(urlEqualTo(TIMELOCK_LOCK_PATH));
 
 
-    private static final String TIMELOCK_PING_PATH =  "/" + CLIENT + "/timestamp-management/ping";
+    private static final String TIMELOCK_PING_PATH = "/" + CLIENT + "/timestamp-management/ping";
     private static final MappingBuilder TIMELOCK_PING_MAPPING = get(urlEqualTo(TIMELOCK_PING_PATH));
     private static final String TIMELOCK_FF_PATH
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
@@ -146,6 +148,7 @@ public class TransactionManagersTest {
                 .withStatus(204)));
 
         config = mock(AtlasDbConfig.class);
+        when(config.getDefaultLockTimeoutSeconds()).thenReturn(AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS);
         when(config.leader()).thenReturn(Optional.empty());
         when(config.timestamp()).thenReturn(Optional.empty());
         when(config.lock()).thenReturn(Optional.empty());
@@ -215,14 +218,7 @@ public class TransactionManagersTest {
                 .build()));
 
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
-                        config,
-                        () -> runtimeConfig.timestampClient(),
-                        environment,
-                        LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        invalidator,
-                        USER_AGENT);
+                createLockAndTimestampServicesForConfig(config, Optional.empty());
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestampServices.timelock().getFreshTimestamp();
@@ -251,16 +247,8 @@ public class TransactionManagersTest {
                 .learnerLogDir(temporaryFolder.newFolder())
                 .quorumSize(1)
                 .build()));
-
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
-                        config,
-                        () -> runtimeConfig.timestampClient(),
-                        environment,
-                        LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        invalidator,
-                        USER_AGENT);
+                createLockAndTimestampServicesForConfig(config, Optional.empty());
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestampServices.timelock().getFreshTimestamp();
@@ -295,7 +283,7 @@ public class TransactionManagersTest {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).timestamp().getFreshTimestamp();
+        createLockAndTimestampServicesForConfig(config, Optional.of(runtimeConfig)).timestamp().getFreshTimestamp();
 
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH)));
     }
@@ -305,7 +293,7 @@ public class TransactionManagersTest {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).timelock().getFreshTimestamp();
+        createLockAndTimestampServicesForConfig(config, Optional.of(runtimeConfig)).timelock().getFreshTimestamp();
 
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMP_PATH)));
     }
@@ -319,8 +307,8 @@ public class TransactionManagersTest {
 
         Runnable callback = mock(Runnable.class);
 
-        SerializableTransactionManager manager = TransactionManagers.create(
-                realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        SerializableTransactionManager manager = new InitialisingTransactionManager(
+                realConfig, Optional::empty, ImmutableSet.of(), environment, LockServerOptions.DEFAULT, false, "test");
         manager.registerClosingCallback(callback);
         manager.close();
         verify(callback, times(1)).run();
@@ -340,15 +328,11 @@ public class TransactionManagersTest {
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
-                        config,
-                        () -> ImmutableTimestampClientConfig.of(false),
-                        environment,
-                        LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        invalidator,
-                        USER_AGENT);
+        InitialisingTransactionManager manager = new InitialisingTransactionManager(
+                config, Optional::empty, ImmutableSet.of(), environment, LockServerOptions.DEFAULT, false, USER_AGENT);
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServicesForConfig(
+                config, Optional.empty());
         lockAndTimestampServices.timelock().getFreshTimestamp();
         lockAndTimestampServices.timelock().currentTimeMillis();
 
@@ -372,14 +356,16 @@ public class TransactionManagersTest {
     }
 
     private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
-            AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
-        return TransactionManagers.createLockAndTimestampServices(
-                atlasDbConfig,
-                atlasDbRuntimeConfig::timestampClient,
-                environment,
+            AtlasDbConfig atlasDbConfig, Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig) {
+
+        InitialisingTransactionManager manager = new InitialisingTransactionManager(
+                atlasDbConfig, () -> atlasDbRuntimeConfig, ImmutableSet.of(), environment,
+                LockServerOptions.DEFAULT, false, USER_AGENT);
+
+        return manager.createLockAndTimestampServices(
+                () -> runtimeConfig.timestampClient(),
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
-                invalidator,
-                USER_AGENT);
+                invalidator);
     }
 }
