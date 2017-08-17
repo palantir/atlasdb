@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra;
 import java.util.Optional;
 
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -44,7 +45,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         return createKv(preprocessedConfig, leaderConfig);
     }
 
-    private static CassandraKeyValueServiceConfig preprocessKvsConfig(
+    @VisibleForTesting
+    static CassandraKeyValueServiceConfig preprocessKvsConfig(
             KeyValueServiceConfig config,
             Optional<String> namespace) {
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
