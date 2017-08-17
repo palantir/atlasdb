@@ -38,4 +38,6 @@ public interface ScrubberStore {
             long maxScrubTimestamp /* exclusive */,
             byte[] startRow,
             byte[] endRow);
+
+    int getNumberRemainingScrubCells(int maxCellsToScan);
 }
