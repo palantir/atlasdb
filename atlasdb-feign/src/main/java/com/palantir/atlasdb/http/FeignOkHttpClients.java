@@ -100,6 +100,7 @@ public final class FeignOkHttpClients {
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
+                .hostnameVerifier((a, b) -> true)
                 .retryOnConnectionFailure(false);
         if (sslSocketFactory.isPresent()) {
             builder.sslSocketFactory(sslSocketFactory.get());
