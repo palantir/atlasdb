@@ -301,7 +301,8 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         }
         dcsInCluster.add(getLocalDataCenter());
 
-        if (metadata.getKeyspace(config.getKeyspaceOrThrow()) == null) { // keyspace previously didn't exist; we need to set it up
+        if (metadata.getKeyspace(config.getKeyspaceOrThrow()) == null) {
+            // keyspace previously didn't exist; we need to set it up
             createKeyspace(config.getKeyspaceOrThrow(), dcsInCluster);
             return;
         }
@@ -1222,7 +1223,10 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         try {
             alterTableForCompaction(tableRef, 0, 0.0f);
             CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables for compaction", this);
-            compactionManager.get().performTombstoneCompaction(compactionTimeoutSeconds, config.getKeyspaceOrThrow(), tableRef);
+            compactionManager.get().performTombstoneCompaction(
+                    compactionTimeoutSeconds,
+                    config.getKeyspaceOrThrow(),
+                    tableRef);
         } catch (TimeoutException e) {
             log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
             log.error("Compaction status: {}", compactionManager.get().getCompactionStatus());
