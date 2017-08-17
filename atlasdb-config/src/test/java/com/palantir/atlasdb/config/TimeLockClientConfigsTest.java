@@ -44,6 +44,13 @@ public class TimeLockClientConfigsTest {
     }
 
     @Test
+    public void otherPropertiesConservedWhenAddingClient() {
+        TimeLockClientConfig newConfig =
+                TimeLockClientConfigs.copyWithClient(CONFIG_WITHOUT_CLIENT, CLIENT_1);
+        assertThat(newConfig.serversList()).isEqualTo(SERVERS_LIST);
+    }
+
+    @Test
     public void canCopyReplacingClient() {
         TimeLockClientConfig newConfig =
                 TimeLockClientConfigs.copyWithClient(CONFIG_WITH_CLIENT, CLIENT_1);

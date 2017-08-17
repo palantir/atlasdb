@@ -30,4 +30,4 @@ atlasdb:
     acceptorLogDir: var/data/paxosLog/acceptor1
     localServer: http://${ME}:3828
     leaders:
-      - http://${ME}:3828
+      - http://ete1:3828
