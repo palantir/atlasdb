@@ -33,6 +33,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
 
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class EncodingUtils {
     private EncodingUtils() {
         // empty
