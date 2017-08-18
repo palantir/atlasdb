@@ -30,8 +30,8 @@ import com.palantir.atlasdb.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.PingableLeader;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
-import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.tritium.metrics.MetricRegistries;
 
