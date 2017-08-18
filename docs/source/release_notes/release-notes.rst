@@ -44,6 +44,16 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - AtlasDB now produces a new artifact, ``timelock-agent``.
+           Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a *registrar* that knows how to register Java resources and expose suitable HTTP endpoints.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2247>`__)
+
+    *    - |improved|
+         - Timelock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
+           This means that specifying a list of clients in Timelock configuration will no longer have any effect. Further, a new configuration property called ``max-number-of-clients`` has been introduced in ``TimeLockRuntimeConfiguration``. This can be used to limit the number of clients that will be created dynamically, since each distinct client has some memory, disk space, and CPU overhead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2252>`__)
+
     *    - |fixed|
          - CharacterLimitType now has fields marked as final.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2259>`__)
@@ -103,6 +113,7 @@ v0.53.0
     *    - |devbreak|
          - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
 
 =======
 v0.52.0
