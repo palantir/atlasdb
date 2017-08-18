@@ -32,7 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 
-public final class Schemas implements AsyncInitializer {
+public final class Schemas {
     private static final String INDEX_SUFFIX = "idx";
     private Set<Schema> schemas;
     private KeyValueService kvs;
@@ -88,37 +88,6 @@ public final class Schemas implements AsyncInitializer {
             }
         }
         return true;
-    }
-
-    public Schemas(Set<Schema> schemas, KeyValueService kvs) {
-        this.schemas = schemas;
-        this.kvs = kvs;
-    }
-
-    @Override
-    public void cleanUpOnInitFailure() {
-
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return isInitialized.get();
-    }
-
-    @Override
-    public void tryInitialize() {
-        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
-                .add(SweepSchema.INSTANCE.getLatestSchema())
-                .addAll(schemas)
-                .build();
-
-        for (Schema schema : allSchemas) {
-            Schemas.createTablesAndIndexes(schema, kvs);
-        }
-
-        if (!isInitialized.compareAndSet(false, true)) {
-            throw new RuntimeException("This class was initialized underneath us.");
-        }
     }
 
     /**

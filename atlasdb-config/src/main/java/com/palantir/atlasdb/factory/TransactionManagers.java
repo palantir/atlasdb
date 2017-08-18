@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -241,19 +242,13 @@ public final class TransactionManagers {
                 MetricRegistry.name(KeyValueService.class, userAgent));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        new TransactionTables(kvs).asyncInitialize();
+        new TransactionManagersInitializer(kvs, schemas).asyncInitialize();
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
-
-        new Schemas(schemas, kvs).asyncInitialize();
-
-        // Prime the key value service with logging information.
-        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
-        LoggingArgs.hydrate(kvs.getMetadataForTables());
 
         CleanupFollower follower = CleanupFollower.create(schemas);
 
