@@ -25,7 +25,8 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class AtlasDbConstants {
     public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch");
-    public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
+    public static final TableReference OLD_SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
+    public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
@@ -90,7 +91,7 @@ public class AtlasDbConstants {
     public static final long DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS = 3600000L;
     public static final int DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE = 2000;
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
-    public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
+    public static final char OLD_SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
     public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
@@ -105,4 +106,7 @@ public class AtlasDbConstants {
     public static final int MAX_OVERFLOW_TABLE_PREFIX_LENGTH = 6;
 
     public static final int DEFAULT_LOCK_TIMEOUT_SECONDS = 120;
+
+    public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
+    public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
 }
