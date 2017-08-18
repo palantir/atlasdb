@@ -18,18 +18,25 @@ package com.palantir.atlasdb.table.description;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.SweepSchema;
 
-public final class Schemas {
+public final class Schemas implements AsyncInitializer {
     private static final String INDEX_SUFFIX = "idx";
+    private Set<Schema> schemas;
+    private KeyValueService kvs;
+    private AtomicBoolean isInitialized;
 
     public static TableReference appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(
@@ -83,8 +90,35 @@ public final class Schemas {
         return true;
     }
 
-    private Schemas() {
-        //
+    public Schemas(Set<Schema> schemas, KeyValueService kvs) {
+        this.schemas = schemas;
+        this.kvs = kvs;
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
+
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
+        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
+                .add(SweepSchema.INSTANCE.getLatestSchema())
+                .addAll(schemas)
+                .build();
+
+        for (Schema schema : allSchemas) {
+            Schemas.createTablesAndIndexes(schema, kvs);
+        }
+
+        if (!isInitialized.compareAndSet(false, true)) {
+            throw new RuntimeException("This class was initialized underneath us.");
+        }
     }
 
     /**

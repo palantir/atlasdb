@@ -249,13 +249,7 @@ public final class TransactionManagers {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
-        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
-                .add(SweepSchema.INSTANCE.getLatestSchema())
-                .addAll(schemas)
-                .build();
-        for (Schema schema : allSchemas) {
-            Schemas.createTablesAndIndexes(schema, kvs);
-        }
+        new Schemas(schemas, kvs).asyncInitialize();
 
         // Prime the key value service with logging information.
         // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
