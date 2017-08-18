@@ -45,6 +45,10 @@ develop
          - Change
 
     *    - |new|
+         - Timelock clients now produce tritium metrics for the ``TimelockService`` endpoints.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
+
+    *    - |new|
          - AtlasDB now produces a new artifact, ``timelock-agent``.
            Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a *registrar* that knows how to register Java resources and expose suitable HTTP endpoints.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2247>`__)
