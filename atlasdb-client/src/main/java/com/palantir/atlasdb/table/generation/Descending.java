@@ -22,7 +22,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This marker annotation indicates that this field or parameter or value returned by a method is sorted in the reverse order.
+ * This marker annotation indicates that this field or parameter or value returned by a method is sorted in the reverse
+ * order.
  * <p>
  * This means that a numeric sequence that is normally ascending will be descending instead.
  *

@@ -191,8 +191,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
             stopwatch.stop();
             Consumer<LoggingFunction> logger = (loggingMethod) -> {
                 primaryLogger.accept(loggingMethod, stopwatch);
-                if (result != null) additionalLoggerWithAccessToResult.accept(loggingMethod, result);
-                else if (exception != null) loggingMethod.log("This operation has thrown an exception {}", exception);
+                if (result != null) {
+                    additionalLoggerWithAccessToResult.accept(loggingMethod, result);
+                }
+                else if (exception != null) {
+                    loggingMethod.log("This operation has thrown an exception {}", exception);
+                }
             };
 
             if (log.isTraceEnabled()) {

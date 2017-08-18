@@ -107,14 +107,14 @@ public class ReadTransactionShould {
         for (Method m : declaredMethods) {
             if (simpleGets.containsKey(m.getName())) {
                 checkThrowsAndNoInteraction(() -> {
-                            try {
-                                m.invoke(readTransaction, simpleGets.get(m.getName()));
-                            } catch (InvocationTargetException e) {
-                                Throwables.throwIfInstance(e.getCause(), IllegalStateException.class);
-                            } catch (IllegalAccessException e) {
-                                Throwables.throwUncheckedException(e);
-                            }
-                        },
+                    try {
+                        m.invoke(readTransaction, simpleGets.get(m.getName()));
+                    } catch (InvocationTargetException e) {
+                        Throwables.throwIfInstance(e.getCause(), IllegalStateException.class);
+                    } catch (IllegalAccessException e) {
+                        Throwables.throwUncheckedException(e);
+                    }
+                },
                         IllegalStateException.class,
                         "Cannot read");
             }

@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema;
 
 import java.util.Map;
 
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,11 +171,11 @@ public class KvsRangeMigrator implements RangeMigrator {
         final MutableLong bytesPut = new MutableLong(0L);
         bv.batchAccept(readBatchSize, AbortingVisitors.batching(
                 new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-            @Override
-            public boolean visit(RowResult<byte[]> rr) {
-                return internalCopyRow(rr, maxBytes, writeMap, bytesPut, lastRowName);
-            }
-        }));
+                    @Override
+                    public boolean visit(RowResult<byte[]> rr) {
+                        return internalCopyRow(rr, maxBytes, writeMap, bytesPut, lastRowName);
+                    }
+                }));
         return lastRowName.get();
     }
 
