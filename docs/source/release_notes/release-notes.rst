@@ -65,7 +65,7 @@ develop
 
     *    - |changed|
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2xxx>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
 
 =======
 v0.53.0
