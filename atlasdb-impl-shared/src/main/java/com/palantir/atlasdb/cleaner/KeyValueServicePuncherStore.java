@@ -16,9 +16,11 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,16 +38,58 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.processors.AutoDelegate;
 
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
  *
  * @author jweel
  */
-public final class KeyValueServicePuncherStore implements PuncherStore {
+@AutoDelegate(typeToExtend = PuncherStore.class)
+public final class KeyValueServicePuncherStore implements PuncherStore, AsyncInitializer {
+    public static class InitializingWrapper implements AutoDelegate_PuncherStore {
+        private KeyValueServicePuncherStore puncherStore;
+
+        public InitializingWrapper(KeyValueServicePuncherStore puncherStore) {
+            this.puncherStore = puncherStore;
+        }
+
+
+        @Override
+        public PuncherStore delegate() {
+            if (puncherStore.isInitialized()) {
+                return puncherStore;
+            }
+            throw new RuntimeException("The PuncherStore is not initialized yet.");
+        }
+    }
+
     private static final byte[] COLUMN = "t".getBytes(StandardCharsets.UTF_8);
+    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
+        KeyValueServicePuncherStore puncherStore = new KeyValueServicePuncherStore(keyValueService);
+        puncherStore.asyncInitialize();
+        return puncherStore;
+    }
+
+    private final KeyValueService keyValueService;
+
+    private KeyValueServicePuncherStore(KeyValueService keyValueService) {
+        this.keyValueService = keyValueService;
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
                         new NameComponentDescription.Builder()
@@ -55,14 +99,11 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
                                 .build())),
                 new ColumnMetadataDescription(ImmutableList.of(
                         new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
-                        ConflictHandler.IGNORE_ALL).persistToBytes());
-        return new KeyValueServicePuncherStore(keyValueService);
-    }
+                ConflictHandler.IGNORE_ALL).persistToBytes());
 
-    private final KeyValueService keyValueService;
-
-    private KeyValueServicePuncherStore(KeyValueService keyValueService) {
-        this.keyValueService = keyValueService;
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the class underneath us.");
+        }
     }
 
     @Override
