@@ -164,6 +164,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
             }
             throw new RuntimeException("The CassandraKeyValueService is not initialized.");
         }
+
+        @Override
+        public boolean supportsCheckAndSet() {
+            return kvs.supportsCheckAndSet();
+        }
     }
 
     private final Logger log;
