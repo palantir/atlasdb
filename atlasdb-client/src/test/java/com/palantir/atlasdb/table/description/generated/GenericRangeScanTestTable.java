@@ -489,16 +489,21 @@ public final class GenericRangeScanTestTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(GenericRangeScanTestRow rowName, Iterable<GenericRangeScanTestColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(GenericRangeScanTestRow rowName, GenericRangeScanTestColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> rows) {
@@ -771,5 +776,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DheC4hjetCfa+2KkvrJm9Q==";
+    static String __CLASS_HASH = "Qt/JCo/U/iHWU6lqrlGuRQ==";
 }

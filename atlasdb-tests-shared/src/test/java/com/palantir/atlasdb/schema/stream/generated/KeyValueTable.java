@@ -436,6 +436,7 @@ public final class KeyValueTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
@@ -682,5 +683,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qFxt68SAYRUEwjW6rvfKfA==";
+    static String __CLASS_HASH = "Q+bu5Tj1/2btdkMQdhkmVA==";
 }

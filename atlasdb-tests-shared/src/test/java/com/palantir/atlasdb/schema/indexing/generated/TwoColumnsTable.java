@@ -598,6 +598,7 @@ public final class TwoColumnsTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
@@ -1319,16 +1320,21 @@ public final class TwoColumnsTable implements
             }
         }
 
+        /** @deprecated Use separate read/write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdCondIdxRow rowName, Iterable<FooToIdCondIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read/write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdCondIdxRow rowName, FooToIdCondIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read/write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<FooToIdCondIdxRow, ? extends FooToIdCondIdxColumnValue> rows) {
@@ -1956,16 +1962,21 @@ public final class TwoColumnsTable implements
             }
         }
 
+        /** @deprecated Use separate read/write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdIdxRow rowName, Iterable<FooToIdIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<FooToIdIdxRow, FooToIdIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read/write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdIdxRow rowName, FooToIdIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<FooToIdIdxRow, FooToIdIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read/write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<FooToIdIdxRow, ? extends FooToIdIdxColumnValue> rows) {
@@ -2206,5 +2217,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZzFGYAGnZyNyPhDJJXf9Ug==";
+    static String __CLASS_HASH = "cTgMgi+aeqhtwPysL47xLQ==";
 }

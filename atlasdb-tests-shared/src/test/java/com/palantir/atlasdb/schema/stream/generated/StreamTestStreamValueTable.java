@@ -448,6 +448,7 @@ public final class StreamTestStreamValueTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestStreamValueRow, ? extends StreamTestStreamValueNamedColumnValue<?>> rows) {
@@ -694,5 +695,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vcIW+tiu1Oytg+Yw2IAq2g==";
+    static String __CLASS_HASH = "2WqaKfk3lpszjnIyCW8Q0Q==";
 }

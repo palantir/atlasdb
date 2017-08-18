@@ -489,16 +489,21 @@ public final class StreamTestStreamHashAidxTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestStreamHashAidxRow rowName, Iterable<StreamTestStreamHashAidxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestStreamHashAidxRow rowName, StreamTestStreamHashAidxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<StreamTestStreamHashAidxRow, StreamTestStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxColumnValue> rows) {
@@ -737,5 +742,5 @@ public final class StreamTestStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "U2xQLLMf4fKO/kmuxnrckg==";
+    static String __CLASS_HASH = "kmjP7QkIXYpa9omtwQHaSA==";
 }

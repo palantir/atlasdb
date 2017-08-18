@@ -948,6 +948,7 @@ public final class SweepProgressTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<SweepProgressRow, ? extends SweepProgressNamedColumnValue<?>> rows) {
@@ -1238,5 +1239,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "By4on4ZaFqZueyp4m1v42w==";
+    static String __CLASS_HASH = "qbUhiA1LLkXWEbheWvM67Q==";
 }

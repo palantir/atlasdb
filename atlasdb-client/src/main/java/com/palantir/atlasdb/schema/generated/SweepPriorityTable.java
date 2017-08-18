@@ -948,6 +948,7 @@ public final class SweepPriorityTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> rows) {
@@ -1238,5 +1239,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pjlNqy5qMl+BgAW39QWDxQ==";
+    static String __CLASS_HASH = "t1UGNraj+eNXdnY3sr2gzQ==";
 }

@@ -448,6 +448,7 @@ public final class UserPhotosStreamValueTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> rows) {
@@ -694,5 +695,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jFgTLQq4+jQP0GgU0v8nqA==";
+    static String __CLASS_HASH = "2d6Oqm3X/TaMFwZUIfUR1Q==";
 }

@@ -460,6 +460,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestMaxMemStreamMetadataRow, ? extends StreamTestMaxMemStreamMetadataNamedColumnValue<?>> rows) {
@@ -706,5 +707,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NA1qLL7ptxcA8g1KGdqBdA==";
+    static String __CLASS_HASH = "G7x2+vqnFll8wtfLuW647A==";
 }

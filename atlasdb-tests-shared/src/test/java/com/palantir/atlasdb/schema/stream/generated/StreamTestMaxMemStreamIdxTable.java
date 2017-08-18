@@ -489,16 +489,21 @@ public final class StreamTestMaxMemStreamIdxTable implements
         }
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestMaxMemStreamIdxRow rowName, Iterable<StreamTestMaxMemStreamIdxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestMaxMemStreamIdxRow rowName, StreamTestMaxMemStreamIdxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read/write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestMaxMemStreamIdxRow, ? extends StreamTestMaxMemStreamIdxColumnValue> rows) {
@@ -737,5 +742,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "096gQb47wT3xc3/95hkwMw==";
+    static String __CLASS_HASH = "BGJLyoG/TOKgsn88SGmwyg==";
 }
