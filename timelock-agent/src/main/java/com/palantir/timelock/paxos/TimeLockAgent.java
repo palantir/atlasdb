@@ -38,6 +38,8 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import io.reactivex.Observable;
 
 public class TimeLockAgent {
+    private static final Long SCHEMA_VERSION = 1L;
+
     private final TimeLockInstallConfiguration install;
     private final Observable<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
@@ -84,6 +86,18 @@ public class TimeLockAgent {
                 runtime.map(conf -> conf.maxNumberOfClients()))));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
+    }
+
+    @SuppressWarnings("unused")
+    public long getSchemaVersion() {
+        // So far there's only been one schema version. For future schema versions, we will have to persist the version
+        // to disk somehow, so that we can check if var/data/paxos will have data in the expected format.
+        return SCHEMA_VERSION;
+    }
+
+    @SuppressWarnings("unused")
+    public long getLatestSchemaVersion() {
+        return SCHEMA_VERSION;
     }
 
     // No runtime configuration at the moment.
