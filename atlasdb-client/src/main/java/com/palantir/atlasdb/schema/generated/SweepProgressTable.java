@@ -948,6 +948,7 @@ public final class SweepProgressTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<SweepProgressRow, ? extends SweepProgressNamedColumnValue<?>> rows) {
         Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -1237,5 +1238,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "bQmgQX7KLP+aArBAyyhErw==";
+    static String __CLASS_HASH = "By4on4ZaFqZueyp4m1v42w==";
 }

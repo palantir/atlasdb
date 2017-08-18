@@ -499,6 +499,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
         putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxColumnValue> rows) {
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTestMaxMemStreamHashAidxColumnValue.getColumnNameFun());
@@ -736,5 +737,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "h8BMquUCZ3hRJQ+7j6NTSw==";
+    static String __CLASS_HASH = "s2rDuR1RwSqszYU8zAy2sw==";
 }

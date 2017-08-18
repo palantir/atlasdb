@@ -448,6 +448,7 @@ public final class UserPhotosStreamValueTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamValueRow, ? extends UserPhotosStreamValueNamedColumnValue<?>> rows) {
         Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -693,5 +694,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1NjDAKcv4RUJmYAuWL3LAA==";
+    static String __CLASS_HASH = "jFgTLQq4+jQP0GgU0v8nqA==";
 }

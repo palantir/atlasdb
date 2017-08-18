@@ -499,6 +499,7 @@ public final class GenericRangeScanTestTable implements
         putUnlessExists(ImmutableMultimap.<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>builder().putAll(rowName, values).build());
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> rows) {
         Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toGet = Multimaps.transformValues(rows, GenericRangeScanTestColumnValue.getColumnNameFun());
@@ -770,5 +771,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Rdb6qUr4s6jd+qv3ug0l3Q==";
+    static String __CLASS_HASH = "DheC4hjetCfa+2KkvrJm9Q==";
 }

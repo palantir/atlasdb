@@ -460,6 +460,7 @@ public final class StreamTestStreamMetadataTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestStreamMetadataRow, ? extends StreamTestStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<StreamTestStreamMetadataRow, StreamTestStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -705,5 +706,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "UipQvfcAlYh+NDhXyY7TBQ==";
+    static String __CLASS_HASH = "W8MEVFa3axw7hHEf/MoShg==";
 }

@@ -504,6 +504,7 @@ public final class DataTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
         Multimap<DataRow, DataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -1298,6 +1299,7 @@ public final class DataTable implements
             putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index1IdxRow, ? extends Index1IdxColumnValue> rows) {
             Multimap<Index1IdxRow, Index1IdxColumn> toGet = Multimaps.transformValues(rows, Index1IdxColumnValue.getColumnNameFun());
@@ -1947,6 +1949,7 @@ public final class DataTable implements
             putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index2IdxRow, ? extends Index2IdxColumnValue> rows) {
             Multimap<Index2IdxRow, Index2IdxColumn> toGet = Multimaps.transformValues(rows, Index2IdxColumnValue.getColumnNameFun());
@@ -2574,6 +2577,7 @@ public final class DataTable implements
             putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index3IdxRow, ? extends Index3IdxColumnValue> rows) {
             Multimap<Index3IdxRow, Index3IdxColumn> toGet = Multimaps.transformValues(rows, Index3IdxColumnValue.getColumnNameFun());
@@ -3223,6 +3227,7 @@ public final class DataTable implements
             putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index4IdxRow, ? extends Index4IdxColumnValue> rows) {
             Multimap<Index4IdxRow, Index4IdxColumn> toGet = Multimaps.transformValues(rows, Index4IdxColumnValue.getColumnNameFun());
@@ -3496,5 +3501,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/hrXL9YLBxZHFEbepfAK/A==";
+    static String __CLASS_HASH = "uMyIp51WPHs71jQGv4jIcQ==";
 }

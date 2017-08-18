@@ -887,6 +887,7 @@ public final class UserProfileTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -1677,6 +1678,7 @@ public final class UserProfileTable implements
             putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> rows) {
             Multimap<CookiesIdxRow, CookiesIdxColumn> toGet = Multimaps.transformValues(rows, CookiesIdxColumnValue.getColumnNameFun());
@@ -2338,6 +2340,7 @@ public final class UserProfileTable implements
             putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> rows) {
             Multimap<CreatedIdxRow, CreatedIdxColumn> toGet = Multimaps.transformValues(rows, CreatedIdxColumnValue.getColumnNameFun());
@@ -2999,6 +3002,7 @@ public final class UserProfileTable implements
             putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> rows) {
             Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toGet = Multimaps.transformValues(rows, UserBirthdaysIdxColumnValue.getColumnNameFun());
@@ -3272,5 +3276,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "O3tAHyT0cLSDTg2WMe1aww==";
+    static String __CLASS_HASH = "1MG/HeFEuFgklaQABhiGpA==";
 }

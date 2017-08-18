@@ -499,6 +499,7 @@ public final class UserPhotosStreamIdxTable implements
         putUnlessExists(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxColumnValue> rows) {
         Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> toGet = Multimaps.transformValues(rows, UserPhotosStreamIdxColumnValue.getColumnNameFun());
@@ -736,5 +737,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CcCfvZU8hRg+fnHdCMJxkA==";
+    static String __CLASS_HASH = "K9RfDsYaI2kBce57ouMkCQ==";
 }

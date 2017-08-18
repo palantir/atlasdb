@@ -499,6 +499,7 @@ public final class StreamTestStreamIdxTable implements
         putUnlessExists(ImmutableMultimap.<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestStreamIdxRow, ? extends StreamTestStreamIdxColumnValue> rows) {
         Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumn> toGet = Multimaps.transformValues(rows, StreamTestStreamIdxColumnValue.getColumnNameFun());
@@ -736,5 +737,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "wfMeqg8S7VOA5eMlxMSwqw==";
+    static String __CLASS_HASH = "3HdJANAJG/W+zj35QrUYJg==";
 }

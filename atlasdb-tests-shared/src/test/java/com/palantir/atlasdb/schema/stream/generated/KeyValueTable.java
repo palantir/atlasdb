@@ -436,6 +436,7 @@ public final class KeyValueTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
         Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -681,5 +682,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0U6JekDY5e0lxHGKzyr2nA==";
+    static String __CLASS_HASH = "qFxt68SAYRUEwjW6rvfKfA==";
 }

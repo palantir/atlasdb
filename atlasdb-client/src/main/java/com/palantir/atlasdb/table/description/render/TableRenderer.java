@@ -760,6 +760,7 @@ public class TableRenderer {
         private void renderNamedPutUnlessExists() {
             String params = isExpiring(table) ? ", long duration, TimeUnit unit" : "";
             String args = isExpiring(table) ? ", duration, unit" : "";
+            line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows", params, ") {"); {
                 line("Multimap<", Row, ", ", ColumnValue, "> existing = getRowsMultimap(rows.keySet());");
@@ -776,6 +777,7 @@ public class TableRenderer {
         private void renderDynamicPutUnlessExists() {
             String params = isExpiring(table) ? ", long duration, TimeUnit unit" : "";
             String args = isExpiring(table) ? ", duration, unit" : "";
+            line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows", params, ") {"); {
                 line("Multimap<", Row, ", ", Column, "> toGet = Multimaps.transformValues(rows, ", ColumnValue, ".getColumnNameFun());");

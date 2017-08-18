@@ -598,6 +598,7 @@ public final class TwoColumnsTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -1328,6 +1329,7 @@ public final class TwoColumnsTable implements
             putUnlessExists(ImmutableMultimap.<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<FooToIdCondIdxRow, ? extends FooToIdCondIdxColumnValue> rows) {
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdCondIdxColumnValue.getColumnNameFun());
@@ -1964,6 +1966,7 @@ public final class TwoColumnsTable implements
             putUnlessExists(ImmutableMultimap.<FooToIdIdxRow, FooToIdIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<FooToIdIdxRow, ? extends FooToIdIdxColumnValue> rows) {
             Multimap<FooToIdIdxRow, FooToIdIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdIdxColumnValue.getColumnNameFun());
@@ -2203,5 +2206,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hyTbqBOunzYSF0DFQr0pSA==";
+    static String __CLASS_HASH = "ZzFGYAGnZyNyPhDJJXf9Ug==";
 }

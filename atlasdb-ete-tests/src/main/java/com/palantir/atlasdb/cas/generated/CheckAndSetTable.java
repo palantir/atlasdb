@@ -436,6 +436,7 @@ public final class CheckAndSetTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
         Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -681,5 +682,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pcyXr6MvNlvXZxaJAYYjfw==";
+    static String __CLASS_HASH = "bdnu+Pbklz7VxD8ZtBsF+A==";
 }

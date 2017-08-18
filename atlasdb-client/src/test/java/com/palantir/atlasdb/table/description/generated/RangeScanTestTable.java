@@ -436,6 +436,7 @@ public final class RangeScanTestTable implements
         }
     }
 
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
         Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -711,5 +712,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "C1hK8v63iXd9NQCibpQkWQ==";
+    static String __CLASS_HASH = "HbXopwSk8OI3N0CrBbjB6g==";
 }
