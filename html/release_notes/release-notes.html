@@ -196,6 +196,16 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now produces a new artifact, <code class="docutils literal"><span class="pre">timelock-agent</span></code>.
+Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a <em>registrar</em> that knows how to register Java resources and expose suitable HTTP endpoints.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2247">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Timelock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
+This means that specifying a list of clients in Timelock configuration will no longer have any effect. Further, a new configuration property called <code class="docutils literal"><span class="pre">max-number-of-clients</span></code> has been introduced in <code class="docutils literal"><span class="pre">TimeLockRuntimeConfiguration</span></code>. This can be used to limit the number of clients that will be created dynamically, since each distinct client has some memory, disk space, and CPU overhead.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2252">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>CharacterLimitType now has fields marked as final.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2259">Pull Request</a>)</td>
