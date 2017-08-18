@@ -2,7 +2,7 @@
  * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  */
 
-package com.palantir.atlasdb.scrub;
+package com.palantir.atlasdb.cleaner;
 
 import java.util.List;
 import java.util.SortedMap;
@@ -18,8 +18,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cleaner.KeyValueServiceScrubberStore;
-import com.palantir.atlasdb.cleaner.ScrubberStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
