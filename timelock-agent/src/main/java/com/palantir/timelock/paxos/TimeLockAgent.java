@@ -92,7 +92,6 @@ public class TimeLockAgent {
     public long getSchemaVersion() {
         // So far there's only been one schema version. For future schema versions, we will have to persist the version
         // to disk somehow, so that we can check if var/data/paxos will have data in the expected format.
-        // TODO: is this the best place from which to look this up?
         return SCHEMA_VERSION;
     }
 
