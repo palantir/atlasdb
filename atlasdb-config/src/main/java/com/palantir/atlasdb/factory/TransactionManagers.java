@@ -434,7 +434,7 @@ public final class TransactionManagers {
                 createRawServices(config, env, lock, time, invalidator, userAgent);
         return withRequestBatchingTimestampService(
                 runtimeConfigSupplier,
-                withRefreshingLockService(lockAndTimestampServices));
+                withRefreshingLockService(lockAndTimestampServices), userAgent);
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -448,10 +448,11 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices withRequestBatchingTimestampService(
             java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
-            LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockServiceWithBatching =
+            LockAndTimestampServices lockAndTimestampServices, String userAgent) {
+        TimelockService timelockServiceWithBatching = ServiceCreator.createInstrumentedService(
                 DecoratedTimelockServices.createTimelockServiceWithTimestampBatching(
-                        lockAndTimestampServices.timelock(), timestampClientConfigSupplier);
+                        lockAndTimestampServices.timelock(), timestampClientConfigSupplier),
+                TimelockService.class, userAgent);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
