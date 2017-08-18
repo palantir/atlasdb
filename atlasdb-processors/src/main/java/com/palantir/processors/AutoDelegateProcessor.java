@@ -51,7 +51,6 @@ import com.google.common.collect.MapMaker;
 import com.google.common.collect.Sets;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
@@ -188,14 +187,14 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
     private List<TypeElement> fetchSuperinterfaces(TypeElement baseInterface) {
         List<TypeMirror> interfacesQueue = new ArrayList<>(baseInterface.getInterfaces());
         Set<TypeMirror> interfacesSet = Sets.newHashSet(interfacesQueue);
-        List<TypeElement> superInterfaceElements = new ArrayList<>();
+        List<TypeElement> superinterfaceElements = new ArrayList<>();
 
         for (int i = 0; i < interfacesQueue.size(); i++) {
-            TypeMirror superInterfaceMirror = interfacesQueue.get(i);
-            TypeElement superInterfaceType = ProcessorUtils.extractType(typeUtils, superInterfaceMirror);
-            superInterfaceElements.add(superInterfaceType);
+            TypeMirror superinterfaceMirror = interfacesQueue.get(i);
+            TypeElement superinterfaceType = ProcessorUtils.extractType(typeUtils, superinterfaceMirror);
+            superinterfaceElements.add(superinterfaceType);
 
-            List<TypeMirror> newInterfaces = superInterfaceType.getInterfaces()
+            List<TypeMirror> newInterfaces = superinterfaceType.getInterfaces()
                     .stream()
                     .filter((newInteface) -> !interfacesSet.contains(newInteface))
                     .collect(Collectors.toList());
@@ -203,7 +202,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             interfacesQueue.addAll(newInterfaces);
         }
 
-        return superInterfaceElements;
+        return superinterfaceElements;
     }
 
     private void generateCode(TypeToExtend typeToExtend) throws IOException {

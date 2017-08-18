@@ -21,23 +21,23 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
 
 public class AutoDelegateClassTests {
     private static final Method[] TEST_CLASS_METHODS = TestClass.class.getDeclaredMethods();
+    public static final Constructor<?>[] TEST_CLASS_CONSTRUCTORS = TestClass.class.getConstructors();
 
     @Test
     public void staticMethodsAreNotGenerated() {
-        Set<String> staticMethods = Arrays.stream(TEST_CLASS_METHODS)
-                .filter(method -> Modifier.isStatic(method.getModifiers()))
-                .map(TestingUtils::methodToString)
-                .collect(Collectors.toSet());
+        Set<String> staticMethods = extractTestClassMethods(Modifier::isStatic);
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestClass.class);
 
         assertThat(generatedMethods, not(hasItems(staticMethods.toArray(new String[0]))));
@@ -45,11 +45,8 @@ public class AutoDelegateClassTests {
 
     @Test
     public void publicInstanceMethodsAreGenerated() {
-        Set<String> publicMethods = Arrays.stream(TEST_CLASS_METHODS)
-                .filter(method -> !Modifier.isStatic(method.getModifiers())
-                                && Modifier.isPublic(method.getModifiers()))
-                .map(TestingUtils::methodToString)
-                .collect(Collectors.toSet());
+        Set<String> publicMethods = extractTestClassMethods(modifiers ->
+                !Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers));
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestClass.class);
 
         assertThat(generatedMethods, hasItems(publicMethods.toArray(new String[0])));
@@ -57,11 +54,8 @@ public class AutoDelegateClassTests {
 
     @Test
     public void privateAndProtectedInstanceMethodsAreNotGenerated() {
-        Set<String> privateOrProtectedMethods = Arrays.stream(TEST_CLASS_METHODS)
-                .filter(method -> !Modifier.isStatic(method.getModifiers())
-                        && (Modifier.isProtected(method.getModifiers()) || Modifier.isPrivate(method.getModifiers())))
-                .map(TestingUtils::methodToString)
-                .collect(Collectors.toSet());
+        Set<String> privateOrProtectedMethods = extractTestClassMethods(modifiers -> !Modifier.isStatic(modifiers)
+                && (Modifier.isProtected(modifiers) || Modifier.isPrivate(modifiers)));
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestClass.class);
 
         assertThat(generatedMethods, not(hasItems(privateOrProtectedMethods.toArray(new String[0]))));
@@ -69,11 +63,8 @@ public class AutoDelegateClassTests {
 
     @Test
     public void publicAndProtectedConstructorsAreGenerated() {
-        Set<String> publicOrProtectedConstructors = Arrays.stream(TestClass.class.getConstructors())
-                .filter(constructor -> Modifier.isPublic(constructor.getModifiers())
-                        || Modifier.isProtected(constructor.getModifiers()))
-                .map(TestingUtils::constructorToString)
-                .collect(Collectors.toSet());
+        Set<String> publicOrProtectedConstructors = extractTestClassConstructors(modifiers ->
+                Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers));
         Set<String> generatedConstructors = TestingUtils.extractConstructors(AutoDelegate_TestClass.class);
 
         assertThat(generatedConstructors, is(publicOrProtectedConstructors));
@@ -81,13 +72,25 @@ public class AutoDelegateClassTests {
 
     @Test
     public void inheritedMethodsAreGenerated() {
-        Set<String> parentMethods = Arrays.stream(TEST_CLASS_METHODS)
-                .filter(method -> !Modifier.isStatic(method.getModifiers())
-                        && Modifier.isPublic(method.getModifiers()))
-                .map(TestingUtils::methodToString)
-                .collect(Collectors.toSet());
+        Set<String> parentMethods = extractTestClassMethods(modifiers ->
+                !Modifier.isStatic(modifiers) && Modifier.isPublic(modifiers));
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_ChildClass.class);
 
         assertThat(generatedMethods, hasItems(parentMethods.toArray(new String[0])));
     }
+
+    private Set<String> extractTestClassMethods(Predicate<Integer> filter) {
+        return Arrays.stream(TEST_CLASS_METHODS)
+                .filter(method -> filter.test(method.getModifiers()))
+                .map(TestingUtils::methodToString)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> extractTestClassConstructors(Predicate<Integer> filter) {
+        return Arrays.stream(TEST_CLASS_CONSTRUCTORS)
+                .filter(constructor -> filter.test(constructor.getModifiers()))
+                .map(TestingUtils::constructorToString)
+                .collect(Collectors.toSet());
+    }
+
 }

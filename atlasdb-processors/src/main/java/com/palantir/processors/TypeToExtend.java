@@ -51,11 +51,14 @@ final class TypeToExtend {
             allMethods.addAll(extractMethods(supertype));
         }
 
-        Map<String, ExecutableElement> unifiedMethods = allMethods
+        Map<String, ExecutableElement> methodSignatureToMethod = allMethods
                 .stream()
-                .collect(Collectors.toMap(ExecutableElement::toString, Function.identity(), (name1, name2) -> name1));
+                .collect(Collectors.toMap(ExecutableElement::toString, Function.identity(),
+                        // In the case of methods with same signature, just pick any of them,
+                        // since they're both the same.
+                        (methodSignature1, methodSignature2) -> methodSignature1));
 
-        methods = Sets.newHashSet(unifiedMethods.values());
+        methods = Sets.newHashSet(methodSignatureToMethod.values());
         constructors = extractConstructors(typeToExtend);
     }
 
@@ -86,7 +89,8 @@ final class TypeToExtend {
                 && !element.getModifiers().contains(Modifier.NATIVE)
                 && !element.getModifiers().contains(Modifier.STATIC)
                 && !element.getSimpleName().contentEquals("equals")
-                && !element.getSimpleName().contentEquals("toString");
+                && !element.getSimpleName().contentEquals("toString")
+                && !element.getSimpleName().contentEquals("hashCode");
     }
 
     private Set<ExecutableElement> extractConstructors(TypeElement typeToExtractConstructorsFrom) {

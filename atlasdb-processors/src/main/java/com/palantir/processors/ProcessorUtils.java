@@ -33,29 +33,24 @@ final class ProcessorUtils {
     private ProcessorUtils() {}
 
     static TypeElement extractTypeFromAnnotation(Elements elementUtils, AutoDelegate annotation) {
-        TypeElement type;
         try {
             // Throws a MirroredTypeException if the type is not compiled.
             Class typeClass = annotation.typeToExtend();
-            type = elementUtils.getTypeElement(typeClass.getCanonicalName());
+            return elementUtils.getTypeElement(typeClass.getCanonicalName());
         } catch (MirroredTypeException mte) {
             DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            type = (TypeElement) typeMirror.asElement();
+            return (TypeElement) typeMirror.asElement();
         }
-
-        return type;
     }
 
     static TypeElement extractType(Types typeUtils, TypeMirror typeToExtract) {
-        TypeElement superType;
         try {
             // Throws a MirroredTypeException if the type is not compiled.
-            superType = (TypeElement) typeUtils.asElement(typeToExtract);
+            return (TypeElement) typeUtils.asElement(typeToExtract);
         } catch (MirroredTypeException mte) {
             DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            superType = (TypeElement) typeMirror.asElement();
+            return (TypeElement) typeMirror.asElement();
         }
-        return superType;
     }
 
     static List<ParameterSpec> extractParameters(ExecutableElement constructor) {
