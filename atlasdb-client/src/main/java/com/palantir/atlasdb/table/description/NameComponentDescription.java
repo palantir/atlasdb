@@ -67,7 +67,7 @@ public final class NameComponentDescription {
 
         public Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
             this.uniformPartitioner = partitioner;
-            uniformPartitionerExplicitlyNull = (partitioner == null);
+            uniformPartitionerExplicitlyNull = partitioner == null;
             return this;
         }
 
@@ -216,12 +216,15 @@ public final class NameComponentDescription {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         NameComponentDescription other = (NameComponentDescription) obj;
         if (componentName == null) {
             if (other.getComponentName() != null) {
