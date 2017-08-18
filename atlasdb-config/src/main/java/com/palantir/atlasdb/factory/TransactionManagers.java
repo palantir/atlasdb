@@ -241,7 +241,7 @@ public final class TransactionManagers {
                 MetricRegistry.name(KeyValueService.class, userAgent));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        TransactionTables.createTables(kvs);
+        new TransactionTables(kvs).asyncInitialize();
 
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 

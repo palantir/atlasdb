@@ -32,7 +32,10 @@ public interface AsyncInitializer {
         try {
             tryInitialize();
         } catch (Exception e) {
-            cleanUpOnInitFailure();
+            try {
+                cleanUpOnInitFailure();
+            } catch (Exception ignoredException) {}
+
             log.warn("Failed to initialize in the first attempt, will initialize Asynchronously.", e);
             Executors.newSingleThreadExecutor().execute(
                     () -> {
@@ -40,7 +43,9 @@ public interface AsyncInitializer {
                             try {
                                 tryInitialize();
                             } catch (Exception ex) {
-                                cleanUpOnInitFailure();
+                                try {
+                                    cleanUpOnInitFailure();
+                                } catch (Exception ignoredException2) {}
                                 Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
                             }
                         }

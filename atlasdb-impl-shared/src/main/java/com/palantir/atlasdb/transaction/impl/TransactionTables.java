@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-public final class TransactionTables {
-    private TransactionTables() {
-        // Utility class
-    }
+public final class TransactionTables implements AsyncInitializer {
+    private KeyValueService keyValueService;
+    private AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public static void createTables(KeyValueService keyValueService) {
         keyValueService.createTable(
@@ -34,5 +36,27 @@ public final class TransactionTables {
 
     public static void truncateTables(KeyValueService keyValueService) {
         keyValueService.truncateTable(TransactionConstants.TRANSACTION_TABLE);
+    }
+
+    public TransactionTables(KeyValueService keyValueService) {
+        this.keyValueService = keyValueService;
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
+        deleteTables(keyValueService);
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
+        createTables(keyValueService);
+        if (!isInitialized.compareAndSet(false, true)) {
+            throw new RuntimeException("Someone initialized this class underneath us.");
+        }
     }
 }
