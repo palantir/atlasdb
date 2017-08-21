@@ -224,20 +224,17 @@ public class TableFactoryRenderer {
     }
 
     private TypeSpec getSharedTriggers() {
-        TypeSpec sharedTriggersInterface = TypeSpec.interfaceBuilder("SharedTriggers")
-                .addModifiers(Modifier.PUBLIC)
-                .build();
+        TypeSpec.Builder sharedTriggersInterfaceBuilder = TypeSpec.interfaceBuilder("SharedTriggers")
+                .addModifiers(Modifier.PUBLIC);
 
         for (String name : definitions.keySet()) {
             String tableName = getTableName(name);
             String triggerName = tableName + "." + name + "Trigger";
             TypeName triggerType = ClassName.get(packageName, triggerName);
-            sharedTriggersInterface = sharedTriggersInterface.toBuilder()
-                    .addSuperinterface(triggerType)
-                    .build();
+            sharedTriggersInterfaceBuilder.addSuperinterface(triggerType);
         }
 
-        return sharedTriggersInterface;
+        return sharedTriggersInterfaceBuilder.build();
     }
 
     private TypeSpec getNullSharedTriggers(TypeName sharedTriggersInterfaceType) {
@@ -277,18 +274,16 @@ public class TableFactoryRenderer {
     }
 
     private FieldSpec getDefaultNamespaceField() {
-        FieldSpec defaultNamespaceField = FieldSpec.builder(Namespace.class, "defaultNamespace")
-                .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
-                .build();
+        FieldSpec.Builder namespaceFieldBuilder = FieldSpec.builder(Namespace.class, "defaultNamespace")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC);
+
         if (defaultNamespace.isEmpty()) {
-            defaultNamespaceField = defaultNamespaceField.toBuilder()
-                    .initializer("$T.create($S, $T.EMPTY_NAMESPACE)", Namespace.class, "default", Namespace.class)
-                    .build();
+            namespaceFieldBuilder.initializer("$T.create($S, $T.EMPTY_NAMESPACE)",
+                    Namespace.class, "default", Namespace.class);
         } else {
-            defaultNamespaceField = defaultNamespaceField.toBuilder()
-                    .initializer("$T.create($S, $T.UNCHECKED_NAME)", Namespace.class, defaultNamespace, Namespace.class)
-                    .build();
+            namespaceFieldBuilder.initializer("$T.create($S, $T.UNCHECKED_NAME)",
+                    Namespace.class, defaultNamespace, Namespace.class);
         }
-        return defaultNamespaceField;
+        return namespaceFieldBuilder.build();
     }
 }
