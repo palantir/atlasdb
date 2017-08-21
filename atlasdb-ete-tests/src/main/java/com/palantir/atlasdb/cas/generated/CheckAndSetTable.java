@@ -436,7 +436,7 @@ public final class CheckAndSetTable implements
         }
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<CheckAndSetRow, ? extends CheckAndSetNamedColumnValue<?>> rows) {
@@ -683,5 +683,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lYQD0UbZjMbTtLje9iZkPA==";
+    static String __CLASS_HASH = "u7n64N5cXDF8QSRubB7Qew==";
 }

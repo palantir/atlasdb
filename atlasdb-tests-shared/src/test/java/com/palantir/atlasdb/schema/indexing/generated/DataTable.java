@@ -504,7 +504,7 @@ public final class DataTable implements
         }
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
@@ -1290,21 +1290,21 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index1IdxRow rowName, Iterable<Index1IdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index1IdxRow rowName, Index1IdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<Index1IdxRow, Index1IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index1IdxRow, ? extends Index1IdxColumnValue> rows) {
@@ -1945,21 +1945,21 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index2IdxRow rowName, Iterable<Index2IdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index2IdxRow rowName, Index2IdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<Index2IdxRow, Index2IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index2IdxRow, ? extends Index2IdxColumnValue> rows) {
@@ -2578,21 +2578,21 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index3IdxRow rowName, Iterable<Index3IdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index3IdxRow rowName, Index3IdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<Index3IdxRow, Index3IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index3IdxRow, ? extends Index3IdxColumnValue> rows) {
@@ -3233,21 +3233,21 @@ public final class DataTable implements
             }
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index4IdxRow rowName, Iterable<Index4IdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Index4IdxRow rowName, Index4IdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<Index4IdxRow, Index4IdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<Index4IdxRow, ? extends Index4IdxColumnValue> rows) {
@@ -3522,5 +3522,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rig8vKQjZ0Oyn0xq0qQDsA==";
+    static String __CLASS_HASH = "5NLWsySZl3JacRVnDsKqDA==";
 }

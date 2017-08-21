@@ -489,21 +489,21 @@ public final class UserPhotosStreamIdxTable implements
         }
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(UserPhotosStreamIdxRow rowName, Iterable<UserPhotosStreamIdxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(UserPhotosStreamIdxRow rowName, UserPhotosStreamIdxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxColumnValue> rows) {
@@ -742,5 +742,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "noBp1aLSSz+m9fFW0JFERg==";
+    static String __CLASS_HASH = "k+oo7d+BETU4K+zUS09RoA==";
 }

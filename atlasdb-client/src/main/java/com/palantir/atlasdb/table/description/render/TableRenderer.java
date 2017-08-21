@@ -508,14 +508,14 @@ public class TableRenderer {
                 } line("}");
             } line("}");
             line();
-            line("/** @deprecated Use separate read/write in a single transaction instead. */");
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
             line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(", Row, " rowName, Iterable<", ColumnValue, "> values", lastParams, ") {"); {
                 line("putUnlessExists(ImmutableMultimap.<", Row, ", ", ColumnValue, ">builder().putAll(rowName, values).build()", args, ");");
             } line("}");
             line();
-            line("/** @deprecated Use separate read/write in a single transaction instead. */");
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
             line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(", firstParams, Row, " rowName, ", ColumnValue, "... values) {"); {
@@ -764,7 +764,7 @@ public class TableRenderer {
         private void renderNamedPutUnlessExists() {
             String params = isExpiring(table) ? ", long duration, TimeUnit unit" : "";
             String args = isExpiring(table) ? ", duration, unit" : "";
-            line("/** @deprecated Use separate read/write in a single transaction instead. */");
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
             line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows", params, ") {"); {
@@ -782,7 +782,7 @@ public class TableRenderer {
         private void renderDynamicPutUnlessExists() {
             String params = isExpiring(table) ? ", long duration, TimeUnit unit" : "";
             String args = isExpiring(table) ? ", duration, unit" : "";
-            line("/** @deprecated Use separate read/write in a single transaction instead. */");
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
             line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows", params, ") {"); {

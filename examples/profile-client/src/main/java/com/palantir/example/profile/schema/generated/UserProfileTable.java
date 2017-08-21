@@ -887,7 +887,7 @@ public final class UserProfileTable implements
         }
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
@@ -1669,21 +1669,21 @@ public final class UserProfileTable implements
             }
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> rows) {
@@ -2336,21 +2336,21 @@ public final class UserProfileTable implements
             }
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> rows) {
@@ -3003,21 +3003,21 @@ public final class UserProfileTable implements
             }
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
-        /** @deprecated Use separate read/write in a single transaction instead. */
+        /** @deprecated Use separate read and write in a single transaction instead. */
         @Deprecated
         @Override
         public void putUnlessExists(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> rows) {
@@ -3292,5 +3292,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pxNj9R/WHAccHpvFgAOi1g==";
+    static String __CLASS_HASH = "tbnsvai7vZfaaZW/Q5tKPw==";
 }

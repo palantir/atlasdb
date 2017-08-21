@@ -436,7 +436,7 @@ public final class RangeScanTestTable implements
         }
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
@@ -713,5 +713,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hOGggrsqo+TngY/RaJE/Dg==";
+    static String __CLASS_HASH = "mLqWZpsIvGjOEn/g+8XksQ==";
 }

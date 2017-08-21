@@ -460,7 +460,7 @@ public final class UserPhotosStreamMetadataTable implements
         }
     }
 
-    /** @deprecated Use separate read/write in a single transaction instead. */
+    /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamMetadataRow, ? extends UserPhotosStreamMetadataNamedColumnValue<?>> rows) {
@@ -707,5 +707,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "V0QJJ1bXOPdtPOeYy4cVcQ==";
+    static String __CLASS_HASH = "8KsPMbcOWofuNr+C41EVqA==";
 }
