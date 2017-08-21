@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 final class SuppressedException extends RuntimeException {
     static final long serialVersionUID = 1L;
     private static final Class[] namedThrowables = {Error.class, RuntimeException.class, Exception.class};
@@ -26,10 +24,11 @@ final class SuppressedException extends RuntimeException {
     }
 
     public static Throwable from(Throwable throwable) {
-        String message = String.format("%s [%s] occurred while processing thread (%s) with stacktrace %s",
-                highLevelType(throwable), throwable, Thread.currentThread().getName(),
-                ExceptionUtils.getStackTrace(throwable));
-        return new SuppressedException(message);
+        String message = String.format("%s [%s] occurred while processing thread (%s)",
+                highLevelType(throwable), throwable, Thread.currentThread().getName());
+        SuppressedException suppressedException = new SuppressedException(message);
+        suppressedException.setStackTrace(throwable.getStackTrace());
+        return suppressedException;
     }
 
     @Override
