@@ -27,8 +27,11 @@ public class TestClass {
     }
 
     private TestClass(boolean privateConstructor) {}
+
     protected TestClass(String protectedConstructor) {}
+
     public TestClass(int publicConstructor) {}
+
     public TestClass() {}
 
     public void methodWithNoParameters() {}
