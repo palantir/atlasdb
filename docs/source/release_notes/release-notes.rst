@@ -54,6 +54,10 @@ develop
            This means that specifying a list of clients in Timelock configuration will no longer have any effect. Further, a new configuration property called ``max-number-of-clients`` has been introduced in ``TimeLockRuntimeConfiguration``. This can be used to limit the number of clients that will be created dynamically, since each distinct client has some memory, disk space, and CPU overhead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2252>`__)
 
+    *    - |deprecated|
+         - ``putUnlessExists`` methods in schema generated code have been marked as deprecated as the naming can be misleading, leading to accidental value overwrites. The recommended alternative is doing a separate read and write in a single transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2271>`__)
+
     *    - |fixed|
          - CharacterLimitType now has fields marked as final.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2259>`__)
