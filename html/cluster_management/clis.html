@@ -227,6 +227,8 @@ For more information run <code class="docutils literal"><span class="pre">./bin/
 ./bin/atlasdb-cli --offline migrate  –-fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
 </div>
+<p>Note that the <cite>migrate</cite> CLI can safely be resumed (with the same arguments) if it fails during a step.
+The CLI will check and skip past tables that have already been processed.</p>
 </div>
 </div>
 <div class="section" id="offline-clis">

@@ -218,6 +218,15 @@ This means that specifying a list of clients in Timelock configuration will no l
 <td>The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2232">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>The <code class="docutils literal"><span class="pre">RangeMigrator</span></code> interface now contains an additional method <code class="docutils literal"><span class="pre">logStatus(int</span> <span class="pre">numRangeBoundaries)</span></code>.
+This method is used to log the state of migration for each table when starting or resuming a KVS migration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2241">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Updated our dependency on <code class="docutils literal"><span class="pre">sls-packaging</span></code> from 2.3.1 to 2.4.0.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2268">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
