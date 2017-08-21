@@ -119,7 +119,6 @@ public class AnnotatedRunnableTest {
             assertThat(expected.getSuppressed()[0].getMessage(),
                     is("Error [java.lang.OutOfMemoryError: test message]"
                             + " occurred while processing thread (test thread name AnnotatedRunnableTest)"));
-            assertThat(expected.getSuppressed()[0].getCause(), is(expected));
         }
     }
 }

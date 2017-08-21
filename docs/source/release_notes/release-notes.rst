@@ -44,6 +44,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed a case where logging an expection suppressing itself would cause a stack overflow.
+           See https://jira.qos.ch/browse/LOGBACK-1027.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2242>`__)
+
     *    - |new|
          - AtlasDB now produces a new artifact, ``timelock-agent``.
            Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a *registrar* that knows how to register Java resources and expose suitable HTTP endpoints.
