@@ -38,6 +38,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -60,7 +61,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
             if (puncherStore.isInitialized()) {
                 return puncherStore;
             }
-            throw new RuntimeException("The PuncherStore is not initialized yet.");
+            throw new NotInitializedException("PuncherStore");
         }
     }
 

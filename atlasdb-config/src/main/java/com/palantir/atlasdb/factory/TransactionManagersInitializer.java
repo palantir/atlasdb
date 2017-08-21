@@ -57,6 +57,7 @@ public class TransactionManagersInitializer implements AsyncInitializer {
                 .add(SweepSchema.INSTANCE.getLatestSchema())
                 .addAll(schemas)
                 .build();
+
         for (Schema schema : allSchemas) {
             Schemas.createTablesAndIndexes(schema, keyValueService);
         }

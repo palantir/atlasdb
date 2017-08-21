@@ -74,6 +74,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting2.tracing.Tracers;
 
@@ -108,7 +109,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
             if (cassandraClientPool.isInitialized()) {
                 return cassandraClientPool;
             }
-            throw new RuntimeException("CassandraClientPool is not initialized yet.");
+            throw new NotInitializedException("CassandraClientPool");
         }
     }
 

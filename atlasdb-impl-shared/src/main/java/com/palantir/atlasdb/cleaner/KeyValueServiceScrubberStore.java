@@ -50,6 +50,7 @@ import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -74,7 +75,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
             if (scrubberStore.isInitialized()) {
                 return scrubberStore;
             }
-            throw new RuntimeException("The ScrubberStore is not initialized yet.");
+            throw new NotInitializedException("ScrubberStore");
         }
     }
 
