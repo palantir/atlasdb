@@ -197,7 +197,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
-    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
@@ -249,7 +249,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
     @Override
     public void cleanUpOnInitFailure() {
-
     }
 
     @Override

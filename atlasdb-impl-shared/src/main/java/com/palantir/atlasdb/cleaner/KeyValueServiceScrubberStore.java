@@ -79,9 +79,9 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
         }
     }
 
-    private final KeyValueService keyValueService;
     private static final byte[] EMPTY_CONTENTS = new byte[] {1};
     private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private final KeyValueService keyValueService;
 
     public static KeyValueServiceScrubberStore create(KeyValueService keyValueService) {
         KeyValueServiceScrubberStore scrubberStore = new KeyValueServiceScrubberStore(keyValueService);

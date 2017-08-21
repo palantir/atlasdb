@@ -140,7 +140,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
-    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private static AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;

@@ -35,7 +35,6 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         private StaticTableMappingService tableMappingService;
 
         public InitializingWrapper(StaticTableMappingService tableMappingService) {
-
             this.tableMappingService = tableMappingService;
         }
 
@@ -45,7 +44,7 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         }
     }
 
-    private AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
     private final KeyValueService kv;
 
     public static StaticTableMappingService create(KeyValueService kv) {
@@ -56,6 +55,23 @@ public final class StaticTableMappingService extends AbstractTableMappingService
 
     private StaticTableMappingService(KeyValueService kv) {
         this.kv = kv;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
+        updateTableMap();
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the instance beneath us.");
+        }
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
     }
 
     @Override
@@ -84,22 +100,5 @@ public final class StaticTableMappingService extends AbstractTableMappingService
     @Override
     protected void validateShortName(TableReference tableRef, TableReference shortName) {
         // any name is ok for the static mapper
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return isInitialized.get();
-    }
-
-    @Override
-    public void tryInitialize() {
-        updateTableMap();
-        if (!isInitialized.compareAndSet(false, true)) {
-            log.warn("Someone initialized the instance beneath us.");
-        }
-    }
-
-    @Override
-    public void cleanUpOnInitFailure() {
     }
 }
