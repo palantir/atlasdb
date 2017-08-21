@@ -15,19 +15,12 @@
  */
 package com.palantir.paxos;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
 
 public class PaxosResponses {
     public static Predicate<PaxosResponse> isSuccessfulPredicate() {
-        return new Predicate<PaxosResponse>() {
-            @Override
-            public boolean apply(@Nullable PaxosResponse response) {
-                return response != null && response.isSuccessful();
-            }
-        };
+        return response -> response != null && response.isSuccessful();
     }
 
     public static PaxosAcceptorPersistence.PaxosResponse toProto(PaxosResponse result) {

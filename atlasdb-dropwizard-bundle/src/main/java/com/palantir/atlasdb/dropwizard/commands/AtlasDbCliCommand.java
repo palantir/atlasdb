@@ -49,7 +49,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
     private static final Logger log = LoggerFactory.getLogger(AtlasDbCliCommand.class);
 
     private static final String COMMAND_NAME_ATTR = "airlineSubCommand";
-    private static final Cli<Callable> CLI = AtlasCli.buildCli();
+    private static final Cli<Callable<?>> CLI = AtlasCli.buildCli();
 
     public AtlasDbCliCommand(Class<T> configurationClass) {
         super(CLI.getMetadata().getName(), CLI.getMetadata().getDescription(), configurationClass);

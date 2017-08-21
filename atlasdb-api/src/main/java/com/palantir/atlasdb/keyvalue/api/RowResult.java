@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -90,12 +89,7 @@ public final class RowResult<T> implements Serializable {
     }
 
     public static <T> Function<RowResult<T>, byte[]> getRowNameFun() {
-        return new Function<RowResult<T>, byte[]>() {
-            @Override
-            public byte[] apply(RowResult<T> input) {
-                return input.getRowName();
-            }
-        };
+        return input -> input.getRowName();
     }
 
     public T getOnlyColumnValue() {
@@ -105,12 +99,8 @@ public final class RowResult<T> implements Serializable {
     }
 
     public Iterable<Map.Entry<Cell, T>> getCells() {
-        return Iterables.transform(columns.entrySet(), new Function<Map.Entry<byte[], T>, Map.Entry<Cell, T>>() {
-            @Override
-            public Entry<Cell, T> apply(Entry<byte[], T> from) {
-                return Maps.immutableEntry(Cell.create(row, from.getKey()), from.getValue());
-            }
-        });
+        return Iterables.transform(columns.entrySet(),
+                from -> Maps.immutableEntry(Cell.create(row, from.getKey()), from.getValue()));
     }
 
     @Override

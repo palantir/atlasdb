@@ -28,9 +28,6 @@ public class Visitors {
      * Return a visitor that does nothing.
      */
     public static <T> Visitor<T> emptyVisitor() {
-        return new Visitor<T>() {
-            @Override
-            public void visit(T ignored) {/*Does nothing*/}
-        };
+        return ignored -> {/*Does nothing*/};
     }
 }

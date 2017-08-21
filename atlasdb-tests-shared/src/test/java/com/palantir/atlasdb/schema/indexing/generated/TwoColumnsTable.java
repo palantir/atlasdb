@@ -598,6 +598,8 @@ public final class TwoColumnsTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -1318,16 +1320,22 @@ public final class TwoColumnsTable implements
             }
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdCondIdxRow rowName, Iterable<FooToIdCondIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdCondIdxRow rowName, FooToIdCondIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<FooToIdCondIdxRow, ? extends FooToIdCondIdxColumnValue> rows) {
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdCondIdxColumnValue.getColumnNameFun());
@@ -1954,16 +1962,22 @@ public final class TwoColumnsTable implements
             }
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdIdxRow rowName, Iterable<FooToIdIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<FooToIdIdxRow, FooToIdIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(FooToIdIdxRow rowName, FooToIdIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<FooToIdIdxRow, FooToIdIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<FooToIdIdxRow, ? extends FooToIdIdxColumnValue> rows) {
             Multimap<FooToIdIdxRow, FooToIdIdxColumn> toGet = Multimaps.transformValues(rows, FooToIdIdxColumnValue.getColumnNameFun());
@@ -2203,5 +2217,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hyTbqBOunzYSF0DFQr0pSA==";
+    static String __CLASS_HASH = "N/eArTcqLei6+I5ZYuHdVA==";
 }

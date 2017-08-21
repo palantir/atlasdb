@@ -19,11 +19,9 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Maps.EntryTransformer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
@@ -52,33 +50,22 @@ public class SweepStrategyManagers {
     }
 
     private static RecomputingSupplier<Map<TableReference, SweepStrategy>> getConservativeManager(final KeyValueService kvs) {
-        return RecomputingSupplier.create(new Supplier<Map<TableReference, SweepStrategy>>() {
-            @Override
-            public Map<TableReference, SweepStrategy> get() {
-                Set<TableReference> tables = kvs.getAllTableNames();
-                return Maps.asMap(tables, Functions.constant(SweepStrategy.CONSERVATIVE));
-            }
+        return RecomputingSupplier.create(() -> {
+            Set<TableReference> tables = kvs.getAllTableNames();
+            return Maps.asMap(tables, Functions.constant(SweepStrategy.CONSERVATIVE));
         });
     }
 
     private static RecomputingSupplier<Map<TableReference, SweepStrategy>> getSweepStrategySupplier(final KeyValueService keyValueService) {
-        return RecomputingSupplier.create(new Supplier<Map<TableReference, SweepStrategy>>() {
-            @Override
-            public Map<TableReference, SweepStrategy> get() {
-                return getSweepStrategies(keyValueService);
-            }
-        });
+        return RecomputingSupplier.create(() -> getSweepStrategies(keyValueService));
     }
 
     private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
-        return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), new EntryTransformer<TableReference, byte[], SweepStrategy>() {
-            @Override
-            public SweepStrategy transformEntry(TableReference tableRef, byte[] tableMetadata) {
-                if (tableMetadata != null && tableMetadata.length > 0) {
-                    return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).getSweepStrategy();
-                } else {
-                    return SweepStrategy.CONSERVATIVE;
-                }
+        return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), (tableRef, tableMetadata) -> {
+            if (tableMetadata != null && tableMetadata.length > 0) {
+                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).getSweepStrategy();
+            } else {
+                return SweepStrategy.CONSERVATIVE;
             }
         }));
     }

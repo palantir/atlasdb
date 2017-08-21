@@ -28,14 +28,15 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
 
 public class AtlasDeserializersTest {
+    private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
+            ImmutableList.of(
+                    new NameComponentDescription.Builder().componentName("age").type(ValueType.FIXED_LONG).build(),
+                    new NameComponentDescription.Builder().componentName("name").type(ValueType.STRING).build()));
 
     @Test
     public void testDeserializeRowFromJsonList() throws Exception {
         JsonNode jsonNode = new ObjectMapper().readTree("[68, \"Smeagol\"]");
-        NameMetadataDescription nameMetadataDescription = NameMetadataDescription.create(ImmutableList.of(
-                new NameComponentDescription("age", ValueType.FIXED_LONG),
-                new NameComponentDescription("name", ValueType.STRING)));
-        byte[] row = AtlasDeserializers.deserializeRow(nameMetadataDescription, jsonNode);
+        byte[] row = AtlasDeserializers.deserializeRow(NAME_METADATA_DESCRIPTION, jsonNode);
         byte[] expectedRow = Bytes.concat(ValueType.FIXED_LONG.convertFromString("68"),
                                           ValueType.STRING.convertFromString("Smeagol"));
         Assert.assertArrayEquals(expectedRow, row);
@@ -44,10 +45,7 @@ public class AtlasDeserializersTest {
     @Test
     public void testDeserializeRowFromJsonMap() throws Exception {
         JsonNode jsonNode = new ObjectMapper().readTree("{\"age\":68, \"name\":\"Smeagol\"}");
-        NameMetadataDescription nameMetadataDescription = NameMetadataDescription.create(ImmutableList.of(
-                new NameComponentDescription("age", ValueType.FIXED_LONG),
-                new NameComponentDescription("name", ValueType.STRING)));
-        byte[] row = AtlasDeserializers.deserializeRow(nameMetadataDescription, jsonNode);
+        byte[] row = AtlasDeserializers.deserializeRow(NAME_METADATA_DESCRIPTION, jsonNode);
         byte[] expectedRow = Bytes.concat(ValueType.FIXED_LONG.convertFromString("68"),
                                           ValueType.STRING.convertFromString("Smeagol"));
         Assert.assertArrayEquals(expectedRow, row);

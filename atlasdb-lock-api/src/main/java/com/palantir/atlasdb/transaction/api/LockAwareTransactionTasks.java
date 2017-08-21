@@ -46,11 +46,6 @@ public final class LockAwareTransactionTasks {
 
     public static <T, E extends Exception> TransactionTask<T, E> asLockUnaware(
             final LockAwareTransactionTask<T, E> task, final Iterable<HeldLocksToken> locks) {
-        return new TransactionTask<T, E>() {
-            @Override
-            public T execute(Transaction tx) throws E {
-                return task.execute(tx, locks);
-            }
-        };
+        return tx -> task.execute(tx, locks);
     }
 }

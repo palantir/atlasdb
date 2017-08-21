@@ -65,10 +65,6 @@ public interface ExpiringToken {
     @Nullable Long getVersionId();
 
     /** A comparator which uses an {@code ExpiringToken}'s expiration date. */
-    Comparator<ExpiringToken> COMPARATOR = new Comparator<ExpiringToken>() {
-        @Override
-        public int compare(ExpiringToken o1, ExpiringToken o2) {
-            return Longs.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
-        }
-    };
+    Comparator<ExpiringToken> COMPARATOR = (o1, o2) ->
+            Longs.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
 }

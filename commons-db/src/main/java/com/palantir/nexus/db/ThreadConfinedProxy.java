@@ -96,16 +96,13 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
             return callable;
         }
         final Thread parent = Thread.currentThread();
-        return new Callable<T>() {
-            @Override
-            public T call() throws Exception {
-                Thread child = Thread.currentThread();
-                changeThread(proxy, parent, child);
-                try {
-                    return callable.call();
-                } finally {
-                    changeThread(proxy, child, parent);
-                }
+        return () -> {
+            Thread child = Thread.currentThread();
+            changeThread(proxy, parent, child);
+            try {
+                return callable.call();
+            } finally {
+                changeThread(proxy, child, parent);
             }
         };
     }

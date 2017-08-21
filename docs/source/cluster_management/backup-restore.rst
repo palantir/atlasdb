@@ -77,7 +77,7 @@ For example (replace the serialised ``PersistentLockId`` with your own from step
 
 .. code:: bash
 
-   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release-backup-lock' -d '9dbae91b-a35c-4938-82fe-58fb31772738'
+   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release-backup-lock' -d '"9dbae91b-a35c-4938-82fe-58fb31772738"'
 
 
 Restoring from a Backup

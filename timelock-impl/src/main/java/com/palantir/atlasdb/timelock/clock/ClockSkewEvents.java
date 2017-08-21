@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.logsafe.SafeArg;
 
@@ -29,8 +31,17 @@ public class ClockSkewEvents {
     private final Logger log = LoggerFactory.getLogger(ClockSkewEvents.class);
     private final MetricRegistry metricRegistry;
 
+    private final Histogram clockSkew;
+    private final Counter exception;
+    private final Counter clockWentBackwards;
+
     public ClockSkewEvents(MetricRegistry metricRegistry) {
+
         this.metricRegistry = metricRegistry;
+
+        this.clockSkew = metricRegistry.histogram("clock.skew");
+        this.clockWentBackwards = metricRegistry.counter("clock.went-backwards");
+        this.exception = metricRegistry.counter("clock.monitor-exception");
     }
 
     public void tooMuchTimeSincePreviousRequest(long remoteElapsedTime) {
@@ -54,17 +65,20 @@ public class ClockSkewEvents {
                     SafeArg.of("server", server));
         }
 
-        metricRegistry.histogram("clock-skew").update(skew);
+        clockSkew.update(skew);
     }
 
-    public void requestPace(String server, long minElapsedTime, long maxElapsedTime, long remoteElapsedTime) {
-        metricRegistry.histogram("clock-pace-local-min").update(minElapsedTime);
-        metricRegistry.histogram("clock-pace-local-max").update(maxElapsedTime);
-        metricRegistry.histogram("clock-pace-remote").update(remoteElapsedTime);
+    public void clockWentBackwards(String server, long amount) {
+        log.error("The clock for server {} went backwards by {} nanoseconds",
+                SafeArg.of("server", server),
+                SafeArg.of("amountNanos", amount));
+
+        clockWentBackwards.inc();
     }
 
     public void exception(Throwable throwable) {
-        metricRegistry.counter("clock-monitor-exception").inc();
         log.warn("ClockSkewMonitor threw an exception", throwable);
+
+        exception.inc();
     }
 }

@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
@@ -141,19 +140,16 @@ public class RangeVisitor {
     private long visitInternal(Transaction tx, Visitor visitor, RangeRequest request, MutableRange range) {
         final AtomicLong numVisited = new AtomicLong();
         boolean isEmpty = tx.getRange(tableRef, request).batchAccept(range.getBatchSize(),
-                new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
-                    @Override
-                    public boolean visit(List<RowResult<byte[]>> batch) {
-                        visitor.visit(tx, batch);
-                        if (batch.size() < range.getBatchSize()) {
-                            range.setStartRow(null);
-                        } else {
-                            byte[] lastRow = batch.get(batch.size() - 1).getRowName();
-                            range.setStartRow(RangeRequests.nextLexicographicName(lastRow));
-                        }
-                        numVisited.set(batch.size());
-                        return false;
+                batch -> {
+                    visitor.visit(tx, batch);
+                    if (batch.size() < range.getBatchSize()) {
+                        range.setStartRow(null);
+                    } else {
+                        byte[] lastRow = batch.get(batch.size() - 1).getRowName();
+                        range.setStartRow(RangeRequests.nextLexicographicName(lastRow));
                     }
+                    numVisited.set(batch.size());
+                    return false;
                 });
         if (isEmpty) {
             range.setStartRow(null);

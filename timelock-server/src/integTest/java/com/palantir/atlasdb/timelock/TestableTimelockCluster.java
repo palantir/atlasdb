@@ -200,6 +200,10 @@ public class TestableTimelockCluster {
         return proxies.failoverForClient(defaultClient, TimelockService.class);
     }
 
+    public TimelockService timelockServiceForClient(String client) {
+        return proxies.failoverForClient(client, TimelockService.class);
+    }
+
     public RuleChain getRuleChain() {
         RuleChain ruleChain = RuleChain.outerRule(temporaryFolder);
 

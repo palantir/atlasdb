@@ -17,7 +17,6 @@ package com.palantir.common.proxy;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
@@ -33,12 +32,7 @@ public class SerializingUtils {
     private SerializingUtils() { /* */ }
 
     public static <T> T copy(T orig) {
-        return copy(orig, new ObjectInputStreamFactory() {
-            @Override
-            public ObjectInputStream create(InputStream is, String codebase) throws IOException {
-                return new ObjectInputStream(is);
-            }
-        });
+        return copy(orig, (is, codebase) -> new ObjectInputStream(is));
     }
 
     @SuppressWarnings("unchecked")
