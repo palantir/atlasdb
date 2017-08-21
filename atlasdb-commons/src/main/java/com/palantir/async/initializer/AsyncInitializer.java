@@ -58,9 +58,9 @@ public interface AsyncInitializer {
         Preconditions.checkArgument(isInitialized(), String.format("The instance of %s is not initialized yet.", this.getClass().getName()));
     }
 
-    void cleanUpOnInitFailure();
-
     boolean isInitialized();
 
     void tryInitialize();
+
+    void cleanUpOnInitFailure();
 }

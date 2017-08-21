@@ -40,11 +40,6 @@ public class TransactionManagersInitializer implements AsyncInitializer {
     }
 
     @Override
-    public void cleanUpOnInitFailure() {
-
-    }
-
-    @Override
     public boolean isInitialized() {
         return isInitialized.get();
     }
@@ -67,5 +62,9 @@ public class TransactionManagersInitializer implements AsyncInitializer {
         if (!isInitialized.compareAndSet(false, true)) {
             log.warn("Someone initialized the class underneath us.");
         }
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
     }
 }

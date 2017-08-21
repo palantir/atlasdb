@@ -81,10 +81,6 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
     }
 
     @Override
-    public void cleanUpOnInitFailure() {
-    }
-
-    @Override
     public boolean isInitialized() {
         return isInitialized.get();
     }
@@ -105,6 +101,10 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
         if (!isInitialized.compareAndSet(false, true)) {
             log.warn("Someone initialized the class underneath us.");
         }
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
     }
 
     @Override

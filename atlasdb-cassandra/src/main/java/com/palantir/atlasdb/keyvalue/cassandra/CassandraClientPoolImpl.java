@@ -134,7 +134,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     final CassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;
     final ScheduledExecutorService refreshDaemon;
-    private ScheduledFuture<?> scheduledFuture;
+    private ScheduledFuture<?> refreshPoolFuture;
 
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
@@ -239,14 +239,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     }
 
     @Override
-    public void cleanUpOnInitFailure() {
-        metricsManager.deregisterMetrics();
-        scheduledFuture.cancel(true);
-        currentPools.forEach((address, cassandraClientPoolingContainer) ->
-                cassandraClientPoolingContainer.shutdownPooling());
-    }
-
-    @Override
     public boolean isInitialized() {
         return isInitialized.get();
     }
@@ -254,7 +246,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     @Override
     public void tryInitialize() {
         config.servers().forEach(this::addPool);
-        scheduledFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
+        refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
             } catch (Throwable t) {
@@ -272,6 +264,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
         if (!isInitialized.compareAndSet(false, true)) {
             throw new RuntimeException("The value was initialized underneath us.");
         }
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
+        metricsManager.deregisterMetrics();
+        refreshPoolFuture.cancel(true);
+        currentPools.forEach((address, cassandraClientPoolingContainer) ->
+                cassandraClientPoolingContainer.shutdownPooling());
+        currentPools.clear();
     }
 
     @Override

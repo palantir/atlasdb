@@ -80,6 +80,7 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(LockStoreImpl.class);
     private static final String BACKUP_LOCK_NAME = "BackupLock";
+    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     private final KeyValueService keyValueService;
 
@@ -95,6 +96,27 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
 
     public static LockStoreImpl create(KeyValueService kvs) {
         return new LockStoreImpl(kvs);
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
+        keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        if (allLockEntries().isEmpty()) {
+            new LockStorePopulator(keyValueService).populate();
+        }
+
+        if (!isInitialized.compareAndSet(false, true)) {
+            throw new RuntimeException("Someone initialized this class underneath us");
+        }
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
     }
 
     @Override
@@ -135,31 +157,6 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
                 locksWithId);
 
         return Iterables.getOnlyElement(locksWithId);
-    }
-
-    @Override
-    public void cleanUpOnInitFailure() {
-        keyValueService.dropTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE);
-        keyValueService.dropTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE);
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return isInitialized.get();
-    }
-
-    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
-
-    @Override
-    public void tryInitialize() {
-        keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        if (allLockEntries().isEmpty()) {
-            new LockStorePopulator(keyValueService).populate();
-        }
-
-        if (!isInitialized.compareAndSet(false, true)) {
-            throw new RuntimeException("Someone initialized this class underneath us");
-        }
     }
 
     @VisibleForTesting

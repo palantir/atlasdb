@@ -94,6 +94,42 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
     }
 
     @Override
+    public boolean isInitialized() {
+        return isInitialized.get();
+    }
+
+    @Override
+    public void tryInitialize() {
+        TableMetadata scrubTableMeta = new TableMetadata(
+                NameMetadataDescription.create(ImmutableList.of(
+                        new NameComponentDescription.Builder()
+                                .componentName("row")
+                                .type(ValueType.BLOB)
+                                .build())),
+                new ColumnMetadataDescription(new DynamicColumnDescription(
+                        NameMetadataDescription.create(ImmutableList.of(
+                                new NameComponentDescription.Builder()
+                                        .componentName("table")
+                                        .type(ValueType.VAR_STRING)
+                                        .build(),
+                                new NameComponentDescription.Builder()
+                                        .componentName("col")
+                                        .type(ValueType.BLOB)
+                                        .build())),
+                        ColumnValueDescription.forType(ValueType.VAR_LONG))),
+                ConflictHandler.IGNORE_ALL);
+        keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
+
+        if (!isInitialized.compareAndSet(false, true)) {
+            log.warn("Someone initialized the class underneath us.");
+        }
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
+    }
+
+    @Override
     public void queueCellsForScrubbing(
             Multimap<Cell, TableReference> cellToTableRefs,
             long scrubTimestamp,
@@ -208,43 +244,6 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
         try (ClosableIterator<RowResult<Value>> iterator =
                 getIteratorToScrub(maxCellsToScan, Long.MAX_VALUE, null, null)) {
             return Iterators.size(Iterators.limit(iterator, maxCellsToScan));
-        }
-    }
-
-    @Override
-    public void cleanUpOnInitFailure() {
-
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return isInitialized.get();
-    }
-
-    @Override
-    public void tryInitialize() {
-        TableMetadata scrubTableMeta = new TableMetadata(
-                NameMetadataDescription.create(ImmutableList.of(
-                        new NameComponentDescription.Builder()
-                                .componentName("row")
-                                .type(ValueType.BLOB)
-                                .build())),
-                new ColumnMetadataDescription(new DynamicColumnDescription(
-                        NameMetadataDescription.create(ImmutableList.of(
-                                new NameComponentDescription.Builder()
-                                        .componentName("table")
-                                        .type(ValueType.VAR_STRING)
-                                        .build(),
-                                new NameComponentDescription.Builder()
-                                        .componentName("col")
-                                        .type(ValueType.BLOB)
-                                        .build())),
-                        ColumnValueDescription.forType(ValueType.VAR_LONG))),
-                ConflictHandler.IGNORE_ALL);
-        keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
-
-        if (!isInitialized.compareAndSet(false, true)) {
-            log.warn("Someone initialized the class underneath us.");
         }
     }
 }

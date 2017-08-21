@@ -87,11 +87,6 @@ public final class StaticTableMappingService extends AbstractTableMappingService
     }
 
     @Override
-    public void cleanUpOnInitFailure() {
-
-    }
-
-    @Override
     public boolean isInitialized() {
         return isInitialized.get();
     }
@@ -102,5 +97,9 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         if (!isInitialized.compareAndSet(false, true)) {
             log.warn("Someone initialized the instance beneath us.");
         }
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
     }
 }
