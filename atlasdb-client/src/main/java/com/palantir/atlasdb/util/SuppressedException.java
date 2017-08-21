@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.util;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 final class SuppressedException extends RuntimeException {
     static final long serialVersionUID = 1L;
