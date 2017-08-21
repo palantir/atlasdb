@@ -50,7 +50,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         return sslConfiguration.map(config -> SslSocketFactories.createSslSocketFactory(config));
     }
 
-    public static <T> T createService(
+    private static <T> T createService(
             Optional<SSLSocketFactory> sslSocketFactory,
             Set<String> uris,
             Class<T> serviceClass,
