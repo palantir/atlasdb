@@ -281,7 +281,7 @@ public abstract class AtlasDbConfig {
             Optional<String> keyValueServiceNamespace = keyValueService().namespace();
             timelock().ifPresent(timelock ->
                     Preconditions.checkState(timelock.client().equals(keyValueServiceNamespace),
-                            "The KVS namespace and the timelock client configs should be the same."));
+                            "The timelock client and the KVS namespace configs should be the same."));
         }
     }
 
