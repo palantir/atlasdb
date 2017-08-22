@@ -36,7 +36,7 @@ public class CassandraKeyValueServiceConfigsTest {
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .servers(SERVERS)
-                    .keyspace(KEYSPACE_2)
+                    .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .build();
 
@@ -58,7 +58,7 @@ public class CassandraKeyValueServiceConfigsTest {
     @Test
     public void canReplaceKeyspace() {
         CassandraKeyValueServiceConfig newConfig = CassandraKeyValueServiceConfigs.copyWithKeyspace(
-                CONFIG_WITH_KEYSPACE, KEYSPACE);
-        assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
+                CONFIG_WITH_KEYSPACE, KEYSPACE_2);
+        assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE_2);
     }
 }
