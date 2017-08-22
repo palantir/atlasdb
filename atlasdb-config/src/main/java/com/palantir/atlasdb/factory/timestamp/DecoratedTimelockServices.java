@@ -26,6 +26,7 @@ import com.palantir.atlasdb.transaction.impl.TimestampDecoratingTimelockService;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.RequestBatchingTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 public final class DecoratedTimelockServices {
     private DecoratedTimelockServices() {
@@ -44,12 +45,12 @@ public final class DecoratedTimelockServices {
                 TimelockService.class);
     }
 
-    private static RequestBatchingTimestampService createRequestBatchingTimestampService(
+    private static TimestampService createRequestBatchingTimestampService(
             TimelockService timelockService,
             String userAgent) {
         return ServiceCreator.createInstrumentedService(
                 new RequestBatchingTimestampService(new TimelockTimestampServiceAdapter(timelockService)),
-                RequestBatchingTimestampService.class,
+                TimestampService.class,
                 userAgent);
     }
 }

@@ -448,8 +448,8 @@ public final class TransactionManagers {
     private static LockAndTimestampServices withRequestBatchingTimestampService(
             java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
             LockAndTimestampServices lockAndTimestampServices, String userAgent) {
-        TimelockService timelockServiceWithBatching =
-                DecoratedTimelockServices.createTimelockServiceWithTimestampBatching(
+        TimelockService timelockServiceWithBatching = DecoratedTimelockServices
+                .createTimelockServiceWithTimestampBatching(
                         lockAndTimestampServices.timelock(),
                         timestampClientConfigSupplier,
                         userAgent);
