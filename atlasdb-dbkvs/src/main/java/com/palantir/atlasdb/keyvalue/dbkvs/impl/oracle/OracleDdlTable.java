@@ -19,7 +19,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -253,7 +252,7 @@ public final class OracleDdlTable implements DbDdlTable {
                         + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
                         + " like more information. Underlying error was: {}", tableRef, e.getMessage());
             } catch (TableMappingNotFoundException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         } else {
             try {
@@ -264,7 +263,7 @@ public final class OracleDdlTable implements DbDdlTable {
                         tableRef,
                         oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
             } catch (TableMappingNotFoundException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         }
     }
