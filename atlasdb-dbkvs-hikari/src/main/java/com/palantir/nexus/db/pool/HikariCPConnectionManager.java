@@ -95,6 +95,14 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 } catch (SQLException e) {
                     log.error("Dropping connection which failed validation", e);
                     dataSourcePool.evictConnection(conn);
+
+                    if (System.currentTimeMillis() > start + connConfig.getCheckoutTimeout()) {
+                        // it's been long enough that had hikari been
+                        // validating internally it would have given up rather
+                        // than retry
+                        throw e;
+                    }
+
                     continue;
                 }
 
