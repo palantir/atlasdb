@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -34,6 +37,13 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig {
     public static final int MAX_TABLE_PREFIX_LENGTH = 6;
     public static final String TYPE = "jdbc";
+
+    @Override
+    @JsonIgnore
+    @Value.Derived
+    public Optional<String> namespace() {
+        return Optional.of("Jdbc namespace");
+    }
 
     @Override
     public final String type() {

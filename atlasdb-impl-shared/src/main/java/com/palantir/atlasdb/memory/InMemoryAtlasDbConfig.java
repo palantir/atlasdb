@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.memory;
 
+import java.util.Optional;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -37,5 +40,11 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     @Override
     public int hashCode() {
         return InMemoryAtlasDbConfig.class.hashCode();
+    }
+
+    @Override
+    @JsonIgnore
+    public Optional<String> namespace() {
+        return Optional.of("InMemory namespace");
     }
 }

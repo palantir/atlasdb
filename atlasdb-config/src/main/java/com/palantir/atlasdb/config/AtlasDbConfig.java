@@ -239,6 +239,12 @@ public abstract class AtlasDbConfig {
 
     @Value.Check
     protected final void check() {
+        checkLeaderTimelockBlocks();
+        checkLockAndTimestampBlocks();
+        checkNamespaces();
+    }
+
+    private void checkLeaderTimelockBlocks() {
         if (leader().isPresent()) {
             Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
@@ -250,9 +256,33 @@ public abstract class AtlasDbConfig {
             Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the timelock block is present, then the lock and timestamp blocks must both be absent.");
         }
+    }
 
+    private void checkLockAndTimestampBlocks() {
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
+    }
+
+    private void checkNamespaces() {
+        if (namespace().isPresent()) {
+            String namespace = namespace().get();
+
+            keyValueService().namespace().ifPresent(kvsNamespace ->
+                    Preconditions.checkState(kvsNamespace.equals(namespace),
+                            "The AtlasDbConfig namespace and the KVS namespace should be the same."));
+
+            timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
+                    Preconditions.checkState(client.equals(namespace),
+                            "The AtlasDbConfig namespace and the timelock client should be the same.")));
+        } else {
+            Preconditions.checkState(keyValueService().namespace().isPresent(),
+                    "Either the namespace or the keyValueService namespace config needs to be set.");
+
+            Optional<String> keyValueServiceNamespace = keyValueService().namespace();
+            timelock().ifPresent(timelock ->
+                    Preconditions.checkState(timelock.client().equals(keyValueServiceNamespace),
+                            "The KVS namespace and the timelock client configs should be the same."));
+        }
     }
 
     private boolean areTimeAndLockConfigsAbsent() {

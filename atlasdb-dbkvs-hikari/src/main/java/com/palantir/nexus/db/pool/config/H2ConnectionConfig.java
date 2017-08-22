@@ -15,8 +15,11 @@
  */
 package com.palantir.nexus.db.pool.config;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -29,6 +32,13 @@ import com.palantir.nexus.db.DBType;
 public abstract class H2ConnectionConfig extends ConnectionConfig {
 
     public static final String TYPE = "h2";
+
+    @Override
+    @JsonIgnore
+    @Value.Derived
+    public Optional<String> namespace() {
+        return Optional.of("H2 namespace");
+    }
 
     @Override
     @Value.Default

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.spi;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
@@ -24,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
  */
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
 public interface KeyValueServiceConfig {
-
     String type();
 
+    Optional<String> namespace();
 }
