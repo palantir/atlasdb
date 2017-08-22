@@ -40,7 +40,7 @@ public class CassandraAtlasDbFactoryTest {
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .servers(SERVERS)
-                    .keyspace(KEYSPACE_2)
+                    .keyspace(KEYSPACE)
                     .replicationFactor(1)
                     .build();
 
@@ -62,7 +62,7 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
         assertThatThrownBy(
-                () -> CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE)))
+                () -> CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -91,7 +91,7 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void resolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
         CassandraKeyValueServiceConfig newConfig =
-                CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE_2));
+                CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional.of(KEYSPACE));
         assertThat(newConfig).isEqualTo(CONFIG_WITH_KEYSPACE);
     }
 }
