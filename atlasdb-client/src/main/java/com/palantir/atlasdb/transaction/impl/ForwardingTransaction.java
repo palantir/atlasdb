@@ -57,8 +57,8 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
-                                                                                     Iterable<byte[]> rows,
-                                                                                     BatchColumnRangeSelection columnRangeSelection) {
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
