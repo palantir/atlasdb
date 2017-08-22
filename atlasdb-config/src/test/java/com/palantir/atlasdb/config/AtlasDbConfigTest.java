@@ -32,6 +32,8 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 public class AtlasDbConfigTest {
+    private static final KeyValueServiceConfig KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
+    private static final KeyValueServiceConfig KVS_CONFIG_WITH_RANDOM_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig.builder()
             .quorumSize(1)
@@ -49,8 +51,22 @@ public class AtlasDbConfigTest {
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.empty();
 
+    private static final TimeLockClientConfig TIMELOCK_CONFIG_WITH_EMPTY_CLIENT = ImmutableTimeLockClientConfig
+            .builder()
+            .client(Optional.empty())
+            .serversList(DEFAULT_SERVER_LIST)
+            .build();
+
+    private static final TimeLockClientConfig TIMELOCK_CONFIG_WITH_RANDOM_CLIENT = ImmutableTimeLockClientConfig
+            .builder()
+            .client("random client")
+            .serversList(DEFAULT_SERVER_LIST)
+            .build();
+
     @BeforeClass
     public static void setUp() {
+        when(KVS_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
+        when(KVS_CONFIG_WITH_RANDOM_NAMESPACE.namespace()).thenReturn(Optional.of("random client"));
         when(KVS_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of("client"));
     }
 
@@ -157,6 +173,57 @@ public class AtlasDbConfigTest {
         ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timestamp(DEFAULT_SERVER_LIST)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void absentNamespaceRequiresKVSNamespace() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .leader(LEADER_CONFIG)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void absentNamespaceRequiresTimelockClient() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void absentNamespaceRequiresMatchingKVSNamespaceAndTimelockClient() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_RANDOM_CLIENT)
+                .build();
+    }
+
+    @Test
+    public void namespaceAcceptsEmptyKVSNamespaceAndTimelockClient() {
+        ImmutableAtlasDbConfig.builder()
+                .namespace("a client")
+                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void namespaceAndTimelockClientShouldMatch() {
+        ImmutableAtlasDbConfig.builder()
+                .namespace("client")
+                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_RANDOM_CLIENT)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void namespaceAndKVSNamespaceShouldMatch() {
+        ImmutableAtlasDbConfig.builder()
+                .namespace("client")
+                .keyValueService(KVS_CONFIG_WITH_RANDOM_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
                 .build();
     }
 
