@@ -26,8 +26,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +65,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
  * stores, as well as compiling automatically generated code for accessing
  * tables in a type-safe fashion.
  */
+@SuppressWarnings("checkstyle:Indentation")
 public class Schema {
     private static final Logger log = LoggerFactory.getLogger(Schema.class);
 
@@ -126,10 +127,10 @@ public class Schema {
             }
             Preconditions.checkArgument(
                     kvsExceeded.isEmpty(),
-                    "Internal table name %s is too long, known to exceed character limits for " +
-                            "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
-                            "of the prefix with the internal table name is below the KVS limit. " +
-                            "If running only against a different KVS, set the ignoreTableNameLength flag.",
+                    "Internal table name %s is too long, known to exceed character limits for "
+                            + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
+                            + "of the prefix with the internal table name is below the KVS limit. "
+                            + "If running only against a different KVS, set the ignoreTableNameLength flag.",
                     tableName, StringUtils.join(kvsExceeded, ", "));
         }
         tableDefinitions.put(tableName, definition);
@@ -225,10 +226,10 @@ public class Schema {
         }
 
         for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
-            IndexDefinition d = indexEntry.getValue();
+            IndexDefinition def = indexEntry.getValue();
             try {
-                d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
-                d.validate();
+                def.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
+                def.validate();
             } catch (Exception e) {
                 log.error("Failed to validate index {}.", indexEntry.getKey());
                 throw e;
@@ -248,7 +249,7 @@ public class Schema {
                 }
             }
 
-            if(indexMetadata.getColumnNameToAccessData() != null) {
+            if (indexMetadata.getColumnNameToAccessData() != null) {
                 Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null, "Indexes accessing columns not supported for tables with dynamic columns.");
                 Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
                         input -> input.getLongName());

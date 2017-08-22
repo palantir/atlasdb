@@ -193,8 +193,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                 primaryLogger.accept(loggingMethod, stopwatch);
                 if (result != null) {
                     additionalLoggerWithAccessToResult.accept(loggingMethod, result);
-                }
-                else if (exception != null) {
+                } else if (exception != null) {
                     loggingMethod.log("This operation has thrown an exception {}", exception);
                 }
             };
