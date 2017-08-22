@@ -20,16 +20,19 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 public class AtlasDbConfigTest {
-    private static final KeyValueServiceConfig KVS_CONFIG = mock(KeyValueServiceConfig.class);
+    private static final KeyValueServiceConfig KVS_CONFIG_WITH_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig.builder()
             .quorumSize(1)
             .localServer("me")
@@ -39,17 +42,22 @@ public class AtlasDbConfigTest {
             .addServers("server")
             .build();
     private static final TimeLockClientConfig TIMELOCK_CONFIG = ImmutableTimeLockClientConfig.builder()
-            .client("testClient")
+            .client("client")
             .serversList(DEFAULT_SERVER_LIST)
             .build();
     private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.empty();
 
+    @BeforeClass
+    public static void setUp() {
+        when(KVS_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of("client"));
+    }
+
     @Test
     public void configWithNoLeaderOrLockIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .build();
         assertThat(config, not(nullValue()));
     }
@@ -62,7 +70,7 @@ public class AtlasDbConfigTest {
     @Test
     public void configWithLeaderBlockIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .build();
         assertThat(config, not(nullValue()));
@@ -71,7 +79,7 @@ public class AtlasDbConfigTest {
     @Test
     public void configWithTimelockBlockIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG)
                 .build();
         assertThat(config, not(nullValue()));
@@ -80,7 +88,7 @@ public class AtlasDbConfigTest {
     @Test
     public void remoteLockAndTimestampConfigIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
@@ -90,7 +98,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void leaderBlockNotPermittedWithLockAndTimestampBlocks() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
@@ -100,7 +108,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void timelockBlockNotPermittedWithLockAndTimestampBlocks() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(ImmutableTimeLockClientConfig.builder()
                         .client("testClient")
                         .serversList(DEFAULT_SERVER_LIST).build())
@@ -112,7 +120,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void timelockBlockNotPermittedWithLeaderBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG)
                 .leader(LEADER_CONFIG)
                 .build();
@@ -121,7 +129,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void leaderBlockNotPermittedWithLockBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .lock(DEFAULT_SERVER_LIST)
                 .build();
@@ -130,7 +138,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void leaderBlockNotPermittedWithTimestampBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
@@ -139,7 +147,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void lockBlockRequiresTimestampBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .lock(DEFAULT_SERVER_LIST)
                 .build();
     }
@@ -147,7 +155,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void timestampBlockRequiresLockBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
     }
@@ -155,7 +163,7 @@ public class AtlasDbConfigTest {
     @Test
     public void addingFallbackSslAddsItToLeaderBlock() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
@@ -165,7 +173,7 @@ public class AtlasDbConfigTest {
     @Test
     public void addingFallbackSslAddsItToLockBlock() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
@@ -176,7 +184,7 @@ public class AtlasDbConfigTest {
     @Test
     public void addingFallbackSslAddsItToTimelockServersBlock() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
@@ -186,7 +194,7 @@ public class AtlasDbConfigTest {
     @Test
     public void addingFallbackSslAddsItToTimestampBlock() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
@@ -197,7 +205,7 @@ public class AtlasDbConfigTest {
     @Test
     public void addingFallbackSslWhenItExistsDoesntOverride() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(ImmutableLeaderConfig.builder()
                         .from(LEADER_CONFIG)
                         .sslConfiguration(SSL_CONFIG)
@@ -210,7 +218,7 @@ public class AtlasDbConfigTest {
     @Test
     public void addingAbsentFallbackSslWhenItDoesntExistsLeavesItAsAbsent() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, NO_SSL_CONFIG);
