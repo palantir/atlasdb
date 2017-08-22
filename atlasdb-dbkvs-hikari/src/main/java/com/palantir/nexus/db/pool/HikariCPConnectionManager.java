@@ -84,33 +84,31 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     @Override
     public Connection getConnection() throws SQLException {
-        while (true) {
-            long start = System.currentTimeMillis();
-            HikariDataSource dataSourcePool;
-            Connection conn;
-            try {
-                dataSourcePool = getDataSourcePool();
-                conn = dataSourcePool.getConnection();
-            } finally {
-                long now = System.currentTimeMillis();
-                long elapsed = now - start;
-                if (elapsed > 1000) {
-                    log.warn("Waited {}ms for connection", elapsed);
-                    logPoolStats();
-                } else {
-                    log.debug("Waited {}ms for connection", elapsed);
+        long start = System.currentTimeMillis();
+        try {
+            while (true) {
+                HikariDataSource dataSourcePool = getDataSourcePool();
+                Connection conn = dataSourcePool.getConnection();
+
+                try {
+                    testConnection(conn);
+                } catch (SQLException e) {
+                    log.error("Dropping connection which failed validation", e);
+                    dataSourcePool.evictConnection(conn);
+                    continue;
                 }
-            }
 
-            try {
-                testConnection(conn);
-            } catch (SQLException e) {
-                log.error("Dropping connection which failed validation", e);
-                dataSourcePool.evictConnection(conn);
-                continue;
+                return conn;
             }
-
-            return conn;
+        } finally {
+            long now = System.currentTimeMillis();
+            long elapsed = now - start;
+            if (elapsed > 1000) {
+                log.warn("Waited {}ms for connection", elapsed);
+                logPoolStats();
+            } else {
+                log.debug("Waited {}ms for connection", elapsed);
+            }
         }
     }
 
