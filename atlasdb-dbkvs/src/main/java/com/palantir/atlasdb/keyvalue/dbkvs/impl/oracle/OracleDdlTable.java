@@ -256,10 +256,11 @@ public final class OracleDdlTable implements DbDdlTable {
             }
         } else {
             try {
-                log.warn("Tried to clean up table {}, but couldn't, because enterprise features are disabled. "
+                log.warn("Tried to clean up {} bloat after a sweep operation, but couldn't, because enterprise "
+                        + "features are disabled. "
                         + "This means that even if you are running sweep, you will need to manually clean up your "
-                        + "tables, otherwise disk usage will continually increase. To free up space, run the SHRINK "
-                        + "command on the underlying oracle table, {}.",
+                        + "tables, otherwise disk usage will continually increase. To free up space, run the "
+                        + "SHRINK SPACE command on the underlying oracle table, {}.",
                         tableRef,
                         oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
             } catch (TableMappingNotFoundException e) {
