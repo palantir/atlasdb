@@ -45,7 +45,15 @@ develop
          - Change
 
     *    - |new|
-         - Timelock clients now produce tritium metrics for the ``TimelockService`` endpoints.
+         - Timelock clients now report tritium metrics for the ``TimestampService`` even if they are using the request batching service.
+           Note when setting up metric graphs, the timestamp service metrics are named with ``...Timelock.<getFreshTimestamp/getFreshTimestamps>`` when not using request batching,
+           but as ``...Timestamp.<getFreshTimestamp/getFreshTimestamps>`` if using request batching.
+           The lock service metrics are always reported as ``...Timelock.<lock/unlock/etc>`` for timelock clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
+
+    *    - |fixed|
+         - AtlasDB clients now report tritium metrics for the ``TimestampService``, ``LockService`` endpoints just once instead of twice.
+           In the past, every request would be reported twice leading to number bloat and more load on the metric collector service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
 
     *    - |new|
