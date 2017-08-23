@@ -202,6 +202,18 @@ See <a class="reference external" href="https://jira.qos.ch/browse/LOGBACK-1027"
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2242">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Timelock clients now report tritium metrics for the <code class="docutils literal"><span class="pre">TimestampService</span></code> even if they are using the request batching service.
+Note when setting up metric graphs, the timestamp service metrics are named with <code class="docutils literal"><span class="pre">...Timelock.&lt;getFreshTimestamp/getFreshTimestamps&gt;</span></code> when not using request batching,
+but as <code class="docutils literal"><span class="pre">...Timestamp.&lt;getFreshTimestamp/getFreshTimestamps&gt;</span></code> if using request batching.
+The lock service metrics are always reported as <code class="docutils literal"><span class="pre">...Timelock.&lt;lock/unlock/etc&gt;</span></code> for timelock clients.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2270">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB clients now report tritium metrics for the <code class="docutils literal"><span class="pre">TimestampService</span></code> and <code class="docutils literal"><span class="pre">LockService</span></code> endpoints just once instead of twice.
+In the past, every request would be reported twice leading to number bloat and more load on the metric collector service.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2270">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now produces a new artifact, <code class="docutils literal"><span class="pre">timelock-agent</span></code>.
 Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a <em>registrar</em> that knows how to register Java resources and expose suitable HTTP endpoints.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2247">Pull Request</a>)</td>
