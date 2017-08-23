@@ -112,6 +112,7 @@ public class KeyValueServices {
         }
     }
 
+    @SuppressWarnings("checkstyle:LineLength")
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRangeConcurrent(
             ExecutorService executor,
             final KeyValueService kv,
@@ -132,6 +133,7 @@ public class KeyValueServices {
         }
     }
 
+    @SuppressWarnings("checkstyle:LineLength")
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRange(
             KeyValueService kv,
             TableReference tableRef,
@@ -144,7 +146,8 @@ public class KeyValueServices {
         return ret;
     }
 
-    public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
+    public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(
+            final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
         return Collections2.transform(cells,
                 entry -> Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp)));
     }

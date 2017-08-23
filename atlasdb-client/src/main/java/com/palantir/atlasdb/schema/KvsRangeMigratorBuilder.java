@@ -106,15 +106,15 @@ public class KvsRangeMigratorBuilder {
         return this;
     }
 
-    public KvsRangeMigratorBuilder checkpointer(AbstractTaskCheckpointer c) {
-        Preconditions.checkNotNull(c);
-        this.checkpointer = c;
+    public KvsRangeMigratorBuilder checkpointer(AbstractTaskCheckpointer cp) {
+        Preconditions.checkNotNull(cp);
+        this.checkpointer = cp;
         return this;
     }
 
-    public KvsRangeMigratorBuilder rowTransformer(Function<RowResult<byte[]>, Map<Cell, byte[]>> f) {
-        Preconditions.checkNotNull(f);
-        this.rowTransform = f;
+    public KvsRangeMigratorBuilder rowTransformer(Function<RowResult<byte[]>, Map<Cell, byte[]>> function) {
+        Preconditions.checkNotNull(function);
+        this.rowTransform = function;
         return this;
     }
 
