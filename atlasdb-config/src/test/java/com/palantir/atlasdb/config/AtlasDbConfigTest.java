@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -177,7 +176,7 @@ public class AtlasDbConfigTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void absentNamespaceRequiresKVSNamespace() {
+    public void absentNamespaceRequiresKvsNamespace() {
         ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
                 .leader(LEADER_CONFIG)
@@ -193,7 +192,7 @@ public class AtlasDbConfigTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void absentNamespaceRequiresMatchingKVSNamespaceAndTimelockClient() {
+    public void absentNamespaceRequiresMatchingKvsNamespaceAndTimelockClient() {
         ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_RANDOM_CLIENT)
@@ -201,7 +200,7 @@ public class AtlasDbConfigTest {
     }
 
     @Test
-    public void namespaceAcceptsEmptyKVSNamespaceAndTimelockClient() {
+    public void namespaceAcceptsEmptyKvsNamespaceAndTimelockClient() {
         ImmutableAtlasDbConfig.builder()
                 .namespace("a client")
                 .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
@@ -219,7 +218,7 @@ public class AtlasDbConfigTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void namespaceAndKVSNamespaceShouldMatch() {
+    public void namespaceAndKvsNamespaceShouldMatch() {
         ImmutableAtlasDbConfig.builder()
                 .namespace("client")
                 .keyValueService(KVS_CONFIG_WITH_RANDOM_NAMESPACE)
