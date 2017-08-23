@@ -44,10 +44,13 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockWithClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
+
+import sun.jvmstat.perfdata.monitor.PerfStringVariableMonitor;
 
 public class LockServiceStateLoggerTest {
 
@@ -127,8 +130,18 @@ public class LockServiceStateLoggerTest {
         assertEquals(deserializedLockResponse, response);
     }
 
+    @Test
+    public void testSerialisationAndDeserialisationOfLockServerOptions() throws Exception {
+        LockServerOptions lockServerOptions =  LockServerOptions.DEFAULT;
+        ObjectMapper mapper = new ObjectMapper();
+        LockServerOptions deserialzedlockServerOptions = mapper.readValue(mapper.writeValueAsString(lockServerOptions), LockServerOptions.class);
+        assertEquals(deserialzedlockServerOptions, lockServerOptions);
+    }
+
+
     @After
     public void after() throws IOException {
         LockServiceLoggerTestUtils.cleanUpLogStateDir();
     }
+
 }
