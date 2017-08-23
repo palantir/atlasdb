@@ -108,11 +108,6 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
                 ImmutableLockRequestSpecification.of("lockWithFullLockResponse", client.getClientId(), request));
     }
 
-//    @Override
-//    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
-//        return delegate.lockWithFullLockResponse(client, request);
-//    }
-
     @Override
     public boolean unlock(HeldLocksToken token) {
         return delegate.unlock(token);
