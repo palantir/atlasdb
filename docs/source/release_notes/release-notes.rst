@@ -52,7 +52,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
 
     *    - |fixed|
-         - AtlasDB clients now report tritium metrics for the ``TimestampService``, ``LockService`` endpoints just once instead of twice.
+         - AtlasDB clients now report tritium metrics for the ``TimestampService`` and ``LockService`` endpoints just once instead of twice.
            In the past, every request would be reported twice leading to number bloat and more load on the metric collector service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
 

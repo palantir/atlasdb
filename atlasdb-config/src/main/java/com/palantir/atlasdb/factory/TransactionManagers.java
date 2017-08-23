@@ -433,7 +433,8 @@ public final class TransactionManagers {
                 createRawInstrumentedServices(config, env, lock, time, invalidator, userAgent);
         return withRequestBatchingTimestampService(
                 runtimeConfigSupplier,
-                withRefreshingLockService(lockAndTimestampServices), userAgent);
+                withRefreshingLockService(lockAndTimestampServices),
+                userAgent);
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
