@@ -102,60 +102,57 @@ public final class CqlKeyValueServices {
                 }
                 final UUID traceId = info.getQueryTrace().getTraceId();
                 log.info("Traced query {} with trace uuid {}", tracedQuery, traceId);
-                traceRetrievalExec.submit(new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("Retrieving traced query " + tracedQuery + " trace uuid: "
-                                + traceId);
-                        int tries = 0;
-                        boolean success = false;
+                traceRetrievalExec.submit((Callable<Void>) () -> {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Retrieving traced query " + tracedQuery + " trace uuid: "
+                            + traceId);
+                    int tries = 0;
+                    boolean success = false;
 
-                        while (tries < MAX_TRIES) {
-                            ResultSetFuture sessionFuture = session.executeAsync(
-                                    statementCache.getUnchecked(
-                                            "SELECT * FROM system_traces.sessions WHERE session_id = ?").bind(traceId));
+                    while (tries < MAX_TRIES) {
+                        ResultSetFuture sessionFuture = session.executeAsync(
+                                statementCache.getUnchecked(
+                                        "SELECT * FROM system_traces.sessions WHERE session_id = ?").bind(traceId));
 
-                            Row sessionRow = sessionFuture.getUninterruptibly().one();
+                        Row sessionRow = sessionFuture.getUninterruptibly().one();
 
-                            if (sessionRow != null && !sessionRow.isNull("duration")) {
-                                ResultSetFuture eventFuture = session.executeAsync(statementCache.getUnchecked(
-                                        "SELECT * FROM system_traces.events WHERE session_id = ?")
-                                        .bind(traceId));
-                                List<Row> eventRows = eventFuture.getUninterruptibly().all();
+                        if (sessionRow != null && !sessionRow.isNull("duration")) {
+                            ResultSetFuture eventFuture = session.executeAsync(statementCache.getUnchecked(
+                                    "SELECT * FROM system_traces.events WHERE session_id = ?")
+                                    .bind(traceId));
+                            List<Row> eventRows = eventFuture.getUninterruptibly().all();
 
-                                sb.append(" requestType: ").append(sessionRow.getString("request"));
-                                sb.append(" coordinator: ").append(sessionRow.getInet("coordinator"));
-                                sb.append(" started_at: ").append(sessionRow.getTime("started_at"));
-                                sb.append(" duration: ").append(sessionRow.getInt("duration"));
-                                if (!sessionRow.isNull("parameters")) {
-                                    sb.append("\nparameters: "
-                                            + Collections.unmodifiableMap(sessionRow.getMap(
-                                            "parameters",
-                                            String.class,
-                                            String.class)));
-                                }
-
-                                for (Row eventRow : eventRows) {
-                                    sb.append(eventRow.getString("activity"))
-                                            .append(" on ")
-                                            .append(eventRow.getInet("source")).append("[")
-                                            .append(eventRow.getString("thread")).append("] at ")
-                                            .append(eventRow.getUUID("event_id").timestamp()).append(" (")
-                                            .append(eventRow.getInt("source_elapsed")).append(" elapsed)\n");
-                                }
-                                success = true;
-                                break;
+                            sb.append(" requestType: ").append(sessionRow.getString("request"));
+                            sb.append(" coordinator: ").append(sessionRow.getInet("coordinator"));
+                            sb.append(" started_at: ").append(sessionRow.getTime("started_at"));
+                            sb.append(" duration: ").append(sessionRow.getInt("duration"));
+                            if (!sessionRow.isNull("parameters")) {
+                                sb.append("\nparameters: "
+                                        + Collections.unmodifiableMap(sessionRow.getMap(
+                                        "parameters",
+                                        String.class,
+                                        String.class)));
                             }
-                            tries++;
-                            Thread.sleep(TRACE_RETRIEVAL_MS_BETWEEN_TRIES);
+
+                            for (Row eventRow : eventRows) {
+                                sb.append(eventRow.getString("activity"))
+                                        .append(" on ")
+                                        .append(eventRow.getInet("source")).append("[")
+                                        .append(eventRow.getString("thread")).append("] at ")
+                                        .append(eventRow.getUUID("event_id").timestamp()).append(" (")
+                                        .append(eventRow.getInt("source_elapsed")).append(" elapsed)\n");
+                            }
+                            success = true;
+                            break;
                         }
-                        if (!success) {
-                            sb.append(" (retrieval timed out)");
-                        }
-                        log.info("Query trace: {}", sb);
-                        return null;
+                        tries++;
+                        Thread.sleep(TRACE_RETRIEVAL_MS_BETWEEN_TRIES);
                     }
+                    if (!success) {
+                        sb.append(" (retrieval timed out)");
+                    }
+                    log.info("Query trace: {}", sb);
+                    return null;
                 });
             }
         }

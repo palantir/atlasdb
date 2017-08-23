@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLSocketFactory;
+import javax.ws.rs.BadRequestException;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.jetty.http.HttpStatus;
@@ -47,7 +48,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -339,6 +339,20 @@ public class PaxosTimeLockServerIntegrationTest {
                 .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
     }
 
+    @Test
+    public void lockServiceShouldDisallowGettingMinLockedInVersionId() {
+        RemoteLockService remoteLockService = getLockService(CLIENT_1);
+        assertThatThrownBy(() -> remoteLockService.getMinLockedInVersionId(CLIENT_1))
+                .isInstanceOf(AtlasDbRemoteException.class)
+                .satisfies(remoteException -> {
+                    AtlasDbRemoteException atlasDbRemoteException = (AtlasDbRemoteException) remoteException;
+                    assertThat(atlasDbRemoteException.getErrorName())
+                            .isEqualTo(BadRequestException.class.getCanonicalName());
+                    assertThat(atlasDbRemoteException.getStatus())
+                            .isEqualTo(HttpStatus.BAD_REQUEST_400);
+                });
+    }
+
     private static void getFortyTwoFreshTimestamps(TimestampService timestampService) {
         for (int i = 0; i < FORTY_TWO; i++) {
             timestampService.getFreshTimestamp();
@@ -407,17 +421,16 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void leadershipEventsSmokeTest() throws IOException {
-        JsonNode metrics = getMetricsOutput();
+        MetricsOutput metrics = getMetricsOutput();
 
-        assertContainsMeter(metrics, "leadership.gained");
-        assertContainsMeter(metrics, "leadership.lost");
-        assertContainsMeter(metrics, "leadership.proposed");
-        assertContainsMeter(metrics, "leadership.no-quorum");
-        assertContainsMeter(metrics, "leadership.proposed.failure");
+        metrics.assertContainsMeter("leadership.gained");
+        metrics.assertContainsMeter("leadership.lost");
+        metrics.assertContainsMeter("leadership.proposed");
+        metrics.assertContainsMeter("leadership.no-quorum");
+        metrics.assertContainsMeter("leadership.proposed.failure");
 
-        JsonNode meters = metrics.get("meters");
-        assertThat(meters.get("leadership.gained").get("count").intValue()).isEqualTo(1);
-        assertThat(meters.get("leadership.proposed").get("count").intValue()).isEqualTo(1);
+        assertThat(metrics.getMeter("leadership.gained").get("count").intValue()).isEqualTo(1);
+        assertThat(metrics.getMeter("leadership.proposed").get("count").intValue()).isEqualTo(1);
     }
 
     @Test
@@ -427,39 +440,29 @@ public class PaxosTimeLockServerIntegrationTest {
         getLockService(CLIENT_1).currentTimeMillis();
         getTimelockService(CLIENT_1).lock(newLockV2Request(LOCK_1)).getToken();
 
-        JsonNode metrics = getMetricsOutput();
+        MetricsOutput metrics = getMetricsOutput();
 
         // time / lock services
-        assertContainsTimer(metrics,
+        metrics.assertContainsTimer(
                 "com.palantir.atlasdb.timelock.AsyncTimelockService.test.getFreshTimestamp");
-        assertContainsTimer(metrics, "com.palantir.lock.RemoteLockService.test.currentTimeMillis");
+        metrics.assertContainsTimer("com.palantir.lock.RemoteLockService.test.currentTimeMillis");
 
         // local leader election classes
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.accept");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.propose");
-        assertContainsTimer(metrics, "com.palantir.leader.PingableLeader.ping");
-        assertContainsTimer(metrics, "com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
+        metrics.assertContainsTimer("com.palantir.leader.PingableLeader.ping");
+        metrics.assertContainsTimer("com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
 
         // local timestamp bound classes
-        assertContainsTimer(metrics, "com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.test.accept");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.test.propose");
+        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.test.accept");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.test.propose");
 
         // async lock
         // TODO(nziebart): why does this flake on circle?
         //assertContainsTimer(metrics, "lock.blocking-time");
-    }
-
-    private static void assertContainsTimer(JsonNode metrics, String name) {
-        JsonNode timers = metrics.get("timers");
-        assertThat(timers.get(name)).isNotNull();
-    }
-
-    private static void assertContainsMeter(JsonNode metrics, String name) {
-        JsonNode meters = metrics.get("meters");
-        assertThat(meters.get(name)).isNotNull();
     }
 
     private static String getFastForwardUriForClientOne() {
@@ -474,9 +477,9 @@ public class PaxosTimeLockServerIntegrationTest {
                 .build()).execute();
     }
 
-    private static JsonNode getMetricsOutput() throws IOException {
-        return new ObjectMapper().readTree(
-                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics"));
+    private static MetricsOutput getMetricsOutput() throws IOException {
+        return new MetricsOutput(new ObjectMapper().readTree(
+                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics")));
     }
 
     private static TimelockService getTimelockService(String client) {

@@ -14,11 +14,29 @@ algorithm:
     keyStorePassword: keystore
     trustStorePath: var/security/trustStore.jks
 
+useClientRequestLimit: true
+timeLimiter:
+  enableTimeLimiting: true
+  blockingTimeoutErrorMargin: 0.2
+
 server:
   idleThreadTimeout: 60s
   maxThreads: 2048
   minThreads: 1024
-  maxQueuedRequests: 4096
+  maxQueuedRequests: 10000
+  gzip:
+    minimumEntitySize: 1MB
+  requestLog:
+    appenders:
+      - type: file
+        archive: false
+        currentLogFilename: var/log/request.log
+  idleThreadTimeout: 60s
+  maxThreads: 512
+  minThreads: 512
+  maxQueuedRequests: 10000
+  gzip:
+    minimumEntitySize: 1MB
   requestLog:
     appenders:
       - type: file
@@ -47,7 +65,6 @@ server:
       - TLS_RSA_WITH_AES_256_CBC_SHA
       - TLS_RSA_WITH_AES_128_CBC_SHA
       - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
-
   adminConnectors:
   - type: http
     port: 7421

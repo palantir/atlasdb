@@ -15,8 +15,6 @@
  */
 package com.palantir.common.proxy;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -29,12 +27,7 @@ import com.palantir.util.ObjectInputStreamFactory;
 public class SerializingProxy implements DelegatingInvocationHandler {
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate) {
-        return newProxyInstance(interfaceClass, delegate, new ObjectInputStreamFactory() {
-            @Override
-            public ObjectInputStream create(InputStream is, String codebase) throws IOException {
-                return new ObjectInputStream(is);
-            }
-        });
+        return newProxyInstance(interfaceClass, delegate, (is, codebase) -> new ObjectInputStream(is));
     }
 
     @SuppressWarnings("unchecked")

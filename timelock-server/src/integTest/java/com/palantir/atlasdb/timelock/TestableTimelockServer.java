@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.timelock;
 
+import java.io.IOException;
+import java.net.URL;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
@@ -91,6 +95,16 @@ public class TestableTimelockServer {
 
     public TimelockService timelockService() {
         return proxies.singleNodeForClient(defaultClient, serverHolder, TimelockService.class);
+    }
+
+    public MetricsOutput getMetricsOutput() {
+        try {
+            return new MetricsOutput(
+                    new ObjectMapper().readTree(
+                            new URL("http", "localhost", serverHolder.getAdminPort(), "/metrics")));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

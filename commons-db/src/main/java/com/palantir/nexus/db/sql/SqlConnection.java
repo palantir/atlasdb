@@ -33,6 +33,7 @@ public interface SqlConnection {
     boolean selectExists(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
     boolean selectExists(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
     int selectIntegerUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
+    long selectLongUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
     int selectInteger(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
     int selectInteger(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 

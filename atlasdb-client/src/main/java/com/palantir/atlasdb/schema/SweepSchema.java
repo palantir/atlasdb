@@ -20,6 +20,7 @@ import java.io.File;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -29,21 +30,18 @@ public enum SweepSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("sweep");
-    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(new Supplier<Schema>() {
-        @Override
-        public Schema get() {
-            return generateSchema();
-        }
-    });
+    private static final Supplier<Schema> SCHEMA = Suppliers.memoize(() -> generateSchema());
 
     private static Schema generateSchema() {
         Schema schema = new Schema("Sweep",
                 SweepSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE);
+                NAMESPACE,
+                OptionalType.JAVA8);
 
         // This table tracks progress on a sweep job of a single table.
         schema.addTableDefinition("progress", new TableDefinition() {{
             javaTableName("SweepProgress");
+            allSafeForLoggingByDefault();
             rowName();
                 // This table has at most one row.
                 rowComponent("dummy", ValueType.VAR_LONG);
@@ -68,6 +66,7 @@ public enum SweepSchema implements AtlasSchema {
         // in determining when and in which order they should be swept.
         schema.addTableDefinition("priority", new TableDefinition() {{
             javaTableName("SweepPriority");
+            allSafeForLoggingByDefault();
             rowName();
                 rowComponent("full_table_name", ValueType.STRING);
             columns();

@@ -12,7 +12,7 @@ message TableMetadata {
     optional SweepStrategy sweepStrategy = 9;
     optional int32 explicitCompressionBlockSizeKiloBytes = 10;
     optional bool appendHeavyAndReadLight = 11;
-    optional bool nameLoggable = 12 [default = false];
+    optional LogSafety nameLogSafety = 12 [default = UNSAFE];
 }
 
 message NameMetadataDescription {
@@ -26,7 +26,7 @@ message NameComponentDescription {
     required ValueByteOrder order = 3;
     optional bool hasUniformPartitioner = 4;
     repeated string explicitPartitions = 5;
-    optional bool nameLoggable = 6 [default = false];
+    optional LogSafety logSafety = 6 [default = UNSAFE];
 }
 
 message ColumnMetadataDescription {
@@ -43,7 +43,7 @@ message NamedColumnDescription {
     required string shortName = 1;
     required string longName = 2;
     required ColumnValueDescription value = 3;
-    optional bool nameLoggable = 4 [default = false];
+    optional LogSafety logSafety = 4 [default = UNSAFE];
 }
 
 message ColumnValueDescription {
@@ -129,3 +129,7 @@ enum ExpirationStrategy {
     INDIVIDUALLY_SPECIFIED = 1;
 }
 
+enum LogSafety {
+    SAFE = 0;
+    UNSAFE = 1;
+}

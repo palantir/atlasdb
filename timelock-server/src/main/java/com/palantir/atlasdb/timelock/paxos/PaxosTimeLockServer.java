@@ -52,12 +52,16 @@ import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
+import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
+import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeaderElectionService;
@@ -110,6 +114,9 @@ public class PaxosTimeLockServer implements TimeLockServer {
         registerLeaderElectionService(configuration);
 
         registerHealthCheck(configuration);
+
+        registerClockService();
+        ClockSkewMonitor.create(remoteServers, optionalSecurity).runInBackground();
     }
 
     private void registerExceptionMappers() {
@@ -156,6 +163,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
+    private void registerClockService() {
+        environment.jersey().register(new ClockServiceImpl());
+    }
+
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
         return ImmutableLeaderConfig.builder()
                     .sslConfiguration(paxosConfiguration.sslConfiguration())
@@ -195,7 +206,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         LockLog.setSlowLockThresholdMillis(slowLogTriggerMillis);
 
-        if (timeLockServerConfiguration.useAsyncLockService()) {
+        if (timeLockServerConfiguration.asyncLockConfiguration().useAsyncLockService()) {
             return createTimeLockServicesWithAsync(client, rawTimestampServiceSupplier, lockService);
         }
         return createLegacyTimeLockServices(rawTimestampServiceSupplier, lockService);
@@ -296,6 +307,18 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private CloseableLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
+        CloseableLockService lockServiceWithoutTimeLimiting
+                = createMaybeNonTransactionalLockService(slowLogTriggerMillis);
+
+        if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
+            return BlockingTimeLimitedLockService.create(
+                    lockServiceWithoutTimeLimiting,
+                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        }
+        return lockServiceWithoutTimeLimiting;
+    }
+
+    private CloseableLockService createMaybeNonTransactionalLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = new LockServerOptions() {
             @Override
             public long slowLogTriggerMillis() {
@@ -303,14 +326,14 @@ public class PaxosTimeLockServer implements TimeLockServer {
             }
         };
 
-        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
+        LockServiceImpl lockServiceWithoutTimeLimiting = LockServiceImpl.create(lockServerOptions);
 
-        if (timeLockServerConfiguration.timeLimiterConfiguration().enableTimeLimiting()) {
-            return BlockingTimeLimitedLockService.create(
-                    rawLockService,
-                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), timeLockServerConfiguration));
+        AsyncLockConfiguration asyncLockConfiguration = timeLockServerConfiguration.asyncLockConfiguration();
+        if (asyncLockConfiguration.useAsyncLockService()
+                && !asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()) {
+            return new NonTransactionalLockService(lockServiceWithoutTimeLimiting);
         }
-        return rawLockService;
+        return lockServiceWithoutTimeLimiting;
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {

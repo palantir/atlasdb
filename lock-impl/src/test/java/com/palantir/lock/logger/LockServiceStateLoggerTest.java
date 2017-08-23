@@ -15,8 +15,8 @@
  */
 package com.palantir.lock.logger;
 
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
-import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,7 +35,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import com.palantir.common.annotation.Immutable;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
@@ -44,7 +42,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
-import com.palantir.lock.LockWithClient;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -127,8 +125,17 @@ public class LockServiceStateLoggerTest {
         assertEquals(deserializedLockResponse, response);
     }
 
+    @Test
+    public void testSerialisationAndDeserialisationOfLockServerOptions() throws Exception {
+        LockServerOptions lockServerOptions =  LockServerOptions.DEFAULT;
+        ObjectMapper mapper = new ObjectMapper();
+        LockServerOptions deserialzedlockServerOptions = mapper.readValue(mapper.writeValueAsString(lockServerOptions), LockServerOptions.class);
+        assertEquals(deserialzedlockServerOptions, lockServerOptions);
+    }
+
     @After
     public void after() throws IOException {
         LockServiceLoggerTestUtils.cleanUpLogStateDir();
     }
+
 }

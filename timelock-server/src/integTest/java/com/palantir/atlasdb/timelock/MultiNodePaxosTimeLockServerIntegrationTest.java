@@ -207,4 +207,16 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             token = CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
         }
     }
+
+    @Test
+    public void clockSkewMetricsSmokeTest() {
+        Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
+
+        for (TestableTimelockServer server : CLUSTER.servers()) {
+            MetricsOutput metrics = server.getMetricsOutput();
+
+            metrics.assertContainsHistogram("clock.skew");
+            assertThat(metrics.getHistogram("clock.skew").get("count").intValue()).isGreaterThan(0);
+        }
+    }
 }

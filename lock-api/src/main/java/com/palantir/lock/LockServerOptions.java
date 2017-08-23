@@ -78,6 +78,7 @@ import com.google.common.base.Objects;
      * client accessing it.
      */
     //@JsonIgnore
+    @JsonIgnore
     public boolean isStandaloneServer() {
         return isStandaloneServer;
     }

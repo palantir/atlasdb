@@ -228,31 +228,28 @@ public final class CassandraVerifier {
 
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
-        clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws TException {
-                KsDef originalKsDef = client.describe_keyspace(config.keyspace());
-                // there was an existing keyspace
-                // check and make sure it's definition is up to date with our config
-                KsDef modifiedKsDef = originalKsDef.deepCopy();
-                checkAndSetReplicationFactor(
+        clientPool.runWithRetry((FunctionCheckedException<Client, Void, TException>) client -> {
+            KsDef originalKsDef = client.describe_keyspace(config.keyspace());
+            // there was an existing keyspace
+            // check and make sure it's definition is up to date with our config
+            KsDef modifiedKsDef = originalKsDef.deepCopy();
+            checkAndSetReplicationFactor(
+                    client,
+                    modifiedKsDef,
+                    false,
+                    config);
+
+            if (!modifiedKsDef.equals(originalKsDef)) {
+                // Can't call system_update_keyspace to update replication factor if CfDefs are set
+                modifiedKsDef.setCf_defs(ImmutableList.of());
+                client.system_update_keyspace(modifiedKsDef);
+                CassandraKeyValueServices.waitForSchemaVersions(
                         client,
-                        modifiedKsDef,
-                        false,
-                        config);
-
-                if (!modifiedKsDef.equals(originalKsDef)) {
-                    // Can't call system_update_keyspace to update replication factor if CfDefs are set
-                    modifiedKsDef.setCf_defs(ImmutableList.of());
-                    client.system_update_keyspace(modifiedKsDef);
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(updating the existing keyspace)",
-                            config.schemaMutationTimeoutMillis());
-                }
-
-                return null;
+                        "(updating the existing keyspace)",
+                        config.schemaMutationTimeoutMillis());
             }
+
+            return null;
         });
     }
 

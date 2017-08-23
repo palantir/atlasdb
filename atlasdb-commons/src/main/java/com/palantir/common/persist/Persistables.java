@@ -46,12 +46,7 @@ public class Persistables {
     }
 
     public static Function<Persistable, byte[]> persistToBytesFunction() {
-        return new Function<Persistable, byte[]>() {
-            @Override
-            public byte[] apply(Persistable input) {
-                return input.persistToBytes();
-            }
-        };
+        return input -> input.persistToBytes();
     }
 
     public static List<byte[]> persistAll(Iterable<? extends Persistable> persistables) {

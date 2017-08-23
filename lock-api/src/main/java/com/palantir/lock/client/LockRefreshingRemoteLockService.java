@@ -44,24 +44,21 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
 
     public static LockRefreshingRemoteLockService create(RemoteLockService delegate) {
         final LockRefreshingRemoteLockService ret = new LockRefreshingRemoteLockService(delegate);
-        ret.exec.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                long startTime = System.currentTimeMillis();
-                try {
-                    ret.refreshLocks();
-                } catch (Throwable t) {
-                    log.error("Failed to refresh locks", t);
-                } finally {
-                    long elapsed = System.currentTimeMillis() - startTime;
+        ret.exec.scheduleWithFixedDelay(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                ret.refreshLocks();
+            } catch (Throwable t) {
+                log.error("Failed to refresh locks", t);
+            } finally {
+                long elapsed = System.currentTimeMillis() - startTime;
 
-                    if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
-                        log.error("Refreshing locks took {} milliseconds"
-                                + " for tokens: {}", elapsed,  ret.toRefresh);
-                    } else if (elapsed > ret.refreshFrequencyMillis) {
-                        log.warn("Refreshing locks took {} milliseconds"
-                                + " for tokens: {}", elapsed, ret.toRefresh);
-                    }
+                if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
+                    log.error("Refreshing locks took {} milliseconds"
+                            + " for tokens: {}", elapsed,  ret.toRefresh);
+                } else if (elapsed > ret.refreshFrequencyMillis) {
+                    log.warn("Refreshing locks took {} milliseconds"
+                            + " for tokens: {}", elapsed, ret.toRefresh);
                 }
             }
         }, 0, ret.refreshFrequencyMillis, TimeUnit.MILLISECONDS);

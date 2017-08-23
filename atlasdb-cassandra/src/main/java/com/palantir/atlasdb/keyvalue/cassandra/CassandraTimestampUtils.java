@@ -54,7 +54,8 @@ public final class CassandraTimestampUtils {
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription("timestamp_name", ValueType.STRING))),
+                    new NameComponentDescription.Builder().componentName("timestamp_name").type(ValueType.STRING)
+                            .build())),
             new ColumnMetadataDescription(ImmutableList.of(
                     new NamedColumnDescription(
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
@@ -85,10 +86,9 @@ public final class CassandraTimestampUtils {
         builder.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
 
         // Safe, because ordering does not apply in batches
-        checkAndSetRequest.entrySet().forEach(entry -> {
-            String columnName = entry.getKey();
-            byte[] expected = entry.getValue().getLhSide();
-            byte[] target = entry.getValue().getRhSide();
+        checkAndSetRequest.forEach((columnName, value) -> {
+            byte[] expected = value.getLhSide();
+            byte[] target = value.getRhSide();
             builder.append(constructCheckAndSetQuery(columnName, expected, target));
         });
         builder.append("APPLY BATCH;");

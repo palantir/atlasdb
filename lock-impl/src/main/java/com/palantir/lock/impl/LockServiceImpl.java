@@ -134,12 +134,7 @@ public final class LockServiceImpl
             new NamedThreadFactory(LockServiceImpl.class.getName(), true)));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
-            new Function<HeldLocksToken, String>() {
-        @Override
-        public String apply(HeldLocksToken from) {
-            return from.getTokenId().toString(Character.MAX_RADIX);
-        }
-    };
+            from -> from.getTokenId().toString(Character.MAX_RADIX);
 
     @Immutable
     public static class HeldLocks<T extends ExpiringToken> {
@@ -221,12 +216,7 @@ public final class LockServiceImpl
             Sets.newConcurrentHashSet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
-            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), new Supplier<TreeMultiset<Long>>() {
-                @Override
-                public TreeMultiset<Long> get() {
-                    return TreeMultiset.create();
-                }
-            }));
+            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), () -> TreeMultiset.create()));
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
@@ -243,11 +233,8 @@ public final class LockServiceImpl
             log.trace("Creating LockService with options={}", options);
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
-        LockServiceImpl lockService = new LockServiceImpl(options, new Runnable() {
-            @Override public void run() {
-                JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName);
-            }
-        });
+        LockServiceImpl lockService = new LockServiceImpl(options,
+                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName));
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }
@@ -332,7 +319,7 @@ public final class LockServiceImpl
     // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         Preconditions.checkNotNull(client);
-        Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
+        Preconditions.checkArgument(!client.equals(INTERNAL_LOCK_GRANT_CLIENT));
         Preconditions.checkArgument(request.getLockTimeout().compareTo(maxAllowedLockTimeout) <= 0,
                 "Requested lock timeout (%s) is greater than maximum allowed lock timeout (%s)",
                 request.getLockTimeout(), maxAllowedLockTimeout);
@@ -653,7 +640,7 @@ public final class LockServiceImpl
         Preconditions.checkNotNull(client);
         if (client.isAnonymous()) {
             throw new IllegalArgumentException("client must not be anonymous");
-        } else if (client == INTERNAL_LOCK_GRANT_CLIENT) {
+        } else if (client.equals(INTERNAL_LOCK_GRANT_CLIENT)) {
             throw new IllegalArgumentException("Illegal client!");
         }
         ImmutableSet.Builder<HeldLocksToken> tokens = ImmutableSet.builder();

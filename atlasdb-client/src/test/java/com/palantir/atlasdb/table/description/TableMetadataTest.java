@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class TableMetadataTest {
@@ -46,64 +47,65 @@ public class TableMetadataTest {
             TableMetadataPersistence.ExpirationStrategy.NEVER,
             false);
 
-    private static final TableMetadata NAME_LOGGABLE_TABLE_METADATA = createWithSpecifiedLoggability(true);
-    private static final TableMetadata NAME_NOT_LOGGABLE_TABLE_METADATA = createWithSpecifiedLoggability(false);
+    private static final TableMetadata NAME_LOGGABLE_TABLE_METADATA = createWithSpecifiedLogSafety(LogSafety.SAFE);
+    private static final TableMetadata NAME_NOT_LOGGABLE_TABLE_METADATA =
+            createWithSpecifiedLogSafety(LogSafety.UNSAFE);
 
     @Test
     public void nameIsNotLoggableByDefault() {
-        assertThat(DEFAULT_TABLE_METADATA.isNameLoggable()).isFalse();
+        assertThat(DEFAULT_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void nameIsNotLoggableIfMetadataIsOnlyLightlySpecified() {
-        assertThat(LIGHTLY_SPECIFIED_TABLE_METADATA.isNameLoggable()).isFalse();
+        assertThat(LIGHTLY_SPECIFIED_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void nameIsNotLoggableIfNotSpecified() {
-        assertThat(LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA.isNameLoggable()).isFalse();
+        assertThat(LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void nameCanBeSpecifiedToBeLoggable() {
-        assertThat(NAME_LOGGABLE_TABLE_METADATA.isNameLoggable()).isTrue();
+        assertThat(NAME_LOGGABLE_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
     @Test
     public void nameCanBeSpecifiedToBeNotLoggable() {
-        assertThat(NAME_NOT_LOGGABLE_TABLE_METADATA.isNameLoggable()).isFalse();
+        assertThat(NAME_NOT_LOGGABLE_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeDefaultMetadata() {
-        assertCanSerializeAndDeserializeWithLoggability(DEFAULT_TABLE_METADATA, false);
+        assertCanSerializeAndDeserializeWithSafety(DEFAULT_TABLE_METADATA, LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeIfLoggabilityNotSpecified() {
-        assertCanSerializeAndDeserializeWithLoggability(LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA, false);
+        assertCanSerializeAndDeserializeWithSafety(LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA, LogSafety.UNSAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_LOGGABLE_TABLE_METADATA, true);
+        assertCanSerializeAndDeserializeWithSafety(NAME_LOGGABLE_TABLE_METADATA, LogSafety.SAFE);
     }
 
     @Test
     public void canSerializeAndDeserializeKeepingNonLoggability() {
-        assertCanSerializeAndDeserializeWithLoggability(NAME_NOT_LOGGABLE_TABLE_METADATA, false);
+        assertCanSerializeAndDeserializeWithSafety(NAME_NOT_LOGGABLE_TABLE_METADATA, LogSafety.UNSAFE);
     }
 
-    private static void assertCanSerializeAndDeserializeWithLoggability(
+    private static void assertCanSerializeAndDeserializeWithSafety(
             TableMetadata tableMetadata,
-            boolean loggable) {
+            LogSafety logSafety) {
         TableMetadataPersistence.TableMetadata.Builder builder = tableMetadata.persistToProto();
         assertThat(TableMetadata.hydrateFromProto(builder.build()))
                 .isEqualTo(tableMetadata)
-                .matches(description -> description.isNameLoggable() == loggable);
+                .matches(description -> description.getNameLogSafety() == logSafety);
     }
 
-    private static TableMetadata createWithSpecifiedLoggability(boolean loggable) {
+    private static TableMetadata createWithSpecifiedLogSafety(LogSafety logSafety) {
         return new TableMetadata(
                 NAME_METADATA_DESCRIPTION,
                 COLUMN_METADATA_DESCRIPTION,
@@ -116,6 +118,6 @@ public class TableMetadataTest {
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
                 TableMetadataPersistence.ExpirationStrategy.NEVER,
                 false,
-                loggable);
+                logSafety);
     }
 }
