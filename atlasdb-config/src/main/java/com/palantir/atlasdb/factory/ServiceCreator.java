@@ -55,10 +55,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
             Set<String> uris,
             Class<T> serviceClass,
             String userAgent) {
-        return AtlasDbMetrics.instrument(
-                serviceClass,
-                AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent),
-                MetricRegistry.name(serviceClass, userAgent));
+        return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
     }
 
     public static <T> T createInstrumentedService(T service, Class<T> serviceClass, String userAgent) {
