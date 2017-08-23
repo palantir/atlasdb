@@ -9,10 +9,6 @@ cluster:
 
 algorithm:
   type: paxos
-  sslConfiguration:
-    keyStorePath: var/security/keyStore.jks
-    keyStorePassword: keystore
-    trustStorePath: var/security/trustStore.jks
 
 server:
   idleThreadTimeout: 60s

@@ -52,6 +52,8 @@ import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
+import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -112,6 +114,9 @@ public class PaxosTimeLockServer implements TimeLockServer {
         registerLeaderElectionService(configuration);
 
         registerHealthCheck(configuration);
+
+        registerClockService();
+        ClockSkewMonitor.create(remoteServers, optionalSecurity).runInBackground();
     }
 
     private void registerExceptionMappers() {
@@ -156,6 +161,10 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 ServiceCreator.createSslSocketFactory(paxosConfiguration.sslConfiguration()),
                 "leader-ping-healthcheck").keySet();
         environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
+    }
+
+    private void registerClockService() {
+        environment.jersey().register(new ClockServiceImpl());
     }
 
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
@@ -332,7 +341,6 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private Supplier<ManagedTimestampService> createRawPaxosBackedTimestampServiceSupplier(String client) {
-        paxosResource.addInstrumentedClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")

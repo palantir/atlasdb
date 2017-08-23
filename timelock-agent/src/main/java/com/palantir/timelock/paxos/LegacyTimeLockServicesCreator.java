@@ -28,7 +28,6 @@ import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 
@@ -52,28 +51,30 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
                 ManagedTimestampService.class,
                 rawTimestampServiceSupplier,
                 client);
-        LockService remoteLockService = instrumentInLeadershipProxy(
+        LockService lockService = instrumentInLeadershipProxy(
                 LockService.class,
                 rawLockServiceSupplier,
                 client);
 
-        TimelockService legacyTimelockService = instrumentInLeadershipProxy(
+        // The underlying primitives are already wrapped in a leadership proxy (and must be).
+        // Wrapping this means that we will make 2 paxos checks per request, which is silly.
+        TimelockService legacyTimelockService = instrument(
                 TimelockService.class,
-                () -> createRawLegacyTimelockService(() -> timestampService, () -> remoteLockService),
+                createRawLegacyTimelockService(timestampService, lockService),
                 client);
         return TimeLockServices.create(
                 timestampService,
-                remoteLockService,
+                lockService,
                 AsyncOrLegacyTimelockService.createFromLegacyTimelock(legacyTimelockService),
                 timestampService);
     }
 
     private static LegacyTimelockService createRawLegacyTimelockService(
-            Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            Supplier<RemoteLockService> lockService) {
+            ManagedTimestampService timestampService,
+            LockService lockService) {
         return new LegacyTimelockService(
-                rawTimestampServiceSupplier.get(),
-                lockService.get(),
+                timestampService,
+                lockService,
                 LEGACY_LOCK_CLIENT);
     }
 

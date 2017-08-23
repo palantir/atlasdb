@@ -7,7 +7,6 @@ package com.palantir.atlasdb.timelock.config;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.remoting2.config.service.ServiceConfiguration;
-import com.palantir.timelock.config.ImmutableAsyncLockConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
@@ -32,7 +31,7 @@ public final class TimeLockConfigMigrator {
         PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
 
         TimeLockInstallConfiguration install = ImmutableTimeLockInstallConfiguration.builder()
-                .algorithm(ImmutablePaxosInstallConfiguration.builder()
+                .paxos(ImmutablePaxosInstallConfiguration.builder()
                         .dataDirectory(paxos.paxosDataDir())
                         .build())
                 .cluster(ImmutableClusterConfiguration.builder()
@@ -42,16 +41,15 @@ public final class TimeLockConfigMigrator {
                                 .build())
                         .localServer(config.cluster().localServer())
                         .build())
-                .asyncLock(createAsyncLockConfiguration(config))
+                .asyncLock(config.asyncLockConfiguration())
                 .build();
 
         TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                .algorithm(ImmutablePaxosRuntimeConfiguration.builder()
+                .paxos(ImmutablePaxosRuntimeConfiguration.builder()
                         .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
                         .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
                         .pingRateMs(paxos.pingRateMs())
                         .build())
-                .clients(config.clients())
                 .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
                 .build();
 
@@ -61,15 +59,6 @@ public final class TimeLockConfigMigrator {
                 .install(install)
                 .runtime(runtime)
                 .deprecated(deprecated)
-                .build();
-    }
-
-    private static com.palantir.timelock.config.AsyncLockConfiguration createAsyncLockConfiguration(
-            TimeLockServerConfiguration config) {
-        return ImmutableAsyncLockConfiguration.builder()
-                .useAsyncLockService(config.asyncLockConfiguration().useAsyncLockService())
-                .disableLegacySafetyChecksWarningPotentialDataCorruption(
-                        config.asyncLockConfiguration().disableLegacySafetyChecksWarningPotentialDataCorruption())
                 .build();
     }
 

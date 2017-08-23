@@ -206,6 +206,8 @@ public class KeyValueServiceMigrator {
                                long migrationTimestamp,
                                ExecutorService executor,
                                GeneralTaskCheckpointer checkpointer) {
+        processMessage("Migrating tables at migrationTimestamp " + migrationTimestamp,
+                KvsMigrationMessageLevel.INFO);
         for (TableReference table : tables) {
             KvsRangeMigrator rangeMigrator =
                     new KvsRangeMigratorBuilder().srcTable(table).readBatchSize(getBatchSize(table)).readTxManager(

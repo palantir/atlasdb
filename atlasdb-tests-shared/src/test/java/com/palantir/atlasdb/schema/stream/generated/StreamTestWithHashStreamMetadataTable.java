@@ -469,6 +469,8 @@ public final class StreamTestWithHashStreamMetadataTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -714,5 +716,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Vn50INJJjQ96rUiLUid4wA==";
+    static String __CLASS_HASH = "lhjiGcAsrJCFtHPb60Fsjw==";
 }

@@ -15,10 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.List;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
 
 public class UpdateExecutor {
@@ -52,11 +57,39 @@ public class UpdateExecutor {
                 + " AND col_name = ?"
                 + " AND ts = ?"
                 + " AND val = ?";
-        int updated = ((PalantirSqlConnection) conns.get()).updateCountRowsUnregisteredQuery(sqlString,
-                args);
-        if (updated == 0) {
-            // right now we don't know what's actually in the db :-(
-            throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of());
+
+        PalantirSqlConnection connection = (PalantirSqlConnection) conns.get();
+        while (true) {
+            int updated = connection.updateCountRowsUnregisteredQuery(sqlString, args);
+            if (updated != 0) {
+                return;
+            }
+            List<byte[]> currentValue = getCurrentValue(connection, cell, ts, prefixedTableName);
+            byte[] onlyValue = Iterables.getOnlyElement(currentValue, null);
+            if (!Arrays.equals(onlyValue, oldValue)) {
+                throw new CheckAndSetException(cell, tableRef, oldValue, currentValue);
+            }
         }
+    }
+
+    // A list, but in practice at most one value
+    private List<byte[]> getCurrentValue(
+            PalantirSqlConnection connection,
+            Cell cell,
+            long ts,
+            String prefixedTableName) {
+        String sqlString = "/* SELECT (" + prefixedTableName + ") */"
+                + " SELECT val FROM " + prefixedTableName
+                + " WHERE row_name = ?"
+                + " AND col_name = ?"
+                + " AND ts = ?";
+        AgnosticLightResultSet results = connection.selectLightResultSetUnregisteredQuery(
+                sqlString,
+                cell.getRowName(),
+                cell.getColumnName(),
+                ts);
+        List<byte[]> actualValues = Lists.newArrayList();
+        results.iterator().forEachRemaining(row -> actualValues.add(row.getBytes(DbKvs.VAL)));
+        return actualValues;
     }
 }

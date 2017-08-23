@@ -35,7 +35,7 @@ import com.palantir.remoting2.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
-import com.palantir.timelock.config.TimeLockAlgorithmInstallConfiguration;
+import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 
 public class PaxosRemotingUtilsTest {
@@ -46,7 +46,7 @@ public class PaxosRemotingUtilsTest {
             .cluster(ServiceConfiguration.builder().addAllUris(CLUSTER_URIS).build())
             .build();
     private static final TimeLockInstallConfiguration NO_SSL_TIMELOCK = ImmutableTimeLockInstallConfiguration.builder()
-            .algorithm(mock(TimeLockAlgorithmInstallConfiguration.class))
+            .paxos(mock(PaxosInstallConfiguration.class))
             .cluster(NO_SSL_CLUSTER)
             .build();
 
@@ -59,7 +59,7 @@ public class PaxosRemotingUtilsTest {
                     .build())
             .build();
     private static final TimeLockInstallConfiguration SSL_TIMELOCK = ImmutableTimeLockInstallConfiguration.builder()
-            .algorithm(mock(TimeLockAlgorithmInstallConfiguration.class))
+            .paxos(mock(PaxosInstallConfiguration.class))
             .cluster(SSL_CLUSTER)
             .build();
 

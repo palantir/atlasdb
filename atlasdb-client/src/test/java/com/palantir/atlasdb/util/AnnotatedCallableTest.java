@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.util;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -116,7 +115,6 @@ public class AnnotatedCallableTest {
             assertThat(expected.getSuppressed()[0].getMessage(),
                     is("Error [java.lang.OutOfMemoryError: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
-            assertThat(expected.getSuppressed()[0].getCause(), is(sameInstance(expected)));
         }
     }
 
@@ -140,7 +138,6 @@ public class AnnotatedCallableTest {
             assertThat(expected.getSuppressed()[0].getMessage(),
                     is("Exception [java.io.IOException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
-            assertThat(expected.getSuppressed()[0].getCause(), is(sameInstance(expected)));
         }
     }
 
@@ -160,14 +157,11 @@ public class AnnotatedCallableTest {
         } catch (Throwable expected) {
             assertThat(expected, instanceOf(ExecutionException.class));
             assertThat(expected.getMessage(), is("test message"));
-            assertThat(expected.getCause(), instanceOf(Throwable.class));
-            assertThat(expected.getCause(), is(sameInstance(cause)));
             assertThat(expected.getSuppressed().length, is(1));
             assertThat(expected.getSuppressed()[0], instanceOf(SuppressedException.class));
             assertThat(expected.getSuppressed()[0].getMessage(),
                     is("Exception [java.util.concurrent.ExecutionException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
-            assertThat(expected.getSuppressed()[0].getCause(), is(sameInstance(expected)));
         }
     }
 
@@ -191,7 +185,6 @@ public class AnnotatedCallableTest {
             assertThat(expected.getSuppressed()[0].getMessage(),
                     is("RuntimeException [java.lang.IllegalArgumentException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)"));
-            assertThat(expected.getSuppressed()[0].getCause(), is(sameInstance(expected)));
         }
     }
 

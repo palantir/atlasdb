@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.ClientErrorException;
 
 import org.immutables.value.Value;
@@ -42,6 +40,7 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -97,9 +96,9 @@ import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.client.LockRefreshingRemoteLockService;
+import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -406,10 +405,10 @@ public final class TransactionManagers {
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Environment env,
-            Supplier<RemoteLockService> lock,
+            Supplier<LockService> lock,
             Supplier<TimestampService> time) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawServices(config,
+                createRawInstrumentedServices(config,
                         env,
                         lock,
                         time,
@@ -426,15 +425,16 @@ public final class TransactionManagers {
             AtlasDbConfig config,
             java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
             Environment env,
-            Supplier<RemoteLockService> lock,
+            Supplier<LockService> lock,
             Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawServices(config, env, lock, time, invalidator, userAgent);
+                createRawInstrumentedServices(config, env, lock, time, invalidator, userAgent);
         return withRequestBatchingTimestampService(
                 runtimeConfigSupplier,
-                withRefreshingLockService(lockAndTimestampServices));
+                withRefreshingLockService(lockAndTimestampServices),
+                userAgent);
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -442,16 +442,18 @@ public final class TransactionManagers {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
-                .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
+                .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .build();
     }
 
     private static LockAndTimestampServices withRequestBatchingTimestampService(
             java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
-            LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockServiceWithBatching =
-                DecoratedTimelockServices.createTimelockServiceWithTimestampBatching(
-                        lockAndTimestampServices.timelock(), timestampClientConfigSupplier);
+            LockAndTimestampServices lockAndTimestampServices, String userAgent) {
+        TimelockService timelockServiceWithBatching = DecoratedTimelockServices
+                .createTimelockServiceWithTimestampBatching(
+                        lockAndTimestampServices.timelock(),
+                        timestampClientConfigSupplier,
+                        userAgent);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -461,10 +463,10 @@ public final class TransactionManagers {
     }
 
     @VisibleForTesting
-    static LockAndTimestampServices createRawServices(
+    static LockAndTimestampServices createRawInstrumentedServices(
             AtlasDbConfig config,
             Environment env,
-            Supplier<RemoteLockService> lock,
+            Supplier<LockService> lock,
             Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
@@ -491,7 +493,7 @@ public final class TransactionManagers {
     private static LockAndTimestampServices getLockAndTimestampServices(
             ServerListConfig timelockServerListConfig,
             String userAgent) {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
+        LockService lockService = new ServiceCreator<>(LockService.class, userAgent)
                 .apply(timelockServerListConfig);
         TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
                 .apply(timelockServerListConfig);
@@ -506,30 +508,32 @@ public final class TransactionManagers {
     private static LockAndTimestampServices createRawLeaderServices(
             LeaderConfig leaderConfig,
             Environment env,
-            Supplier<RemoteLockService> lock,
+            Supplier<LockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
         // Create local services, that may or may not end up being registered in an environment.
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
-        RemoteLockService localLock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader);
-        TimestampService localTime = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader);
+        LockService localLock = ServiceCreator.createInstrumentedService(
+                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader),
+                LockService.class,
+                userAgent);
+        TimestampService localTime = ServiceCreator.createInstrumentedService(
+                AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader),
+                TimestampService.class,
+                userAgent);
         env.register(localLock);
         env.register(localTime);
 
         // Create remote services, that may end up calling our own local services.
-        Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(
-                leaderConfig.sslConfiguration());
-        RemoteLockService remoteLock = ServiceCreator.createService(
-                sslSocketFactory,
-                leaderConfig.leaders(),
-                RemoteLockService.class,
-                userAgent);
-        TimestampService remoteTime = ServiceCreator.createService(
-                sslSocketFactory,
-                leaderConfig.leaders(),
-                TimestampService.class,
-                userAgent);
+        ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
+                .servers(leaderConfig.leaders())
+                .sslConfiguration(leaderConfig.sslConfiguration())
+                .build();
+        LockService remoteLock = new ServiceCreator<>(LockService.class, userAgent)
+                .apply(serverListConfig);
+        TimestampService remoteTime = new ServiceCreator<>(TimestampService.class, userAgent)
+                .apply(serverListConfig);
 
         if (leaderConfig.leaders().size() == 1) {
             // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
@@ -541,7 +545,7 @@ public final class TransactionManagers {
             PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
-                    sslSocketFactory,
+                    ServiceCreator.createSslSocketFactory(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
                     userAgent);
@@ -570,8 +574,8 @@ public final class TransactionManagers {
 
             // Create dynamic service proxies, that switch to talking directly to our local services if it turns out our
             // remote services are pointed at them anyway.
-            RemoteLockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
-                    RemoteLockService.class, localLock, remoteLock, useLocalServicesFuture);
+            LockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
+                    LockService.class, localLock, remoteLock, useLocalServicesFuture);
             TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
                     TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
@@ -590,7 +594,7 @@ public final class TransactionManagers {
     }
 
     private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config, String userAgent) {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class, userAgent)
+        LockService lockService = new ServiceCreator<>(LockService.class, userAgent)
                 .apply(config.lock().get());
         TimestampService timeService = new ServiceCreator<>(TimestampService.class, userAgent)
                 .apply(config.timestamp().get());
@@ -604,11 +608,11 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices createRawEmbeddedServices(
             Environment env,
-            Supplier<RemoteLockService> lock,
+            Supplier<LockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
-        RemoteLockService lockService = ServiceCreator.createInstrumentedService(lock.get(),
-                RemoteLockService.class,
+        LockService lockService = ServiceCreator.createInstrumentedService(lock.get(),
+                LockService.class,
                 userAgent);
         TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(),
                 TimestampService.class,
@@ -626,7 +630,7 @@ public final class TransactionManagers {
 
     @Value.Immutable
     public interface LockAndTimestampServices {
-        RemoteLockService lock();
+        LockService lock();
         TimestampService timestamp();
         TimelockService timelock();
     }

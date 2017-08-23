@@ -51,7 +51,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
@@ -113,7 +113,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
+        LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
             private static final long serialVersionUID = 1L;
 
             @Override

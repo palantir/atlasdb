@@ -489,16 +489,22 @@ public final class UserPhotosStreamHashAidxTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(UserPhotosStreamHashAidxRow rowName, Iterable<UserPhotosStreamHashAidxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(UserPhotosStreamHashAidxRow rowName, UserPhotosStreamHashAidxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamHashAidxRow, ? extends UserPhotosStreamHashAidxColumnValue> rows) {
         Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, UserPhotosStreamHashAidxColumnValue.getColumnNameFun());
@@ -736,5 +742,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hOcVe8o+P0SRTvwBh77p+Q==";
+    static String __CLASS_HASH = "FF2aU5qL+Gydp9AQHFcecA==";
 }

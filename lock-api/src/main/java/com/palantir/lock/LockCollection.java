@@ -69,24 +69,19 @@ public class LockCollection<T> extends AbstractCollection<T> implements Serializ
     }
 
     public Iterable<Map.Entry<T, LockMode>> entries() {
-        return new Iterable<Map.Entry<T, LockMode>>() {
+        return () -> new AbstractIterator<Entry<T, LockMode>>() {
+            private int index = 0;
+
             @Override
-            public Iterator<Entry<T, LockMode>> iterator() {
-                return new AbstractIterator<Map.Entry<T, LockMode>>() {
-                    private int index = 0;
-
-                    @Override
-                    protected Entry<T, LockMode> computeNext() {
-                        if (index == keys.length) {
-                            return endOfData();
-                        }
-                        LockMode mode = values.get(index) ? LockMode.WRITE : LockMode.READ;
-                        return Maps.immutableEntry(keys[index++], mode);
-                    }
-
-
-                };
+            protected Entry<T, LockMode> computeNext() {
+                if (index == keys.length) {
+                    return endOfData();
+                }
+                LockMode mode = values.get(index) ? LockMode.WRITE : LockMode.READ;
+                return Maps.immutableEntry(keys[index++], mode);
             }
+
+
         };
     }
 

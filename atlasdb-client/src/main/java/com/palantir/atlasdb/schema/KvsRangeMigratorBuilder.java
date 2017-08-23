@@ -61,12 +61,7 @@ public class KvsRangeMigratorBuilder {
     }
 
     private static Function<RowResult<byte[]>, Map<Cell, byte[]>> getIdentityTransform() {
-        return new Function<RowResult<byte[]>, Map<Cell,byte[]>>() {
-            @Override
-            public Map<Cell, byte[]> apply(RowResult<byte[]> input) {
-                return Maps2.fromEntries(input.getCells());
-            }
-        };
+        return input -> Maps2.fromEntries(input.getCells());
     }
 
     public KvsRangeMigratorBuilder srcTable(TableReference table) {

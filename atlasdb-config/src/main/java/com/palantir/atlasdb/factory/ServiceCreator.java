@@ -50,15 +50,12 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         return sslConfiguration.map(config -> SslSocketFactories.createSslSocketFactory(config));
     }
 
-    public static <T> T createService(
+    private static <T> T createService(
             Optional<SSLSocketFactory> sslSocketFactory,
             Set<String> uris,
             Class<T> serviceClass,
             String userAgent) {
-        return AtlasDbMetrics.instrument(
-                serviceClass,
-                AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent),
-                MetricRegistry.name(serviceClass, userAgent));
+        return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
     }
 
     public static <T> T createInstrumentedService(T service, Class<T> serviceClass, String userAgent) {

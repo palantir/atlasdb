@@ -184,31 +184,28 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     private Runnable createFlushTask() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (totalModifications.get() >= WRITE_THRESHOLD && flushLock.tryLock()) {
-                        try {
-                            if (totalModifications.get() >= WRITE_THRESHOLD) {
-                                // snapshot current values while holding the lock and flush
-                                totalModifications.set(0);
-                                Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
-                                writesByTable.clear();
-                                Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
-                                clearedTables.clear();
+        return () -> {
+            try {
+                if (totalModifications.get() >= WRITE_THRESHOLD && flushLock.tryLock()) {
+                    try {
+                        if (totalModifications.get() >= WRITE_THRESHOLD) {
+                            // snapshot current values while holding the lock and flush
+                            totalModifications.set(0);
+                            Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
+                            writesByTable.clear();
+                            Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
+                            clearedTables.clear();
 
-                                // apply back pressure by only allowing one flush at a time
-                                flushWrites(localWritesByTable, localClearedTables);
-                            }
-                        } finally {
-                            flushLock.unlock();
+                            // apply back pressure by only allowing one flush at a time
+                            flushWrites(localWritesByTable, localClearedTables);
                         }
+                    } finally {
+                        flushLock.unlock();
                     }
-                } catch (Throwable t) {
-                    if (!Thread.interrupted()) {
-                        log.error("Error occurred while flushing sweep stats: {}", t, t);
-                    }
+                }
+            } catch (Throwable t) {
+                if (!Thread.interrupted()) {
+                    log.error("Error occurred while flushing sweep stats: {}", t, t);
                 }
             }
         };

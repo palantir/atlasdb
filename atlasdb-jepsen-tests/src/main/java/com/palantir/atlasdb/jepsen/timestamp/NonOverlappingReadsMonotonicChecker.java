@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.jepsen.timestamp;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +51,8 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
         private static final int DUMMY_PROCESS = -1;
 
         private final Map<Integer, InvokeEvent> pendingReadForProcess = new HashMap<>();
-        private final NavigableSet<OkEvent> acknowledgedReadsOverTime = new TreeSet<>(
-                (first, second) -> Long.compare(first.time(), second.time()));
+        private final NavigableSet<OkEvent> acknowledgedReadsOverTime =
+                new TreeSet<>(Comparator.comparingLong(OkEvent::time));
 
         private final List<Event> errors = new ArrayList<>();
 

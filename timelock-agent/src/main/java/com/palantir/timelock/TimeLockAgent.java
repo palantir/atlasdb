@@ -13,47 +13,94 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.timelock;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
+import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
+import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.atlasdb.timelock.paxos.PaxosResource;
+import com.palantir.lock.LockService;
+import com.palantir.remoting2.config.ssl.SslSocketFactories;
+import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.timelock.paxos.AsyncTimeLockServicesCreator;
+import com.palantir.timelock.paxos.LegacyTimeLockServicesCreator;
+import com.palantir.timelock.paxos.LockCreator;
+import com.palantir.timelock.paxos.PaxosLeadershipCreator;
+import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import com.palantir.timelock.paxos.PaxosTimestampCreator;
+import com.palantir.timelock.paxos.TimeLockServicesCreator;
 
 import io.reactivex.Observable;
 
-public abstract class TimeLockAgent {
-    protected final TimeLockInstallConfiguration install;
-    protected final Observable<TimeLockRuntimeConfiguration> runtime;
+public class TimeLockAgent {
+    private final TimeLockInstallConfiguration install;
+    private final Observable<TimeLockRuntimeConfiguration> runtime;
+    private final Consumer<Object> registrar;
 
-    protected final TimeLockDeprecatedConfiguration deprecated;
+    private final PaxosResource paxosResource;
+    private final PaxosLeadershipCreator leadershipCreator;
+    private final LockCreator lockCreator;
+    private final PaxosTimestampCreator timestampCreator;
+    private final TimeLockServicesCreator timelockCreator;
 
-    protected final Consumer<Object> registrar;
-
-    public TimeLockAgent(
-            TimeLockInstallConfiguration install,
+    public TimeLockAgent(TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
             Consumer<Object> registrar) {
         this(install, runtime, ImmutableTimeLockDeprecatedConfiguration.builder().build(), registrar);
     }
 
-    public TimeLockAgent(
-            TimeLockInstallConfiguration install,
+    public TimeLockAgent(TimeLockInstallConfiguration install,
             Observable<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
         this.install = install;
-        this.runtime = runtime.filter(this::configurationFilter);
-        this.deprecated = deprecated;
+        this.runtime = runtime;
         this.registrar = registrar;
+
+        this.paxosResource = PaxosResource.create(install.paxos().dataDirectory().toString());
+        this.leadershipCreator = new PaxosLeadershipCreator(install, runtime, registrar);
+        this.lockCreator = new LockCreator(runtime, deprecated);
+        this.timestampCreator = new PaxosTimestampCreator(paxosResource,
+                PaxosRemotingUtils.getRemoteServerPaths(install),
+                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
+                runtime.map(TimeLockRuntimeConfiguration::paxos));
+        this.timelockCreator = install.asyncLock().useAsyncLockService()
+                ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
+                : new LegacyTimeLockServicesCreator(leadershipCreator);
+    }
+
+    public void createAndRegisterResources() {
+        registerPaxosResource();
+        registerExceptionMappers();
+        leadershipCreator.registerLeaderElectionService();
+
+        // Finally, register the endpoints associated with the clients.
+        registrar.accept(new TimeLockResource(this::createInvalidatingTimeLockServices, Observables.blockingMostRecent(
+                runtime.map(conf -> conf.maxNumberOfClients()))));
+
+        ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
+    }
+
+    // No runtime configuration at the moment.
+    private void registerPaxosResource() {
+        registrar.accept(paxosResource);
+    }
+
+    private void registerExceptionMappers() {
+        registrar.accept(new BlockingTimeoutExceptionMapper());
+        registrar.accept(new NotCurrentLeaderExceptionMapper());
+        registrar.accept(new TooManyRequestsExceptionMapper());
     }
 
     /**
@@ -62,22 +109,11 @@ public abstract class TimeLockAgent {
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
-    protected abstract TimeLockServices createInvalidatingTimeLockServices(String client);
+    private TimeLockServices createInvalidatingTimeLockServices(String client) {
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
+                timestampCreator.createPaxosBackedTimestampService(client);
+        Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
-    /**
-     * Returns whether the given runtimeConfiguration should be permitted to be live reloaded.
-     * @param runtimeConfiguration Configuration to check the validity of
-     * @return true if and only if the configuration should be allowed
-     */
-    protected abstract boolean configurationFilter(TimeLockRuntimeConfiguration runtimeConfiguration);
-
-    public void createAndRegisterResources() {
-        Set<String> clients =
-                Observables.blockingMostRecent(runtime.map(TimeLockRuntimeConfiguration::clients)).get();
-        Map<String, TimeLockServices> clientToServices =
-                clients.stream().collect(Collectors.toMap(
-                        Function.identity(),
-                        this::createInvalidatingTimeLockServices));
-        registrar.accept(new TimeLockResource(clientToServices));
+        return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }
 }

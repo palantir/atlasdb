@@ -110,7 +110,6 @@ public class ColumnValueDescription {
         return forPersistable(clazz, Compression.NONE);
     }
 
-    @SuppressWarnings("unchecked")
     public static ColumnValueDescription forPersistable(Class<? extends Persistable> clazz,
                                                         Compression compression) {
         Validate.notNull(Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");

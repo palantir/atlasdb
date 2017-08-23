@@ -26,6 +26,7 @@ import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
@@ -33,7 +34,6 @@ import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.LockService;
-import com.palantir.timelock.config.AsyncLockConfiguration;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final PaxosLeadershipCreator leadershipCreator;
@@ -58,14 +58,16 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
                 new AsyncTimelockResource(asyncTimelockService));
 
-        Supplier<LockService> lockServiceSupplier =
+        LockService lockService = instrumentInLeadershipProxy(
+                LockService.class,
                 asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
                         ? rawLockServiceSupplier
-                        : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier);
+                        : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
+                client);
 
         return TimeLockServices.create(
                 asyncTimelockService,
-                instrumentInLeadershipProxy(LockService.class, lockServiceSupplier, client),
+                lockService,
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
     }

@@ -48,7 +48,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -82,16 +81,13 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
-    private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
 
-    private static final int NUM_CLIENTS = 5;
     private static final int MAX_SERVER_THREADS = 100;
     private static final int SELECTOR_THREADS = 8;
     private static final int ACCEPTOR_THREADS = 4;
     private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
-    private static final int LOCAL_TC_LIMIT = (AVAILABLE_THREADS / 2) / NUM_CLIENTS;
-    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS - LOCAL_TC_LIMIT * NUM_CLIENTS;
+    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS;
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -150,7 +146,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void singleClientCanUseLocalAndSharedThreads() throws Exception {
         List<RemoteLockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockService, LOCAL_TC_LIMIT + SHARED_TC_LIMIT))
+        assertThat(lockAndUnlockAndCountExceptions(lockService, SHARED_TC_LIMIT))
                 .isEqualTo(0);
     }
 
@@ -159,7 +155,7 @@ public class PaxosTimeLockServerIntegrationTest {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2), getLockService(CLIENT_3));
 
-        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, LOCAL_TC_LIMIT + SHARED_TC_LIMIT / 3))
+        assertThat(lockAndUnlockAndCountExceptions(lockServiceList, SHARED_TC_LIMIT / 3))
                 .isEqualTo(0);
     }
 
@@ -168,7 +164,7 @@ public class PaxosTimeLockServerIntegrationTest {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1));
         int exceedingRequests = 10;
-        int maxRequestsForOneClient = LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
+        int maxRequestsForOneClient = SHARED_TC_LIMIT;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, exceedingRequests + maxRequestsForOneClient))
                 .isEqualTo(exceedingRequests);
@@ -178,11 +174,11 @@ public class PaxosTimeLockServerIntegrationTest {
     public void throwsOnTwoClientsRequestingSameLockTooManyTimes() throws Exception {
         List<RemoteLockService> lockServiceList = ImmutableList.of(
                 getLockService(CLIENT_1), getLockService(CLIENT_2));
-        int exceedingRequests = SHARED_TC_LIMIT;
-        int requestsPerClient = LOCAL_TC_LIMIT + SHARED_TC_LIMIT;
+        int exceedingRequests = 10;
+        int requestsPerClient = (SHARED_TC_LIMIT + exceedingRequests) / 2;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(exceedingRequests);
+                .isEqualTo(exceedingRequests - 1);
     }
 
     private int lockAndUnlockAndCountExceptions(List<RemoteLockService> lockServices, int numRequestsPerClient)
@@ -390,20 +386,6 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void returnsNotFoundOnQueryingNonexistentClient() {
-        RemoteLockService nonExistentLockService = getLockService(NONEXISTENT_CLIENT);
-        assertThatThrownBy(nonExistentLockService::currentTimeMillis)
-                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
-    }
-
-    @Test
-    public void returnsNotFoundOnQueryingTimestampWithNonexistentClient() {
-        TimestampService nonExistentTimestampService = getTimestampService(NONEXISTENT_CLIENT);
-        assertThatThrownBy(nonExistentTimestampService::getFreshTimestamp)
-                .satisfies(PaxosTimeLockServerIntegrationTest::assertRemoteNotFoundException);
-    }
-
-    @Test
     public void throwsOnQueryingTimestampWithWithInvalidClientName() {
         TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
@@ -431,17 +413,16 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void leadershipEventsSmokeTest() throws IOException {
-        JsonNode metrics = getMetricsOutput();
+        MetricsOutput metrics = getMetricsOutput();
 
-        assertContainsMeter(metrics, "leadership.gained");
-        assertContainsMeter(metrics, "leadership.lost");
-        assertContainsMeter(metrics, "leadership.proposed");
-        assertContainsMeter(metrics, "leadership.no-quorum");
-        assertContainsMeter(metrics, "leadership.proposed.failure");
+        metrics.assertContainsMeter("leadership.gained");
+        metrics.assertContainsMeter("leadership.lost");
+        metrics.assertContainsMeter("leadership.proposed");
+        metrics.assertContainsMeter("leadership.no-quorum");
+        metrics.assertContainsMeter("leadership.proposed.failure");
 
-        JsonNode meters = metrics.get("meters");
-        assertThat(meters.get("leadership.gained").get("count").intValue()).isEqualTo(1);
-        assertThat(meters.get("leadership.proposed").get("count").intValue()).isEqualTo(1);
+        assertThat(metrics.getMeter("leadership.gained").get("count").intValue()).isEqualTo(1);
+        assertThat(metrics.getMeter("leadership.proposed").get("count").intValue()).isEqualTo(1);
     }
 
     @Test
@@ -451,39 +432,29 @@ public class PaxosTimeLockServerIntegrationTest {
         getLockService(CLIENT_1).currentTimeMillis();
         getTimelockService(CLIENT_1).lock(newLockV2Request(LOCK_1)).getToken();
 
-        JsonNode metrics = getMetricsOutput();
+        MetricsOutput metrics = getMetricsOutput();
 
         // time / lock services
-        assertContainsTimer(metrics,
+        metrics.assertContainsTimer(
                 "com.palantir.atlasdb.timelock.AsyncTimelockService.test.getFreshTimestamp");
-        assertContainsTimer(metrics, "com.palantir.lock.RemoteLockService.test.currentTimeMillis");
+        metrics.assertContainsTimer("com.palantir.lock.RemoteLockService.test.currentTimeMillis");
 
         // local leader election classes
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.learn");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.accept");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.propose");
-        assertContainsTimer(metrics, "com.palantir.leader.PingableLeader.ping");
-        assertContainsTimer(metrics, "com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
+        metrics.assertContainsTimer("com.palantir.leader.PingableLeader.ping");
+        metrics.assertContainsTimer("com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
 
         // local timestamp bound classes
-        assertContainsTimer(metrics, "com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosAcceptor.test.accept");
-        assertContainsTimer(metrics, "com.palantir.paxos.PaxosProposer.test.propose");
+        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.test.accept");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.test.propose");
 
         // async lock
         // TODO(nziebart): why does this flake on circle?
         //assertContainsTimer(metrics, "lock.blocking-time");
-    }
-
-    private static void assertContainsTimer(JsonNode metrics, String name) {
-        JsonNode timers = metrics.get("timers");
-        assertThat(timers.get(name)).isNotNull();
-    }
-
-    private static void assertContainsMeter(JsonNode metrics, String name) {
-        JsonNode meters = metrics.get("meters");
-        assertThat(meters.get(name)).isNotNull();
     }
 
     private static String getFastForwardUriForClientOne() {
@@ -498,9 +469,9 @@ public class PaxosTimeLockServerIntegrationTest {
                 .build()).execute();
     }
 
-    private static JsonNode getMetricsOutput() throws IOException {
-        return new ObjectMapper().readTree(
-                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics"));
+    private static MetricsOutput getMetricsOutput() throws IOException {
+        return new MetricsOutput(new ObjectMapper().readTree(
+                new URL("http", "localhost", TIMELOCK_SERVER_HOLDER.getAdminPort(), "/metrics")));
     }
 
     private static TimelockService getTimelockService(String client) {

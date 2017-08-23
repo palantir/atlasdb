@@ -31,22 +31,22 @@ import org.mockito.InOrder;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SnapshotTransactionManagerTest {
-    private final CloseableRemoteLockService closeableRemoteLockService = mock(CloseableRemoteLockService.class);
+    private final CloseableLockService closeableLockService = mock(CloseableLockService.class);
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             keyValueService,
-            new LegacyTimelockService(new InMemoryTimestampService(), closeableRemoteLockService,
+            new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
                     LockClient.of("lock")),
-            closeableRemoteLockService,
+            closeableLockService,
             null,
             null,
             null,
@@ -70,14 +70,14 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void closesCloseableLockServiceOnClosingTransactionManager() throws IOException {
         snapshotTransactionManager.close();
-        verify(closeableRemoteLockService, times(1)).close();
+        verify(closeableLockService, times(1)).close();
     }
 
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 keyValueService,
-                new LegacyTimelockService(new InMemoryTimestampService(), closeableRemoteLockService,
+                new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
                         LockClient.of("lock")),
                 mock(RemoteLockService.class), // not closeable
                 null,
