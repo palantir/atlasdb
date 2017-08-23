@@ -19,22 +19,20 @@ import org.junit.rules.ExternalResource;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.tritium.metrics.MetricRegistries;
 
 public class MetricsRule extends ExternalResource {
-
-    private MetricRegistry previousMetrics;
 
     @Override
     protected void before() throws Throwable {
         super.before();
-        previousMetrics = AtlasDbMetrics.getMetricRegistry();
+        AtlasDbMetrics.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
     }
 
     @Override
     protected void after() {
         super.after();
         MetricRegistry metrics = metrics();
-        AtlasDbMetrics.setMetricRegistry(previousMetrics);
         if (metrics != null) {
             ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics).build();
             reporter.report();

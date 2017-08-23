@@ -70,7 +70,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -85,7 +85,6 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
-import com.palantir.tritium.metrics.MetricRegistries;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
@@ -138,6 +137,9 @@ public class TransactionManagersTest {
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+
+    @Rule
+    public MetricsRule metricsRule = new MetricsRule();
 
     @Before
     public void setup() throws JsonProcessingException {
@@ -336,17 +338,15 @@ public class TransactionManagersTest {
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
-        MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
-        AtlasDbMetrics.setMetricRegistry(metrics);
-        assertThat(metrics.timer(timestampMetric).getCount(), is(equalTo(0L)));
-        assertThat(metrics.timer(lockMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(0L)));
 
         TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
         lockAndTimestampServices.timelock().getFreshTimestamp();
         lockAndTimestampServices.timelock().currentTimeMillis();
 
-        assertThat(metrics.timer(timestampMetric).getCount(), is(equalTo(1L)));
-        assertThat(metrics.timer(lockMetric).getCount(), is(equalTo(1L)));
+        assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(1L)));
+        assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(1L)));
     }
 
     private void setUpForLocalServices() throws IOException {
