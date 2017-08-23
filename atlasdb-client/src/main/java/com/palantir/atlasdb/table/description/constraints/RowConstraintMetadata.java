@@ -29,12 +29,12 @@ public class RowConstraintMetadata {
     private final List<String> columnVariables;
     private final List<String> allVariables;
 
-    public static Builder builder(Class<? extends RowConstraint> c) {
-        return new Builder(c, false, null);
+    public static Builder builder(Class<? extends RowConstraint> clazz) {
+        return new Builder(clazz, false, null);
     }
 
-    public static Builder builderGeneric(Class<? extends RowConstraint> c, String tableName) {
-        return new Builder(c, true, tableName);
+    public static Builder builderGeneric(Class<? extends RowConstraint> clazz, String tableName) {
+        return new Builder(clazz, true, tableName);
     }
     private RowConstraintMetadata(Class<? extends RowConstraint> constraintClass,
                                   List<String> rowVariables,
@@ -83,7 +83,7 @@ public class RowConstraintMetadata {
         private final List<String> allVariables = Lists.newArrayList();
 
         public Builder(Class<? extends RowConstraint> constraintClass, boolean isGeneric, String tableName) {
-            this.constraintClass=constraintClass;
+            this.constraintClass = constraintClass;
             this.isGeneric = isGeneric;
             this.tableName = tableName;
         }

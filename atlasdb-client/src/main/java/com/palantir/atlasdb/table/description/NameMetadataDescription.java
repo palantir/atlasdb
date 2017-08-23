@@ -43,7 +43,8 @@ public class NameMetadataDescription {
     private final boolean hasFirstComponentHash;
 
     public NameMetadataDescription() {
-        this(ImmutableList.of(new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), false);
+        this(ImmutableList.of(
+                new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), false);
     }
 
     private NameMetadataDescription(List<NameComponentDescription> components, boolean hasFirstComponentHash) {
@@ -109,7 +110,8 @@ public class NameMetadataDescription {
             }
             if (component.hasUniformPartitioner()) {
                 for (RowNamePartitioner rowNamePartitioner : partitioners) {
-                    nextPartitioners.addAll(rowNamePartitioner.compound(new UniformRowNamePartitioner(component.getType())));
+                    nextPartitioners.addAll(rowNamePartitioner.compound(
+                            new UniformRowNamePartitioner(component.getType())));
                 }
             }
             partitioners = nextPartitioners;
@@ -122,7 +124,7 @@ public class NameMetadataDescription {
         int offset = 0;
         Iterator<NameComponentDescription> it = rowParts.iterator();
         byte[] flippedName = null;
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             NameComponentDescription component = it.next();
             if (component.isReverseOrder() && flippedName == null) {
                 flippedName = EncodingUtils.flipAllBits(name);
@@ -165,10 +167,10 @@ public class NameMetadataDescription {
                     json);
 
             for (int i = 0; i < numDefinedFields; ++i) {
-                NameComponentDescription d = rowParts.get(i);
-                String s = String.valueOf(obj.get(d.getComponentName()));
-                bytes[i] = d.getType().convertFromString(s);
-                if (d.isReverseOrder()) {
+                NameComponentDescription desc = rowParts.get(i);
+                String str = String.valueOf(obj.get(desc.getComponentName()));
+                bytes[i] = desc.getType().convertFromString(str);
+                if (desc.isReverseOrder()) {
                     EncodingUtils.flipAllBitsInPlace(bytes[i]);
                 }
             }
@@ -190,7 +192,8 @@ public class NameMetadataDescription {
         for (int i = numFields + 1; i < rowParts.size(); ++i) {
             String componentName = rowParts.get(i).getComponentName();
             if (obj.containsKey(componentName)) {
-                throw new IllegalArgumentException("JSON object is missing field: " + rowParts.get(i-1).getComponentName());
+                throw new IllegalArgumentException("JSON object is missing field: "
+                        + rowParts.get(i - 1).getComponentName());
             }
         }
         return numFields;
