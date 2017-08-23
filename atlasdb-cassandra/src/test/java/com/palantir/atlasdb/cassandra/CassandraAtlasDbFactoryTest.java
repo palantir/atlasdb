@@ -25,8 +25,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceConfigTestHelper;
+import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 
 public class CassandraAtlasDbFactoryTest {
     private static final String KEYSPACE = "ks";
@@ -47,7 +46,7 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void throwsWhenPreprocessingNonCassandraKvsConfig() {
         assertThatThrownBy(() -> {
-            KeyValueServiceConfigTestHelper keyValueServiceConfig = () -> "Fake KVS";
+            KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
             CassandraAtlasDbFactory.preprocessKvsConfig(keyValueServiceConfig, Optional.empty());
         })
                 .isInstanceOf(IllegalArgumentException.class);
