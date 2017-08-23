@@ -310,7 +310,8 @@ public class TransactionManagersTest {
         setUpForLocalServices();
         setupLeaderBlockInConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC, REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
@@ -318,22 +319,25 @@ public class TransactionManagersTest {
         setUpForRemoteServices();
         setupLeaderBlockInConfig();
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC, REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
-    public void metricsAreReportedExactlyOnceWhenUsingTimelockService() throws IOException, InterruptedException {
+    public void metricsAreReportedExactlyOnceWhenUsingTimelockService() {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC, TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsAreRecorded(TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
+                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
-    public void metricsAreReportedExactlyOnceWhenUsingTimelockServiceWithRequestBatching() throws IOException, InterruptedException {
+    public void metricsAreReportedExactlyOnceWhenUsingTimelockServiceWithRequestBatching() {
         when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
 
-        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC, TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
 
     }
 
