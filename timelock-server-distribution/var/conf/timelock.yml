@@ -9,10 +9,6 @@ cluster:
 
 algorithm:
   type: paxos
-  sslConfiguration:
-    keyStorePath: /Users/hsaraogi/code/atlasdb2/timelock-server-distribution/var/security/keyStore.jks
-    keyStorePassword: keystore
-    trustStorePath: /Users/hsaraogi/code/atlasdb2/timelock-server-distribution/var/security/trustStore.jks
 
 useClientRequestLimit: true
 timeLimiter:
