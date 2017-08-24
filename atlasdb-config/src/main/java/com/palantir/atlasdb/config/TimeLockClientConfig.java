@@ -29,6 +29,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
 @Value.Immutable
 public abstract class TimeLockClientConfig {
+
+    /**
+     * Specifies the TimeLock client name.
+     * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
+     */
+    @Deprecated
     public abstract Optional<String> client();
 
     @JsonIgnore

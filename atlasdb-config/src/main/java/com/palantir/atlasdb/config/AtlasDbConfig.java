@@ -269,21 +269,34 @@ public abstract class AtlasDbConfig {
 
             keyValueService().namespace().ifPresent(kvsNamespace ->
                     Preconditions.checkState(kvsNamespace.equals(namespace),
-                            "The AtlasDbConfig namespace and the keyspace/dbName/sid config"
-                                    + " should be the same."));
+                            "If present, keyspace/dbName/sid config should the same as the"
+                                    + " atlas root-level namespace config."));
 
             timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
                     Preconditions.checkState(client.equals(namespace),
-                            "The AtlasDbConfig namespace and the timelock client should be the same.")));
+                            "If present, the TimeLock client config should be the same"
+                                    + " as the atlas root-level namespace config.")));
         } else {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
-                    "Either the namespace or the keyspace/dbName/sid config needs to be set.");
+                    "Either the atlas root-level namespace"
+                            + " or the keyspace/dbName/sid config needs to be set.");
 
             Optional<String> keyValueServiceNamespace = keyValueService().namespace();
-            timelock().ifPresent(timelock ->
-                    Preconditions.checkState(timelock.client().equals(keyValueServiceNamespace),
-                            "The timelock client and the keyspace/dbName/sid config"
-                                    + " should be the same."));
+
+            if (timelock().isPresent()) {
+                TimeLockClientConfig timeLockConfig = timelock().get();
+
+                Preconditions.checkState(timeLockConfig.client().isPresent(),
+                        "Either the atlas root-level namespace config or the TimeLock client config"
+                                + " should be present.");
+
+                // In this case, we need to change the TimeLock client name to be equal to the KVS namespace
+                // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
+                // will return the timestamp bound store to 0, so we also need to fast forward the new client bound
+                // to a value above of the original bound.
+                Preconditions.checkState(timeLockConfig.client().equals(keyValueServiceNamespace),
+                        "Potential data corruption, please contact AtlasDb support.");
+            }
         }
     }
 
