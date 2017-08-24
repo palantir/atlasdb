@@ -32,7 +32,7 @@ If you are using the :ref:`external Timelock service <external-timelock-service>
 Furthermore, you may configure a ``namespace`` for your AtlasDB client.
 If using TimeLock, this will be the name of your TimeLock client; if using Cassandra, this will also be the name of your keyspace.
 If this is not configured, we will read the ``client`` from the TimeLock client block, and the ``keyspace`` directly from the Cassandra KVS config block respectively.
-Note that AtlasDB will fail to start if the ``namespace`` and (Cassandra ``keyspace`` or TimeLock ``client``) are not equal.
+Note that AtlasDB will fail to start if any pair of the following are not equal: the ``namespace``, the Cassandra ``keyspace`` or the TimeLock ``client``.
 Previously, users' Cassandra keyspaces and TimeLock clients were configured independently; this could lead to data corruption if one misconfigured one of the parameters.
 
 For a full list of the configurations available at the ``atlasdb`` root level, see
