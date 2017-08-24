@@ -251,7 +251,7 @@ public final class OracleDdlTable implements DbDdlTable {
                         "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
                                 + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
-                log.error(compactionFailureTemplate + "Underlying error was: {}",
+                log.error(compactionFailureTemplate + " Underlying error was: {}",
                         tableRef,
                         "(Enterprise Edition that requires this user to be able to perform DDL operations)",
                         e.getMessage());
