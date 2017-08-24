@@ -26,6 +26,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -186,9 +187,33 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     @Idempotent
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+            final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
+        return getRanges(tableRef, rangeRequests, super.getUnfetchedRanges(tableRef, rangeRequests));
+    }
+
+    @Override
+    @Idempotent
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int prefetchConcurrency,
+            ExecutorService executorService) {
+        return getRanges(tableRef, rangeRequests,
+                super.getRangesWithFirstPages(tableRef, rangeRequests, prefetchConcurrency, executorService));
+    }
+
+    @Override
+    @Idempotent
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(final TableReference tableRef,
-                                                             Iterable<RangeRequest> rangeRequests) {
-        Iterable<BatchingVisitable<RowResult<byte[]>>> ret = super.getRanges(tableRef, rangeRequests);
+            Iterable<RangeRequest> rangeRequests) {
+        return getRanges(tableRef, rangeRequests, super.getRanges(tableRef, rangeRequests));
+    }
+
+    private Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            Iterable<BatchingVisitable<RowResult<byte[]>>> ret) {
         Iterable<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> zip = IterableUtils.zip(rangeRequests, ret);
         return Iterables.transform(zip, pair -> wrapRange(tableRef, pair.lhSide, pair.rhSide));
     }

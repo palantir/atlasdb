@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutorService;
 
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -76,11 +77,35 @@ public interface Transaction {
      * the batch hint in each RangeRequest. If this isn't done then this method may do more work
      * than you need and will be slower than it needs to be.  If the batchHint isn't specified it
      * will default to 1 for the first page in each range.
+     *
+     * @deprecated Should use either {@link #getUnfetchedRanges(TableReference, Iterable)} or
+     * {@link #getRangesWithFirstPages(TableReference, Iterable, int, ExecutorService)} to ensure you
+     * are using an appropriate level of concurrency.
      */
     @Idempotent
+    @Deprecated
     Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests);
+
+    /**
+     * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
+     * visitibles will incur database reads on first access.
+     */
+    @Idempotent
+    Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+            final TableReference tableRef, Iterable<RangeRequest> rangeRequests);
+
+    /**
+     * Same as {@link #getUnfetchedRanges(TableReference, Iterable)} but pre-fetches the first page of each visitible.
+     * @param prefetchConcurrency the maximum number of ranges that are pre-fetched concurrently
+     */
+    @Idempotent
+    Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int prefetchConcurrency,
+            ExecutorService executorService);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then
