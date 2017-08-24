@@ -489,7 +489,7 @@ public final class TransactionManagers {
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         Preconditions.checkState(config.timelock().isPresent(),
-                "Cannot create raw services from a config without a timelock block!");
+                "Cannot create raw services from timelock without a timelock block!");
         TimeLockClientConfig clientConfig = config.timelock().get();
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         TimeLockClientConfig timeLockClientConfig =

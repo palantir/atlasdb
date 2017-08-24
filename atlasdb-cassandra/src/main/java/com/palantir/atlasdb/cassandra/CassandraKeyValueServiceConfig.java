@@ -43,6 +43,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract Set<InetSocketAddress> servers();
 
+    @Override
     @JsonIgnore
     @Value.Derived
     public Optional<String> namespace() {
