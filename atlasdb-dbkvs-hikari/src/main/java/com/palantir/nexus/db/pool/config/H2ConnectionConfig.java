@@ -37,7 +37,7 @@ public abstract class H2ConnectionConfig extends ConnectionConfig {
     @JsonIgnore
     @Value.Derived
     public Optional<String> namespace() {
-        return Optional.of("H2 namespace");
+        return Optional.empty();
     }
 
     @Override

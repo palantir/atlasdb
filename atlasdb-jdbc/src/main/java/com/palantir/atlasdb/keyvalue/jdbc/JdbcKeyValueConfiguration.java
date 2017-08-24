@@ -42,7 +42,7 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
     @JsonIgnore
     @Value.Derived
     public Optional<String> namespace() {
-        return Optional.of("Jdbc namespace");
+        return Optional.empty();
     }
 
     @Override
