@@ -84,6 +84,10 @@ develop
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
 
+    *    - |improved|
+         - Added two new methods to Transaction, getUnfetchedRanges and getRangesWithFirstPages. These allow for better control over concurrency than the old getRanges method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+
 =======
 v0.53.0
 =======
