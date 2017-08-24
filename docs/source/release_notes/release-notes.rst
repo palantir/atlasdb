@@ -44,6 +44,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - If ``enableOracleEnterpriseFeatures`` if configured to be false, you will now see warnings asking you to run Oracle compaction manually.
+           This will help make non-EE Oracle users aware of potential database bloat.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2277>`__)
+
     *    - |fixed|
          - Fixed a case where logging an expection suppressing itself would cause a stack overflow.
            See https://jira.qos.ch/browse/LOGBACK-1027.
