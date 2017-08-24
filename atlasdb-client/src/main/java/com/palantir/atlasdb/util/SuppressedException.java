@@ -41,7 +41,7 @@ final class SuppressedException extends RuntimeException {
     }
 
     private static String highLevelType(Throwable throwable) {
-        for (Class namedClass: namedThrowables) {
+        for (Class namedClass : namedThrowables) {
             if (namedClass.isInstance(throwable)) {
                 return namedClass.getSimpleName();
             }
