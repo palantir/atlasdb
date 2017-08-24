@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.ForwardingObject;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -82,6 +83,21 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef,
                                                                     Iterable<RangeRequest> rangeRequests) {
         return delegate().getRanges(tableRef, rangeRequests);
+    }
+
+    @Override
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+            final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
+        return delegate().getUnfetchedRanges(tableRef, rangeRequests);
+    }
+
+    @Override
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int prefetchConcurrency,
+            ExecutorService executorService) {
+        return delegate().getRangesWithFirstPages(tableRef, rangeRequests, prefetchConcurrency, executorService);
     }
 
     @Override

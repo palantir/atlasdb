@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,9 +30,13 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -119,6 +124,7 @@ import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.concurrent.ConcurrentStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -196,6 +202,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
     protected final long lockAcquireTimeoutMs;
+
+    // This is just the max time we block on a semaphore in the RequestLimitedExecutorService. This shouldn't
+    // ever be hit if the underlying KVS has a reasonable timeout (e.g. Cassandra query timeout).
+    private static final Duration DEFAULT_RANGE_REQUEST_TIMEOUT = Duration.ofMinutes(10);
 
     private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
@@ -681,6 +691,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             input.size(), tableRef, processedRangeMillis);
                     return ret;
                 });
+    }
+
+    @Override
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+            final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
+
+        return StreamSupport.stream(rangeRequests.spliterator(), false).map(rangeRequest ->
+                new AbstractBatchingVisitable<RowResult<byte[]>>() {
+                    @Override
+                    protected <K extends Exception> void batchAcceptSizeHint(
+                            int batchSizeHint, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
+                        getRange(tableRef, rangeRequest).batchAccept(batchSizeHint, visitor);
+                    }
+                }).collect(Collectors.toList());
+    }
+
+    @Override
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int prefetchConcurrency,
+            ExecutorService executorService) {
+        Stream<BatchingVisitable<RowResult<byte[]>>> resultStream = ConcurrentStreams.map(
+                rangeRequests,
+                rangeRequest -> getRange(tableRef, rangeRequest),
+                executorService,
+                prefetchConcurrency,
+                DEFAULT_RANGE_REQUEST_TIMEOUT);
+        return resultStream.collect(Collectors.toList());
     }
 
     private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef) {
