@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 
 import org.junit.Test;
@@ -83,6 +85,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
+    private final ExecutorService rangesExecutor = Executors.newFixedThreadPool(32);
     protected final TimestampCache timestampCache = TimestampCache.create();
     protected boolean supportsReverse() {
         return true;
@@ -490,11 +493,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         RangeRequest allRange = RangeRequest.builder().batchHint(3).build();
         t = startTransaction();
-        final Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(allRange), 1000));
-        for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
-            final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
-            assertEquals(1, list.size());
-        }
+
+        verifyAllGetRangesImplsRangeSizes(t, Iterables.limit(Iterables.cycle(allRange), 1000), 1);
     }
 
     @Test
@@ -513,11 +513,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             assertEquals(1, list.get(0).getColumns().size());
         }
         RangeRequest range3 = range1.getBuilder().retainColumns(ColumnSelection.create(ImmutableSet.of(PtBytes.toBytes("col2")))).build();
-        ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(range3), 1000));
-        for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
-            final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
-            assertEquals(0, list.size());
-        }
+        verifyAllGetRangesImplsRangeSizes(t, Iterables.limit(Iterables.cycle(range3), 1000), 0);
     }
 
     @Test
@@ -1101,7 +1097,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         t = startTransaction();
         List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row1Bytes).build());
-        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
+        verifyAllGetRangesImplsNumRanges(t, ranges, 1);
     }
 
     @Test
@@ -1126,7 +1122,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         t = startTransaction();
         byte[] rangeEnd = RangeRequests.nextLexicographicName(row00Bytes);
         List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row0Bytes).endRowExclusive(rangeEnd).batchHint(1).build());
-        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
+        verifyAllGetRangesImplsNumRanges(t, ranges, 1);
     }
 
     @Test
@@ -1155,5 +1151,36 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
+    }
+
+    private void verifyAllGetRangesImplsRangeSizes(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedRangeSize) {
+        List<BatchingVisitable<RowResult<byte[]>>> rangesImpl1 = ImmutableList.copyOf(
+                t.getRanges(TEST_TABLE, rangeRequests));
+        List<BatchingVisitable<RowResult<byte[]>>> rangesImpl2 = ImmutableList.copyOf(
+                t.getUnfetchedRanges(TEST_TABLE, rangeRequests));
+        List<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 = ImmutableList.copyOf(
+                t.getRangesWithFirstPages(TEST_TABLE, rangeRequests, 2, rangesExecutor));
+
+        assertEquals(rangesImpl1.size(), rangesImpl2.size());
+        assertEquals(rangesImpl2.size(), rangesImpl3.size());
+
+        for (int i = 0; i < rangesImpl1.size(); i++) {
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(rangesImpl1.get(i)).size());
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(rangesImpl2.get(i)).size());
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(rangesImpl3.get(i)).size());
+        }
+    }
+
+    private void verifyAllGetRangesImplsNumRanges(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedNumberOfRows) {
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl1 =
+                t.getRanges(TEST_TABLE, rangeRequests);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl2 =
+                t.getUnfetchedRanges(TEST_TABLE, rangeRequests);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 =
+                t.getRangesWithFirstPages(TEST_TABLE, rangeRequests, 2, rangesExecutor);
+
+        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(rangesImpl1).count());
+        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(rangesImpl2).count());
+        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(rangesImpl3).count());
     }
 }
