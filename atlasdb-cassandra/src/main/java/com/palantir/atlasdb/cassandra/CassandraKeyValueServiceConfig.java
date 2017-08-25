@@ -117,6 +117,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * Note that when the keyspace is read, this field must be present.
      * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
      */
+    @Deprecated
     public abstract Optional<String> keyspace();
 
     public abstract Optional<CassandraCredentialsConfig> credentials();
