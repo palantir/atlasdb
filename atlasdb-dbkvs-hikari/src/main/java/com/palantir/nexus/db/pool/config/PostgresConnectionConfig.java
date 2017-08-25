@@ -16,10 +16,12 @@
 package com.palantir.nexus.db.pool.config;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -36,6 +38,13 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
 
     public abstract String getHost();
     public abstract int getPort();
+
+    @Override
+    @Value.Derived
+    @JsonIgnore
+    public Optional<String> namespace() {
+        return Optional.of(getDbName());
+    }
 
     /**
      * Set arbitrary additional connection parameters.

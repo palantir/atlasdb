@@ -38,7 +38,7 @@ class CassandraTables {
     }
 
     Set<String> getExisting() {
-        String keyspace = configManager.getConfig().keyspace();
+        String keyspace = configManager.getConfig().getKeyspaceOrThrow();
 
         try {
             return clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Set<String>, Exception>() {
@@ -62,7 +62,7 @@ class CassandraTables {
     }
 
     Set<String> getExistingLowerCased() throws TException {
-        return getExistingLowerCased(configManager.getConfig().keyspace());
+        return getExistingLowerCased(configManager.getConfig().getKeyspaceOrThrow());
     }
 
     private Set<String> getExistingLowerCased(String keyspace) throws TException {

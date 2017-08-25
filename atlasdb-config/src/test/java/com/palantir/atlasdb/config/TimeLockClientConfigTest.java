@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.config;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertThat;
@@ -64,6 +65,21 @@ public class TimeLockClientConfigTest {
         TimeLockClientConfig config = ImmutableTimeLockClientConfig.copyOf(CLIENT_CONFIG)
                 .withServersList(serversListWithoutSsl);
         assertThat(config.toNamespacedServerList().sslConfiguration(), equalTo(Optional.empty()));
+    }
+
+    @Test
+    public void canCreateWithoutClientSpecified() {
+        ImmutableTimeLockClientConfig.builder()
+                .serversList(SERVERS_LIST)
+                .build();
+    }
+
+    @Test
+    public void throwsWhenReadingClientWithoutClientSpecified() {
+        TimeLockClientConfig config = ImmutableTimeLockClientConfig.builder()
+                .serversList(SERVERS_LIST)
+                .build();
+        assertThatThrownBy(config::getClientOrThrow).isInstanceOf(IllegalStateException.class);
     }
 
     private static TimeLockClientConfig getTimelockConfigForServers(List<String> servers) {

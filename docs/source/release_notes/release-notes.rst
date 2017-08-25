@@ -44,6 +44,24 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - If AtlasDB is used with TimeLock, and the TimeLock client name is different than either the Cassandra ``keyspace``, Postgres ``dbName``, or Oracle ``sid``, *AtlasDB will fail to start*.
+           This was done to avoid risks of data corruption if these are accidentally changed independently.
+           If the above parameters contradict, please contact the AtlasDB team to change the TimeLock client name. Changing it in config without additional action may result in *severe data corruption*.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
+    *    - |new|
+         - AtlasDB introduces a top-level ``namespace`` configuration parameter, which is used to set the ``keyspace`` in Cassandra and the ``client`` in TimeLock.
+           Following the previous change, we unify both the configs that cannot be changed separately in one single config. Therefore it is suggested that AtlasDB users follow and use the new parameter to specify both the deprecated ones.
+           Note that if the new ``namespace`` config contradicts with either the Cassandra ``keyspace`` and/or the TimeLock ``client`` configs, *AtlasDB will fail to start*.
+           Please consult the documentation for :ref:`AtlasDB Configuration <atlas-config>` for details on how to set this up.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
+    *    - |deprecated|
+         - As a followup of the ``namespace`` change, the Cassandra ``keyspace`` and TimeLock ``client`` configs were deprecated.
+           As said previously, please use the ``namespace`` root level config to specify both of these parameters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
     *    - |improved|
          - If ``enableOracleEnterpriseFeatures`` if configured to be false, you will now see warnings asking you to run Oracle compaction manually.
            This will help make non-EE Oracle users aware of potential database bloat.

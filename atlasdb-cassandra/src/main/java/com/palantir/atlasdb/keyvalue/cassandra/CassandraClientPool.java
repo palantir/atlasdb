@@ -568,7 +568,7 @@ public class CassandraClientPool {
             new FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception>() {
                 @Override
                 public List<TokenRange> apply(Cassandra.Client client) throws Exception {
-                    return client.describe_ring(config.keyspace());
+                    return client.describe_ring(config.getKeyspaceOrThrow());
                 }
             };
 
@@ -702,11 +702,11 @@ public class CassandraClientPool {
             try {
                 client = CassandraClientFactory.getClientInternal(host, config);
                 try {
-                    client.describe_keyspace(config.keyspace());
+                    client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
                     return; // don't care to check for ring consistency when we're not even fully initialized
                 }
-                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.keyspace())), host);
+                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
                 log.warn("failed to get ring info from host: {}", host, e);
             } finally {
@@ -717,7 +717,7 @@ public class CassandraClientPool {
 
             if (tokenRangesToHost.isEmpty()) {
                 log.warn("Failed to get ring info for entire Cassandra cluster ({});"
-                        + " ring could not be checked for consistency.", config.keyspace());
+                        + " ring could not be checked for consistency.", config.getKeyspaceOrThrow());
                 return;
             }
 

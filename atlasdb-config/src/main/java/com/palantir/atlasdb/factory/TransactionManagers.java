@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -45,6 +46,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimeLockClientConfigs;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -106,6 +108,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.util.OptionalResolver;
 
 public final class TransactionManagers {
 
@@ -216,7 +219,7 @@ public final class TransactionManagers {
                 () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader(), config.namespace());
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
@@ -475,12 +478,24 @@ public final class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
-            TimeLockClientConfig timeLockClientConfig = config.timelock().get();
-            TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
-            return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
+            return createRawServicesFromTimeLock(config, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time, userAgent);
         }
+    }
+
+    private static LockAndTimestampServices createRawServicesFromTimeLock(
+            AtlasDbConfig config,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
+        Preconditions.checkState(config.timelock().isPresent(),
+                "Cannot create raw services from timelock without a timelock block!");
+        TimeLockClientConfig clientConfig = config.timelock().get();
+        String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
+        TimeLockClientConfig timeLockClientConfig =
+                TimeLockClientConfigs.copyWithClient(config.timelock().get(), resolvedClient);
+        TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
+        return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
     }
 
     private static LockAndTimestampServices createNamespacedRawRemoteServices(

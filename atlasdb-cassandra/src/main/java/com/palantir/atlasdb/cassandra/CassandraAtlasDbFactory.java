@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra;
 import java.util.Optional;
 
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -30,18 +31,31 @@ import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.util.OptionalResolver;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace) {
         AtlasDbVersion.ensureVersionReported();
+        CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
+        return createKv(preprocessedConfig, leaderConfig);
+    }
+
+    @VisibleForTesting
+    static CassandraKeyValueServiceConfig preprocessKvsConfig(
+            KeyValueServiceConfig config,
+            Optional<String> namespace) {
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
                 "CassandraAtlasDbFactory expects a configuration of type"
-                + " CassandraKeyValueServiceConfig, found %s", config.getClass());
-        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
+                        + " CassandraKeyValueServiceConfig, found %s", config.getClass());
+        CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
+
+        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
+        return CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
     }
 
     private static CassandraKeyValueService createKv(
