@@ -96,7 +96,7 @@ v0.54.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
 
     *    - |improved|
-         - If ``enableOracleEnterpriseFeatures`` if configured to be false, you will now see warnings asking you to run Oracle compaction manually.
+         - If ``enableOracleEnterpriseFeatures`` is configured to be false, you will now see warnings asking you to run Oracle compaction manually.
            This will help make non-EE Oracle users aware of potential database bloat.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2277>`__)
 
