@@ -199,6 +199,13 @@ single <code class="docutils literal"><span class="pre">timelock</span></code> b
 blocks must be absent from the config if you are using the Timelock Server.</p>
 <div class="section" id="timelock">
 <h2>Timelock<a class="headerlink" href="#timelock" title="Permalink to this headline">¶</a></h2>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">Changing the TimeLock <code class="docutils literal"><span class="pre">client</span></code> will mean that one receives timestamps from a different timestamp service.
+This may result in <strong>SEVERE DATA CORRUPTION</strong> as the timestamp service’s guarantees may be broken.
+Doing this safely requires a fast forward of the new client to at least the highest timestamp given out from the old client.
+Please contact the AtlasDB team for assistance on such a operation.</p>
+</div>
 <p>Required parameters:</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -212,9 +219,9 @@ blocks must be absent from the config if you are using the Timelock Server.</p>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>client</td>
-<td>The name of your client, generally the same as your application name. This client
-must also be on the <code class="docutils literal"><span class="pre">clients</span></code> list of the Timelock Server, as discussed in
-<a class="reference internal" href="timelock_server_config.html#timelock-server-configuration"><span class="std std-ref">Timelock Server Configuration</span></a>.</td>
+<td>The name of your client, generally the same as your application name.
+Note that if the top-level AtlasDB <code class="docutils literal"><span class="pre">namespace</span></code> configuration parameter is set, then this parameter need not be set.
+However, if it is, then this parameter MUST be equal to the AtlasDB <code class="docutils literal"><span class="pre">namespace</span></code>, or AtlasDB will fail to start.</td>
 </tr>
 <tr class="row-odd"><td>serversList::servers</td>
 <td>A list of all hosts. The hosts must be specified as addresses, i.e. <code class="docutils literal"><span class="pre">https://host:port</span></code>.
@@ -247,13 +254,14 @@ library. This should also be in alignment with the protocol used when configurin
 <span id="timelock-config-examples"></span><h2>Timelock Configuration Examples<a class="headerlink" href="#timelock-configuration-examples" title="Permalink to this headline">¶</a></h2>
 <p>Here is an example of an AtlasDB configuration with the <code class="docutils literal"><span class="pre">timelock</span></code> block.</p>
 <p>You must ensure that you have migrated to the Timelock Server before adding a <code class="docutils literal"><span class="pre">timelock</span></code> block to the config.</p>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
+
+<span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
     <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
     <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra:9160</span>
     <span class="l l-Scalar l-Scalar-Plain">poolSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">20</span>
-    <span class="l l-Scalar l-Scalar-Plain">keyspace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
     <span class="l l-Scalar l-Scalar-Plain">credentials</span><span class="p p-Indicator">:</span>
       <span class="l l-Scalar l-Scalar-Plain">username</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
       <span class="l l-Scalar l-Scalar-Plain">password</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
@@ -266,7 +274,6 @@ library. This should also be in alignment with the protocol used when configurin
     <span class="l l-Scalar l-Scalar-Plain">autoRefreshNodes</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
 
   <span class="l l-Scalar l-Scalar-Plain">timelock</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">client</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
     <span class="l l-Scalar l-Scalar-Plain">serversList</span><span class="p p-Indicator">:</span>
       <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
         <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
@@ -276,6 +283,7 @@ library. This should also be in alignment with the protocol used when configurin
         <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
 </pre></div>
 </div>
+<p>The example above uses the <code class="docutils literal"><span class="pre">namespace</span></code> parameter; the <code class="docutils literal"><span class="pre">client</span></code> we will use when connecting to TimeLock will be <code class="docutils literal"><span class="pre">yourapp</span></code>.</p>
 </div>
 </div>
 

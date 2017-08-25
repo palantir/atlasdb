@@ -202,6 +202,11 @@ parameters will go. Please see <a class="reference internal" href="key_value_ser
 <p>In addition to the <code class="docutils literal"><span class="pre">keyValueServiceConfig</span></code>, you must specify a configuration for the timestamp and lock services.
 If you are using an embedded timestamp and lock service, see the <a class="reference internal" href="leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a> documentation.
 If you are using the <a class="reference internal" href="../services/timelock_service/index.html#external-timelock-service"><span class="std std-ref">external Timelock service</span></a>, then see the <a class="reference internal" href="external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a>.</p>
+<p>Furthermore, you may configure a <code class="docutils literal"><span class="pre">namespace</span></code> for your AtlasDB client.
+If using TimeLock, this will be the name of your TimeLock client; if using Cassandra, this will also be the name of your keyspace.
+If this is not configured, we will read the <code class="docutils literal"><span class="pre">client</span></code> from the TimeLock client block, and the <code class="docutils literal"><span class="pre">keyspace</span></code> directly from the Cassandra KVS config block respectively.
+Note that AtlasDB will fail to start if any pair of the following are not equal: the <code class="docutils literal"><span class="pre">namespace</span></code>, the Cassandra <code class="docutils literal"><span class="pre">keyspace</span></code> or the TimeLock <code class="docutils literal"><span class="pre">client</span></code>.
+Previously, users’ Cassandra keyspaces and TimeLock clients were configured independently; this could lead to data corruption if one misconfigured one of the parameters.</p>
 <p>For a full list of the configurations available at the <code class="docutils literal"><span class="pre">atlasdb</span></code> root level, see
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java">AtlasDbConfig.java</a>.</p>
 <p>A second root configuration block can be specified for live-reloadable configs.
@@ -213,6 +218,8 @@ For a full list of the configurations available at this block, see
 <div class="section" id="example-configuration">
 <h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
+
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
     <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
     <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
@@ -220,7 +227,6 @@ For a full list of the configurations available at this block, see
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra-2:9160</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">cassandra-3:9160</span>
     <span class="l l-Scalar l-Scalar-Plain">poolSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">30</span>
-    <span class="l l-Scalar l-Scalar-Plain">keyspace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
     <span class="l l-Scalar l-Scalar-Plain">credentials</span><span class="p p-Indicator">:</span>
       <span class="l l-Scalar l-Scalar-Plain">username</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
       <span class="l l-Scalar l-Scalar-Plain">password</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
