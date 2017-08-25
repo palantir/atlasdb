@@ -13,6 +13,7 @@ config:
 
     real:
       atlasdb:
+        namespace: memory
         keyValueService:
           type: memory
 

@@ -7,5 +7,6 @@ server:
       port: 3829
 
 atlasdb:
+  namespace: memory
   keyValueService:
     type: memory
