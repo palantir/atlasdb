@@ -269,13 +269,13 @@ public abstract class AtlasDbConfig {
 
             keyValueService().namespace().ifPresent(kvsNamespace ->
                     Preconditions.checkState(kvsNamespace.equals(namespace),
-                            "If present, keyspace/dbName/sid config should the same as the"
+                            "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
             timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
                     Preconditions.checkState(client.equals(namespace),
-                            "If present, the TimeLock client config should be the same"
-                                    + " as the atlas root-level namespace config.")));
+                            "If present, the TimeLock client config should be the same as the"
+                                    + " atlas root-level namespace config.")));
         } else {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"

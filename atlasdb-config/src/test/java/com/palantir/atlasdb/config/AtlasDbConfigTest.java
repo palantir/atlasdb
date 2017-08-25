@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.config;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -175,20 +177,26 @@ public class AtlasDbConfigTest {
                 .build();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void absentNamespaceRequiresKvsNamespace() {
-        ImmutableAtlasDbConfig.builder()
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
                 .leader(LEADER_CONFIG)
-                .build();
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                assertThat(exception.getMessage(), containsString("config needs to be set")));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void absentNamespaceRequiresTimelockClient() {
-        ImmutableAtlasDbConfig.builder()
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
-                .build();
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("config should be present")));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -208,22 +216,28 @@ public class AtlasDbConfigTest {
                 .build();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void namespaceAndTimelockClientShouldMatch() {
-        ImmutableAtlasDbConfig.builder()
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .namespace("client")
                 .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
-                .build();
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("config should be the same")));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void namespaceAndKvsNamespaceShouldMatch() {
-        ImmutableAtlasDbConfig.builder()
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .namespace("client")
                 .keyValueService(KVS_CONFIG_WITH_OTHER_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
-                .build();
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("config should be the same")));
     }
 
     @Test
