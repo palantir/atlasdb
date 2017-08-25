@@ -17,36 +17,33 @@
 package com.palantir.common.concurrent;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class ConcurrentStreams {
 
+    private ConcurrentStreams() {}
+
     public static <T, S> Stream<S> map(
-            Iterable<T> values, Function<T, S> mapper,
-            ExecutorService executor, int maxConcurrency, Duration operationTimeout) {
+            Stream<T> stream, Function<T, S> mapper, ExecutorService executor, int concurrency, Duration timeout) {
 
-        int size = Iterables.size(values);
-        if (size == 1 || maxConcurrency == 1) {
-            return StreamSupport.stream(values.spliterator(), false).map(mapper);
+        int size = (int) stream.count();
+        if (size == 1 || concurrency == 1) {
+            return stream.map(mapper);
         }
-        if (size > maxConcurrency) {
-            executor = RequestLimitedExecutorService.fromDelegate(executor, maxConcurrency, operationTimeout);
+        if (size > concurrency) {
+            executor = RequestLimitedExecutorService.fromDelegate(executor, concurrency, timeout);
         }
 
+        final ExecutorService finalExecutor = executor;
         List<Future<S>> futures = Lists.newArrayListWithCapacity(size);
-        for (T value : values) {
-            futures.add(executor.submit(() -> mapper.apply(value)));
-        }
+        stream.forEach(value -> futures.add(finalExecutor.submit(() -> mapper.apply(value))));
 
         return futures.stream().map(f -> {
             try {
@@ -55,12 +52,6 @@ public class ConcurrentStreams {
                 throw new RuntimeException(e);
             }
         });
-    }
-
-    public static <T, S> Stream<S> concat(
-            Iterable<T> values, Function<T, List<S>> mapper,
-            ExecutorService executor, int maxConcurrency, Duration operationTimeout) {
-        return map(values, mapper, executor, maxConcurrency, operationTimeout).flatMap(Collection::stream);
     }
 
 }

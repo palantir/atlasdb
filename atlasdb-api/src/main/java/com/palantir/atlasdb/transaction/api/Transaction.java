@@ -19,8 +19,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
+import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -78,9 +79,9 @@ public interface Transaction {
      * than you need and will be slower than it needs to be.  If the batchHint isn't specified it
      * will default to 1 for the first page in each range.
      *
-     * @deprecated Should use either {@link #getUnfetchedRanges(TableReference, Iterable)} or
-     * {@link #getRangesWithFirstPages(TableReference, Iterable, int, ExecutorService)} to ensure you
-     * are using an appropriate level of concurrency.
+     * @deprecated Should use either {@link #getRanges(TableReference, Iterable, int, Function)} or
+     * {@link #getUnfetchedRanges(TableReference, Iterable)} to ensure you are using an appropriate level
+     * of concurrency for your specific workflow.
      */
     @Idempotent
     @Deprecated
@@ -89,23 +90,23 @@ public interface Transaction {
             Iterable<RangeRequest> rangeRequests);
 
     /**
+     * Creates unvisited visitibles that scan the provided ranges and then applies the provided visitableProcessor
+     * function with concurrency specified by the concurrencyLevel parameter.
+     */
+    @Idempotent
+    <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int concurrencyLevel,
+            Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+
+    /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
      * visitibles will incur database reads on first access.
      */
     @Idempotent
-    Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+    Stream<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests);
-
-    /**
-     * Same as {@link #getUnfetchedRanges(TableReference, Iterable)} but pre-fetches the first page of each visitible.
-     * @param prefetchConcurrency the maximum number of ranges that are pre-fetched concurrently
-     */
-    @Idempotent
-    Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
-            final TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            int prefetchConcurrency,
-            ExecutorService executorService);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then

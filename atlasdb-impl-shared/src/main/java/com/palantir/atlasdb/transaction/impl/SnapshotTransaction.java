@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -202,10 +201,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
     protected final long lockAcquireTimeoutMs;
-
-    // This is just the max time we block on a semaphore in the RequestLimitedExecutorService. This shouldn't
-    // ever be hit if the underlying KVS has a reasonable timeout (e.g. Cassandra query timeout).
-    private static final Duration DEFAULT_RANGE_REQUEST_TIMEOUT = Duration.ofMinutes(10);
+    protected final ExecutorService getRangesExecutor;
+    protected final Duration getRangesConcurrentRequestTimeout;
 
     private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
@@ -231,7 +228,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                TransactionReadSentinelBehavior readSentinelBehavior,
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache,
-                               long lockAcquireTimeoutMs) {
+                               long lockAcquireTimeoutMs,
+                               ExecutorService getRangesExecutor,
+                               Duration getRangesConcurrentRequestTimeout) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -248,6 +247,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
+        this.getRangesExecutor = getRangesExecutor;
+        this.getRangesConcurrentRequestTimeout = getRangesConcurrentRequestTimeout;
     }
 
     // TEST ONLY
@@ -260,7 +261,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         ConflictDetectionManager conflictDetectionManager,
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
-                        TimestampCache timestampValidationReadCache) {
+                        TimestampCache timestampValidationReadCache,
+                        ExecutorService getRangesExecutor,
+                        Duration getRangesConcurrentRequestTimeout) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -277,6 +280,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.allowHiddenTableAccess = false;
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
+        this.getRangesExecutor = getRangesExecutor;
+        this.getRangesConcurrentRequestTimeout = getRangesConcurrentRequestTimeout;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -287,7 +292,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   TransactionReadSentinelBehavior readSentinelBehavior,
                                   boolean allowHiddenTableAccess,
                                   TimestampCache timestampValidationReadCache,
-                                  long lockAcquireTimeoutMs) {
+                                  long lockAcquireTimeoutMs,
+                                  ExecutorService getRangesExecutor,
+                                  Duration getRangesConcurrentRequestTimeout) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -304,6 +311,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
+        this.getRangesExecutor = getRangesExecutor;
+        this.getRangesConcurrentRequestTimeout = getRangesConcurrentRequestTimeout;
     }
 
     @Override
@@ -694,7 +703,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+    public <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int concurrencyLevel,
+            Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+
+        return ConcurrentStreams.map(
+                getUnfetchedRanges(tableRef, rangeRequests),
+                visitableProcessor::apply,
+                getRangesExecutor,
+                concurrencyLevel,
+                getRangesConcurrentRequestTimeout);
+    }
+
+    @Override
+    public Stream<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
 
         return StreamSupport.stream(rangeRequests.spliterator(), false).map(rangeRequest ->
@@ -704,22 +728,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             int batchSizeHint, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
                         getRange(tableRef, rangeRequest).batchAccept(batchSizeHint, visitor);
                     }
-                }).collect(Collectors.toList());
-    }
-
-    @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
-            final TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            int prefetchConcurrency,
-            ExecutorService executorService) {
-        Stream<BatchingVisitable<RowResult<byte[]>>> resultStream = ConcurrentStreams.map(
-                rangeRequests,
-                rangeRequest -> getRange(tableRef, rangeRequest),
-                executorService,
-                prefetchConcurrency,
-                DEFAULT_RANGE_REQUEST_TIMEOUT);
-        return resultStream.collect(Collectors.toList());
+                });
     }
 
     private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef) {

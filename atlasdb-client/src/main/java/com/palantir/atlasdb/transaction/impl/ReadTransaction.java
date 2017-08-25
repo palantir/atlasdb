@@ -19,8 +19,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
+import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -75,21 +76,22 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+    public <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int concurrencyLevel,
+            Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        checkTableName(tableRef);
+        return delegate().getRanges(tableRef, rangeRequests, concurrencyLevel, visitableProcessor);
+    }
+
+    @Override
+    public Stream<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
         checkTableName(tableRef);
         return delegate().getUnfetchedRanges(tableRef, rangeRequests);
     }
 
-    @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
-            final TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            int prefetchConcurrency,
-            ExecutorService executorService) {
-        checkTableName(tableRef);
-        return delegate().getRangesWithFirstPages(tableRef, rangeRequests, prefetchConcurrency, executorService);
-    }
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,

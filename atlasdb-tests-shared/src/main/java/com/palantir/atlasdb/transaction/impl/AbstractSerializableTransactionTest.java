@@ -75,7 +75,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 SweepStrategyManagers.createDefault(keyValueService),
-                NoOpCleaner.INSTANCE);
+                NoOpCleaner.INSTANCE,
+                GET_RANGES_CONCURRENCY,
+                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
     }
 
     @Override
@@ -101,7 +103,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
                 timestampCache,
-                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS) {
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                GET_RANGES_EXECUTOR,
+                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

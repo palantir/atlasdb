@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -113,7 +114,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    TransactionReadSentinelBehavior readSentinelBehavior,
                                    boolean allowHiddenTableAccess,
                                    TimestampCache timestampCache,
-                                   long lockAcquireTimeoutMs) {
+                                   long lockAcquireTimeoutMs,
+                                   ExecutorService getRangesExecutor,
+                                   Duration getRangesConcurrentRequestTimeout) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -129,7 +132,9 @@ public class SerializableTransaction extends SnapshotTransaction {
               readSentinelBehavior,
               allowHiddenTableAccess,
               timestampCache,
-              lockAcquireTimeoutMs);
+              lockAcquireTimeoutMs,
+              getRangesExecutor,
+              getRangesConcurrentRequestTimeout);
     }
 
     @Override
@@ -187,33 +192,9 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     @Idempotent
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
-            final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
-        return getRanges(tableRef, rangeRequests, super.getUnfetchedRanges(tableRef, rangeRequests));
-    }
-
-    @Override
-    @Idempotent
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithFirstPages(
-            final TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            int prefetchConcurrency,
-            ExecutorService executorService) {
-        return getRanges(tableRef, rangeRequests,
-                super.getRangesWithFirstPages(tableRef, rangeRequests, prefetchConcurrency, executorService));
-    }
-
-    @Override
-    @Idempotent
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests) {
-        return getRanges(tableRef, rangeRequests, super.getRanges(tableRef, rangeRequests));
-    }
-
-    private Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
-            final TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            Iterable<BatchingVisitable<RowResult<byte[]>>> ret) {
+        Iterable<BatchingVisitable<RowResult<byte[]>>> ret = super.getRanges(tableRef, rangeRequests);
         Iterable<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> zip = IterableUtils.zip(rangeRequests, ret);
         return Iterables.transform(zip, pair -> wrapRange(tableRef, pair.lhSide, pair.rhSide));
     }
@@ -743,7 +724,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getReadSentinelBehavior(),
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs) {
+                lockAcquireTimeoutMs,
+                getRangesExecutor,
+                getRangesConcurrentRequestTimeout) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

@@ -287,7 +287,9 @@ public final class TransactionManagers {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
+                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
+                config.keyValueService().maxConcurrentGetRanges(),
+                config.getConcurrentGetRangesTimeout());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,

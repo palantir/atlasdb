@@ -23,6 +23,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -66,6 +67,9 @@ import com.palantir.timestamp.TimestampService;
  */
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
+
+    // Only used in deprecated method. See note below.
+    private static final int DEFAULT_MAX_CONCURRENT_RANGES = 64;
 
     @Override
     public String getType() {
@@ -143,7 +147,9 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                cleaner);
+                cleaner,
+                DEFAULT_MAX_CONCURRENT_RANGES,
+                AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT);
         cleaner.start(ret);
         return ret;
     }

@@ -26,4 +26,9 @@ public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig {
     default Optional<String> namespace() {
         return Optional.empty();
     }
+
+    @Override
+    default int maxConcurrentGetRanges() {
+        return 4;
+    }
 }

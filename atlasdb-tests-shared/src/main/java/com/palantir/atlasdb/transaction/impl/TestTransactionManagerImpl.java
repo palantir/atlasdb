@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,6 +37,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
+    private static final int GET_RANGES_CONCURRENCY = 16;
+    private static final Duration GET_RANGES_CONCURRENT_REQUEST_TIMEOUT = Duration.ofMinutes(1);
+
     public TestTransactionManagerImpl(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
@@ -52,7 +56,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 sweepStrategyManager,
-                NoOpCleaner.INSTANCE);
+                NoOpCleaner.INSTANCE,
+                GET_RANGES_CONCURRENCY,
+                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
     }
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -70,7 +76,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 Suppliers.ofInstance(constraintCheckingMode),
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
-                NoOpCleaner.INSTANCE);
+                NoOpCleaner.INSTANCE,
+                GET_RANGES_CONCURRENCY,
+                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
     }
 
     @Override
@@ -102,7 +110,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 TestConflictDetectionManagers.createWithStaticConflictDetection(conflictHandlersWithOverrides),
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                getRangesExecutor,
+                concurrentGetRangesTimeout);
     }
 
     @Override

@@ -17,6 +17,8 @@ package com.palantir.atlasdb.memory;
 
 import java.util.Optional;
 
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
@@ -35,6 +37,12 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     @Override
     public boolean equals(Object other) {
         return this == other || (other != null && this.getClass() == other.getClass());
+    }
+
+    @Override
+    @Value.Default
+    public int maxConcurrentGetRanges() {
+        return 64;
     }
 
     @Override

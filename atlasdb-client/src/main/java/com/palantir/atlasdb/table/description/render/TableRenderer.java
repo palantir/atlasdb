@@ -29,6 +29,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 import javax.annotation.Nullable;
@@ -977,6 +978,7 @@ public class TableRenderer {
         }
 
         private void renderGetRanges() {
+            line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
                 line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);");
                 line("return IterableView.of(rangeResults).transform(");
@@ -991,6 +993,18 @@ public class TableRenderer {
                         } line("});");
                     } line("}");
                 } line("});");
+            } line("}");
+            line();
+            line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
+            line("                               int concurrencyLevel,");
+            line("                               Function<BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
+                line("return t.getRanges(tableRef, ranges, concurrencyLevel,");
+                line("        visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
+            } line("}");
+            line();
+            line("public Stream<BatchingVisitable<", RowResult, ">> getUnfetchedRanges(Iterable<RangeRequest> ranges) {"); {
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getUnfetchedRanges(tableRef, ranges);");
+                line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
             } line("}");
         }
 
@@ -1334,6 +1348,7 @@ public class TableRenderer {
         Entry.class,
         Iterator.class,
         Iterables.class,
+        Stream.class,
         Supplier.class,
         InvalidProtocolBufferException.class,
         Throwables.class,

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -235,6 +236,15 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public int getDefaultLockTimeoutSeconds() {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
+    }
+
+    /**
+     * The max time to wait for a thread when concurrently running range requests. Note this should
+     * never really be hit, as the underlying KVS should have a much tighter timeout.
+     */
+    @Value.Default
+    public Duration getConcurrentGetRangesTimeout() {
+        return AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT;
     }
 
     @Value.Check

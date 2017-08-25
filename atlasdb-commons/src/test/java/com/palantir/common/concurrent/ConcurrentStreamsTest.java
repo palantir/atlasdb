@@ -38,7 +38,7 @@ public class ConcurrentStreamsTest {
     @Test
     public void testDoesEvaluateResultsWithFullConcurrency() {
         Stream<Integer> values = ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
+                getStream(),
                 value -> value + 1,
                 executor, 4, TIMEOUT);
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
@@ -47,7 +47,7 @@ public class ConcurrentStreamsTest {
     @Test
     public void testDoesEvaluateResultsWhenLimitingConcurrency() {
         Stream<Integer> values = ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
+                getStream(),
                 value -> value + 1,
                 executor, 2, TIMEOUT);
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
@@ -57,12 +57,16 @@ public class ConcurrentStreamsTest {
     public void testShouldOnlyRunWithProvidedConcurrency() {
         CountDownLatch latch = new CountDownLatch(3);
         ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
+                getStream(),
                 value -> {
                     decrementAndWaitOnLatchForLongerThanExecutorTimeout(latch);
                     return value + 1;
                 },
                 executor, 2, TIMEOUT);
+    }
+
+    private Stream<Integer> getStream() {
+        return ImmutableList.of(1, 2, 3, 4).stream();
     }
 
     private void decrementAndWaitOnLatchForLongerThanExecutorTimeout(CountDownLatch latch) {

@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,6 +33,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -67,6 +71,8 @@ import com.palantir.timestamp.TimestampService;
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
     protected final Supplier<Long> lockAcquireTimeoutMs;
+    final ExecutorService getRangesExecutor;
+    final Duration concurrentGetRangesTimeout;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -81,7 +87,9 @@ import com.palantir.timestamp.TimestampService;
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs) {
+            Supplier<Long> lockAcquireTimeoutMs,
+            int maxConcurrentGetRanges,
+            Duration concurrentGetRangesTimeout) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -94,6 +102,8 @@ import com.palantir.timestamp.TimestampService;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
+        this.getRangesExecutor = createGetRangesExecutor(maxConcurrentGetRanges);
+        this.concurrentGetRangesTimeout = concurrentGetRangesTimeout;
     }
 
     @Override
@@ -179,7 +189,9 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get());
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor,
+                concurrentGetRangesTimeout);
     }
 
     @Override
@@ -202,7 +214,9 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get());
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor,
+                concurrentGetRangesTimeout);
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 
@@ -255,6 +269,11 @@ import com.palantir.timestamp.TimestampService;
             cleaner.punch(freshTimestamp);
             return freshTimestamp;
         });
+    }
+
+    private ExecutorService createGetRangesExecutor(int numThreads) {
+        return Executors.newFixedThreadPool(numThreads,
+                new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-get-ranges-%d").build());
     }
 
     @Override

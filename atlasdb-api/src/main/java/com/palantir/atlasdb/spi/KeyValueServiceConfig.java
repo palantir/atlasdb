@@ -29,4 +29,9 @@ public interface KeyValueServiceConfig {
     String type();
 
     Optional<String> namespace();
+
+    /**
+     * The size of the thread pool used for concurrently running range requests.
+     */
+    int maxConcurrentGetRanges();
 }

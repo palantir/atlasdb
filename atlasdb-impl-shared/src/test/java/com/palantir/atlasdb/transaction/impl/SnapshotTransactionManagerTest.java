@@ -24,6 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import org.junit.Test;
 import org.mockito.InOrder;
@@ -53,7 +54,9 @@ public class SnapshotTransactionManagerTest {
             null,
             cleaner,
             false,
-            () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+            () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+            4,
+            Duration.ofMinutes(1));
 
     @Test
     public void closesKeyValueServiceOnClose() {
@@ -86,7 +89,9 @@ public class SnapshotTransactionManagerTest {
                 null,
                 cleaner,
                 false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                4,
+                Duration.ofMinutes(1));
         newTransactionManager.close(); // should not throw
     }
 

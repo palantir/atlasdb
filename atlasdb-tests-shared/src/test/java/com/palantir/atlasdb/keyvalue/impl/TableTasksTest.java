@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -78,7 +79,8 @@ public class TableTasksTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
+                kvs, tsService, lockClient, lockService, txService,
+                constraints, cdm, ssm, cleaner, false, 4, Duration.ofMinutes(1));
         txManager = transactionManager;
     }
 

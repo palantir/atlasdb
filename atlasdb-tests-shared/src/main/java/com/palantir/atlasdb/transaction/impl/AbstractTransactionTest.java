@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -91,6 +93,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return true;
     }
 
+    protected static final int GET_RANGES_CONCURRENCY = 16;
+    protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(GET_RANGES_CONCURRENCY);
+    protected static final Duration GET_RANGES_CONCURRENT_REQUEST_TIMEOUT = Duration.ofMinutes(1);
+
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
@@ -105,7 +111,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         ConflictHandler.IGNORE_ALL)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampCache);
+                timestampCache,
+                GET_RANGES_EXECUTOR,
+                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
     }
 
     @Test
@@ -1156,10 +1164,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private void verifyAllGetRangesImplsRangeSizes(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedRangeSize) {
         List<BatchingVisitable<RowResult<byte[]>>> rangesImpl1 = ImmutableList.copyOf(
                 t.getRanges(TEST_TABLE, rangeRequests));
-        List<BatchingVisitable<RowResult<byte[]>>> rangesImpl2 = ImmutableList.copyOf(
-                t.getUnfetchedRanges(TEST_TABLE, rangeRequests));
         List<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 = ImmutableList.copyOf(
-                t.getRangesWithFirstPages(TEST_TABLE, rangeRequests, 2, rangesExecutor));
+                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList()));
+        List<BatchingVisitable<RowResult<byte[]>>> rangesImpl2 =
+                t.getUnfetchedRanges(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
         assertEquals(rangesImpl1.size(), rangesImpl2.size());
         assertEquals(rangesImpl2.size(), rangesImpl3.size());
@@ -1174,10 +1182,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private void verifyAllGetRangesImplsNumRanges(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedNumberOfRows) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl1 =
                 t.getRanges(TEST_TABLE, rangeRequests);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 = ImmutableList.copyOf(
+                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList()));
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl2 =
-                t.getUnfetchedRanges(TEST_TABLE, rangeRequests);
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 =
-                t.getRangesWithFirstPages(TEST_TABLE, rangeRequests, 2, rangesExecutor);
+                t.getUnfetchedRanges(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
         assertEquals(expectedNumberOfRows, BatchingVisitables.concat(rangesImpl1).count());
         assertEquals(expectedNumberOfRows, BatchingVisitables.concat(rangesImpl2).count());
