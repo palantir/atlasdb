@@ -7,6 +7,6 @@ server:
       port: 3829
 
 atlasdb:
-  namespace: memory
+  namespace: test
   keyValueService:
     type: memory
