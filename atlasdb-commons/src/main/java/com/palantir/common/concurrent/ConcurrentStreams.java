@@ -23,7 +23,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class ConcurrentStreams {
@@ -31,19 +33,20 @@ public class ConcurrentStreams {
     private ConcurrentStreams() {}
 
     public static <T, S> Stream<S> map(
-            Stream<T> stream, Function<T, S> mapper, ExecutorService executor, int concurrency, Duration timeout) {
+            Iterable<T> values, Function<T, S> mapper, ExecutorService executor, int concurrency, Duration timeout) {
 
-        int size = (int) stream.count();
+        int size = Iterables.size(values);
         if (size == 1 || concurrency == 1) {
-            return stream.map(mapper);
+            return StreamSupport.stream(values.spliterator(), false).map(mapper);
         }
         if (size > concurrency) {
             executor = RequestLimitedExecutorService.fromDelegate(executor, concurrency, timeout);
         }
 
-        final ExecutorService finalExecutor = executor;
         List<Future<S>> futures = Lists.newArrayListWithCapacity(size);
-        stream.forEach(value -> futures.add(finalExecutor.submit(() -> mapper.apply(value))));
+        for (T value : values) {
+            futures.add(executor.submit(() -> mapper.apply(value)));
+        }
 
         return futures.stream().map(f -> {
             try {

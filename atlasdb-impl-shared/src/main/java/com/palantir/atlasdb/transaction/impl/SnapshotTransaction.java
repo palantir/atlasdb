@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -710,7 +711,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
 
         return ConcurrentStreams.map(
-                getUnfetchedRanges(tableRef, rangeRequests),
+                getUnfetchedRanges(tableRef, rangeRequests).collect(Collectors.toList()),
                 visitableProcessor::apply,
                 getRangesExecutor,
                 concurrencyLevel,
