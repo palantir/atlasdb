@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -34,6 +37,13 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     public abstract DdlConfig ddl();
 
     public abstract ConnectionConfig connection();
+
+    @Override
+    @JsonIgnore
+    @Value.Derived
+    public Optional<String> namespace() {
+        return connection().namespace();
+    }
 
     @Override
     public final String type() {

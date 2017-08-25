@@ -489,16 +489,22 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestMaxMemStreamHashAidxRow rowName, Iterable<StreamTestMaxMemStreamHashAidxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestMaxMemStreamHashAidxRow rowName, StreamTestMaxMemStreamHashAidxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxColumnValue> rows) {
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTestMaxMemStreamHashAidxColumnValue.getColumnNameFun());
@@ -736,5 +742,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "h8BMquUCZ3hRJQ+7j6NTSw==";
+    static String __CLASS_HASH = "ukEYij8GLvcuBivJuAhR8A==";
 }

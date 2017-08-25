@@ -17,9 +17,12 @@ package com.palantir.atlasdb.schema;
 
 import java.util.Map;
 
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -37,6 +40,8 @@ import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
 public class TransactionRangeMigrator implements RangeMigrator {
+    private static final Logger log = LoggerFactory.getLogger(TransactionRangeMigrator.class);
+
     private final TableReference srcTable;
     private final TableReference destTable;
     private final int readBatchSize;
@@ -59,6 +64,31 @@ public class TransactionRangeMigrator implements RangeMigrator {
         this.txManager = txManager;
         this.checkpointer = checkpointer;
         this.rowTransform = rowTransform;
+    }
+
+    @Override
+    public void logStatus(int numRangeBoundaries) {
+        txManager.runTaskWithRetry(transaction -> {
+            logStatus(transaction, numRangeBoundaries);
+            return null;
+        });
+    }
+
+    private void logStatus(Transaction tx, int numRangeBoundaries) {
+        for (int rangeId = 0; rangeId < numRangeBoundaries; rangeId++) {
+            byte[] checkpoint = getCheckpoint(rangeId, tx);
+            if (checkpoint != null) {
+                log.info("({}/{}) Migration from table {} to table {} will start/resume at {}",
+                        rangeId,
+                        numRangeBoundaries,
+                        srcTable,
+                        destTable,
+                        PtBytes.encodeHexString(checkpoint)
+                );
+                return;
+            }
+        }
+        log.info("Migration from table {} to {} has already been completed", srcTable, destTable);
     }
 
     @Override
@@ -94,7 +124,7 @@ public class TransactionRangeMigrator implements RangeMigrator {
                                               Transaction readT,
                                               Transaction writeT) {
         final long maxBytes = TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES / 2;
-        byte[] start = checkpointer.getCheckpoint(srcTable.getQualifiedName(), rangeId, writeT);
+        byte[] start = getCheckpoint(rangeId, writeT);
         if (start == null) {
             return null;
         }
@@ -114,6 +144,10 @@ public class TransactionRangeMigrator implements RangeMigrator {
         return lastRow;
     }
 
+    private byte[] getCheckpoint(long rangeId, Transaction writeT) {
+        return checkpointer.getCheckpoint(srcTable.getQualifiedName(), rangeId, writeT);
+    }
+
     private byte[] getNextRowName(byte[] lastRow) {
         if (isRangeDone(lastRow)) {
             return new byte[0];
@@ -123,14 +157,16 @@ public class TransactionRangeMigrator implements RangeMigrator {
 
     private byte[] internalCopyRange(BatchingVisitable<RowResult<byte[]>> bv,
                                      final long maxBytes,
-                                     final Transaction t) {
+                                     final Transaction txn) {
         final Mutable<byte[]> lastRowName = Mutables.newMutable(null);
         final MutableLong bytesPut = new MutableLong(0L);
         bv.batchAccept(readBatchSize, AbortingVisitors.batching(
+                // Replacing this with a lambda results in an unreported exception compile error
+                // even though no exception can be thrown :-(
                 new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
                     @Override
-                    public boolean visit(RowResult<byte[]> rr) {
-                        return internalCopyRow(rr, maxBytes, t, bytesPut, lastRowName);
+                    public boolean visit(RowResult<byte[]> rr) throws RuntimeException {
+                        return TransactionRangeMigrator.this.internalCopyRow(rr, maxBytes, txn, bytesPut, lastRowName);
                     }
                 }));
         return lastRowName.get();

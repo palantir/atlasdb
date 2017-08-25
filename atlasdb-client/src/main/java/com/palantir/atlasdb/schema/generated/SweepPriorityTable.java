@@ -948,6 +948,8 @@ public final class SweepPriorityTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<SweepPriorityRow, ? extends SweepPriorityNamedColumnValue<?>> rows) {
         Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -1237,5 +1239,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6JJ0l22XdLjA/LTkCPZFKw==";
+    static String __CLASS_HASH = "EHrMjFpugouPzrM6mlsU9A==";
 }

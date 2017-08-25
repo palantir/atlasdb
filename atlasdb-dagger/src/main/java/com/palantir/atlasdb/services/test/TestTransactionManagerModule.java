@@ -34,7 +34,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -59,7 +59,7 @@ public class TestTransactionManagerModule {
     @Singleton
     public Cleaner provideCleaner(ServicesConfig config,
                                   @Named("kvs") KeyValueService kvs,
-                                  RemoteLockService rlc,
+                                  LockService rlc,
                                   TimestampService tss,
                                   LockClient lockClient,
                                   Follower follower,

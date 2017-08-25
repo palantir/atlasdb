@@ -21,8 +21,9 @@ import java.util.Map;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import org.immutables.value.Value;
+
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.paxos.PaxosAcceptor;
@@ -35,15 +36,10 @@ import com.palantir.paxos.PaxosLearnerImpl;
         + "/{client: [a-zA-Z0-9_-]+}")
 public final class PaxosResource {
     private final String logDirectory;
-    private final Map<String, PaxosLearner> paxosLearners;
-    private final Map<String, PaxosAcceptor> paxosAcceptors;
+    private final Map<String, PaxosComponents> paxosComponentsByClient = Maps.newConcurrentMap();
 
-    private PaxosResource(String logDirectory,
-            Map<String, PaxosLearner> paxosLearners,
-            Map<String, PaxosAcceptor> paxosAcceptors) {
+    private PaxosResource(String logDirectory) {
         this.logDirectory = logDirectory;
-        this.paxosLearners = paxosLearners;
-        this.paxosAcceptors = paxosAcceptors;
     }
 
     public static PaxosResource create() {
@@ -51,20 +47,16 @@ public final class PaxosResource {
     }
 
     public static PaxosResource create(String logDirectory) {
-        return new PaxosResource(logDirectory, Maps.newConcurrentMap(), Maps.newConcurrentMap());
+        return new PaxosResource(logDirectory);
     }
 
-    public void addInstrumentedClient(String client) {
-        Preconditions.checkState(!paxosLearners.containsKey(client),
-                "Paxos resource already has client '%s' registered", client);
-
+    public PaxosComponents createInstrumentedComponents(String client) {
         String learnerLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)
                 .toString();
         PaxosLearner learner = instrument(
                 PaxosLearner.class,
                 PaxosLearnerImpl.newLearner(learnerLogDir),
                 client);
-        paxosLearners.put(client, learner);
 
         String acceptorLogDir = Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH)
                 .toString();
@@ -72,7 +64,11 @@ public final class PaxosResource {
                 PaxosAcceptor.class,
                 PaxosAcceptorImpl.newAcceptor(acceptorLogDir),
                 client);
-        paxosAcceptors.put(client, acceptor);
+
+        return ImmutablePaxosComponents.builder()
+                .acceptor(acceptor)
+                .learner(learner)
+                .build();
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
@@ -81,11 +77,23 @@ public final class PaxosResource {
 
     @Path("/learner")
     public PaxosLearner getPaxosLearner(@PathParam("client") String client) {
-        return paxosLearners.get(client);
+        return getOrCreateComponents(client).learner();
     }
 
     @Path("/acceptor")
     public PaxosAcceptor getPaxosAcceptor(@PathParam("client") String client) {
-        return paxosAcceptors.get(client);
+        return getOrCreateComponents(client).acceptor();
+    }
+
+    private PaxosComponents getOrCreateComponents(String client) {
+        return paxosComponentsByClient.computeIfAbsent(client, this::createInstrumentedComponents);
+    }
+
+    @Value.Immutable
+    interface PaxosComponents {
+
+        PaxosAcceptor acceptor();
+
+        PaxosLearner learner();
     }
 }

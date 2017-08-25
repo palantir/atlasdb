@@ -436,6 +436,8 @@ public final class RangeScanTestTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
         Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -711,5 +713,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "C1hK8v63iXd9NQCibpQkWQ==";
+    static String __CLASS_HASH = "mLqWZpsIvGjOEn/g+8XksQ==";
 }

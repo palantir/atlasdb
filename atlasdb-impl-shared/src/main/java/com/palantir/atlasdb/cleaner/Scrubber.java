@@ -39,8 +39,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -489,22 +487,30 @@ public final class Scrubber {
                             Multimap<TableReference, Cell> tableNameToCells,
                             long scrubTimestamp,
                             Transaction.TransactionType transactionType) {
+        Map<TableReference, Multimap<Cell, Long>> allCellsToMarkScrubbed =
+                Maps.newHashMapWithExpectedSize(tableNameToCells.keySet().size());
         for (Entry<TableReference, Collection<Cell>> entry : tableNameToCells.asMap().entrySet()) {
             TableReference tableRef = entry.getKey();
             log.debug("Attempting to immediately scrub {} cells from table {}", entry.getValue().size(), tableRef);
             for (List<Cell> cells : Iterables.partition(entry.getValue(), batchSizeSupplier.get())) {
-                Multimap<Cell, Long> timestampsToDelete = HashMultimap.create(
-                        keyValueService.getAllTimestamps(tableRef, ImmutableSet.copyOf(cells), scrubTimestamp));
-                for (Cell cell : ImmutableList.copyOf(timestampsToDelete.keySet())) {
-                    // Don't scrub garbage collection sentinels
-                    timestampsToDelete.remove(cell, Value.INVALID_VALUE_TIMESTAMP);
-                }
+                Multimap<Cell, Long> allTimestamps = keyValueService.getAllTimestamps(
+                        tableRef, ImmutableSet.copyOf(cells), scrubTimestamp);
+                Multimap<Cell, Long> timestampsToDelete = Multimaps.filterValues(
+                        allTimestamps, v -> !v.equals(Value.INVALID_VALUE_TIMESTAMP));
+
                 // If transactionType == TransactionType.AGGRESSIVE_HARD_DELETE this might
                 // force other transactions to abort or retry
                 deleteCellsAtTimestamps(txManager, tableRef, timestampsToDelete, transactionType);
+
+                Multimap<Cell, Long> cellsToMarkScrubbed = HashMultimap.create(allTimestamps);
+                for (Cell cell : cells) {
+                    cellsToMarkScrubbed.put(cell, scrubTimestamp);
+                }
+                allCellsToMarkScrubbed.put(tableRef, cellsToMarkScrubbed);
             }
             log.debug("Immediately scrubbed {} cells from table {}", entry.getValue().size(), tableRef);
         }
+        scrubberStore.markCellsAsScrubbed(allCellsToMarkScrubbed, batchSizeSupplier.get());
     }
 
     private void deleteCellsAtTimestamps(TransactionManager txManager,
@@ -521,7 +527,6 @@ public final class Scrubber {
                 batch.stream().forEach(e -> builder.put(e));
                 keyValueService.delete(tableRef, builder.build());
             }
-            scrubberStore.markCellsAsScrubbed(ImmutableMap.of(tableRef, cellToTimestamp), batchSizeSupplier.get());
         }
     }
 

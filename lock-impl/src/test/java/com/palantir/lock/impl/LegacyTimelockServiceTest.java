@@ -40,6 +40,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockService;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
@@ -65,7 +66,7 @@ public class LegacyTimelockServiceTest {
     private static final LockDescriptor LOCK_B = StringLockDescriptor.of("b");
 
     private final TimestampService timestampService = mock(TimestampService.class);
-    private final RemoteLockService lockService = mock(RemoteLockService.class);
+    private final LockService lockService = mock(LockService.class);
 
     private static final long TIMEOUT = 10_000;
 

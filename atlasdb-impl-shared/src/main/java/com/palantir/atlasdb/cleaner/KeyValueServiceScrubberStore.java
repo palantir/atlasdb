@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -194,5 +195,13 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
             }
         }
         return scrubTimestampToTableNameToCell;
+    }
+
+    @Override
+    public int getNumberRemainingScrubCells(int maxCellsToScan) {
+        try (ClosableIterator<RowResult<Value>> iterator =
+                getIteratorToScrub(maxCellsToScan, Long.MAX_VALUE, null, null)) {
+            return Iterators.size(Iterators.limit(iterator, maxCellsToScan));
+        }
     }
 }

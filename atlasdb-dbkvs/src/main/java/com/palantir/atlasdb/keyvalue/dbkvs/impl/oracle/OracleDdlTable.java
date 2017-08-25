@@ -19,7 +19,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -239,22 +238,31 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
+        final String compactionFailureTemplate = "Tried to clean up {} bloat after a sweep operation,"
+                + " but underlying Oracle database or configuration does not support this {} feature online. "
+                + " Since this can't be automated in your configuration,"
+                + " good practice would be do to occasional offline manual maintenance of rebuilding"
+                + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
+                + " like more information.";
+
         if (config.enableOracleEnterpriseFeatures()) {
             try {
                 conns.get().executeUnregisteredQuery(
                         "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
                                 + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
-                log.error("Tried to clean up {} bloat after a sweep operation,"
-                        + " but underlying Oracle database or configuration does not support this"
-                        + " (Enterprise Edition that requires this user to be able to perform DDL operations)"
-                        + " feature online. Since this can't be automated in your configuration,"
-                        + " good practice would be do to occasional offline manual maintenance of rebuilding"
-                        + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
-                        + " like more information. Underlying error was: {}", tableRef, e.getMessage());
+                log.error(compactionFailureTemplate + " Underlying error was: {}",
+                        tableRef,
+                        "(Enterprise Edition that requires this user to be able to perform DDL operations)",
+                        e.getMessage());
             } catch (TableMappingNotFoundException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
+        } else {
+            log.warn(compactionFailureTemplate,
+                    tableRef,
+                    "(If you are running against Enterprise Edition,"
+                    + " you can set enableOracleEnterpriseFeatures to true in the configuration.)");
         }
     }
 }
