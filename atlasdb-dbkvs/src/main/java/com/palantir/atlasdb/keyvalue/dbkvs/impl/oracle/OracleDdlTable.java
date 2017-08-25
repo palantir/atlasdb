@@ -238,7 +238,7 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
-        String compactionFailureTemplate = "Tried to clean up {} bloat after a sweep operation,"
+        final String compactionFailureTemplate = "Tried to clean up {} bloat after a sweep operation,"
                 + " but underlying Oracle database or configuration does not support this {} feature online. "
                 + " Since this can't be automated in your configuration,"
                 + " good practice would be do to occasional offline manual maintenance of rebuilding"
