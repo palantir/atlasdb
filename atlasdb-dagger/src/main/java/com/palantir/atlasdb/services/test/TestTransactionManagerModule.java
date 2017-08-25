@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.services.test;
 
+import java.time.Duration;
+
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -102,7 +104,7 @@ public class TestTransactionManagerModule {
                 cleaner,
                 config.allowAccessToHiddenTables(),
                 config.atlasDbConfig().keyValueService().maxConcurrentGetRanges(),
-                config.atlasDbConfig().getConcurrentGetRangesTimeout());
+                Duration.ofSeconds(config.atlasDbConfig().getConcurrentGetRangesTimeoutSeconds()));
     }
 
 }

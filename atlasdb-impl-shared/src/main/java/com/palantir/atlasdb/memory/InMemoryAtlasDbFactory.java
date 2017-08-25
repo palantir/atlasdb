@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.memory;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -149,7 +150,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 sweepStrategyManager,
                 cleaner,
                 DEFAULT_MAX_CONCURRENT_RANGES,
-                AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT);
+                Duration.ofSeconds(AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT_SECONDS));
         cleaner.start(ret);
         return ret;
     }

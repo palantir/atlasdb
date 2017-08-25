@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.time.Duration;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -243,8 +242,8 @@ public abstract class AtlasDbConfig {
      * never really be hit, as the underlying KVS should have a much tighter timeout.
      */
     @Value.Default
-    public Duration getConcurrentGetRangesTimeout() {
-        return AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT;
+    public int getConcurrentGetRangesTimeoutSeconds() {
+        return AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT_SECONDS;
     }
 
     @Value.Check

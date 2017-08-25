@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -289,7 +290,7 @@ public final class TransactionManagers {
                 allowHiddenTableAccess,
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().maxConcurrentGetRanges(),
-                config.getConcurrentGetRangesTimeout());
+                Duration.ofSeconds(config.getConcurrentGetRangesTimeoutSeconds()));
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
