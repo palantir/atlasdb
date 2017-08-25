@@ -1164,8 +1164,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private void verifyAllGetRangesImplsRangeSizes(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedRangeSize) {
         List<BatchingVisitable<RowResult<byte[]>>> rangesImpl1 = ImmutableList.copyOf(
                 t.getRanges(TEST_TABLE, rangeRequests));
-        List<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 = ImmutableList.copyOf(
-                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList()));
+        List<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 =
+                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList());
         List<BatchingVisitable<RowResult<byte[]>>> rangesImpl2 =
                 t.getUnfetchedRanges(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
@@ -1182,8 +1182,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private void verifyAllGetRangesImplsNumRanges(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedNumberOfRows) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl1 =
                 t.getRanges(TEST_TABLE, rangeRequests);
-        Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 = ImmutableList.copyOf(
-                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList()));
+        Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl3 =
+                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList());
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangesImpl2 =
                 t.getUnfetchedRanges(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
