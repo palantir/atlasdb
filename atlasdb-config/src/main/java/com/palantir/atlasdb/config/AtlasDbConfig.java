@@ -295,7 +295,9 @@ public abstract class AtlasDbConfig {
                 // will return the timestamp bound store to 0, so we also need to fast forward the new client bound
                 // to a value above of the original bound.
                 Preconditions.checkState(timeLockConfig.client().equals(keyValueServiceNamespace),
-                        "Potential data corruption, please contact AtlasDb support.");
+                        "AtlasDB refused to start, in order to avoid potential data corruption."
+                                + " Please contact AtlasDB support to remediate this. Specific steps are required;"
+                                + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
         }
     }
