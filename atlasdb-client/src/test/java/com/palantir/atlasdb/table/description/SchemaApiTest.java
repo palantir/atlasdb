@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.table.description;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -23,43 +24,76 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
 import com.palantir.atlasdb.table.description.generated.GenericTestTable;
+import com.palantir.atlasdb.table.description.generated.GenericTestTable.GenericTestRow;
+import com.palantir.atlasdb.table.description.generated.GenericTestTable.GenericTestRowResult;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.common.base.BatchingVisitableView;
 
 public class SchemaApiTest extends AbstractSchemaTest {
 
+    private static final GenericTestSchemaTableFactory tableFactory = GenericTestSchemaTableFactory.of();
+
     @Override
-    protected void putSingleRowFirstColumn(GenericTestTable table, String rowKey, long value) {
-        table.putColumn1(GenericTestTable.GenericTestRow.of(rowKey), value);
+    protected void putSingleRowFirstColumn(Transaction transaction, String rowKey, long value) {
+        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+        table.putColumn1(GenericTestRow.of(rowKey), value);
     }
 
     @Override
-    protected Long getSingleRowFirstColumn(GenericTestTable table, String rowKey) {
+    protected Long getSingleRowFirstColumn(Transaction transaction, String rowKey) {
+        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+
         ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
-        Optional<GenericTestTable.GenericTestRowResult> result =
-                table.getRow(GenericTestTable.GenericTestRow.of(rowKey), firstColSelection);
+                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(firstColShortName)));
+        Optional<GenericTestRowResult> result = table.getRow(GenericTestRow.of(rowKey), firstColSelection);
         return result.get().getColumn1();
     }
 
     @Override
-    protected List<Long> getMultipleRowsFirstColumn(GenericTestTable table, List<String> rowKeys) {
+    protected List<Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
+        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+
         ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
-        List<GenericTestTable.GenericTestRowResult> result =
+                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(firstColShortName)));
+        List<GenericTestRowResult> result =
                 table.getRows(
-                        rowKeys.stream().map(GenericTestTable.GenericTestRow::of).collect(Collectors.toList()),
+                        rowKeys.stream().map(GenericTestRow::of).collect(Collectors.toList()),
                         firstColSelection
                 );
-        return result.stream().map(GenericTestTable.GenericTestRowResult::getColumn1).collect(Collectors.toList());
+        return result.stream().map(GenericTestRowResult::getColumn1).collect(Collectors.toList());
     }
 
     @Override
-    protected void deleteWholeRow(GenericTestTable table, String rowKey) {
-        table.delete(GenericTestTable.GenericTestRow.of(rowKey));
+    protected List<String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+
+        ColumnSelection secondColSelection =
+                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(secondColShortName)));
+
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(GenericTestRow.of(startRowKey).persistToBytes())
+                .endRowExclusive(GenericTestRow.of(endRowKey).persistToBytes())
+                .retainColumns(secondColSelection)
+                .build();
+
+        BatchingVisitableView<GenericTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
+        ArrayList finalResult = new ArrayList<>();
+        rangeRequestResult.forEach(entry -> finalResult.add(entry.getColumn2()));
+        return finalResult;
     }
 
     @Override
-    protected void deleteFirstColumn(GenericTestTable table, String rowKey) {
-        table.deleteColumn1(GenericTestTable.GenericTestRow.of(rowKey));
+    protected void deleteWholeRow(Transaction transaction, String rowKey) {
+        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+        table.delete(GenericTestRow.of(rowKey));
+    }
+
+    @Override
+    protected void deleteFirstColumn(Transaction transaction, String rowKey) {
+        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+        table.deleteColumn1(GenericTestRow.of(rowKey));
     }
 }
