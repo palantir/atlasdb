@@ -17,11 +17,17 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -34,6 +40,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
     protected final TimestampCache timestampValidationReadCache = TimestampCache.create();
     private volatile boolean closed = false;
+    private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
@@ -117,5 +124,27 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     @Override
     public void clearTimestampCache() {
         timestampValidationReadCache.clear();
+    }
+
+    ExecutorService createGetRangesExecutor(int numThreads) {
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>() {
+            @Override
+            public boolean offer(Runnable e) {
+                sanityCheckQueueSize();
+                return super.offer(e);
+            }
+            private void sanityCheckQueueSize() {
+                int currentSize = this.size();
+                if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD) {
+                    log.warn("You have {} pending getRanges tasks. Please sanity check both your level"
+                            + "of concurrency and size of batched range requests. If necessary you can"
+                            + "increase the value of maxConcurrentGetRanges to allow for a larger"
+                            + "thread pool.", currentSize);
+                }
+            }
+        };
+        return new ThreadPoolExecutor(
+                numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, workQueue,
+                new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-get-ranges-%d").build());
     }
 }

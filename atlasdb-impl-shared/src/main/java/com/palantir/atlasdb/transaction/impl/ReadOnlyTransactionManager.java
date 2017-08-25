@@ -17,11 +17,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -194,10 +192,5 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     @Override
     public TimelockService getTimelockService() {
         return null;
-    }
-
-    private ExecutorService createGetRangesExecutor(int numThreads) {
-        return Executors.newFixedThreadPool(numThreads,
-                new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-get-ranges-%d").build());
     }
 }
