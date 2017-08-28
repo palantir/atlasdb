@@ -58,6 +58,7 @@ public class ReadTransactionShould {
             .put("getRows", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(EMPTY_BYTES), ColumnSelection.all()})
             .put("getRange", new Object[] {DUMMY_THOROUGH_TABLE, RangeRequest.all()})
             .put("getRanges", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(RangeRequest.all())})
+            .put("getUnfetchedRanges", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(RangeRequest.all())})
             .build();
 
     private ReadTransaction readTransaction;
@@ -105,7 +106,7 @@ public class ReadTransactionShould {
         Method[] declaredMethods = ReadTransaction.class.getDeclaredMethods();
 
         for (Method m : declaredMethods) {
-            if (simpleGets.containsKey(m.getName())) {
+            if (simpleGets.containsKey(m.getName()) && simpleGets.get(m.getName()).length == m.getParameterCount()) {
                 checkThrowsAndNoInteraction(() -> {
                             try {
                                 m.invoke(readTransaction, simpleGets.get(m.getName()));
