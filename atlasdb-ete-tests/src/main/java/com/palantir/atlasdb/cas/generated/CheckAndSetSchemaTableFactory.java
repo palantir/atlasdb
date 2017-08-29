@@ -12,47 +12,47 @@ import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class CheckAndSetSchemaTableFactory {
-  private static final Namespace defaultNamespace = Namespace.create("default", Namespace.UNCHECKED_NAME);
+    private static final Namespace defaultNamespace = Namespace.create("default", Namespace.UNCHECKED_NAME);
 
-  private final Namespace namespace;
+    private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
 
-  private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
+    private final Namespace namespace;
 
-  private CheckAndSetSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-      Namespace namespace) {
-    this.sharedTriggers = sharedTriggers;
-    this.namespace = namespace;
-  }
-
-  public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-      Namespace namespace) {
-    return new CheckAndSetSchemaTableFactory(sharedTriggers, namespace);
-  }
-
-  public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
-    return new CheckAndSetSchemaTableFactory(sharedTriggers, defaultNamespace);
-  }
-
-  public static CheckAndSetSchemaTableFactory of(Namespace namespace) {
-    return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
-  }
-
-  public static CheckAndSetSchemaTableFactory of() {
-    return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
-  }
-
-  public CheckAndSetTable getCheckAndSetTable(Transaction t,
-      CheckAndSetTable.CheckAndSetTrigger... triggers) {
-    return CheckAndSetTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-  }
-
-  public interface SharedTriggers extends CheckAndSetTable.CheckAndSetTrigger {
-  }
-
-  public abstract static class NullSharedTriggers implements SharedTriggers {
-    @Override
-    public void putCheckAndSet(Multimap<CheckAndSetTable.CheckAndSetRow, ? extends CheckAndSetTable.CheckAndSetNamedColumnValue<?>> newRows) {
-      // do nothing
+    private CheckAndSetSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+            Namespace namespace) {
+        this.sharedTriggers = sharedTriggers;
+        this.namespace = namespace;
     }
-  }
+
+    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+            Namespace namespace) {
+        return new CheckAndSetSchemaTableFactory(sharedTriggers, namespace);
+    }
+
+    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+        return new CheckAndSetSchemaTableFactory(sharedTriggers, defaultNamespace);
+    }
+
+    public static CheckAndSetSchemaTableFactory of(Namespace namespace) {
+        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
+    }
+
+    public static CheckAndSetSchemaTableFactory of() {
+        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
+    }
+
+    public CheckAndSetTable getCheckAndSetTable(Transaction t,
+            CheckAndSetTable.CheckAndSetTrigger... triggers) {
+        return CheckAndSetTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public interface SharedTriggers extends CheckAndSetTable.CheckAndSetTrigger {
+    }
+
+    public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putCheckAndSet(Multimap<CheckAndSetTable.CheckAndSetRow, ? extends CheckAndSetTable.CheckAndSetNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+    }
 }

@@ -181,6 +181,9 @@
                 "com.palantir.tritium:tritium-lib"
             ]
         },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0"
+        },
         "commons-lang:commons-lang": {
             "locked": "2.6",
             "requested": "2.6"
@@ -430,6 +433,9 @@
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0"
         },
         "commons-lang:commons-lang": {
             "locked": "2.6",

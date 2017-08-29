@@ -44,7 +44,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
 
-public class TableFactoryRenderer {
+public final class TableFactoryRenderer {
     private final String schemaName;
     private final String packageName;
     private final String defaultNamespace;
@@ -52,7 +52,7 @@ public class TableFactoryRenderer {
     private final ClassName tableFactoryType;
     private final ClassName sharedTriggersType;
 
-    public TableFactoryRenderer(String schemaName,
+    private TableFactoryRenderer(String schemaName,
             String packageName,
             Namespace defaultNamespace,
             Map<String, TableDefinition> definitions) {
@@ -65,6 +65,14 @@ public class TableFactoryRenderer {
         for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
             this.definitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
         }
+    }
+
+    public static TableFactoryRenderer of(String schemaName,
+            String packageName,
+            Namespace defaultNamespace,
+            Map<String, TableDefinition> definitions) {
+        return new TableFactoryRenderer(schemaName, packageName, defaultNamespace, definitions);
+
     }
 
     public String getPackageName() {
@@ -96,6 +104,7 @@ public class TableFactoryRenderer {
         }
 
         JavaFile javaFile = JavaFile.builder(packageName, tableFactory.build())
+                .indent("    ")
                 .build();
 
         return javaFile.toString();
@@ -106,26 +115,26 @@ public class TableFactoryRenderer {
     }
 
     private List<FieldSpec> getFields() {
-        ArrayList<FieldSpec> results = new ArrayList();
+        ArrayList<FieldSpec> results = new ArrayList<>();
 
         TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
                 ClassName.get(Function.class),
                 WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
 
-        results.add(FieldSpec.builder(Namespace.class, "namespace")
-                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
-                .build());
+        results.add(getDefaultNamespaceField());
         results.add(FieldSpec.builder(ParameterizedTypeName.get(
                 ClassName.get(List.class), functionOfTransactionAndTriggersType), "sharedTriggers")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                 .build());
-        results.add(getDefaultNamespaceField());
+        results.add(FieldSpec.builder(Namespace.class, "namespace")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .build());
 
         return results;
     }
 
     private List<TypeSpec> getSubTypes() {
-        ArrayList<TypeSpec> results = new ArrayList();
+        ArrayList<TypeSpec> results = new ArrayList<>();
         results.add(getSharedTriggers());
         results.add(getNullSharedTriggers(sharedTriggersType));
 
@@ -133,7 +142,7 @@ public class TableFactoryRenderer {
     }
 
     private List<MethodSpec> getConstructors() {
-        ArrayList<MethodSpec> results = new ArrayList();
+        ArrayList<MethodSpec> results = new ArrayList<>();
 
         TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
                 ClassName.get(Function.class),
@@ -197,30 +206,27 @@ public class TableFactoryRenderer {
         String triggerName = tableName + "." + name + "Trigger";
         TypeName tableType = ClassName.get(packageName, tableName);
         TypeName triggerType = ClassName.get(packageName, triggerName);
-        MethodSpec getTableMethod = MethodSpec.methodBuilder("get" + tableName)
+        MethodSpec.Builder tableGetterMethodBuilder = MethodSpec.methodBuilder("get" + tableName)
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(Transaction.class, "t")
-                .returns(tableType)
-                .build();
+                .returns(tableType);
         if (tableDefinition.getGenericTableName() != null) {
-            getTableMethod = getTableMethod.toBuilder()
+            tableGetterMethodBuilder
                     .addParameter(String.class, "name")
                     .addParameter(ArrayTypeName.of(triggerType), "triggers")
                     .varargs()
                     .addStatement("return $T.of(t, namespace, name, $T.getAllTriggers(t, sharedTriggers, triggers))",
                             tableType,
-                            Triggers.class)
-                    .build();
+                            Triggers.class);
         } else {
-            getTableMethod = getTableMethod.toBuilder()
+            tableGetterMethodBuilder
                     .addParameter(ArrayTypeName.of(triggerType), "triggers")
                     .varargs()
                     .addStatement("return $T.of(t, namespace, $T.getAllTriggers(t, sharedTriggers, triggers))",
                             tableType,
-                            Triggers.class)
-                    .build();
+                            Triggers.class);
         }
-        return getTableMethod;
+        return tableGetterMethodBuilder.build();
     }
 
     private TypeSpec getSharedTriggers() {
@@ -238,10 +244,9 @@ public class TableFactoryRenderer {
     }
 
     private TypeSpec getNullSharedTriggers(TypeName sharedTriggersInterfaceType) {
-        TypeSpec nullSharedTriggersClass = TypeSpec.classBuilder("NullSharedTriggers")
+        TypeSpec.Builder nullSharedTriggersClassBuilder = TypeSpec.classBuilder("NullSharedTriggers")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT, Modifier.STATIC)
-                .addSuperinterface(sharedTriggersInterfaceType)
-                .build();
+                .addSuperinterface(sharedTriggersInterfaceType);
 
         for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
             String name = entry.getKey();
@@ -265,12 +270,11 @@ public class TableFactoryRenderer {
                             ), "newRows")
                     .addComment("do nothing")
                     .build();
-            nullSharedTriggersClass = nullSharedTriggersClass.toBuilder()
-                    .addMethod(putMethod)
-                    .build();
+            nullSharedTriggersClassBuilder
+                    .addMethod(putMethod);
         }
 
-        return nullSharedTriggersClass;
+        return nullSharedTriggersClassBuilder.build();
     }
 
     private FieldSpec getDefaultNamespaceField() {
