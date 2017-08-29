@@ -258,7 +258,7 @@ public final class OracleDdlTable implements DbDdlTable {
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
             }
-        } else {
+        } else if (config.enableShrinkOnOracleStandardEdition()) {
             try {
                 conns.get().executeUnregisteredQuery(
                         "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)

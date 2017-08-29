@@ -45,7 +45,8 @@ develop
          - Change
 
     *    - |new|
-         - Oracle SE will now automatically trigger shrinking table data files post sweeping a table.
+         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
+           You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
 
     *    - |userbreak|
