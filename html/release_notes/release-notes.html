@@ -214,60 +214,77 @@ Please consult the documentation for <a class="reference internal" href="../conf
 As said previously, please use the <code class="docutils literal"><span class="pre">namespace</span></code> root level config to specify both of these parameters.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2263">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>If <code class="docutils literal"><span class="pre">enableOracleEnterpriseFeatures</span></code> if configured to be false, you will now see warnings asking you to run Oracle compaction manually.
-This will help make non-EE Oracle users aware of potential database bloat.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2277">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-54-0">
+<h2>v0.54.0<a class="headerlink" href="#v0-54-0" title="Permalink to this headline">¶</a></h2>
+<p>25 August 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a case where logging an expection suppressing itself would cause a stack overflow.
-See <a class="reference external" href="https://jira.qos.ch/browse/LOGBACK-1027">https://jira.qos.ch/browse/LOGBACK-1027</a>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2242">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Timelock clients now report tritium metrics for the <code class="docutils literal"><span class="pre">TimestampService</span></code> even if they are using the request batching service.
 Note when setting up metric graphs, the timestamp service metrics are named with <code class="docutils literal"><span class="pre">...Timelock.&lt;getFreshTimestamp/getFreshTimestamps&gt;</span></code> when not using request batching,
 but as <code class="docutils literal"><span class="pre">...Timestamp.&lt;getFreshTimestamp/getFreshTimestamps&gt;</span></code> if using request batching.
 The lock service metrics are always reported as <code class="docutils literal"><span class="pre">...Timelock.&lt;lock/unlock/etc&gt;</span></code> for timelock clients.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2270">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB clients now report tritium metrics for the <code class="docutils literal"><span class="pre">TimestampService</span></code> and <code class="docutils literal"><span class="pre">LockService</span></code> endpoints just once instead of twice.
 In the past, every request would be reported twice leading to number bloat and more load on the metric collector service.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2270">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">kvs-slow-log</span></code> now uses <code class="docutils literal"><span class="pre">logsafe</span></code> to support sls-compatible logging.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2222">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The scrubber queue no longer grows without bound if the same cell is overwritten multiple times by hard delete transactions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2232">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>If <code class="docutils literal"><span class="pre">enableOracleEnterpriseFeatures</span></code> is configured to be false, you will now see warnings asking you to run Oracle compaction manually.
+This will help make non-EE Oracle users aware of potential database bloat.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2277">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a case where logging an expection suppressing itself would cause a stack overflow.
+See <a class="reference external" href="https://jira.qos.ch/browse/LOGBACK-1027">LOGBACK-1027</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2242">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now produces a new artifact, <code class="docutils literal"><span class="pre">timelock-agent</span></code>.
 Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a <em>registrar</em> that knows how to register Java resources and expose suitable HTTP endpoints.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2247">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Timelock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>TimeLock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
 This means that specifying a list of clients in Timelock configuration will no longer have any effect. Further, a new configuration property called <code class="docutils literal"><span class="pre">max-number-of-clients</span></code> has been introduced in <code class="docutils literal"><span class="pre">TimeLockRuntimeConfiguration</span></code>. This can be used to limit the number of clients that will be created dynamically, since each distinct client has some memory, disk space, and CPU overhead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2252">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td><code class="docutils literal"><span class="pre">putUnlessExists</span></code> methods in schema generated code have been marked as deprecated as the naming can be misleading, leading to accidental value overwrites. The recommended alternative is doing a separate read and write in a single transaction.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2271">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>CharacterLimitType now has fields marked as final.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2259">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td><code class="docutils literal"><span class="pre">kvs-slow-log</span></code> now uses <code class="docutils literal"><span class="pre">logsafe</span></code> to support sls-compatible logging.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2222">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2232">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>The <code class="docutils literal"><span class="pre">RangeMigrator</span></code> interface now contains an additional method <code class="docutils literal"><span class="pre">logStatus(int</span> <span class="pre">numRangeBoundaries)</span></code>.
 This method is used to log the state of migration for each table when starting or resuming a KVS migration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2241">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Updated our dependency on <code class="docutils literal"><span class="pre">sls-packaging</span></code> from 2.3.1 to 2.4.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2268">Pull Request</a>)</td>
 </tr>
