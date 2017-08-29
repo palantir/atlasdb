@@ -262,16 +262,17 @@ public final class TransactionManagers {
                 .buildCleaner();
         log.warn("CREATED CLEANER");
 
-        SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lockAndTimestampServices.timelock(),
-                lockAndTimestampServices.lock(),
-                transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
-                conflictManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess,
-                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
+        SerializableTransactionManager transactionManager = new SerializableTransactionManager.InitializeCheckingWrapper(
+                new SerializableTransactionManager(kvs,
+                        lockAndTimestampServices.timelock(),
+                        lockAndTimestampServices.lock(),
+                        transactionService,
+                        Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                        conflictManager,
+                        sweepStrategyManager,
+                        cleaner,
+                        allowHiddenTableAccess,
+                        () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis()));
         log.warn("CREATED TRANSACTIONMANAGER");
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(

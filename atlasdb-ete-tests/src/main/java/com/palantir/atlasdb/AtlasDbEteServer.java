@@ -78,21 +78,21 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
-        Stopwatch sw = Stopwatch.createStarted();
-        while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
-            try {
+//        Stopwatch sw = Stopwatch.createStarted();
+//        while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
+//            try {
                 return TransactionManagers.create(
                         config.getAtlasDbConfig(),
                         Optional::empty,
                         ETE_SCHEMAS,
                         environment.jersey()::register,
                         DONT_SHOW_HIDDEN_TABLES);
-            } catch (RuntimeException e) {
-                log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
-                Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
-            }
-        }
-        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
+//            } catch (RuntimeException e) {
+//                log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
+//                Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
+//            }
+//        }
+//        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
     private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
