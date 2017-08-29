@@ -259,10 +259,22 @@ public final class OracleDdlTable implements DbDdlTable {
                 throw new RuntimeException(e);
             }
         } else {
-            log.warn(compactionFailureTemplate,
-                    tableRef,
-                    "(If you are running against Enterprise Edition,"
-                    + " you can set enableOracleEnterpriseFeatures to true in the configuration.)");
+            try {
+                conns.get().executeUnregisteredQuery(
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                + " SHRINK SPACE COMPACT");
+                conns.get().executeUnregisteredQuery(
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                + " SHRINK SPACE");
+            } catch (PalantirSqlException e) {
+                log.error(compactionFailureTemplate + " Underlying error was: {}",
+                        tableRef,
+                        "(If you are running against Enterprise Edition,"
+                                + " you can set enableOracleEnterpriseFeatures to true in the configuration.)",
+                        e.getMessage());
+            } catch (TableMappingNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }
