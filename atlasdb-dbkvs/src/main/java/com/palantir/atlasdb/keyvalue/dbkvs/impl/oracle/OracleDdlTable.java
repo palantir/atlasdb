@@ -255,6 +255,28 @@ public final class OracleDdlTable implements DbDdlTable {
             } catch (TableMappingNotFoundException e) {
                 throw Throwables.propagate(e);
             }
+        } else {
+            try {
+                conns.get().executeUnregisteredQuery(
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                + " SHRINK SPACE COMPACT");
+                conns.get().executeUnregisteredQuery(
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                + " SHRINK SPACE");
+            } catch (PalantirSqlException e) {
+                log.error("Tried to clean up {} bloat after a sweep operation,"
+                                + " but underlying Oracle database or configuration does not support this"
+                                + " (If you are running against Enterprise Edition,"
+                                + " you can set enableOracleEnterpriseFeatures to true in the configuration.)"
+                                + " feature online. Since this can't be automated in your configuration,"
+                                + " good practice would be do to occasional offline manual maintenance of rebuilding"
+                                + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
+                                + " like more information. Underlying error was: {}",
+                        tableRef,
+                        e.getMessage());
+            } catch (TableMappingNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }
