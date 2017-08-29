@@ -72,13 +72,14 @@ public class CassandraContainer extends Container {
     public String getDockerComposeFile() {
         return "/docker-compose-cassandra.yml";
     }
-
+    //TODO for now kept synchronous initialization -- should revisit
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
             CassandraKeyValueServiceImpl cassandraKeyValueService = CassandraKeyValueServiceImpl.create(
                     CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
-                    LEADER_CONFIG);
+                    LEADER_CONFIG,
+                    false);
             return cassandraKeyValueService.isInitialized();
         });
     }

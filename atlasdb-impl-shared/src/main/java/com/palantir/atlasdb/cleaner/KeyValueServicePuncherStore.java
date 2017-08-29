@@ -66,11 +66,15 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
     }
 
     private static final byte[] COLUMN = "t".getBytes(StandardCharsets.UTF_8);
-    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private volatile boolean isInitialized = false;
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
+        return create(keyValueService, true);
+    }
+
+    public static KeyValueServicePuncherStore create(KeyValueService keyValueService, boolean initializeAsync) {
         KeyValueServicePuncherStore puncherStore = new KeyValueServicePuncherStore(keyValueService);
-        puncherStore.asyncInitialize();
+        puncherStore.initialize(initializeAsync);
         return puncherStore;
     }
 
@@ -82,11 +86,15 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
 
     @Override
     public boolean isInitialized() {
-        return isInitialized.get();
+        return isInitialized;
     }
 
     @Override
-    public void tryInitialize() {
+    public synchronized void tryInitialize() {
+        if (isInitialized()) {
+            log.warn("Tried to initialize KVS Puncher Store, but was already initialized");
+            return;
+        }
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
                         new NameComponentDescription.Builder()
@@ -98,9 +106,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
                         new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
                 ConflictHandler.IGNORE_ALL).persistToBytes());
 
-        if (!isInitialized.compareAndSet(false, true)) {
-            log.warn("Someone initialized the class underneath us.");
-        }
+        isInitialized = true;
     }
 
     @Override

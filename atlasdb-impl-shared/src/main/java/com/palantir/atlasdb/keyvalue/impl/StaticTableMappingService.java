@@ -44,12 +44,16 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         }
     }
 
-    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private volatile boolean isInitialized = false;
     private final KeyValueService kv;
 
     public static StaticTableMappingService create(KeyValueService kv) {
+        return create(kv, true);
+    }
+
+    public static StaticTableMappingService create(KeyValueService kv, boolean initalizeAsync) {
         StaticTableMappingService ret = new StaticTableMappingService(kv);
-        ret.asyncInitialize();
+        ret.initialize(initalizeAsync);
         return ret;
     }
 
@@ -59,15 +63,17 @@ public final class StaticTableMappingService extends AbstractTableMappingService
 
     @Override
     public boolean isInitialized() {
-        return isInitialized.get();
+        return isInitialized;
     }
 
     @Override
-    public void tryInitialize() {
-        updateTableMap();
-        if (!isInitialized.compareAndSet(false, true)) {
-            log.warn("Someone initialized the instance beneath us.");
+    public synchronized void tryInitialize() {
+        if (isInitialized()) {
+            log.warn("Tried to initialize Static Table Mapping Service, but was already initialized");
+            return;
         }
+        updateTableMap();
+        isInitialized = true;
     }
 
     @Override

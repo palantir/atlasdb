@@ -237,7 +237,7 @@ public class CassandraClientPoolTest {
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.servers()).thenReturn(servers);
 
-        CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createWithoutChecksForTesting(config);
+        CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createWithoutChecksForTesting(config, true);
 
         serversInPool.forEach(address ->
                 cassandraClientPool.addPool(address, getMockPoolingContainerForHost(address, failureMode)));

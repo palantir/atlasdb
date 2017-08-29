@@ -80,12 +80,16 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
     }
 
     private static final byte[] EMPTY_CONTENTS = new byte[] {1};
-    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private volatile boolean isInitialized = false;
     private final KeyValueService keyValueService;
 
     public static KeyValueServiceScrubberStore create(KeyValueService keyValueService) {
+        return create(keyValueService, true);
+    }
+
+    public static KeyValueServiceScrubberStore create(KeyValueService keyValueService, boolean initializeAsync) {
         KeyValueServiceScrubberStore scrubberStore = new KeyValueServiceScrubberStore(keyValueService);
-        scrubberStore.asyncInitialize();
+        scrubberStore.initialize(initializeAsync);
         return scrubberStore;
     }
 
@@ -95,11 +99,15 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
 
     @Override
     public boolean isInitialized() {
-        return isInitialized.get();
+        return isInitialized;
     }
 
     @Override
-    public void tryInitialize() {
+    public synchronized void tryInitialize() {
+        if (isInitialized()) {
+            log.warn("Tried to initialize KVS Scrubber Store, but was already initialized");
+            return;
+        }
         TableMetadata scrubTableMeta = new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
                         new NameComponentDescription.Builder()
@@ -120,9 +128,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
                 ConflictHandler.IGNORE_ALL);
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
 
-        if (!isInitialized.compareAndSet(false, true)) {
-            log.warn("Someone initialized the class underneath us.");
-        }
+        isInitialized = true;
     }
 
     @Override

@@ -29,23 +29,31 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 
 public class TransactionManagersInitializer implements AsyncInitializer {
-    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private static volatile boolean isInitialized = false;
 
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
 
-    public TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas) {
+    public static void createInitialTables(KeyValueService keyValueService, Set<Schema> schemas, boolean initializeAsync) {
+        new TransactionManagersInitializer(keyValueService, schemas).initialize(initializeAsync);
+    }
+
+    private TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas) {
         this.keyValueService = keyValueService;
         this.schemas = schemas;
     }
 
     @Override
     public boolean isInitialized() {
-        return isInitialized.get();
+        return isInitialized;
     }
 
     @Override
-    public void tryInitialize() {
+    public synchronized void tryInitialize() {
+        if (isInitialized()) {
+            log.warn("Tried to initialize Transaction Managers, but was already initialized");
+            return;
+        }
         TransactionTables.createTables(keyValueService);
 
         Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
@@ -59,9 +67,7 @@ public class TransactionManagersInitializer implements AsyncInitializer {
 
         LoggingArgs.hydrate(keyValueService.getMetadataForTables());
 
-        if (!isInitialized.compareAndSet(false, true)) {
-            log.warn("Someone initialized the class underneath us.");
-        }
+        isInitialized = true;
     }
 
     @Override

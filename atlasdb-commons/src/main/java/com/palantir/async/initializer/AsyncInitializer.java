@@ -19,32 +19,47 @@ package com.palantir.async.initializer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+@ThreadSafe
 public interface AsyncInitializer {
     Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
+
+    default void initialize(boolean initializeAsync) {
+        if (initializeAsync) {
+            asyncInitialize();
+        }
+        else {
+            tryInitialize();
+        }
+    }
 
     default void asyncInitialize() {
         try {
             tryInitialize();
-        } catch (Exception e) {
+        } catch (Throwable th) {
             cleanUpOnInitFailure();
 
-            log.warn("Failed to initialize in the first attempt, will initialize Asynchronously.", e);
+            log.warn("Failed to initialize " + this.getClass().getName() + " in the first attempt, will initialize Asynchronously.", th);
             Executors.newSingleThreadExecutor().execute(
                     () -> {
                         while (!isInitialized()) {
                             try {
                                 tryInitialize();
-                            } catch (Exception ex) {
+                            } catch (Throwable throwable) {
                                 cleanUpOnInitFailure();
+                                log.warn("STILL TRYING. " + this.getClass().getName(), throwable);
+
                                 Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
                             }
                         }
+                        log.warn("INTIALIZED " +  this.getClass().getName());
                     }
             );
         }

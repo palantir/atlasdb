@@ -128,6 +128,18 @@ public abstract class AtlasDbConfig {
     }
 
     /**
+     * If false, the KVS and classes that depend on it will only try to initialize synchronously and will
+     * throw on failure, preventing AtlasDB from starting. This is consistent with the behaviour prior to
+     * implementing asynchronous initialization.
+     * If true, initialization will be attempted synchronously, but on failure we keep retrying asynchronously
+     * and start AtlasDB.
+     */
+    @Value.Default
+    public boolean initializeAsync() {
+        return AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
+    }
+
+    /**
      * If true, a background thread will periodically delete cells that
      * have been overwritten or deleted. This differs from scrubbing
      * because it is an untargeted cleaning process that scans all data

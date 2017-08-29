@@ -197,38 +197,55 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
-    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private volatile boolean isInitialized = false;
 
     public static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
-        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
+        return create(configManager, leaderConfig, true);
+    }
+
+    public static CassandraKeyValueServiceImpl create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
+        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class), initializeAsync);
     }
 
     public static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
+        return create(configManager, leaderConfig, log);
+    }
+
+    public static CassandraKeyValueServiceImpl create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            Logger log,
+            boolean initializeAsync) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl ret = new CassandraKeyValueServiceImpl(
                 log,
                 configManager,
                 compactionManager,
-                leaderConfig);
-        ret.asyncInitialize();
+                leaderConfig,
+                initializeAsync);
+        ret.initialize(initializeAsync);
         return ret;
     }
 
     protected CassandraKeyValueServiceImpl(Logger log,
                                        CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
-                                       Optional<LeaderConfig> leaderConfig) {
+                                       Optional<LeaderConfig> leaderConfig,
+                                       boolean initializeAsync) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPoolImpl = new CassandraClientPoolImpl(configManager.getConfig());
+        this.clientPoolImpl = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
         this.clientPool = new CassandraClientPoolImpl.InitializingWrapper(clientPoolImpl);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
@@ -253,11 +270,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
     @Override
     public boolean isInitialized() {
-        return isInitialized.get();
+        return isInitialized;
     }
 
     @Override
-    public void tryInitialize() {
+    public synchronized void tryInitialize() {
+        if (isInitialized()) {
+            log.warn("Tried to initialize Cassandra KVS, but was already initialized");
+            return;
+        }
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
@@ -282,9 +303,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
-        if (!isInitialized.compareAndSet(false, true)) {
-            log.warn("Someone initialized the class underneath us.");
-        }
+        isInitialized = true;
     }
 
     private void upgradeFromOlderInternalSchema() {

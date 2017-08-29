@@ -134,7 +134,7 @@ public abstract class NodesDownTestSetup {
                 ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            new CassandraClientPoolImpl(manager.getConfig());
+            CassandraClientPoolImpl.create(manager.getConfig());
             return true;
         } catch (Exception e) {
             return false;

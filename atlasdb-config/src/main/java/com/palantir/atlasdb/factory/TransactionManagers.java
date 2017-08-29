@@ -216,7 +216,7 @@ public final class TransactionManagers {
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
-
+        log.warn("CREATED RAWKVS");
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
@@ -227,7 +227,7 @@ public final class TransactionManagers {
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent);
-
+        log.warn("CREATED LOCK AND TIMESTAMP SERVICES");
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs,
@@ -237,8 +237,8 @@ public final class TransactionManagers {
                 MetricRegistry.name(KeyValueService.class, userAgent));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        new TransactionManagersInitializer(kvs, schemas).asyncInitialize();
-
+        TransactionManagersInitializer.createInitialTables(kvs, schemas, config.initializeAsync());
+        log.warn("CREATED INITIAL TABLES");
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
@@ -258,7 +258,9 @@ public final class TransactionManagers {
                 .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
                 .setPunchIntervalMillis(config.getPunchIntervalMillis())
                 .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                .setInitializeAsync(config.initializeAsync())
                 .buildCleaner();
+        log.warn("CREATED CLEANER");
 
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
                 lockAndTimestampServices.timelock(),
@@ -270,6 +272,7 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess,
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
+        log.warn("CREATED TRANSACTIONMANAGER");
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
@@ -282,6 +285,7 @@ public final class TransactionManagers {
                 follower,
                 transactionManager,
                 persistentLockManager);
+        log.warn("CREATED PRESISTENT LOCK MANAGER");
 
         return transactionManager;
     }
@@ -496,10 +500,12 @@ public final class TransactionManagers {
         // Create local services, that may or may not end up being registered in an environment.
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
+        log.warn("TRYING TO CREATE AwaitingLeadershipProxy");
         RemoteLockService localLock = AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader);
         TimestampService localTime = AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader);
         env.register(localLock);
         env.register(localTime);
+        log.warn("CREATED AND REGISTERED AwaitingLeadershipProxy");
 
         // Create remote services, that may end up calling our own local services.
         Optional<SSLSocketFactory> sslSocketFactory = ServiceCreator.createSslSocketFactory(

@@ -33,12 +33,13 @@ import com.palantir.docker.compose.connection.DockerPort;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        TodoEteTest.class,
-        CommandLineEteTest.class,
-        ServiceExposureEteTest.class,
-        MultiCassandraSingleNodeDownEteTest.class,
-        MultiCassandraDoubleNodeDownEteTest.class
-        })
+//        TodoEteTest.class,
+//        CommandLineEteTest.class,
+//        ServiceExposureEteTest.class,
+//        MultiCassandraSingleNodeDownEteTest.class,
+//        MultiCassandraDoubleNodeDownEteTest.class
+        MultiCassandraStartupOrderingEteTest.class
+})
 public class MultiCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
     private static final int CASSANDRA_PORT = 9160;

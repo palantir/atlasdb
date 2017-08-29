@@ -140,7 +140,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
-    private static AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private volatile boolean isInitialized = false;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -219,32 +219,43 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
         DO_NOT_RUN
     }
 
-    @VisibleForTesting
-    static CassandraClientPoolImpl createWithoutChecksForTesting(CassandraKeyValueServiceConfig config) {
-        return new CassandraClientPoolImpl(config, StartupChecks.DO_NOT_RUN);
+    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config) {
+        return create(config, true);
     }
 
-    public CassandraClientPoolImpl(CassandraKeyValueServiceConfig config) {
-        this(config, StartupChecks.RUN);
+    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config, boolean initAsync) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.RUN);
+        cassandraClientPool.initialize(initAsync);
+        return cassandraClientPool;
+    }
+
+    @VisibleForTesting
+    static CassandraClientPoolImpl createWithoutChecksForTesting(CassandraKeyValueServiceConfig config, boolean initAsync) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.DO_NOT_RUN);
+        cassandraClientPool.initialize(initAsync);
+        return cassandraClientPool;
     }
 
     private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
         this.startupChecks = startupChecks;
-        refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+        this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
-        asyncInitialize();
     }
 
     @Override
     public boolean isInitialized() {
-        return isInitialized.get();
+        return isInitialized;
     }
 
     @Override
-    public void tryInitialize() {
+    public synchronized void tryInitialize() {
+        if (isInitialized()) {
+            log.warn("Tried to initialize Cassandra Client Pool, but was already initialized");
+            return;
+        }
         config.servers().forEach(this::addPool);
         refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
@@ -261,11 +272,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
         }
         refreshPool(); // ensure we've initialized before returning
         registerAggregateMetrics();
-        if (!isInitialized.compareAndSet(false, true)) {
-            throw new RuntimeException("The value was initialized underneath us.");
-        }
+        isInitialized = true;
     }
 
+    //TODO if cleanup is necessary, initialization is not thread safe. It is an odd corner case, but making a note for now
     @Override
     public void cleanUpOnInitFailure() {
         metricsManager.deregisterMetrics();

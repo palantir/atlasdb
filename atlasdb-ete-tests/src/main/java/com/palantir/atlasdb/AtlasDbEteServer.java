@@ -69,9 +69,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
         TransactionManager transactionManager = createTransactionManager(config, environment);
+        log.warn("SERVER CREATED TRANSACTION MANAGER");
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+        log.warn("SERVER FINISHED REGISTERING");
     }
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
