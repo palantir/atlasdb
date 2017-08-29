@@ -126,6 +126,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
@@ -162,7 +163,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
             if (kvs.isInitialized()) {
                 return kvs;
             }
-            throw new RuntimeException("The CassandraKeyValueService is not initialized.");
+            throw new NotInitializedException("CassandraKeyValueService");
         }
 
         @Override

@@ -70,7 +70,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
     }
 
-    public SerializableTransactionManager() {
+    /*
+     * This constructor is necessary for the InitializeCheckingWrapper. We initialize a dummy transaction manager and
+     * use the delegate instead.
+     */
+    protected SerializableTransactionManager() {
         this(null, null, null, null, null, null, null, null, null);
     }
 

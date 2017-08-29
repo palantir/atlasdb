@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 /**
  * LockStore manages {@link LockEntry} objects, specifically for the "Backup Lock" (to be taken out by backup and
@@ -74,7 +75,7 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
             if (lockStore.isInitialized()) {
                 return lockStore;
             }
-            throw new RuntimeException("LockStore is not initialized");
+            throw new NotInitializedException("LockStore");
         }
     }
 
