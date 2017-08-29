@@ -354,6 +354,12 @@
                 "com.palantir.tritium:tritium-lib"
             ]
         },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.zaxxer:HikariCP": {
             "locked": "2.4.7",
             "transitive": [
@@ -830,6 +836,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.zaxxer:HikariCP": {
