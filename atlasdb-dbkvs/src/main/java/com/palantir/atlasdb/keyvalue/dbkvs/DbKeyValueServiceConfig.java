@@ -53,7 +53,7 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     @Override
     @Value.Default
     public int maxConcurrentGetRanges() {
-        return 2 * connection().getMaxConnections() / 3;
+        return Math.max(2 * connection().getMaxConnections() / 3, 1);
     }
 
     @Value.Check
