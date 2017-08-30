@@ -125,13 +125,34 @@ public class LockServiceStateLoggerTest {
     }
 
     @Test
-    public void testSerialisationAndDeserialisationOfLockServerOptions() throws Exception {
-        LockServerOptions lockServerOptions =  LockServerOptions.DEFAULT;
+    public void testSerialisationAndDeserialisationOfDefaultLockServerOptions() throws Exception {
+        LockServerOptions lockServerOptions =  new LockServerOptions();
         ObjectMapper mapper = new ObjectMapper();
-        LockServerOptions deserialzedlockServerOptions = mapper.readValue(mapper.writeValueAsString(lockServerOptions), LockServerOptions.class);
+        String serializedForm = mapper.writeValueAsString(lockServerOptions);
+        LockServerOptions deserialzedlockServerOptions = mapper.readValue(serializedForm, LockServerOptions.class);
         assertEquals(deserialzedlockServerOptions, lockServerOptions);
     }
 
+    @Test
+    public void testSerialisationAndDeserialisationOfLockServerOptions() throws Exception {
+        LockServerOptions lockServerOptions =  new LockServerOptions() {
+
+            @Override
+            public boolean getIsStandaloneServer() {
+                return false;
+            }
+
+            @Override
+            public long slowLogTriggerMillis() {
+                return 10L;
+            }
+
+        };
+        ObjectMapper mapper = new ObjectMapper();
+        String serializedForm = mapper.writeValueAsString(lockServerOptions);
+        LockServerOptions deserialzedlockServerOptions = mapper.readValue(serializedForm, LockServerOptions.class);
+        assertEquals(lockServerOptions, deserialzedlockServerOptions);
+    }
 
     @After
     public void after() throws IOException {
