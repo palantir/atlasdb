@@ -40,7 +40,9 @@ public class ConcurrentStreamsTest {
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> value + 1,
-                executor, 4, TIMEOUT);
+                executor,
+                4,
+                TIMEOUT);
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
     }
 
@@ -49,7 +51,9 @@ public class ConcurrentStreamsTest {
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> value + 1,
-                executor, 2, TIMEOUT);
+                executor,
+                2,
+                TIMEOUT);
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
     }
 
@@ -62,7 +66,9 @@ public class ConcurrentStreamsTest {
                     decrementAndWaitOnLatchForLongerThanExecutorTimeout(latch);
                     return value + 1;
                 },
-                executor, 2, TIMEOUT);
+                executor,
+                2,
+                TIMEOUT);
     }
 
     private void decrementAndWaitOnLatchForLongerThanExecutorTimeout(CountDownLatch latch) {

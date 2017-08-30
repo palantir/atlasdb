@@ -76,8 +76,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 conflictDetectionManager,
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY,
-                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
+                AbstractTransactionTest.GET_RANGES_CONCURRENCY,
+                AbstractTransactionTest.GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
     }
 
     @Override
@@ -104,8 +104,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 true,
                 timestampCache,
                 AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                GET_RANGES_EXECUTOR,
-                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT) {
+                AbstractTransactionTest.GET_RANGES_EXECUTOR,
+                AbstractTransactionTest.GET_RANGES_CONCURRENT_REQUEST_TIMEOUT) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

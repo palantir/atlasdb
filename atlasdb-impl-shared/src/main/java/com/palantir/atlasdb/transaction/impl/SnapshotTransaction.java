@@ -711,7 +711,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
 
         return ConcurrentStreams.map(
-                getUnfetchedRanges(tableRef, rangeRequests).collect(Collectors.toList()),
+                getRangesLazy(tableRef, rangeRequests).collect(Collectors.toList()),
                 visitableProcessor::apply,
                 getRangesExecutor,
                 concurrencyLevel,
@@ -719,7 +719,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Stream<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+    public Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
 
         return StreamSupport.stream(rangeRequests.spliterator(), false).map(rangeRequest ->

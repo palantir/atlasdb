@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -643,6 +644,7 @@ public final class GenericRangeScanTestTable implements
         });
     }
 
+    @Deprecated
     public IterableView<BatchingVisitable<GenericRangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
         return IterableView.of(rangeResults).transform(
@@ -657,6 +659,18 @@ public final class GenericRangeScanTestTable implements
                 });
             }
         });
+    }
+
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   int concurrencyLevel,
+                                   Function<BatchingVisitable<GenericRangeScanTestRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges, concurrencyLevel,
+                visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)));
+    }
+
+    public Stream<BatchingVisitable<GenericRangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
@@ -767,6 +781,7 @@ public final class GenericRangeScanTestTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -776,5 +791,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "OSwokp3SfGTw31mE58Z4DQ==";
+    static String __CLASS_HASH = "KFChceUHU4sPdW+Ct5dtuA==";
 }

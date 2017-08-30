@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -1444,6 +1445,7 @@ public final class DataTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<Index1IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -1458,6 +1460,18 @@ public final class DataTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       Function<BatchingVisitable<Index1IdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index1IdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<Index1IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index1IdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2099,6 +2113,7 @@ public final class DataTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<Index2IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -2113,6 +2128,18 @@ public final class DataTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       Function<BatchingVisitable<Index2IdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index2IdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<Index2IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index2IdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2732,6 +2759,7 @@ public final class DataTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<Index3IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -2746,6 +2774,18 @@ public final class DataTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       Function<BatchingVisitable<Index3IdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index3IdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<Index3IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index3IdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -3387,6 +3427,7 @@ public final class DataTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<Index4IdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -3401,6 +3442,18 @@ public final class DataTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       Function<BatchingVisitable<Index4IdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index4IdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<Index4IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, Index4IdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -3513,6 +3566,7 @@ public final class DataTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -3522,5 +3576,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5NLWsySZl3JacRVnDsKqDA==";
+    static String __CLASS_HASH = "kK1Ai9ehJxnf3y6/Wsjrug==";
 }

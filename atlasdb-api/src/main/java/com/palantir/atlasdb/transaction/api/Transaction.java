@@ -80,7 +80,7 @@ public interface Transaction {
      * will default to 1 for the first page in each range.
      *
      * @deprecated Should use either {@link #getRanges(TableReference, Iterable, int, Function)} or
-     * {@link #getUnfetchedRanges(TableReference, Iterable)} to ensure you are using an appropriate level
+     * {@link #getRangesLazy(TableReference, Iterable)} to ensure you are using an appropriate level
      * of concurrency for your specific workflow.
      */
     @Idempotent
@@ -105,7 +105,7 @@ public interface Transaction {
      * visitibles will incur database reads on first access.
      */
     @Idempotent
-    Stream<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+    Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests);
 
     /**

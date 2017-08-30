@@ -37,10 +37,11 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
+    private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
+
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
     protected final TimestampCache timestampValidationReadCache = TimestampCache.create();
     private volatile boolean closed = false;
-    private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
@@ -133,12 +134,13 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 sanityCheckQueueSize();
                 return super.offer(e);
             }
+
             private void sanityCheckQueueSize() {
                 int currentSize = this.size();
                 if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD) {
-                    log.warn("You have {} pending getRanges tasks. Please sanity check both your level"
-                            + "of concurrency and size of batched range requests. If necessary you can"
-                            + "increase the value of maxConcurrentGetRanges to allow for a larger"
+                    log.warn("You have {} pending getRanges tasks. Please sanity check both your level "
+                            + "of concurrency and size of batched range requests. If necessary you can "
+                            + "increase the value of maxConcurrentGetRanges to allow for a larger "
                             + "thread pool.", currentSize);
                 }
             }

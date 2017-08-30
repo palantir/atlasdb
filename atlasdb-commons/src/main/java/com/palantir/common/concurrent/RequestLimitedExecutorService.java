@@ -27,6 +27,10 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Delegates operations to another {@link ExecutorService} but only submits up to the configured number
+ * of concurrent operations at a time. Otherwise blocks on a semaphore up to the specified timeout.
+ */
 public class RequestLimitedExecutorService implements ExecutorService {
 
     private final ExecutorService delegate;

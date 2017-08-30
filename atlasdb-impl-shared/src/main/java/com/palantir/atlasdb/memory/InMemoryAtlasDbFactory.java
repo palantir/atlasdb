@@ -69,7 +69,10 @@ import com.palantir.timestamp.TimestampService;
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
-    // Only used in deprecated method. See note below.
+    /**
+     * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
+     */
+    @Deprecated
     private static final int DEFAULT_MAX_CONCURRENT_RANGES = 64;
 
     @Override

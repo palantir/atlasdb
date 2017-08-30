@@ -66,7 +66,7 @@ public class RequestLimitedExecutorServiceTest {
     @Test
     public void testCanGoOverMaxWhenPriorTestFinishes() {
         finishAll(ImmutableList.of(run(() -> { }), run(() -> { })));
-        run(() -> { });
+        finishAll(ImmutableList.of(run(() -> { })));
     }
 
     private Future<?> run(Runnable runnable) {

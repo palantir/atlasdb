@@ -22,16 +22,29 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 public class ConcurrentStreams {
 
     private ConcurrentStreams() {}
 
+    /**
+     * Runs a map function over all elements in an iterable with a provided executor and concurrency level.
+     *
+     * @param values The elements to be mapped.
+     * @param mapper The function that maps the elements.
+     * @param executor The executor that runs the concurrent operations.
+     * @param concurrency The max number of operations to be submitted to the executor at a time. Note that this will
+     *        not check the size of the underlying executor, so ideally the executor should have at least
+     *        as many threads as this value.
+     * @param timeout The max time to wait on submitting an element to the executor when {@param concurrency}
+     *        operations are already running.
+     * @return a stream of mapped elements from the provided iterable.
+     */
     public static <T, S> Stream<S> map(
             Iterable<T> values, Function<T, S> mapper, ExecutorService executor, int concurrency, Duration timeout) {
 
@@ -40,13 +53,16 @@ public class ConcurrentStreams {
             return StreamSupport.stream(values.spliterator(), false).map(mapper);
         }
         if (size > concurrency) {
-            executor = RequestLimitedExecutorService.fromDelegate(executor, concurrency, timeout);
+            return map(values, mapper, RequestLimitedExecutorService.fromDelegate(executor, concurrency, timeout));
+        } else {
+            return map(values, mapper, executor);
         }
+    }
 
-        List<Future<S>> futures = Lists.newArrayListWithCapacity(size);
-        for (T value : values) {
-            futures.add(executor.submit(() -> mapper.apply(value)));
-        }
+    private static <T, S> Stream<S> map(Iterable<T> values, Function<T, S> mapper, final ExecutorService executor) {
+        List<Future<S>> futures = StreamSupport.stream(values.spliterator(), false)
+                .map(value -> executor.submit(() -> mapper.apply(value)))
+                .collect(Collectors.toList());
 
         return futures.stream().map(f -> {
             try {

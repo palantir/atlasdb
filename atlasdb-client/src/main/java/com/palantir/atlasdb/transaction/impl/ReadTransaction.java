@@ -86,10 +86,10 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public Stream<BatchingVisitable<RowResult<byte[]>>> getUnfetchedRanges(
+    public Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
         checkTableName(tableRef);
-        return delegate().getUnfetchedRanges(tableRef, rangeRequests);
+        return delegate().getRangesLazy(tableRef, rangeRequests);
     }
 
 
