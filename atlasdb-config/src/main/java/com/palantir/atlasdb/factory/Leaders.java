@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -36,7 +37,6 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
@@ -62,22 +62,22 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and
      * registers appropriate endpoints for that service.
      */
-    public static LeaderElectionService create(Environment env, LeaderConfig config) {
+    public static LeaderElectionService create(Consumer<Object> env, LeaderConfig config) {
         return create(env, config, UserAgents.DEFAULT_USER_AGENT);
     }
 
-    public static LeaderElectionService create(Environment env, LeaderConfig config, String userAgent) {
+    public static LeaderElectionService create(Consumer<Object> env, LeaderConfig config, String userAgent) {
         return createAndRegisterLocalServices(env, config, userAgent).leaderElectionService();
     }
 
     public static LocalPaxosServices createAndRegisterLocalServices(
-            Environment env, LeaderConfig config, String userAgent) {
+            Consumer<Object> env, LeaderConfig config, String userAgent) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(config, userAgent);
 
-        env.register(localPaxosServices.ourAcceptor());
-        env.register(localPaxosServices.ourLearner());
-        env.register(localPaxosServices.pingableLeader());
-        env.register(new NotCurrentLeaderExceptionMapper());
+        env.accept(localPaxosServices.ourAcceptor());
+        env.accept(localPaxosServices.ourLearner());
+        env.accept(localPaxosServices.pingableLeader());
+        env.accept(new NotCurrentLeaderExceptionMapper());
         return localPaxosServices;
     }
 

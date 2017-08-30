@@ -6,13 +6,13 @@ package com.palantir.atlasdb.factory;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.lock.LockServerOptions;
@@ -29,7 +29,7 @@ public interface TransactionManagerOptions {
     Set<Schema> schemas();
 
     @Value.Default
-    default Environment env() {
+    default Consumer<Object> env() {
         return resource -> { };
     }
 
