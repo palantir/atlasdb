@@ -92,10 +92,14 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2448>`__)
 
-    *   - |devbreak| |improved|
-        - ``LockRefreshingTimelockService`` has been moved to the ``lock-api`` project under the package name ``com.palantir.lock.client``, and now implements
-          ``AutoCloseable``, shutting down its internal executor service.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
+    *    - |devbreak| |improved|
+         - ``LockRefreshingTimelockService`` has been moved to the ``lock-api`` project under the package name ``com.palantir.lock.client``, and now implements
+           ``AutoCloseable``, shutting down its internal executor service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
+
+    *    - |new|
+         - Added an immutable ``TransactionManagerOptions`` class that can be used as an argument when calling ``TransactionManagers.create()`` instead of passing in a long list of individual arguments.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2302>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
