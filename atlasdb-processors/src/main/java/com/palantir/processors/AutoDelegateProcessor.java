@@ -159,7 +159,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
 
         List<TypeElement> superTypes = fetchSuperTypes(baseType);
-        return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
+        List<TypeElement> exceptions = ProcessorUtils.extractExceptionsFromAnnotation(elementUtils, typeUtils,
+                annotation);
+        return new TypeToExtend(typePackage, exceptions, baseType, superTypes.toArray(new TypeElement[0]));
     }
 
     private List<TypeElement> fetchSuperTypes(TypeElement baseType) {
@@ -243,19 +245,41 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 .returns(TypeName.get(typeMirror));
         typeBuilder.addMethod(delegateMethod.build());
 
+        // Add exception messages
+        List<TypeElement> exceptions = typeToExtend.getExceptions();
+        for (TypeElement exception : exceptions) {
+            MethodSpec.Builder exceptionMethod = MethodSpec
+                    .methodBuilder(String.format("handle%s", exception.getSimpleName().toString()))
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .addParameter(TypeName.get(exception.asType()), "exception");
+            typeBuilder.addMethod(exceptionMethod.build());
+        }
+
         // Add methods
         for (ExecutableElement methodElement : typeToExtend.getMethods()) {
             String returnStatement = (methodElement.getReturnType().getKind() == TypeKind.VOID) ? "" : "return ";
 
             MethodSpec.Builder method = MethodSpec
-                    .overriding(methodElement)
-                    .addStatement("$L$L().$L($L)",
-                            returnStatement,
-                            DELEGATE_METHOD,
-                            methodElement.getSimpleName(),
-                            methodElement.getParameters());
+                    .overriding(methodElement);
             if (typeToExtend.isInterface()) {
                 method.addModifiers(Modifier.DEFAULT);
+            }
+            if (exceptions.size() > 0) {
+                method.beginControlFlow("try");
+            }
+            method.addStatement("$L$L().$L($L)",
+                    returnStatement,
+                    DELEGATE_METHOD,
+                    methodElement.getSimpleName(),
+                    methodElement.getParameters());
+            for (int i = 0; i < exceptions.size(); i++) {
+                TypeElement exception = exceptions.get(i);
+                String exceptionName = "exception" + i;
+                method.nextControlFlow("catch($T $L)", exception, exceptionName);
+                method.addStatement("handle$T($L)", exception, exceptionName);
+            }
+            if (exceptions.size() > 0) {
+                method.endControlFlow();
             }
 
             typeBuilder.addMethod(method.build());

@@ -16,6 +16,8 @@
 
 package com.palantir.processors;
 
+import java.lang.annotation.ElementType;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,8 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.MirroredTypesException;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
@@ -31,6 +35,25 @@ import com.squareup.javapoet.ParameterSpec;
 
 final class ProcessorUtils {
     private ProcessorUtils() {}
+
+    static List<TypeElement> extractExceptionsFromAnnotation(Elements elementUtils, Types typeUtils,
+            AutoDelegate annotation) {
+        try {
+            // Throws a MirroredTypeException if the exception classes are not compiled.
+            return Arrays.stream(annotation.exceptions())
+                    .filter(klass -> !klass.equals(void.class))
+                    .map(klass -> {
+                        TypeMirror mirror = (TypeMirror) elementUtils.getTypeElement(klass.getCanonicalName());
+                        return extractType(typeUtils, mirror);
+                    })
+                    .collect(Collectors.toList());
+        } catch (MirroredTypesException mte) {
+            return mte.getTypeMirrors().stream()
+                    .filter(mirror -> !mirror.getKind().equals(TypeKind.VOID))
+                    .map(mirror -> extractType(typeUtils, mirror))
+                    .collect(Collectors.toList());
+        }
+    }
 
     static TypeElement extractTypeFromAnnotation(Elements elementUtils, AutoDelegate annotation) {
         try {

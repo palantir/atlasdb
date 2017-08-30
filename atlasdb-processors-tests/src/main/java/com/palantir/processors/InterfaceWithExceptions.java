@@ -16,21 +16,8 @@
 
 package com.palantir.processors;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.CLASS)
-public @interface AutoDelegate {
-    /**
-     * The type to be extended. Can be either a class or an interface.
-     */
-    Class typeToExtend();
-
-    /**
-     * The exceptions to be caught. The respective methods will be of name `handle_ExceptionName`.
-     */
-    Class[] exceptions() default void.class;
+@AutoDelegate(typeToExtend = InterfaceWithExceptions.class,
+        exceptions = {IllegalStateException.class, RuntimeException.class})
+public interface InterfaceWithExceptions {
+    public void methodThatThrowsExceptions();
 }
