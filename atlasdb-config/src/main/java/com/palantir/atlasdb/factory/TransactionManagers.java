@@ -98,7 +98,6 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
@@ -106,7 +105,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
@@ -143,94 +141,10 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        return create(config,
-                java.util.Optional::empty,
-                schemas,
-                x -> { },
-                false);
-    }
-
-    /**
-     * Create a {@link SerializableTransactionManager} with provided configurations, {@link Schema},
-     * and an environment in which to register HTTP server endpoints.
-     */
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Schema schema,
-            Environment env,
-            boolean allowHiddenTableAccess) {
-        return create(config, runtimeConfigSupplier, ImmutableSet.of(schema), env, allowHiddenTableAccess);
-    }
-
-    /**
-     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
-     * {@link Schema}s, and an environment in which to register HTTP server endpoints.
-     */
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create. This should only happen once.",
-                UnsafeArg.of("thread name", Thread.currentThread().getName()));
-        return create(config, runtimeConfigSupplier, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
-    }
-
-    /**
-     * Create a {@link SerializableTransactionManager} with provided configurations, a set of
-     * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
-     */
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess) {
-        return create(config, runtimeConfigSupplier, schemas, env, lockServerOptions, allowHiddenTableAccess,
-                UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess,
-            Class<?> callingClass) {
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
-                .allowHiddenTableAccess(allowHiddenTableAccess)
-                .callingClass(callingClass)
+        return create(TransactionManagerOptions.builder()
                 .config(config)
-                .env(env)
-                .lockServerOptions(lockServerOptions)
-                .runtimeConfigSupplier(runtimeConfigSupplier)
                 .schemas(schemas)
-                .build();
-        return create(options);
-    }
-
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            java.util.function.Supplier<java.util.Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess,
-            String userAgent) {
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
-                .allowHiddenTableAccess(allowHiddenTableAccess)
-                .config(config)
-                .env(env)
-                .lockServerOptions(lockServerOptions)
-                .runtimeConfigSupplier(optionalRuntimeConfigSupplier)
-                .schemas(schemas)
-                .userAgent(userAgent)
-                .build();
-        return create(options);
+                .build());
     }
 
     public static SerializableTransactionManager create(TransactionManagerOptions options) {
