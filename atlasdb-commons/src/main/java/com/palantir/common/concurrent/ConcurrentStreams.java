@@ -17,7 +17,6 @@
 package com.palantir.common.concurrent;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -60,17 +59,23 @@ public class ConcurrentStreams {
     }
 
     private static <T, S> Stream<S> map(Iterable<T> values, Function<T, S> mapper, final ExecutorService executor) {
-        List<Future<S>> futures = StreamSupport.stream(values.spliterator(), false)
+        return StreamSupport.stream(values.spliterator(), false)
                 .map(value -> executor.submit(() -> mapper.apply(value)))
-                .collect(Collectors.toList());
+                // Collect first to ensure the maps aren't chained since we want to submit all futures before blocking.
+                .collect(Collectors.toList())
+                .stream()
+                .map(ConcurrentStreams::getFromFuture);
+    }
 
-        return futures.stream().map(f -> {
-            try {
-                return f.get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        });
+    private static <T> T getFromFuture(Future<T> f) {
+        try {
+            return f.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
