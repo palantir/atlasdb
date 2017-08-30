@@ -97,9 +97,10 @@ develop
            ``AutoCloseable``, shutting down its internal executor service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
 
-    *    - |new|
-         - Added an immutable ``TransactionManagerOptions`` class that can be used as an argument when calling ``TransactionManagers.create()`` instead of passing in a long list of individual arguments.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2302>`__)
+    *    - |devbreak|
+         - ``TransactionManagers.create()`` now takes in an immutable ``TransactionManagerOptions`` class instead of a long list of individual arguments.
+           The ``TransactionManagers.Environment`` class has been removed in favor of Java 8's built in ``Consumer<Object>``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

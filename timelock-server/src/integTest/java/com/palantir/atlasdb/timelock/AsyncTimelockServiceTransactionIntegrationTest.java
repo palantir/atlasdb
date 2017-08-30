@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -45,6 +44,7 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
+import com.palantir.atlasdb.factory.TransactionManagerOptions;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -87,8 +87,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
                                 .build())
                         .build())
                 .build();
-        txnManager = TransactionManagers.create(config, () -> Optional.empty(), ImmutableSet.of(),
-                ignored -> { }, false);
+        txnManager = TransactionManagers.create(TransactionManagerOptions.builder().config(config).build());
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 

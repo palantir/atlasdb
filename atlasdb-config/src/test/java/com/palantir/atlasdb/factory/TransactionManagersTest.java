@@ -128,7 +128,7 @@ public class TransactionManagersTest {
 
     private AtlasDbConfig config;
     private AtlasDbRuntimeConfig runtimeConfig;
-    private TransactionManagers.Environment environment;
+    private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
@@ -176,7 +176,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
-        environment = mock(TransactionManagers.Environment.class);
+        environment = mock(Consumer.class);
 
         invalidator = mock(TimestampStoreInvalidator.class);
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
@@ -382,7 +382,7 @@ public class TransactionManagersTest {
                     .withStatus(200)
                     .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
             return null;
-        }).when(environment).register(isA(PingableLeader.class));
+        }).when(environment).accept(isA(PingableLeader.class));
         setupLeaderBlockInConfig();
     }
 

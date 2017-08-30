@@ -13,13 +13,12 @@ Creating a `TransactionManager`:
 ```java
 AtlasDbConfig atlasConfig = ...
 Schema atlasSchema = ...
-Optional<SSLSocketFactory> sslSocketFactory = ...
+TransactionManagerOptions options = TransactionManagerOptions.builder()
+    .config(atlasConfig)
+    .schemas(ImmutableSet.of(atlasSchema))
+    .build();
 
-SerializableTransactionManager tm = TransactionManagers.create(
-    atlasConfig,
-    sslSocketFactory,
-    atlasSchema,
-    (resource) -> {});
+SerializableTransactionManager tm = TransactionManagers.create(options);
 ```
 
 The last item is a consumer of resources meant to be exposed to as web
@@ -48,12 +47,12 @@ And initialization code to your run method:
 
 ```java
 public void run(AtlasDbServerConfiguration config, Environment env) throws Exception {
-    TransactionManager transactionManager =
-        TransactionManagers.create(
-          config.getAtlas(),
-          Optional.<SSLSocketFactory>absent(),
-          ImmutableSet.<Schema>of(),
-          env.jersey()::register);
+    TransactionManagerOptions options = TransactionManagerOptions.builder()
+        .config(config.getAtlas())
+        .env(env.jersey()::register)
+        .build();
+
+    TransactionManager transactionManager = TransactionManagers.create(options);
     ...
 ```
 
