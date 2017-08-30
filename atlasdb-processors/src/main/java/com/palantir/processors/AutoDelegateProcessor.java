@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import javax.annotation.Generated;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.FilerException;
@@ -49,6 +50,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Sets;
+import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -217,6 +219,11 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
 
         // Add modifiers
+        typeBuilder.addAnnotation(AnnotationSpec
+                .builder(Generated.class)
+                .addMember("value", "$S", this.getClass().getCanonicalName())
+                .addMember("value", "$S", typeToExtend.getSimpleName())
+                .build());
         TypeMirror typeMirror = typeToExtend.getType();
         if (typeToExtend.isPublic()) {
             typeBuilder.addModifiers(Modifier.PUBLIC);
