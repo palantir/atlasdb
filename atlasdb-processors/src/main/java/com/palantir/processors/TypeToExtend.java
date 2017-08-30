@@ -29,6 +29,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 
 import com.google.common.collect.Sets;
@@ -38,8 +39,10 @@ final class TypeToExtend {
     private PackageElement typePackage;
     private Set<ExecutableElement> methods;
     private Set<ExecutableElement> constructors;
+    private List<TypeElement> exceptions;
 
     TypeToExtend(PackageElement typePackage,
+            List<TypeElement> exceptions,
             TypeElement typeToExtend,
             TypeElement... supertypes) {
 
@@ -60,6 +63,7 @@ final class TypeToExtend {
 
         methods = Sets.newHashSet(methodSignatureToMethod.values());
         constructors = extractConstructors(typeToExtend);
+        this.exceptions = exceptions;
     }
 
     private List<ExecutableElement> extractMethods(TypeElement typeToExtractMethodsFrom) {
@@ -137,5 +141,9 @@ final class TypeToExtend {
 
     Set<ExecutableElement> getConstructors() {
         return constructors;
+    }
+
+    List<TypeElement> getExceptions() {
+        return exceptions;
     }
 }

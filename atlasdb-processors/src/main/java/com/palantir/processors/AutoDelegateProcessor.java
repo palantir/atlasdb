@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import javax.annotation.Generated;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.FilerException;
@@ -49,6 +50,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Sets;
+import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -159,7 +161,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
 
         List<TypeElement> superTypes = fetchSuperTypes(baseType);
-        return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
+        List<TypeElement> exceptions = ProcessorUtils.extractExceptionsFromAnnotation(elementUtils, typeUtils,
+                annotation);
+        return new TypeToExtend(typePackage, exceptions, baseType, superTypes.toArray(new TypeElement[0]));
     }
 
     private List<TypeElement> fetchSuperTypes(TypeElement baseType) {
@@ -215,6 +219,11 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
 
         // Add modifiers
+        typeBuilder.addAnnotation(AnnotationSpec
+                .builder(Generated.class)
+                .addMember("value", "$S", this.getClass().getCanonicalName())
+                .addMember("value", "$S", typeToExtend.getSimpleName())
+                .build());
         TypeMirror typeMirror = typeToExtend.getType();
         if (typeToExtend.isPublic()) {
             typeBuilder.addModifiers(Modifier.PUBLIC);
@@ -243,19 +252,42 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 .returns(TypeName.get(typeMirror));
         typeBuilder.addMethod(delegateMethod.build());
 
+        // Add exception methods
+        List<TypeElement> exceptions = typeToExtend.getExceptions();
+        for (TypeElement exception : exceptions) {
+            MethodSpec.Builder exceptionMethod = MethodSpec
+                    .methodBuilder(String.format("handle%s", exception.getSimpleName().toString()))
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .addParameter(TypeName.get(exception.asType()), "exception");
+            typeBuilder.addMethod(exceptionMethod.build());
+        }
+
         // Add methods
         for (ExecutableElement methodElement : typeToExtend.getMethods()) {
             String returnStatement = (methodElement.getReturnType().getKind() == TypeKind.VOID) ? "" : "return ";
 
             MethodSpec.Builder method = MethodSpec
-                    .overriding(methodElement)
-                    .addStatement("$L$L().$L($L)",
-                            returnStatement,
-                            DELEGATE_METHOD,
-                            methodElement.getSimpleName(),
-                            methodElement.getParameters());
+                    .overriding(methodElement);
             if (typeToExtend.isInterface()) {
                 method.addModifiers(Modifier.DEFAULT);
+            }
+
+            if (exceptions.size() > 0) {
+                method.beginControlFlow("try");
+            }
+            method.addStatement("$L$L().$L($L)",
+                    returnStatement,
+                    DELEGATE_METHOD,
+                    methodElement.getSimpleName(),
+                    methodElement.getParameters());
+            for (int i = 0; i < exceptions.size(); i++) {
+                TypeElement exception = exceptions.get(i);
+                String exceptionName = "exception" + i;
+                method.nextControlFlow("catch($T $L)", exception, exceptionName);
+                method.addStatement("handle$T($L)", exception, exceptionName);
+            }
+            if (exceptions.size() > 0) {
+                method.endControlFlow();
             }
 
             typeBuilder.addMethod(method.build());
