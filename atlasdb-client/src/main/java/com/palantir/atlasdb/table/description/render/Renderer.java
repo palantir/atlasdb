@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -84,5 +85,22 @@ public abstract class Renderer {
 
     protected byte[] getHash() {
         return Hashing.murmur3_128().hashUnencodedChars(s).asBytes();
+    }
+
+    protected void addBlock(String codeBlock) {
+        String[] lines = codeBlock.split("\\r?\\n");
+        for (String line : lines) {
+            s.append("\n");
+            for (int i = 0; i < indent.get(); i++) {
+                s.append("    ");
+            }
+            s.append(line);
+        }
+    }
+
+    protected void addBlocks(List<String> codeBlocks) {
+        for (String block : codeBlocks) {
+            addBlock(block);
+        }
     }
 }

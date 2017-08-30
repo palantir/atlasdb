@@ -228,63 +228,59 @@ public final class CheckAndSetTable implements
     public interface CheckAndSetNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
-     * <pre>
+     * <pre> 
      * Column value description {
-     *   type: Long;
+     *  type: Long;
      * }
-     * </pre>
-     */
-    public static final class Value implements CheckAndSetNamedColumnValue<Long> {
-        private final Long value;
-
-        public static Value of(Long value) {
-            return new Value(value);
-        }
-
-        private Value(Long value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "value";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "v";
-        }
-
-        @Override
-        public Long getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("v");
-        }
-
-        public static final Hydrator<Value> BYTES_HYDRATOR = new Hydrator<Value>() {
-            @Override
-            public Value hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
+     * </pre> */
+    public static final class Value implements com.palantir.atlasdb.cas.generated.CheckAndSetTable.CheckAndSetNamedColumnValue<java.lang.Long> {
+      public static final com.palantir.common.persist.Persistable.Hydrator<com.palantir.atlasdb.cas.generated.CheckAndSetTable.Value> BYTES_HYDRATOR = new com.palantir.common.persist.Persistable.Hydrator<com.palantir.atlasdb.cas.generated.CheckAndSetTable.Value>() {
+        @java.lang.Override
+        public com.palantir.atlasdb.cas.generated.CheckAndSetTable.Value hydrateFromBytes(byte[] bytes) {
+          bytes = com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+          return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));}
+      };
+    
+      final java.lang.Long value;
+    
+      private Value(java.lang.Long value) {
+        this.value = value;
+      }
+    
+      public static com.palantir.atlasdb.cas.generated.CheckAndSetTable.Value of(java.lang.Long value) {
+        return new com.palantir.atlasdb.cas.generated.CheckAndSetTable.Value(value);
+      }
+    
+      @java.lang.Override
+      public java.lang.String getColumnName() {
+        return "value";
+      }
+    
+      @java.lang.Override
+      public java.lang.String getShortColumnName() {
+        return "v";
+      }
+    
+      @java.lang.Override
+      public java.lang.Long getValue() {
+        return value;
+      }
+    
+      @java.lang.Override
+      public byte[] persistValue() {
+        byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
+        return com.palantir.atlasdb.compress.CompressionUtils.compress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+      }
+    
+      @java.lang.Override
+      public byte[] persistColumnName() {
+        return com.palantir.atlasdb.encoding.PtBytes.toCachedBytes("v");
+      }
+    
+      @java.lang.Override
+      public java.lang.String toString() {
+        return com.google.common.base.MoreObjects.toStringHelper(getClass().getSimpleName()).add("Value", this.value).toString();
+      }
     }
 
     public interface CheckAndSetTrigger {
@@ -681,5 +677,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pcyXr6MvNlvXZxaJAYYjfw==";
+    static String __CLASS_HASH = "ULfLx+E8NODixso/lu+zqg==";
 }
