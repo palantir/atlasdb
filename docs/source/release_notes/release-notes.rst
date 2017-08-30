@@ -42,11 +42,10 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed|
-         - KVS migrations will no longer verify equality between the from and to KVSes for the sweep priority and progress tables.
-           Note that these tables are still *migrated* across, as they provide heuristics for timely sweeping of tables.
-           However, these tables may change (e.g. the from-kvs could be swept).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2244>`__)
+    *    - |new|
+         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
+           You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
 
     *    - |improved|
          - Refactored ``AvailableTimestamps`` reducing overzealous synchronization. Giving out timestamps is no longer blocking on refreshing the timestamp bound if there are enough timestamps to give out with the current bound.
