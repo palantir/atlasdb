@@ -245,7 +245,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 .returns(TypeName.get(typeMirror));
         typeBuilder.addMethod(delegateMethod.build());
 
-        // Add exception messages
+        // Add exception methods
         List<TypeElement> exceptions = typeToExtend.getExceptions();
         for (TypeElement exception : exceptions) {
             MethodSpec.Builder exceptionMethod = MethodSpec
@@ -264,6 +264,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             if (typeToExtend.isInterface()) {
                 method.addModifiers(Modifier.DEFAULT);
             }
+
             if (exceptions.size() > 0) {
                 method.beginControlFlow("try");
             }
