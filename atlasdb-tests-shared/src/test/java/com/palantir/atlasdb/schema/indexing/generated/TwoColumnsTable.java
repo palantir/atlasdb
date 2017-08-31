@@ -228,123 +228,115 @@ public final class TwoColumnsTable implements
     public interface TwoColumnsNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
-     * <pre>
+     * <pre> 
      * Column value description {
-     *   type: Long;
+     *  type: Long;
      * }
-     * </pre>
-     */
-    public static final class Bar implements TwoColumnsNamedColumnValue<Long> {
-        private final Long value;
-
-        public static Bar of(Long value) {
-            return new Bar(value);
-        }
-
-        private Bar(Long value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "bar";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "b";
-        }
-
-        @Override
-        public Long getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("b");
-        }
-
-        public static final Hydrator<Bar> BYTES_HYDRATOR = new Hydrator<Bar>() {
-            @Override
-            public Bar hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
+     * </pre> */
+    public static final class Bar implements com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumnsNamedColumnValue<java.lang.Long> {
+      public static final com.palantir.common.persist.Persistable.Hydrator<com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Bar> BYTES_HYDRATOR = new com.palantir.common.persist.Persistable.Hydrator<com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Bar>() {
+        @java.lang.Override
+        public com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Bar hydrateFromBytes(byte[] bytes) {
+          bytes = com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+          return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));}
+      };
+    
+      final java.lang.Long value;
+    
+      private Bar(java.lang.Long value) {
+        this.value = value;
+      }
+    
+      public static com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Bar of(java.lang.Long value) {
+        return new com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Bar(value);
+      }
+    
+      @java.lang.Override
+      public java.lang.String getColumnName() {
+        return "bar";
+      }
+    
+      @java.lang.Override
+      public java.lang.String getShortColumnName() {
+        return "b";
+      }
+    
+      @java.lang.Override
+      public java.lang.Long getValue() {
+        return value;
+      }
+    
+      @java.lang.Override
+      public byte[] persistValue() {
+        byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
+        return com.palantir.atlasdb.compress.CompressionUtils.compress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+      }
+    
+      @java.lang.Override
+      public byte[] persistColumnName() {
+        return com.palantir.atlasdb.encoding.PtBytes.toCachedBytes("b");
+      }
+    
+      @java.lang.Override
+      public java.lang.String toString() {
+        return com.google.common.base.MoreObjects.toStringHelper(getClass().getSimpleName()).add("Value", this.value).toString();
+      }
     }
 
     /**
-     * <pre>
+     * <pre> 
      * Column value description {
-     *   type: Long;
+     *  type: Long;
      * }
-     * </pre>
-     */
-    public static final class Foo implements TwoColumnsNamedColumnValue<Long> {
-        private final Long value;
-
-        public static Foo of(Long value) {
-            return new Foo(value);
-        }
-
-        private Foo(Long value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "foo";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "f";
-        }
-
-        @Override
-        public Long getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("f");
-        }
-
-        public static final Hydrator<Foo> BYTES_HYDRATOR = new Hydrator<Foo>() {
-            @Override
-            public Foo hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
+     * </pre> */
+    public static final class Foo implements com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumnsNamedColumnValue<java.lang.Long> {
+      public static final com.palantir.common.persist.Persistable.Hydrator<com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Foo> BYTES_HYDRATOR = new com.palantir.common.persist.Persistable.Hydrator<com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Foo>() {
+        @java.lang.Override
+        public com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Foo hydrateFromBytes(byte[] bytes) {
+          bytes = com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+          return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));}
+      };
+    
+      final java.lang.Long value;
+    
+      private Foo(java.lang.Long value) {
+        this.value = value;
+      }
+    
+      public static com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Foo of(java.lang.Long value) {
+        return new com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.Foo(value);
+      }
+    
+      @java.lang.Override
+      public java.lang.String getColumnName() {
+        return "foo";
+      }
+    
+      @java.lang.Override
+      public java.lang.String getShortColumnName() {
+        return "f";
+      }
+    
+      @java.lang.Override
+      public java.lang.Long getValue() {
+        return value;
+      }
+    
+      @java.lang.Override
+      public byte[] persistValue() {
+        byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
+        return com.palantir.atlasdb.compress.CompressionUtils.compress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+      }
+    
+      @java.lang.Override
+      public byte[] persistColumnName() {
+        return com.palantir.atlasdb.encoding.PtBytes.toCachedBytes("f");
+      }
+    
+      @java.lang.Override
+      public java.lang.String toString() {
+        return com.google.common.base.MoreObjects.toStringHelper(getClass().getSimpleName()).add("Value", this.value).toString();
+      }
     }
 
     public interface TwoColumnsTrigger {
@@ -2203,5 +2195,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hyTbqBOunzYSF0DFQr0pSA==";
+    static String __CLASS_HASH = "8tIbe4cpqf34/728HQfGnA==";
 }

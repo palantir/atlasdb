@@ -295,12 +295,12 @@ public class TableRenderer {
             line("public interface ", tableName, "NamedColumnValue<T> extends NamedColumnValue<T> { /* */ }");
             line();
             for (NamedColumnDescription col : ColumnRenderers.namedColumns(table)) {
-                new NamedColumnValueRenderer(this, tableName, col).run();
+                new NamedColumnValueRenderer(this, packageName, tableName, col).run();
                 line();
             }
             renderTrigger();
             line();
-            new NamedRowResultRenderer(this, tableName, ColumnRenderers.namedColumns(table)).run();
+            new NamedRowResultRenderer(this, packageName, tableName, ColumnRenderers.namedColumns(table)).run();
             line();
             new NamedColumnRenderer(this, tableName, ColumnRenderers.namedColumns(table)).run();
             line();
