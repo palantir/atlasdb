@@ -44,6 +44,11 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
+           You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
+
     *    - |userbreak|
          - If AtlasDB is used with TimeLock, and the TimeLock client name is different than either the Cassandra ``keyspace``, Postgres ``dbName``, or Oracle ``sid``, *AtlasDB will fail to start*.
            This was done to avoid risks of data corruption if these are accidentally changed independently.
