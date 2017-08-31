@@ -27,7 +27,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.Assertions;
-import org.junit.AfterClass;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,56 +69,45 @@ public class MultiCassandraStartupOrderingEteTest {
                 + "/' var/conf/atlasdb-ete.yml");
     }
 
-    @AfterClass
-    public static void resetKeyspace() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("sed -i 's/keyspace: .*/keyspace: atlasete/' var/conf/atlasdb-ete.yml");
-        stopTheAtlasServer();
-        startTheAtlasServer();
+    @After
+    public void restoreCassandra() throws InterruptedException {
+        startCassandraNodes();
     }
 
     @Test
     public void shouldBeAbleToStartUpIfCassandraIsDownAndRunTransactionsWhenCassandraIsUp()
             throws IOException, InterruptedException {
-        stopTheAtlasServer();
-
-        stopCassandraNodes();
-
-        startTheAtlasServer();
-
-        assertNotSatisfiedWithin(40, MultiCassandraStartupOrderingEteTest::canAddTodo);
+        restartAtlasWithDegradedCassandra();
+        assertNotSatisfiedWithin(40, MultiCassandraStartupOrderingEteTest::canPerformTransaction);
 
         startCassandraNodes();
+        assertSatisfiedWithin(60, MultiCassandraStartupOrderingEteTest::canPerformTransaction);
 
-        assertSatisfiedWithin(150, MultiCassandraStartupOrderingEteTest::canAddTodo);
-
-        stopTheAtlasServer();
-
-        stopCassandraNodes();
-
-        startTheAtlasServer();
-
-        if (hasQuorum()) {
-            assertSatisfiedWithin(120, MultiCassandraStartupOrderingEteTest::canAddTodo);
-        } else {
-            assertNotSatisfiedWithin(40, MultiCassandraStartupOrderingEteTest::canAddTodo);
-        }
+        restartAtlasWithDegradedCassandra();
+        Assert.assertEquals(hasQuorum(), canPerformTransaction());
     }
 
-    private static void stopTheAtlasServer() throws IOException, InterruptedException {
+    private void restartAtlasWithDegradedCassandra() throws IOException, InterruptedException {
+        stopAtlasServer();
+        stopCassandraNodes();
+        startTheAtlasServer();
+    }
+
+    private static void stopAtlasServer() throws IOException, InterruptedException {
         EteSetup.execCliCommand("service/bin/init.sh stop");
-        assertSatisfiedWithin(10, () -> !serverStarted());
+        assertSatisfiedWithin(10, () -> !serverRunning());
     }
 
     private static void startTheAtlasServer() throws IOException, InterruptedException {
         EteSetup.execCliCommand("service/bin/init.sh start");
-        assertSatisfiedWithin(120, MultiCassandraStartupOrderingEteTest::serverStarted);
+        assertSatisfiedWithin(240, MultiCassandraStartupOrderingEteTest::serverRunning);
     }
 
     private void stopCassandraNodes() throws InterruptedException {
         runOnCassandraNodes(cassandraNodesToStartOrStop, MultiCassandraTestSuite::killCassandraContainer);
         cassandraNodesToStartOrStop.forEach(node -> {
             DockerPort containerPort = new DockerPort(node, CASSANDRA_PORT, CASSANDRA_PORT);
-            assertSatisfiedWithin(20, () -> !containerPort.isListeningNow());
+            assertSatisfiedWithin(10, () -> !containerPort.isListeningNow());
         });
     }
 
@@ -138,18 +128,9 @@ public class MultiCassandraStartupOrderingEteTest {
                 .isInstanceOf(ConditionTimeoutException.class);
     }
 
-    private static boolean canAddTodo() {
+    private static boolean serverRunning() {
         try {
-            addATodo();
-            return true;
-        } catch (AtlasDbRemoteException e) {
-            return false;
-        }
-    }
-
-    private static boolean serverStarted() {
-        try {
-            canAddTodo();
+            canPerformTransaction();
             return true;
         } catch (AtlasDbRemoteException e) {
             return true;
@@ -158,11 +139,20 @@ public class MultiCassandraStartupOrderingEteTest {
         }
     }
 
+    private static boolean canPerformTransaction() {
+        try {
+            addTodo();
+            return true;
+        } catch (AtlasDbRemoteException e) {
+            return false;
+        }
+    }
+
     private boolean hasQuorum() {
         return cassandraNodesToStartOrStop.size() < 2;
     }
 
-    private static void addATodo() {
+    private static void addTodo() {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         Todo todo = getUniqueTodo();
 
