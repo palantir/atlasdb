@@ -300,7 +300,7 @@ public class TableRenderer {
             }
             renderTrigger();
             line();
-            new NamedRowResultRenderer(this, tableName, ColumnRenderers.namedColumns(table)).run();
+            new NamedRowResultRenderer(this, packageName, tableName, ColumnRenderers.namedColumns(table)).run();
             line();
             new NamedColumnRenderer(this, tableName, ColumnRenderers.namedColumns(table)).run();
             line();

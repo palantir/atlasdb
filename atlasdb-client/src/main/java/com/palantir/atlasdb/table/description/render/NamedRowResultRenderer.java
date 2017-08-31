@@ -15,139 +15,218 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import static com.palantir.atlasdb.table.description.render.ColumnRenderers.TypeName;
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.VarName;
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.short_name;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.SortedSet;
+import java.util.function.Function;
 
+import javax.lang.model.element.Modifier;
+
+import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.squareup.javapoet.ArrayTypeName;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeSpec;
 
 class NamedRowResultRenderer extends Renderer {
-    private final String Row;
-    private final String RowResult;
+    private final String packageName;
+
+    private final String tableName;
+    private final ClassName tableType;
+
+    private final String row;
+    private final ClassName rowType;
+
+    private final String rowResult;
+    private final ClassName rowResultType;
+
     private final SortedSet<NamedColumnDescription> cols;
 
-    public NamedRowResultRenderer(Renderer parent, String name, SortedSet<NamedColumnDescription> cols) {
+    public NamedRowResultRenderer(Renderer parent, String packageName, String tableName, SortedSet<NamedColumnDescription> cols) {
         super(parent);
-        this.Row = name + "Row";
-        this.RowResult = name + "RowResult";
+        this.packageName = packageName;
+        this.tableName = tableName;
+        this.tableType = ClassName.get(packageName, tableName + "Table");
+        this.row = tableName + "Row";
+        this.rowType = tableType.nestedClass(this.row);
+        this.rowResult = tableName + "RowResult";
+        this.rowResultType = tableType.nestedClass(this.rowResult);
         this.cols = cols;
     }
 
     @Override
     protected void run() {
-        line("public static final class ", RowResult, " implements TypedRowResult {"); {
-            fields();
-            line();
-            staticFactory();
-            line();
-            constructor();
-            line();
-            getRowName();
-            line();
-            getRowNameFun();
-            line();
-            fromRawRowResultFun();
-            line();
-            for (NamedColumnDescription col : cols) {
-                hasCol(col);
-                line();
-            }
-            for (NamedColumnDescription col : cols) {
-                getCol(col);
-                line();
-            }
-            for (NamedColumnDescription col : cols) {
-                getColFun(col);
-                line();
-            }
-            renderToString();
-        } line("}");
+        TypeSpec.Builder rowResultClassBuilder = TypeSpec.classBuilder(this.rowResult)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .addSuperinterface(TypedRowResult.class);
+
+        for (FieldSpec field : getFields()) {
+            rowResultClassBuilder.addField(field);
+        }
+        for (MethodSpec staticFactory : getStaticFactories()) {
+            rowResultClassBuilder.addMethod(staticFactory);
+        }
+        for (MethodSpec constructor : getConstructors()) {
+            rowResultClassBuilder.addMethod(constructor);
+        }
+        for (MethodSpec method : getMethods()) {
+            rowResultClassBuilder.addMethod(method);
+        }
+
+        addBlock(rowResultClassBuilder.build().toString());
     }
 
-    private void fields() {
-        line("private final RowResult<byte[]> row;");
+    private List<FieldSpec> getFields() {
+        ArrayList<FieldSpec> results = new ArrayList<>();
+        results.add(FieldSpec.builder(
+                ParameterizedTypeName.get(
+                    ClassName.get(RowResult.class),
+                    ArrayTypeName.of(byte.class)),
+                "row")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .build());
+        return results;
     }
 
-    private void staticFactory() {
-        line("public static ", RowResult, " of(RowResult<byte[]> row) {"); {
-            line("return new ", RowResult, "(row);");
-        } line("}");
+    private List<MethodSpec> getStaticFactories() {
+        ArrayList<MethodSpec> results = new ArrayList<>();
+        results.add(MethodSpec.methodBuilder("of")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addParameter(ParameterizedTypeName.get(
+                        ClassName.get(RowResult.class),
+                        ArrayTypeName.of(byte.class)),
+                "row")
+                .returns(rowResultType)
+                .addStatement("return new $T(row)", rowResultType)
+                .build());
+        return results;
     }
 
-    private void constructor() {
-        line("private ", RowResult, "(RowResult<byte[]> row) {"); {
-            line("this.row = row;");
-        } line("}");
+    private List<MethodSpec> getConstructors() {
+        ArrayList<MethodSpec> results = new ArrayList<>();
+        results.add(MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PRIVATE)
+                .addParameter(ParameterizedTypeName.get(
+                        ClassName.get(RowResult.class),
+                        ArrayTypeName.of(byte.class)),
+                        "row")
+                .addStatement("this.$N = $N", "row", "row")
+                .build());
+        return results;
     }
 
-    private void getRowName() {
-        line("@Override");
-        line("public ", Row, " getRowName() {"); {
-            line("return ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());");
-        } line("}");
+    private List<MethodSpec> getMethods() {
+        ArrayList<MethodSpec> results = new ArrayList<>();
+        results.add(getRowName());
+        results.add(getRowNameFun());
+        results.add(fromRawRowResultFun());
+        for (NamedColumnDescription col : cols) {
+            results.add(hasCol(col));
+        }
+        for (NamedColumnDescription col : cols) {
+            results.add(getCol(col));
+        }
+        for (NamedColumnDescription col : cols) {
+            results.add(getColFun(col));
+        }
+        results.add(renderToString());
+        return results;
     }
 
-    private void getRowNameFun() {
-        line("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {"); {
-            line("return new Function<", RowResult, ", ", Row, ">() {"); {
-                line("@Override");
-                line("public ", Row, " apply(", RowResult, " rowResult) {"); {
-                    line("return rowResult.getRowName();");
-                } line("}");
-            } line("};");
-        } line("}");
+
+    private MethodSpec getRowName() {
+        return MethodSpec.methodBuilder("getRowName")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(rowType)
+                .addStatement("return $T.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName())", rowType)
+                .build();
     }
 
-    private void fromRawRowResultFun() {
-        line("public static Function<RowResult<byte[]>, ", RowResult, "> fromRawRowResultFun() {"); {
-            line("return new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
-                line("@Override");
-                line("public ", RowResult, " apply(RowResult<byte[]> rowResult) {"); {
-                    line("return new ", RowResult, "(rowResult);");
-                } line("}");
-            } line("};");
-        } line("}");
+    private MethodSpec getRowNameFun() {
+        return MethodSpec.methodBuilder("getRowNameFun")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(Function.class),
+                        rowResultType,
+                        rowType))
+                .addStatement("return (rowResult) -> { return rowResult.getRowName(); }")
+                .build();
     }
 
-    private void hasCol(NamedColumnDescription col) {
-        line("public boolean has", VarName(col), "() {"); {
-            line("return row.getColumns().containsKey(PtBytes.toCachedBytes(", short_name(col), "));");
-        } line("}");
+    private MethodSpec fromRawRowResultFun() {
+        return MethodSpec.methodBuilder("fromRawRowResultFun")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(Function.class),
+                        ParameterizedTypeName.get(
+                                ClassName.get(RowResult.class),
+                                ArrayTypeName.of(byte.class)
+                        ),
+                        rowResultType))
+                .addStatement("return (rowResult) -> { return new $T(rowResult); }", rowResultType)
+                .build();
     }
 
-    private void getCol(NamedColumnDescription col) {
-        line("public ", TypeName(col), " get", VarName(col), "() {"); {
-            line("byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes(", short_name(col), "));");
-            line("if (bytes == null) {"); {
-                line("return null;");
-            } line("}");
-            line(Renderers.CamelCase(col.getLongName()), " value = ", Renderers.CamelCase(col.getLongName()), ".BYTES_HYDRATOR.hydrateFromBytes(bytes);");
-            line("return value.getValue();");
-        } line("}");
+    private MethodSpec hasCol(NamedColumnDescription col) {
+        return MethodSpec.methodBuilder("has" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .returns(boolean.class)
+                .addStatement("return row.getColumns().containsKey(PtBytes.toCachedBytes($N))", short_name(col))
+                .build();
     }
 
-    private void getColFun(NamedColumnDescription col) {
-        line("public static Function<", RowResult, ", ", TypeName(col), "> get", VarName(col), "Fun() {"); {
-            line("return new Function<", RowResult, ", ", TypeName(col), ">() {"); {
-                line("@Override");
-                line("public ", TypeName(col), " apply(", RowResult, " rowResult) {"); {
-                    line("return rowResult.get", VarName(col), "();");
-                } line("}");
-            } line("};");
-        } line("}");
+    private MethodSpec getCol(NamedColumnDescription col) {
+        return MethodSpec.methodBuilder("get" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .returns(col.getValue().getValueType().getTypeClass())
+                .addStatement("byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes($N))",
+                        short_name(col))
+                .beginControlFlow("if (bytes == null)")
+                    .addStatement("return null")
+                .endControlFlow()
+                .addStatement("$T value = $T.BYTES_HYDRATOR.hydrateFromBytes(bytes)",
+                        this.tableType.nestedClass(Renderers.CamelCase(col.getLongName())),
+                        this.tableType.nestedClass(Renderers.CamelCase(col.getLongName())))
+                .addStatement("return value.getValue()")
+                .build();
     }
 
-    private void renderToString() {
-        line("@Override");
-        line("public String toString() {"); {
-            line("return MoreObjects.toStringHelper(getClass().getSimpleName())");
-            line("    .add(\"RowName\", getRowName())");
-            for (NamedColumnDescription col : cols) {
-                line("    .add(\"", VarName(col), "\", get", VarName(col), "())");
-            }
-            line("    .toString();");
-        } line("}");
+    private MethodSpec getColFun(NamedColumnDescription col) {
+        return MethodSpec.methodBuilder("get" + VarName(col) + "Fun")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(Function.class),
+                        rowResultType,
+                        ClassName.get(col.getValue().getValueType().getTypeClass())))
+                .addStatement("return (rowResult) -> { return rowResult.get$N(); }", VarName(col))
+                .build();
+    }
+
+    private MethodSpec renderToString() {
+        CodeBlock.Builder stringRendererCode = CodeBlock.builder();
+        stringRendererCode.add("return $T.toStringHelper(getClass().getSimpleName())\n", MoreObjects.class);
+        stringRendererCode.add("    .add($S, getRowName())\n", "RowName");
+        for (NamedColumnDescription col : cols) {
+            stringRendererCode.add("    .add($S, get$N())\n", VarName(col), VarName(col));
+        }
+        stringRendererCode.add("    .toString();");
+
+        return MethodSpec.methodBuilder("toString")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class)
+                .addCode(stringRendererCode.build())
+                .build();
     }
 }
