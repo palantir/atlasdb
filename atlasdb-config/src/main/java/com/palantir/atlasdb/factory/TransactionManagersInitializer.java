@@ -26,9 +26,10 @@ import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.common.annotation.Idempotent;
 
 public final class TransactionManagersInitializer implements AsyncInitializer {
-    private static volatile boolean isInitialized = false;
+    private volatile boolean isInitialized = false;
 
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
@@ -49,6 +50,7 @@ public final class TransactionManagersInitializer implements AsyncInitializer {
     }
 
     @Override
+    @Idempotent
     public synchronized void tryInitialize() {
         assertNotInitialized();
 
@@ -64,7 +66,6 @@ public final class TransactionManagersInitializer implements AsyncInitializer {
         }
 
         LoggingArgs.hydrate(keyValueService.getMetadataForTables());
-
         isInitialized = true;
     }
 

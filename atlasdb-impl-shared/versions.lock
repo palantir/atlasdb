@@ -233,6 +233,7 @@
             "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]
@@ -594,6 +595,7 @@
             "locked": "0.1.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl"
             ]

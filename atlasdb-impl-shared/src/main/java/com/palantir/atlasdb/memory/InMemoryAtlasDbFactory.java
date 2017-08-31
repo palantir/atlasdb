@@ -156,6 +156,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return StaticTableMappingService.create(kv);
     }
 }
