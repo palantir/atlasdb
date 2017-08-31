@@ -44,7 +44,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 "CassandraAtlasDbFactory expects a configuration of type"
                 + " CassandraKeyValueServiceConfig, found %s", config.getClass());
         return new CassandraKeyValueServiceImpl.InitializeCheckingWrapper(
-                createKv((CassandraKeyValueServiceConfig) config, leaderConfig,initializeAsync));
+                createKv((CassandraKeyValueServiceConfig) config, leaderConfig, initializeAsync));
     }
 
     private static CassandraKeyValueServiceImpl createKv(

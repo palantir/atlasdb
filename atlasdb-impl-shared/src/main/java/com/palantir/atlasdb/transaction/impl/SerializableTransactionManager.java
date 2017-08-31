@@ -41,7 +41,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private volatile boolean isInitialized = false;
 
         public InitializeCheckingWrapper(SerializableTransactionManager manager) {
-            super();
             this.manager = manager;
         }
 
@@ -50,8 +49,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             if (!isInitialized) {
                 try {
                     manager.getKeyValueService().getClusterAvailabilityStatus();
-                }
-                catch (NotInitializedException e) {
+                } catch (NotInitializedException e) {
                     throw e;
                 }
                 isInitialized = true;

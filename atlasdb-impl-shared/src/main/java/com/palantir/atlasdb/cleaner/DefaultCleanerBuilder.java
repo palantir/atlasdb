@@ -106,7 +106,8 @@ public class DefaultCleanerBuilder {
     }
 
     private Puncher buildPuncher() {
-        PuncherStore keyValuePuncherStore = new KeyValueServicePuncherStore.InitializingWrapper(KeyValueServicePuncherStore.create(keyValueService, initalizeAsync));
+        PuncherStore keyValuePuncherStore = new KeyValueServicePuncherStore.InitializingWrapper(
+                KeyValueServicePuncherStore.create(keyValueService, initalizeAsync));
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
                 punchIntervalMillis * 3);

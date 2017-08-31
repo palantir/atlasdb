@@ -30,7 +30,8 @@ public interface AtlasDbFactory {
 
     String getType();
 
-    default KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    default KeyValueService createRawKeyValueService(KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig) {
         return createRawKeyValueService(config, leaderConfig, true);
     }
 

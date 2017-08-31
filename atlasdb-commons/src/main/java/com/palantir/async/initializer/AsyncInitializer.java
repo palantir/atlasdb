@@ -45,8 +45,9 @@ public interface AsyncInitializer {
             tryInitialize();
         } catch (Throwable th) {
             cleanUpOnInitFailure();
+            log.warn("Failed to initialize " + this.getClass().getName()
+                    + " in the first attempt, will initialize asynchronously.", th);
 
-            log.warn("Failed to initialize " + this.getClass().getName() + " in the first attempt, will initialize asynchronously.", th);
             Executors.newSingleThreadExecutor().execute(
                     () -> {
                         while (!isInitialized()) {

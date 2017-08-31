@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
+
 /**
  * LockStore manages {@link LockEntry} objects, specifically for the "Backup Lock" (to be taken out by backup and
  * sweep).

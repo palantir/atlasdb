@@ -72,7 +72,7 @@ public class CassandraContainer extends Container {
     public String getDockerComposeFile() {
         return "/docker-compose-cassandra.yml";
     }
-    //TODO for now kept synchronous initialization -- should revisit
+    // TODO(gmaretic): for now kept synchronous initialization -- should revisit
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {

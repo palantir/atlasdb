@@ -34,7 +34,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -210,14 +209,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
-        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class), initializeAsync);
+        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class),
+                initializeAsync);
     }
 
     public static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
-        return create(configManager, leaderConfig, log);
+        return create(configManager, leaderConfig, log, true);
     }
 
     public static CassandraKeyValueServiceImpl create(

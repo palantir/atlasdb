@@ -38,7 +38,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         return TYPE;
     }
 
-    //TODO async initialization not implemented/propagated
+    // TODO(gmaretic): async initialization not implemented/propagated
     @Override
     public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {

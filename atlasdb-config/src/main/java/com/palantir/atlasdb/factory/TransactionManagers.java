@@ -258,7 +258,8 @@ public final class TransactionManagers {
                 .setInitializeAsync(config.initializeAsync())
                 .buildCleaner();
 
-        SerializableTransactionManager transactionManager = new SerializableTransactionManager.InitializeCheckingWrapper(
+        SerializableTransactionManager transactionManager = new SerializableTransactionManager
+                .InitializeCheckingWrapper(
                 new SerializableTransactionManager(kvs,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lock(),

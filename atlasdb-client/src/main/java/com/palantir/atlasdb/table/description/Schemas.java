@@ -18,25 +18,18 @@ package com.palantir.atlasdb.table.description;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.SweepSchema;
 
 public final class Schemas {
     private static final String INDEX_SUFFIX = "idx";
-    private Set<Schema> schemas;
-    private KeyValueService kvs;
-    private AtomicBoolean isInitialized;
 
     public static TableReference appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(

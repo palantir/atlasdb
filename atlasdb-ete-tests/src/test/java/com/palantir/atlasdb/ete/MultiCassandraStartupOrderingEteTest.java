@@ -18,7 +18,6 @@ package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.api.Assertions;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,14 +57,15 @@ public class MultiCassandraStartupOrderingEteTest {
     public static Collection<Object[]> testCases() {
         Collection<Object[]> params = Lists.newArrayList();
 
-        params.add(new Object[] {ImmutableList.of("cassandra2")});
-//        params.add(new Object[] {ImmutableList.of("cassandra3", "cassandra2")});
+        params.add(new Object[] {ImmutableList.of("cassandra1")});
+        params.add(new Object[] {ImmutableList.of("cassandra1", "cassandra2")});
         return params;
     }
 
     @Before
     public void randomizeKeyspace() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("sed -i 's/keyspace: .*/keyspace: " + UUID.randomUUID().toString().replace("-", "_") + "/' var/conf/atlasdb-ete.yml");
+        EteSetup.execCliCommand("sed -i 's/keyspace: .*/keyspace: " + UUID.randomUUID().toString().replace("-", "_")
+                + "/' var/conf/atlasdb-ete.yml");
     }
 
     @AfterClass
@@ -81,44 +80,49 @@ public class MultiCassandraStartupOrderingEteTest {
             throws IOException, InterruptedException {
         stopTheAtlasServer();
 
-        System.out.println("1. TIME: " + new Date());
-
         stopCassandraNodes();
 
-        System.out.println("3. TIME: " + new Date());
-
         startTheAtlasServer();
-        System.out.println("4. TIME: " + new Date());
 
         assertNotSatisfiedWithin(40, MultiCassandraStartupOrderingEteTest::canAddTodo);
 
-        System.out.println("5b. TIME: " + new Date());
-
         startCassandraNodes();
 
-        System.out.println("6. TIME: " + new Date());
-
         assertSatisfiedWithin(150, MultiCassandraStartupOrderingEteTest::canAddTodo);
-        System.out.println("7. TIME: " + new Date());
 
         stopTheAtlasServer();
 
-        System.out.println("8. TIME: " + new Date());
-
         stopCassandraNodes();
 
-        System.out.println("9. TIME: " + new Date());
         startTheAtlasServer();
-        System.out.println("10. TIME: " + new Date());
 
         if (hasQuorum()) {
             assertSatisfiedWithin(120, MultiCassandraStartupOrderingEteTest::canAddTodo);
-            System.out.println("12a. TIME: " + new Date());
-        }
-        else {
+        } else {
             assertNotSatisfiedWithin(40, MultiCassandraStartupOrderingEteTest::canAddTodo);
-            System.out.println("12b. TIME: " + new Date());
         }
+    }
+
+    private static void stopTheAtlasServer() throws IOException, InterruptedException {
+        EteSetup.execCliCommand("service/bin/init.sh stop");
+        assertSatisfiedWithin(10, () -> !serverStarted());
+    }
+
+    private static void startTheAtlasServer() throws IOException, InterruptedException {
+        EteSetup.execCliCommand("service/bin/init.sh start");
+        assertSatisfiedWithin(120, MultiCassandraStartupOrderingEteTest::serverStarted);
+    }
+
+    private void stopCassandraNodes() throws InterruptedException {
+        runOnCassandraNodes(cassandraNodesToStartOrStop, MultiCassandraTestSuite::killCassandraContainer);
+        cassandraNodesToStartOrStop.forEach(node -> {
+            DockerPort containerPort = new DockerPort(node, CASSANDRA_PORT, CASSANDRA_PORT);
+            assertSatisfiedWithin(20, () -> !containerPort.isListeningNow());
+        });
+    }
+
+    private void startCassandraNodes() throws InterruptedException {
+        runOnCassandraNodes(cassandraNodesToStartOrStop, MultiCassandraTestSuite::startCassandraContainer);
     }
 
     private static void assertSatisfiedWithin(long time, Callable<Boolean> condition) {
@@ -132,10 +136,6 @@ public class MultiCassandraStartupOrderingEteTest {
                         .pollInterval(2, TimeUnit.SECONDS)
                         .until(condition))
                 .isInstanceOf(ConditionTimeoutException.class);
-    }
-
-    private static Callable<Boolean> not(Callable<Boolean> condition) {
-        return () -> !condition.call();
     }
 
     private static boolean canAddTodo() {
@@ -162,16 +162,6 @@ public class MultiCassandraStartupOrderingEteTest {
         return cassandraNodesToStartOrStop.size() < 2;
     }
 
-    private static void stopTheAtlasServer() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh stop");
-        assertSatisfiedWithin(10, () -> !serverStarted());
-    }
-
-    private static void startTheAtlasServer() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh start");
-        assertSatisfiedWithin(120, MultiCassandraStartupOrderingEteTest::serverStarted);
-    }
-
     private static void addATodo() {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
         Todo todo = getUniqueTodo();
@@ -181,18 +171,6 @@ public class MultiCassandraStartupOrderingEteTest {
 
     private static Todo getUniqueTodo() {
         return ImmutableTodo.of("some unique TODO item with UUID=" + UUID.randomUUID());
-    }
-
-    private void stopCassandraNodes() throws InterruptedException {
-        runOnCassandraNodes(cassandraNodesToStartOrStop, MultiCassandraTestSuite::killCassandraContainer);
-        cassandraNodesToStartOrStop.forEach(node -> {
-            DockerPort containerPort = new DockerPort(node, CASSANDRA_PORT, CASSANDRA_PORT);
-            assertSatisfiedWithin(20, () -> !containerPort.isListeningNow());
-        });
-    }
-
-    private void startCassandraNodes() throws InterruptedException {
-        runOnCassandraNodes(cassandraNodesToStartOrStop, MultiCassandraTestSuite::startCassandraContainer);
     }
 
     private void runOnCassandraNodes(List<String> nodes, CassandraContainerOperator operator)

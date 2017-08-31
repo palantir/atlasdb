@@ -17,15 +17,10 @@ package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -38,19 +33,16 @@ import com.palantir.docker.compose.connection.DockerPort;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-//        TodoEteTest.class,
-//        CommandLineEteTest.class,
-//        ServiceExposureEteTest.class,
-//        MultiCassandraSingleNodeDownEteTest.class,
-//        MultiCassandraDoubleNodeDownEteTest.class
+        TodoEteTest.class,
+        CommandLineEteTest.class,
+        ServiceExposureEteTest.class,
+        MultiCassandraSingleNodeDownEteTest.class,
+        MultiCassandraDoubleNodeDownEteTest.class,
         MultiCassandraStartupOrderingEteTest.class
-})
+        })
 public class MultiCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
     private static final int CASSANDRA_PORT = 9160;
-
-//    @ClassRule
-//    public static TestRule GRADLE = EteSetup.GRADLE_PREPARE_TASK;
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(

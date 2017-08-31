@@ -82,9 +82,11 @@ public class CassandraClientPoolIntegrationTest {
     // Pretty legit test if run manually or if we go back to multi-node tests
     @Test
     public void testTokenMapping() {
-        Map<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> mapOfRanges = clientPool.tokenMap.asMapOfRanges();
+        Map<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
+                clientPool.tokenMap.asMapOfRanges();
 
-        for (Entry<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges.entrySet()) {
+        for (Entry<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges
+                .entrySet()) {
             Range<CassandraClientPoolImpl.LightweightOppToken> tokenRange = entry.getKey();
             List<InetSocketAddress> hosts = entry.getValue();
 
@@ -180,7 +182,8 @@ public class CassandraClientPoolIntegrationTest {
     public void testIsConnectionException() {
         assertFalse(CassandraClientPoolImpl.isConnectionException(new TimedOutException()));
         assertFalse(CassandraClientPoolImpl.isConnectionException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isConnectionException(new TTransportException(new SocketTimeoutException())));
+        assertTrue(
+                CassandraClientPoolImpl.isConnectionException(new TTransportException(new SocketTimeoutException())));
     }
 
     @Test

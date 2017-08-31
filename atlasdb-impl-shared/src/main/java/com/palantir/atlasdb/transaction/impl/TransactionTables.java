@@ -18,6 +18,10 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class TransactionTables {
+    private TransactionTables() {
+        // Utility class
+    }
+
     public static void createTables(KeyValueService keyValueService) {
         keyValueService.createTable(
                 TransactionConstants.TRANSACTION_TABLE,

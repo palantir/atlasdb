@@ -334,7 +334,8 @@ public class TransactionManagersTest {
 //                .keyValueService(new InMemoryAtlasDbConfig())
 //                .defaultLockTimeoutSeconds(120)
 //                .build();
-//        SerializableTransactionManager manager = TransactionManagers.create(realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+//        SerializableTransactionManager manager =
+//                TransactionManagers.create(realConfig, Optional::empty, ImmutableSet.of(), environment, false);
 //        manager.getKeyValueService().getAllTableNames();
 //    }
 

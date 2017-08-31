@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

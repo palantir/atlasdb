@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -28,13 +27,14 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 
-public class TransactionManagersInitializer implements AsyncInitializer {
+public final class TransactionManagersInitializer implements AsyncInitializer {
     private static volatile boolean isInitialized = false;
 
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
 
-    public static void createInitialTables(KeyValueService keyValueService, Set<Schema> schemas, boolean initializeAsync) {
+    public static void createInitialTables(KeyValueService keyValueService, Set<Schema> schemas,
+            boolean initializeAsync) {
         new TransactionManagersInitializer(keyValueService, schemas).initialize(initializeAsync);
     }
 

@@ -34,7 +34,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -96,7 +95,7 @@ import com.palantir.remoting2.tracing.Tracers;
  **/
 @SuppressWarnings("VisibilityModifier")
 @AutoDelegate(typeToExtend = CassandraClientPool.class)
-public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitializer {
+public final class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitializer {
     public static class InitializingWrapper implements AutoDelegate_CassandraClientPool {
         private CassandraClientPoolImpl cassandraClientPool;
 
@@ -230,7 +229,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     }
 
     @VisibleForTesting
-    static CassandraClientPoolImpl createWithoutChecksForTesting(CassandraKeyValueServiceConfig config, boolean initAsync) {
+    static CassandraClientPoolImpl createWithoutChecksForTesting(CassandraKeyValueServiceConfig config,
+            boolean initAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.DO_NOT_RUN);
         cassandraClientPool.initialize(initAsync);
         return cassandraClientPool;
@@ -257,7 +257,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
             return;
         }
         config.servers().forEach(this::addPool);
-        log.warn("ADDED POOLS");
         refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
@@ -271,23 +270,20 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
         if (startupChecks == StartupChecks.RUN) {
             runOneTimeStartupChecks();
         }
-        log.warn("TRING TO REFRESH");
         refreshPool(); // ensure we've initialized before returning
-        log.warn("SUCCESS REFRESHING");
         registerAggregateMetrics();
         isInitialized = true;
     }
 
-    //TODO if cleanup is necessary, initialization is not thread safe. It is an odd corner case, but making a note for now
+    // TODO(gmaretic): if cleanup is necessary, initialization is not thread safe. It is an odd corner case,
+    // but making a note for now
     @Override
     public void cleanUpOnInitFailure() {
-        log.warn("CLEANING UP DUE TO FAILURE");
         metricsManager.deregisterMetrics();
         refreshPoolFuture.cancel(true);
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
         currentPools.clear();
-        log.warn("DONE CLEANING UP");
     }
 
     @Override
@@ -859,6 +855,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
                     return null;
                 }
             };
+
     /**
      * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
      * pick a random host
