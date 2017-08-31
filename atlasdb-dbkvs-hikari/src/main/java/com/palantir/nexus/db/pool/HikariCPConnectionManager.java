@@ -86,7 +86,28 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     public Connection getConnection() throws SQLException {
         long start = System.currentTimeMillis();
         try {
-            return getConnectionInternal();
+            while (true) {
+                HikariDataSource dataSourcePool = getDataSourcePool();
+                Connection conn = dataSourcePool.getConnection();
+
+                try {
+                    testConnection(conn);
+                } catch (SQLException e) {
+                    log.error("Dropping connection which failed validation", e);
+                    dataSourcePool.evictConnection(conn);
+
+                    if (System.currentTimeMillis() > start + connConfig.getCheckoutTimeout()) {
+                        // it's been long enough that had hikari been
+                        // validating internally it would have given up rather
+                        // than retry
+                        throw e;
+                    }
+
+                    continue;
+                }
+
+                return conn;
+            }
         } finally {
             long now = System.currentTimeMillis();
             long elapsed = now - start;
@@ -122,7 +143,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
-    private Connection getConnectionInternal() throws SQLException {
+    private HikariDataSource getDataSourcePool() throws SQLException {
         while (true) {
             // Volatile read state to see if we can get through here without
             // locking.
@@ -134,8 +155,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     synchronized (this) {
                         if (state == stateLocal) {
                             // The state hasn't changed on us, we can perform
-                            // the initialization and start
-                            // getConnectionInternal() over again.
+                            // the initialization and start over again.
                             state = normalState();
                         } else {
                             // Someone else changed the state on us, just start
@@ -145,8 +165,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     break;
 
                 case NORMAL:
-                    // Normal state, we try to get a connection.
-                    return stateLocal.dataSourcePool.getConnection();
+                    // Normal state, good to go
+                    return stateLocal.dataSourcePool;
 
                 case CLOSED:
                     throw new SQLException("Hikari connection pool already closed!", stateLocal.closeTrace);
