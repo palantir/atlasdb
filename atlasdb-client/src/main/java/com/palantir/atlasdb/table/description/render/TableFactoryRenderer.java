@@ -16,10 +16,13 @@
 package com.palantir.atlasdb.table.description.render;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Generated;
@@ -47,32 +50,44 @@ import com.squareup.javapoet.WildcardTypeName;
 public final class TableFactoryRenderer {
     private final String schemaName;
     private final String packageName;
-    private final String defaultNamespace;
+    private final String defaultNamespaceName;
     private final SortedMap<String, TableDefinition> definitions;
     private final ClassName tableFactoryType;
     private final ClassName sharedTriggersType;
 
     private TableFactoryRenderer(String schemaName,
             String packageName,
-            Namespace defaultNamespace,
-            Map<String, TableDefinition> definitions) {
+            String defaultNamespaceName,
+            SortedMap<String, TableDefinition> definitions,
+            ClassName tableFactoryType,
+            ClassName sharedTriggersType) {
         this.schemaName = schemaName;
         this.packageName = packageName;
-        this.definitions = Maps.newTreeMap();
-        this.defaultNamespace = defaultNamespace.getName();
-        this.tableFactoryType = ClassName.get(packageName, getClassName());
-        this.sharedTriggersType = tableFactoryType.nestedClass("SharedTriggers");
-        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
-            this.definitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
-        }
+        this.definitions = definitions;
+        this.defaultNamespaceName = defaultNamespaceName;
+        this.tableFactoryType = tableFactoryType;
+        this.sharedTriggersType = sharedTriggersType;
     }
 
-    public static TableFactoryRenderer of(String schemaName,
+    public static TableFactoryRenderer of(
+            String schemaName,
             String packageName,
             Namespace defaultNamespace,
             Map<String, TableDefinition> definitions) {
-        return new TableFactoryRenderer(schemaName, packageName, defaultNamespace, definitions);
 
+        SortedMap<String, TableDefinition> sortedDefinitions = Maps.newTreeMap();
+        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+            sortedDefinitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
+        }
+        ClassName tableFactoryType = ClassName.get(packageName, schemaName + "TableFactory");
+        ClassName sharedTriggersType = tableFactoryType.nestedClass("SharedTriggers");
+        return new TableFactoryRenderer(
+                schemaName,
+                packageName,
+                defaultNamespace.getName(),
+                sortedDefinitions,
+                tableFactoryType,
+                sharedTriggersType);
     }
 
     public String getPackageName() {
@@ -90,18 +105,10 @@ public final class TableFactoryRenderer {
                         .addMember("value", "$S", TableFactoryRenderer.class.getName())
                         .build());
 
-        for (FieldSpec field : getFields()) {
-            tableFactory.addField(field);
-        }
-        for (TypeSpec subType : getSubTypes()) {
-            tableFactory.addType(subType);
-        }
-        for (MethodSpec method : getConstructors()) {
-            tableFactory.addMethod(method);
-        }
-        for (MethodSpec method : getMethods()) {
-            tableFactory.addMethod(method);
-        }
+        buildFactory(this::getFields, tableFactory::addField);
+        buildFactory(this::getSubTypes, tableFactory::addType);
+        buildFactory(this::getConstructors, tableFactory::addMethod);
+        buildFactory(this::getMethods, tableFactory::addMethod);
 
         JavaFile javaFile = JavaFile.builder(packageName, tableFactory.build())
                 .indent("    ")
@@ -110,8 +117,10 @@ public final class TableFactoryRenderer {
         return javaFile.toString();
     }
 
-    private String getTableName(String name) {
-        return name + "Table";
+    <T> void buildFactory(Supplier<Collection<T>> supplier, Consumer<T> addToFactory) {
+        for (T entry : supplier.get()) {
+           addToFactory.accept(entry);
+        }
     }
 
     private List<FieldSpec> getFields() {
@@ -188,17 +197,17 @@ public final class TableFactoryRenderer {
         return results;
     }
 
-    private MethodSpec.Builder factoryBaseBuilder() {
-        return MethodSpec.methodBuilder("of")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .returns(tableFactoryType);
-    }
-
     private List<MethodSpec> getMethods() {
         return definitions.entrySet()
                 .stream()
                 .map(entry -> getTableMethod(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    private MethodSpec.Builder factoryBaseBuilder() {
+        return MethodSpec.methodBuilder("of")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(tableFactoryType);
     }
 
     private MethodSpec getTableMethod(String name, TableDefinition tableDefinition) {
@@ -252,8 +261,9 @@ public final class TableFactoryRenderer {
             String name = entry.getKey();
             TableDefinition tableDefinition = entry.getValue();
             String tableName = getTableName(name);
-            TypeName rowType = ClassName.get(packageName, tableName + "." + name + "Row");
-            TypeName columnType = ClassName.get(packageName, tableName + "." + name + "ColumnValue");
+            ClassName tableType = ClassName.get(packageName, tableName);
+            TypeName rowType = tableType.nestedClass(name + "Row");
+            TypeName columnType = tableType.nestedClass(name + "ColumnValue");
             if (!tableDefinition.toTableMetadata().getColumns().hasDynamicColumns()) {
                 columnType = ParameterizedTypeName.get(
                         ClassName.get(packageName, tableName + "." + name + "NamedColumnValue"),
@@ -277,16 +287,20 @@ public final class TableFactoryRenderer {
         return nullSharedTriggersClassBuilder.build();
     }
 
+    private String getTableName(String name) {
+        return name + "Table";
+    }
+
     private FieldSpec getDefaultNamespaceField() {
         FieldSpec.Builder namespaceFieldBuilder = FieldSpec.builder(Namespace.class, "defaultNamespace")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC);
 
-        if (defaultNamespace.isEmpty()) {
+        if (defaultNamespaceName.isEmpty()) {
             namespaceFieldBuilder.initializer("$T.create($S, $T.EMPTY_NAMESPACE)",
                     Namespace.class, "default", Namespace.class);
         } else {
             namespaceFieldBuilder.initializer("$T.create($S, $T.UNCHECKED_NAME)",
-                    Namespace.class, defaultNamespace, Namespace.class);
+                    Namespace.class, defaultNamespaceName, Namespace.class);
         }
         return namespaceFieldBuilder.build();
     }
