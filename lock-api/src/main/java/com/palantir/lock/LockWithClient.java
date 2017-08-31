@@ -22,7 +22,7 @@ public class LockWithClient {
     private LockClient lockClient;
 
     public LockWithClient(@JsonProperty("lockDescriptor") LockDescriptor lockDescriptor,
-                        @JsonProperty("lockMode") LockClient lockClient) {
+                        @JsonProperty("lockClient") LockClient lockClient) {
         this.lockDescriptor = lockDescriptor;
         this.lockClient = lockClient;
     }

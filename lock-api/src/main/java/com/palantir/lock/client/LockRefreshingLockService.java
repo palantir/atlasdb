@@ -87,11 +87,6 @@ public class LockRefreshingLockService extends ForwardingLockService {
         return lock;
     }
 
-//    @Override
-//    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
-//        return lockWithFullLockResponse(LockClient.of(client), request);
-//    }
-
     @Override
     public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
             throws InterruptedException {

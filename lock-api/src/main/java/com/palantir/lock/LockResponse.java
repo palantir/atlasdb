@@ -51,10 +51,9 @@ import com.google.common.collect.Iterables;
     private static final long serialVersionUID = 0xd67972b13e30eff7L;
 
     @Nullable private final HeldLocksToken token;
-
     private final boolean isBlockAndRelease;
-
     private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
+
     private static final Function<ImmutableSortedMap.Entry<LockDescriptor, LockClient>, LockWithClient> TO_LOCK_WITH_CLIENT_FUNCTION =
             (Function<Map.Entry<LockDescriptor, LockClient>, LockWithClient>) input -> new LockWithClient(input.getKey(), input.getValue());
 
@@ -128,7 +127,6 @@ import com.google.common.collect.Iterables;
         return ImmutableList.copyOf(Iterables.transform(lockHolders.entrySet(), TO_LOCK_WITH_CLIENT_FUNCTION));
     }
 
-
     /**
      * Returns a map of lock descriptors and lock clients. Each entry's key is a
      * lock which could not be acquired by the lock server, and its value is one
@@ -169,9 +167,7 @@ import com.google.common.collect.Iterables;
     }
 
     @Override public int hashCode() {
-        return Objects.hashCode(token,
-                lockHolders,
-                isBlockAndRelease);
+        return Objects.hashCode(token, lockHolders, isBlockAndRelease);
     }
 
     public String toString(long currentTimeMillis) {
@@ -203,7 +199,6 @@ import com.google.common.collect.Iterables;
             this.lockHolders = lockResponse.lockHolders;
             this.isBlockAndRelease = lockResponse.isBlockAndRelease;
         }
-
 
         @JsonCreator
         SerializationProxy(@JsonProperty("token") HeldLocksToken token,

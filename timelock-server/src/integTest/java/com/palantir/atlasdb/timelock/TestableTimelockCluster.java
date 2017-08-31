@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
-import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockRequest;
@@ -163,10 +162,6 @@ public class TestableTimelockCluster {
 
     public LockResponse lock(LockRequest requestV2) {
         return timelockService().lock(requestV2);
-    }
-
-    public void lockWithFullLockResponse(com.palantir.lock.LockRequest requestV1) throws InterruptedException {
-         lockService().lockWithFullLockResponse(LockClient.of(defaultClient), requestV1);
     }
 
     public CompletableFuture<LockResponse> lockAsync(LockRequest requestV2) {

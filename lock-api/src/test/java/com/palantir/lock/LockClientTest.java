@@ -33,4 +33,5 @@ public final class LockClientTest {
         assertThat(lockClient.getClientId(), is(deserializedLockClient.getClientId()));
         assertThat(lockClient.isAnonymous(), is(deserializedLockClient.isAnonymous()));
     }
+
 }

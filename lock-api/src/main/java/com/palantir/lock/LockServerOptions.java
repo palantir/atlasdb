@@ -102,7 +102,6 @@ public final class LockServerOptions implements Serializable {
             return this;
         }
 
-
         public LockServerOptions build() {
             return new LockServerOptions(
                     isStandaloneServer,

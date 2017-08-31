@@ -50,13 +50,13 @@ public class LockServiceSerDeTest {
         HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
                 new BigInteger("1"), "held-lock-1",
                 "logger-lock");
-        Map<LockDescriptor, LockClient> lockHolders = ImmutableMap.of(StringLockDescriptor.of("lockdid"),
-                LockClient.ANONYMOUS);
+        Map<LockDescriptor, LockClient> lockHolders = ImmutableMap.of(StringLockDescriptor.of("lock_id"),
+                LockClient.ANONYMOUS, StringLockDescriptor.of("lock_id2"), LockClient.of("client"));
         LockResponse response = new LockResponse(token, lockHolders);
         ObjectMapper mapper = new ObjectMapper();
         LockResponse deserializedLockResponse = mapper.readValue(mapper.writeValueAsString(response),
                 LockResponse.class);
-        assertEquals(deserializedLockResponse, response);
+        assertEquals(lockHolders, deserializedLockResponse.getLockHolders());
     }
 
     @Test

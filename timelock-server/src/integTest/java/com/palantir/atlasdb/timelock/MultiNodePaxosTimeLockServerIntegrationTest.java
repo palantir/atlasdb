@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -34,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -101,18 +103,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(catchThrowable(lockRefreshTokenCompletableFuture::get).getCause())
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
-
-    @Test
-    public void canLockWithFullLockResponse() throws InterruptedException {
-        LockDescriptor lock1 = StringLockDescriptor.of("lock1");
-        LockDescriptor lock2 = StringLockDescriptor.of("lock2");
-        com.palantir.lock.LockRequest lockRequestV1 = com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(
-                lock1, LockMode.READ, lock2, LockMode.WRITE))
-                .withLockedInVersionId(10).doNotBlock().build();
-        CLUSTER.lockWithFullLockResponse(lockRequestV1);
-        //        Assert.assertEquals(10, (long) cluster.lockService().getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()));
-    }
-
 
     @Test
     public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() throws InterruptedException {

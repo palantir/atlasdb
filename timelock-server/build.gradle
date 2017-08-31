@@ -44,10 +44,3 @@ dependencies {
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
 }
-
-
-task runTimeLock(type: JavaExec) {
-  classpath sourceSets.main.runtimeClasspath
-  main = "com.palantir.atlasdb.timelock.TimeLockServerLauncher"
-  args "server", "/Users/davidt/repos/atlasdb/timelock-server-distribution/var/conf/timelock.yml"
-}

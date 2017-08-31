@@ -15,9 +15,6 @@
  */
 package com.palantir.lock;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-
 import java.io.File;
 import java.util.List;
 import java.util.SortedMap;
@@ -33,7 +30,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -771,6 +767,7 @@ public abstract class LockServiceTest {
                 new LockServerOptions.Builder()
                 .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
                 .build()), 100);
+
         final int partitions = 5;
         final int[] partition = new int[partitions - 1];
         final int numThreads = partitions * 10;
@@ -1012,25 +1009,16 @@ public abstract class LockServiceTest {
     }
 
     /** Tests unlock and freeze */
-    @Test
-    public void testUnlockAndFreeze() throws Exception {
+    @Test public void testUnlockAndFreeze() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
                 new LockServerOptions.Builder()
                         .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
                         .build()), 10);
+
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
                 .timeoutAfter(SimpleTimeDuration.of(1, TimeUnit.SECONDS)).doNotBlock().build();
-
-        LockResponse response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-        ObjectMapper mapper = new ObjectMapper();
-        LockResponse deserializedLockResponse = mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
-
-        assertThat(deserializedLockResponse.equals(response), is(true));
-
-
-
-        HeldLocksToken token = response.getToken();
+        HeldLocksToken token = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
         Assert.assertNotNull(token);
         Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
         Assert.assertEquals(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)), token.getLockDescriptors());
@@ -1088,7 +1076,7 @@ public abstract class LockServiceTest {
         testReentrancy(LockMode.READ, LockMode.READ);
     }
 
-    @Test(expected=IllegalMonitorStateException.class)
+    @Test(expected = IllegalMonitorStateException.class)
     public void testReentrantReadWrite() throws InterruptedException {
         testReentrancy(LockMode.READ, LockMode.WRITE);
     }

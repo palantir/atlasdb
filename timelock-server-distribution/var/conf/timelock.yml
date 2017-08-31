@@ -31,9 +31,9 @@ server:
   applicationConnectors:
   - type: h2
     port: 8421
-    keyStorePath: /Users/hsaraogi/code/atlasdb2/timelock-server-distribution/var/security/keyStore.jks
+    keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore
-    trustStorePath: /Users/hsaraogi/code/atlasdb2/timelock-server-distribution/var/security/trustStore.jks
+    trustStorePath: var/security/trustStore.jks
     validateCerts: false
     supportedCipherSuites:
       - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256

@@ -74,11 +74,6 @@ public class ThreadPooledLockService implements CloseableLockService {
         return wrapper.applyWithPermit(lockService -> lockService.lockWithFullLockResponse(client, request));
     }
 
-//    @Override
-//    public LockResponse lockWithFullLockResponse(String client, LockRequest request) throws InterruptedException {
-//        return lockWithFullLockResponse(LockClient.of(client), request);
-//    }
-
     @Override
     public boolean unlock(HeldLocksToken token) {
         return delegate.unlock(token);
