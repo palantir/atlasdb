@@ -169,6 +169,7 @@ public class LegacyTimelockService implements TimelockService {
         try {
             return lockService.lock(LockClient.ANONYMOUS.getClientId(), lockRequest);
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(ex);
         }
     }
