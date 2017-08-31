@@ -257,6 +257,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
             return;
         }
         config.servers().forEach(this::addPool);
+        log.warn("ADDED POOLS");
         refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
@@ -270,7 +271,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
         if (startupChecks == StartupChecks.RUN) {
             runOneTimeStartupChecks();
         }
+        log.warn("TRING TO REFRESH");
         refreshPool(); // ensure we've initialized before returning
+        log.warn("SUCCESS REFRESHING");
         registerAggregateMetrics();
         isInitialized = true;
     }
@@ -278,11 +281,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitia
     //TODO if cleanup is necessary, initialization is not thread safe. It is an odd corner case, but making a note for now
     @Override
     public void cleanUpOnInitFailure() {
+        log.warn("CLEANING UP DUE TO FAILURE");
         metricsManager.deregisterMetrics();
         refreshPoolFuture.cancel(true);
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
         currentPools.clear();
+        log.warn("DONE CLEANING UP");
     }
 
     @Override

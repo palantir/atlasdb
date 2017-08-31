@@ -46,7 +46,7 @@ public interface AsyncInitializer {
         } catch (Throwable th) {
             cleanUpOnInitFailure();
 
-            log.warn("Failed to initialize " + this.getClass().getName() + " in the first attempt, will initialize Asynchronously.", th);
+            log.warn("Failed to initialize " + this.getClass().getName() + " in the first attempt, will initialize asynchronously.", th);
             Executors.newSingleThreadExecutor().execute(
                     () -> {
                         while (!isInitialized()) {
@@ -54,12 +54,11 @@ public interface AsyncInitializer {
                                 tryInitialize();
                             } catch (Throwable throwable) {
                                 cleanUpOnInitFailure();
-                                log.warn("STILL TRYING. " + this.getClass().getName(), throwable);
 
                                 Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
                             }
                         }
-                        log.warn("INTIALIZED " +  this.getClass().getName());
+                        log.warn("Initialized " +  this.getClass().getName() + " asynchronously.");
                     }
             );
         }

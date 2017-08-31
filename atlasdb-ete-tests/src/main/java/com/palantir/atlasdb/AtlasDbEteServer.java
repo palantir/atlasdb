@@ -45,10 +45,6 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
-    private static final Logger log = LoggerFactory.getLogger(AtlasDbEteServer.class);
-
-    private static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 60;
-    private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
     private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
