@@ -47,7 +47,7 @@ public class SchemaApiTest extends AbstractSchemaTest {
         GenericTestTable table = tableFactory.getGenericTestTable(transaction);
 
         ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(firstColShortName)));
+                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
         Optional<GenericTestRowResult> result = table.getRow(GenericTestRow.of(rowKey), firstColSelection);
         return result.get().getColumn1();
     }
@@ -57,7 +57,7 @@ public class SchemaApiTest extends AbstractSchemaTest {
         GenericTestTable table = tableFactory.getGenericTestTable(transaction);
 
         ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(firstColShortName)));
+                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
         List<GenericTestRowResult> result =
                 table.getRows(
                         rowKeys.stream().map(GenericTestRow::of).collect(Collectors.toList()),
@@ -71,7 +71,7 @@ public class SchemaApiTest extends AbstractSchemaTest {
         GenericTestTable table = tableFactory.getGenericTestTable(transaction);
 
         ColumnSelection secondColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(secondColShortName)));
+                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(SECOND_COL_SHORT_NAME)));
 
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(GenericTestRow.of(startRowKey).persistToBytes())

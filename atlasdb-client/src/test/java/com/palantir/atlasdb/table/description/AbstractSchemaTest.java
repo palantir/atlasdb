@@ -16,8 +16,7 @@
 
 package com.palantir.atlasdb.table.description;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -54,15 +53,15 @@ public abstract class AbstractSchemaTest {
     private static final TableReference tableRef =
             TableReference.create(Namespace.DEFAULT_NAMESPACE, "GenericTest");
 
-    private static final String testRowKey = "testRowKey";
-    private static final String anotherTestRowKey = "testRowKey2";
-    private static final long testValue = 2L;
-    private static final long anotherTestValue = 3L;
-    private static ColumnSelection firstColSelection =
+    private static final String TEST_ROW_KEY = "testRowKey";
+    private static final String TEST_ROW_KEY2 = "testRowKey2";
+    private static final long TEST_VALUE = 2L;
+    private static final long ANOTHER_TEST_VALUE = 3L;
+    private static final ColumnSelection FIRST_COLUMN_SELECTION =
             ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
 
-    protected static final String firstColShortName = "c";
-    protected static final String secondColShortName = "d";
+    protected static final String FIRST_COL_SHORT_NAME = "c";
+    protected static final String SECOND_COL_SHORT_NAME = "d";
 
     protected abstract void putSingleRowFirstColumn(Transaction transaction, String roWKey, long value);
     protected abstract Long getSingleRowFirstColumn(Transaction transaction, String rowKey);
@@ -75,107 +74,120 @@ public abstract class AbstractSchemaTest {
     public void testPutSingleRowFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
 
-        putSingleRowFirstColumn(transaction, testRowKey, testValue);
+        putSingleRowFirstColumn(transaction, TEST_ROW_KEY, TEST_VALUE);
 
         ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(transaction, times(1)).put(eq(tableRef), argument.capture());
 
-        Cell expectedCell = Cell.create(PtBytes.toBytes(testRowKey), PtBytes.toBytes(firstColShortName));
-        assertEquals(argument.getValue().entrySet().size(), 1);
-        assertEquals(argument.getValue().keySet().toArray()[0], expectedCell);
-        assertTrue(Arrays.equals((byte[]) argument.getValue().values().toArray()[0],
-                EncodingUtils.encodeUnsignedVarLong(testValue)));
+        Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
+        assertThat(argument.getValue().entrySet().size()).isEqualTo(1);
+        assertThat(argument.getValue().keySet().toArray()[0]).isEqualTo(expectedCell);
+        assertThat((byte[]) argument.getValue().values().toArray()[0])
+                .usingComparator(UnsignedBytes.lexicographicalComparator())
+                .isEqualTo(EncodingUtils.encodeUnsignedVarLong(TEST_VALUE));
     }
 
     @Test
     public void testGetSingleRowFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        Cell resultCell = Cell.create(PtBytes.toBytes(testRowKey), PtBytes.toBytes(firstColShortName));
+        Cell resultCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
         SortedMap<byte[], RowResult<byte[]>> expectedResults = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         expectedResults.put(
-                testRowKey.getBytes(),
-                RowResult.of(resultCell, EncodingUtils.encodeUnsignedVarLong(testValue)));
-        Mockito.when(transaction.getRows(any(), any(), any())).thenReturn(expectedResults);
+                TEST_ROW_KEY.getBytes(),
+                RowResult.of(resultCell, EncodingUtils.encodeUnsignedVarLong(TEST_VALUE)));
+        Mockito.when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(expectedResults);
 
-        long value = getSingleRowFirstColumn(transaction, testRowKey);
+        long value = getSingleRowFirstColumn(transaction, TEST_ROW_KEY);
 
-        assertEquals(value, testValue);
+        assertThat(value).isEqualTo(TEST_VALUE);
         ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
         Mockito.verify(transaction, times(1))
-                .getRows(eq(tableRef), argument.capture(), eq(firstColSelection));
+                .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
-        assertEquals(argumentRows.size(), 1);
-        assertTrue(Arrays.equals(argumentRows.get(0), PtBytes.toBytes(testRowKey)));
+        assertThat(argumentRows.size()).isEqualTo(1);
+        assertThat(argumentRows.get(0))
+                .usingComparator(UnsignedBytes.lexicographicalComparator())
+                .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));
     }
 
     @Test
     public void testGetMultipleRowsFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        Cell expectedCell = Cell.create(PtBytes.toBytes(testRowKey), PtBytes.toBytes(firstColShortName));
+        Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
         Cell anotherExpectedCell =
-                Cell.create(PtBytes.toBytes(anotherTestRowKey), PtBytes.toBytes(firstColShortName));
+                Cell.create(PtBytes.toBytes(TEST_ROW_KEY2), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
         SortedMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         resultsMap.put(
-                testRowKey.getBytes(),
-                RowResult.of(expectedCell, EncodingUtils.encodeUnsignedVarLong(testValue)));
+                TEST_ROW_KEY.getBytes(),
+                RowResult.of(expectedCell, EncodingUtils.encodeUnsignedVarLong(TEST_VALUE)));
         resultsMap.put(
-                anotherTestRowKey.getBytes(),
-                RowResult.of(anotherExpectedCell, EncodingUtils.encodeUnsignedVarLong(anotherTestValue)));
-        Mockito.when(transaction.getRows(any(), any(), any())).thenReturn(resultsMap);
+                TEST_ROW_KEY2.getBytes(),
+                RowResult.of(anotherExpectedCell, EncodingUtils.encodeUnsignedVarLong(ANOTHER_TEST_VALUE)));
+        Mockito.when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);
 
-        List<Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(testRowKey, anotherTestRowKey));
+        List<Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
 
-        assertEquals(result, Arrays.asList(testValue, anotherTestValue));
+        assertThat(result).isEqualTo(Arrays.asList(TEST_VALUE, ANOTHER_TEST_VALUE));
         ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
         Mockito.verify(transaction, times(1))
-                .getRows(eq(tableRef), argument.capture(), eq(firstColSelection));
+                .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
-        assertEquals(argumentRows.size(), 2);
-        assertTrue(Arrays.equals(argumentRows.get(0), PtBytes.toBytes(testRowKey)));
-        assertTrue(Arrays.equals(argumentRows.get(1), PtBytes.toBytes(anotherTestRowKey)));
+        assertThat(argumentRows.size()).isEqualTo(2);
+        assertThat(argumentRows.get(0))
+                .usingComparator(UnsignedBytes.lexicographicalComparator())
+                .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));
+        assertThat(argumentRows.get(1))
+                .usingComparator(UnsignedBytes.lexicographicalComparator())
+                .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY2));
     }
 
     @Test
     public void testRowRange() {
-        String endRowKey = "testRowKey3";
-        String testStringValue = "value1";
-        String anotherTestStringValue = "value2";
+        final String endRowKey = "testRowKey3";
+        final String testStringValue = "value1";
+        final String anotherTestStringValue = "value2";
 
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        Cell expectedCell = Cell.create(PtBytes.toBytes(testRowKey), PtBytes.toBytes(secondColShortName));
+        Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(SECOND_COL_SHORT_NAME));
         Cell anotherExpectedCell =
-                Cell.create(PtBytes.toBytes(anotherTestRowKey), PtBytes.toBytes(secondColShortName));
-        Mockito.when(transaction.getRange(any(), any())).thenReturn(
+                Cell.create(PtBytes.toBytes(TEST_ROW_KEY2), PtBytes.toBytes(SECOND_COL_SHORT_NAME));
+        Mockito.when(transaction.getRange(eq(tableRef), any())).thenReturn(
                 BatchingVisitableFromIterable.create(Arrays.asList(
                         RowResult.of(expectedCell, testStringValue.getBytes()),
                         RowResult.of(anotherExpectedCell, anotherTestStringValue.getBytes())
                 ))
         );
 
-        List<String> result = getRangeSecondColumn(transaction, testRowKey, endRowKey);
+        List<String> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, endRowKey);
 
-        assertEquals(result, Arrays.asList(testStringValue, anotherTestStringValue));
+        assertThat(result).isEqualTo(Arrays.asList(testStringValue, anotherTestStringValue));
         ArgumentCaptor<RangeRequest> argument = ArgumentCaptor.forClass(RangeRequest.class);
         Mockito.verify(transaction, times(1))
                 .getRange(eq(tableRef), argument.capture());
 
         RangeRequest rangeRequest = argument.getValue();
-        assertTrue(Arrays.equals(rangeRequest.getStartInclusive(), PtBytes.toBytes(testRowKey)));
-        assertTrue(Arrays.equals(rangeRequest.getEndExclusive(), PtBytes.toBytes(endRowKey)));
-        assertEquals(rangeRequest.getColumnNames().size(), 1);
-        assertTrue(rangeRequest.containsColumn(PtBytes.toBytes(secondColShortName)));
+        assertThat(rangeRequest.getStartInclusive())
+                .usingComparator(UnsignedBytes.lexicographicalComparator())
+                .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));
+        assertThat(rangeRequest.getEndExclusive())
+                .usingComparator(UnsignedBytes.lexicographicalComparator())
+                .isEqualTo(PtBytes.toBytes(endRowKey));
+        assertThat(rangeRequest.getColumnNames().size()).isEqualTo(1);
+        assertThat(rangeRequest.containsColumn(PtBytes.toBytes(SECOND_COL_SHORT_NAME))).isTrue();
     }
 
     @Test
     public void testDeleteWholeRow() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
 
-        deleteWholeRow(transaction, testRowKey);
+        deleteWholeRow(transaction, TEST_ROW_KEY);
 
-        Cell expectedDeletedFirstCell = Cell.create(PtBytes.toBytes(testRowKey), PtBytes.toBytes(firstColShortName));
-        Cell expectedDeletedSecondCell = Cell.create(PtBytes.toBytes(testRowKey), PtBytes.toBytes(secondColShortName));
+        Cell expectedDeletedFirstCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY),
+                PtBytes.toBytes(FIRST_COL_SHORT_NAME));
+        Cell expectedDeletedSecondCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY),
+                PtBytes.toBytes(SECOND_COL_SHORT_NAME));
         Mockito.verify(transaction, times(1)).delete(tableRef,
                 ImmutableSet.of(expectedDeletedFirstCell, expectedDeletedSecondCell));
     }
@@ -184,9 +196,9 @@ public abstract class AbstractSchemaTest {
     public void testDeleteFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
 
-        deleteFirstColumn(transaction, testRowKey);
+        deleteFirstColumn(transaction, TEST_ROW_KEY);
 
-        Cell expectedDeletedCell = Cell.create(PtBytes.toBytes(testRowKey), PtBytes.toBytes(firstColShortName));
+        Cell expectedDeletedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
         Mockito.verify(transaction, times(1)).delete(tableRef,
                 ImmutableSet.of(expectedDeletedCell));
     }
