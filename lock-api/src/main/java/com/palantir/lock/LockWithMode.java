@@ -15,6 +15,8 @@
  */
 package com.palantir.lock;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class LockWithMode {
@@ -33,6 +35,25 @@ public class LockWithMode {
 
     public LockMode getLockMode() {
         return lockMode;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        LockWithMode that = (LockWithMode) o;
+        return Objects.equals(lockDescriptor, that.lockDescriptor) &&
+                lockMode == that.lockMode;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lockDescriptor,
+                lockMode);
     }
 
     @Override
