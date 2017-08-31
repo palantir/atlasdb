@@ -17,20 +17,15 @@ package com.palantir.lock;
 
 import com.palantir.common.proxy.SerializingProxy;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.logger.LockServiceLoggerTestUtils;
+import com.palantir.lock.logger.LockServiceTestUtils;
 
 public final class LockServiceIntegrationTest extends LockServiceTest {
     @Override
     protected LockService getLockService() {
         return SerializingProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public boolean isStandaloneServer() {
-                        return false;
-                    }
-                    @Override public String getLockStateLoggerDir() {
-                        return LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR;
-                    }
-                }));
+                new LockServerOptions.Builder()
+                .standaloneServer(false)
+                .lockStateLoggerDir(LockServiceTestUtils.TEST_LOG_STATE_DIR)
+                .build()));
     }
 }

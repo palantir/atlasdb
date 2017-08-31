@@ -66,19 +66,10 @@ public final class LockServiceImplTest {
     }
 
     private static LockServiceImpl createLockServiceWithSlowLogEnabled(boolean isSlowLogEnabled) {
-        return LockServiceImpl.create(new LockServerOptions() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-
-            @Override
-            public long slowLogTriggerMillis() {
-                return isSlowLogEnabled ? SLOW_LOG_TRIGGER_MILLIS : 0;
-            }
-        });
+        return LockServiceImpl.create(new LockServerOptions.Builder()
+                .standaloneServer(false)
+                .slowLogTriggerMillis(isSlowLogEnabled ? SLOW_LOG_TRIGGER_MILLIS : 0)
+                .build());
     }
 
     @Test

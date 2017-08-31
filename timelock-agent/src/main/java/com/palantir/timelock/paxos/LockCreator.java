@@ -70,12 +70,9 @@ public class LockCreator {
     }
 
     private CloseableLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
-        LockServerOptions lockServerOptions = new LockServerOptions() {
-            @Override
-            public long slowLogTriggerMillis() {
-                return slowLogTriggerMillis;
-            }
-        };
+        LockServerOptions lockServerOptions = new LockServerOptions.Builder()
+                .slowLogTriggerMillis(slowLogTriggerMillis)
+                .build();
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
 

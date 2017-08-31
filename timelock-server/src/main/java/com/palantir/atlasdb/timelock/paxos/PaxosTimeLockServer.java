@@ -319,14 +319,9 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private CloseableLockService createMaybeNonTransactionalLockService(long slowLogTriggerMillis) {
-        LockServerOptions lockServerOptions = new LockServerOptions() {
-            @Override
-            public long slowLogTriggerMillis() {
-                return slowLogTriggerMillis;
-            }
-        };
-
-        LockServiceImpl lockServiceWithoutTimeLimiting = LockServiceImpl.create(lockServerOptions);
+        LockServiceImpl lockServiceWithoutTimeLimiting = LockServiceImpl.create(new LockServerOptions.Builder()
+                .slowLogTriggerMillis(slowLogTriggerMillis)
+                .build());
 
         AsyncLockConfiguration asyncLockConfiguration = timeLockServerConfiguration.asyncLockConfiguration();
         if (asyncLockConfiguration.useAsyncLockService()

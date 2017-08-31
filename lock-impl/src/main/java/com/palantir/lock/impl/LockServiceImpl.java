@@ -170,9 +170,9 @@ public final class LockServiceImpl
 
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
-    private final TimeDuration maxAllowedLockTimeout;
-    private final TimeDuration maxAllowedClockDrift;
-    private final TimeDuration maxNormalLockAge;
+    private final SimpleTimeDuration maxAllowedLockTimeout;
+    private final SimpleTimeDuration maxAllowedClockDrift;
+    private final SimpleTimeDuration maxNormalLockAge;
     private final Runnable callOnClose;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
@@ -972,21 +972,13 @@ public final class LockServiceImpl
 
     @Override
     public LockServerOptions getLockServerOptions() {
-        LockServerOptions options = new LockServerOptions() {
-            private static final long serialVersionUID = 0x3ffa5b160e838725l;
-            @Override public boolean isStandaloneServer() {
-                return isStandaloneServer;
-            }
-            @Override public TimeDuration getMaxAllowedLockTimeout() {
-                return maxAllowedLockTimeout;
-            }
-            @Override public TimeDuration getMaxAllowedClockDrift() {
-                return maxAllowedClockDrift;
-            }
-            @Override public int getRandomBitCount() {
-                return RANDOM_BIT_COUNT;
-            }
-        };
+        LockServerOptions options = new LockServerOptions.Builder()
+                .standaloneServer(isStandaloneServer)
+                .maxAllowedLockTimeout(maxAllowedLockTimeout)
+                .maxAllowedClockDrift(maxAllowedClockDrift)
+                .randomBitCount(RANDOM_BIT_COUNT)
+                .build();
+
         if (log.isTraceEnabled()) {
             log.trace(".getLockServerOptions() returns {}", options);
         }

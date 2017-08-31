@@ -115,14 +115,10 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-        }));
+        LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(
+                new LockServerOptions.Builder()
+                .standaloneServer(false)
+                .build()));
         LockClient client = LockClient.of("in memory atlasdb instance");
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

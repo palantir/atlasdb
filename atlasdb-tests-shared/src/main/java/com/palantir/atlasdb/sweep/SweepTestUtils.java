@@ -59,12 +59,7 @@ public final class SweepTestUtils {
                                                              SweepStrategyManager ssm,
                                                              TransactionService txService) {
         LockClient lockClient = LockClient.of("sweep client");
-        LockService lockService = LockServiceImpl.create(new LockServerOptions() {
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-        });
+        LockService lockService = LockServiceImpl.create(new LockServerOptions.Builder().standaloneServer(false).build());
         Supplier<AtlasDbConstraintCheckingMode> constraints = () ->
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);

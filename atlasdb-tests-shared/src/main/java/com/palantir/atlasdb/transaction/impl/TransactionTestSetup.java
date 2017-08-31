@@ -58,14 +58,7 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() throws Exception {
-        lockService = LockServiceImpl.create(new LockServerOptions() {
-            protected static final long serialVersionUID = 1L;
-
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-        });
+        lockService = LockServiceImpl.create(new LockServerOptions.Builder().standaloneServer(false).build());
         lockClient = LockClient.of("test_client");
 
         keyValueService = getKeyValueService();
