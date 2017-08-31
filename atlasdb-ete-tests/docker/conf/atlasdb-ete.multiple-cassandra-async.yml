@@ -20,6 +20,8 @@ atlasdb:
     ssl: false
     replicationFactor: 3
 
+  initializeAsync: true
+
   leader:
     quorumSize: 1
     learnerLogDir: var/data/paxosLog/learner1

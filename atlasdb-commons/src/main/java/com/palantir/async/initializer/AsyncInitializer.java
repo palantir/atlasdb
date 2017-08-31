@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * Implements basic infrastructure to allow an object to be asynchronously initialized.
@@ -56,8 +57,8 @@ public interface AsyncInitializer {
         try {
             tryToInitializeIfNotInitialized();
         } catch (Throwable throwable) {
-            log.warn("Failed to initialize " + this.getClass().getName()
-                    + " in the first attempt, will initialize asynchronously.", throwable);
+            log.warn("Failed to initialize {} in the first attempt, will initialize asynchronously.",
+                    SafeArg.of("className", this.getClass().getName()), throwable);
             cleanUpOnInitFailure();
             scheduleInitialization();
         }

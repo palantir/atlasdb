@@ -199,11 +199,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
     private volatile boolean isInitialized = false;
 
-    public static CassandraKeyValueServiceImpl create(
+    public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
-        return (CassandraKeyValueServiceImpl)
-                create(configManager, leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(configManager, leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static CassandraKeyValueService create(
@@ -222,21 +221,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    private static CassandraKeyValueServiceImpl create(
+    private static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log,
             boolean initializeAsync) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraKeyValueServiceImpl ret = new CassandraKeyValueServiceImpl(
-                log,
-                configManager,
-                compactionManager,
-                leaderConfig,
-                initializeAsync);
-        ret.initialize(initializeAsync);
-        return ret;
+        CassandraKeyValueServiceImpl keyValueService =
+                new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
+        keyValueService.initialize(initializeAsync);
+        return keyValueService.isInitialized() ? keyValueService : new InitializeCheckingWrapper(keyValueService);
     }
 
     protected CassandraKeyValueServiceImpl(Logger log,

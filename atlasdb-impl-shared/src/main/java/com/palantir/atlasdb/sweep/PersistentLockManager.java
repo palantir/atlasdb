@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
@@ -86,6 +87,9 @@ public class PersistentLockManager {
         } catch (CheckAndSetException e) {
             lockFailureMeter.mark();
             log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+            return false;
+        } catch (NotInitializedException e) {
+            log.info("The LockStore is not initialized yet. Waiting and retrying.");
             return false;
         }
     }

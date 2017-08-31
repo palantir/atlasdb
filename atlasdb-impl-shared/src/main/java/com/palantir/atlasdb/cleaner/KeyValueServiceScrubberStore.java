@@ -82,14 +82,14 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
     private volatile boolean isInitialized = false;
     private final KeyValueService keyValueService;
 
-    public static KeyValueServiceScrubberStore create(KeyValueService keyValueService) {
+    public static ScrubberStore create(KeyValueService keyValueService) {
         return create(keyValueService, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static KeyValueServiceScrubberStore create(KeyValueService keyValueService, boolean initializeAsync) {
+    public static ScrubberStore create(KeyValueService keyValueService, boolean initializeAsync) {
         KeyValueServiceScrubberStore scrubberStore = new KeyValueServiceScrubberStore(keyValueService);
         scrubberStore.initialize(initializeAsync);
-        return scrubberStore;
+        return scrubberStore.isInitialized() ? scrubberStore : new InitializingWrapper(scrubberStore);
     }
 
     private KeyValueServiceScrubberStore(KeyValueService keyValueService) {

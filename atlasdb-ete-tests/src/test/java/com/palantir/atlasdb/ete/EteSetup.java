@@ -85,6 +85,23 @@ public abstract class EteSetup {
             Duration waitTime,
             Map<String, String> environment) {
         waitDuration = waitTime;
+        return setup(eteClass, composeFile, availableClientNames, environment, true);
+    }
+
+    static RuleChain setupWithoutWaiting(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Map<String, String> environment) {
+        return setup(eteClass, composeFile, availableClientNames, environment, false);
+    }
+
+    static RuleChain setup(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Map<String, String> environment,
+            boolean waitForServers) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
         DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
@@ -99,12 +116,20 @@ public abstract class EteSetup {
 
         DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);
 
-        return RuleChain
-                .outerRule(GRADLE_PREPARE_TASK)
-                .around(docker)
-                .around(dockerProxyRule)
-                .around(waitForServersToBeReady());
+        if (waitForServers) {
+            return RuleChain
+                    .outerRule(GRADLE_PREPARE_TASK)
+                    .around(docker)
+                    .around(dockerProxyRule)
+                    .around(waitForServersToBeReady());
+        } else {
+            return RuleChain
+                    .outerRule(GRADLE_PREPARE_TASK)
+                    .around(docker)
+                    .around(dockerProxyRule);
+        }
     }
+
 
     static String runCliCommand(String command) throws IOException, InterruptedException {
         return docker.run(

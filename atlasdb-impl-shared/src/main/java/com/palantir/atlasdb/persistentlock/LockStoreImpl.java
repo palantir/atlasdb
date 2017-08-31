@@ -91,7 +91,7 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
             .reason("Available")
             .build();
 
-    private LockStoreImpl(KeyValueService kvs) {
+    LockStoreImpl(KeyValueService kvs) {
         this.keyValueService = kvs;
     }
 
