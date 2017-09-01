@@ -44,6 +44,15 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - LockServerOptions now provides a builder, which means constructing one should not involve overriding methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - TimelockServer now exposes the `LockService` instead of `RemoteLockService` if using the synchronous lock service.
+           This will provide a more comprehensive API required by the large internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
     *    - |userbreak|
          - If AtlasDB is used with TimeLock, and the TimeLock client name is different than either the Cassandra ``keyspace``, Postgres ``dbName``, or Oracle ``sid``, *AtlasDB will fail to start*.
            This was done to avoid risks of data corruption if these are accidentally changed independently.
