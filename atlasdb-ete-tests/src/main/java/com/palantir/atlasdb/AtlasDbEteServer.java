@@ -29,6 +29,7 @@ import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
+import com.palantir.atlasdb.factory.TransactionManagerOptions;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
@@ -49,7 +50,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     private static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 60;
     private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
-    private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema());
@@ -79,12 +79,13 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
             try {
-                return TransactionManagers.create(
-                        config.getAtlasDbConfig(),
-                        Optional::empty,
-                        ETE_SCHEMAS,
-                        environment.jersey()::register,
-                        DONT_SHOW_HIDDEN_TABLES);
+                TransactionManagerOptions options = TransactionManagerOptions.builder()
+                        .config(config.getAtlasDbConfig())
+                        .schemas(ETE_SCHEMAS)
+                        .env(environment.jersey()::register)
+                        .runtimeConfigSupplier(() -> Optional.empty())
+                        .build();
+                return TransactionManagers.create(options);
             } catch (RuntimeException e) {
                 log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);

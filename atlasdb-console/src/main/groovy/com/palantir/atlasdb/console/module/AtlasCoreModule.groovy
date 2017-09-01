@@ -28,6 +28,7 @@ import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
 import com.palantir.atlasdb.console.exceptions.InvalidTableException
 import com.palantir.atlasdb.factory.TransactionManagers
+import com.palantir.atlasdb.factory.TransactionManagerOptions
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
@@ -217,20 +218,22 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     private setupConnection(AtlasDbConfig config) {
-        SerializableTransactionManager tm = TransactionManagers.create(
-                config,
-                new Supplier<Optional<AtlasDbRuntimeConfig>>() {
+        TransactionManagerOptions options = TransactionManagerOptions.builder()
+                .config(config)
+                .env(new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
+                    @Override
+                    public void register(Object resource) {
+                    }
+                })
+                .runtimeConfigSupplier(new Supplier<Optional<AtlasDbRuntimeConfig>>() {
                     @Override
                     Optional<AtlasDbRuntimeConfig> get() {
                         return Optional.empty()
                     }
-                },
-                ImmutableSet.<Schema>of(),
-                new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
-                    @Override
-                    public void register(Object resource) {
-                    }
-                }, true)
+                })
+                .allowHiddenTableAccess(true)
+                .build();
+        SerializableTransactionManager tm = TransactionManagers.create(options);
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService())
         AtlasDbService service = new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache)
         ObjectMapper serviceMapper = new ObjectMapper()
