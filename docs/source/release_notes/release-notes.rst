@@ -45,6 +45,10 @@ develop
          - Change
 
     *    - |new|
+         - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
+
+    *    - |new|
          - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
            You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
