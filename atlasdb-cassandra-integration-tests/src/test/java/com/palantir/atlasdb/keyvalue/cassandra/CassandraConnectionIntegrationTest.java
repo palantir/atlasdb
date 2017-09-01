@@ -15,12 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.Optional;
 
-import org.apache.cassandra.thrift.InvalidRequestException;
 import org.junit.ClassRule;
 import org.junit.Test;
 
