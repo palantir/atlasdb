@@ -50,7 +50,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
     public static class InitializingWrapper implements AutoDelegate_PuncherStore {
         private KeyValueServicePuncherStore puncherStore;
 
-        public InitializingWrapper(KeyValueServicePuncherStore puncherStore) {
+        InitializingWrapper(KeyValueServicePuncherStore puncherStore) {
             this.puncherStore = puncherStore;
         }
 

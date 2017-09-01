@@ -135,7 +135,9 @@ public final class TransactionManagers {
      * purposes only.
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
         return create(config,
                 java.util.Optional::empty,
                 schemas,

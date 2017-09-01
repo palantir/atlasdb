@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -82,7 +81,7 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(LockStoreImpl.class);
     private static final String BACKUP_LOCK_NAME = "BackupLock";
-    private static final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private volatile boolean isInitialized = false;
 
     private final KeyValueService keyValueService;
 
@@ -97,24 +96,32 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
     }
 
     public static LockStoreImpl create(KeyValueService kvs) {
-        return new LockStoreImpl(kvs);
+        return create(kvs, true);
+    }
+
+    public static LockStoreImpl create(KeyValueService kvs, boolean initializeAsync) {
+        LockStoreImpl lockStore = new LockStoreImpl(kvs);
+        lockStore.initialize(initializeAsync);
+        return lockStore;
     }
 
     @Override
     public boolean isInitialized() {
-        return isInitialized.get();
+        return isInitialized;
     }
 
     @Override
-    public void tryInitialize() {
+    public synchronized void tryInitialize() {
+        if (isInitialized()) {
+            log.warn("Tried to initialize Lock Store, but was already initialized");
+            return;
+        }
         keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         if (allLockEntries().isEmpty()) {
             new LockStorePopulator(keyValueService).populate();
         }
 
-        if (!isInitialized.compareAndSet(false, true)) {
-            throw new RuntimeException("Someone initialized this class underneath us");
-        }
+        isInitialized = true;
     }
 
     @Override
