@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -254,7 +253,7 @@ public final class TransactionManagers {
 
     private static void initializeSweepEndpointAndBackgroundProcess(
             java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Environment env,
+            Consumer<Object> env,
             KeyValueService kvs,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
@@ -297,7 +296,7 @@ public final class TransactionManagers {
     }
 
     private static SpecificTableSweeper initializeSweepEndpoint(
-            Environment env,
+            Consumer<Object> env,
             KeyValueService kvs,
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
@@ -312,7 +311,7 @@ public final class TransactionManagers {
                 SweepTableFactory.of(),
                 sweepPerfLogger,
                 sweepMetrics);
-        env.register(new SweeperServiceImpl(specificTableSweeper));
+        env.accept(new SweeperServiceImpl(specificTableSweeper));
         return specificTableSweeper;
     }
 
@@ -324,14 +323,16 @@ public final class TransactionManagers {
                 .build();
     }
 
-    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+    private static PersistentLockService createAndRegisterPersistentLockService(
+            KeyValueService kvs,
+            Consumer<Object> env) {
         if (!kvs.supportsCheckAndSet()) {
             return new NoOpPersistentLockService();
         }
 
         PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
-        env.register(pls);
-        env.register(new CheckAndSetExceptionMapper());
+        env.accept(pls);
+        env.accept(new CheckAndSetExceptionMapper());
         return pls;
     }
 
@@ -344,7 +345,7 @@ public final class TransactionManagers {
     @Deprecated
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
-            Environment env,
+            Consumer<Object> env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
         LockAndTimestampServices lockAndTimestampServices =
@@ -364,7 +365,7 @@ public final class TransactionManagers {
     static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
-            Environment env,
+            Consumer<Object> env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -405,7 +406,7 @@ public final class TransactionManagers {
     @VisibleForTesting
     static LockAndTimestampServices createRawInstrumentedServices(
             AtlasDbConfig config,
-            Environment env,
+            Consumer<Object> env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -459,11 +460,11 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices createRawLeaderServices(
             LeaderConfig leaderConfig,
-            Environment env,
+            Consumer<Object> env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
-        // Create local services, that may or may not end up being registered in an environment.
+        // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         RemoteLockService localLock = ServiceCreator.createInstrumentedService(
@@ -474,8 +475,8 @@ public final class TransactionManagers {
                 AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader),
                 TimestampService.class,
                 userAgent);
-        env.register(localLock);
-        env.register(localTime);
+        env.accept(localLock);
+        env.accept(localTime);
 
         // Create remote services, that may end up calling our own local services.
         ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
@@ -559,7 +560,7 @@ public final class TransactionManagers {
     }
 
     private static LockAndTimestampServices createRawEmbeddedServices(
-            Environment env,
+            Consumer<Object> env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time,
             String userAgent) {
@@ -570,8 +571,8 @@ public final class TransactionManagers {
                 TimestampService.class,
                 userAgent);
 
-        env.register(lockService);
-        env.register(timeService);
+        env.accept(lockService);
+        env.accept(timeService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -585,9 +586,5 @@ public final class TransactionManagers {
         RemoteLockService lock();
         TimestampService timestamp();
         TimelockService timelock();
-    }
-
-    public interface Environment {
-        void register(Object resource);
     }
 }
