@@ -45,7 +45,7 @@ develop
          - Change
 
     *    - |new|
-         - Added an immutable `TransactionManagerOptions` class that can be used as an argument when calling `TransactionManagers.create()` instead of passing in a long list of individual arguments.
+         - Added an immutable ``TransactionManagerOptions`` class that can be used as an argument when calling ``TransactionManagers.create()`` instead of passing in a long list of individual arguments.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2302>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
