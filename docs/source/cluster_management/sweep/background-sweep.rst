@@ -52,7 +52,7 @@ By default, the background sweeper only logs errors. If you'd like to watch the 
     log4j.appender.sweepAppend.threshold=debug
     log4j.appender.sweepAppend.file=log/background-sweeper.log
     log4j.appender.sweepAppend.datePattern='.'yyyy-MM-dd
-    log4j.appender.sweepAppend.maxArchivesToKeep=90
+    log4j.appender.sweepAppend.MaxRollFileCount=90
 
 This will create a log file ``log/background-sweeper.log`` where sweep information will be logged.
 

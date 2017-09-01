@@ -53,6 +53,11 @@ develop
            This will provide a more comprehensive API required by the large internal product.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
 
+    *    - |new|
+         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
+           You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
+
     *    - |userbreak|
          - If AtlasDB is used with TimeLock, and the TimeLock client name is different than either the Cassandra ``keyspace``, Postgres ``dbName``, or Oracle ``sid``, *AtlasDB will fail to start*.
            This was done to avoid risks of data corruption if these are accidentally changed independently.
@@ -71,15 +76,18 @@ develop
            As said previously, please use the ``namespace`` root level config to specify both of these parameters.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
 
-    *    - |improved|
-         - If ``enableOracleEnterpriseFeatures`` if configured to be false, you will now see warnings asking you to run Oracle compaction manually.
-           This will help make non-EE Oracle users aware of potential database bloat.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2277>`__)
+=======
+v0.54.0
+=======
 
-    *    - |fixed|
-         - Fixed a case where logging an expection suppressing itself would cause a stack overflow.
-           See https://jira.qos.ch/browse/LOGBACK-1027.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2242>`__)
+25 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |new|
          - Timelock clients now report tritium metrics for the ``TimestampService`` even if they are using the request batching service.
@@ -93,13 +101,31 @@ develop
            In the past, every request would be reported twice leading to number bloat and more load on the metric collector service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
 
+    *    - |fixed|
+         - ``kvs-slow-log`` now uses ``logsafe`` to support sls-compatible logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2222>`__)
+
+    *    - |fixed|
+         - The scrubber queue no longer grows without bound if the same cell is overwritten multiple times by hard delete transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
+
+    *    - |improved|
+         - If ``enableOracleEnterpriseFeatures`` is configured to be false, you will now see warnings asking you to run Oracle compaction manually.
+           This will help make non-EE Oracle users aware of potential database bloat.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2277>`__)
+
+    *    - |fixed|
+         - Fixed a case where logging an expection suppressing itself would cause a stack overflow.
+           See `LOGBACK-1027 <https://jira.qos.ch/browse/LOGBACK-1027>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2242>`__)
+
     *    - |new|
          - AtlasDB now produces a new artifact, ``timelock-agent``.
            Users who wish to run TimeLock Server outside of a Dropwizard environment should now be able to do so more easily, by supplying the TimeLock Agent with a *registrar* that knows how to register Java resources and expose suitable HTTP endpoints.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2247>`__)
 
     *    - |improved|
-         - Timelock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
+         - TimeLock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
            This means that specifying a list of clients in Timelock configuration will no longer have any effect. Further, a new configuration property called ``max-number-of-clients`` has been introduced in ``TimeLockRuntimeConfiguration``. This can be used to limit the number of clients that will be created dynamically, since each distinct client has some memory, disk space, and CPU overhead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2252>`__)
 
@@ -110,14 +136,6 @@ develop
     *    - |fixed|
          - CharacterLimitType now has fields marked as final.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2259>`__)
-
-    *    - |fixed|
-         - ``kvs-slow-log`` now uses ``logsafe`` to support sls-compatible logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2222>`__)
-
-    *    - |fixed|
-         - The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
 
     *    - |changed|
          - The ``RangeMigrator`` interface now contains an additional method ``logStatus(int numRangeBoundaries)``.
