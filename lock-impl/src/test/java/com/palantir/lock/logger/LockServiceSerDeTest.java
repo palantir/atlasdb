@@ -70,8 +70,8 @@ public class LockServiceSerDeTest {
 
     @Test
     public void testSerialisationAndDeserialisationOfLockServerOptions() throws Exception {
-        LockServerOptions lockServerOptions = new LockServerOptions.Builder()
-                .standaloneServer(false)
+        LockServerOptions lockServerOptions = LockServerOptions.builder()
+                .isStandaloneServer(false)
                 .slowLogTriggerMillis(10L)
                 .build();
         ObjectMapper mapper = new ObjectMapper();

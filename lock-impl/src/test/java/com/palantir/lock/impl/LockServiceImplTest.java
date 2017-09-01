@@ -66,8 +66,8 @@ public final class LockServiceImplTest {
     }
 
     private static LockServiceImpl createLockServiceWithSlowLogEnabled(boolean isSlowLogEnabled) {
-        return LockServiceImpl.create(new LockServerOptions.Builder()
-                .standaloneServer(false)
+        return LockServiceImpl.create(LockServerOptions.builder()
+                .isStandaloneServer(false)
                 .slowLogTriggerMillis(isSlowLogEnabled ? SLOW_LOG_TRIGGER_MILLIS : 0)
                 .build());
     }

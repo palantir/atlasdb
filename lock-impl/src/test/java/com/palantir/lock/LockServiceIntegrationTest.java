@@ -23,8 +23,8 @@ public final class LockServiceIntegrationTest extends LockServiceTest {
     @Override
     protected LockService getLockService() {
         return SerializingProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions.Builder()
-                .standaloneServer(false)
+                LockServerOptions.builder()
+                .isStandaloneServer(false)
                 .lockStateLoggerDir(LockServiceTestUtils.TEST_LOG_STATE_DIR)
                 .build()));
     }

@@ -972,8 +972,8 @@ public final class LockServiceImpl
 
     @Override
     public LockServerOptions getLockServerOptions() {
-        LockServerOptions options = new LockServerOptions.Builder()
-                .standaloneServer(isStandaloneServer)
+        LockServerOptions options = LockServerOptions.builder()
+                .isStandaloneServer(isStandaloneServer)
                 .maxAllowedLockTimeout(maxAllowedLockTimeout)
                 .maxAllowedClockDrift(maxAllowedClockDrift)
                 .randomBitCount(RANDOM_BIT_COUNT)

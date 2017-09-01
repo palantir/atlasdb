@@ -43,7 +43,7 @@ import com.palantir.lock.logger.LockServiceTestUtils;
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class LockRemotingTest {
-    private static LockServerOptions lockServerOptions  = new LockServerOptions.Builder()
+    private static LockServerOptions lockServerOptions  = LockServerOptions.builder()
             .lockStateLoggerDir(LockServiceTestUtils.TEST_LOG_STATE_DIR)
             .build();
     private static LockServiceImpl rawLock = LockServiceImpl.create(lockServerOptions);

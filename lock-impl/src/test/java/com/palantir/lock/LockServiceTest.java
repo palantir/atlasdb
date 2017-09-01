@@ -764,7 +764,7 @@ public abstract class LockServiceTest {
     @Test public void testNumerousClientsPerLock() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions.Builder()
+                LockServerOptions.builder()
                 .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
                 .build()), 100);
 
@@ -873,7 +873,7 @@ public abstract class LockServiceTest {
     @Test public void testExpiringTokensAndGrants() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions.Builder()
+                LockServerOptions.builder()
                         .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
                         .build()), 100);
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
@@ -1012,7 +1012,7 @@ public abstract class LockServiceTest {
     @Test public void testUnlockAndFreeze() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions.Builder()
+                LockServerOptions.builder()
                         .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
                         .build()), 10);
 

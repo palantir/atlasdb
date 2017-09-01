@@ -42,8 +42,8 @@ public class LockRefreshingLockServiceTest {
     private LockDescriptor lock1;
 
     @Before public void setUp() {
-        server = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions.Builder()
-                .standaloneServer(false)
+        server = LockRefreshingLockService.create(LockServiceImpl.create(LockServerOptions.builder()
+                .isStandaloneServer(false)
                 .build()));
         lock1 = StringLockDescriptor.of("lock1");
     }

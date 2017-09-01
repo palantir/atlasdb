@@ -58,7 +58,7 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() throws Exception {
-        lockService = LockServiceImpl.create(new LockServerOptions.Builder().standaloneServer(false).build());
+        lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         lockClient = LockClient.of("test_client");
 
         keyValueService = getKeyValueService();

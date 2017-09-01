@@ -84,7 +84,7 @@ public class AtlasDbTestCase {
     @BeforeClass
     public static void setupLockService() {
         if (lockService == null) {
-            lockService = LockServiceImpl.create(new LockServerOptions.Builder().standaloneServer(false).build());
+            lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         }
     }
 

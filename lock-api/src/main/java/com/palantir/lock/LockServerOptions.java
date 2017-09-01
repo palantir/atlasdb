@@ -21,7 +21,8 @@ import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
+
+import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -38,104 +39,19 @@ import com.google.common.base.Objects;
 
 @JsonDeserialize(builder =
         LockServerOptions.SerializationProxy.class)
-@Immutable
-public final class LockServerOptions implements Serializable {
+@Value.Immutable
+public class LockServerOptions implements Serializable {
     private static final long serialVersionUID = 2930574230723753879L;
-    public static final LockServerOptions DEFAULT = new Builder().build();
-
-    private final boolean isStandaloneServer;
-    private final SimpleTimeDuration maxAllowedLockTimeout;
-    private final SimpleTimeDuration maxAllowedClockDrift;
-    private final SimpleTimeDuration maxAllowedBlockingDuration;
-    private final SimpleTimeDuration maxNormalLockAge;
-    private final int randomBitCount;
-    private final String lockStateLoggerDir;
-    private final long slowLogTriggerMillis;
-
-    public static final class Builder {
-        private boolean isStandaloneServer = true;
-        private SimpleTimeDuration maxAllowedLockTimeout = SimpleTimeDuration.of(10, TimeUnit.MINUTES);
-        private SimpleTimeDuration maxAllowedClockDrift = SimpleTimeDuration.of(5, TimeUnit.SECONDS);
-        private SimpleTimeDuration maxAllowedBlockingDuration = SimpleTimeDuration.of(60, TimeUnit.SECONDS);
-        private SimpleTimeDuration maxNormalLockAge = SimpleTimeDuration.of(1, TimeUnit.HOURS);
-        private int randomBitCount = Long.SIZE;
-        private String lockStateLoggerDir = "log/state";
-        private long slowLogTriggerMillis = 10000L;
-
-        public Builder standaloneServer(boolean standaloneServer) {
-            this.isStandaloneServer = standaloneServer;
-            return this;
-        }
-
-        public Builder maxAllowedLockTimeout(SimpleTimeDuration timeout) {
-            this.maxAllowedLockTimeout = timeout;
-            return this;
-        }
-
-        public Builder maxAllowedClockDrift(SimpleTimeDuration timeout) {
-            this.maxAllowedClockDrift = timeout;
-            return this;
-        }
-
-        public Builder maxAllowedBlockingDuration(SimpleTimeDuration timeout) {
-            this.maxAllowedBlockingDuration = timeout;
-            return this;
-        }
-
-        public Builder maxNormalLockAge(SimpleTimeDuration timeout) {
-            this.maxNormalLockAge = timeout;
-            return this;
-        }
-
-        public Builder randomBitCount(int bitCount) {
-            this.randomBitCount = bitCount;
-            return this;
-        }
-
-        public Builder lockStateLoggerDir(String loggerDir) {
-            this.lockStateLoggerDir = loggerDir;
-            return this;
-        }
-
-        public Builder slowLogTriggerMillis(long millis) {
-            this.slowLogTriggerMillis = millis;
-            return this;
-        }
-
-        public LockServerOptions build() {
-            return new LockServerOptions(
-                    isStandaloneServer,
-                    maxAllowedLockTimeout,
-                    maxAllowedClockDrift,
-                    maxAllowedBlockingDuration,
-                    maxNormalLockAge,
-                    randomBitCount,
-                    lockStateLoggerDir,
-                    slowLogTriggerMillis);
-        }
-    }
-
-    private LockServerOptions(boolean isStandaloneServer, SimpleTimeDuration maxAllowedLockTimeout,
-            SimpleTimeDuration maxAllowedClockDrift, SimpleTimeDuration maxAllowedBlockingDuration,
-            SimpleTimeDuration maxNormalLockAge, int randomBitCount, String lockStateLoggerDir,
-            long slowLogTriggerMillis) {
-        this.isStandaloneServer = isStandaloneServer;
-        this.maxAllowedLockTimeout = maxAllowedLockTimeout;
-        this.maxAllowedClockDrift = maxAllowedClockDrift;
-        this.maxAllowedBlockingDuration = maxAllowedBlockingDuration; /* empty */
-        this.maxNormalLockAge = maxNormalLockAge;
-        this.randomBitCount = randomBitCount;
-        this.lockStateLoggerDir = lockStateLoggerDir;
-        this.slowLogTriggerMillis = slowLogTriggerMillis;
-    }
+    public static final LockServerOptions DEFAULT = builder().build();
 
     /**
      * Returns <code>true</code> if this is a standalone lock server or
      * <code>false</code> if the lock server code is running in-process with the only
      * client accessing it.
      */
+    @Value.Default
     public boolean isStandaloneServer() {
-        return isStandaloneServer;
+        return true;
     }
 
     /**
@@ -143,16 +59,18 @@ public final class LockServerOptions implements Serializable {
      * {@link LockRequest.Builder#timeoutAfter(TimeDuration)}. The default value
      * is 10 minutes.
      */
+    @Value.Default
     public TimeDuration getMaxAllowedLockTimeout() {
-        return maxAllowedLockTimeout;
+        return SimpleTimeDuration.of(10, TimeUnit.MINUTES);
     }
 
     /**
      * Returns the maximum permitted clock drift between the server and any
      * client. The default value is 5 seconds.
      */
+    @Value.Default
     public TimeDuration getMaxAllowedClockDrift() {
-        return maxAllowedClockDrift;
+        return SimpleTimeDuration.of(5, TimeUnit.SECONDS);
     }
 
     /**
@@ -163,16 +81,18 @@ public final class LockServerOptions implements Serializable {
      * @deprecated this value is no longer used or respected.
      */
     @Deprecated
+    @Value.Default
     public TimeDuration getMaxAllowedBlockingDuration() {
-        return maxAllowedBlockingDuration;
+        return SimpleTimeDuration.of(60, TimeUnit.SECONDS);
     }
 
     /**
      * Returns the maximum amount of time a lock is usually held for.
      * The default value is 1 hour.
      */
+    @Value.Default
     public TimeDuration getMaxNormalLockAge() {
-        return maxNormalLockAge;
+        return SimpleTimeDuration.of(1, TimeUnit.HOURS);
     }
 
     /**
@@ -182,8 +102,9 @@ public final class LockServerOptions implements Serializable {
      * @deprecated this value is no longer used or respected
      */
     @Deprecated
+    @Value.Default
     public int getRandomBitCount() {
-        return randomBitCount;
+        return Long.SIZE;
     }
 
     /**
@@ -191,8 +112,9 @@ public final class LockServerOptions implements Serializable {
      * If the duration is zero or negative, slow lock logging will be disabled.
      */
     @JsonProperty("slowLogTriggerMillis")
+    @Value.Default
     public long slowLogTriggerMillis() {
-        return slowLogTriggerMillis;
+        return 10000L;
     }
 
     @Override
@@ -249,9 +171,16 @@ public final class LockServerOptions implements Serializable {
         return new SerializationProxy(this);
     }
 
+    @Value.Default
     public String getLockStateLoggerDir() {
-        return lockStateLoggerDir;
+        return "log/state";
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder extends ImmutableLockServerOptions.Builder {}
 
     static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 4043798817916565364L;
@@ -305,7 +234,7 @@ public final class LockServerOptions implements Serializable {
 
         Object readResolve() {
             return new Builder()
-                    .standaloneServer(isStandaloneServer)
+                    .isStandaloneServer(isStandaloneServer)
                     .maxAllowedLockTimeout(maxAllowedLockTimeout)
                     .maxAllowedClockDrift(maxAllowedClockDrift)
                     .maxAllowedBlockingDuration(maxAllowedBlockingDuration)

@@ -65,7 +65,7 @@ public class TableTasksTest {
         kvs = new InMemoryKeyValueService(true);
         TimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
-        lockService = LockServiceImpl.create(new LockServerOptions.Builder().standaloneServer(false).build());
+        lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         TransactionService txService = TransactionServices.createTransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
