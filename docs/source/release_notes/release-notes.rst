@@ -41,6 +41,14 @@ develop
     :widths: 5 40
     :header-rows: 1
 
+    *    - Type
+         - Change
+
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 =======
 v0.55.0
 =======
@@ -80,6 +88,8 @@ v0.55.0
     *    - |fixed|
          - Fixed a case where sweep logs would get rolled over before expected. The number of log files stored on disk was increased from 10 to 90 before rolling over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2295>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.54.0
@@ -151,6 +161,8 @@ v0.54.0
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 =======
 v0.53.0
 =======
@@ -198,6 +210,8 @@ v0.53.0
     *    - |devbreak|
          - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.52.0
