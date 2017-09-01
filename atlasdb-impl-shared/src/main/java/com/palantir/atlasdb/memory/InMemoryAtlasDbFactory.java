@@ -52,7 +52,6 @@ import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;

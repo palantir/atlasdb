@@ -52,7 +52,8 @@ import com.palantir.logsafe.Safe;
     @Consumes(MediaType.APPLICATION_JSON)
     @CancelableServerCall
     @NonIdempotent
-    LockResponse lockWithFullLockResponse(@Safe @PathParam("client") LockClient client, LockRequest request) throws InterruptedException;
+    LockResponse lockWithFullLockResponse(@Safe @PathParam("client") LockClient client, LockRequest request)
+            throws InterruptedException;
 
     /**
      * Unlocks a lock, given a provided lock token.

@@ -34,7 +34,6 @@ import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.palantir.lock.CloseableLockService;
-import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -86,19 +85,8 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
     }
 
     @Override
-    public boolean unlock(LockRefreshToken token) {
-        return delegate.unlock(token);
-    }
-
-    @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
         return delegate.refreshLockRefreshTokens(tokens);
-    }
-
-    @Nullable
-    @Override
-    public Long getMinLockedInVersionId(@PathParam("client") String client) {
-        return delegate.getMinLockedInVersionId(client);
     }
 
     @Override
@@ -110,6 +98,11 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
 
     @Override
     public boolean unlock(HeldLocksToken token) {
+        return delegate.unlock(token);
+    }
+
+    @Override
+    public boolean unlock(LockRefreshToken token) {
         return delegate.unlock(token);
     }
 
@@ -158,6 +151,12 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
     @Override
     public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
         return delegate.useGrant(client, grantId);
+    }
+
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId(@PathParam("client") String client) {
+        return delegate.getMinLockedInVersionId(client);
     }
 
     @Nullable

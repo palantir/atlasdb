@@ -20,7 +20,6 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -54,8 +53,9 @@ import com.google.common.collect.Iterables;
     private final boolean isBlockAndRelease;
     private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
 
-    private static final Function<ImmutableSortedMap.Entry<LockDescriptor, LockClient>, LockWithClient> TO_LOCK_WITH_CLIENT_FUNCTION =
-            (Function<Map.Entry<LockDescriptor, LockClient>, LockWithClient>) input -> new LockWithClient(input.getKey(), input.getValue());
+    private static final Function<ImmutableSortedMap.Entry<LockDescriptor, LockClient>, LockWithClient>
+            TO_LOCK_WITH_CLIENT_FUNCTION = (Function<Map.Entry<LockDescriptor, LockClient>, LockWithClient>) input ->
+                    new LockWithClient(input.getKey(), input.getValue());
 
     public LockResponse(@Nullable HeldLocksToken token) {
         this(token, ImmutableSortedMap.of());
@@ -146,14 +146,6 @@ import com.google.common.collect.Iterables;
         return lockHolders;
     }
 
-    @Override public String toString() {
-        return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("token", token)
-                .add("lockHolders", lockHolders)
-                .add("isBlockandRelease", isBlockAndRelease)
-                .toString();
-    }
-
     @Override public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
@@ -207,7 +199,8 @@ import com.google.common.collect.Iterables;
             if (lockWithClients == null) {
                 lockHolders = ImmutableSortedMap.of();
             } else {
-                ImmutableSortedMap.Builder<LockDescriptor, LockClient> lockHoldersBuilder = ImmutableSortedMap.naturalOrder();
+                ImmutableSortedMap.Builder<LockDescriptor, LockClient> lockHoldersBuilder =
+                        ImmutableSortedMap.naturalOrder();
                 for (LockWithClient lock : lockWithClients) {
                     lockHoldersBuilder.put(lock.getLockDescriptor(), lock.getLockClient());
                 }
