@@ -260,7 +260,6 @@ public class TransactionManagersTest {
         TransactionManagerOptions options = TransactionManagerOptions.builder()
                 .config(realConfig)
                 .env(environment)
-                .runtimeConfigSupplier(() -> Optional.empty())
                 .build();
         TransactionManagers.create(options);
 
@@ -300,7 +299,6 @@ public class TransactionManagersTest {
                 .build();
         TransactionManagerOptions options = TransactionManagerOptions.builder()
                 .config(realConfig)
-                .runtimeConfigSupplier(() -> Optional.empty())
                 .env(environment)
                 .build();
 

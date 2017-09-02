@@ -21,7 +21,6 @@ import com.palantir.atlasdb.api.AtlasDbService
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.config.AtlasDbConfig
 import com.palantir.atlasdb.config.AtlasDbConfigs
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig
 import com.palantir.atlasdb.console.AtlasConsoleModule
 import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
@@ -32,12 +31,10 @@ import com.palantir.atlasdb.factory.TransactionManagerOptions
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
-import com.palantir.atlasdb.table.description.Schema
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
-import java.util.function.Supplier
 
 /**
  * Public methods that clients can call within AtlasConsole.
@@ -220,17 +217,6 @@ class AtlasCoreModule implements AtlasConsoleModule {
     private setupConnection(AtlasDbConfig config) {
         TransactionManagerOptions options = TransactionManagerOptions.builder()
                 .config(config)
-                .env(new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
-                    @Override
-                    public void register(Object resource) {
-                    }
-                })
-                .runtimeConfigSupplier(new Supplier<Optional<AtlasDbRuntimeConfig>>() {
-                    @Override
-                    Optional<AtlasDbRuntimeConfig> get() {
-                        return Optional.empty()
-                    }
-                })
                 .allowHiddenTableAccess(true)
                 .build();
         SerializableTransactionManager tm = TransactionManagers.create(options);
