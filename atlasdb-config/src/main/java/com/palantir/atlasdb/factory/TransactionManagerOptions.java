@@ -21,11 +21,17 @@ import com.palantir.lock.LockServerOptions;
 public interface TransactionManagerOptions {
     AtlasDbConfig config();
 
-    Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier();
+    @Value.Default
+    default Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier() {
+        return Optional::empty;
+    }
 
     Set<Schema> schemas();
 
-    Environment env();
+    @Value.Default
+    default Environment env() {
+        return resource -> { };
+    }
 
     @Value.Default
     default LockServerOptions lockServerOptions() {
