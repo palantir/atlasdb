@@ -136,7 +136,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
+    // Suppressing Slf4j warnings for test
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
         Logger testLogger = mock(Logger.class);
         //nth startup
@@ -206,8 +208,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return testTable.getQualifiedName().replaceFirst("\\.", "__");
     }
 
-    @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
+    // Suppressing Slf4j warnings for test
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() throws Exception {
         verify(logger, never()).error(startsWith("Found a table {} that did not have persisted"), anyString());
     }
