@@ -181,7 +181,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     private final CassandraClientPool clientPool;
-    private final CassandraClientPoolImpl clientPoolImpl;
 
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
@@ -199,13 +198,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
     private volatile boolean isInitialized = false;
 
-    public static CassandraKeyValueServiceImpl create(
+    public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
-        return create(configManager, leaderConfig, true);
+        return create(configManager, leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraKeyValueServiceImpl create(
+    public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
@@ -213,28 +212,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
                 initializeAsync);
     }
 
-    public static CassandraKeyValueServiceImpl create(
+    public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
-        return create(configManager, leaderConfig, log, true);
+        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraKeyValueServiceImpl create(
+    public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log,
             boolean initializeAsync) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraKeyValueServiceImpl ret = new CassandraKeyValueServiceImpl(
-                log,
-                configManager,
-                compactionManager,
-                leaderConfig,
-                initializeAsync);
-        ret.initialize(initializeAsync);
-        return ret;
+        CassandraKeyValueServiceImpl keyValueService =
+                new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
+        keyValueService.initialize(initializeAsync);
+        return keyValueService.isInitialized() ? keyValueService : new InitializeCheckingWrapper(keyValueService);
     }
 
     protected CassandraKeyValueServiceImpl(Logger log,
@@ -246,8 +241,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPoolImpl = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
-        this.clientPool = new CassandraClientPoolImpl.InitializingWrapper(clientPoolImpl);
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -2222,7 +2216,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
     private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
-        for (InetSocketAddress host : clientPoolImpl.currentPools.keySet()) {
+        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
             try {
                 clientPool.runOnHost(host, CassandraVerifier.healthCheck);
                 if (!partitionerIsValid(host)) {
@@ -2237,7 +2231,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
     private boolean partitionerIsValid(InetSocketAddress host) {
         try {
-            clientPool.runOnHost(host, clientPoolImpl.validatePartitioner);
+            clientPool.runOnHost(host, clientPool.getValidatePartitioner());
             return true;
         } catch (Exception e) {
             return false;
@@ -2318,8 +2312,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
     }
 
     @Override
-    public CassandraClientPoolImpl getClientPool() {
-        return clientPoolImpl;
+    public CassandraClientPool getClientPool() {
+        return clientPool;
     }
 
     public TracingQueryRunner getTracingQueryRunner() {
@@ -2333,6 +2327,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
     /**
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      */
+    @Override
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         Set<TableReference> tables = lockTables.getAllLockTables();
         java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();

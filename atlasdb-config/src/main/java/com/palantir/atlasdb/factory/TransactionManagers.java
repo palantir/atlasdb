@@ -214,8 +214,8 @@ public final class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
 
-        ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(config.keyValueService(),
+                config.leader(), config.initializeAsync());
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
         LockRequest.setDefaultLockTimeout(
@@ -228,7 +228,8 @@ public final class TransactionManagers {
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent);
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs,
+                config.initializeAsync());
         kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs,
                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
@@ -238,7 +239,8 @@ public final class TransactionManagers {
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionManagersInitializer.createInitialTables(kvs, schemas, config.initializeAsync());
-        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
+        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env,
+                config.initializeAsync());
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
@@ -283,7 +285,8 @@ public final class TransactionManagers {
                 sweepStrategyManager,
                 follower,
                 transactionManager,
-                persistentLockManager);
+                persistentLockManager,
+                config.initializeAsync());
 
         return transactionManager;
     }
@@ -307,7 +310,8 @@ public final class TransactionManagers {
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
             SerializableTransactionManager transactionManager,
-            PersistentLockManager persistentLockManager) {
+            PersistentLockManager persistentLockManager,
+            boolean initializeAsync) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
@@ -371,12 +375,13 @@ public final class TransactionManagers {
                 .build();
     }
 
-    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env,
+            boolean initializeAsync) {
         if (!kvs.supportsCheckAndSet()) {
             return new NoOpPersistentLockService();
         }
 
-        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs, initializeAsync);
         env.register(pls);
         env.register(new CheckAndSetExceptionMapper());
         return pls;

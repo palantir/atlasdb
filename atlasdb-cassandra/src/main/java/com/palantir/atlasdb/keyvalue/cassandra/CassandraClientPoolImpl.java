@@ -65,6 +65,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -127,21 +128,22 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     @VisibleForTesting
     static final int MAX_TRIES_TOTAL = 6;
 
-    volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
-    Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+    private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+
+    private Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
+    private Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;
     final ScheduledExecutorService refreshDaemon;
     private ScheduledFuture<?> refreshPoolFuture;
-
     private final MetricsManager metricsManager = new MetricsManager();
+
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
-
     private volatile boolean isInitialized = false;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
+
         final byte[] bytes;
 
         public LightweightOppToken(byte[] bytes) {
@@ -174,9 +176,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         public String toString() {
             return BaseEncoding.base16().encode(bytes);
         }
+
     }
 
     private class RequestMetrics {
+
         private final Meter totalRequests;
         private final Meter totalRequestExceptions;
         private final Meter totalRequestConnectionExceptions;
@@ -211,28 +215,29 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         double getConnectionExceptionProportion() {
             return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
         }
+
     }
 
-    private enum StartupChecks {
+    enum StartupChecks {
         RUN,
-        DO_NOT_RUN
+        DO_NOT_RUN;
     }
 
-    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config) {
-        return create(config, true);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config, boolean initAsync) {
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.RUN);
-        cassandraClientPool.initialize(initAsync);
-        return cassandraClientPool;
+        cassandraClientPool.initialize(initializeAsync);
+        return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
     }
 
     @VisibleForTesting
-    static CassandraClientPoolImpl createWithoutChecksForTesting(CassandraKeyValueServiceConfig config,
-            boolean initAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.DO_NOT_RUN);
-        cassandraClientPool.initialize(initAsync);
+    static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+        cassandraClientPool.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
 
@@ -292,6 +297,21 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
         metricsManager.deregisterMetrics();
+    }
+
+    @Override
+    public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
+        return currentPools;
+    }
+
+    @Override
+    public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+        return tokenMap;
+    }
+
+    @Override
+    public Map<InetSocketAddress, Long> getBlacklistedHosts() {
+        return blacklistedHosts;
     }
 
     private void registerAggregateMetrics() {
@@ -847,7 +867,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
                 || isRetriableWithBackoffException(ex.getCause()));
     }
 
-    final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
+    private final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
             new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
                 @Override
                 public Void apply(Cassandra.Client client) throws Exception {
@@ -855,6 +875,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
                     return null;
                 }
             };
+
+    @Override
+    public FunctionCheckedException<Cassandra.Client, Void, Exception> getValidatePartitioner() {
+        return validatePartitioner;
+    }
 
     /**
      * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to

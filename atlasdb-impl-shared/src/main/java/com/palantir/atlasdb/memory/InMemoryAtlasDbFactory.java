@@ -72,6 +72,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return "memory";
     }
 
+
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
@@ -155,6 +156,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv, false);
+        return StaticTableMappingService.create(kv);
     }
 }

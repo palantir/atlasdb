@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -25,8 +26,12 @@ public final class NamespacedKeyValueServices {
     }
 
     public static KeyValueService wrapWithStaticNamespaceMappingKvs(KeyValueService keyValueService) {
-        TableMappingService tableMap = new StaticTableMappingService.InitializingWrapper(
-                StaticTableMappingService.create(keyValueService));
+        return wrapWithStaticNamespaceMappingKvs(keyValueService, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static KeyValueService wrapWithStaticNamespaceMappingKvs(KeyValueService keyValueService,
+            boolean initializeAsync) {
+        TableMappingService tableMap = StaticTableMappingService.create(keyValueService, initializeAsync);
         NamespacedKeyValueService namespacedKeyValueService = TableRemappingKeyValueService.create(
                 keyValueService,
                 tableMap);

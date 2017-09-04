@@ -38,7 +38,7 @@ public class KvsBackedPersistentLockServiceTest {
     @Before
     public void setUp() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
-        lockStore = spy(LockStoreImpl.create(kvs));
+        lockStore = spy(LockStoreImpl.createImplForTest(kvs));
         service = new KvsBackedPersistentLockService(lockStore);
     }
 

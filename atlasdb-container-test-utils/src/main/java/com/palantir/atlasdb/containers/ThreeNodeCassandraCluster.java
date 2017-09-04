@@ -100,12 +100,11 @@ public class ThreeNodeCassandraCluster extends Container {
             }
         });
     }
-    // TODO(gmaretic): for now kept synchronous initialization -- should revisit
+
     private static boolean canCreateCassandraKeyValueService() {
-        CassandraKeyValueServiceImpl.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
-                LEADER_CONFIG,
-                false);
-        return true;
+                LEADER_CONFIG)
+                .isInitialized();
     }
 }
