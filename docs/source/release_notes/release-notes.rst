@@ -44,8 +44,8 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak|
-         - LockServerOptions now provides a builder, which means constructing one should not involve overriding methods.
+    *    - |improved|
+         - LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
 
     *    - |new|

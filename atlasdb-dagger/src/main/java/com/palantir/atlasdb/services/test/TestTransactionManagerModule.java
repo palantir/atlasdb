@@ -59,7 +59,7 @@ public class TestTransactionManagerModule {
     @Singleton
     public Cleaner provideCleaner(ServicesConfig config,
                                   @Named("kvs") KeyValueService kvs,
-                                  LockService rlc,
+                                  LockService lock,
                                   TimestampService tss,
                                   LockClient lockClient,
                                   Follower follower,
@@ -67,7 +67,7 @@ public class TestTransactionManagerModule {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
                 kvs,
-                rlc,
+                lock,
                 tss,
                 lockClient,
                 ImmutableList.of(follower),

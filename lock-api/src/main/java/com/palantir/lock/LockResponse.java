@@ -92,7 +92,6 @@ import com.google.common.collect.ImmutableSortedMap;
      * behavior) or {@link BlockingMode#BLOCK_INDEFINITELY_THEN_RELEASE},
      * then this method is guaranteed to return <code>true</code>.
      */
-    @JsonIgnore
     public boolean success() {
         if (isBlockAndRelease) {
             return lockHolders.isEmpty();
