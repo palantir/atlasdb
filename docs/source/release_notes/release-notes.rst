@@ -81,12 +81,12 @@ v0.55.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
 
     *    - |new|
-         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
+         - Oracle SE will now automatically trigger table data shrinking to recover space after sweeping a table.
            You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
 
     *    - |fixed|
-         - Fixed a case where sweep logs would get rolled over before expected. The number of log files stored on disk was increased from 10 to 90 before rolling over.
+         - Fixed an issue where sweep logs would get rolled over sooner than expected. The number of log files stored on disk was increased from 10 to 90 before rolling over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2295>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
