@@ -71,7 +71,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     public String getType() {
         return "memory";
     }
-    
+
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
