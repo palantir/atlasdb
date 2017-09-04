@@ -20,11 +20,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
+import static com.palantir.lock.LockMode.READ;
+import static com.palantir.lock.LockMode.WRITE;
+
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.BadRequestException;
 
@@ -34,8 +39,16 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
+import com.palantir.lock.HeldLocksGrant;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -53,6 +66,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     private static final long SHORT_TIMEOUT = 500L;
     private static final long TIMEOUT = 10_000L;
+    private static final LockClient TEST_CLIENT = LockClient.of("test");
+    private static final LockClient TEST_CLIENT_2 = LockClient.of("test2");
+    private static final LockClient TEST_CLIENT_3 = LockClient.of("test3");
 
     public AsyncTimelockServiceIntegrationTest(TestableTimelockCluster cluster) {
         super(cluster);
@@ -190,6 +206,106 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
+    public void canPerformLockAndUnlock() throws InterruptedException {
+        HeldLocksToken token1 = lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
+        cluster.lockService().unlock(token1);
+        HeldLocksToken token2 = lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
+        cluster.lockService().unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(token2));
+    }
+
+    @Test
+    public void canPerformLockAndRefreshLock() throws InterruptedException {
+        lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
+        LockRefreshToken token = lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT).getLockRefreshToken();
+        Set<LockRefreshToken> lockRefreshTokens = cluster.lockService().refreshLockRefreshTokens(
+                ImmutableList.of(token));
+        assertThat(lockRefreshTokens).contains(token);
+    }
+
+    @Test
+    public void unlockAndFreezeDoesNotAllowRefreshes() throws InterruptedException {
+        lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
+        HeldLocksToken token2 = lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
+        cluster.lockService().unlockAndFreeze(token2);
+        Set<LockRefreshToken> lockRefreshTokens = cluster.lockService().refreshLockRefreshTokens(
+                ImmutableList.of(token2.getLockRefreshToken()));
+        assertThat(lockRefreshTokens).isEmpty();
+    }
+
+    @Test
+    public void getAndRefreshTokens() throws InterruptedException {
+        lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
+        lockWithFullResponse(requestForWriteLock(LOCK_B), TEST_CLIENT);
+
+        Set<HeldLocksToken> tokens = cluster.lockService().getTokens(TEST_CLIENT);
+        assertThat(tokens.stream()
+                .map(token -> Iterables.getOnlyElement(token.getLocks()).getLockDescriptor())
+                .collect(Collectors.toList())).containsExactlyInAnyOrder(LOCK_A, LOCK_B);
+
+        Set<HeldLocksToken> heldLocksTokens = cluster.lockService().refreshTokens(tokens);
+        assertThat(heldLocksTokens.stream()
+                .map(token -> Iterables.getOnlyElement(token.getLocks()).getLockDescriptor())
+                .collect(Collectors.toList())).containsExactlyInAnyOrder(LOCK_A, LOCK_B);
+    }
+
+    @Test
+    public void lockGrantsCanBeServedAndRefreshed() throws InterruptedException {
+        HeldLocksToken heldLocksToken = lockWithFullResponse(requestForReadLock(LOCK_A), TEST_CLIENT);
+        HeldLocksGrant heldLocksGrant = cluster.lockService().convertToGrant(heldLocksToken);
+
+        assertThat(cluster.lockService().getTokens(TEST_CLIENT)).isEmpty();
+
+        HeldLocksGrant refreshedLockGrant = cluster.lockService().refreshGrant(heldLocksGrant);
+        assertThat(refreshedLockGrant).isEqualTo(heldLocksGrant);
+
+        HeldLocksGrant refreshedLockGrant2 = cluster.lockService().refreshGrant(heldLocksGrant.getGrantId());
+        assertThat(refreshedLockGrant2).isEqualTo(heldLocksGrant);
+
+        cluster.lockService().useGrant(TEST_CLIENT_2, heldLocksGrant);
+        assertThat(Iterables.getOnlyElement(cluster.lockService().getTokens(TEST_CLIENT_2)).getLockDescriptors())
+                .contains(LOCK_A);
+
+        assertThatThrownBy(() -> cluster.lockService().useGrant(TEST_CLIENT_3, heldLocksGrant.getGrantId()))
+                .isInstanceOf(AtlasDbRemoteException.class);
+    }
+
+    @Test
+    public void getMinLockedInVersionIdWorks() throws InterruptedException {
+        lockWithFullResponse(requestForReadLock(LOCK_A), TEST_CLIENT);
+        assertThat(cluster.lockService().getMinLockedInVersionId(TEST_CLIENT)).isNull();
+    }
+
+    @Test
+    public void getMinLockedInVersionIdReturnsValidValues() throws InterruptedException {
+        lockWithFullResponse(requestForReadLock(LOCK_A, 10L), TEST_CLIENT);
+        lockWithFullResponse(requestForReadLock(LOCK_B, 12L), TEST_CLIENT);
+        assertThat(cluster.lockService().getMinLockedInVersionId(TEST_CLIENT)).isEqualTo(10L);
+    }
+
+    @Test
+    public void getMinLockedInVersionIdReturnsValidValuesForAnonymousClient() throws InterruptedException {
+        lockWithFullResponse(requestForReadLock(LOCK_A, 10L), LockClient.ANONYMOUS);
+        lockWithFullResponse(requestForReadLock(LOCK_B, 12L), LockClient.ANONYMOUS);
+        assertThat(cluster.lockService().getMinLockedInVersionId()).isEqualTo(10L);
+    }
+
+    @Test
+    public void testGetLockServerOptions() throws InterruptedException {
+        assertThat(cluster.lockService().getLockServerOptions())
+                .isEqualTo(LockServerOptions.builder().randomBitCount(127).build());
+    }
+
+    @Test
+    public void testCurrentTimeMillis() throws InterruptedException {
+        assertThat(cluster.lockService().currentTimeMillis()).isPositive();
+    }
+
+    @Test
+    public void testlogCurrentState() throws InterruptedException {
+        cluster.lockService().logCurrentState();
+    }
+
+    @Test
     public void lockRequestsAreIdempotent() {
         if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support idempotence
@@ -225,6 +341,26 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         cluster.unlock(token);
 
         assertThat(response.join()).isEqualTo(duplicateResponse.join());
+    }
+
+    private HeldLocksToken lockWithFullResponse(com.palantir.lock.LockRequest request,
+            LockClient client) throws InterruptedException {
+        return cluster.lockService()
+                .lockWithFullLockResponse(client, request)
+                .getToken();
+    }
+
+    private com.palantir.lock.LockRequest requestForReadLock(LockDescriptor lock) {
+        return com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(lock, READ)).build();
+    }
+
+    private com.palantir.lock.LockRequest requestForReadLock(LockDescriptor lockA, long versionId) {
+        return com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(lockA, READ))
+                .withLockedInVersionId(versionId).build();
+    }
+
+    private com.palantir.lock.LockRequest requestForWriteLock(LockDescriptor lock) {
+        return com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(lock, WRITE)).build();
     }
 
     private LockRequest requestFor(LockDescriptor... locks) {

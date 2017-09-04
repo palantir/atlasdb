@@ -19,16 +19,23 @@ import static org.junit.Assert.assertEquals;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.LockMode;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 
 public class LockServiceSerDeTest {
@@ -80,5 +87,41 @@ public class LockServiceSerDeTest {
         assertEquals(lockServerOptions, deserialzedlockServerOptions);
         assertEquals(false, deserialzedlockServerOptions.isStandaloneServer());
         assertEquals(10L, deserialzedlockServerOptions.slowLogTriggerMillis());
+    }
+
+    @Test
+    public void testSerialisationAndDeserialisationOfHeldLocksGrant() throws Exception {
+        ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode = LockServiceTestUtils
+                .getLockDescriptorLockMode(ImmutableList.of("lock1", "lock2"));
+
+        HeldLocksGrant heldLocksGrant = new HeldLocksGrant(
+                BigInteger.ONE,
+                System.currentTimeMillis(),
+                System.currentTimeMillis() + 10L,
+                LockCollections.of(lockDescriptorLockMode),
+                SimpleTimeDuration.of(100, TimeUnit.SECONDS),
+                10L);
+        ObjectMapper mapper = new ObjectMapper();
+        String serializedForm = mapper.writeValueAsString(heldLocksGrant);
+        HeldLocksGrant deserialzedlockServerOptions = mapper.readValue(serializedForm, HeldLocksGrant.class);
+        assertEquals(heldLocksGrant, deserialzedlockServerOptions);
+    }
+
+    @Test
+    public void testPathParamSerDeOfLockClient() throws Exception {
+        LockClient lockClient = LockClient.of("xyz");
+
+        String serializedForm = lockClient.toString();
+        LockClient lockClient1 = new LockClient(serializedForm);
+        assertEquals(lockClient, lockClient1);
+    }
+
+    @Test
+    public void testPathParamSerDeOfAnonymousLockClient() throws Exception {
+        LockClient lockClient = LockClient.ANONYMOUS;
+
+        String serializedForm = lockClient.toString();
+        LockClient lockClient1 = new LockClient(serializedForm);
+        assertEquals(lockClient, lockClient1);
     }
 }

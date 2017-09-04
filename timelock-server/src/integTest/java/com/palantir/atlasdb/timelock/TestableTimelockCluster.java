@@ -51,7 +51,6 @@ public class TestableTimelockCluster {
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final String defaultClient;
-    private final String baseUri;
     private final List<TemporaryConfigurationHolder> configs;
     private final List<TestableTimelockServer> servers;
     private final TestProxies proxies;
@@ -60,8 +59,7 @@ public class TestableTimelockCluster {
 
     public TestableTimelockCluster(String baseUri, String defaultClient, String... configFileTemplates) {
         this.defaultClient = defaultClient;
-        this.baseUri = baseUri;
-        this.configs = Arrays.asList(configFileTemplates).stream()
+        this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());
         this.servers = configs.stream()

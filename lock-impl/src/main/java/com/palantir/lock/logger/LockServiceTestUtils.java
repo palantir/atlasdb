@@ -18,6 +18,8 @@ package com.palantir.lock.logger;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.HeldLocksToken;
@@ -43,16 +45,22 @@ public class LockServiceTestUtils {
 
     public static HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId,
             String... descriptors) {
+        ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode =
+                getLockDescriptorLockMode(Arrays.asList(descriptors));
+
+        return new HeldLocksToken(tokenId, LockClient.of(clientName),
+                System.currentTimeMillis(), System.currentTimeMillis(),
+                LockCollections.of(lockDescriptorLockMode),
+                LockRequest.getDefaultLockTimeout(), 0L, requestingThread);
+    }
+
+    public static ImmutableSortedMap<LockDescriptor, LockMode> getLockDescriptorLockMode(List<String> descriptors) {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
                 ImmutableSortedMap.naturalOrder();
         for (String descriptor : descriptors) {
             LockDescriptor descriptor1 = StringLockDescriptor.of(descriptor);
             builder.put(descriptor1, LockMode.WRITE);
         }
-
-        return new HeldLocksToken(tokenId, LockClient.of(clientName),
-                System.currentTimeMillis(), System.currentTimeMillis(),
-                LockCollections.of(builder.build()),
-                LockRequest.getDefaultLockTimeout(), 0L, requestingThread);
+        return builder.build();
     }
 }
