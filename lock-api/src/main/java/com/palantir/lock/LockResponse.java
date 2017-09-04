@@ -120,7 +120,10 @@ import com.google.common.collect.ImmutableSortedMap;
     public List<LockWithClient> getLocks() {
         return lockHolders.entrySet()
                 .stream()
-                .map(input -> new LockWithClient(input.getKey(), input.getValue()))
+                .map(input -> ImmutableLockWithClient.builder()
+                        .lockDescriptor(input.getKey())
+                        .lockClient(input.getValue())
+                        .build())
                 .collect(Collectors.toList());
     }
 

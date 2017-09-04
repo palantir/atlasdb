@@ -210,7 +210,7 @@ public class LockServerOptions implements Serializable {
         }
 
         @JsonCreator
-        SerializationProxy(@JsonProperty("standaloneServer") boolean isStandaloneServer,
+        SerializationProxy(@JsonProperty("isStandaloneServer") boolean isStandaloneServer,
                 @JsonProperty("maxAllowedLockTimeout") SimpleTimeDuration maxAllowedLockTimeout,
                 @JsonProperty("maxAllowedClockDrift") SimpleTimeDuration maxAllowedClockDrift,
                 @JsonProperty("maxAllowedBlockingDuration") SimpleTimeDuration maxAllowedBlockingDuration,

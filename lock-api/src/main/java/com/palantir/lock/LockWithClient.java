@@ -15,31 +15,18 @@
  */
 package com.palantir.lock;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.immutables.value.Value;
 
-public class LockWithClient {
-    private LockDescriptor lockDescriptor;
-    private LockClient lockClient;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-    public LockWithClient(@JsonProperty("lockDescriptor") LockDescriptor lockDescriptor,
-                        @JsonProperty("lockClient") LockClient lockClient) {
-        this.lockDescriptor = lockDescriptor;
-        this.lockClient = lockClient;
-    }
+@Value.Immutable
+@JsonSerialize(as = ImmutableLockWithClient.class)
+@JsonDeserialize(as = ImmutableLockWithClient.class)
+public abstract class LockWithClient {
+    @Value.Parameter
+    public abstract LockDescriptor getLockDescriptor();
 
-    public LockDescriptor getLockDescriptor() {
-        return lockDescriptor;
-    }
-
-    public LockClient getLockClient() {
-        return lockClient;
-    }
-
-    @Override
-    public String toString() {
-        return "LockWithClient{"
-                + "lockDescriptor=" + lockDescriptor
-                + ", lockClient=" + lockClient
-                + '}';
-    }
+    @Value.Parameter
+    public abstract LockClient getLockClient();
 }
