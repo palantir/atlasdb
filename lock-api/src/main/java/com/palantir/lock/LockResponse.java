@@ -20,6 +20,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -28,13 +29,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 
 /**
  * Represents the result of calling {@link LockService#lockWithFullLockResponse(LockClient, LockRequest)} on
@@ -52,10 +50,6 @@ import com.google.common.collect.Iterables;
     @Nullable private final HeldLocksToken token;
     private final boolean isBlockAndRelease;
     private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
-
-    private static final Function<ImmutableSortedMap.Entry<LockDescriptor, LockClient>, LockWithClient>
-            TO_LOCK_WITH_CLIENT_FUNCTION = (Function<Map.Entry<LockDescriptor, LockClient>, LockWithClient>) input ->
-                    new LockWithClient(input.getKey(), input.getValue());
 
     public LockResponse(@Nullable HeldLocksToken token) {
         this(token, ImmutableSortedMap.of());
@@ -124,7 +118,10 @@ import com.google.common.collect.Iterables;
     }
 
     public List<LockWithClient> getLocks() {
-        return ImmutableList.copyOf(Iterables.transform(lockHolders.entrySet(), TO_LOCK_WITH_CLIENT_FUNCTION));
+        return lockHolders.entrySet()
+                .stream()
+                .map(input -> new LockWithClient(input.getKey(), input.getValue()))
+                .collect(Collectors.toList());
     }
 
     /**
