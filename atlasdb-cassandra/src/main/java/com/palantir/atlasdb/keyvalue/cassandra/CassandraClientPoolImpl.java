@@ -129,7 +129,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     static final int MAX_TRIES_TOTAL = 6;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-
     private Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
     private Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
@@ -143,7 +142,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     private volatile boolean isInitialized = false;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
-
         final byte[] bytes;
 
         public LightweightOppToken(byte[] bytes) {
@@ -176,11 +174,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         public String toString() {
             return BaseEncoding.base16().encode(bytes);
         }
-
     }
 
     private class RequestMetrics {
-
         private final Meter totalRequests;
         private final Meter totalRequestExceptions;
         private final Meter totalRequestConnectionExceptions;
@@ -215,12 +211,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         double getConnectionExceptionProportion() {
             return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
         }
-
     }
 
     enum StartupChecks {
         RUN,
-        DO_NOT_RUN;
+        DO_NOT_RUN
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
