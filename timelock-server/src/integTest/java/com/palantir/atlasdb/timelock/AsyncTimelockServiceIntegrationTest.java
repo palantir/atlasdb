@@ -307,11 +307,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
-    public void testLogCurrentState() throws InterruptedException {
-        cluster.lockService().logCurrentState();
-    }
-
-    @Test
     public void lockRequestsAreIdempotent() {
         if (isUsingSyncAdapter(cluster)) {
             // legacy API does not support idempotence
