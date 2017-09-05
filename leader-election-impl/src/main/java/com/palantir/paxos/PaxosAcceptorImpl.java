@@ -21,6 +21,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.logsafe.SafeArg;
+
 public class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
@@ -92,7 +94,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            logger.error("log read failed for request: {}", seq, e);
+            logger.error("Log read failed for request at sequence {}", SafeArg.of("sequence", seq), e);
             return new BooleanPaxosResponse(false); // nack
         }
 
