@@ -54,6 +54,7 @@ import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
+import com.palantir.atlasdb.table.description.render.TableRendererV2;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 /**
@@ -291,6 +292,7 @@ public class Schema {
         Preconditions.checkNotNull(packageName, "package name not set");
 
         TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
+        TableRendererV2 tableRendererV2 = new TableRendererV2(packageName, namespace);
         for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
@@ -307,6 +309,10 @@ public class Schema {
                  tableRenderer.render(rawTableName, table, indices.build()),
                  packageName,
                  tableRenderer.getClassName(rawTableName, table));
+            emit(srcDir,
+                tableRendererV2.render(rawTableName, table),
+                packageName,
+                tableRendererV2.getClassName(rawTableName, table));
         }
         for (Entry<String, TableDefinition> entry : tempTableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
@@ -315,6 +321,10 @@ public class Schema {
                  tableRenderer.render(rawTableName, table, ImmutableSortedSet.<IndexMetadata>of()),
                  packageName,
                  tableRenderer.getClassName(rawTableName, table));
+            emit(srcDir,
+                tableRendererV2.render(rawTableName, table),
+                packageName,
+                tableRendererV2.getClassName(rawTableName, table));
         }
 
         for (StreamStoreRenderer renderer : streamStoreRenderers) {
