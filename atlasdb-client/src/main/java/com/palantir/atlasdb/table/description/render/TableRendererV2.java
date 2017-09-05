@@ -203,9 +203,11 @@ public class TableRendererV2 {
             results.add(renderGetTableRef());
             results.add(renderGetTableName());
             results.add(renderGetNamespace());
-            results.addAll(renderGet());
-            results.add(renderDeleteRow());
-            results.addAll(renderPut());
+            if (!tableMetadata.getColumns().hasDynamicColumns()) {
+                results.addAll(renderNamedGet());
+                results.add(renderNamedDeleteRow());
+                results.addAll(renderNamedPut());
+            }
             return results;
         }
 
@@ -241,20 +243,20 @@ public class TableRendererV2 {
                     .build();
         }
 
-        private List<MethodSpec> renderGet() {
+        private List<MethodSpec> renderNamedGet() {
             ArrayList<MethodSpec> getterResults = new ArrayList<>();
             for (NamedColumnDescription col : ColumnRenderers.namedColumns(tableMetadata)) {
-                getterResults.add(renderGetColumn(col));
+                getterResults.add(renderNamedGetColumn(col));
                 if (tableMetadata.getRowMetadata().getRowParts().size() == 1) {
-                    getterResults.add(renderGetSeveralRowsColumn(col));
+                    getterResults.add(renderNamedGetSeveralRowsColumn(col));
                 }
-                getterResults.add(renderGetAllRowsColumn(col));
+                getterResults.add(renderNamedGetAllRowsColumn(col));
             }
 
             return getterResults;
         }
 
-        private MethodSpec renderGetColumn(NamedColumnDescription col) {
+        private MethodSpec renderNamedGetColumn(NamedColumnDescription col) {
             MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                     .addModifiers(Modifier.PUBLIC);
 
@@ -282,7 +284,7 @@ public class TableRendererV2 {
             return getterBuilder.build();
         }
 
-        private MethodSpec renderGetSeveralRowsColumn(NamedColumnDescription col) {
+        private MethodSpec renderNamedGetSeveralRowsColumn(NamedColumnDescription col) {
             Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
             NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
@@ -321,7 +323,7 @@ public class TableRendererV2 {
             return getterBuilder.build();
         }
 
-        private MethodSpec renderGetAllRowsColumn(NamedColumnDescription col) {
+        private MethodSpec renderNamedGetAllRowsColumn(NamedColumnDescription col) {
             MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col) + 's')
                     .addModifiers(Modifier.PUBLIC);
 
@@ -347,7 +349,7 @@ public class TableRendererV2 {
             return getterBuilder.build();
         }
 
-        private MethodSpec renderDeleteRow() {
+        private MethodSpec renderNamedDeleteRow() {
             MethodSpec.Builder deleteRowBuilder = MethodSpec.methodBuilder("deleteRow")
                     .addModifiers(Modifier.PUBLIC);
 
@@ -368,16 +370,16 @@ public class TableRendererV2 {
 
         }
 
-        private List<MethodSpec> renderPut() {
+        private List<MethodSpec> renderNamedPut() {
             ArrayList<MethodSpec> putResults = new ArrayList<>();
             for (NamedColumnDescription col : ColumnRenderers.namedColumns(tableMetadata)) {
-                putResults.add(renderPutColumn(col));
+                putResults.add(renderNamedPutColumn(col));
             }
 
             return putResults;
         }
 
-        private MethodSpec renderPutColumn(NamedColumnDescription col) {
+        private MethodSpec renderNamedPutColumn(NamedColumnDescription col) {
             MethodSpec.Builder putColumnBuilder = MethodSpec.methodBuilder("put" + VarName(col))
                     .addModifiers(Modifier.PUBLIC);
 
