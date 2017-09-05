@@ -44,6 +44,10 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - Timelock clients now report tritium metrics for the lock requests with the prefix ``LockService`` instead of ``RemoteLockService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
     *    - |improved|
          - LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
