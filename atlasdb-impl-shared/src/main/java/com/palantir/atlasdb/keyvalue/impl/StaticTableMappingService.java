@@ -55,9 +55,9 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         return create(kv, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static TableMappingService create(KeyValueService kv, boolean initalizeAsync) {
+    public static TableMappingService create(KeyValueService kv, boolean initializeAsync) {
         StaticTableMappingService tableMappingService = new StaticTableMappingService(kv);
-        tableMappingService.initialize(initalizeAsync);
+        tableMappingService.initialize(initializeAsync);
         return tableMappingService.isInitialized() ? tableMappingService : new InitializingWrapper(tableMappingService);
     }
 

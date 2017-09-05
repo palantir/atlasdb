@@ -27,7 +27,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public interface AtlasDbFactory {
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
-    boolean DEFAULT_INITIALIZE_ASYNC = true;
+    boolean DEFAULT_INITIALIZE_ASYNC = false;
 
     String getType();
 

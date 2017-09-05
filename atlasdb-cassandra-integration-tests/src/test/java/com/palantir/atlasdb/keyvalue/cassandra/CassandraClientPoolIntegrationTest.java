@@ -66,7 +66,7 @@ public class CassandraClientPoolIntegrationTest {
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
-    private CassandraClientPool clientPool = kv.getClientPool();
+    private CassandraClientPoolImpl clientPool = (CassandraClientPoolImpl) kv.getClientPool();
 
     @Before
     public void setUp() {
@@ -83,7 +83,7 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testTokenMapping() {
         Map<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
-                clientPool.getTokenMap().asMapOfRanges();
+                clientPool.tokenMap.asMapOfRanges();
 
         for (Entry<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges
                 .entrySet()) {

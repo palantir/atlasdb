@@ -118,8 +118,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
             + " unlikely cause: network issues.";
-    /**
 
+    /**
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
@@ -127,21 +127,22 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     static final int MAX_TRIES_SAME_HOST = 3;
     @VisibleForTesting
     static final int MAX_TRIES_TOTAL = 6;
+    @VisibleForTesting
+    volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
 
-    private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+    private final CassandraKeyValueServiceConfig config;
     private Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
     private Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
-    final CassandraKeyValueServiceConfig config;
     private final StartupChecks startupChecks;
-    final ScheduledExecutorService refreshDaemon;
+    private final ScheduledExecutorService refreshDaemon;
     private ScheduledFuture<?> refreshPoolFuture;
     private final MetricsManager metricsManager = new MetricsManager();
-
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
     private volatile boolean isInitialized = false;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
+
         final byte[] bytes;
 
         public LightweightOppToken(byte[] bytes) {
@@ -174,6 +175,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         public String toString() {
             return BaseEncoding.base16().encode(bytes);
         }
+
     }
 
     private class RequestMetrics {
@@ -213,6 +215,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         }
     }
 
+    @VisibleForTesting
     enum StartupChecks {
         RUN,
         DO_NOT_RUN
@@ -297,11 +300,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return currentPools;
-    }
-
-    @Override
-    public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
-        return tokenMap;
     }
 
     @Override

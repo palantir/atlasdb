@@ -46,8 +46,6 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public final class CassandraExpiringKeyValueService extends CassandraKeyValueServiceImpl
         implements ExpiringKeyValueService {
     public static CassandraExpiringKeyValueService create(
@@ -64,7 +62,6 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
         return kvs;
     }
 
-    @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
     private CassandraExpiringKeyValueService(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<CassandraJmxCompactionManager> compactionManager,

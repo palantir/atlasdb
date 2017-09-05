@@ -23,7 +23,5 @@ public interface CassandraKeyValueService extends KeyValueService {
     CassandraTables getCassandraTables();
     TracingQueryRunner getTracingQueryRunner();
     void cleanUpSchemaMutationLockTablesState() throws Exception;
-    default boolean isInitialized() {
-        return true;
-    }
+    boolean isInitialized();
 }
