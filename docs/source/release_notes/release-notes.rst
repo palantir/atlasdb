@@ -47,6 +47,13 @@ develop
     *    -
          -
 
+    *    - |devbreak|
+         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges. The old getRanges method would eagerly load the first page of all ranges, potentially
+           concurrently. This often caused more data to be fetched than necessary or higher concurrency than expected. If you expect to only use a small amount of the rows in the provided
+           ranges, it is often advisable to use the getRangesLazy method and serially iterate over the results. Otherwise, you should use the new version of getRanges that allows explicitly
+           operating on the resulting visitables in parallel.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -74,13 +81,6 @@ v0.55.0
            Note that if the new ``namespace`` config contradicts with either the Cassandra ``keyspace`` and/or the TimeLock ``client`` configs, *AtlasDB will fail to start*.
            Please consult the documentation for :ref:`AtlasDB Configuration <atlas-config>` for details on how to set this up.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
-
-    *    - |devbreak|
-         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges. The old getRanges method would eagerly load the first page of all ranges, potentially
-           concurrently. This often caused more data to be fetched than necessary or higher concurrency than expected. If you expect to only use a small amount of the rows in the provided
-           ranges, it is often advisable to use the getRangesLazy method and serially iterate over the results. Otherwise, you should use the new version of getRanges that allows explicitly
-           operating on the resulting visitables in parallel.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
 
     *    - |deprecated|
          - As a followup of the ``namespace`` change, the Cassandra ``keyspace`` and TimeLock ``client`` configs were deprecated.
