@@ -198,10 +198,18 @@ public final class TableFactoryRenderer {
     }
 
     private List<MethodSpec> getMethods() {
-        return definitions.entrySet()
+        ArrayList<MethodSpec> results = new ArrayList<>();
+        results.addAll(definitions.entrySet()
                 .stream()
                 .map(entry -> getTableMethod(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
+
+        results.addAll(definitions.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().hasV2TableEnabled())
+                .map(entry -> getSimpleTableMethod(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList()));
+        return results;
     }
 
     private MethodSpec.Builder factoryBaseBuilder() {
@@ -235,6 +243,18 @@ public final class TableFactoryRenderer {
                             tableType,
                             Triggers.class);
         }
+        return tableGetterMethodBuilder.build();
+    }
+
+    private MethodSpec getSimpleTableMethod(String name, TableDefinition tableDefinition) {
+        String tableName = getV2TableName(name);
+        TypeName tableType = ClassName.get(packageName, tableName);
+        MethodSpec.Builder tableGetterMethodBuilder = MethodSpec.methodBuilder("get" + tableName)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(Transaction.class, "t")
+                .returns(tableType)
+                .addStatement("return $T.of(t, namespace)", tableType);
+
         return tableGetterMethodBuilder.build();
     }
 
@@ -289,6 +309,10 @@ public final class TableFactoryRenderer {
 
     private String getTableName(String name) {
         return name + "Table";
+    }
+
+    private String getV2TableName(String name) {
+        return name + "SimpleTable";
     }
 
     private FieldSpec getDefaultNamespaceField() {

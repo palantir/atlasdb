@@ -309,10 +309,12 @@ public class Schema {
                  tableRenderer.render(rawTableName, table, indices.build()),
                  packageName,
                  tableRenderer.getClassName(rawTableName, table));
-            emit(srcDir,
-                tableRendererV2.render(rawTableName, table),
-                packageName,
-                tableRendererV2.getClassName(rawTableName, table));
+            if (table.hasV2TableEnabled()) {
+                emit(srcDir,
+                        tableRendererV2.render(rawTableName, table),
+                        packageName,
+                        tableRendererV2.getClassName(rawTableName, table));
+            }
         }
         for (Entry<String, TableDefinition> entry : tempTableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
@@ -321,10 +323,6 @@ public class Schema {
                  tableRenderer.render(rawTableName, table, ImmutableSortedSet.<IndexMetadata>of()),
                  packageName,
                  tableRenderer.getClassName(rawTableName, table));
-            emit(srcDir,
-                tableRendererV2.render(rawTableName, table),
-                packageName,
-                tableRendererV2.getClassName(rawTableName, table));
         }
 
         for (StreamStoreRenderer renderer : streamStoreRenderers) {
