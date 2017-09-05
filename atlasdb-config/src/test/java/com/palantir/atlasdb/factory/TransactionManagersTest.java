@@ -56,7 +56,6 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -258,8 +257,11 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
-        TransactionManagers.create(realConfig, Optional::empty,
-                ImmutableSet.of(), environment, false);
+        TransactionManagerOptions options = TransactionManagerOptions.builder()
+                .config(realConfig)
+                .env(environment)
+                .build();
+        TransactionManagers.create(options);
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
 
@@ -295,11 +297,14 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds(120)
                 .build();
+        TransactionManagerOptions options = TransactionManagerOptions.builder()
+                .config(realConfig)
+                .env(environment)
+                .build();
 
         Runnable callback = mock(Runnable.class);
 
-        SerializableTransactionManager manager = TransactionManagers.create(
-                realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        SerializableTransactionManager manager = TransactionManagers.create(options);
         manager.registerClosingCallback(callback);
         manager.close();
         verify(callback, times(1)).run();
