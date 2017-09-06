@@ -130,9 +130,9 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     ExecutorService createGetRangesExecutor(int numThreads) {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>() {
             @Override
-            public boolean offer(Runnable e) {
+            public boolean offer(Runnable runnable) {
                 sanityCheckQueueSize();
-                return super.offer(e);
+                return super.offer(runnable);
             }
 
             private void sanityCheckQueueSize() {

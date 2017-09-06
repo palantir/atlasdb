@@ -92,7 +92,6 @@ public class ReadTransaction extends ForwardingTransaction {
         return delegate().getRangesLazy(tableRef, rangeRequests);
     }
 
-
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
             Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
