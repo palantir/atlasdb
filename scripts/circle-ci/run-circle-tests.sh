@@ -79,6 +79,6 @@ case $CIRCLE_NODE_INDEX in
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} -x :atlasdb-perf:postgresBenchmarkTest;;
-    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
+    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} && ${ETE_EXCLUDES[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true ;;
 esac

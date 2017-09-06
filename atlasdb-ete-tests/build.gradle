@@ -57,7 +57,7 @@ task startupIndependenceTest(type: Test) {
 }
 
 test {
-    dependsOn longTest, prepareForEteTests, timeLockTest
+    dependsOn longTest, prepareForEteTests, timeLockTest, startupIndependenceTest
     exclude '**/MultiCassandraTestSuite.class'
     exclude '**/StartupIndependenceEteTest.class'
     exclude '**/*TimeLock*.class'
