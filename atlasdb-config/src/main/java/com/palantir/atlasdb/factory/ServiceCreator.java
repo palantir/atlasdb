@@ -58,10 +58,10 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
     }
 
-    public static <T> T createInstrumentedService(T service, Class<T> serviceClass, String userAgent) {
+    public static <T> T createInstrumentedService(T service, Class<T> serviceClass) {
         return AtlasDbMetrics.instrument(
                 serviceClass,
                 service,
-                MetricRegistry.name(serviceClass, userAgent));
+                MetricRegistry.name(serviceClass));
     }
 }
