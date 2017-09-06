@@ -46,6 +46,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockService;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -59,7 +60,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
-    final RemoteLockService lockService;
+    final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
     final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
@@ -74,7 +75,7 @@ import com.palantir.timestamp.TimestampService;
     protected SnapshotTransactionManager(
             KeyValueService keyValueService,
             TimelockService timelockService,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,

@@ -33,7 +33,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 
@@ -79,7 +79,7 @@ public class SnapshotTransactionManagerTest {
                 keyValueService,
                 new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
                         LockClient.of("lock")),
-                mock(RemoteLockService.class), // not closeable
+                mock(LockService.class), // not closeable
                 null,
                 null,
                 null,

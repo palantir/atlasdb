@@ -37,6 +37,7 @@ import com.palantir.logsafe.Safe;
  *
  * @author jtamer
  */
+@Path("/lock")
 @Beta public interface LockService extends RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks. The locks are
