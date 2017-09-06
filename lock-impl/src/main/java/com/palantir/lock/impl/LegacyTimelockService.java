@@ -31,7 +31,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -45,7 +44,7 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 /**
- * A {@link TimelockService} implementation that delegates to a {@link RemoteLockService} and {@link TimestampService}.
+ * A {@link TimelockService} implementation that delegates to a {@link LockService} and {@link TimestampService}.
  */
 public class LegacyTimelockService implements TimelockService {
 

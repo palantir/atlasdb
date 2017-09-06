@@ -24,7 +24,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 
 public abstract class WrappingTransactionManager extends ForwardingLockAwareTransactionManager {
@@ -68,7 +68,7 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     }
 
     @Override
-    public RemoteLockService getLockService() {
+    public LockService getLockService() {
         return delegate.getLockService();
     }
 

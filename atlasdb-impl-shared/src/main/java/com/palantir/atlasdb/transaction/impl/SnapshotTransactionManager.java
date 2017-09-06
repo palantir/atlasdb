@@ -47,7 +47,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -259,7 +258,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public RemoteLockService getLockService() {
+    public LockService getLockService() {
         return lockService;
     }
 

@@ -26,7 +26,7 @@ import com.palantir.lock.LockService;
 import com.palantir.logsafe.UnsafeArg;
 
 /**
- * This lock service may be used as a RemoteLockService, for the purposes of advisory locking as well as for
+ * This lock service may be used as a LockService, for the purposes of advisory locking as well as for
  * users to take locks outside of the transaction protocol.
  *
  * However, it does NOT allow transactions to take place, as it throws on attempts to acquire the immutable timestamp.
