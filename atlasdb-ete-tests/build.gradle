@@ -52,7 +52,7 @@ task timeLockTest(type: Test) {
 }
 
 task startupIndependenceTest(type: Test) {
-    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
+    dependsOn prepareForEteTests
     include '**/StartupIndependenceEteTest.class'
 }
 
