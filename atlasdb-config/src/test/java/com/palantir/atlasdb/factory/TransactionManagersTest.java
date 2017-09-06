@@ -88,7 +88,8 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
-    private static final String USER_AGENT = "user-agent (3.14159265)";
+    private static final String USER_AGENT_NAME = "user-agent";
+    private static final String USER_AGENT = USER_AGENT_NAME + " (3.14159265)";
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
@@ -306,6 +307,17 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void keyValueServiceMetricsDoNotContainUserAgent() {
+        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+
+        TransactionManagers.create(realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        assertThat(metricsRule.metrics().getNames().stream()
+                .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
     public void metricsAreReportedExactlyOnceWhenUsingLocalService() throws IOException, InterruptedException {
         setUpForLocalServices();
         setupLeaderBlockInConfig();
@@ -338,7 +350,6 @@ public class TransactionManagersTest {
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
-
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
