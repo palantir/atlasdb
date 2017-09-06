@@ -8,14 +8,14 @@ AtlasDB makes use of the Dropwizard `Metrics library <http://metrics.dropwizard.
 expose a global ``MetricRegistry`` called ``AtlasDbRegistry``. Users of AtlasDB should use ``AtlasDbMetrics.setMetricRegistry``
 to inject their own ``MetricRegistry`` for their application prior to initializing the AtlasDB transaction manager.
 
-Each AtlasDB client will expose their own KeyValueService.<useragent> metrics, as well as CassandraClientPool metrics
+Each AtlasDB client will expose their own KeyValueService metrics, as well as CassandraClientPool metrics
 for every Cassandra host.
 We expose sweep metrics specific to every table that has been swept, as well as aggregate metrics.
 
 For more details on what information each type of metric provides, we recommend reading
 the Metrics `Getting Started Guide <http://metrics.dropwizard.io/3.1.0/getting-started/#>`__.
 
-The full list of metrics exposed by AtlasDB can be found below.
+A reasonably comprehensive list of metrics exposed by AtlasDB can be found below.
 
 **Gauges**
 
@@ -70,37 +70,37 @@ the following:
 
 **Timers**
 
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.addGarbageCollectionSentinelValues``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.checkAndSet``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.close``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.compactInternally``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.createTable``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.createTables``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.delete``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.deleteRange``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.dropTable``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.dropTables``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.get``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getAllTableNames``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getAllTimestamps``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getDelegates``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getFirstBatchForRanges``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getLatestTimestamps``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getMetadataForTable``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getMetadataForTables``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRange``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRangeOfTimestamps``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRows``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.getRowsColumnRange``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.multiPut``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.put``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putMetadataForTable``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putMetadataForTables``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putUnlessExists``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.putWithTimestamps``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.supportsCheckAndSet``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.truncateTable``
-- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.<useragent>.truncateTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.addGarbageCollectionSentinelValues``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.checkAndSet``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.close``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.compactInternally``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.createTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.createTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.delete``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.deleteRange``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.dropTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.dropTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.get``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getAllTableNames``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getAllTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getDelegates``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getFirstBatchForRanges``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getLatestTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getMetadataForTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getMetadataForTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getRange``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getRangeOfTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getRows``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.getRowsColumnRange``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.multiPut``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.put``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.putMetadataForTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.putMetadataForTables``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.putUnlessExists``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.putWithTimestamps``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.supportsCheckAndSet``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.truncateTable``
+- ``com.palantir.atlasdb.keyvalue.api.KeyValueService.truncateTables``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitAcquireLocks``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitCheckingForConflicts``
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitPutCommitTs``
