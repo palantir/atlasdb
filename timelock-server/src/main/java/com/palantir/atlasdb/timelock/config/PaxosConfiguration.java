@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.config;
 
 import java.io.File;
@@ -23,11 +24,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.TimeLockServer;
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockServer;
 import com.palantir.remoting2.config.ssl.SslConfiguration;
-
-import io.dropwizard.setup.Environment;
 
 @JsonSerialize(as = ImmutablePaxosConfiguration.class)
 @JsonDeserialize(as = ImmutablePaxosConfiguration.class)
@@ -67,10 +64,5 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
                 "Maximum wait before proposal must be positive; found '%s'.", maximumWaitBeforeProposalMs());
         Preconditions.checkArgument(leaderPingResponseWaitMs() > 0,
                 "Leader ping response wait interval must be positive; found '%s'.", leaderPingResponseWaitMs());
-    }
-
-    @Override
-    public TimeLockServer createServerImpl(Environment environment) {
-        return new PaxosTimeLockServer(this, environment);
     }
 }
