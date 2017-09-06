@@ -100,7 +100,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
      */
     private Connection acquirePooledConnection(long startMillis) throws SQLException {
         while (true) {
-            HikariDataSource dataSourcePool = getDataSourcePool();
+            HikariDataSource dataSourcePool = checkAndGetDataSourcePool();
             Connection conn = dataSourcePool.getConnection();
 
             try {
@@ -153,7 +153,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
-    private HikariDataSource getDataSourcePool() throws SQLException {
+    private HikariDataSource checkAndGetDataSourcePool() throws SQLException {
         while (true) {
             // Volatile read state to see if we can get through here without locking.
             State stateLocal = state;
@@ -260,7 +260,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     }
 
     private State normalState() throws SQLException {
-        HikariDataSource dataSourcePool = getDatasourcePool();
+        HikariDataSource dataSourcePool = getDataSourcePool();
         boolean keep = false;
 
         try {
@@ -276,7 +276,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
-    private HikariDataSource getDatasourcePool() {
+    private HikariDataSource getDataSourcePool() {
         // Print a stack trace whenever we initialize a pool
         log.debug("Initializing connection pool: {}", connConfig, new RuntimeException("Initializing connection pool"));
 
