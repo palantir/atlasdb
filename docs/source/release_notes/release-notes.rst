@@ -63,10 +63,10 @@ develop
 
     *    - |userbreak| |fixed|
          - AtlasDB no longer embeds user-agents in metric names.
-           All metrics are still available, but will no longer include the user-agent component.
+           All metrics are still available; however, metrics which previously included a user-agent component will no longer do so.
            For example, the timer ``com.palantir.timestamp.TimestampService.myUserAgent_version.getFreshTimestamp`` is now named ``com.palantir.timestamp.TimestampService.getFreshTimestamp``.
            This was necessary for compatibility with an internal log-ingestion tool.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/foo>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2322>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
