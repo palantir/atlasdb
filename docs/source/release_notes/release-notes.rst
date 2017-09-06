@@ -44,8 +44,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new|
+         - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
