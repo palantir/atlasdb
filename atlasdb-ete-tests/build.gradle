@@ -51,9 +51,15 @@ task timeLockTest(type: Test) {
     include '**/*TimeLock*.class'
 }
 
+task startupIndependenceTest(type: Test) {
+    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
+    include '**/StartupIndependenceEteTest.class'
+}
+
 test {
     dependsOn longTest, prepareForEteTests, timeLockTest
     exclude '**/MultiCassandraTestSuite.class'
+    exclude '**/StartupIndependenceEteTest.class'
     exclude '**/*TimeLock*.class'
     exclude '**/*EteTest.class'
 }
