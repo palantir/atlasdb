@@ -29,7 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -50,7 +50,7 @@ public class TimeLockResource {
     }
 
     @Path("/lock")
-    public RemoteLockService getLockService(@PathParam("client") String client) {
+    public LockService getLockService(@PathParam("client") String client) {
         return getOrCreateServices(client).getLockService();
     }
 

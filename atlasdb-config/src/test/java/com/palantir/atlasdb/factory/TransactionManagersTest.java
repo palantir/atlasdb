@@ -74,7 +74,7 @@ import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
@@ -96,8 +96,8 @@ public class TransactionManagersTest {
             MetricRegistry.name(TimelockService.class, USER_AGENT, "getFreshTimestamp");
     private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
             MetricRegistry.name(TimelockService.class, USER_AGENT, "currentTimeMillis");
-    private static final String REMOTELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(RemoteLockService.class, USER_AGENT, "currentTimeMillis");
+    private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
+            MetricRegistry.name(LockService.class, USER_AGENT, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, USER_AGENT, "getFreshTimestamp");
 
@@ -311,7 +311,7 @@ public class TransactionManagersTest {
         setupLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
+                LOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
@@ -320,7 +320,7 @@ public class TransactionManagersTest {
         setupLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
+                LOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test

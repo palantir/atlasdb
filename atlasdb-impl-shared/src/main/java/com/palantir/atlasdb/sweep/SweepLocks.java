@@ -24,15 +24,15 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 
 class SweepLocks implements AutoCloseable {
-    private final RemoteLockService lockService;
+    private final LockService lockService;
 
     private LockRefreshToken token = null;
 
-    SweepLocks(RemoteLockService lockService) {
+    SweepLocks(LockService lockService) {
         this.lockService = lockService;
     }
 

@@ -40,7 +40,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.logger.LockServiceLoggerTestUtils;
+import com.palantir.lock.logger.LockServiceTestUtils;
 import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
@@ -462,7 +462,7 @@ public abstract class LockServiceTest {
             // If we exceed the timeout, the call is hung and it's a failure
             Assert.fail();
         } finally {
-            LockServiceLoggerTestUtils.cleanUpLogStateDir();
+            LockServiceTestUtils.cleanUpLogStateDir();
         }
     }
 
@@ -764,13 +764,9 @@ public abstract class LockServiceTest {
     @Test public void testNumerousClientsPerLock() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public TimeDuration getMaxAllowedClockDrift() {
-                        return SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS);
-                    }
-                }), 100);
-
+                LockServerOptions.builder()
+                .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
+                .build()), 100);
 
         final int partitions = 5;
         final int[] partition = new int[partitions - 1];
@@ -877,13 +873,9 @@ public abstract class LockServiceTest {
     @Test public void testExpiringTokensAndGrants() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public TimeDuration getMaxAllowedClockDrift() {
-                        return SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS);
-                    }
-                }), 100);
-
+                LockServerOptions.builder()
+                        .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
+                        .build()), 100);
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
                 .doNotBlock().timeoutAfter(SimpleTimeDuration.of(500, TimeUnit.MILLISECONDS))
                 .build();
@@ -1020,12 +1012,9 @@ public abstract class LockServiceTest {
     @Test public void testUnlockAndFreeze() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public TimeDuration getMaxAllowedClockDrift() {
-                        return SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS);
-                    }
-                }), 10);
+                LockServerOptions.builder()
+                        .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
+                        .build()), 10);
 
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
                 .timeoutAfter(SimpleTimeDuration.of(1, TimeUnit.SECONDS)).doNotBlock().build();
@@ -1087,7 +1076,7 @@ public abstract class LockServiceTest {
         testReentrancy(LockMode.READ, LockMode.READ);
     }
 
-    @Test(expected=IllegalMonitorStateException.class)
+    @Test(expected = IllegalMonitorStateException.class)
     public void testReentrantReadWrite() throws InterruptedException {
         testReentrancy(LockMode.READ, LockMode.WRITE);
     }

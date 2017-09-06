@@ -44,6 +44,19 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - Timelock clients now report tritium metrics for the lock requests with the prefix ``LockService`` instead of ``RemoteLockService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |improved|
+         - LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - TimelockServer now exposes the `LockService` instead of `RemoteLockService` if using the synchronous lock service.
+           This will provide a more comprehensive API required by the large internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
     *    - |new|
          - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
