@@ -57,6 +57,10 @@ develop
            This will provide a more comprehensive API required by the large internal product.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
 
+    *    - |new|
+         - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
