@@ -57,19 +57,29 @@ develop
            This will provide a more comprehensive API required by the large internal product.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
 
-    *    - |new|
-         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
-           You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.55.0
+=======
+
+01 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |userbreak|
          - If AtlasDB is used with TimeLock, and the TimeLock client name is different than either the Cassandra ``keyspace``, Postgres ``dbName``, or Oracle ``sid``, *AtlasDB will fail to start*.
-           This was done to avoid risks of data corruption if these are accidentally changed independently.
+           This was done to avoid the risk of data corruption if these are accidentally changed independently.
            If the above parameters contradict, please contact the AtlasDB team to change the TimeLock client name. Changing it in config without additional action may result in *severe data corruption*.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
 
     *    - |new|
-         - AtlasDB introduces a top-level ``namespace`` configuration parameter, which is used to set the ``keyspace`` in Cassandra and the ``client`` in TimeLock.
+         - AtlasDB introduces a top-level ``namespace`` configuration parameter, which is used to set the ``keyspace`` in the keyValueService when using Cassandra and the ``client`` in TimeLock.
            Following the previous change, we unify both the configs that cannot be changed separately in one single config. Therefore it is suggested that AtlasDB users follow and use the new parameter to specify both the deprecated ones.
            Note that if the new ``namespace`` config contradicts with either the Cassandra ``keyspace`` and/or the TimeLock ``client`` configs, *AtlasDB will fail to start*.
            Please consult the documentation for :ref:`AtlasDB Configuration <atlas-config>` for details on how to set this up.
@@ -79,6 +89,17 @@ develop
          - As a followup of the ``namespace`` change, the Cassandra ``keyspace`` and TimeLock ``client`` configs were deprecated.
            As said previously, please use the ``namespace`` root level config to specify both of these parameters.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
+    *    - |new|
+         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
+           You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
+
+    *    - |fixed|
+         - Fixed a case where sweep logs would get rolled over before expected. The number of log files stored on disk was increased from 10 to 90 before rolling over.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2295>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.54.0
@@ -150,6 +171,8 @@ v0.54.0
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 =======
 v0.53.0
 =======
@@ -197,6 +220,8 @@ v0.53.0
     *    - |devbreak|
          - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.52.0
