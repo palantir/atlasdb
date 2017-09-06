@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.logsafe.SafeArg;
 
 @ThreadSafe
 public interface AsyncInitializer {
@@ -45,8 +46,8 @@ public interface AsyncInitializer {
             tryInitialize();
         } catch (Throwable th) {
             cleanUpOnInitFailure();
-            log.warn("Failed to initialize " + this.getClass().getName()
-                    + " in the first attempt, will initialize asynchronously.", th);
+            log.warn("Failed to initialize {} in the first attempt, will initialize asynchronously.",
+                    SafeArg.of("className", this.getClass().getName()), th);
 
             Executors.newSingleThreadExecutor().execute(
                     () -> {
@@ -59,7 +60,7 @@ public interface AsyncInitializer {
                                 Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
                             }
                         }
-                        log.warn("Initialized " +  this.getClass().getName() + " asynchronously.");
+                        log.warn("Initialized {} asynchronously.", SafeArg.of("className", this.getClass().getName()));
                     }
             );
         }

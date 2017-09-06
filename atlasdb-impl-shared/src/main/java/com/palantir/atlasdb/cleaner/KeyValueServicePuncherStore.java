@@ -67,14 +67,14 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
     private static final byte[] COLUMN = "t".getBytes(StandardCharsets.UTF_8);
     private volatile boolean isInitialized = false;
 
-    public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
-        return create(keyValueService, true);
+    public static PuncherStore create(KeyValueService keyValueService) {
+        return create(keyValueService, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static KeyValueServicePuncherStore create(KeyValueService keyValueService, boolean initializeAsync) {
+    public static PuncherStore create(KeyValueService keyValueService, boolean initializeAsync) {
         KeyValueServicePuncherStore puncherStore = new KeyValueServicePuncherStore(keyValueService);
         puncherStore.initialize(initializeAsync);
-        return puncherStore;
+        return puncherStore.isInitialized() ? puncherStore : new InitializingWrapper(puncherStore);
     }
 
     private final KeyValueService keyValueService;

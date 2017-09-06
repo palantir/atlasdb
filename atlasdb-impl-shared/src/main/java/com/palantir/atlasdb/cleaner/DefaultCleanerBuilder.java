@@ -106,8 +106,7 @@ public class DefaultCleanerBuilder {
     }
 
     private Puncher buildPuncher() {
-        PuncherStore keyValuePuncherStore = new KeyValueServicePuncherStore.InitializingWrapper(
-                KeyValueServicePuncherStore.create(keyValueService, initalizeAsync));
+        PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
                 punchIntervalMillis * 3);
@@ -121,8 +120,7 @@ public class DefaultCleanerBuilder {
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
             Supplier<Long> immutableTimestampSupplier) {
-        ScrubberStore scrubberStore = new KeyValueServiceScrubberStore.InitializingWrapper(
-                KeyValueServiceScrubberStore.create(keyValueService, initalizeAsync));
+        ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService, initalizeAsync);
         return Scrubber.create(
                 keyValueService,
                 scrubberStore,

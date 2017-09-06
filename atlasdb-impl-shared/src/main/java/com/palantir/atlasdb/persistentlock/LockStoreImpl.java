@@ -91,15 +91,25 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
             .reason("Available")
             .build();
 
-    private LockStoreImpl(KeyValueService kvs) {
+    LockStoreImpl(KeyValueService kvs) {
         this.keyValueService = kvs;
     }
 
-    public static LockStoreImpl create(KeyValueService kvs) {
-        return create(kvs, true);
+    public static LockStore create(KeyValueService kvs) {
+        return create(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static LockStoreImpl create(KeyValueService kvs, boolean initializeAsync) {
+    public static LockStore create(KeyValueService kvs, boolean initializeAsync) {
+        LockStoreImpl lockStore = createImplForTest(kvs, initializeAsync);
+        return lockStore.isInitialized() ? lockStore : new InitializingWrapper(lockStore);
+    }
+
+    @VisibleForTesting
+    static LockStoreImpl createImplForTest(KeyValueService kvs) {
+        return createImplForTest(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    private static LockStoreImpl createImplForTest(KeyValueService kvs, boolean initializeAsync) {
         LockStoreImpl lockStore = new LockStoreImpl(kvs);
         lockStore.initialize(initializeAsync);
         return lockStore;

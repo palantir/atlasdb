@@ -47,7 +47,7 @@ public class LockStoreTest {
     @Before
     public void setUp() throws Exception {
         kvs = spy(new InMemoryKeyValueService(false));
-        lockStore = LockStoreImpl.create(kvs);
+        lockStore = LockStoreImpl.createImplForTest(kvs);
     }
 
     @Test

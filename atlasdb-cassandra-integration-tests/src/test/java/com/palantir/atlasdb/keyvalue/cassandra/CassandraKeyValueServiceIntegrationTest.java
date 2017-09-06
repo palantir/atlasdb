@@ -67,8 +67,6 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
 
@@ -104,7 +102,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
     }
 
-    private CassandraKeyValueServiceImpl createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 CassandraContainer.LEADER_CONFIG,
@@ -136,7 +134,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
+    // Suppressing Slf4j warnings for test
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
         Logger testLogger = mock(Logger.class);
         //nth startup
@@ -206,8 +206,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return testTable.getQualifiedName().replaceFirst("\\.", "__");
     }
 
-    @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
+    // Suppressing Slf4j warnings for test
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() throws Exception {
         verify(logger, never()).error(startsWith("Found a table {} that did not have persisted"), anyString());
     }

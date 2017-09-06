@@ -19,7 +19,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public interface CassandraKeyValueService extends KeyValueService {
-    CassandraClientPoolImpl getClientPool();
+    CassandraClientPool getClientPool();
     CassandraTables getCassandraTables();
     TracingQueryRunner getTracingQueryRunner();
+    void cleanUpSchemaMutationLockTablesState() throws Exception;
+    boolean isInitialized();
 }

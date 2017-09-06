@@ -66,7 +66,7 @@ public class CassandraClientPoolIntegrationTest {
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
-    private CassandraClientPoolImpl clientPool = kv.getClientPool();
+    private CassandraClientPoolImpl clientPool = (CassandraClientPoolImpl) kv.getClientPool();
 
     @Before
     public void setUp() {
@@ -164,15 +164,15 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        clientPool.blacklistedHosts.putAll(
-                Maps.transformValues(clientPool.currentPools, clientPoolContainer -> Long.MAX_VALUE));
+        clientPool.getBlacklistedHosts().putAll(
+                Maps.transformValues(clientPool.getCurrentPools(), clientPoolContainer -> Long.MAX_VALUE));
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
             fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
-        clientPool.blacklistedHosts.clear();
+        clientPool.getBlacklistedHosts().clear();
     }
 
     private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing =

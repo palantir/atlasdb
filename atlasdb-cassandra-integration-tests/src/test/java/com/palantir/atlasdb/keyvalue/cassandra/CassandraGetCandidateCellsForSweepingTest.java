@@ -33,9 +33,9 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
 
     @Override
     protected KeyValueService createKeyValueService() {
-        return new CassandraKeyValueServiceImpl.InitializeCheckingWrapper(CassandraKeyValueServiceImpl.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
                 CassandraContainer.LEADER_CONFIG,
-                Mockito.mock(Logger.class)));
+                Mockito.mock(Logger.class));
     }
 }

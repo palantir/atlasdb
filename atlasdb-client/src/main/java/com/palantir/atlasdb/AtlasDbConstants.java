@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -93,7 +94,7 @@ public class AtlasDbConstants {
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
     public static final char OLD_SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
-    public static final boolean DEFAULT_INITIALIZE_ASYNC = true;
+    public static final boolean DEFAULT_INITIALIZE_ASYNC = AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC;
 
     public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;

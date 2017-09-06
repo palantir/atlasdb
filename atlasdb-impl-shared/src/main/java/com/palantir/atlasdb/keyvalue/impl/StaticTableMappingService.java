@@ -21,10 +21,12 @@ import java.util.stream.Collectors;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.AutoDelegate_TableMappingService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = TableMappingService.class)
@@ -39,21 +41,24 @@ public final class StaticTableMappingService extends AbstractTableMappingService
 
         @Override
         public TableMappingService delegate() {
-            return tableMappingService;
+            if (tableMappingService.isInitialized()) {
+                return tableMappingService;
+            }
+            throw new NotInitializedException("TableMappingService");
         }
     }
 
     private volatile boolean isInitialized = false;
     private final KeyValueService kv;
 
-    public static StaticTableMappingService create(KeyValueService kv) {
-        return create(kv, true);
+    public static TableMappingService create(KeyValueService kv) {
+        return create(kv, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static StaticTableMappingService create(KeyValueService kv, boolean initalizeAsync) {
-        StaticTableMappingService ret = new StaticTableMappingService(kv);
-        ret.initialize(initalizeAsync);
-        return ret;
+    public static TableMappingService create(KeyValueService kv, boolean initializeAsync) {
+        StaticTableMappingService tableMappingService = new StaticTableMappingService(kv);
+        tableMappingService.initialize(initializeAsync);
+        return tableMappingService.isInitialized() ? tableMappingService : new InitializingWrapper(tableMappingService);
     }
 
     private StaticTableMappingService(KeyValueService kv) {

@@ -65,6 +65,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -117,8 +118,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
             + " unlikely cause: network issues.";
-    /**
 
+    /**
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
@@ -126,22 +127,22 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     static final int MAX_TRIES_SAME_HOST = 3;
     @VisibleForTesting
     static final int MAX_TRIES_TOTAL = 6;
-
+    @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-    Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
-    Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
-    final CassandraKeyValueServiceConfig config;
-    private final StartupChecks startupChecks;
-    final ScheduledExecutorService refreshDaemon;
-    private ScheduledFuture<?> refreshPoolFuture;
 
+    private final CassandraKeyValueServiceConfig config;
+    private Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
+    private Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+    private final StartupChecks startupChecks;
+    private final ScheduledExecutorService refreshDaemon;
+    private ScheduledFuture<?> refreshPoolFuture;
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
-
     private volatile boolean isInitialized = false;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
+
         final byte[] bytes;
 
         public LightweightOppToken(byte[] bytes) {
@@ -174,6 +175,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         public String toString() {
             return BaseEncoding.base16().encode(bytes);
         }
+
     }
 
     private class RequestMetrics {
@@ -213,26 +215,27 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         }
     }
 
-    private enum StartupChecks {
+    @VisibleForTesting
+    enum StartupChecks {
         RUN,
         DO_NOT_RUN
     }
 
-    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config) {
-        return create(config, true);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config, boolean initAsync) {
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.RUN);
-        cassandraClientPool.initialize(initAsync);
-        return cassandraClientPool;
+        cassandraClientPool.initialize(initializeAsync);
+        return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
     }
 
     @VisibleForTesting
-    static CassandraClientPoolImpl createWithoutChecksForTesting(CassandraKeyValueServiceConfig config,
-            boolean initAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.DO_NOT_RUN);
-        cassandraClientPool.initialize(initAsync);
+    static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+        cassandraClientPool.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
 
@@ -292,6 +295,16 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
         metricsManager.deregisterMetrics();
+    }
+
+    @Override
+    public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
+        return currentPools;
+    }
+
+    @Override
+    public Map<InetSocketAddress, Long> getBlacklistedHosts() {
+        return blacklistedHosts;
     }
 
     private void registerAggregateMetrics() {
@@ -847,7 +860,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
                 || isRetriableWithBackoffException(ex.getCause()));
     }
 
-    final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
+    private final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
             new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
                 @Override
                 public Void apply(Cassandra.Client client) throws Exception {
@@ -855,6 +868,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
                     return null;
                 }
             };
+
+    @Override
+    public FunctionCheckedException<Cassandra.Client, Void, Exception> getValidatePartitioner() {
+        return validatePartitioner;
+    }
 
     /**
      * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
