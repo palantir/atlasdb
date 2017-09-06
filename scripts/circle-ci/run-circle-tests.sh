@@ -20,7 +20,7 @@ CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' '
 
 CONTAINER_5=(':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
-CONTAINER_6=(':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
+CONTAINER_6=(':atlasdb-ete-tests:startupIndependenceTest' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
 
 CONTAINER_7=('compileJava' 'compileTestJava' ':atlasdb-cassandra-integration-tests:longTest')
 
@@ -65,10 +65,11 @@ fi
 
 ETE_EXCLUDES=('-x :atlasdb-ete-tests:longTest')
 
-# Timelock requires Docker 1.12; currently unavailable on external Circle. Might not be needed if we move to
-# CircleCI 2.0.
+# Timelock and Startup ordering require Docker 1.12; currently unavailable on external Circle. Might not be needed if
+# we move to CircleCI 2.0.
 if [[ $INTERNAL_BUILD != true ]]; then
     ETE_EXCLUDES+=('-x :atlasdb-ete-tests:timeLockTest')
+    ETE_EXCLUDES+=('-x :atlasdb-ete-tests:startupIndependenceTest')
 fi
 
 case $CIRCLE_NODE_INDEX in
