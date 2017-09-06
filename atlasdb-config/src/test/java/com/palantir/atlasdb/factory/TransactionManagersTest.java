@@ -93,13 +93,13 @@ public class TransactionManagersTest {
     private static final long EMBEDDED_BOUND = 3;
 
     private static final String TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
-            MetricRegistry.name(TimelockService.class, USER_AGENT, "getFreshTimestamp");
+            MetricRegistry.name(TimelockService.class, "getFreshTimestamp");
     private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(TimelockService.class, USER_AGENT, "currentTimeMillis");
+            MetricRegistry.name(TimelockService.class, "currentTimeMillis");
     private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(LockService.class, USER_AGENT, "currentTimeMillis");
+            MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
-            MetricRegistry.name(TimestampService.class, USER_AGENT, "getFreshTimestamp");
+            MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
