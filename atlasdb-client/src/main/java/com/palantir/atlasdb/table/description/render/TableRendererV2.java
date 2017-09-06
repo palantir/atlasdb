@@ -16,16 +16,19 @@
 package com.palantir.atlasdb.table.description.render;
 
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.VarName;
+import static com.palantir.atlasdb.table.description.render.Renderers.CamelCase;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Generated;
@@ -207,6 +210,7 @@ public class TableRendererV2 {
                 results.addAll(renderNamedGet());
                 results.add(renderNamedDeleteRow());
                 results.addAll(renderNamedPut());
+                results.addAll(renderNamedUpdateIfExists());
             }
             return results;
         }
@@ -249,8 +253,8 @@ public class TableRendererV2 {
                 getterResults.add(renderNamedGetColumn(col));
                 if (tableMetadata.getRowMetadata().getRowParts().size() == 1) {
                     getterResults.add(renderNamedGetSeveralRowsColumn(col));
+                    getterResults.add(renderNamedGetAllRowsColumn(col));
                 }
-                getterResults.add(renderNamedGetAllRowsColumn(col));
             }
 
             return getterResults;
@@ -264,11 +268,12 @@ public class TableRendererV2 {
 
             getterBuilder.returns(ParameterizedTypeName.get(
                     ClassName.get(Optional.class),
-                    ClassName.get(col.getValue().getValueType().getTypeClass())));
+                    ClassName.get(getColumnTypeClass(col))));
             getterBuilder
                     .addStatement("$T row = $T.of($N)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                     .addStatement("byte[] bytes = row.persistToBytes()")
-                    .addStatement("$T colSelection = $T.create($T.singletonList($T.toCachedBytes($S)))",
+                    .addStatement("$T colSelection = \n"
+                                    + "$T.create($T.singletonList($T.toCachedBytes($S)))",
                             ColumnSelection.class, ColumnSelection.class, Collections.class,
                             PtBytes.class, col.getShortName())
                     .addStatement("$T<byte[]> rowResult = t.getRows(tableRef, $T.of(bytes), colSelection).get(bytes)",
@@ -284,6 +289,7 @@ public class TableRendererV2 {
             return getterBuilder.build();
         }
 
+
         private MethodSpec renderNamedGetSeveralRowsColumn(NamedColumnDescription col) {
             Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
@@ -297,11 +303,13 @@ public class TableRendererV2 {
                             "rowKeys");
 
             getterBuilder.returns(ParameterizedTypeName.get(
-                    ClassName.get(List.class),
-                    ClassName.get(col.getValue().getValueType().getTypeClass())));
+                    ClassName.get(Map.class),
+                    ClassName.get(rowComponent.getType().getTypeClass()),
+                    ClassName.get(getColumnTypeClass(col))));
 
             getterBuilder
-                    .addStatement("$T colSelection = $T.create($T.singletonList($T.toCachedBytes($S)))",
+                    .addStatement("$T colSelection = \n "
+                                    + "$T.create($T.singletonList($T.toCachedBytes($S)))",
                             ColumnSelection.class, ColumnSelection.class, Collections.class,
                             PtBytes.class, col.getShortName())
                     .addStatement("$T<$T> rows = $T\n"
@@ -316,35 +324,45 @@ public class TableRendererV2 {
                     .addStatement("return results\n"
                                     + ".values()\n"
                                     + ".stream()\n"
-                                    + ".map(entry -> $T.of(entry).get$N())\n"
-                                    + ".collect($T.toList())",
-                            rowResultType, VarName(col), Collectors.class);
+                                    + ".map(entry -> $T.of(entry))\n"
+                                    + ".collect($T.toMap(\n"
+                                        + "     entry -> entry.getRowName().get$N(), \n"
+                                        + "     $T::get$N))",
+                            rowResultType, Collectors.class, CamelCase(rowComponent.getComponentName()),
+                            rowResultType, VarName(col));
 
             return getterBuilder.build();
         }
 
+
         private MethodSpec renderNamedGetAllRowsColumn(NamedColumnDescription col) {
+            Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+
+            NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
             MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col) + 's')
                     .addModifiers(Modifier.PUBLIC);
 
             getterBuilder.returns(ParameterizedTypeName.get(
-                    ClassName.get(List.class),
-                    ClassName.get(col.getValue().getValueType().getTypeClass())));
-
+                    ClassName.get(Map.class),
+                    ClassName.get(rowComponent.getType().getTypeClass()),
+                    ClassName.get(getColumnTypeClass(col))));
 
             getterBuilder
-                    .addStatement("$T colSelection = $T.create($T.singletonList($T.toCachedBytes($S)))",
+                    .addStatement("$T colSelection = \n"
+                                    + "$T.create($T.singletonList($T.toCachedBytes($S)))",
                             ColumnSelection.class, ColumnSelection.class, Collections.class,
                             PtBytes.class, col.getShortName())
                     .addStatement("return $T.of(t.getRange("
-                                        + "tableRef, "
-                                        + "$T.builder().retainColumns(colSelection).build()))\n"
+                                    + "tableRef, \n"
+                                    + "$T.builder().retainColumns(colSelection).build()))\n"
                                     + ".immutableCopy()\n"
                                     + ".stream()\n"
-                                    + ".map(entry -> $T.of(entry).get$N())\n"
-                                    + ".collect($T.toList())",
+                                    + ".map(entry -> $T.of(entry))\n"
+                                    + ".collect($T.toMap(\n"
+                                        + "     entry -> entry.getRowName().get$N(), \n"
+                                        + "     $T::get$N))",
                             BatchingVisitableView.class, RangeRequest.class, rowResultType,
-                            VarName(col), Collectors.class);
+                            Collectors.class, CamelCase(rowComponent.getComponentName()), rowResultType, VarName(col));
 
             return getterBuilder.build();
         }
@@ -386,13 +404,49 @@ public class TableRendererV2 {
             putColumnBuilder = addParametersFromRowComponents(putColumnBuilder, tableMetadata);
 
             TypeName columnValueType = tableType.nestedClass(VarName(col));
-            putColumnBuilder.addParameter(col.getValue().getValueType().getTypeClass(), col.getLongName());
+            putColumnBuilder.addParameter(getColumnTypeClass(col), col.getLongName());
             putColumnBuilder
                     .addStatement("$T row = $T.of($N)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                     .addStatement("t.put(tableRef, $T.toCellValues($T.of(row, $T.of($N))))",
                             ColumnValues.class, ImmutableMultimap.class, columnValueType, col.getLongName());
             return putColumnBuilder.build();
         }
+
+        private List<MethodSpec> renderNamedUpdateIfExists() {
+            ArrayList<MethodSpec> updateResults = new ArrayList<>();
+            for (NamedColumnDescription col : ColumnRenderers.namedColumns(tableMetadata)) {
+                updateResults.add(renderNamedUpdateColumnIfExists(col));
+            }
+
+            return updateResults;
+        }
+
+        private MethodSpec renderNamedUpdateColumnIfExists(NamedColumnDescription col) {
+            MethodSpec.Builder updateColumnIfExistsBuilder =
+                    MethodSpec.methodBuilder("update" + VarName(col))
+                    .addModifiers(Modifier.PUBLIC);
+
+            updateColumnIfExistsBuilder = addParametersFromRowComponents(updateColumnIfExistsBuilder, tableMetadata);
+            updateColumnIfExistsBuilder.addParameter(ParameterizedTypeName.get(
+                    ClassName.get(Function.class),
+                    ClassName.get(getColumnTypeClass(col)),
+                    ClassName.get(getColumnTypeClass(col))), "processor");
+            String args = getArgumentsFromRowComponents(tableMetadata);
+            updateColumnIfExistsBuilder
+                    .addStatement("$T<$T> result = get$N($N)",
+                            Optional.class, getColumnTypeClass(col), VarName(col), args)
+                    .beginControlFlow("if (result.isPresent())")
+                        .addStatement("$T newValue = processor.apply(result.get())", getColumnTypeClass(col))
+                        .beginControlFlow("if (newValue != result.get())")
+                            .addStatement("put$N($N, processor.apply(result.get()))", VarName(col), args)
+                        .endControlFlow()
+                    .endControlFlow();
+            return updateColumnIfExistsBuilder.build();
+        }
+    }
+
+    private Class<?> getColumnTypeClass(NamedColumnDescription col) {
+        return col.getValue().getValueType().getTypeClass();
     }
 
     private static MethodSpec.Builder addParametersFromRowComponents(

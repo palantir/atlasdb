@@ -43,7 +43,6 @@ public class TodoSchema implements AtlasSchema {
                 rowComponent("id", ValueType.FIXED_LONG);
                 columns();
                 column(TEXT_COLUMN, "t", ValueType.STRING);
-                rangeScanAllowed();
             }
         });
 
