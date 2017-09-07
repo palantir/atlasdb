@@ -140,7 +140,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD) {
                     log.warn("You have {} pending getRanges tasks. Please sanity check both your level "
                             + "of concurrency and size of batched range requests. If necessary you can "
-                            + "increase the value of getRangesThreadPoolSize to allow for a larger "
+                            + "increase the value of concurrentGetRangesThreadPoolSize to allow for a larger "
                             + "thread pool.", currentSize);
                 }
             }

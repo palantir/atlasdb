@@ -53,7 +53,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
                                       TransactionService transactionService,
                                       AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                      int getRangesThreadPoolSize) {
+                                      int concurrentGetRangesThreadPoolSize) {
         this(
                 keyValueService,
                 transactionService,
@@ -61,7 +61,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 Suppliers.ofInstance(Long.MAX_VALUE),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false,
-                getRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
@@ -69,7 +69,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                                       AtlasDbConstraintCheckingMode constraintCheckingMode,
                                       Supplier<Long> startTimestamp,
                                       TransactionReadSentinelBehavior readSentinelBehavior,
-                                      int getRangesThreadPoolSize) {
+                                      int concurrentGetRangesThreadPoolSize) {
         this(
                 keyValueService,
                 transactionService,
@@ -77,7 +77,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 startTimestamp,
                 readSentinelBehavior,
                 false,
-                getRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
@@ -86,14 +86,14 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                                       Supplier<Long> startTimestamp,
                                       TransactionReadSentinelBehavior readSentinelBehavior,
                                       boolean allowHiddenTableAccess,
-                                      int getRangesThreadPoolSize) {
+                                      int concurrentGetRangesThreadPoolSize) {
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
         this.constraintCheckingMode = constraintCheckingMode;
         this.startTimestamp = startTimestamp;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.getRangesExecutor = createGetRangesExecutor(getRangesThreadPoolSize);
+        this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
     }
 
     @Override

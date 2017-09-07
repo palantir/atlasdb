@@ -243,7 +243,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Override
     @Value.Default
-    public int getRangesThreadPoolSize() {
+    public int concurrentGetRangesThreadPoolSize() {
         return poolSize() * servers().size();
     }
 

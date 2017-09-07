@@ -95,7 +95,7 @@ public class TransactionManagerModule {
                 sweepStrategyManager,
                 cleaner,
                 config.allowAccessToHiddenTables(),
-                config.atlasDbConfig().keyValueService().getRangesThreadPoolSize());
+                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize());
     }
 
 }

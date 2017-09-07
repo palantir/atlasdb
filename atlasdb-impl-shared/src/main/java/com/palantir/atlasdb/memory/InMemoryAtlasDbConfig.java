@@ -41,7 +41,7 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
 
     @Override
     @Value.Default
-    public int getRangesThreadPoolSize() {
+    public int concurrentGetRangesThreadPoolSize() {
         return 64;
     }
 

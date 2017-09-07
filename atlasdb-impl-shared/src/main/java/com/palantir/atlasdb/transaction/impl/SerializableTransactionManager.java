@@ -42,7 +42,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            int getRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -53,7 +53,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 false,
-                getRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -66,7 +66,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            int getRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -77,7 +77,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                getRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -89,7 +89,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            int getRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize) {
         this(
                 keyValueService,
                 timelockService,
@@ -101,7 +101,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                getRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -114,7 +114,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            int getRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize) {
         super(
                 keyValueService,
                 timelockService,
@@ -126,7 +126,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
-                getRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize);
     }
 
     @Override

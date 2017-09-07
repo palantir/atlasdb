@@ -33,5 +33,5 @@ public interface KeyValueServiceConfig {
     /**
      * The size of the thread pool used for concurrently running range requests.
      */
-    int getRangesThreadPoolSize();
+    int concurrentGetRangesThreadPoolSize();
 }
