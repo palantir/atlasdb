@@ -1157,13 +1157,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertTrue(Arrays.equals(bytes, bytesRead));
     }
 
-    private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest rangeRequest, int expectedRangeSize) {
-        Iterable<RangeRequest> rangeRequests = Iterables.limit(Iterables.cycle(rangeRequest), 1000);
+    private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {
+        Iterable<RangeRequest> rangeRequests = Iterables.limit(Iterables.cycle(templateRangeRequest), 1000);
 
         List<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl = ImmutableList.copyOf(
                 t.getRanges(TEST_TABLE, rangeRequests));
         List<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
-                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList());
+                t.getRanges(TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable).collect(Collectors.toList());
         List<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
@@ -1181,7 +1181,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl =
                 t.getRanges(TEST_TABLE, rangeRequests);
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
-                t.getRanges(TEST_TABLE, rangeRequests, 2, visitable -> visitable).collect(Collectors.toList());
+                t.getRanges(TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable).collect(Collectors.toList());
         Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 

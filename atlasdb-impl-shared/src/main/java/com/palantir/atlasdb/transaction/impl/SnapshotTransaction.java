@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -40,6 +41,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -700,11 +702,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
-            Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+
+        List<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
+                StreamSupport.stream(rangeRequests.spliterator(), false)
+                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)))
+                        .collect(Collectors.toList());
 
         return ConcurrentStreams.map(
-                getRangesLazy(tableRef, rangeRequests).collect(Collectors.toList()),
-                visitableProcessor::apply,
+                requestAndVisitables,
+                pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
     }
@@ -712,15 +719,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
             final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
+        return StreamSupport.stream(rangeRequests.spliterator(), false)
+                .map(rangeRequest -> getLazyRange(tableRef, rangeRequest));
+    }
 
-        return StreamSupport.stream(rangeRequests.spliterator(), false).map(rangeRequest ->
-                new AbstractBatchingVisitable<RowResult<byte[]>>() {
-                    @Override
-                    protected <K extends Exception> void batchAcceptSizeHint(
-                            int batchSizeHint, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
-                        getRange(tableRef, rangeRequest).batchAccept(batchSizeHint, visitor);
-                    }
-                });
+    private BatchingVisitable<RowResult<byte[]>> getLazyRange(TableReference tableRef, RangeRequest rangeRequest) {
+        return new AbstractBatchingVisitable<RowResult<byte[]>>() {
+            @Override
+            protected <K extends Exception> void batchAcceptSizeHint(
+                    int batchSizeHint, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
+                getRange(tableRef, rangeRequest).batchAccept(batchSizeHint, visitor);
+            }
+        };
     }
 
     private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef) {

@@ -20,9 +20,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ForwardingObject;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -91,7 +91,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
-            Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
         return delegate().getRanges(tableRef, rangeRequests, concurrencyLevel, visitableProcessor);
     }
 

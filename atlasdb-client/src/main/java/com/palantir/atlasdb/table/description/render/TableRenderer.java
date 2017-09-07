@@ -29,6 +29,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -997,9 +998,9 @@ public class TableRenderer {
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               int concurrencyLevel,");
-            line("                               Function<BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
+            line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
                 line("return t.getRanges(tableRef, ranges, concurrencyLevel,");
-                line("        visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
+                line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
             line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
@@ -1298,6 +1299,7 @@ public class TableRenderer {
         Multimaps.class,
         Collection.class,
         Function.class,
+        BiFunction.class,
         Persistable.class,
         Hydrator.class,
         Transaction.class,

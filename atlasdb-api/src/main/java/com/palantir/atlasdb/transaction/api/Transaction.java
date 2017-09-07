@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import com.google.common.base.Function;
@@ -98,7 +99,7 @@ public interface Transaction {
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
-            Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
 
     /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting

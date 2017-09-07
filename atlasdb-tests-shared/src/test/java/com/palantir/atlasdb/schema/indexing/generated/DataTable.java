@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -1464,9 +1465,9 @@ public final class DataTable implements
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
-                                       Function<BatchingVisitable<Index1IdxRowResult>, T> visitableProcessor) {
+                                       BiFunction<RangeRequest, BatchingVisitable<Index1IdxRowResult>, T> visitableProcessor) {
             return t.getRanges(tableRef, ranges, concurrencyLevel,
-                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index1IdxRowResult::of)));
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index1IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index1IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -2132,9 +2133,9 @@ public final class DataTable implements
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
-                                       Function<BatchingVisitable<Index2IdxRowResult>, T> visitableProcessor) {
+                                       BiFunction<RangeRequest, BatchingVisitable<Index2IdxRowResult>, T> visitableProcessor) {
             return t.getRanges(tableRef, ranges, concurrencyLevel,
-                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index2IdxRowResult::of)));
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index2IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index2IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -2778,9 +2779,9 @@ public final class DataTable implements
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
-                                       Function<BatchingVisitable<Index3IdxRowResult>, T> visitableProcessor) {
+                                       BiFunction<RangeRequest, BatchingVisitable<Index3IdxRowResult>, T> visitableProcessor) {
             return t.getRanges(tableRef, ranges, concurrencyLevel,
-                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index3IdxRowResult::of)));
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index3IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index3IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -3446,9 +3447,9 @@ public final class DataTable implements
 
         public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                        int concurrencyLevel,
-                                       Function<BatchingVisitable<Index4IdxRowResult>, T> visitableProcessor) {
+                                       BiFunction<RangeRequest, BatchingVisitable<Index4IdxRowResult>, T> visitableProcessor) {
             return t.getRanges(tableRef, ranges, concurrencyLevel,
-                    visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, Index4IdxRowResult::of)));
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, Index4IdxRowResult::of)));
         }
 
         public Stream<BatchingVisitable<Index4IdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -3510,6 +3511,7 @@ public final class DataTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -3576,5 +3578,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "kK1Ai9ehJxnf3y6/Wsjrug==";
+    static String __CLASS_HASH = "FULetAunPYSDC0iaixnqxQ==";
 }

@@ -19,9 +19,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -80,7 +80,7 @@ public class ReadTransaction extends ForwardingTransaction {
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
-            Function<BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
         checkTableName(tableRef);
         return delegate().getRanges(tableRef, rangeRequests, concurrencyLevel, visitableProcessor);
     }

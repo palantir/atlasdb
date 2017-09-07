@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -663,9 +664,9 @@ public final class GenericRangeScanTestTable implements
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
-                                   Function<BatchingVisitable<GenericRangeScanTestRowResult>, T> visitableProcessor) {
+                                   BiFunction<RangeRequest, BatchingVisitable<GenericRangeScanTestRowResult>, T> visitableProcessor) {
         return t.getRanges(tableRef, ranges, concurrencyLevel,
-                visitable -> visitableProcessor.apply(BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)));
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, GenericRangeScanTestRowResult::of)));
     }
 
     public Stream<BatchingVisitable<GenericRangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
@@ -725,6 +726,7 @@ public final class GenericRangeScanTestTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -791,5 +793,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "KFChceUHU4sPdW+Ct5dtuA==";
+    static String __CLASS_HASH = "7U+eF49QEcz74N8OF2+OjQ==";
 }
