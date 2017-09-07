@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -55,29 +56,46 @@ public class ConcurrentStreams {
 
         Map<T, CompletableFuture<S>> futuresByValue = values.stream()
                 .collect(Collectors.toMap(Function.identity(), value -> new CompletableFuture<>()));
-        Queue<T> valuesToProcess = new ConcurrentLinkedQueue<T>(values);
+        Queue<T> valueQueue = new ConcurrentLinkedQueue<T>(values);
 
         if (size < concurrency) {
             concurrency = size;
         }
         for (int i = 0; i < concurrency; i++) {
-            executor.execute(() -> {
-                while (!valuesToProcess.isEmpty()) {
-                    T value = valuesToProcess.poll();
-                    if (value == null) {
-                        break;
-                    }
-                    CompletableFuture<S> future = futuresByValue.get(value);
-                    try {
-                        future.complete(mapper.apply(value));
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                        completeAllExceptionally(futuresByValue, valuesToProcess);
-                    }
-                }
-            });
+            executor.execute(() -> runOperationsAndUpdateFutures(futuresByValue, valueQueue, mapper));
         }
         return streamAllUnchecked(futuresByValue.values());
+    }
+
+    private static <T, S> void runOperationsAndUpdateFutures(
+            Map<T, CompletableFuture<S>> futuresByValue, Queue<T> valueQueue, Function<T, S> operation) {
+
+        runUntilEmpty(valueQueue, value -> {
+            CompletableFuture<S> future = futuresByValue.get(value);
+            try {
+                future.complete(operation.apply(value));
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+                completeAllExceptionally(futuresByValue, valueQueue);
+            }
+        });
+    }
+
+    private static <T, S> void completeAllExceptionally(
+            Map<T, CompletableFuture<S>> futuresByValue, Queue<T> valueQueue) {
+
+        runUntilEmpty(valueQueue, value -> futuresByValue.get(value).completeExceptionally(
+                new RuntimeException("Task terminated early due to another concurrent request failing")));
+    }
+
+    private static <T> void runUntilEmpty(Queue<T> queue, Consumer<T> consumer) {
+        while (!queue.isEmpty()) {
+            T element = queue.poll();
+            if (element == null) {
+                break;
+            }
+            consumer.accept(element);
+        }
     }
 
     private static <S> Stream<S> streamAllUnchecked(Collection<CompletableFuture<S>> futures) {
@@ -92,17 +110,6 @@ public class ConcurrentStreams {
                 throw new RuntimeException(e.getCause());
             }
         });
-    }
-
-    private static <T, S> void completeAllExceptionally(Map<T, CompletableFuture<S>> futuresByValue, Queue<T> queue) {
-        while (!queue.isEmpty()) {
-            T element = queue.poll();
-            if (element == null) {
-                break;
-            }
-            futuresByValue.get(element).completeExceptionally(
-                    new RuntimeException("Task terminated early due to another concurrent request failing"));
-        }
     }
 
 }
