@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -94,7 +93,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected static final int GET_RANGES_CONCURRENCY = 16;
     protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(GET_RANGES_CONCURRENCY);
-    protected static final Duration GET_RANGES_CONCURRENT_REQUEST_TIMEOUT = Duration.ofMinutes(1);
 
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
@@ -111,8 +109,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
-                GET_RANGES_EXECUTOR,
-                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
+                GET_RANGES_EXECUTOR);
     }
 
     @Test

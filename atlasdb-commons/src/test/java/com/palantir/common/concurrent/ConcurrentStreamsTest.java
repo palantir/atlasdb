@@ -16,11 +16,9 @@
 
 package com.palantir.common.concurrent;
 
-import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,51 +29,76 @@ import com.google.common.collect.ImmutableList;
 
 public class ConcurrentStreamsTest {
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(1);
-
     private final ExecutorService executor = Executors.newFixedThreadPool(32);
+
+    private static class CustomRuntimeException extends RuntimeException {}
 
     @Test
     public void testDoesEvaluateResultsWithFullConcurrency() {
         Stream<Integer> values = ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
+                ImmutableList.of(1, 2, 3, 4, 5, 6, 7),
                 value -> value + 1,
                 executor,
-                4,
-                TIMEOUT);
-        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
+                7);
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5, 6, 7, 8));
     }
 
     @Test
     public void testDoesEvaluateResultsWhenLimitingConcurrency() {
         Stream<Integer> values = ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
+                ImmutableList.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
                 value -> value + 1,
                 executor,
-                2,
-                TIMEOUT);
-        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
+                2);
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5, 6, 7, 8, 9, 10, 11));
     }
 
-    @Test(expected = RuntimeException.class)
-    public void testShouldOnlyRunWithProvidedConcurrency() {
-        CountDownLatch latch = new CountDownLatch(3);
-        ConcurrentStreams.map(
+    @Test
+    public void testShouldOnlyRunWithProvidedConcurrency() throws Exception {
+        AtomicInteger numStarted = new AtomicInteger(0);
+        Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
-                    decrementAndWaitOnLatchForLongerThanExecutorTimeout(latch);
+                    numStarted.getAndIncrement();
+                    pause(100);
                     return value + 1;
                 },
                 executor,
-                2,
-                TIMEOUT);
+                2);
+        pause(50);
+        Assert.assertEquals(numStarted.get(), 2);
+        pause(100);
+        Assert.assertEquals(numStarted.get(), 4);
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
     }
 
-    private void decrementAndWaitOnLatchForLongerThanExecutorTimeout(CountDownLatch latch) {
-        latch.countDown();
+    @Test(expected = CustomRuntimeException.class)
+    public void testShouldPropogateExceptions() {
+        Stream<Integer> values = ConcurrentStreams.map(
+                ImmutableList.of(1, 2, 3, 4),
+                value -> {
+                    throw new CustomRuntimeException();
+                },
+                executor,
+                2);
+        values.collect(Collectors.toList());
+    }
+
+    @Test
+    public void testShouldNotThrowBeforeCollected() {
+        ConcurrentStreams.map(
+                ImmutableList.of(1, 2, 3, 4),
+                value -> {
+                    throw new CustomRuntimeException();
+                },
+                executor,
+                2);
+    }
+
+    private void pause(int millis) {
         try {
-            latch.await(2 * TIMEOUT.getSeconds(), TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
+            Thread.sleep(millis);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

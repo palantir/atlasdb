@@ -22,8 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-
 import org.junit.Test;
 
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -88,7 +86,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(getKeyValueService(),
                 mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE, 16, Duration.ofMinutes(1));
+                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE, 16);
 
         // fetch an immutable timestamp once so it's cached
         when(mockTimestampService.getFreshTimestamp()).thenReturn(1L);

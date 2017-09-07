@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -115,8 +114,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    boolean allowHiddenTableAccess,
                                    TimestampCache timestampCache,
                                    long lockAcquireTimeoutMs,
-                                   ExecutorService getRangesExecutor,
-                                   Duration getRangesConcurrentRequestTimeout) {
+                                   ExecutorService getRangesExecutor) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -133,8 +131,7 @@ public class SerializableTransaction extends SnapshotTransaction {
               allowHiddenTableAccess,
               timestampCache,
               lockAcquireTimeoutMs,
-              getRangesExecutor,
-              getRangesConcurrentRequestTimeout);
+              getRangesExecutor);
     }
 
     @Override
@@ -725,8 +722,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs,
-                getRangesExecutor,
-                getRangesConcurrentRequestTimeout) {
+                getRangesExecutor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

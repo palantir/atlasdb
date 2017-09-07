@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.memory;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,7 +23,6 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -152,8 +150,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                DEFAULT_MAX_CONCURRENT_RANGES,
-                Duration.ofSeconds(AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT_SECONDS));
+                DEFAULT_MAX_CONCURRENT_RANGES);
         cleaner.start(ret);
         return ret;
     }

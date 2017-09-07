@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.base.Supplier;
@@ -50,13 +49,11 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     protected final TransactionReadSentinelBehavior readSentinelBehavior;
     protected final boolean allowHiddenTableAccess;
     final ExecutorService getRangesExecutor;
-    final Duration concurrentGetRangesTimeout;
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
                                       TransactionService transactionService,
                                       AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                      int maxConcurrentGetRanges,
-                                      Duration concurrentGetRangesTimeout) {
+                                      int maxConcurrentGetRanges) {
         this(
                 keyValueService,
                 transactionService,
@@ -64,8 +61,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 Suppliers.ofInstance(Long.MAX_VALUE),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false,
-                maxConcurrentGetRanges,
-                concurrentGetRangesTimeout);
+                maxConcurrentGetRanges);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
@@ -73,8 +69,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                                       AtlasDbConstraintCheckingMode constraintCheckingMode,
                                       Supplier<Long> startTimestamp,
                                       TransactionReadSentinelBehavior readSentinelBehavior,
-                                      int maxConcurrentGetRanges,
-                                      Duration concurrentGetRangesTimeout) {
+                                      int maxConcurrentGetRanges) {
         this(
                 keyValueService,
                 transactionService,
@@ -82,8 +77,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 startTimestamp,
                 readSentinelBehavior,
                 false,
-                maxConcurrentGetRanges,
-                concurrentGetRangesTimeout);
+                maxConcurrentGetRanges);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
@@ -92,8 +86,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                                       Supplier<Long> startTimestamp,
                                       TransactionReadSentinelBehavior readSentinelBehavior,
                                       boolean allowHiddenTableAccess,
-                                      int maxConcurrentGetRanges,
-                                      Duration concurrentGetRangesTimeout) {
+                                      int maxConcurrentGetRanges) {
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
         this.constraintCheckingMode = constraintCheckingMode;
@@ -101,7 +94,6 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.getRangesExecutor = createGetRangesExecutor(maxConcurrentGetRanges);
-        this.concurrentGetRangesTimeout = concurrentGetRangesTimeout;
     }
 
     @Override
@@ -115,8 +107,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 readSentinelBehavior,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                getRangesExecutor,
-                concurrentGetRangesTimeout);
+                getRangesExecutor);
         return runTaskThrowOnConflict(task, new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 

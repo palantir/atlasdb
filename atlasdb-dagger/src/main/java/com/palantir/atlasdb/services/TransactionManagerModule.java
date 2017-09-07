@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.time.Duration;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -97,8 +95,7 @@ public class TransactionManagerModule {
                 sweepStrategyManager,
                 cleaner,
                 config.allowAccessToHiddenTables(),
-                config.atlasDbConfig().keyValueService().maxConcurrentGetRanges(),
-                Duration.ofSeconds(config.atlasDbConfig().getConcurrentGetRangesTimeoutSeconds()));
+                config.atlasDbConfig().keyValueService().maxConcurrentGetRanges());
     }
 
 }

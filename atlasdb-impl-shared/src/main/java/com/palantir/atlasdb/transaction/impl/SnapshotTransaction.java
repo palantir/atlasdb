@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -203,7 +202,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TimestampCache timestampValidationReadCache;
     protected final long lockAcquireTimeoutMs;
     protected final ExecutorService getRangesExecutor;
-    protected final Duration getRangesConcurrentRequestTimeout;
 
     private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
@@ -230,8 +228,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache,
                                long lockAcquireTimeoutMs,
-                               ExecutorService getRangesExecutor,
-                               Duration getRangesConcurrentRequestTimeout) {
+                               ExecutorService getRangesExecutor) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -249,7 +246,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
-        this.getRangesConcurrentRequestTimeout = getRangesConcurrentRequestTimeout;
     }
 
     // TEST ONLY
@@ -263,8 +259,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache,
-                        ExecutorService getRangesExecutor,
-                        Duration getRangesConcurrentRequestTimeout) {
+                        ExecutorService getRangesExecutor) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -282,7 +277,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
         this.getRangesExecutor = getRangesExecutor;
-        this.getRangesConcurrentRequestTimeout = getRangesConcurrentRequestTimeout;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -294,8 +288,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   boolean allowHiddenTableAccess,
                                   TimestampCache timestampValidationReadCache,
                                   long lockAcquireTimeoutMs,
-                                  ExecutorService getRangesExecutor,
-                                  Duration getRangesConcurrentRequestTimeout) {
+                                  ExecutorService getRangesExecutor) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -313,7 +306,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
-        this.getRangesConcurrentRequestTimeout = getRangesConcurrentRequestTimeout;
     }
 
     @Override
@@ -714,8 +706,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getRangesLazy(tableRef, rangeRequests).collect(Collectors.toList()),
                 visitableProcessor::apply,
                 getRangesExecutor,
-                concurrencyLevel,
-                getRangesConcurrentRequestTimeout);
+                concurrencyLevel);
     }
 
     @Override

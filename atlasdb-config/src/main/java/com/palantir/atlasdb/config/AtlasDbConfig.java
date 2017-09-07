@@ -237,15 +237,6 @@ public abstract class AtlasDbConfig {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
 
-    /**
-     * The max time to wait for a thread when concurrently running range requests. Note this should
-     * never really be hit, as the underlying KVS should have a much tighter timeout.
-     */
-    @Value.Default
-    public int getConcurrentGetRangesTimeoutSeconds() {
-        return AtlasDbConstants.DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT_SECONDS;
-    }
-
     @Value.Check
     protected final void check() {
         checkLeaderAndTimelockBlocks();

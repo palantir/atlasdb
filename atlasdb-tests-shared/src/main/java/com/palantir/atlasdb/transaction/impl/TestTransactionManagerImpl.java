@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,7 +37,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
     private static final int GET_RANGES_CONCURRENCY = 16;
-    private static final Duration GET_RANGES_CONCURRENT_REQUEST_TIMEOUT = Duration.ofMinutes(1);
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
                                       TimestampService timestampService,
@@ -57,8 +55,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY,
-                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
+                GET_RANGES_CONCURRENCY);
     }
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -77,8 +74,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY,
-                GET_RANGES_CONCURRENT_REQUEST_TIMEOUT);
+                GET_RANGES_CONCURRENCY);
     }
 
     @Override
@@ -111,8 +107,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampValidationReadCache,
-                getRangesExecutor,
-                concurrentGetRangesTimeout);
+                getRangesExecutor);
     }
 
     @Override

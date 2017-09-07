@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -283,8 +282,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
-                getRangesExecutor,
-                Duration.ofMinutes(1));
+                getRangesExecutor);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -340,8 +338,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
-                getRangesExecutor,
-                Duration.ofMinutes(1));
+                getRangesExecutor);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 

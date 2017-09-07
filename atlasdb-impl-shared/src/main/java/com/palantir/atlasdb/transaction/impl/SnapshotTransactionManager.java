@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -70,7 +69,6 @@ import com.palantir.timestamp.TimestampService;
     final boolean allowHiddenTableAccess;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
-    final Duration concurrentGetRangesTimeout;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -86,8 +84,7 @@ import com.palantir.timestamp.TimestampService;
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            int maxConcurrentGetRanges,
-            Duration concurrentGetRangesTimeout) {
+            int maxConcurrentGetRanges) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -101,7 +98,6 @@ import com.palantir.timestamp.TimestampService;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(maxConcurrentGetRanges);
-        this.concurrentGetRangesTimeout = concurrentGetRangesTimeout;
     }
 
     @Override
@@ -188,8 +184,7 @@ import com.palantir.timestamp.TimestampService;
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
-                getRangesExecutor,
-                concurrentGetRangesTimeout);
+                getRangesExecutor);
     }
 
     @Override
@@ -213,8 +208,7 @@ import com.palantir.timestamp.TimestampService;
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
-                getRangesExecutor,
-                concurrentGetRangesTimeout);
+                getRangesExecutor);
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 

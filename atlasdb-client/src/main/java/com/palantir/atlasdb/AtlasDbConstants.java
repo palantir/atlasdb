@@ -109,6 +109,4 @@ public class AtlasDbConstants {
 
     public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
     public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
-
-    public static final int DEFAULT_CONCURRENT_GET_RANGES_TIMEOUT_SECONDS = 600;
 }
