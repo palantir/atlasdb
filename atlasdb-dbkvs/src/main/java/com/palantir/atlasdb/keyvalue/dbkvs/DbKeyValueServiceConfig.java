@@ -52,7 +52,7 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     @Override
     @Value.Default
-    public int maxConcurrentGetRanges() {
+    public int getRangesThreadPoolSize() {
         return Math.max(2 * connection().getMaxConnections() / 3, 1);
     }
 

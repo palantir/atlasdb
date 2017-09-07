@@ -86,7 +86,7 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
 
     @Override
     @Value.Default
-    public int maxConcurrentGetRanges() {
+    public int getRangesThreadPoolSize() {
         return 64;
     }
 

@@ -28,7 +28,7 @@ public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig {
     }
 
     @Override
-    default int maxConcurrentGetRanges() {
+    default int getRangesThreadPoolSize() {
         return 4;
     }
 }
