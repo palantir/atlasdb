@@ -13,14 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.config;
+package com.palantir.lock;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.io.Closeable;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos")})
-public interface TimeLockAlgorithmConfiguration {
+public interface CloseableLockService extends LockService, Closeable {
+
 }

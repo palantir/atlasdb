@@ -32,7 +32,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.timestamp.TimestampService;
 
@@ -82,7 +82,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     @Test
     public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
         TimestampService mockTimestampService = mock(TimestampService.class);
-        RemoteLockService mockLockService = mock(RemoteLockService.class);
+        LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(getKeyValueService(),
                 mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,

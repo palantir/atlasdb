@@ -26,7 +26,7 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timelock.Observables;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
@@ -120,7 +120,7 @@ public class TimeLockAgent {
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
                 timestampCreator.createPaxosBackedTimestampService(client);
-        Supplier<RemoteLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
+        Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }

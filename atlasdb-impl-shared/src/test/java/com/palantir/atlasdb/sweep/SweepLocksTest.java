@@ -33,11 +33,11 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 
 public class SweepLocksTest {
     private SweepLocks sweepLocks;
-    private RemoteLockService mockLockService = mock(RemoteLockService.class);
+    private LockService mockLockService = mock(LockService.class);
 
     @Before
     public void setUp() {

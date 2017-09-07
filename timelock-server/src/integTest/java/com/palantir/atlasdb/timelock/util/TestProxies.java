@@ -73,7 +73,7 @@ public class TestProxies {
 
     public List<String> getServerUris() {
         return servers.stream()
-                .map(server -> getServerUri(server))
+                .map(this::getServerUri)
                 .collect(Collectors.toList());
     }
 

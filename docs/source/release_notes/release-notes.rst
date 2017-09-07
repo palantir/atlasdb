@@ -44,8 +44,29 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |userbreak|
+         - Timelock clients now report tritium metrics for the lock requests with the prefix ``LockService`` instead of ``RemoteLockService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |improved|
+         - LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - TimelockServer now exposes the `LockService` instead of `RemoteLockService` if using the synchronous lock service.
+           This will provide a more comprehensive API required by the large internal product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
+
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer embeds user-agents in metric names.
+           All metrics are still available; however, metrics which previously included a user-agent component will no longer do so.
+           For example, the timer ``com.palantir.timestamp.TimestampService.myUserAgent_version.getFreshTimestamp`` is now named ``com.palantir.timestamp.TimestampService.getFreshTimestamp``.
+           This was necessary for compatibility with an internal log-ingestion tool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2322>`__)
 
     *    - |devbreak|
          - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges. The old getRanges method would eagerly load the first page of all ranges, potentially
@@ -88,12 +109,12 @@ v0.55.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
 
     *    - |new|
-         - Oracle SE will now automatically trigger shrinking table data post sweeping a table to recover space.
+         - Oracle SE will now automatically trigger table data shrinking to recover space after sweeping a table.
            You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
 
     *    - |fixed|
-         - Fixed a case where sweep logs would get rolled over before expected. The number of log files stored on disk was increased from 10 to 90 before rolling over.
+         - Fixed an issue where sweep logs would get rolled over sooner than expected. The number of log files stored on disk was increased from 10 to 90 before rolling over.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2295>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

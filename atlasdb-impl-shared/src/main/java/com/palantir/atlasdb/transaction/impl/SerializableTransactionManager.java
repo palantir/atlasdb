@@ -25,7 +25,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -36,7 +36,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -59,7 +59,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -82,7 +82,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -106,7 +106,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,

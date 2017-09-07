@@ -31,5 +31,16 @@ Running commands
 
 You can run AtlasDB tasks present in AtlasDB :ref:`Console <console>` and :ref:`CLIs <clis>` using:
 
-``java -jar application.jar atlasdb [-h] {console,sweep,migrate,timestamp} ...``
+``java -jar application.jar atlasdb [-h] {console,sweep,migrate,timestamp} <parameters> config.yml``
 
+For example, for running the sweep cli:
+
+.. code-block:: bash
+
+     java -jar application.jar atlasdb sweep --table <table name> config.yml
+
+Or the migration cli:
+
+.. code-block:: bash
+
+     java -jar application.jar atlasdb migrate --offline --config-root "/atlas" –-fromConfig from.yml –-setup to.yml
