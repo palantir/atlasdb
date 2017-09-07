@@ -16,15 +16,18 @@
 
 package com.palantir.common.concurrent;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.Lists;
 import com.palantir.common.base.Throwables;
 
 public class ConcurrentStreams {
@@ -50,33 +53,34 @@ public class ConcurrentStreams {
             return values.stream().map(mapper);
         }
 
-        List<CompletableFuture<S>> futures = Lists.newArrayListWithCapacity(size);
-        for (int i = 0; i < size; i++) {
-            futures.add(new CompletableFuture<>());
-        }
+        Map<T, CompletableFuture<S>> futuresByValue = values.stream()
+                .collect(Collectors.toMap(Function.identity(), value -> new CompletableFuture<>()));
+        Queue<T> valuesToProcess = new ConcurrentLinkedQueue<T>(values);
 
         if (size < concurrency) {
             concurrency = size;
         }
-        AtomicInteger nextValueToProcess = new AtomicInteger(0);
         for (int i = 0; i < concurrency; i++) {
             executor.execute(() -> {
-                int currentValueToProcess;
-                while ((currentValueToProcess = nextValueToProcess.getAndIncrement()) < size) {
-                    T value = values.get(currentValueToProcess);
-                    CompletableFuture<S> future = futures.get(currentValueToProcess);
+                while (!valuesToProcess.isEmpty()) {
+                    T value = valuesToProcess.poll();
+                    if (value == null) {
+                        break;
+                    }
+                    CompletableFuture<S> future = futuresByValue.get(value);
                     try {
                         future.complete(mapper.apply(value));
                     } catch (Exception e) {
                         future.completeExceptionally(e);
+                        completeAllExceptionally(futuresByValue, valuesToProcess);
                     }
                 }
             });
         }
-        return streamAllUnchecked(futures);
+        return streamAllUnchecked(futuresByValue.values());
     }
 
-    private static <S> Stream<S> streamAllUnchecked(List<CompletableFuture<S>> futures) {
+    private static <S> Stream<S> streamAllUnchecked(Collection<CompletableFuture<S>> futures) {
         return futures.stream().map(future -> {
             try {
                 return future.get();
@@ -88,6 +92,17 @@ public class ConcurrentStreams {
                 throw new RuntimeException(e.getCause());
             }
         });
+    }
+
+    private static <T, S> void completeAllExceptionally(Map<T, CompletableFuture<S>> futuresByValue, Queue<T> queue) {
+        while (!queue.isEmpty()) {
+            T element = queue.poll();
+            if (element == null) {
+                break;
+            }
+            futuresByValue.get(element).completeExceptionally(
+                    new RuntimeException("Task terminated early due to another concurrent request failing"));
+        }
     }
 
 }

@@ -95,6 +95,51 @@ public class ConcurrentStreamsTest {
                 2);
     }
 
+    @Test
+    public void testShouldAbortWaitingTasksEarlyOnFailure() {
+        AtomicInteger numStarted = new AtomicInteger(0);
+        Stream<Integer> values = ConcurrentStreams.map(
+                ImmutableList.of(1, 2, 3, 4),
+                value -> {
+                    numStarted.getAndIncrement();
+                    pause(50);
+                    throw new CustomRuntimeException();
+                },
+                executor,
+                2);
+        try {
+            values.collect(Collectors.toList());
+        } catch (CustomRuntimeException e) {
+            Assert.assertEquals(numStarted.get(), 2);
+            return;
+        }
+        Assert.fail();
+    }
+
+    @Test
+    public void testCanOperateOnStreamWhileTasksAreStillRunning() {
+        AtomicInteger numStarted = new AtomicInteger(0);
+        Stream<Integer> values = ConcurrentStreams.map(
+                ImmutableList.of(1, 2, 3, 4),
+                value -> {
+                    numStarted.getAndIncrement();
+                    if (value == 3) {
+                        pause(100);
+                    }
+                    return value + 1;
+                },
+                executor,
+                2);
+        values.map(value -> {
+            if (value >= 4) {
+                Assert.assertEquals(numStarted.get(), 4);
+            } else {
+                Assert.assertNotEquals(numStarted.get(), 4);
+            }
+            return null;
+        });
+    }
+
     private void pause(int millis) {
         try {
             Thread.sleep(millis);
