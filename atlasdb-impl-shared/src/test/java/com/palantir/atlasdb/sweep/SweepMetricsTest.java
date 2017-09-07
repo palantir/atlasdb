@@ -55,19 +55,19 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsDeletedAreRecorded() {
-        sweepMetrics.examinedCells(TABLE, EXAMINED);
-        sweepMetrics.deletedCells(TABLE, DELETED);
+        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.deletedCells(DELETED);
 
         assertCellsDeleted(TABLE, DELETED);
     }
 
     @Test
     public void cellsDeletedAreRecordedSeparatelyAndAggregated() {
-        sweepMetrics.examinedCells(TABLE, EXAMINED);
-        sweepMetrics.deletedCells(TABLE, DELETED);
+        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.deletedCells(DELETED);
 
-        sweepMetrics.examinedCells(OTHER_TABLE, OTHER_EXAMINED);
-        sweepMetrics.deletedCells(OTHER_TABLE, OTHER_DELETED);
+        sweepMetrics.examinedCells(OTHER_EXAMINED);
+        sweepMetrics.deletedCells(OTHER_DELETED);
 
         assertCellsDeleted(TABLE, DELETED);
         assertCellsDeleted(OTHER_TABLE, OTHER_DELETED);
@@ -76,18 +76,18 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsExaminedAreRecorded() {
-        sweepMetrics.examinedCells(TABLE, EXAMINED);
-        sweepMetrics.deletedCells(TABLE, DELETED);
+        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.deletedCells(DELETED);
         assertCellsExamined(TABLE, EXAMINED);
     }
 
     @Test
     public void cellsExaminedAreRecordedSeparatelyAndAggregated() {
-        sweepMetrics.examinedCells(TABLE, EXAMINED);
-        sweepMetrics.deletedCells(TABLE, DELETED);
+        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.deletedCells(DELETED);
 
-        sweepMetrics.examinedCells(OTHER_TABLE, OTHER_EXAMINED);
-        sweepMetrics.deletedCells(OTHER_TABLE, OTHER_DELETED);
+        sweepMetrics.examinedCells(OTHER_EXAMINED);
+        sweepMetrics.deletedCells(OTHER_DELETED);
 
         assertCellsExamined(TABLE, EXAMINED);
         assertCellsExamined(OTHER_TABLE, OTHER_EXAMINED);
