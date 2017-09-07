@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
 import org.junit.After;
@@ -26,13 +25,9 @@ import org.junit.Test;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.primitives.Longs;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class SweepMetricsTest {
-    private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
-    private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("test.other_table");
-
     private static final long DELETED = 10L;
     private static final long EXAMINED = 15L;
 
@@ -58,19 +53,17 @@ public class SweepMetricsTest {
         sweepMetrics.examinedCells(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
 
-        assertCellsDeleted(TABLE, DELETED);
+        assertValuesRecorded("staleValuesDeleted", DELETED);
     }
 
     @Test
-    public void cellsDeletedAreRecordedSeparatelyAndAggregated() {
+    public void cellsDeletedAreAggregated() {
         sweepMetrics.examinedCells(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
 
         sweepMetrics.examinedCells(OTHER_EXAMINED);
         sweepMetrics.deletedCells(OTHER_DELETED);
 
-        assertCellsDeleted(TABLE, DELETED);
-        assertCellsDeleted(OTHER_TABLE, OTHER_DELETED);
         assertValuesRecorded("staleValuesDeleted", DELETED, OTHER_DELETED);
     }
 
@@ -78,36 +71,23 @@ public class SweepMetricsTest {
     public void cellsExaminedAreRecorded() {
         sweepMetrics.examinedCells(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
-        assertCellsExamined(TABLE, EXAMINED);
+
+        assertValuesRecorded("cellTimestampPairsExamined", EXAMINED);
     }
 
     @Test
-    public void cellsExaminedAreRecordedSeparatelyAndAggregated() {
+    public void cellsExaminedAreAggregated() {
         sweepMetrics.examinedCells(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
 
         sweepMetrics.examinedCells(OTHER_EXAMINED);
         sweepMetrics.deletedCells(OTHER_DELETED);
 
-        assertCellsExamined(TABLE, EXAMINED);
-        assertCellsExamined(OTHER_TABLE, OTHER_EXAMINED);
         assertValuesRecorded("cellTimestampPairsExamined", EXAMINED, OTHER_EXAMINED);
     }
 
     private void assertValuesRecorded(String aggregateMetric, Long... values) {
         Histogram histogram = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, aggregateMetric));
         assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
-    }
-
-    private void assertCellsDeleted(TableReference table, long deleted) {
-        Histogram deleteMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(
-                SweepMetrics.class, "staleValuesDeleted", table.getQualifiedName()));
-        assertArrayEquals(new long[] { deleted }, deleteMetric.getSnapshot().getValues());
-    }
-
-    private void assertCellsExamined(TableReference table, long examined) {
-        Histogram examinedMetric = METRIC_REGISTRY.histogram(MetricRegistry.name(
-                SweepMetrics.class, "cellTimestampPairsExamined", table.getQualifiedName()));
-        assertArrayEquals(new long[] { examined }, examinedMetric.getSnapshot().getValues());
     }
 }
