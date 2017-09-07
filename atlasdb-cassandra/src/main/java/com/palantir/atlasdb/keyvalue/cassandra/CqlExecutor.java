@@ -82,6 +82,7 @@ public class CqlExecutor {
                 CassandraKeyValueServices.encodeAsHex(column),
                 invertedTimestamp,
                 limit);
+        SweepLog.willGetTimestamps(query);
         CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
         return getCells(row, cqlResult);
     }
