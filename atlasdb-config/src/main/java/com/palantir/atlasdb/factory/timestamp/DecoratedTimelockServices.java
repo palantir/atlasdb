@@ -35,22 +35,19 @@ public final class DecoratedTimelockServices {
 
     public static TimelockService createTimelockServiceWithTimestampBatching(
             TimelockService timelockService,
-            Supplier<TimestampClientConfig> configSupplier,
-            String userAgent) {
+            Supplier<TimestampClientConfig> configSupplier) {
         return DynamicDecoratingProxy.newProxyInstance(
                 new TimestampDecoratingTimelockService(timelockService,
-                        createRequestBatchingTimestampService(timelockService, userAgent)),
+                        createRequestBatchingTimestampService(timelockService)),
                 timelockService,
                 JavaSuppliers.compose(TimestampClientConfig::enableTimestampBatching, configSupplier),
                 TimelockService.class);
     }
 
     private static TimestampService createRequestBatchingTimestampService(
-            TimelockService timelockService,
-            String userAgent) {
+            TimelockService timelockService) {
         return ServiceCreator.createInstrumentedService(
                 new RequestBatchingTimestampService(new TimelockTimestampServiceAdapter(timelockService)),
-                TimestampService.class,
-                userAgent);
+                TimestampService.class);
     }
 }

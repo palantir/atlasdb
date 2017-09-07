@@ -239,8 +239,7 @@ public final class TransactionManagers {
         kvs = SweepStatsKeyValueService.create(kvs,
                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
         kvs = TracingKeyValueService.create(kvs);
-        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs,
-                MetricRegistry.name(KeyValueService.class, userAgent));
+        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionTables.createTables(kvs);
@@ -436,8 +435,7 @@ public final class TransactionManagers {
                 createRawInstrumentedServices(config, env, lock, time, invalidator, userAgent);
         return withRequestBatchingTimestampService(
                 runtimeConfigSupplier,
-                withRefreshingLockService(lockAndTimestampServices),
-                userAgent);
+                withRefreshingLockService(lockAndTimestampServices));
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -451,12 +449,11 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices withRequestBatchingTimestampService(
             java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
-            LockAndTimestampServices lockAndTimestampServices, String userAgent) {
+            LockAndTimestampServices lockAndTimestampServices) {
         TimelockService timelockServiceWithBatching = DecoratedTimelockServices
                 .createTimelockServiceWithTimestampBatching(
                         lockAndTimestampServices.timelock(),
-                        timestampClientConfigSupplier,
-                        userAgent);
+                        timestampClientConfigSupplier);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -480,7 +477,7 @@ public final class TransactionManagers {
         } else if (config.timelock().isPresent()) {
             return createRawServicesFromTimeLock(config, invalidator, userAgent);
         } else {
-            return createRawEmbeddedServices(env, lock, time, userAgent);
+            return createRawEmbeddedServices(env, lock, time);
         }
     }
 
@@ -531,12 +528,10 @@ public final class TransactionManagers {
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
                 AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader),
-                LockService.class,
-                userAgent);
+                LockService.class);
         TimestampService localTime = ServiceCreator.createInstrumentedService(
                 AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader),
-                TimestampService.class,
-                userAgent);
+                TimestampService.class);
         env.register(localLock);
         env.register(localTime);
 
@@ -624,14 +619,9 @@ public final class TransactionManagers {
     private static LockAndTimestampServices createRawEmbeddedServices(
             Environment env,
             Supplier<LockService> lock,
-            Supplier<TimestampService> time,
-            String userAgent) {
-        LockService lockService = ServiceCreator.createInstrumentedService(lock.get(),
-                LockService.class,
-                userAgent);
-        TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(),
-                TimestampService.class,
-                userAgent);
+            Supplier<TimestampService> time) {
+        LockService lockService = ServiceCreator.createInstrumentedService(lock.get(), LockService.class);
+        TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(), TimestampService.class);
 
         env.register(lockService);
         env.register(timeService);
