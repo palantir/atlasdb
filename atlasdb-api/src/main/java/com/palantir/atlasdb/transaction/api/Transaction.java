@@ -22,7 +22,6 @@ import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import com.google.common.base.Function;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -80,7 +79,7 @@ public interface Transaction {
      * than you need and will be slower than it needs to be.  If the batchHint isn't specified it
      * will default to 1 for the first page in each range.
      *
-     * @deprecated Should use either {@link #getRanges(TableReference, Iterable, int, Function)} or
+     * @deprecated Should use either {@link #getRanges(TableReference, Iterable, int, BiFunction)} or
      * {@link #getRangesLazy(TableReference, Iterable)} to ensure you are using an appropriate level
      * of concurrency for your specific workflow.
      */

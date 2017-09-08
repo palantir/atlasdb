@@ -35,6 +35,8 @@ public class ConcurrentStreams {
 
     private ConcurrentStreams() {}
 
+    private static final TaskCanceledException TASK_CANCELED_EXCEPTION = new TaskCanceledException();
+
     /**
      * Runs a map function over all elements in a list with a provided executor and concurrency level.
      *
@@ -83,17 +85,11 @@ public class ConcurrentStreams {
 
     private static <T, S> void completeAllExceptionally(
             Map<T, CompletableFuture<S>> futuresByValue, Queue<T> valueQueue) {
-
-        runUntilEmpty(valueQueue, value -> futuresByValue.get(value).completeExceptionally(
-                new RuntimeException("Task terminated early due to another concurrent request failing")));
+        runUntilEmpty(valueQueue, value -> futuresByValue.get(value).completeExceptionally(TASK_CANCELED_EXCEPTION));
     }
 
     private static <T> void runUntilEmpty(Queue<T> queue, Consumer<T> consumer) {
-        while (!queue.isEmpty()) {
-            T element = queue.poll();
-            if (element == null) {
-                break;
-            }
+        for (T element = queue.poll(); element != null; element = queue.poll()) {
             consumer.accept(element);
         }
     }
@@ -111,5 +107,12 @@ public class ConcurrentStreams {
             }
         });
     }
+
+    private static class TaskCanceledException extends RuntimeException {
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
+    };
 
 }

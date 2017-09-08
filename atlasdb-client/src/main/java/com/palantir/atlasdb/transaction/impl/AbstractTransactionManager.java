@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -129,6 +130,8 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     ExecutorService createGetRangesExecutor(int numThreads) {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>() {
+            private final RateLimiter warningRateLimiter = RateLimiter.create(1);
+
             @Override
             public boolean offer(Runnable runnable) {
                 sanityCheckQueueSize();
@@ -137,7 +140,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
             private void sanityCheckQueueSize() {
                 int currentSize = this.size();
-                if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD) {
+                if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD && warningRateLimiter.tryAcquire()) {
                     log.warn("You have {} pending getRanges tasks. Please sanity check both your level "
                             + "of concurrency and size of batched range requests. If necessary you can "
                             + "increase the value of concurrentGetRangesThreadPoolSize to allow for a larger "
@@ -147,6 +150,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         };
         return new ThreadPoolExecutor(
                 numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, workQueue,
-                new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-get-ranges-%d").build());
+                new ThreadFactoryBuilder().setNameFormat(
+                        AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges-%d").build());
     }
 }
