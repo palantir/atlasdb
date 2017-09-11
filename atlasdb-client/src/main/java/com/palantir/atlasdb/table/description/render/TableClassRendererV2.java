@@ -19,9 +19,9 @@ package com.palantir.atlasdb.table.description.render;
 import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 import static com.palantir.atlasdb.table.description.render.ColumnRenderers.VarName;
 import static com.palantir.atlasdb.table.description.render.Renderers.CamelCase;
-import static com.palantir.atlasdb.table.description.render.TableRendererV2.addParametersFromRowComponents;
-import static com.palantir.atlasdb.table.description.render.TableRendererV2.getArgumentsFromRowComponents;
-import static com.palantir.atlasdb.table.description.render.TableRendererV2.getColumnTypeClass;
+import static com.palantir.atlasdb.table.description.render.Renderers.addParametersFromRowComponents;
+import static com.palantir.atlasdb.table.description.render.Renderers.getArgumentsFromRowComponents;
+import static com.palantir.atlasdb.table.description.render.Renderers.getColumnTypeClass;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -66,7 +66,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
-public class ClassRendererV2 {
+public class TableClassRendererV2 {
     private final String packageName;
     private final Namespace namespace;
 
@@ -86,7 +86,7 @@ public class ClassRendererV2 {
     private final String simpleTableName;
     private final ClassName simpleTableType;
 
-    public ClassRendererV2(
+    public TableClassRendererV2(
             String packageName,
             Namespace namespace,
             String rawTableName,
