@@ -203,7 +203,15 @@ of the Dropwizard application.</li>
 <div class="section" id="running-commands">
 <h2>Running commands<a class="headerlink" href="#running-commands" title="Permalink to this headline">¶</a></h2>
 <p>You can run AtlasDB tasks present in AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> using:</p>
-<p><code class="docutils literal"><span class="pre">java</span> <span class="pre">-jar</span> <span class="pre">application.jar</span> <span class="pre">atlasdb</span> <span class="pre">[-h]</span> <span class="pre">{console,sweep,migrate,timestamp}</span> <span class="pre">...</span></code></p>
+<p><code class="docutils literal"><span class="pre">java</span> <span class="pre">-jar</span> <span class="pre">application.jar</span> <span class="pre">atlasdb</span> <span class="pre">[-h]</span> <span class="pre">{console,sweep,migrate,timestamp}</span> <span class="pre">&lt;parameters&gt;</span> <span class="pre">config.yml</span></code></p>
+<p>For example, for running the sweep cli:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>java -jar application.jar atlasdb sweep --table &lt;table name&gt; config.yml
+</pre></div>
+</div>
+<p>Or the migration cli:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>java -jar application.jar atlasdb migrate --offline --config-root <span class="s2">&quot;/atlas&quot;</span> –-fromConfig from.yml –-setup to.yml
+</pre></div>
+</div>
 </div>
 </div>
 

@@ -196,9 +196,36 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>Timelock clients now report tritium metrics for the lock requests with the prefix <code class="docutils literal"><span class="pre">LockService</span></code> instead of <code class="docutils literal"><span class="pre">RemoteLockService</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2284">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2284">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>TimelockServer now exposes the <cite>LockService</cite> instead of <cite>RemoteLockService</cite> if using the synchronous lock service.
+This will provide a more comprehensive API required by the large internal product.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2284">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2301">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB no longer embeds user-agents in metric names.
+All metrics are still available; however, metrics which previously included a user-agent component will no longer do so.
+For example, the timer <code class="docutils literal"><span class="pre">com.palantir.timestamp.TimestampService.myUserAgent_version.getFreshTimestamp</span></code> is now named <code class="docutils literal"><span class="pre">com.palantir.timestamp.TimestampService.getFreshTimestamp</span></code>.
+This was necessary for compatibility with an internal log-ingestion tool.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2322">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges. The old getRanges method would eagerly load the first page of all ranges, potentially
+concurrently. This often caused more data to be fetched than necessary or higher concurrency than expected. If you expect to only use a small amount of the rows in the provided
+ranges, it is often advisable to use the getRangesLazy method and serially iterate over the results. Otherwise, you should use the new version of getRanges that allows explicitly
+operating on the resulting visitables in parallel.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2281">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
