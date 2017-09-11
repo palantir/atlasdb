@@ -25,7 +25,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.SafeArg;
@@ -36,6 +35,7 @@ import com.palantir.logsafe.SafeArg;
  */
 @ThreadSafe
 public interface AsyncInitializer {
+    int sleepIntervalInSeconds = 10; // in seconds
     Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
     int nThreads = 20;
     ScheduledExecutorService executorService = Executors.newScheduledThreadPool(
@@ -77,13 +77,7 @@ public interface AsyncInitializer {
                     scheduleInitialization();
                 }
             }
-        }, millisToNextAttempt(), TimeUnit.MILLISECONDS);
-    }
-
-    // TODO (JAVA9): Make this package private.
-    @VisibleForTesting
-    default int millisToNextAttempt() {
-        return 10_000;
+        }, sleepIntervalInSeconds, TimeUnit.SECONDS);
     }
 
     // TODO (JAVA9): Make this private.
@@ -111,4 +105,8 @@ public interface AsyncInitializer {
     void tryInitialize();
 
     void cleanUpOnInitFailure();
+
+    default void close() {
+        // you must implement this method if you are asynchronously initializing a closeable class
+    }
 }

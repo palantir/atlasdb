@@ -127,7 +127,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
             "project": true,
@@ -433,7 +436,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-client": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:timestamp-impl"
+            ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
             "project": true,

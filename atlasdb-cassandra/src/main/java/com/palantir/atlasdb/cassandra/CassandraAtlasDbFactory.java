@@ -50,13 +50,14 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
                 + " CassandraKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampServiceImpl.create(
-                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
+                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs, initializeAsync),
+                initializeAsync);
     }
 
     @Override
