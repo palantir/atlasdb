@@ -72,7 +72,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 ));
         keyValueService = Suppliers
                 .memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig, initializeAsync));
-        timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
+        timestampService = () -> atlasFactory.createTimestampService(getKeyValueService(), initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 

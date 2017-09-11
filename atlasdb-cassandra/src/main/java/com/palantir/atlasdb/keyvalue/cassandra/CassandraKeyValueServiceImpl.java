@@ -152,7 +152,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         implements AsyncInitializer, CassandraKeyValueService {
 
     public static class InitializeCheckingWrapper implements AutoDelegate_CassandraKeyValueService {
+        private enum Status {
+            OPEN, CLOSING, CLOSED
+        }
+
         private CassandraKeyValueServiceImpl kvs;
+        private volatile Status status = Status.OPEN;
 
         public InitializeCheckingWrapper(CassandraKeyValueServiceImpl kvs) {
             this.kvs = kvs;
@@ -160,6 +165,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
 
         @Override
         public CassandraKeyValueService delegate() {
+            if (status == Status.CLOSING) {
+                close();
+                if (status != Status.CLOSED) {
+                    throw new NotInitializedException("CassandraKeyValueService");
+                }
+            }
             if (kvs.isInitialized()) {
                 return kvs;
             }
@@ -169,6 +180,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         @Override
         public boolean supportsCheckAndSet() {
             return kvs.supportsCheckAndSet();
+        }
+
+        @Override
+        public CassandraClientPool getClientPool() {
+            return kvs.getClientPool();
+        }
+
+        @Override
+        public void close() {
+            if (status != Status.CLOSED) {
+                status = Status.OPEN;
+                try {
+                    delegate().close();
+                    status = Status.CLOSED;
+                } catch (NotInitializedException e) {
+                    status = Status.CLOSING;
+                }
+            }
         }
     }
 

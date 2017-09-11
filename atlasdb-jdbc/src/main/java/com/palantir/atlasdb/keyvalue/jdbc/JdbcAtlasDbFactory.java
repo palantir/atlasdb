@@ -42,7 +42,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         return PersistentTimestampServiceImpl.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));
     }

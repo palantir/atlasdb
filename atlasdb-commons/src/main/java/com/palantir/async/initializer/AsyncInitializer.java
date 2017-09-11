@@ -35,6 +35,7 @@ import com.palantir.logsafe.SafeArg;
  */
 @ThreadSafe
 public interface AsyncInitializer {
+    int sleepInterval = 10; // in seconds
     Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
     int nThreads = 20;
     ScheduledExecutorService executorService = Executors.newScheduledThreadPool(
@@ -74,7 +75,7 @@ public interface AsyncInitializer {
                 cleanUpOnInitFailure();
                 scheduleInitialization();
             }
-        }, 10, TimeUnit.SECONDS);
+        }, sleepInterval, TimeUnit.SECONDS);
     }
 
     // TODO (JAVA9): Make this private.
@@ -102,4 +103,8 @@ public interface AsyncInitializer {
     void tryInitialize();
 
     void cleanUpOnInitFailure();
+
+    default void close() {
+        // you must implement this method if you are asynchronously initializing a closeable class
+    }
 }

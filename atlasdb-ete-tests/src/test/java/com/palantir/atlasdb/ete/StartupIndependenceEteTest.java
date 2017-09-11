@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.ete;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -26,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.Assertions;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -70,26 +71,30 @@ public class StartupIndependenceEteTest {
             throws IOException, InterruptedException {
         killCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
+        assertNotInitializedExceptionIsThrownAndMappedCorrectly();
         assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
         startCassandraNodes(ALL_CASSANDRA_NODES);
         assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
 
         killCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
+        assertNotInitializedExceptionIsThrownAndMappedCorrectly();
         assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
         startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
         assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
     }
 
+
+
     @Test
     public void atlasInitializesSynchronouslyIfCassandraIsInGoodState() throws InterruptedException, IOException {
         startCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
-        Assert.assertTrue(canPerformTransaction());
+        assertTrue(canPerformTransaction());
 
         killCassandraNodes(ONE_CASSANDRA_NODE);
         restartAtlasWithChecks();
-        Assert.assertTrue(canPerformTransaction());
+        assertTrue(canPerformTransaction());
     }
 
     private static void killCassandraNodes(List<String> nodeNames) throws InterruptedException {
@@ -137,7 +142,10 @@ public class StartupIndependenceEteTest {
             canPerformTransaction();
             return true;
         } catch (Exception e) {
-            return false;
+            if (exceptionIsRetryableAndContainsMessage(e, "Connection refused")) {
+                return false;
+            }
+            throw e;
         }
     }
 
@@ -147,7 +155,25 @@ public class StartupIndependenceEteTest {
             return true;
         } catch (AtlasDbRemoteException e) {
             return false;
+        } catch (Exception e) {
+            if (exceptionIsRetryableAndContainsMessage(e, "is not initialized yet")) {
+                return false;
+            }
+            throw e;
         }
+    }
+
+    private void assertNotInitializedExceptionIsThrownAndMappedCorrectly() {
+        try {
+            addTodo();
+        } catch (Exception e) {
+            assertTrue(exceptionIsRetryableAndContainsMessage(e, "CassandraKeyValueService is not initialized yet"));
+        }
+    }
+
+    private static boolean exceptionIsRetryableAndContainsMessage(Exception exc, String message) {
+        // We shade Feign, so we can't rely on our client's RetryableException exactly matching ours.
+        return exc.getClass().getName().contains("RetryableException") && exc.getMessage().contains(message);
     }
 
     private static void addTodo() {

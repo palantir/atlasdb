@@ -50,7 +50,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
         return nextTimestampServices.remove(0);
     }
 

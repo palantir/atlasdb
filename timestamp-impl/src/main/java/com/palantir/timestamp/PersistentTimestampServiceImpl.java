@@ -19,28 +19,83 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.processors.AutoDelegate;
 
+@AutoDelegate(typeToExtend = PersistentTimestampService.class)
 @ThreadSafe
-public class PersistentTimestampServiceImpl implements PersistentTimestampService {
+public class PersistentTimestampServiceImpl implements AsyncInitializer, PersistentTimestampService {
+
+    private volatile boolean isInitialized = false;
+    private ErrorCheckingTimestampBoundStore store;
+
+    public static class InitializingWrapper implements AutoDelegate_PersistentTimestampService {
+
+        private PersistentTimestampServiceImpl service;
+        public InitializingWrapper(PersistentTimestampServiceImpl service) {
+            this.service = service;
+        }
+
+        @Override
+        public PersistentTimestampService delegate() {
+            if (service.isInitialized()) {
+                return service;
+            }
+            throw new NotInitializedException("PersistentTimestampService");
+        }
+
+    }
 
     private static final int MAX_TIMESTAMPS_PER_REQUEST = 10_000;
 
-    private final PersistentTimestamp timestamp;
+    private PersistentTimestamp timestamp;
 
     public static PersistentTimestampService create(TimestampBoundStore store) {
-        return create(new ErrorCheckingTimestampBoundStore(store));
+        return create(new ErrorCheckingTimestampBoundStore(store), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static PersistentTimestampService create(TimestampBoundStore store, boolean initializeAsync) {
+        return create(new ErrorCheckingTimestampBoundStore(store), initializeAsync);
     }
 
     public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store) {
-        long latestTimestamp = store.getUpperLimit();
-        PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
-        PersistentTimestamp timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
-        return new PersistentTimestampServiceImpl(timestamp);
+        return create(store, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store,
+            boolean initializeAsync) {
+        PersistentTimestampServiceImpl service = new PersistentTimestampServiceImpl(store);
+        service.initialize(initializeAsync);
+        return service.isInitialized() ? service : new InitializingWrapper(service);
     }
 
     @VisibleForTesting
     PersistentTimestampServiceImpl(PersistentTimestamp timestamp) {
         this.timestamp = timestamp;
+    }
+
+    private PersistentTimestampServiceImpl(ErrorCheckingTimestampBoundStore store) {
+        this.store = store;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
+    @Override
+    public synchronized void tryInitialize() {
+        long latestTimestamp = store.getUpperLimit();
+        PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
+        this.timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
+        isInitialized = true;
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
+        // no-op
     }
 
     @Override
