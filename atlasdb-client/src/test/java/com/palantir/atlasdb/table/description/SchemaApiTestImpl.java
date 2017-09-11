@@ -25,61 +25,61 @@ import java.util.stream.Collectors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
-import com.palantir.atlasdb.table.description.generated.GenericTestTable;
-import com.palantir.atlasdb.table.description.generated.GenericTestTable.GenericTestRow;
-import com.palantir.atlasdb.table.description.generated.GenericTestTable.GenericTestRowResult;
+import com.palantir.atlasdb.table.description.integrationInput.IntegrationTestTableFactory;
+import com.palantir.atlasdb.table.description.integrationInput.SchemaApiTestTable;
+import com.palantir.atlasdb.table.description.integrationInput.SchemaApiTestTable.SchemaApiTestRow;
+import com.palantir.atlasdb.table.description.integrationInput.SchemaApiTestTable.SchemaApiTestRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
 
-public class SchemaApiTest extends AbstractSchemaTest {
+public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
-    private static final GenericTestSchemaTableFactory tableFactory = GenericTestSchemaTableFactory.of();
+    private static final IntegrationTestTableFactory tableFactory = IntegrationTestTableFactory.of();
 
     @Override
     protected void putSingleRowFirstColumn(Transaction transaction, String rowKey, long value) {
-        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
-        table.putColumn1(GenericTestRow.of(rowKey), value);
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
+        table.putColumn1(SchemaApiTestRow.of(rowKey), value);
     }
 
     @Override
     protected Long getSingleRowFirstColumn(Transaction transaction, String rowKey) {
-        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
         ColumnSelection firstColSelection =
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
-        Optional<GenericTestRowResult> result = table.getRow(GenericTestRow.of(rowKey), firstColSelection);
+        Optional<SchemaApiTestRowResult> result = table.getRow(SchemaApiTestRow.of(rowKey), firstColSelection);
         return result.get().getColumn1();
     }
 
     @Override
     protected List<Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
-        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
         ColumnSelection firstColSelection =
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
-        List<GenericTestRowResult> result =
+        List<SchemaApiTestRowResult> result =
                 table.getRows(
-                        rowKeys.stream().map(GenericTestRow::of).collect(Collectors.toList()),
+                        rowKeys.stream().map(SchemaApiTestRow::of).collect(Collectors.toList()),
                         firstColSelection
                 );
-        return result.stream().map(GenericTestRowResult::getColumn1).collect(Collectors.toList());
+        return result.stream().map(SchemaApiTestRowResult::getColumn1).collect(Collectors.toList());
     }
 
     @Override
     protected List<String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
-        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
         ColumnSelection secondColSelection =
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(SECOND_COL_SHORT_NAME)));
 
         RangeRequest rangeRequest = RangeRequest.builder()
-                .startRowInclusive(GenericTestRow.of(startRowKey).persistToBytes())
-                .endRowExclusive(GenericTestRow.of(endRowKey).persistToBytes())
+                .startRowInclusive(SchemaApiTestRow.of(startRowKey).persistToBytes())
+                .endRowExclusive(SchemaApiTestRow.of(endRowKey).persistToBytes())
                 .retainColumns(secondColSelection)
                 .build();
 
-        BatchingVisitableView<GenericTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
+        BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
         ArrayList finalResult = new ArrayList<>();
         rangeRequestResult.forEach(entry -> finalResult.add(entry.getColumn2()));
         return finalResult;
@@ -87,13 +87,13 @@ public class SchemaApiTest extends AbstractSchemaTest {
 
     @Override
     protected void deleteWholeRow(Transaction transaction, String rowKey) {
-        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
-        table.delete(GenericTestRow.of(rowKey));
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
+        table.delete(SchemaApiTestRow.of(rowKey));
     }
 
     @Override
     protected void deleteFirstColumn(Transaction transaction, String rowKey) {
-        GenericTestTable table = tableFactory.getGenericTestTable(transaction);
-        table.deleteColumn1(GenericTestRow.of(rowKey));
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
+        table.deleteColumn1(SchemaApiTestRow.of(rowKey));
     }
 }

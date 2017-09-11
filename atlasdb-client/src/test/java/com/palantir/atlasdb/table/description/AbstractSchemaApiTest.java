@@ -49,9 +49,9 @@ import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 
 
-public abstract class AbstractSchemaTest {
+public abstract class AbstractSchemaApiTest {
     private static final TableReference tableRef =
-            TableReference.create(Namespace.DEFAULT_NAMESPACE, "GenericTest");
+            TableReference.create(Namespace.DEFAULT_NAMESPACE, "SchemaApiTest");
 
     private static final String TEST_ROW_KEY = "testRowKey";
     private static final String TEST_ROW_KEY2 = "testRowKey2";

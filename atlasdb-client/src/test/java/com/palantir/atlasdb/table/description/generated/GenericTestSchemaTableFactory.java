@@ -42,17 +42,12 @@ public final class GenericTestSchemaTableFactory {
         return GenericRangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public GenericTestTable getGenericTestTable(Transaction t, GenericTestTable.GenericTestTrigger... triggers) {
-        return GenericTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
     public RangeScanTestTable getRangeScanTestTable(Transaction t, RangeScanTestTable.RangeScanTestTrigger... triggers) {
         return RangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public interface SharedTriggers extends
             GenericRangeScanTestTable.GenericRangeScanTestTrigger,
-            GenericTestTable.GenericTestTrigger,
             RangeScanTestTable.RangeScanTestTrigger {
         /* empty */
     }
@@ -60,11 +55,6 @@ public final class GenericTestSchemaTableFactory {
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putGenericRangeScanTest(Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putGenericTest(Multimap<GenericTestTable.GenericTestRow, ? extends GenericTestTable.GenericTestNamedColumnValue<?>> newRows) {
             // do nothing
         }
 

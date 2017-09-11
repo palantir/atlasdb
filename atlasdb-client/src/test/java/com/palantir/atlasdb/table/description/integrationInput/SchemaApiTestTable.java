@@ -1,4 +1,20 @@
-package com.palantir.atlasdb.table.description.generated;
+/*
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.table.description.integrationInput;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,32 +102,32 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings("all")
-public final class GenericTestTable implements
-        AtlasDbMutablePersistentTable<GenericTestTable.GenericTestRow,
-                                         GenericTestTable.GenericTestNamedColumnValue<?>,
-                                         GenericTestTable.GenericTestRowResult>,
-        AtlasDbNamedMutableTable<GenericTestTable.GenericTestRow,
-                                    GenericTestTable.GenericTestNamedColumnValue<?>,
-                                    GenericTestTable.GenericTestRowResult> {
+public final class SchemaApiTestTable implements
+        AtlasDbMutablePersistentTable<SchemaApiTestTable.SchemaApiTestRow,
+                                         SchemaApiTestTable.SchemaApiTestNamedColumnValue<?>,
+                                         SchemaApiTestTable.SchemaApiTestRowResult>,
+        AtlasDbNamedMutableTable<SchemaApiTestTable.SchemaApiTestRow,
+                                    SchemaApiTestTable.SchemaApiTestNamedColumnValue<?>,
+                                    SchemaApiTestTable.SchemaApiTestRowResult> {
     private final Transaction t;
-    private final List<GenericTestTrigger> triggers;
-    private final static String rawTableName = "GenericTest";
+    private final List<SchemaApiTestTrigger> triggers;
+    private final static String rawTableName = "SchemaApiTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(GenericTestNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(SchemaApiTestNamedColumn.values());
 
-    static GenericTestTable of(Transaction t, Namespace namespace) {
-        return new GenericTestTable(t, namespace, ImmutableList.<GenericTestTrigger>of());
+    static SchemaApiTestTable of(Transaction t, Namespace namespace) {
+        return new SchemaApiTestTable(t, namespace, ImmutableList.<SchemaApiTestTrigger>of());
     }
 
-    static GenericTestTable of(Transaction t, Namespace namespace, GenericTestTrigger trigger, GenericTestTrigger... triggers) {
-        return new GenericTestTable(t, namespace, ImmutableList.<GenericTestTrigger>builder().add(trigger).add(triggers).build());
+    static SchemaApiTestTable of(Transaction t, Namespace namespace, SchemaApiTestTrigger trigger, SchemaApiTestTrigger... triggers) {
+        return new SchemaApiTestTable(t, namespace, ImmutableList.<SchemaApiTestTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static GenericTestTable of(Transaction t, Namespace namespace, List<GenericTestTrigger> triggers) {
-        return new GenericTestTable(t, namespace, triggers);
+    static SchemaApiTestTable of(Transaction t, Namespace namespace, List<SchemaApiTestTrigger> triggers) {
+        return new SchemaApiTestTable(t, namespace, triggers);
     }
 
-    private GenericTestTable(Transaction t, Namespace namespace, List<GenericTestTrigger> triggers) {
+    private SchemaApiTestTable(Transaction t, Namespace namespace, List<SchemaApiTestTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -135,19 +151,19 @@ public final class GenericTestTable implements
 
     /**
      * <pre>
-     * GenericTestRow {
+     * SchemaApiTestRow {
      *   {@literal String component1};
      * }
      * </pre>
      */
-    public static final class GenericTestRow implements Persistable, Comparable<GenericTestRow> {
+    public static final class SchemaApiTestRow implements Persistable, Comparable<SchemaApiTestRow> {
         private final String component1;
 
-        public static GenericTestRow of(String component1) {
-            return new GenericTestRow(component1);
+        public static SchemaApiTestRow of(String component1) {
+            return new SchemaApiTestRow(component1);
         }
 
-        private GenericTestRow(String component1) {
+        private SchemaApiTestRow(String component1) {
             this.component1 = component1;
         }
 
@@ -155,20 +171,20 @@ public final class GenericTestTable implements
             return component1;
         }
 
-        public static Function<GenericTestRow, String> getComponent1Fun() {
-            return new Function<GenericTestRow, String>() {
+        public static Function<SchemaApiTestRow, String> getComponent1Fun() {
+            return new Function<SchemaApiTestRow, String>() {
                 @Override
-                public String apply(GenericTestRow row) {
+                public String apply(SchemaApiTestRow row) {
                     return row.component1;
                 }
             };
         }
 
-        public static Function<String, GenericTestRow> fromComponent1Fun() {
-            return new Function<String, GenericTestRow>() {
+        public static Function<String, SchemaApiTestRow> fromComponent1Fun() {
+            return new Function<String, SchemaApiTestRow>() {
                 @Override
-                public GenericTestRow apply(String row) {
-                    return GenericTestRow.of(row);
+                public SchemaApiTestRow apply(String row) {
+                    return SchemaApiTestRow.of(row);
                 }
             };
         }
@@ -179,13 +195,13 @@ public final class GenericTestTable implements
             return EncodingUtils.add(component1Bytes);
         }
 
-        public static final Hydrator<GenericTestRow> BYTES_HYDRATOR = new Hydrator<GenericTestRow>() {
+        public static final Hydrator<SchemaApiTestRow> BYTES_HYDRATOR = new Hydrator<SchemaApiTestRow>() {
             @Override
-            public GenericTestRow hydrateFromBytes(byte[] __input) {
+            public SchemaApiTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String component1 = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return new GenericTestRow(component1);
+                return new SchemaApiTestRow(component1);
             }
         };
 
@@ -207,7 +223,7 @@ public final class GenericTestTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            GenericTestRow other = (GenericTestRow) obj;
+            SchemaApiTestRow other = (SchemaApiTestRow) obj;
             return Objects.equal(component1, other.component1);
         }
 
@@ -218,14 +234,14 @@ public final class GenericTestTable implements
         }
 
         @Override
-        public int compareTo(GenericTestRow o) {
+        public int compareTo(SchemaApiTestRow o) {
             return ComparisonChain.start()
                 .compare(this.component1, o.component1)
                 .result();
         }
     }
 
-    public interface GenericTestNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface SchemaApiTestNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -234,7 +250,7 @@ public final class GenericTestTable implements
      * }
      * </pre>
      */
-    public static final class Column1 implements GenericTestNamedColumnValue<Long> {
+    public static final class Column1 implements SchemaApiTestNamedColumnValue<Long> {
         private final Long value;
 
         public static Column1 of(Long value) {
@@ -294,7 +310,7 @@ public final class GenericTestTable implements
      * }
      * </pre>
      */
-    public static final class Column2 implements GenericTestNamedColumnValue<String> {
+    public static final class Column2 implements SchemaApiTestNamedColumnValue<String> {
         private final String value;
 
         public static Column2 of(String value) {
@@ -347,40 +363,40 @@ public final class GenericTestTable implements
         }
     }
 
-    public interface GenericTestTrigger {
-        public void putGenericTest(Multimap<GenericTestRow, ? extends GenericTestNamedColumnValue<?>> newRows);
+    public interface SchemaApiTestTrigger {
+        public void putSchemaApiTest(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> newRows);
     }
 
-    public static final class GenericTestRowResult implements TypedRowResult {
+    public static final class SchemaApiTestRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static GenericTestRowResult of(RowResult<byte[]> row) {
-            return new GenericTestRowResult(row);
+        public static SchemaApiTestRowResult of(RowResult<byte[]> row) {
+            return new SchemaApiTestRowResult(row);
         }
 
-        private GenericTestRowResult(RowResult<byte[]> row) {
+        private SchemaApiTestRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public GenericTestRow getRowName() {
-            return GenericTestRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public SchemaApiTestRow getRowName() {
+            return SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<GenericTestRowResult, GenericTestRow> getRowNameFun() {
-            return new Function<GenericTestRowResult, GenericTestRow>() {
+        public static Function<SchemaApiTestRowResult, SchemaApiTestRow> getRowNameFun() {
+            return new Function<SchemaApiTestRowResult, SchemaApiTestRow>() {
                 @Override
-                public GenericTestRow apply(GenericTestRowResult rowResult) {
+                public SchemaApiTestRow apply(SchemaApiTestRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, GenericTestRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, GenericTestRowResult>() {
+        public static Function<RowResult<byte[]>, SchemaApiTestRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, SchemaApiTestRowResult>() {
                 @Override
-                public GenericTestRowResult apply(RowResult<byte[]> rowResult) {
-                    return new GenericTestRowResult(rowResult);
+                public SchemaApiTestRowResult apply(RowResult<byte[]> rowResult) {
+                    return new SchemaApiTestRowResult(rowResult);
                 }
             };
         }
@@ -411,19 +427,19 @@ public final class GenericTestTable implements
             return value.getValue();
         }
 
-        public static Function<GenericTestRowResult, Long> getColumn1Fun() {
-            return new Function<GenericTestRowResult, Long>() {
+        public static Function<SchemaApiTestRowResult, Long> getColumn1Fun() {
+            return new Function<SchemaApiTestRowResult, Long>() {
                 @Override
-                public Long apply(GenericTestRowResult rowResult) {
+                public Long apply(SchemaApiTestRowResult rowResult) {
                     return rowResult.getColumn1();
                 }
             };
         }
 
-        public static Function<GenericTestRowResult, String> getColumn2Fun() {
-            return new Function<GenericTestRowResult, String>() {
+        public static Function<SchemaApiTestRowResult, String> getColumn2Fun() {
+            return new Function<SchemaApiTestRowResult, String>() {
                 @Override
-                public String apply(GenericTestRowResult rowResult) {
+                public String apply(SchemaApiTestRowResult rowResult) {
                     return rowResult.getColumn2();
                 }
             };
@@ -439,7 +455,7 @@ public final class GenericTestTable implements
         }
     }
 
-    public enum GenericTestNamedColumn {
+    public enum SchemaApiTestNamedColumn {
         COLUMN1 {
             @Override
             public byte[] getShortName() {
@@ -455,37 +471,37 @@ public final class GenericTestTable implements
 
         public abstract byte[] getShortName();
 
-        public static Function<GenericTestNamedColumn, byte[]> toShortName() {
-            return new Function<GenericTestNamedColumn, byte[]>() {
+        public static Function<SchemaApiTestNamedColumn, byte[]> toShortName() {
+            return new Function<SchemaApiTestNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(GenericTestNamedColumn namedColumn) {
+                public byte[] apply(SchemaApiTestNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<GenericTestNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, GenericTestNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<SchemaApiTestNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, SchemaApiTestNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(GenericTestNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(SchemaApiTestNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends GenericTestNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends GenericTestNamedColumnValue<?>>>builder()
+    private static final Map<String, Hydrator<? extends SchemaApiTestNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends SchemaApiTestNamedColumnValue<?>>>builder()
                 .put("c", Column1.BYTES_HYDRATOR)
                 .put("d", Column2.BYTES_HYDRATOR)
                 .build();
 
-    public Map<GenericTestRow, Long> getColumn1s(Collection<GenericTestRow> rows) {
-        Map<Cell, GenericTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (GenericTestRow row : rows) {
+    public Map<SchemaApiTestRow, Long> getColumn1s(Collection<SchemaApiTestRow> rows) {
+        Map<Cell, SchemaApiTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (SchemaApiTestRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<GenericTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SchemaApiTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = Column1.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
@@ -493,13 +509,13 @@ public final class GenericTestTable implements
         return ret;
     }
 
-    public Map<GenericTestRow, String> getColumn2s(Collection<GenericTestRow> rows) {
-        Map<Cell, GenericTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (GenericTestRow row : rows) {
+    public Map<SchemaApiTestRow, String> getColumn2s(Collection<SchemaApiTestRow> rows) {
+        Map<Cell, SchemaApiTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (SchemaApiTestRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<GenericTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SchemaApiTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             String val = Column2.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
@@ -507,68 +523,68 @@ public final class GenericTestTable implements
         return ret;
     }
 
-    public void putColumn1(GenericTestRow row, Long value) {
+    public void putColumn1(SchemaApiTestRow row, Long value) {
         put(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putColumn1(Map<GenericTestRow, Long> map) {
-        Map<GenericTestRow, GenericTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<GenericTestRow, Long> e : map.entrySet()) {
+    public void putColumn1(Map<SchemaApiTestRow, Long> map) {
+        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SchemaApiTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn1UnlessExists(GenericTestRow row, Long value) {
+    public void putColumn1UnlessExists(SchemaApiTestRow row, Long value) {
         putUnlessExists(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putColumn1UnlessExists(Map<GenericTestRow, Long> map) {
-        Map<GenericTestRow, GenericTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<GenericTestRow, Long> e : map.entrySet()) {
+    public void putColumn1UnlessExists(Map<SchemaApiTestRow, Long> map) {
+        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SchemaApiTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2(GenericTestRow row, String value) {
+    public void putColumn2(SchemaApiTestRow row, String value) {
         put(ImmutableMultimap.of(row, Column2.of(value)));
     }
 
-    public void putColumn2(Map<GenericTestRow, String> map) {
-        Map<GenericTestRow, GenericTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<GenericTestRow, String> e : map.entrySet()) {
+    public void putColumn2(Map<SchemaApiTestRow, String> map) {
+        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SchemaApiTestRow, String> e : map.entrySet()) {
             toPut.put(e.getKey(), Column2.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2UnlessExists(GenericTestRow row, String value) {
+    public void putColumn2UnlessExists(SchemaApiTestRow row, String value) {
         putUnlessExists(ImmutableMultimap.of(row, Column2.of(value)));
     }
 
-    public void putColumn2UnlessExists(Map<GenericTestRow, String> map) {
-        Map<GenericTestRow, GenericTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<GenericTestRow, String> e : map.entrySet()) {
+    public void putColumn2UnlessExists(Map<SchemaApiTestRow, String> map) {
+        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SchemaApiTestRow, String> e : map.entrySet()) {
             toPut.put(e.getKey(), Column2.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<GenericTestRow, ? extends GenericTestNamedColumnValue<?>> rows) {
+    public void put(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (GenericTestTrigger trigger : triggers) {
-            trigger.putGenericTest(rows);
+        for (SchemaApiTestTrigger trigger : triggers) {
+            trigger.putSchemaApiTest(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<GenericTestRow, ? extends GenericTestNamedColumnValue<?>> rows) {
-        Multimap<GenericTestRow, GenericTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<GenericTestRow, GenericTestNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<GenericTestRow, ? extends GenericTestNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> rows) {
+        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -576,33 +592,33 @@ public final class GenericTestTable implements
         put(toPut);
     }
 
-    public void deleteColumn1(GenericTestRow row) {
+    public void deleteColumn1(SchemaApiTestRow row) {
         deleteColumn1(ImmutableSet.of(row));
     }
 
-    public void deleteColumn1(Iterable<GenericTestRow> rows) {
+    public void deleteColumn1(Iterable<SchemaApiTestRow> rows) {
         byte[] col = PtBytes.toCachedBytes("c");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn2(GenericTestRow row) {
+    public void deleteColumn2(SchemaApiTestRow row) {
         deleteColumn2(ImmutableSet.of(row));
     }
 
-    public void deleteColumn2(Iterable<GenericTestRow> rows) {
+    public void deleteColumn2(Iterable<SchemaApiTestRow> rows) {
         byte[] col = PtBytes.toCachedBytes("d");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(GenericTestRow row) {
+    public void delete(SchemaApiTestRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<GenericTestRow> rows) {
+    public void delete(Iterable<SchemaApiTestRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 2);
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
@@ -610,48 +626,48 @@ public final class GenericTestTable implements
         t.delete(tableRef, cells);
     }
 
-    public Optional<GenericTestRowResult> getRow(GenericTestRow row) {
+    public Optional<SchemaApiTestRowResult> getRow(SchemaApiTestRow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<GenericTestRowResult> getRow(GenericTestRow row, ColumnSelection columns) {
+    public Optional<SchemaApiTestRowResult> getRow(SchemaApiTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.empty();
         } else {
-            return Optional.of(GenericTestRowResult.of(rowResult));
+            return Optional.of(SchemaApiTestRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<GenericTestRowResult> getRows(Iterable<GenericTestRow> rows) {
+    public List<SchemaApiTestRowResult> getRows(Iterable<SchemaApiTestRow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<GenericTestRowResult> getRows(Iterable<GenericTestRow> rows, ColumnSelection columns) {
+    public List<SchemaApiTestRowResult> getRows(Iterable<SchemaApiTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<GenericTestRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<SchemaApiTestRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(GenericTestRowResult.of(row));
+            rowResults.add(SchemaApiTestRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<GenericTestNamedColumnValue<?>> getRowColumns(GenericTestRow row) {
+    public List<SchemaApiTestNamedColumnValue<?>> getRowColumns(SchemaApiTestRow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<GenericTestNamedColumnValue<?>> getRowColumns(GenericTestRow row, ColumnSelection columns) {
+    public List<SchemaApiTestNamedColumnValue<?>> getRowColumns(SchemaApiTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<GenericTestNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<SchemaApiTestNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -660,24 +676,24 @@ public final class GenericTestTable implements
     }
 
     @Override
-    public Multimap<GenericTestRow, GenericTestNamedColumnValue<?>> getRowsMultimap(Iterable<GenericTestRow> rows) {
+    public Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> getRowsMultimap(Iterable<SchemaApiTestRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<GenericTestRow, GenericTestNamedColumnValue<?>> getRowsMultimap(Iterable<GenericTestRow> rows, ColumnSelection columns) {
+    public Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> getRowsMultimap(Iterable<SchemaApiTestRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<GenericTestRow, GenericTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<GenericTestRow> rows, ColumnSelection columns) {
+    private Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SchemaApiTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<GenericTestRow, GenericTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<GenericTestRow, GenericTestNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            GenericTestRow row = GenericTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -686,12 +702,12 @@ public final class GenericTestTable implements
     }
 
     @Override
-    public Map<GenericTestRow, BatchingVisitable<GenericTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<GenericTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<SchemaApiTestRow, BatchingVisitable<SchemaApiTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<SchemaApiTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<GenericTestRow, BatchingVisitable<GenericTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SchemaApiTestRow, BatchingVisitable<SchemaApiTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            GenericTestRow row = GenericTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<GenericTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<SchemaApiTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -700,38 +716,37 @@ public final class GenericTestTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<GenericTestRow, GenericTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<GenericTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<SchemaApiTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            GenericTestRow row = GenericTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            GenericTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            SchemaApiTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
-    public BatchingVisitableView<GenericTestRowResult> getRange(RangeRequest range) {
+    public BatchingVisitableView<SchemaApiTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
         }
-
-        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, GenericTestRowResult>() {
+        return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, SchemaApiTestRowResult>() {
             @Override
-            public GenericTestRowResult apply(RowResult<byte[]> input) {
-                return GenericTestRowResult.of(input);
+            public SchemaApiTestRowResult apply(RowResult<byte[]> input) {
+                return SchemaApiTestRowResult.of(input);
             }
         });
     }
 
-    public IterableView<BatchingVisitable<GenericTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
+    public IterableView<BatchingVisitable<SchemaApiTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
         return IterableView.of(rangeResults).transform(
-                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<GenericTestRowResult>>() {
+                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SchemaApiTestRowResult>>() {
             @Override
-            public BatchingVisitable<GenericTestRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
-                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, GenericTestRowResult>() {
+            public BatchingVisitable<SchemaApiTestRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
+                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, SchemaApiTestRowResult>() {
                     @Override
-                    public GenericTestRowResult apply(RowResult<byte[]> row) {
-                        return GenericTestRowResult.of(row);
+                    public SchemaApiTestRowResult apply(RowResult<byte[]> row) {
+                        return SchemaApiTestRowResult.of(row);
                     }
                 });
             }
@@ -744,10 +759,10 @@ public final class GenericTestTable implements
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
         BatchingVisitables.concat(getRanges(ranges))
-                          .transform(GenericTestRowResult.getRowNameFun())
-                          .batchAccept(1000, new AbortingVisitor<List<GenericTestRow>, RuntimeException>() {
+                          .transform(SchemaApiTestRowResult.getRowNameFun())
+                          .batchAccept(1000, new AbortingVisitor<List<SchemaApiTestRow>, RuntimeException>() {
             @Override
-            public boolean visit(List<GenericTestRow> rows) {
+            public boolean visit(List<SchemaApiTestRow> rows) {
                 delete(rows);
                 return true;
             }
@@ -851,5 +866,5 @@ public final class GenericTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "W1b6fTw1obAo9RnQkX/Z2A==";
+    static String __CLASS_HASH = "krUQ1mU+DxrrzQG+TW5eGg==";
 }
