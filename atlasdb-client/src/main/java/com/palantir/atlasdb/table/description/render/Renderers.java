@@ -15,8 +15,16 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.palantir.atlasdb.table.description.IndexMetadata;
+import com.palantir.atlasdb.table.description.NameComponentDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.squareup.javapoet.MethodSpec;
 
 public class Renderers {
     private Renderers() {
@@ -79,5 +87,33 @@ public class Renderers {
         } else {
             return index.getJavaIndexName();
         }
+    }
+
+    public static Class<?> getColumnTypeClass(NamedColumnDescription col) {
+        return col.getValue().getValueType().getTypeClass();
+    }
+
+    public static MethodSpec.Builder addParametersFromRowComponents(
+            MethodSpec.Builder methodFactory,
+            TableMetadata tableMetadata) {
+        for (NameComponentDescription rowPart : getRowComponents(tableMetadata)) {
+            methodFactory.addParameter(
+                    rowPart.getType().getTypeClass(),
+                    rowPart.getComponentName());
+        }
+        return methodFactory;
+    }
+
+    public static String getArgumentsFromRowComponents(TableMetadata tableMetadata) {
+        List<String> args = getRowComponents(tableMetadata).stream()
+                .map(NameComponentDescription:: getComponentName)
+                .collect(Collectors.toList());
+
+        return String.join(", ", args);
+    }
+
+    public static List<NameComponentDescription> getRowComponents(TableMetadata tableMetadata) {
+        NameMetadataDescription rowMetadata = tableMetadata.getRowMetadata();
+        return rowMetadata.getRowParts();
     }
 }

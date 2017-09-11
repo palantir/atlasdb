@@ -43,34 +43,6 @@ public class TableRendererV2 {
     }
 
     public String render(String rawTableName, TableDefinition table) {
-        return new ClassRendererV2(packageName, namespace, rawTableName, table).render();
-    }
-
-    public static Class<?> getColumnTypeClass(NamedColumnDescription col) {
-        return col.getValue().getValueType().getTypeClass();
-    }
-
-    public static MethodSpec.Builder addParametersFromRowComponents(
-            MethodSpec.Builder methodFactory,
-            TableMetadata tableMetadata) {
-        for (NameComponentDescription rowPart : getRowComponents(tableMetadata)) {
-            methodFactory.addParameter(
-                    rowPart.getType().getTypeClass(),
-                    rowPart.getComponentName());
-        }
-        return methodFactory;
-    }
-
-    public static String getArgumentsFromRowComponents(TableMetadata tableMetadata) {
-        List<String> args = getRowComponents(tableMetadata).stream()
-                .map(NameComponentDescription:: getComponentName)
-                .collect(Collectors.toList());
-
-        return String.join(", ", args);
-    }
-
-    public static List<NameComponentDescription> getRowComponents(TableMetadata tableMetadata) {
-        NameMetadataDescription rowMetadata = tableMetadata.getRowMetadata();
-        return rowMetadata.getRowParts();
+        return new TableClassRendererV2(packageName, namespace, rawTableName, table).render();
     }
 }
