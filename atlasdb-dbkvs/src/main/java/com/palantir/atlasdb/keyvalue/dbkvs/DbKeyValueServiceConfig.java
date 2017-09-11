@@ -50,6 +50,12 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
         return DbAtlasDbFactory.TYPE;
     }
 
+    @Override
+    @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return Math.max(2 * connection().getMaxConnections() / 3, 1);
+    }
+
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(ddl().type().equals(connection().type()),

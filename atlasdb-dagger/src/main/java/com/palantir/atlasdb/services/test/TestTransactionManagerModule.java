@@ -100,7 +100,8 @@ public class TestTransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                config.allowAccessToHiddenTables());
+                config.allowAccessToHiddenTables(),
+                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize());
     }
 
 }

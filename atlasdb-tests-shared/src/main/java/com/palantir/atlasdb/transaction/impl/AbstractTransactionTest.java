@@ -29,7 +29,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -88,6 +91,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return true;
     }
 
+    protected static final int GET_RANGES_CONCURRENCY = 16;
+    protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(GET_RANGES_CONCURRENCY);
+
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
@@ -102,7 +108,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         ConflictHandler.IGNORE_ALL)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampCache);
+                timestampCache,
+                GET_RANGES_EXECUTOR);
     }
 
     @Test
@@ -490,11 +497,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         RangeRequest allRange = RangeRequest.builder().batchHint(3).build();
         t = startTransaction();
-        final Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(allRange), 1000));
-        for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
-            final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
-            assertEquals(1, list.size());
-        }
+
+        verifyAllGetRangesImplsRangeSizes(t, allRange, 1);
     }
 
     @Test
@@ -513,11 +517,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             assertEquals(1, list.get(0).getColumns().size());
         }
         RangeRequest range3 = range1.getBuilder().retainColumns(ColumnSelection.create(ImmutableSet.of(PtBytes.toBytes("col2")))).build();
-        ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(range3), 1000));
-        for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
-            final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
-            assertEquals(0, list.size());
-        }
+        verifyAllGetRangesImplsRangeSizes(t, range3, 0);
     }
 
     @Test
@@ -1101,7 +1101,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         t = startTransaction();
         List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row1Bytes).build());
-        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
+        verifyAllGetRangesImplsNumRanges(t, ranges, 1);
     }
 
     @Test
@@ -1126,7 +1126,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         t = startTransaction();
         byte[] rangeEnd = RangeRequests.nextLexicographicName(row00Bytes);
         List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row0Bytes).endRowExclusive(rangeEnd).batchHint(1).build());
-        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
+        verifyAllGetRangesImplsNumRanges(t, ranges, 1);
     }
 
     @Test
@@ -1155,5 +1155,38 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
+    }
+
+    private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {
+        Iterable<RangeRequest> rangeRequests = Iterables.limit(Iterables.cycle(templateRangeRequest), 1000);
+
+        List<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl = ImmutableList.copyOf(
+                t.getRanges(TEST_TABLE, rangeRequests));
+        List<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
+                t.getRanges(TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable).collect(Collectors.toList());
+        List<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
+                t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
+
+        assertEquals(getRangesWithPrefetchingImpl.size(), getRangesLazyImpl.size());
+        assertEquals(getRangesLazyImpl.size(), getRangesInParallelImpl.size());
+
+        for (int i = 0; i < getRangesWithPrefetchingImpl.size(); i++) {
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesWithPrefetchingImpl.get(i)).size());
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesInParallelImpl.get(i)).size());
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesLazyImpl.get(i)).size());
+        }
+    }
+
+    private void verifyAllGetRangesImplsNumRanges(Transaction t, Iterable<RangeRequest> rangeRequests, int expectedNumberOfRows) {
+        Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl =
+                t.getRanges(TEST_TABLE, rangeRequests);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
+                t.getRanges(TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable).collect(Collectors.toList());
+        Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
+                t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
+
+        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(getRangesWithPrefetchingImpl).count());
+        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(getRangesInParallelImpl).count());
+        assertEquals(expectedNumberOfRows, BatchingVisitables.concat(getRangesLazyImpl).count());
     }
 }

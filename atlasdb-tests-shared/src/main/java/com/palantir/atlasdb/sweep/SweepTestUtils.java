@@ -66,7 +66,7 @@ public final class SweepTestUtils {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
         LockAwareTransactionManager txManager = new SerializableTransactionManager(kvs, tsService, lockClient,
-                lockService, txService, constraints, cdm, ssm, cleaner, false);
+                lockService, txService, constraints, cdm, ssm, cleaner, false, 16);
         setupTables(kvs);
         return txManager;
     }

@@ -68,6 +68,13 @@ develop
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2322>`__)
 
+    *    - |devbreak|
+         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges. The old getRanges method would eagerly load the first page of all ranges, potentially
+           concurrently. This often caused more data to be fetched than necessary or higher concurrency than expected. If you expect to only use a small amount of the rows in the provided
+           ranges, it is often advisable to use the getRangesLazy method and serially iterate over the results. Otherwise, you should use the new version of getRanges that allows explicitly
+           operating on the resulting visitables in parallel.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

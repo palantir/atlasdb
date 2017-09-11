@@ -29,6 +29,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 import javax.annotation.Nullable;
@@ -977,6 +979,7 @@ public class TableRenderer {
         }
 
         private void renderGetRanges() {
+            line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
                 line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);");
                 line("return IterableView.of(rangeResults).transform(");
@@ -991,6 +994,18 @@ public class TableRenderer {
                         } line("});");
                     } line("}");
                 } line("});");
+            } line("}");
+            line();
+            line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
+            line("                               int concurrencyLevel,");
+            line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
+                line("return t.getRanges(tableRef, ranges, concurrencyLevel,");
+                line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
+            } line("}");
+            line();
+            line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);");
+                line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
             } line("}");
         }
 
@@ -1284,6 +1299,7 @@ public class TableRenderer {
         Multimaps.class,
         Collection.class,
         Function.class,
+        BiFunction.class,
         Persistable.class,
         Hydrator.class,
         Transaction.class,
@@ -1334,6 +1350,7 @@ public class TableRenderer {
         Entry.class,
         Iterator.class,
         Iterables.class,
+        Stream.class,
         Supplier.class,
         InvalidProtocolBufferException.class,
         Throwables.class,

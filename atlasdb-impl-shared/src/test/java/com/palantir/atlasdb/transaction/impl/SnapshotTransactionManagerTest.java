@@ -53,7 +53,8 @@ public class SnapshotTransactionManagerTest {
             null,
             cleaner,
             false,
-            () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+            () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+            4);
 
     @Test
     public void closesKeyValueServiceOnClose() {
@@ -86,7 +87,8 @@ public class SnapshotTransactionManagerTest {
                 null,
                 cleaner,
                 false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                4);
         newTransactionManager.close(); // should not throw
     }
 
