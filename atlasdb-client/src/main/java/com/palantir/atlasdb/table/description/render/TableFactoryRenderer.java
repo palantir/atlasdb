@@ -105,10 +105,10 @@ public final class TableFactoryRenderer {
                         .addMember("value", "$S", TableFactoryRenderer.class.getName())
                         .build());
 
-        buildFactory(this::getFields, tableFactory::addField);
-        buildFactory(this::getSubTypes, tableFactory::addType);
-        buildFactory(this::getConstructors, tableFactory::addMethod);
-        buildFactory(this::getMethods, tableFactory::addMethod);
+        getFields().forEach(tableFactory::addField);
+        getSubTypes().forEach(tableFactory::addType);
+        getConstructors().forEach(tableFactory::addMethod);
+        getMethods().forEach(tableFactory::addMethod);
 
         JavaFile javaFile = JavaFile.builder(packageName, tableFactory.build())
                 .indent("    ")
@@ -117,14 +117,8 @@ public final class TableFactoryRenderer {
         return javaFile.toString();
     }
 
-    <T> void buildFactory(Supplier<Collection<T>> supplier, Consumer<T> addToFactory) {
-        for (T entry : supplier.get()) {
-           addToFactory.accept(entry);
-        }
-    }
-
     private List<FieldSpec> getFields() {
-        ArrayList<FieldSpec> results = new ArrayList<>();
+        List<FieldSpec> results = new ArrayList<>();
 
         TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
                 ClassName.get(Function.class),
@@ -143,7 +137,7 @@ public final class TableFactoryRenderer {
     }
 
     private List<TypeSpec> getSubTypes() {
-        ArrayList<TypeSpec> results = new ArrayList<>();
+        List<TypeSpec> results = new ArrayList<>();
         results.add(getSharedTriggers());
         results.add(getNullSharedTriggers(sharedTriggersType));
 
@@ -151,7 +145,7 @@ public final class TableFactoryRenderer {
     }
 
     private List<MethodSpec> getConstructors() {
-        ArrayList<MethodSpec> results = new ArrayList<>();
+        List<MethodSpec> results = new ArrayList<>();
 
         TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
                 ClassName.get(Function.class),
@@ -163,24 +157,24 @@ public final class TableFactoryRenderer {
                 .addParameter(ParameterizedTypeName.get(
                         ClassName.get(List.class), functionOfTransactionAndTriggersType), "sharedTriggers")
                 .addParameter(Namespace.class, "namespace")
-                .addStatement("return new $T($N, $N)", tableFactoryType, "sharedTriggers", "namespace")
+                .addStatement("return new $T($L, $L)", tableFactoryType, "sharedTriggers", "namespace")
                 .build());
 
         results.add(factoryBaseBuilder()
                 .addParameter(sharedTriggersListType, "sharedTriggers")
-                .addStatement("return new $T($N, $N)", tableFactoryType, "sharedTriggers", "defaultNamespace")
+                .addStatement("return new $T($L, $L)", tableFactoryType, "sharedTriggers", "defaultNamespace")
                 .build());
 
         results.add(factoryBaseBuilder()
                 .addParameter(Namespace.class, "namespace")
-                .addStatement("return of($T.<$T>of(), $N)",
+                .addStatement("return of($T.<$T>of(), $L)",
                         ImmutableList.class,
                         functionOfTransactionAndTriggersType,
                         "namespace")
                 .build());
 
         results.add(factoryBaseBuilder()
-                .addStatement("return of($T.<$T>of(), $N)",
+                .addStatement("return of($T.<$T>of(), $L)",
                         ImmutableList.class,
                         functionOfTransactionAndTriggersType,
                         "defaultNamespace")
@@ -190,15 +184,15 @@ public final class TableFactoryRenderer {
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(sharedTriggersListType, "sharedTriggers")
                 .addParameter(Namespace.class, "namespace")
-                .addStatement("this.$N = $N", "sharedTriggers", "sharedTriggers")
-                .addStatement("this.$N = $N", "namespace", "namespace")
+                .addStatement("this.$L = $L", "sharedTriggers", "sharedTriggers")
+                .addStatement("this.$L = $L", "namespace", "namespace")
                 .build());
 
         return results;
     }
 
     private List<MethodSpec> getMethods() {
-        ArrayList<MethodSpec> results = new ArrayList<>();
+        List<MethodSpec> results = new ArrayList<>();
         results.addAll(definitions.entrySet()
                 .stream()
                 .map(entry -> getTableMethod(entry.getKey(), entry.getValue()))
@@ -207,7 +201,7 @@ public final class TableFactoryRenderer {
         results.addAll(definitions.entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().hasV2TableEnabled())
-                .map(entry -> getSimpleTableMethod(entry.getKey(), entry.getValue()))
+                .map(entry -> getV2TableMethod(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList()));
         return results;
     }
@@ -246,7 +240,7 @@ public final class TableFactoryRenderer {
         return tableGetterMethodBuilder.build();
     }
 
-    private MethodSpec getSimpleTableMethod(String name, TableDefinition tableDefinition) {
+    private MethodSpec getV2TableMethod(String name, TableDefinition tableDefinition) {
         String tableName = getV2TableName(name);
         TypeName tableType = ClassName.get(packageName, tableName);
         MethodSpec.Builder tableGetterMethodBuilder = MethodSpec.methodBuilder("get" + tableName)
@@ -312,7 +306,7 @@ public final class TableFactoryRenderer {
     }
 
     private String getV2TableName(String name) {
-        return name + "SimpleTable";
+        return name + "V2Table";
     }
 
     private FieldSpec getDefaultNamespaceField() {

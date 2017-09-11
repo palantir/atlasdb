@@ -46,8 +46,8 @@ public final class CheckAndSetSchemaTableFactory {
         return CheckAndSetTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public CheckAndSetSimpleTable getCheckAndSetSimpleTable(Transaction t) {
-        return CheckAndSetSimpleTable.of(t, namespace);
+    public CheckAndSetV2Table getCheckAndSetV2Table(Transaction t) {
+        return CheckAndSetV2Table.of(t, namespace);
     }
 
     public interface SharedTriggers extends CheckAndSetTable.CheckAndSetTrigger {
