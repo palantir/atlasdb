@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -36,6 +37,8 @@ import java.util.stream.IntStream;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.util.concurrent.Uninterruptibles;
 
 public class CoalescingSupplierTest {
 
@@ -66,7 +69,6 @@ public class CoalescingSupplierTest {
 
         verify(delegate, times(2)).get();
     }
-
 
     @Test
     public void doesNotBatchSerialRequests() {
@@ -105,41 +107,6 @@ public class CoalescingSupplierTest {
 
         tasks.assertAllFailed(expected);
     }
-
-//    @Test
-//    public void perf() throws InterruptedException {
-//
-//        Supplier<Long> actualSupplier = () -> {
-//            LockSupport.parkNanos(TimeUnit.MICROSECONDS.toNanos(100));
-//            return 123L;
-//        };
-//
-//        CoalescingSupplier<Long> coalescingSupplier = new CoalescingSupplier<>(
-//                actualSupplier,
-//                Executors.newSingleThreadExecutor());
-//
-//        ExecutorService executor = Executors.newCachedThreadPool();
-//        int concurrency = 4;
-//        while(true) {
-//            Stopwatch timer = Stopwatch.createStarted();
-//            CountDownLatch latch = new CountDownLatch(10_000);
-//            for (int i = 0; i < concurrency; i++) {
-//                executor.submit(() -> {
-//                    while (latch.getCount() > 0) {
-//                        try {
-//                            coalescingSupplier.get().get();
-//                        } catch (Throwable e) {
-//                            e.printStackTrace();
-//                        }
-//                        latch.countDown();
-//                    }
-//                });
-//            }
-//            latch.await();
-//            System.out.println("concurrency = " + concurrency + "; time = " + timer.elapsed(TimeUnit.MILLISECONDS));
-//        }
-//
-//    }
 
     private AsyncTasks getConcurrently(int count) {
         return AsyncTasks.runInParallel(supplier::get, count);
@@ -187,23 +154,18 @@ public class CoalescingSupplierTest {
             this.delegate = delegate;
         }
 
-        public synchronized void freeze() {
+        public void freeze() {
             isFrozen = true;
         }
 
-        public synchronized void unfreeze() {
+        public void unfreeze() {
             isFrozen = false;
-            notifyAll();
         }
 
         @Override
-        public synchronized Integer get() {
-            while(isFrozen) {
-                try {
-                    wait();
-                } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
-                }
+        public Integer get() {
+            while (isFrozen) {
+                Uninterruptibles.sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
             }
 
             return delegate.get();

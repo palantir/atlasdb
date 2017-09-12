@@ -33,7 +33,7 @@ class CoalescingSupplier<T> implements Supplier<T> {
 
     private final Supplier<T> delegate;
     private volatile CompletableFuture<T> nextResult = new CompletableFuture<T>();
-    private final Lock lock = new ReentrantLock(true);
+    private final Lock fairLock = new ReentrantLock(true);
 
     public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
@@ -49,11 +49,11 @@ class CoalescingSupplier<T> implements Supplier<T> {
     }
 
     private void completeOrWaitForCompletion(CompletableFuture<T> future) {
-        lock.lock();
+        fairLock.lock();
         try {
             resetAndCompleteIfNotCompleted(future);
         } finally {
-            lock.unlock();
+            fairLock.unlock();
         }
     }
 
