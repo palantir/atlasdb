@@ -16,11 +16,8 @@
 
 package com.palantir.paxos;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -39,14 +36,8 @@ public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerif
     private final LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> verifiersByRound;
 
     public CoalescingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
         this.verifiersByRound = buildCache(
                 round -> new CoalescingSupplier<>(() -> delegate.isLatestRound(round)));
-    }
-
-    @VisibleForTesting
-    CoalescingPaxosLatestRoundVerifier(Function<Long, CoalescingSupplier<PaxosQuorumStatus>> verifierFactory) {
-        this.verifiersByRound = buildCache(verifierFactory);
     }
 
     private static LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> buildCache(
