@@ -43,61 +43,64 @@ import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
-public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long> implements PersistentStreamStore {
+public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
+        implements PersistentStreamStore {
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
         super(txManager);
     }
 
     protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
-        Preconditions.checkNotNull(txnMgr);
-        txnMgr.runTaskThrowOnConflict((TxTask) t -> {
-            putMetadataAndHashIndexTask(t, streamId, metadata);
+        Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
+        txnMgr.runTaskThrowOnConflict((TxTask) tx -> {
+            putMetadataAndHashIndexTask(tx, streamId, metadata);
             return null;
         });
     }
 
-    private Long lookupStreamIdByHash(Transaction t, Sha256Hash hash) {
-        Map<Sha256Hash, Long> hashToId = lookupStreamIdsByHash(t, Sets.newHashSet(hash));
+    private Long lookupStreamIdByHash(Transaction tx, Sha256Hash hash) {
+        Map<Sha256Hash, Long> hashToId = lookupStreamIdsByHash(tx, Sets.newHashSet(hash));
         if (hashToId.isEmpty()) {
-           return null;
+            return null;
         }
         return Iterables.getOnlyElement(hashToId.entrySet()).getValue();
     }
 
     @Override
-    public final long getByHashOrStoreStreamAndMarkAsUsed(Transaction t, Sha256Hash hash, InputStream stream, byte[] reference) {
-        Long streamId = lookupStreamIdByHash(t, hash);
+    public final long getByHashOrStoreStreamAndMarkAsUsed(Transaction tx, Sha256Hash hash, InputStream stream,
+            byte[] reference) {
+        Long streamId = lookupStreamIdByHash(tx, hash);
         if (streamId != null) {
-            markStreamsAsUsed(t, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+            markStreamsAsUsed(tx, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
             return streamId;
         }
         Pair<Long, Sha256Hash> pair = storeStream(stream);
-        Preconditions.checkArgument(hash.equals(pair.rhSide), "passed hash: %s does not equal stream hash: %s", hash, pair.rhSide);
-        markStreamsAsUsedInternal(t, ImmutableMap.<Long, byte[]>builder().put(pair.lhSide, reference).build());
+        Preconditions.checkArgument(hash.equals(pair.rhSide),
+                "passed hash: %s does not equal stream hash: %s", hash, pair.rhSide);
+        markStreamsAsUsedInternal(tx, ImmutableMap.<Long, byte[]>builder().put(pair.lhSide, reference).build());
         return pair.lhSide;
     }
 
     @Override
-    public void unmarkStreamAsUsed(Transaction t, long streamId, byte[] reference) {
-        unmarkStreamsAsUsed(t, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+    public void unmarkStreamAsUsed(Transaction tx, long streamId, byte[] reference) {
+        unmarkStreamsAsUsed(tx, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
     }
 
     @Override
-    public void markStreamAsUsed(Transaction t, long streamId, byte[] reference) {
-        markStreamsAsUsed(t, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+    public void markStreamAsUsed(Transaction tx, long streamId, byte[] reference) {
+        markStreamsAsUsed(tx, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
     }
 
     @Override
-    public void markStreamsAsUsed(Transaction t, Map<Long, byte[]> streamIdsToReference) {
-        touchMetadataWhileMarkingUsedForConflicts(t, streamIdsToReference.keySet());
-        markStreamsAsUsedInternal(t, streamIdsToReference);
+    public void markStreamsAsUsed(Transaction tx, Map<Long, byte[]> streamIdsToReference) {
+        touchMetadataWhileMarkingUsedForConflicts(tx, streamIdsToReference.keySet());
+        markStreamsAsUsedInternal(tx, streamIdsToReference);
     }
 
     protected long storeEmptyMetadata() {
-        Preconditions.checkNotNull(txnMgr);
-        return txnMgr.runTaskThrowOnConflict(t -> {
-            putMetadataAndHashIndexTask(t, t.getTimestamp(), getEmptyMetadata());
-            return t.getTimestamp();
+        Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
+        return txnMgr.runTaskThrowOnConflict(tx -> {
+            putMetadataAndHashIndexTask(tx, tx.getTimestamp(), getEmptyMetadata());
+            return tx.getTimestamp();
         });
     }
 
@@ -112,17 +115,18 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     @Override
-    public Map<Long, Sha256Hash> storeStreams(final Transaction t, final Map<Long, InputStream> streams) {
+    public Map<Long, Sha256Hash> storeStreams(final Transaction tx, final Map<Long, InputStream> streams) {
         if (streams.isEmpty()) {
             return ImmutableMap.of();
         }
 
-        Map<Long, StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams, Functions.constant(getEmptyMetadata()));
-        putMetadataAndHashIndexTask(t, idsToEmptyMetadata);
+        Map<Long, StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams,
+                Functions.constant(getEmptyMetadata()));
+        putMetadataAndHashIndexTask(tx, idsToEmptyMetadata);
 
         Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams,
-                (id, stream) -> storeBlocksAndGetFinalMetadata(t, id, stream));
-        putMetadataAndHashIndexTask(t, idsToMetadata);
+                (id, stream) -> storeBlocksAndGetFinalMetadata(tx, id, stream));
+        putMetadataAndHashIndexTask(tx, idsToMetadata);
 
         Map<Long, Sha256Hash> hashes = Maps.transformValues(idsToMetadata,
                 metadata -> new Sha256Hash(metadata.getHash().toByteArray()));
@@ -130,10 +134,10 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     // This method is overridden in generated code. Changes to this method may have unintended consequences.
-    protected StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction t, long id, InputStream stream) {
+    protected StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction tx, long id, InputStream stream) {
         MessageDigest digest = Sha256Hash.getMessageDigest();
         try (InputStream hashingStream = new DigestInputStream(stream, digest)) {
-            StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, hashingStream);
+            StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(tx, id, hashingStream);
             return StreamMetadata.newBuilder(metadata)
                     .setHash(ByteString.copyFrom(digest.digest()))
                     .build();
@@ -142,19 +146,20 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         }
     }
 
-    protected final StreamMetadata storeBlocksAndGetHashlessMetadata(@Nullable Transaction t, long id, InputStream stream) {
+    protected final StreamMetadata storeBlocksAndGetHashlessMetadata(@Nullable Transaction tx, long id,
+            InputStream stream) {
         CountingInputStream countingStream = new CountingInputStream(stream);
 
         // Try to store the bytes in the stream and get length
         try {
-            storeBlocksFromStream(t, id, countingStream);
+            storeBlocksFromStream(tx, id, countingStream);
         } catch (IOException e) {
             long length = countingStream.getCount();
             StreamMetadata metadata = StreamMetadata.newBuilder()
-                .setStatus(Status.FAILED)
-                .setLength(length)
-                .setHash(com.google.protobuf.ByteString.EMPTY)
-                .build();
+                    .setStatus(Status.FAILED)
+                    .setLength(length)
+                    .setHash(com.google.protobuf.ByteString.EMPTY)
+                    .build();
             storeMetadataAndIndex(id, metadata);
             log.error("Could not store stream {}. Failed after {} bytes.", id, length, e);
             throw Throwables.rewrapAndThrowUncheckedException("Failed to store stream.", e);
@@ -168,7 +173,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 .build();
     }
 
-    private void storeBlocksFromStream(@Nullable Transaction t, long id, InputStream stream) throws IOException {
+    private void storeBlocksFromStream(@Nullable Transaction tx, long id, InputStream stream) throws IOException {
         long blockNumber = 0;
 
         while (true) {
@@ -180,21 +185,22 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
             }
             if (length < BLOCK_SIZE_IN_BYTES) {
                 // This is the last block.
-                storeBlockWithNonNullTransaction(t, id, blockNumber, PtBytes.head(bytesToStore, length));
+                storeBlockWithNonNullTransaction(tx, id, blockNumber, PtBytes.head(bytesToStore, length));
                 break;
             } else {
                 // Store a full block.
-                storeBlockWithNonNullTransaction(t, id, blockNumber, bytesToStore);
+                storeBlockWithNonNullTransaction(tx, id, blockNumber, bytesToStore);
             }
             blockNumber++;
         }
     }
 
-    protected void storeBlockWithNonNullTransaction(@Nullable Transaction t, final long id, final long blockNumber, final byte[] bytesToStore) {
-        if (t != null) {
-            storeBlock(t, id, blockNumber, bytesToStore);
+    protected void storeBlockWithNonNullTransaction(@Nullable Transaction tx, final long id, final long blockNumber,
+            final byte[] bytesToStore) {
+        if (tx != null) {
+            storeBlock(tx, id, blockNumber, bytesToStore);
         } else {
-            Preconditions.checkNotNull(txnMgr);
+            Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
             txnMgr.runTaskThrowOnConflict(
                     (TransactionTask<Void, RuntimeException>) t1 -> {
                         storeBlock(t1, id, blockNumber, bytesToStore);
@@ -203,15 +209,16 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         }
     }
 
-    private void putMetadataAndHashIndexTask(Transaction t, Long streamId, StreamMetadata metadata) {
-        putMetadataAndHashIndexTask(t, ImmutableMap.<Long, StreamMetadata>builder().put(streamId, metadata).build());
+    private void putMetadataAndHashIndexTask(Transaction tx, Long streamId, StreamMetadata metadata) {
+        putMetadataAndHashIndexTask(tx, ImmutableMap.<Long, StreamMetadata>builder().put(streamId, metadata).build());
     }
 
-    protected abstract void storeBlock(Transaction t, long id, long blockNumber, byte[] block);
+    protected abstract void putMetadataAndHashIndexTask(Transaction tx, Map<Long, StreamMetadata> streamIdsToMetadata);
 
-    protected abstract void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) throws StreamCleanedException;
+    protected abstract void storeBlock(Transaction tx, long id, long blockNumber, byte[] block);
 
-    protected abstract void markStreamsAsUsedInternal(Transaction t, final Map<Long, byte[]> streamIdsToReference);
+    protected abstract void touchMetadataWhileMarkingUsedForConflicts(Transaction tx, Iterable<Long> ids)
+            throws StreamCleanedException;
 
-    protected abstract void putMetadataAndHashIndexTask(Transaction t, Map<Long, StreamMetadata> streamIdsToMetadata);
+    protected abstract void markStreamsAsUsedInternal(Transaction tx, final Map<Long, byte[]> streamIdsToReference);
 }

@@ -37,10 +37,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
+@SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly", "checkstyle:WhitespaceAround"})
 public class SchemasTest {
-    private static String TABLE_NAME = "testTable";
-    private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("testTable");
-    private static Namespace NAMESPACE = Namespace.create("testNamespace");
+    private static final String TABLE_NAME = "testTable";
+    private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace("testTable");
+    private static final Namespace NAMESPACE = Namespace.create("testNamespace");
     Mockery mockery;
     KeyValueService kvs;
 
@@ -54,7 +55,8 @@ public class SchemasTest {
     public void testGetFullTableReferenceString() {
         MatcherAssert.assertThat(
                 Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE),
-                Matchers.equalTo("TableReference.createFromFullyQualifiedName(\"" + NAMESPACE.getName() + "." + TABLE_NAME + "\")"));
+                Matchers.equalTo("TableReference.createFromFullyQualifiedName(\""
+                        + NAMESPACE.getName() + "." + TABLE_NAME + "\")"));
     }
 
     @Test
@@ -86,8 +88,10 @@ public class SchemasTest {
         TableReference tableName1 = TableReference.createWithEmptyNamespace(TABLE_NAME + "1");
         TableReference tableName2 = TableReference.createWithEmptyNamespace(TABLE_NAME + "2");
         mockery.checking(new Expectations(){{
-            oneOf(kvs).createTables(with(tableMapContainsEntry(tableName1, getSimpleTableDefinitionAsBytes(tableName1))));
-            oneOf(kvs).createTables(with(tableMapContainsEntry(tableName2, getSimpleTableDefinitionAsBytes(tableName2))));
+            oneOf(kvs).createTables(with(tableMapContainsEntry(tableName1,
+                    getSimpleTableDefinitionAsBytes(tableName1))));
+            oneOf(kvs).createTables(with(tableMapContainsEntry(tableName2,
+                    getSimpleTableDefinitionAsBytes(tableName2))));
         }});
         Map<TableReference, TableDefinition> tables = Maps.newHashMap();
         tables.put(tableName1, getSimpleTableDefinition(tableName1));
@@ -110,7 +114,8 @@ public class SchemasTest {
         allTableNames.add(TableReference.createFromFullyQualifiedName("sweep.priority"));
 
         mockery.checking(new Expectations(){{
-            oneOf(kvs).getAllTableNames(); will(returnValue(allTableNames));
+            oneOf(kvs).getAllTableNames();
+                will(returnValue(allTableNames));
             oneOf(kvs).dropTables(allTableNames);
             oneOf(kvs).getAllTableNames();
         }});

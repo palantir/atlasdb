@@ -359,11 +359,11 @@ public class TableDefinition extends AbstractDefinition {
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
 
-        if (explicitCompressionRequested && explicitCompressionBlockSizeKB == 0) {
+        if (explicitCompressionRequested && explicitCompressionBlockSizeKb == 0) {
             if (rangeScanAllowed) {
-                explicitCompressionBlockSizeKB = AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB;
+                explicitCompressionBlockSizeKb = AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB;
             } else {
-                explicitCompressionBlockSizeKB = AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB;
+                explicitCompressionBlockSizeKb = AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB;
             }
         }
 
@@ -374,7 +374,7 @@ public class TableDefinition extends AbstractDefinition {
                 cachePriority,
                 partitionStrategy,
                 rangeScanAllowed,
-                explicitCompressionBlockSizeKB,
+                explicitCompressionBlockSizeKb,
                 negativeLookups,
                 sweepStrategy,
                 expirationStrategy,

@@ -31,6 +31,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public final class Schemas {
     private static final String INDEX_SUFFIX = "idx";
 
+    private Schemas() {
+        //
+    }
+
     public static TableReference appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(
                 !indexName.endsWith(INDEX_SUFFIX),
@@ -42,16 +46,29 @@ public final class Schemas {
         createIndices(kvs, ImmutableMap.of(fullIndexRef, definition));
     }
 
-    public static void createIndices(KeyValueService kvs, Map<TableReference, IndexDefinition> fullIndexNameToDefinition) {
-        Map<TableReference, byte[]> fullIndexNameToMetadata = Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
+    public static void createIndex(Schema schema, KeyValueService kvs, TableReference indexRef) {
+        IndexDefinition definition = schema.getIndex(indexRef);
+        createIndex(kvs, indexRef, definition);
+    }
+
+    public static void createIndices(KeyValueService kvs,
+            Map<TableReference, IndexDefinition> fullIndexNameToDefinition) {
+        Map<TableReference, byte[]> fullIndexNameToMetadata = Maps.newHashMapWithExpectedSize(
+                fullIndexNameToDefinition.size());
         for (Entry<TableReference, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
-            fullIndexNameToMetadata.put(indexEntry.getKey(), indexEntry.getValue().toIndexMetadata(indexEntry.getKey().getQualifiedName()).getTableMetadata().persistToBytes());
+            fullIndexNameToMetadata.put(indexEntry.getKey(), indexEntry.getValue().toIndexMetadata(
+                    indexEntry.getKey().getQualifiedName()).getTableMetadata().persistToBytes());
         }
         kvs.createTables(fullIndexNameToMetadata);
     }
 
     public static void createTable(KeyValueService kvs, TableReference tableRef, TableDefinition definition) {
         createTables(kvs, ImmutableMap.of(tableRef, definition));
+    }
+
+    public static void createTable(Schema schema, KeyValueService kvs, TableReference tableRef) {
+        TableDefinition definition = schema.getTableDefinition(tableRef);
+        createTable(kvs, tableRef, definition);
     }
 
     public static void createTables(KeyValueService kvs, Map<TableReference, TableDefinition>  tableRefToDefinition) {
@@ -74,17 +91,13 @@ public final class Schemas {
     }
 
     public static boolean isTableNameValid(String tableName) {
-        for (int i = 0; i < tableName.length() ; i++) {
-            char c = tableName.charAt(i);
-            if (!Character.isLetterOrDigit(c) && c != '_') {
+        for (int i = 0; i < tableName.length(); i++) {
+            char ch = tableName.charAt(i);
+            if (!Character.isLetterOrDigit(ch) && ch != '_') {
                 return false;
             }
         }
         return true;
-    }
-
-    private Schemas() {
-        //
     }
 
     /**
@@ -101,22 +114,12 @@ public final class Schemas {
         createIndices(kvs, schema.getIndexDefinitions());
     }
 
-    public static void createTable(Schema schema, KeyValueService kvs, TableReference tableRef) {
-        TableDefinition definition = schema.getTableDefinition(tableRef);
-        createTable(kvs, tableRef, definition);
-    }
-
-    public static void createIndex(Schema schema, KeyValueService kvs, TableReference indexRef) {
-        IndexDefinition definition = schema.getIndex(indexRef);
-        createIndex(kvs, indexRef, definition);
-    }
-
     public static void deleteTablesAndIndexes(Schema schema, KeyValueService kvs) {
         schema.validate();
         kvs.dropTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
     }
 
-    /** intended for use by tests **/
+    /** intended for use by tests. **/
     public static void truncateTablesAndIndexes(Schema schema, KeyValueService kvs) {
         schema.validate();
         kvs.truncateTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
