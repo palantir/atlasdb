@@ -18,16 +18,8 @@ package com.palantir.atlasdb.table.description.render;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.squareup.javapoet.MethodSpec;
 
 public class TableRendererV2 {
     private final String packageName;
