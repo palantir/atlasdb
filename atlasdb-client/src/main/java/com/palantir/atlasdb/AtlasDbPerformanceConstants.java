@@ -16,7 +16,9 @@
 package com.palantir.atlasdb;
 
 public final class AtlasDbPerformanceConstants {
-    private AtlasDbPerformanceConstants() {/**/}
+    private AtlasDbPerformanceConstants() {
+        // Utility class
+    }
 
     /**
      * If a user passes in a huge page size for a batch for a range scan, we won't actually make the page size any
