@@ -44,22 +44,40 @@ develop
     *    - Type
          - Change
 
-    *    - |userbreak|
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.56.0
+=======
+
+12 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak| |new|
+         - TimelockServer now exposes the `LockService` instead of `RemoteLockService` if using the synchronous lock service.
+           This will provide a more comprehensive API which is required by the large internal products.
+           Any product which extends a TransactionManager will have to make changes to their class definition in order to support this update.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |devbreak| |new| |deprecated|
+         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges, which are also exposed in the Table API.
+           The existing getRanges method, which is now deprecated, would eagerly load the first page of all ranges, potentially concurrently. This often caused more data to be fetched than necessary or higher concurrency than expected.
+           If you expect to only use a small amount of the rows in the provided ranges, it is often advisable to use the new getRangesLazy method and serially iterate over the results.
+           Otherwise, you should use the new version of getRanges that allows explicitly operating on the resulting visitables in parallel.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+
+    *    - |userbreak| |new|
          - Timelock clients now report tritium metrics for the lock requests with the prefix ``LockService`` instead of ``RemoteLockService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
-
-    *    - |improved|
-         - LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
-
-    *    - |new|
-         - TimelockServer now exposes the `LockService` instead of `RemoteLockService` if using the synchronous lock service.
-           This will provide a more comprehensive API required by the large internal product.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
-
-    *    - |new|
-         - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
 
     *    - |userbreak| |fixed|
          - AtlasDB no longer embeds user-agents in metric names.
@@ -68,12 +86,13 @@ develop
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2322>`__)
 
-    *    - |devbreak|
-         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges. The old getRanges method would eagerly load the first page of all ranges, potentially
-           concurrently. This often caused more data to be fetched than necessary or higher concurrency than expected. If you expect to only use a small amount of the rows in the provided
-           ranges, it is often advisable to use the getRangesLazy method and serially iterate over the results. Otherwise, you should use the new version of getRanges that allows explicitly
-           operating on the resulting visitables in parallel.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+    *    - |improved|
+         - LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
