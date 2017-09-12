@@ -25,6 +25,7 @@ import static com.palantir.atlasdb.table.description.render.Renderers.getColumnT
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -415,7 +416,7 @@ public class TableClassRendererV2 {
         deleteRowBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("byte[] rowBytes = row.persistToBytes()", Persistables.class)
-                .addStatement("$T<$T> cells = $T.of()", Set.class, Cell.class, ImmutableSet.class);
+                .addStatement("$T<$T> cells = new $T<>()", Set.class, Cell.class, HashSet.class);
 
         for (NamedColumnDescription col : namedColumns) {
             deleteRowBuilder.addStatement("cells.add($T.create(rowBytes, $T.toCachedBytes($L)))",

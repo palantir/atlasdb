@@ -19,6 +19,7 @@ import java.lang.Long;
 import java.lang.String;
 import java.lang.SuppressWarnings;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -110,7 +111,7 @@ public final class CheckAndSetV2Table {
     public void deleteRow(Long id) {
         CheckAndSetTable.CheckAndSetRow row = CheckAndSetTable.CheckAndSetRow.of(id);
         byte[] rowBytes = row.persistToBytes();
-        Set<Cell> cells = ImmutableSet.of();
+        Set<Cell> cells = new HashSet<>();
         cells.add(Cell.create(rowBytes, PtBytes.toCachedBytes("v")));
         t.delete(tableRef, cells);
     }
