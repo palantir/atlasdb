@@ -62,22 +62,31 @@ v0.56.0
     *    - Type
          - Change
 
-    *    - |devbreak| |new|
-         - TimelockServer now exposes the `LockService` instead of `RemoteLockService` if using the synchronous lock service.
+    *    - |new|
+         - TimelockServer now exposes the `LockService` instead of the `RemoteLockService` if using the synchronous lock service.
            This will provide a more comprehensive API which is required by the large internal products.
-           Any product which extends a TransactionManager will have to make changes to their class definition in order to support this update.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
-
-    *    - |devbreak| |new| |deprecated|
-         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges, which are also exposed in the Table API.
-           The existing getRanges method, which is now deprecated, would eagerly load the first page of all ranges, potentially concurrently. This often caused more data to be fetched than necessary or higher concurrency than expected.
-           If you expect to only use a small amount of the rows in the provided ranges, it is often advisable to use the new getRangesLazy method and serially iterate over the results.
-           Otherwise, you should use the new version of getRanges that allows explicitly operating on the resulting visitables in parallel.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
 
     *    - |userbreak| |new|
          - Timelock clients now report tritium metrics for the lock requests with the prefix ``LockService`` instead of ``RemoteLockService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |devbreak|
+         - LockAwareTransactionManager now returns a `LockService` instead of a `RemoteLockService` in order to expose the new API.
+           Any products that extend this class will have to change their class definition.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges, which are also exposed in the Table API.
+           If you expect to only use a small amount of the rows in the provided ranges, it is often advisable to use the new getRangesLazy method and serially iterate over the results.
+           Otherwise, you should use the new version of getRanges that allows explicitly operating on the resulting visitables in parallel.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+
+    *    - |deprecated|
+         - The existing getRanges method has been deprecated as it would eagerly load the first page of all ranges, potentially concurrently.
+           This often caused more data to be fetched than necessary or higher concurrency than expected.
+           Recommended alternative is to use getRanges with a specified concurrency level, or getRangesLazy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
 
     *    - |userbreak| |fixed|
          - AtlasDB no longer embeds user-agents in metric names.
