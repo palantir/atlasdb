@@ -46,7 +46,7 @@ public class PaxosLatestRoundVerifierTest {
             Executors.newCachedThreadPool());
 
     @Test
-    public void has_quorum_if_all_nodes_agree() {
+    public void hasQuorumIfAllNodesAgree() {
         when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
         when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
         when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
@@ -55,7 +55,7 @@ public class PaxosLatestRoundVerifierTest {
     }
 
     @Test
-    public void has_quorum_if_quorum_agrees() {
+    public void hasQuorumIfQuorumAgrees() {
         when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
         when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
         when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
@@ -64,7 +64,7 @@ public class PaxosLatestRoundVerifierTest {
     }
 
     @Test
-    public void does_not_have_quorum_if_nodes_fail() {
+    public void doesNotHaveQuorumIfQuorumFails() {
         when(acceptor1.getLatestSequencePreparedOrAccepted()).thenThrow(new RuntimeException("foo"));
         when(acceptor2.getLatestSequencePreparedOrAccepted()).thenThrow(new RuntimeException("foo"));
         when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
@@ -73,7 +73,7 @@ public class PaxosLatestRoundVerifierTest {
     }
 
     @Test
-    public void has_disagreement_if_quorum_does_not_agree() {
+    public void hasDisagreementIfQuorumDoesNotAgree() {
         when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
         when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
         when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
