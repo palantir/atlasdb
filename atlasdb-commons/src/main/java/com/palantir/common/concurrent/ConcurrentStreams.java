@@ -66,7 +66,7 @@ public class ConcurrentStreams {
         for (int i = 0; i < concurrency; i++) {
             executor.execute(() -> runOperationsAndUpdateFutures(futuresByValue, valueQueue, mapper));
         }
-        return streamAllUnchecked(futuresByValue.values());
+        return streamAllUnchecked(values, futuresByValue);
     }
 
     private static <T, S> void runOperationsAndUpdateFutures(
@@ -94,10 +94,10 @@ public class ConcurrentStreams {
         }
     }
 
-    private static <S> Stream<S> streamAllUnchecked(Collection<CompletableFuture<S>> futures) {
-        return futures.stream().map(future -> {
+    private static <T, S> Stream<S> streamAllUnchecked(List<T> values, Map<T, CompletableFuture<S>> futuresByValue) {
+        return values.stream().map(value -> {
             try {
-                return future.get();
+                return futuresByValue.get(value).get();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
