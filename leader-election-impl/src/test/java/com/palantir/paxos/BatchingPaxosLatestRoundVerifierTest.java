@@ -27,9 +27,6 @@ import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-
 public class BatchingPaxosLatestRoundVerifierTest {
 
     private CoalescingSupplier<PaxosQuorumStatus> delegate = mock(CoalescingSupplier.class);
@@ -42,16 +39,18 @@ public class BatchingPaxosLatestRoundVerifierTest {
     }
 
     @Test
-    public void returns_supplied_value() {
-        PaxosQuorumStatus expected = PaxosQuorumStatus.SOME_DISAGREED;
+    public void returnsDelegateValue() {
+        PaxosQuorumStatus expected1 = PaxosQuorumStatus.SOME_DISAGREED;
+        when(delegate.get()).thenReturn(expected1);
+        assertThat(verifier.isLatestRound(5L)).isEqualTo(expected1);
 
-        when(delegate.get()).thenReturn(Futures.immediateFuture(expected));
-
-        assertThat(verifier.isLatestRound(5L)).isEqualTo(expected);
+        PaxosQuorumStatus expected2 = PaxosQuorumStatus.QUORUM_AGREED;
+        when(delegate.get()).thenReturn(expected2);
+        assertThat(verifier.isLatestRound(5L)).isEqualTo(expected2);
     }
 
     @Test
-    public void uses_correct_supplier_for_different_rounds() {
+    public void usesCorrectDelegateForDifferentRounds() {
         PaxosQuorumStatus round1 = PaxosQuorumStatus.SOME_DISAGREED;
         PaxosQuorumStatus round2 = PaxosQuorumStatus.NO_QUORUM;
 
@@ -63,7 +62,7 @@ public class BatchingPaxosLatestRoundVerifierTest {
     }
 
     @Test
-    public void propagates_exceptions_to_caller() {
+    public void propagatesExceptions() {
         RuntimeException expected = new RuntimeException("foo");
 
         when(delegate.get()).thenThrow(expected);
@@ -72,7 +71,7 @@ public class BatchingPaxosLatestRoundVerifierTest {
     }
 
     private CoalescingSupplier<PaxosQuorumStatus> supplierOf(PaxosQuorumStatus result) {
-        return new CoalescingSupplier<>(() -> result, MoreExecutors.newDirectExecutorService());
+        return new CoalescingSupplier<>(() -> result);
     }
 
 }

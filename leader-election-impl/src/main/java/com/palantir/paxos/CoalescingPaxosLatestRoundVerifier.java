@@ -16,27 +16,32 @@
 
 package com.palantir.paxos;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.function.Function;
 
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
+/**
+ * A verifier that coalesces verification requests for a given round, such that only one verification for a round is
+ * ever running at a time.
+ */
 public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifier {
 
+    // Due to concurrency, it's possible that verifications for different rounds might be requested out of order.
+    // So, we maintain a cache of {@link CoalescingSupplier}s for the two most recently requested rounds.
+    // We could alternatively assume that a verification for an older round will always return
+    // {@link PaxosQuorumStatus.SOME_DISAGREED}, but that depends on assumptions about how paxos works and how this
+    // class will be used, which feel out of place here.
     private final LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> verifiersByRound;
 
     public CoalescingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         this.verifiersByRound = buildCache(
-                round -> new CoalescingSupplier<>(() -> delegate.isLatestRound(round), executor));
+                round -> new CoalescingSupplier<>(() -> delegate.isLatestRound(round)));
     }
 
     @VisibleForTesting
@@ -58,18 +63,7 @@ public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerif
 
     @Override
     public PaxosQuorumStatus isLatestRound(long round) {
-        CoalescingSupplier<PaxosQuorumStatus> verifier = verifiersByRound.getUnchecked(round);
-        return getUnchecked(verifier.get());
+        return verifiersByRound.getUnchecked(round).get();
     }
 
-    private PaxosQuorumStatus getUnchecked(Future<PaxosQuorumStatus> future) {
-        try {
-            return future.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            throw Throwables.propagate(e.getCause());
-        }
-    }
 }

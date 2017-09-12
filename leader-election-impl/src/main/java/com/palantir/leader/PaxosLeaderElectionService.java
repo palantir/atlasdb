@@ -22,9 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Objects;
-import java.util.concurrent.Callable;
+import java.util.Optional;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -42,8 +41,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Defaults;
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -136,7 +133,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             PaxosValue greatestLearned = knowledge.getGreatestLearnedValue();
 
             if (isThisNodeTheLeaderFor(greatestLearned)) {
-                StillLeadingStatus leadingStatus = isStillLeading(greatestLearned);
+                StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearned);
 
                 if (leadingStatus == StillLeadingStatus.LEADING) {
                     return new PaxosLeadershipToken(greatestLearned);
@@ -377,26 +374,21 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
         if (!(token instanceof PaxosLeadershipToken)) {
-                    return StillLeadingStatus.NOT_LEADING;
-  
+            return StillLeadingStatus.NOT_LEADING;
         }
 
-        StillLeadingStatus status = isStillLeading(((PaxosLeadershipToken) token).value);
-        recordStillLeadingStatus(status);
+        PaxosLeadershipToken paxosToken = (PaxosLeadershipToken)token;
+        return determineAndRecordLeadershipStatus(paxosToken);
+    }
+
+    private StillLeadingStatus determineAndRecordLeadershipStatus(
+            PaxosLeadershipToken paxosToken) {
+        StillLeadingStatus status = determineLeadershipStatus(paxosToken.value);
+        recordLeadershipStatus(paxosToken, status);
         return status;
     }
-            
-            private void recordStillLeadingStatus(
-                                                  PaxosLeadershipToken token,
-                                                  StillLeadingStatus status) {
-                if (status == StillLeadingStatus.NO_QUORUM) {
-                    eventRecorder.recordNoQuorum(token.value);
-                } else if (status == StillLeadingStatus.NOT_LEADING) {
-                    eventRecorder.recordNotLeading(token.value);
-                }
-            }
 
-    private StillLeadingStatus isStillLeading(PaxosValue value) {
+    private StillLeadingStatus determineLeadershipStatus(PaxosValue value) {
         if (!isThisNodeTheLeaderFor(value)) {
             return StillLeadingStatus.NOT_LEADING;
         }
@@ -407,6 +399,16 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         return latestRoundVerifier.isLatestRound(value.getRound())
                 .toStillLeadingStatus();
+    }
+
+    private void recordLeadershipStatus(
+            PaxosLeadershipToken token,
+            StillLeadingStatus status) {
+        if (status == StillLeadingStatus.NO_QUORUM) {
+            eventRecorder.recordNoQuorum(token.value);
+        } else if (status == StillLeadingStatus.NOT_LEADING) {
+            eventRecorder.recordNotLeading(token.value);
+        }
     }
 
     private long latestRoundLearnedLocally() {
@@ -423,7 +425,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     /**
      * Queries all other learners for unknown learned values
      *
-     * @param numPeersToQuery number of peer learners to query for updates
      * @returns true if new state was learned, otherwise false
      */
     public boolean updateLearnedStateFromPeers(PaxosValue greatestLearned) {

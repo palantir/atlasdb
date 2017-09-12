@@ -17,51 +17,64 @@
 package com.palantir.paxos;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+
+import com.google.common.base.Throwables;
 
 /**
  * A supplier that coalesces computation requests, such that only one computation is ever running at a time, and
  * concurrent requests will result in a single computation. Computations are guaranteed to execute after being
  * requested; requests will not receive results for computations that started prior to the request.
  */
-class CoalescingSupplier<T> implements Supplier<Future<T>> {
+class CoalescingSupplier<T> implements Supplier<T> {
 
     private final Supplier<T> delegate;
-    private final AtomicReference<CompletableFuture<T>> nextResult = new AtomicReference<>(new CompletableFuture<T>());
-    private final ExecutorService executor;
+    private volatile CompletableFuture<T> nextResult = new CompletableFuture<T>();
+    private final Lock lock = new ReentrantLock(true);
 
-    public CoalescingSupplier(Supplier<T> delegate, ExecutorService singleThreadExecutor) {
+    public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
-        this.executor = singleThreadExecutor;
     }
 
     @Override
-    public Future<T> get() {
-        CompletableFuture<T> future = nextResult.get();
+    public T get() {
+        CompletableFuture<T> future = nextResult;
 
-        executor.submit(() -> maybeComplete(future));
+        completeOrWaitForCompletion(future);
 
-        return future;
+        return getResult(future);
     }
 
-    private void maybeComplete(CompletableFuture<T> future) {
-        if (tryTakeForCompleting(future)) {
-            complete(future);
+    private void completeOrWaitForCompletion(CompletableFuture<T> future) {
+        lock.lock();
+        try {
+            resetAndCompleteIfNotCompleted(future);
+        } finally {
+            lock.unlock();
         }
     }
 
-    private boolean tryTakeForCompleting(CompletableFuture<T> future) {
-        return nextResult.compareAndSet(future, new CompletableFuture<>());
-    }
+    private void resetAndCompleteIfNotCompleted(CompletableFuture<T> future) {
+        if (future.isDone()) {
+            return;
+        }
 
-    private void complete(CompletableFuture<T> future) {
+        nextResult = new CompletableFuture<T>();
         try {
             future.complete(delegate.get());
         } catch (Throwable t) {
             future.completeExceptionally(t);
+        }
+    }
+
+    private T getResult(CompletableFuture<T> future) {
+        try {
+            return future.getNow(null);
+        } catch (CompletionException ex) {
+            throw Throwables.propagate(ex.getCause());
         }
     }
 
