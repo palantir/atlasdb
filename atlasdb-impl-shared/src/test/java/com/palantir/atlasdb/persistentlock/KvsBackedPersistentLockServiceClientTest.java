@@ -36,7 +36,7 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class KvsBackedPersistentLockServiceClientTest {
     private static final String REASON = "some-reason";
-    private static final LockStore LOCK_STORE = LockStore.create(new InMemoryKeyValueService(true));
+    private static final LockStoreImpl LOCK_STORE = LockStoreImpl.createImplForTest(new InMemoryKeyValueService(true));
 
     @ClassRule
     public static final DropwizardClientRule DW = new DropwizardClientRule(
