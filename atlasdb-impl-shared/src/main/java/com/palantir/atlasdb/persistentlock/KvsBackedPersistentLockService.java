@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.remoting3.servers.jersey.WebPreconditions;
@@ -35,7 +36,11 @@ public class KvsBackedPersistentLockService implements PersistentLockService {
     }
 
     public static PersistentLockService create(KeyValueService kvs) {
-        LockStore lockStore = LockStore.create(kvs);
+        return create(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static PersistentLockService create(KeyValueService kvs, boolean initializeAsync) {
+        LockStore lockStore = LockStoreImpl.create(kvs, initializeAsync);
         return new KvsBackedPersistentLockService(lockStore);
     }
 

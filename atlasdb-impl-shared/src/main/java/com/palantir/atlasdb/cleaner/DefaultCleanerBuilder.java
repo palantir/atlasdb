@@ -43,6 +43,7 @@ public class DefaultCleanerBuilder {
     private int backgroundScrubReadThreads = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_READ_THREADS;
     private long backgroundScrubFrequencyMillis = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS;
     private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
+    private boolean initalizeAsync = AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
             LockService lockService,
@@ -99,8 +100,13 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
+    public DefaultCleanerBuilder setInitializeAsync(boolean initializeAsync) {
+        this.initalizeAsync = initializeAsync;
+        return this;
+    }
+
     private Puncher buildPuncher() {
-        KeyValueServicePuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService);
+        PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
                 punchIntervalMillis * 3);
@@ -113,8 +119,8 @@ public class DefaultCleanerBuilder {
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
-                                   Supplier<Long> immutableTimestampSupplier) {
-        ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService);
+            Supplier<Long> immutableTimestampSupplier) {
+        ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService, initalizeAsync);
         return Scrubber.create(
                 keyValueService,
                 scrubberStore,

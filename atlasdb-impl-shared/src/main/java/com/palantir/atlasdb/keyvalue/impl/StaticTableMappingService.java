@@ -20,17 +20,45 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.AutoDelegate_TableMappingService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.processors.AutoDelegate;
 
+@AutoDelegate(typeToExtend = TableMappingService.class)
 public final class StaticTableMappingService extends AbstractTableMappingService {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TableMappingService {
+        @Override
+        public TableMappingService delegate() {
+            checkInitialized();
+            return StaticTableMappingService.this;
+        }
+
+        @Override
+        protected void tryInitialize() {
+            StaticTableMappingService.this.updateTableMap();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "StaticTableMappingService";
+        }
+    }
+
+    private final InitializingWrapper wrapper = new InitializingWrapper();
     private final KeyValueService kv;
 
     public static TableMappingService create(KeyValueService kv) {
-        StaticTableMappingService ret = new StaticTableMappingService(kv);
-        ret.updateTableMap();
-        return ret;
+        return create(kv, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static TableMappingService create(KeyValueService kv, boolean initializeAsync) {
+        StaticTableMappingService tableMappingService = new StaticTableMappingService(kv);
+        tableMappingService.wrapper.initialize(initializeAsync);
+        return tableMappingService.wrapper.isInitialized() ? tableMappingService : tableMappingService.wrapper;
     }
 
     private StaticTableMappingService(KeyValueService kv) {
@@ -64,5 +92,4 @@ public final class StaticTableMappingService extends AbstractTableMappingService
     protected void validateShortName(TableReference tableRef, TableReference shortName) {
         // any name is ok for the static mapper
     }
-
 }

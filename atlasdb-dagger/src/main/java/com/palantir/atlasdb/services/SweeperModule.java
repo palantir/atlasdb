@@ -39,14 +39,15 @@ public class SweeperModule {
                                                   @Named("kvs") KeyValueService kvs,
                                                   TransactionService transactionService,
                                                   SweepStrategyManager sweepStrategyManager,
-                                                  Follower follower) {
+                                                  Follower follower,
+                                                  ServicesConfig config) {
         return new SweepTaskRunner(
                 kvs,
                 txm::getUnreadableTimestamp,
                 txm::getImmutableTimestamp,
                 transactionService,
                 sweepStrategyManager,
-                new CellsSweeper(txm, kvs, ImmutableList.of(follower)));
+                new CellsSweeper(txm, kvs, ImmutableList.of(follower), config.atlasDbConfig().initializeAsync()));
     }
 
 }
