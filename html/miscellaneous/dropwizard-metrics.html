@@ -194,18 +194,16 @@ the Metrics <a class="reference external" href="http://metrics.dropwizard.io/3.1
 <blockquote>
 <div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.numBlacklistedHosts</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.&lt;host&gt;.requestConnectionExceptionProportion</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.&lt;host&gt;.requestFailureProportion</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestConnectionExceptionProportion</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestFailureProportion</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.approximatePoolSize</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.meanActiveTimeMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.meanBorrowWaitTimeMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.meanIdleTimeMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.numIdle</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.numActive</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.proportionDestroyedByBorrower</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.&lt;host&gt;.proportionDestroyedByEvictor</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.approximatePoolSize</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanActiveTimeMillis</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanBorrowWaitTimeMillis</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanIdleTimeMillis</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.numIdle</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.numActive</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.proportionDestroyedByBorrower</span></code></li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.proportionDestroyedByEvictor</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.estimated.size</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.eviction.count</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.hit.count</span></code></li>
@@ -223,14 +221,9 @@ the Metrics <a class="reference external" href="http://metrics.dropwizard.io/3.1
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.byteSizeTx</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.sweep.SweepMetrics.cellTimestampPairsExamined</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.sweep.SweepMetrics.cellTimestampPairsExamined.&lt;table&gt;</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted.&lt;table&gt;</span></code></li>
 </ul>
 <p><strong>Meters</strong></p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.&lt;host&gt;.requestConnectionExceptions</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.&lt;host&gt;.requestExceptions</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.&lt;host&gt;.requests</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestConnectionExceptions</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestExceptions</span></code></li>
 <li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requests</span></code></li>

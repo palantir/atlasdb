@@ -250,6 +250,12 @@ You can also query <code class="docutils literal"><span class="pre">sweep.priori
 <li><code class="docutils literal"><span class="pre">cells_deleted</span></code> - The numbers of stale values deleted last time this table was swept.</li>
 <li><code class="docutils literal"><span class="pre">cells_examined</span></code> - The number of cell-timestamp pairs in the table total the last time this table was swept.</li>
 </ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If one investigates the <code class="docutils literal"><span class="pre">sweep.priority</span></code> table, one <em>may</em> find information regarding the number of cell-timestamp
+pairs examined or deleted on earlier runs as well. However, the <code class="docutils literal"><span class="pre">sweep.priority</span></code> table itself can be swept, thus
+the table <em>may</em> not contain information concerning all historical runs of sweep.</p>
+</div>
 </div>
 </div>
 
