@@ -43,6 +43,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PaxosTimestampCreator {
@@ -112,7 +113,7 @@ public class PaxosTimestampCreator {
                         ImmutableList.copyOf(learners),
                         paxosRuntime.get().maximumWaitBeforeProposalMs()),
                 client);
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(boundStore);
+        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
         return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
     }
 

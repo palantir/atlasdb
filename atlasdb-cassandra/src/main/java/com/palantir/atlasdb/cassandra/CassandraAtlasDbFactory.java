@@ -23,12 +23,13 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
@@ -39,10 +40,14 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace) {
+            Optional<String> namespace,
+            boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
-        return createKv(preprocessedConfig, leaderConfig);
+        return CassandraKeyValueServiceImpl.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(preprocessedConfig),
+                leaderConfig,
+                initializeAsync);
     }
 
     @VisibleForTesting
@@ -58,22 +63,15 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         return CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
     }
 
-    private static CassandraKeyValueService createKv(
-            CassandraKeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
-        return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                leaderConfig);
-    }
-
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
                 + " CassandraKeyValueService, found %s", rawKvs.getClass());
-        return PersistentTimestampService.create(
-                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
+        return PersistentTimestampServiceImpl.create(
+                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs, initializeAsync),
+                initializeAsync);
     }
 
     @Override

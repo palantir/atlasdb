@@ -50,7 +50,8 @@ public class KeyValueServiceModule {
     public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs,
                                                          TimestampService tss,
                                                          ServicesConfig config) {
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs,
+                config.atlasDbConfig().initializeAsync());
         kvs = ProfilingKeyValueService.create(kvs,
                 config.atlasDbConfig().getKvsSlowLogThresholdMillis());
         kvs = TracingKeyValueService.create(kvs);

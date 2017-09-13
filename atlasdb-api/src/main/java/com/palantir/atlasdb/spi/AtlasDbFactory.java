@@ -27,18 +27,26 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public interface AtlasDbFactory {
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
+    boolean DEFAULT_INITIALIZE_ASYNC = false;
 
     String getType();
 
     default KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        return createRawKeyValueService(config, leaderConfig, Optional.empty());
+        return createRawKeyValueService(config, leaderConfig, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);
     }
 
     KeyValueService createRawKeyValueService(
-            KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig, Optional<String> namespace);
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            boolean initializeAsync);
 
-    TimestampService createTimestampService(KeyValueService rawKvs);
+    default TimestampService createTimestampService(KeyValueService rawKvs) {
+        return createTimestampService(rawKvs, DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync);
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {
