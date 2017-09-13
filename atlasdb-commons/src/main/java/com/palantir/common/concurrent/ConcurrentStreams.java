@@ -55,14 +55,12 @@ public class ConcurrentStreams {
         }
 
         List<StreamElement<T, S>> elements = values.stream()
-                .map((Function<T, StreamElement<T, S>>) StreamElement::new)
+                .map(value -> new StreamElement<T, S>(value))
                 .collect(Collectors.toList());
         Queue<StreamElement<T, S>> queue = new ConcurrentLinkedQueue<>(elements);
 
-        if (size < concurrency) {
-            concurrency = size;
-        }
-        for (int i = 0; i < concurrency; i++) {
+        int numThreads = size < concurrency ? size : concurrency;
+        for (int i = 0; i < numThreads; i++) {
             executor.execute(() -> runOperationsAndUpdateFutures(queue, mapper));
         }
         return streamAllUnchecked(elements);

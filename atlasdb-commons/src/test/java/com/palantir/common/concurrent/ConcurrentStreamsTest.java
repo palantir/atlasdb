@@ -62,6 +62,8 @@ public class ConcurrentStreamsTest {
                 ImmutableList.of(5, 3, 6, 2, 1, 9),
                 value -> {
                     if (value <= 3) {
+                        // Add delay on some elements so that subsequent values will be processed first so that
+                        // we can better guarantee the ordering is maintained regardless of processing order
                         pause(100);
                     }
                     return value + 1;
@@ -83,10 +85,9 @@ public class ConcurrentStreamsTest {
 
     @Test
     public void testShouldOnlyRunWithProvidedConcurrency() throws Exception {
-        CountDownLatch stage1 = new CountDownLatch(3);
-        CountDownLatch stage2 = new CountDownLatch(3);
-        CountDownLatch stage3 = new CountDownLatch(3);
-        CountDownLatch stage4 = new CountDownLatch(3);
+        CountDownLatch firstTwoValuesStartProcessing = new CountDownLatch(3);
+        CountDownLatch mainThreadHasValidatedFirstTwoValues = new CountDownLatch(3);
+        CountDownLatch latterTwoValuesStartProcessing = new CountDownLatch(3);
 
         AtomicInteger numStarted = new AtomicInteger(0);
         Stream<Integer> values = ConcurrentStreams.map(
@@ -94,23 +95,21 @@ public class ConcurrentStreamsTest {
                 value -> {
                     numStarted.getAndIncrement();
                     if (value <= 2) {
-                        countdownAndBlock(stage1);
-                        countdownAndBlock(stage2);
+                        countdownAndBlock(firstTwoValuesStartProcessing);
+                        countdownAndBlock(mainThreadHasValidatedFirstTwoValues);
                     } else {
-                        countdownAndBlock(stage3);
-                        countdownAndBlock(stage4);
+                        countdownAndBlock(latterTwoValuesStartProcessing);
                     }
                     return value + 1;
                 },
                 executor,
                 2);
 
-        countdownAndBlock(stage1);
+        countdownAndBlock(firstTwoValuesStartProcessing);
         Assert.assertEquals(numStarted.get(), 2);
-        countdownAndBlock(stage2);
-        countdownAndBlock(stage3);
+        countdownAndBlock(mainThreadHasValidatedFirstTwoValues);
+        countdownAndBlock(latterTwoValuesStartProcessing);
         Assert.assertEquals(numStarted.get(), 4);
-        countdownAndBlock(stage4);
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
     }
 
@@ -139,20 +138,20 @@ public class ConcurrentStreamsTest {
 
     @Test
     public void testShouldAbortWaitingTasksEarlyOnFailure() {
-        CountDownLatch latch = new CountDownLatch(3);
+        CountDownLatch firstTwoValuesIncrementCounter = new CountDownLatch(3);
         AtomicInteger numStarted = new AtomicInteger(0);
 
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
                     numStarted.getAndIncrement();
-                    countdownAndBlock(latch);
+                    countdownAndBlock(firstTwoValuesIncrementCounter);
                     throw new CustomExecutionException();
                 },
                 executor,
                 2);
 
-        countdownAndBlock(latch);
+        countdownAndBlock(firstTwoValuesIncrementCounter);
         try {
             values.collect(Collectors.toList());
         } catch (CustomExecutionException e) {
@@ -164,9 +163,8 @@ public class ConcurrentStreamsTest {
 
     @Test
     public void testCanOperateOnStreamWhileTasksAreStillRunning() {
-        CountDownLatch stage1 = new CountDownLatch(3);
-        CountDownLatch stage2 = new CountDownLatch(3);
-        CountDownLatch stage3 = new CountDownLatch(3);
+        CountDownLatch latterTwoValuesStartProcessing = new CountDownLatch(3);
+        CountDownLatch latterTwoValuesIncrementCounter = new CountDownLatch(3);
 
         AtomicInteger numStarted = new AtomicInteger(0);
         Stream<Integer> values = ConcurrentStreams.map(
@@ -174,23 +172,22 @@ public class ConcurrentStreamsTest {
                 value -> {
                     if (value < 3) {
                         numStarted.getAndIncrement();
-                        countdownAndBlock(stage1);
                     } else {
-                        countdownAndBlock(stage2);
+                        countdownAndBlock(latterTwoValuesStartProcessing);
                         numStarted.getAndIncrement();
-                        countdownAndBlock(stage3);
+                        countdownAndBlock(latterTwoValuesIncrementCounter);
                     }
                     return value + 1;
                 },
                 executor,
                 2);
-        countdownAndBlock(stage1);
         values.forEach(value -> {
             if (value <= 3) {
                 Assert.assertEquals(numStarted.get(), 2);
                 if (value == 3) {
-                    countdownAndBlock(stage2);
-                    countdownAndBlock(stage3);
+                    // Release last two threads and then ensure they both increment the counter before proceeding
+                    countdownAndBlock(latterTwoValuesStartProcessing);
+                    countdownAndBlock(latterTwoValuesIncrementCounter);
                 }
             } else {
                 Assert.assertEquals(numStarted.get(), 4);
