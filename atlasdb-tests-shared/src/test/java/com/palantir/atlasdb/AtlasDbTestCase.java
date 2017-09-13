@@ -84,14 +84,7 @@ public class AtlasDbTestCase {
     @BeforeClass
     public static void setupLockService() {
         if (lockService == null) {
-            lockService = LockServiceImpl.create(new LockServerOptions() {
-                private static final long serialVersionUID = 1L;
-
-                @Override
-                public boolean isStandaloneServer() {
-                    return false;
-                }
-            });
+            lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         }
     }
 

@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -41,13 +41,16 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
     private static final String ROW_AND_COLUMN_NAME = "ts";
     private static final long KV_TS = 0L;
-    private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8), ROW_AND_COLUMN_NAME.getBytes(Charsets.UTF_8));
+    private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
+            ROW_AND_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
-                .componentName("timestamp_name").type(ValueType.STRING).build())),
-        new ColumnMetadataDescription(ImmutableList.of(
-            new NamedColumnDescription(ROW_AND_COLUMN_NAME, "current_max_ts", ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-        ConflictHandler.IGNORE_ALL);
+            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
+                    .componentName("timestamp_name").type(ValueType.STRING).build())),
+            new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription(
+                    ROW_AND_COLUMN_NAME,
+                    "current_max_ts",
+                    ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
+            ConflictHandler.IGNORE_ALL);
 
     private static final long INITIAL_VALUE = 10000L;
 
@@ -68,18 +71,18 @@ public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
-        Map<Cell, Value> result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
+        Map<Cell, Value> result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS + 1));
         if (result.isEmpty()) {
             putValue(INITIAL_VALUE);
         }
-        result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
+        result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS + 1));
         currentLimit = getValueFromResult(result);
         return currentLimit;
     }
 
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
-        Map<Cell, Value> result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS+1));
+        Map<Cell, Value> result = kv.get(AtlasDbConstants.TIMESTAMP_TABLE, ImmutableMap.of(TS_CELL, KV_TS + 1));
         long oldValue = getValueFromResult(result);
         if (oldValue != currentLimit) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit

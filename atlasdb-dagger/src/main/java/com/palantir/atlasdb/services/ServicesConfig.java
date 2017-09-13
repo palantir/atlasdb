@@ -34,7 +34,11 @@ public abstract class ServicesConfig {
 
     @Value.Derived
     public ServiceDiscoveringAtlasSupplier atlasDbSupplier() {
-        return new ServiceDiscoveringAtlasSupplier(atlasDbConfig().keyValueService(), atlasDbConfig().leader());
+        return new ServiceDiscoveringAtlasSupplier(
+                atlasDbConfig().keyValueService(),
+                atlasDbConfig().leader(),
+                atlasDbConfig().namespace(),
+                atlasDbConfig().initializeAsync());
     }
 
     @Value.Default

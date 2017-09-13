@@ -44,9 +44,239 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |improved|
+         - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
+           Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
+           Note that *users* of AtlasDB clients are not affected, in that the wire format of configuration files has not changed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2348>`__)
+
+    *    - |fixed|
+         - KVS migration no longer fails when the old ``_scrub`` table is present.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
+
+    *    - |fixed|
+         - Path and query parameters for TimeLock endpoints have now been marked as safe.
+           Several logging parameters in TimeLock (e.g. in ``PaxosTimestampBoundStore`` and ``PaxosSynchronizer``) have also been marked as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
+    *    - |improved|
+         - The ``LockServiceImpl`` now, in addition to lock tokens and grants (which are unsafe for logging), also logs token and grant IDs (which are big-integer IDs) as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.57.0
+=======
+
+19 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer embeds Cassandra host names in its metrics.
+           Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
+           This was necessary for compatibility with an internal log-ingestion tool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
+
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer embeds table names in Sweep metrics.
+           Sweep aggregate metrics continue to be reported.
+           This was necessary for compatibility with an internal log-ingestion tool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
+
+    *    - |devbreak| |fixed|
+         - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+
+    *    - |devbreak| |fixed|
+         - The ``ConcurrentStreams`` class has been deleted and replaced with calls to ``MoreStreams.blockingStreamWithParallelism``, from `streams <https://github.com/palantir/streams>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2361/files>`__)
+         
+    *    - |devbreak| |improved|
+         - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
+           This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
+           To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2339>`__)
+
+    *    - |improved|
+         - ``BatchingVisitableView`` methods ``immutableCopy``, ``immutableSetCopy``, and ``copyInto`` use the default batch hint of 1000, instead of a batch hint of 100,000.
+           We previously defaulted to the higher value because the result set was assumed to be small; however, in practice this has turned out not to be the case, leading to timeouts and OOMs in the field.
+           To use a custom batch hint, set the ``batchHint`` property for your ``RangeRequest``.
+           Alternatively, call ``BatchingVisitableView.hintBatchSize(int)`` before making a copy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2347>`__)
+
+    *    - |improved|
+         - AtlasDB table definitions now support specifying log safety without having to also specify value byte order for row components.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2349>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.56.1
+=======
+
+14 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The new concurrent version of `Transaction#getRanges` did not correctly guarantee ordering of the results returned in its stream.
+           We now make sure the resulting ordering matches that of the input RangeRequests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.56.0
+=======
+
+12 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - TimelockServer now exposes the `LockService` instead of the `RemoteLockService` if using the synchronous lock service.
+           This will provide a more comprehensive API which is required by the large internal products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |userbreak| |new|
+         - Timelock clients now report tritium metrics for the lock requests with the prefix ``LockService`` instead of ``RemoteLockService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |devbreak|
+         - LockAwareTransactionManager now returns a `LockService` instead of a `RemoteLockService` in order to expose the new API.
+           Any products that extend this class will have to change their class definition.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - Added two new methods to Transaction, getRangesLazy and a concurrent version of getRanges, which are also exposed in the Table API.
+           If you expect to only use a small amount of the rows in the provided ranges, it is often advisable to use the new getRangesLazy method and serially iterate over the results.
+           Otherwise, you should use the new version of getRanges that allows explicitly operating on the resulting visitables in parallel.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+
+    *    - |deprecated|
+         - The existing getRanges method has been deprecated as it would eagerly load the first page of all ranges, potentially concurrently.
+           This often caused more data to be fetched than necessary or higher concurrency than expected.
+           Recommended alternative is to use getRanges with a specified concurrency level, or getRangesLazy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2281>`__)
+
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer embeds user-agents in metric names.
+           This affects both AtlasDB clients as well as TimeLock Server.
+           All metrics are still available; however, metrics which previously included a user-agent component will no longer do so.
+           For example, the timer ``com.palantir.timestamp.TimestampService.myUserAgent_version.getFreshTimestamp`` is now named ``com.palantir.timestamp.TimestampService.getFreshTimestamp``.
+           This was necessary for compatibility with an internal log-ingestion tool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2322>`__)
+
+    *    - |improved|
+         - LockServerOptions now provides a builder, which means constructing one should not require overriding methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2284>`__)
+
+    *    - |new|
+         - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.55.0
+=======
+
+01 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |userbreak|
+         - If AtlasDB is used with TimeLock, and the TimeLock client name is different than either the Cassandra ``keyspace``, Postgres ``dbName``, or Oracle ``sid``, *AtlasDB will fail to start*.
+           This was done to avoid the risk of data corruption if these are accidentally changed independently.
+           If the above parameters contradict, please contact the AtlasDB team to change the TimeLock client name. Changing it in config without additional action may result in *severe data corruption*.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
+    *    - |new|
+         - AtlasDB introduces a top-level ``namespace`` configuration parameter, which is used to set the ``keyspace`` in the keyValueService when using Cassandra and the ``client`` in TimeLock.
+           Following the previous change, we unify both the configs that cannot be changed separately in one single config. Therefore it is suggested that AtlasDB users follow and use the new parameter to specify both the deprecated ones.
+           Note that if the new ``namespace`` config contradicts with either the Cassandra ``keyspace`` and/or the TimeLock ``client`` configs, *AtlasDB will fail to start*.
+           Please consult the documentation for :ref:`AtlasDB Configuration <atlas-config>` for details on how to set this up.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
+    *    - |deprecated|
+         - As a followup of the ``namespace`` change, the Cassandra ``keyspace`` and TimeLock ``client`` configs were deprecated.
+           As said previously, please use the ``namespace`` root level config to specify both of these parameters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2263>`__)
+
+    *    - |new|
+         - Oracle SE will now automatically trigger table data shrinking to recover space after sweeping a table.
+           You can disable the compaction by setting ``enableShrinkOnOracleStandardEdition`` to ``false`` in the Oracle DDL config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2286>`__)
+
+    *    - |fixed|
+         - Fixed an issue where sweep logs would get rolled over sooner than expected. The number of log files stored on disk was increased from 10 to 90 before rolling over.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2295>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.54.0
+=======
+
+25 August 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Timelock clients now report tritium metrics for the ``TimestampService`` even if they are using the request batching service.
+           Note when setting up metric graphs, the timestamp service metrics are named with ``...Timelock.<getFreshTimestamp/getFreshTimestamps>`` when not using request batching,
+           but as ``...Timestamp.<getFreshTimestamp/getFreshTimestamps>`` if using request batching.
+           The lock service metrics are always reported as ``...Timelock.<lock/unlock/etc>`` for timelock clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
+
+    *    - |fixed|
+         - AtlasDB clients now report tritium metrics for the ``TimestampService`` and ``LockService`` endpoints just once instead of twice.
+           In the past, every request would be reported twice leading to number bloat and more load on the metric collector service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2270>`__)
+
+    *    - |fixed|
+         - ``kvs-slow-log`` now uses ``logsafe`` to support sls-compatible logging.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2222>`__)
+
+    *    - |fixed|
+         - The scrubber queue no longer grows without bound if the same cell is overwritten multiple times by hard delete transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
+
+    *    - |improved|
+         - If ``enableOracleEnterpriseFeatures`` is configured to be false, you will now see warnings asking you to run Oracle compaction manually.
+           This will help make non-EE Oracle users aware of potential database bloat.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2277>`__)
+
     *    - |fixed|
          - Fixed a case where logging an expection suppressing itself would cause a stack overflow.
-           See https://jira.qos.ch/browse/LOGBACK-1027.
+           See `LOGBACK-1027 <https://jira.qos.ch/browse/LOGBACK-1027>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2242>`__)
 
     *    - |new|
@@ -55,7 +285,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2247>`__)
 
     *    - |improved|
-         - Timelock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
+         - TimeLock now creates client namespaces the first time they are requested, rather than requiring them to be specified in config.
            This means that specifying a list of clients in Timelock configuration will no longer have any effect. Further, a new configuration property called ``max-number-of-clients`` has been introduced in ``TimeLockRuntimeConfiguration``. This can be used to limit the number of clients that will be created dynamically, since each distinct client has some memory, disk space, and CPU overhead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2252>`__)
 
@@ -67,14 +297,6 @@ develop
          - CharacterLimitType now has fields marked as final.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2259>`__)
 
-    *    - |fixed|
-         - ``kvs-slow-log`` now uses ``logsafe`` to support sls-compatible logging.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2222>`__)
-
-    *    - |fixed|
-         - The scrubber can no longer get backed up if the same cell is overwritten multiple times by hard delete transactions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2232>`__)
-
     *    - |changed|
          - The ``RangeMigrator`` interface now contains an additional method ``logStatus(int numRangeBoundaries)``.
            This method is used to log the state of migration for each table when starting or resuming a KVS migration.
@@ -83,6 +305,8 @@ develop
     *    - |changed|
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.53.0
@@ -131,6 +355,8 @@ v0.53.0
     *    - |devbreak|
          - IteratorUtils.forEach removed; it's not needed in a Java 8 codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.52.0

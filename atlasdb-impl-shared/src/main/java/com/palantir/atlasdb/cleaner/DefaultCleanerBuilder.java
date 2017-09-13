@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
@@ -43,9 +43,10 @@ public class DefaultCleanerBuilder {
     private int backgroundScrubReadThreads = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_READ_THREADS;
     private long backgroundScrubFrequencyMillis = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_FREQUENCY_MILLIS;
     private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
+    private boolean initalizeAsync = AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
-            RemoteLockService lockService,
+            LockService lockService,
             TimestampService timestampService,
             LockClient lockClient,
             List<? extends Follower> followerList,
@@ -99,8 +100,13 @@ public class DefaultCleanerBuilder {
         return this;
     }
 
+    public DefaultCleanerBuilder setInitializeAsync(boolean initializeAsync) {
+        this.initalizeAsync = initializeAsync;
+        return this;
+    }
+
     private Puncher buildPuncher() {
-        KeyValueServicePuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService);
+        PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
         PuncherStore cachingPuncherStore = CachingPuncherStore.create(
                 keyValuePuncherStore,
                 punchIntervalMillis * 3);
@@ -113,8 +119,8 @@ public class DefaultCleanerBuilder {
     }
 
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
-                                   Supplier<Long> immutableTimestampSupplier) {
-        ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService);
+            Supplier<Long> immutableTimestampSupplier) {
+        ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService, initalizeAsync);
         return Scrubber.create(
                 keyValueService,
                 scrubberStore,

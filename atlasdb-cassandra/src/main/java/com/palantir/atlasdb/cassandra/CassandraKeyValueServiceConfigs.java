@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.lock.logger;
 
-import java.io.File;
-import java.io.IOException;
+package com.palantir.atlasdb.cassandra;
 
-public class LockServiceLoggerTestUtils {
-    public static final String TEST_LOG_STATE_DIR = "log-state";
+public final class CassandraKeyValueServiceConfigs {
+    private CassandraKeyValueServiceConfigs() {
+        // Utility class
+    }
 
-    public static void cleanUpLogStateDir() throws IOException {
-        File rootDir = new File(TEST_LOG_STATE_DIR);
-        if (rootDir.isDirectory()) {
-            for (File file : rootDir.listFiles()) {
-                file.delete();
-            }
-        }
-        rootDir.delete();
+    public static CassandraKeyValueServiceConfig copyWithKeyspace(
+            CassandraKeyValueServiceConfig cassandraConfig,
+            String recommendedKeyspace) {
+        return ImmutableCassandraKeyValueServiceConfig.builder()
+                .from(cassandraConfig)
+                .keyspace(recommendedKeyspace)
+                .build();
     }
 }

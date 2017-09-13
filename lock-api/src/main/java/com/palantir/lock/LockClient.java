@@ -25,7 +25,6 @@ import javax.annotation.concurrent.Immutable;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -88,9 +87,7 @@ import com.google.common.base.Strings;
     }
 
     @Override public String toString() {
-        return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .addValue(isAnonymous() ? "anonymous" : ("\"" + clientId + "\""))
-                .toString();
+        return clientId;
     }
 
     @Override public boolean equals(@Nullable Object obj) {

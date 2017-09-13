@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,8 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
 
 @Immutable
-public class ColumnValueDescription {
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
+public final class ColumnValueDescription {
     private static final Logger log = LoggerFactory.getLogger(ColumnValueDescription.class);
 
     public enum Format {

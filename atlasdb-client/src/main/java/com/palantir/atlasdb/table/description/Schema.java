@@ -26,8 +26,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +65,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
  * stores, as well as compiling automatically generated code for accessing
  * tables in a type-safe fashion.
  */
+@SuppressWarnings("checkstyle:Indentation")
 public class Schema {
     private static final Logger log = LoggerFactory.getLogger(Schema.class);
 
@@ -126,10 +127,10 @@ public class Schema {
             }
             Preconditions.checkArgument(
                     kvsExceeded.isEmpty(),
-                    "Internal table name %s is too long, known to exceed character limits for " +
-                            "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
-                            "of the prefix with the internal table name is below the KVS limit. " +
-                            "If running only against a different KVS, set the ignoreTableNameLength flag.",
+                    "Internal table name %s is too long, known to exceed character limits for "
+                            + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
+                            + "of the prefix with the internal table name is below the KVS limit. "
+                            + "If running only against a different KVS, set the ignoreTableNameLength flag.",
                     tableName, StringUtils.join(kvsExceeded, ", "));
         }
         tableDefinitions.put(tableName, definition);
@@ -151,17 +152,22 @@ public class Schema {
             ret.put(TableReference.create(namespace, e.getKey()), e.getValue().toTableMetadata());
         }
         for (Map.Entry<String, IndexDefinition> e : indexDefinitions.entrySet()) {
-            ret.put(TableReference.create(namespace, e.getKey()), e.getValue().toIndexMetadata(e.getKey()).getTableMetadata());
+            ret.put(TableReference.create(namespace, e.getKey()),
+                    e.getValue().toIndexMetadata(e.getKey()).getTableMetadata());
         }
         return ret;
     }
 
     public Set<TableReference> getAllIndexes() {
-        return indexDefinitions.keySet().stream().map((table) -> TableReference.create(namespace, table)).collect(Collectors.toSet());
+        return indexDefinitions.keySet().stream()
+                .map((table) -> TableReference.create(namespace, table))
+                .collect(Collectors.toSet());
     }
 
     public Set<TableReference> getAllTables() {
-        return tableDefinitions.keySet().stream().map((table) -> TableReference.create(namespace, table)).collect(Collectors.toSet());
+        return tableDefinitions.keySet().stream()
+                .map((table) -> TableReference.create(namespace, table))
+                .collect(Collectors.toSet());
     }
 
     public void addIndexDefinition(String idxName, IndexDefinition definition) {
@@ -179,7 +185,8 @@ public class Schema {
     public void addStreamStoreDefinition(StreamStoreDefinition streamStoreDefinition) {
         streamStoreDefinition.getTables().forEach((tableName, definition) -> addTableDefinition(tableName, definition));
         StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
-        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(packageName, name, renderer, namespace);
+        Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(
+                packageName, name, renderer, namespace);
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
@@ -202,7 +209,8 @@ public class Schema {
                 Schemas.isTableNameValid(idxName),
                 "Invalid table name " + idxName);
         Preconditions.checkArgument(
-                !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns() || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
+                !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns()
+                        || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
     }
 
@@ -225,10 +233,10 @@ public class Schema {
         }
 
         for (Entry<String, IndexDefinition> indexEntry : indexDefinitions.entrySet()) {
-            IndexDefinition d = indexEntry.getValue();
+            IndexDefinition def = indexEntry.getValue();
             try {
-                d.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
-                d.validate();
+                def.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
+                def.validate();
             } catch (Exception e) {
                 log.error("Failed to validate index {}.", indexEntry.getKey());
                 throw e;
@@ -242,21 +250,24 @@ public class Schema {
                     input -> input.getComponentName());
 
             IndexMetadata indexMetadata = indexDefinitions.get(e.getValue()).toIndexMetadata(e.getValue());
-            for (IndexComponent c : Iterables.concat(indexMetadata.getRowComponents(), indexMetadata.getColumnComponents())) {
+            for (IndexComponent c : Iterables.concat(indexMetadata.getRowComponents(),
+                    indexMetadata.getColumnComponents())) {
                 if (c.rowComponentName != null) {
                     Validate.isTrue(rowNames.contains(c.rowComponentName));
                 }
             }
 
-            if(indexMetadata.getColumnNameToAccessData() != null) {
-                Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null, "Indexes accessing columns not supported for tables with dynamic columns.");
+            if (indexMetadata.getColumnNameToAccessData() != null) {
+                Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null,
+                        "Indexes accessing columns not supported for tables with dynamic columns.");
                 Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
                         input -> input.getLongName());
                 Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()));
             }
 
             if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {
-                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.conflictHandler), "Nonadditive indexes require write-write conflicts on their tables");
+                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.conflictHandler),
+                        "Nonadditive indexes require write-write conflicts on their tables");
             }
         }
     }
@@ -294,10 +305,11 @@ public class Schema {
         for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
-            ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(Ordering.natural().onResultOf(
-                    (Function<IndexMetadata, String>) index -> index.getIndexName()));
+            ImmutableSortedSet.Builder<IndexMetadata> indices = ImmutableSortedSet.orderedBy(
+                    Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));
             if (table.getGenericTableName() != null) {
-                Preconditions.checkState(!indexesByTable.containsKey(rawTableName), "Generic tables cannot have indices");
+                Preconditions.checkState(!indexesByTable.containsKey(rawTableName),
+                        "Generic tables cannot have indices");
             } else {
                 for (String indexName : indexesByTable.get(rawTableName)) {
                     indices.add(indexDefinitions.get(indexName).toIndexMetadata(indexName));

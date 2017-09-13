@@ -59,7 +59,7 @@ public class TimeLockMigrationEteTest {
     private static final String ETE_CONTAINER = "ete1";
     private static final String TIMELOCK_CONTAINER = "timelock";
     private static final int TIMELOCK_PORT = 8421;
-    private static final String TEST_CLIENT = "test";
+    private static final String TEST_CLIENT = "atlasete";
 
     @ClassRule
     public static final RuleChain RULE_CHAIN = RuleChain.outerRule(GRADLE_PREPARE_TASK)
@@ -163,10 +163,11 @@ public class TimeLockMigrationEteTest {
         waitUntil(logsContainTransactionManagerCreationFailure());
     }
 
+    // Note that this check is a bit hacky, as it depends on finding a particular log message
     private static Callable<Boolean> logsContainTransactionManagerCreationFailure() {
         return () -> {
             String serverLogs = CLIENT_ORCHESTRATION_RULE.getClientLogs();
-            return serverLogs.contains("An error occurred while trying to create transaction manager.");
+            return serverLogs.contains("IllegalArgumentException trying to convert the stored value to a long.");
         };
     }
 

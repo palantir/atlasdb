@@ -34,7 +34,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -59,7 +59,7 @@ public class TestTransactionManagerModule {
     @Singleton
     public Cleaner provideCleaner(ServicesConfig config,
                                   @Named("kvs") KeyValueService kvs,
-                                  RemoteLockService rlc,
+                                  LockService lock,
                                   TimestampService tss,
                                   LockClient lockClient,
                                   Follower follower,
@@ -67,7 +67,7 @@ public class TestTransactionManagerModule {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
                 kvs,
-                rlc,
+                lock,
                 tss,
                 lockClient,
                 ImmutableList.of(follower),
@@ -78,6 +78,7 @@ public class TestTransactionManagerModule {
                 .setBackgroundScrubThreads(atlasDbConfig.getBackgroundScrubThreads())
                 .setPunchIntervalMillis(atlasDbConfig.getPunchIntervalMillis())
                 .setTransactionReadTimeout(atlasDbConfig.getTransactionReadTimeoutMillis())
+                .setInitializeAsync(atlasDbConfig.initializeAsync())
                 .buildCleaner();
     }
 
@@ -100,7 +101,8 @@ public class TestTransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                config.allowAccessToHiddenTables());
+                config.allowAccessToHiddenTables(),
+                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize());
     }
 
 }

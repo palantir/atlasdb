@@ -16,10 +16,13 @@
 
 package com.palantir.atlasdb.timelock.util;
 
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -27,8 +30,13 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
 public class TestProxies {
+
+    public static final SSLSocketFactory SSL_SOCKET_FACTORY =
+            SslSocketFactories.createSslSocketFactory(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
 
     private final String baseUri;
     private final List<TimeLockServerHolder> servers;
@@ -52,7 +60,7 @@ public class TestProxies {
     public <T> T singleNode(Class<T> serviceInterface, String uri) {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
-                Optional.empty(),
+                Optional.of(SSL_SOCKET_FACTORY),
                 uri,
                 serviceInterface,
                 MultiNodePaxosTimeLockServerIntegrationTest.class.toString()));
@@ -65,7 +73,7 @@ public class TestProxies {
     public <T> T failover(Class<T> serviceInterface, List<String> uris) {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
-                Optional.empty(),
+                Optional.of(SSL_SOCKET_FACTORY),
                 uris,
                 serviceInterface,
                 getClass().toString()));
@@ -73,7 +81,7 @@ public class TestProxies {
 
     public List<String> getServerUris() {
         return servers.stream()
-                .map(server -> getServerUri(server))
+                .map(this::getServerUri)
                 .collect(Collectors.toList());
     }
 

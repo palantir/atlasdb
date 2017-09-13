@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.timelock;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -56,6 +56,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -77,11 +78,12 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
                 .map(server -> server.serverHolder().getTimelockUri())
                 .collect(Collectors.toList());
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .namespace("test")
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .timelock(ImmutableTimeLockClientConfig.builder()
-                        .client(CLIENT)
                         .serversList(ImmutableServerListConfig.builder()
                                 .servers(serverUris)
+                                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
                                 .build())
                         .build())
                 .build();

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -28,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -133,10 +134,28 @@ public class SchemaTest {
                 .hasMessage(getErrorMessage(longTableName, kvsList));
     }
 
+    @Test
+    // If you are intentionally making Table API changes, please manually regenerate the ApiTestSchema
+    public void checkAgainstAccidentalTableAPIChanges() throws IOException {
+        // TODO (amarzoca): Add tests for schemas that use more of the rendering features (Triggers, StreamStores, etc)
+        Schema schema = ApiTestSchema.getSchema();
+        schema.renderTables(testFolder.getRoot());
+
+        String generatedTestTableName = "SchemaApiTestTable";
+        String generatedFilePath =
+                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
+
+        File expectedFile = new File("src/integrationInput/java", generatedFilePath);
+        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+
+        assertThat(actualFile).hasSameContentAs(expectedFile);
+    }
+
     private String readFileIntoString(File baseDir, String path) throws IOException {
         return new String(Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
     }
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {{
             javaTableName(tableRef.getTablename());
@@ -148,10 +167,10 @@ public class SchemaTest {
     }
 
     private String getErrorMessage(String tableName, List<CharacterLimitType> kvsExceeded) {
-        return String.format("Internal table name %s is too long, known to exceed character limits for " +
-                        "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
-                        "of the prefix with the internal table name is below the KVS limit. " +
-                        "If running only against a different KVS, set the ignoreTableNameLength flag.",
+        return String.format("Internal table name %s is too long, known to exceed character limits for "
+                        + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
+                        + "of the prefix with the internal table name is below the KVS limit. "
+                        + "If running only against a different KVS, set the ignoreTableNameLength flag.",
                 tableName, StringUtils.join(kvsExceeded, ", "));
     }
 

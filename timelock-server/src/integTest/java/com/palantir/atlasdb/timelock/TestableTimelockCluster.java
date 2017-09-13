@@ -29,12 +29,13 @@ import java.util.stream.Collectors;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -51,7 +52,6 @@ public class TestableTimelockCluster {
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final String defaultClient;
-    private final String baseUri;
     private final List<TemporaryConfigurationHolder> configs;
     private final List<TestableTimelockServer> servers;
     private final TestProxies proxies;
@@ -60,8 +60,7 @@ public class TestableTimelockCluster {
 
     public TestableTimelockCluster(String baseUri, String defaultClient, String... configFileTemplates) {
         this.defaultClient = defaultClient;
-        this.baseUri = baseUri;
-        this.configs = Arrays.asList(configFileTemplates).stream()
+        this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());
         this.servers = configs.stream()
@@ -72,13 +71,16 @@ public class TestableTimelockCluster {
     }
 
     public void waitUntilLeaderIsElected() {
-        TimestampService timestampService = timestampService();
+        waitUntilReadyToServeClients(ImmutableList.of(defaultClient));
+    }
+
+    public void waitUntilReadyToServeClients(List<String> clients) {
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        timestampService.getFreshTimestamp();
+                        clients.forEach(client -> timelockServiceForClient(client).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -86,9 +88,9 @@ public class TestableTimelockCluster {
                 });
     }
 
-    public void waitUntillAllSeversAreOnlineAndLeaderIsElected() {
+    public void waitUntilAllServersOnlineAndReadyToServeClients(List<String> clients) {
         servers.forEach(TestableTimelockServer::start);
-        waitUntilLeaderIsElected();
+        waitUntilReadyToServeClients(clients);
     }
 
     public TestableTimelockServer currentLeader() {
@@ -192,8 +194,8 @@ public class TestableTimelockCluster {
         return proxies.failoverForClient(defaultClient, TimestampService.class);
     }
 
-    public RemoteLockService lockService() {
-        return proxies.failoverForClient(defaultClient, RemoteLockService.class);
+    public LockService lockService() {
+        return proxies.failoverForClient(defaultClient, LockService.class);
     }
 
     public TimelockService timelockService() {

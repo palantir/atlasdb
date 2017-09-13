@@ -72,6 +72,7 @@ public class TransactionManagerModule {
                 .setBackgroundScrubThreads(atlasDbConfig.getBackgroundScrubThreads())
                 .setPunchIntervalMillis(atlasDbConfig.getPunchIntervalMillis())
                 .setTransactionReadTimeout(atlasDbConfig.getTransactionReadTimeoutMillis())
+                .setInitializeAsync(atlasDbConfig.initializeAsync())
                 .buildCleaner();
     }
 
@@ -94,7 +95,8 @@ public class TransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                config.allowAccessToHiddenTables());
+                config.allowAccessToHiddenTables(),
+                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize());
     }
 
 }

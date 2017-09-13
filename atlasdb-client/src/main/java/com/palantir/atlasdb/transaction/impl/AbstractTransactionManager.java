@@ -17,20 +17,30 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.RateLimiter;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
+    private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
+
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
     protected final TimestampCache timestampValidationReadCache = TimestampCache.create();
     private volatile boolean closed = false;
@@ -66,6 +76,9 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 log.info("[{}] Retrying transaction after {} failure(s).",
                         SafeArg.of("runId", runId),
                         SafeArg.of("failureCount", failureCount), e);
+            } catch (NotInitializedException e) {
+                log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", e);
+                throw e;
             } catch (RuntimeException e) {
                 log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;
@@ -117,5 +130,31 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     @Override
     public void clearTimestampCache() {
         timestampValidationReadCache.clear();
+    }
+
+    ExecutorService createGetRangesExecutor(int numThreads) {
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>() {
+            private final RateLimiter warningRateLimiter = RateLimiter.create(1);
+
+            @Override
+            public boolean offer(Runnable runnable) {
+                sanityCheckQueueSize();
+                return super.offer(runnable);
+            }
+
+            private void sanityCheckQueueSize() {
+                int currentSize = this.size();
+                if (currentSize >= GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD && warningRateLimiter.tryAcquire()) {
+                    log.warn("You have {} pending getRanges tasks. Please sanity check both your level "
+                            + "of concurrency and size of batched range requests. If necessary you can "
+                            + "increase the value of concurrentGetRangesThreadPoolSize to allow for a larger "
+                            + "thread pool.", currentSize);
+                }
+            }
+        };
+        return new ThreadPoolExecutor(
+                numThreads, numThreads, 0L, TimeUnit.MILLISECONDS, workQueue,
+                new ThreadFactoryBuilder().setNameFormat(
+                        AbstractTransactionManager.this.getClass().getSimpleName() + "-get-ranges-%d").build());
     }
 }
