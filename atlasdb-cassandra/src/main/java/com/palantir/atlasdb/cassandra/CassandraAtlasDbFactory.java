@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidato
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -59,7 +59,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
                 + " CassandraKeyValueService, found %s", rawKvs.getClass());
-        return PersistentTimestampService.create(
+        return PersistentTimestampServiceImpl.create(
                 CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
     }
 

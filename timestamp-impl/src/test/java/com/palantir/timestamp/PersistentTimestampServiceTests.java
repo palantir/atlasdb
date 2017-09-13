@@ -48,7 +48,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     private PersistentTimestampService getSingletonTimestampService() {
         if (timestampBoundStore == null || persistentTimestampService == null) {
             timestampBoundStore = new InMemoryTimestampBoundStore();
-            persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+            persistentTimestampService = PersistentTimestampServiceImpl.create(timestampBoundStore);
         }
         return persistentTimestampService;
     }

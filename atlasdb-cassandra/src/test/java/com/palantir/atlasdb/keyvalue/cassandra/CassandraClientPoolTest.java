@@ -212,9 +212,9 @@ public class CassandraClientPoolTest {
     private void verifyNumberOfAttemptsOnHost(InetSocketAddress host,
                                               CassandraClientPool cassandraClientPool,
                                               int numAttempts) {
-        Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts)).runWithPooledResource(
-                Mockito.<FunctionCheckedException<Cassandra.Client, Object, RuntimeException>>any()
-        );
+        Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
+                .runWithPooledResource(
+                        Mockito.<FunctionCheckedException<Cassandra.Client, Object, RuntimeException>>any());
     }
 
     private CassandraClientPool clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {

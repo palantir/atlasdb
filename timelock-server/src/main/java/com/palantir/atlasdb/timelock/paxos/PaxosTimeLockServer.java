@@ -81,6 +81,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.remoting2.config.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 
 import io.dropwizard.setup.Environment;
@@ -391,7 +392,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
                         ImmutableList.copyOf(learners),
                         paxosConfiguration.maximumWaitBeforeProposalMs()),
                 client);
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(boundStore);
+        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
         return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
     }
 
