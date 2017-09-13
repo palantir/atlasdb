@@ -91,7 +91,7 @@ import com.palantir.remoting2.tracing.Tracers;
  **/
 @SuppressWarnings("VisibilityModifier")
 public class CassandraClientPoolImpl implements CassandraClientPool {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
     private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
@@ -158,11 +158,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         RequestMetrics(String metricPrefix) {
             totalRequests = metricsManager.registerMeter(
-                    CassandraClientPoolImpl.class, metricPrefix, "requests");
+                    CassandraClientPool.class, metricPrefix, "requests");
             totalRequestExceptions = metricsManager.registerMeter(
-                    CassandraClientPoolImpl.class, metricPrefix, "requestExceptions");
+                    CassandraClientPool.class, metricPrefix, "requestExceptions");
             totalRequestConnectionExceptions = metricsManager.registerMeter(
-                    CassandraClientPoolImpl.class, metricPrefix, "requestConnectionExceptions");
+                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
         }
 
         void markRequest() {
@@ -251,13 +251,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private void registerAggregateMetrics() {
         metricsManager.registerMetric(
-                CassandraClientPoolImpl.class, "numBlacklistedHosts",
+                CassandraClientPool.class, "numBlacklistedHosts",
                 () -> blacklistedHosts.size());
         metricsManager.registerMetric(
-                CassandraClientPoolImpl.class, "requestFailureProportion",
+                CassandraClientPool.class, "requestFailureProportion",
                 aggregateMetrics::getExceptionProportion);
         metricsManager.registerMetric(
-                CassandraClientPoolImpl.class, "requestConnectionExceptionProportion",
+                CassandraClientPool.class, "requestConnectionExceptionProportion",
                 aggregateMetrics::getConnectionExceptionProportion);
     }
 
@@ -321,11 +321,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void registerMetricsForHost(InetSocketAddress server) {
         RequestMetrics requestMetrics = new RequestMetrics(server.getHostString());
         metricsManager.registerMetric(
-                CassandraClientPoolImpl.class,
+                CassandraClientPool.class,
                 server.getHostString(), "requestFailureProportion",
                 requestMetrics::getExceptionProportion);
         metricsManager.registerMetric(
-                CassandraClientPoolImpl.class,
+                CassandraClientPool.class,
                 server.getHostString(), "requestConnectionExceptionProportion",
                 requestMetrics::getConnectionExceptionProportion);
         metricsByHost.put(server, requestMetrics);
@@ -333,7 +333,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private void deregisterMetricsForHost(InetSocketAddress removedServerAddress) {
         metricsByHost.remove(removedServerAddress);
-        metricsManager.deregisterMetricsWithPrefix(CassandraClientPoolImpl.class, removedServerAddress.getHostString());
+        metricsManager.deregisterMetricsWithPrefix(CassandraClientPool.class, removedServerAddress.getHostString());
     }
 
     private void debugLogStateOfPool() {
