@@ -202,10 +202,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
     public static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
-        return create(configManager, leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return (CassandraKeyValueServiceImpl)
+                create(configManager, leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraKeyValueServiceImpl create(
+    public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
@@ -213,14 +214,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
                 initializeAsync);
     }
 
-    public static CassandraKeyValueServiceImpl create(
+    @VisibleForTesting
+    static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
         return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraKeyValueServiceImpl create(
+    private static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log,

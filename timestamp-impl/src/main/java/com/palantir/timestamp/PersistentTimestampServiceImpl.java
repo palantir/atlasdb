@@ -27,11 +27,11 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
 
     private final PersistentTimestamp timestamp;
 
-    public static PersistentTimestampServiceImpl create(TimestampBoundStore store) {
+    public static PersistentTimestampService create(TimestampBoundStore store) {
         return create(new ErrorCheckingTimestampBoundStore(store));
     }
 
-    public static PersistentTimestampServiceImpl create(ErrorCheckingTimestampBoundStore store) {
+    public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store) {
         long latestTimestamp = store.getUpperLimit();
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
         PersistentTimestamp timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
