@@ -108,6 +108,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
@@ -135,6 +136,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
@@ -204,6 +206,12 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:commons-annotations": {
@@ -285,6 +293,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -321,6 +330,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "commons-codec:commons-codec": {
@@ -657,6 +672,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:commons-executors",
@@ -684,6 +700,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
@@ -753,6 +770,12 @@
                 "com.palantir.atlasdb:commons-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:commons-annotations": {
@@ -834,6 +857,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -870,6 +894,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "commons-codec:commons-codec": {

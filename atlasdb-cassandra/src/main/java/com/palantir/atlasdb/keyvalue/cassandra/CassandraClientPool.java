@@ -35,7 +35,6 @@ public interface CassandraClientPool {
     <V, K extends Exception> V runWithRetry(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K;
     InetSocketAddress getAddressForHost(String host) throws UnknownHostException;
     InetSocketAddress getRandomHostForKey(byte[] key);
-    Map<InetSocketAddress, Long> getBlacklistedHosts();
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
     void shutdown();
 }

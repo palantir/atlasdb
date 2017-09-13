@@ -19,6 +19,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -66,16 +69,22 @@ import com.palantir.timestamp.TimestampService;
  */
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
+    private static final Logger log = LoggerFactory.getLogger(InMemoryAtlasDbFactory.class);
 
     @Override
     public String getType() {
         return "memory";
     }
 
+    // async initialization not implemented/propagated
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }

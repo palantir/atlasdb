@@ -20,21 +20,65 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.AutoDelegate_TableMappingService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.processors.AutoDelegate;
 
-public final class StaticTableMappingService extends AbstractTableMappingService {
+@AutoDelegate(typeToExtend = TableMappingService.class)
+public final class StaticTableMappingService extends AbstractTableMappingService implements AsyncInitializer {
+    public static class InitializingWrapper implements AutoDelegate_TableMappingService {
+
+        private StaticTableMappingService tableMappingService;
+
+        public InitializingWrapper(StaticTableMappingService tableMappingService) {
+            this.tableMappingService = tableMappingService;
+        }
+
+        @Override
+        public TableMappingService delegate() {
+            if (tableMappingService.isInitialized()) {
+                return tableMappingService;
+            }
+            throw new NotInitializedException("TableMappingService");
+        }
+    }
+
+    private volatile boolean isInitialized = false;
     private final KeyValueService kv;
 
     public static TableMappingService create(KeyValueService kv) {
-        StaticTableMappingService ret = new StaticTableMappingService(kv);
-        ret.updateTableMap();
-        return ret;
+        return create(kv, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static TableMappingService create(KeyValueService kv, boolean initializeAsync) {
+        StaticTableMappingService tableMappingService = new StaticTableMappingService(kv);
+        tableMappingService.initialize(initializeAsync);
+        return tableMappingService.isInitialized() ? tableMappingService : new InitializingWrapper(tableMappingService);
     }
 
     private StaticTableMappingService(KeyValueService kv) {
         this.kv = kv;
+    }
+
+    @Override
+    public synchronized boolean isInitialized() {
+        return isInitialized;
+    }
+
+    @Override
+    public synchronized void tryInitialize() {
+        assertNotInitialized();
+        updateTableMap();
+        isInitialized = true;
+    }
+
+    @Override
+    public synchronized void cleanUpOnInitFailure() {
     }
 
     @Override
@@ -64,5 +108,4 @@ public final class StaticTableMappingService extends AbstractTableMappingService
     protected void validateShortName(TableReference tableRef, TableReference shortName) {
         // any name is ok for the static mapper
     }
-
 }

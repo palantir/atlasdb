@@ -72,6 +72,7 @@ public class TransactionManagerModule {
                 .setBackgroundScrubThreads(atlasDbConfig.getBackgroundScrubThreads())
                 .setPunchIntervalMillis(atlasDbConfig.getPunchIntervalMillis())
                 .setTransactionReadTimeout(atlasDbConfig.getTransactionReadTimeoutMillis())
+                .setInitializeAsync(atlasDbConfig.initializeAsync())
                 .buildCleaner();
     }
 

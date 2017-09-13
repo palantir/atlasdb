@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -63,6 +64,8 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -71,6 +74,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting2.tracing.Tracers;
 
 /**
@@ -90,131 +95,97 @@ import com.palantir.remoting2.tracing.Tracers;
  *   ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("VisibilityModifier")
-public class CassandraClientPoolImpl implements CassandraClientPool {
+@AutoDelegate(typeToExtend = CassandraClientPool.class)
+public final class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitializer {
+    public static class InitializingWrapper implements AutoDelegate_CassandraClientPool {
+        private CassandraClientPoolImpl cassandraClientPool;
+
+        public InitializingWrapper(CassandraClientPoolImpl cassandraClientPool) {
+            this.cassandraClientPool = cassandraClientPool;
+        }
+
+        @Override
+        public CassandraClientPool delegate() {
+            if (cassandraClientPool.isInitialized()) {
+                return cassandraClientPool;
+            }
+            throw new NotInitializedException("CassandraClientPool");
+        }
+    }
+
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
     private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
             + " unlikely cause: network issues.";
-
     /**
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
     @VisibleForTesting
     static final int MAX_TRIES_SAME_HOST = 3;
+
     @VisibleForTesting
     static final int MAX_TRIES_TOTAL = 6;
-
+    @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+    @VisibleForTesting
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
-    Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
-    final CassandraKeyValueServiceConfig config;
-    final ScheduledExecutorService refreshDaemon;
 
+    private final CassandraKeyValueServiceConfig config;
+    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+    private final StartupChecks startupChecks;
+    private final ScheduledExecutorService refreshDaemon;
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
-    public static class LightweightOppToken implements Comparable<LightweightOppToken> {
-        final byte[] bytes;
-
-        public LightweightOppToken(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public int compareTo(LightweightOppToken other) {
-            return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null || getClass() != obj.getClass()) {
-                return false;
-            }
-            LightweightOppToken that = (LightweightOppToken) obj;
-            return Arrays.equals(bytes, that.bytes);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(bytes);
-        }
-
-        @Override
-        public String toString() {
-            return BaseEncoding.base16().encode(bytes);
-        }
-    }
-
-    private class RequestMetrics {
-        private final Meter totalRequests;
-        private final Meter totalRequestExceptions;
-        private final Meter totalRequestConnectionExceptions;
-
-        RequestMetrics(String metricPrefix) {
-            totalRequests = metricsManager.registerMeter(
-                    CassandraClientPool.class, metricPrefix, "requests");
-            totalRequestExceptions = metricsManager.registerMeter(
-                    CassandraClientPool.class, metricPrefix, "requestExceptions");
-            totalRequestConnectionExceptions = metricsManager.registerMeter(
-                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
-        }
-
-        void markRequest() {
-            totalRequests.mark();
-        }
-
-        void markRequestException() {
-            totalRequestExceptions.mark();
-        }
-
-        void markRequestConnectionException() {
-            totalRequestConnectionExceptions.mark();
-        }
-
-        // Approximate
-        double getExceptionProportion() {
-            return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
-        }
-
-        // Approximate
-        double getConnectionExceptionProportion() {
-            return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
-        }
-    }
-
-    enum StartupChecks {
-        RUN,
-        DO_NOT_RUN
-    }
-
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return new CassandraClientPoolImpl(config, StartupChecks.RUN);
-    }
+    private ScheduledFuture<?> refreshPoolFuture;
+    private volatile boolean isInitialized = false;
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks) {
-        return new CassandraClientPoolImpl(config, startupChecks);
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public CassandraClientPoolImpl(CassandraKeyValueServiceConfig config) {
-        this(config, StartupChecks.RUN);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+        CassandraClientPoolImpl cassandraClientPool = create(config,
+                StartupChecks.RUN, initializeAsync);
+        return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
+    }
+
+    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks, boolean initializeAsync) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+        cassandraClientPool.initialize(initializeAsync);
+        return cassandraClientPool;
     }
 
     private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
-        config.servers().forEach(this::addPool);
-        refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+        this.startupChecks = startupChecks;
+        this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
-        refreshDaemon.scheduleWithFixedDelay(() -> {
+    }
+
+    @Override
+    public synchronized boolean isInitialized() {
+        return isInitialized;
+    }
+
+    @Override
+    public synchronized void tryInitialize() {
+        assertNotInitialized();
+
+        config.servers().forEach(this::addPool);
+        refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
             } catch (Throwable t) {
@@ -229,6 +200,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
         refreshPool(); // ensure we've initialized before returning
         registerAggregateMetrics();
+        isInitialized = true;
+    }
+
+    @Override
+    public synchronized void cleanUpOnInitFailure() {
+        metricsManager.deregisterMetrics();
+        refreshPoolFuture.cancel(true);
+        currentPools.forEach((address, cassandraClientPoolingContainer) ->
+                cassandraClientPoolingContainer.shutdownPooling());
+        currentPools.clear();
     }
 
     @Override
@@ -242,11 +223,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return currentPools;
-    }
-
-    @Override
-    public Map<InetSocketAddress, Long> getBlacklistedHosts() {
-        return blacklistedHosts;
     }
 
     private void registerAggregateMetrics() {
@@ -801,7 +777,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 || isRetriableWithBackoffException(ex.getCause()));
     }
 
-    final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
+    private final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
             new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
                 @Override
                 public Void apply(Cassandra.Client client) throws Exception {
@@ -873,5 +849,85 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         InetSocketAddress getRandomHostInternal(int index) {
             return hosts.higherEntry(index).getValue();
         }
+    }
+
+    public static class LightweightOppToken implements Comparable<LightweightOppToken> {
+
+        final byte[] bytes;
+
+        public LightweightOppToken(byte[] bytes) {
+            this.bytes = bytes;
+        }
+
+        @Override
+        public int compareTo(LightweightOppToken other) {
+            return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            LightweightOppToken that = (LightweightOppToken) obj;
+            return Arrays.equals(bytes, that.bytes);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(bytes);
+        }
+
+        @Override
+        public String toString() {
+            return BaseEncoding.base16().encode(bytes);
+        }
+
+    }
+
+    private class RequestMetrics {
+        private final Meter totalRequests;
+        private final Meter totalRequestExceptions;
+        private final Meter totalRequestConnectionExceptions;
+
+        RequestMetrics(String metricPrefix) {
+            totalRequests = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requests");
+            totalRequestExceptions = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requestExceptions");
+            totalRequestConnectionExceptions = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
+        }
+
+        void markRequest() {
+            totalRequests.mark();
+        }
+
+        void markRequestException() {
+            totalRequestExceptions.mark();
+        }
+
+        void markRequestConnectionException() {
+            totalRequestConnectionExceptions.mark();
+        }
+
+        // Approximate
+        double getExceptionProportion() {
+            return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
+        }
+
+        // Approximate
+        double getConnectionExceptionProportion() {
+            return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
+        }
+    }
+
+    @VisibleForTesting
+    enum StartupChecks {
+        RUN,
+        DO_NOT_RUN
     }
 }

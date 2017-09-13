@@ -67,8 +67,6 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
 
@@ -137,12 +135,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
         Logger testLogger = mock(Logger.class);
+        //nth startup
         CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), testLogger);
-        //first startup same as initial - no upgrade
-        verify(testLogger, times(1))
-                .info(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
         kvs.createTable(testTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
         kvs.close();
@@ -150,7 +147,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         CassandraKeyValueService kvs2 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
         assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
         kvs2.close();
-        //startup with different GC grace seconds - should upgrade
+        //n+1th startup with different GC grace seconds - should upgrade
         verify(testLogger, times(1))
                 .info(startsWith("New table-related settings were applied on startup!!"));
 
@@ -208,8 +205,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return testTable.getQualifiedName().replaceFirst("\\.", "__");
     }
 
-    @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() throws Exception {
         verify(logger, never()).error(startsWith("Found a table {} that did not have persisted"), anyString());
     }
@@ -230,7 +227,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
-        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
+        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.getClientPool(),
                 CassandraContainer.KVS_CONFIG);

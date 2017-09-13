@@ -10,9 +10,13 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'io.dropwizard.metrics', name: 'metrics-core'
     compile group: 'net.jpountz.lz4', name: 'lz4'
+    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
     testCompile group: 'org.hamcrest', name: 'hamcrest-core'
     testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: "com.jayway.awaitility", name: "awaitility"
 }

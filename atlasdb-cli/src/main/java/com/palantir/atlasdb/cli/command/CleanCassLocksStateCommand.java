@@ -42,7 +42,8 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         CassandraKeyValueServiceConfig config = getCassandraKvsConfig();
         CassandraKeyValueService ckvs = CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                Optional.empty());
+                Optional.empty(),
+                getAtlasDbConfig().initializeAsync());
 
         ckvs.cleanUpSchemaMutationLockTablesState();
         printer.info("Schema mutation lock cli completed successfully.");

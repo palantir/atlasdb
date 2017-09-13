@@ -59,20 +59,15 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
 
     @Override
     public boolean canConnect(InetSocketAddress addr) {
-        try {
-            CassandraKeyValueServiceImpl.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(
-                            (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
-                    Optional.of(ImmutableLeaderConfig.builder()
-                            .quorumSize(1)
-                            .localServer(addr.getHostString())
-                            .leaders(ImmutableSet.of(addr.getHostString()))
-                            .build()));
-            return true;
-        } catch (Exception e) {
-            log.error("Unable to create Cassandra KVS", e);
-            return false;
-        }
+        return CassandraKeyValueServiceImpl.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
+                Optional.of(ImmutableLeaderConfig.builder()
+                        .quorumSize(1)
+                        .localServer(addr.getHostString())
+                        .leaders(ImmutableSet.of(addr.getHostString()))
+                        .build()))
+                .isInitialized();
     }
 
     @Override

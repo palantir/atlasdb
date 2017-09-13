@@ -17,6 +17,9 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -31,6 +34,7 @@ import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
+    private static final Logger log = LoggerFactory.getLogger(DbAtlasDbFactory.class);
     public static final String TYPE = "relational";
 
     @Override
@@ -38,8 +42,13 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         return TYPE;
     }
 
+    // async initialization not implemented/propagated
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());

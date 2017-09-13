@@ -17,6 +17,9 @@ package com.palantir.atlasdb.keyvalue.jdbc;
 
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -28,14 +31,20 @@ import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class JdbcAtlasDbFactory implements AtlasDbFactory {
+    private static final Logger log = LoggerFactory.getLogger(JdbcAtlasDbFactory.class);
 
     @Override
     public String getType() {
         return JdbcKeyValueConfiguration.TYPE;
     }
 
+    // async initialization not implemented/propagated
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
         AtlasDbVersion.ensureVersionReported();
         return JdbcKeyValueService.create((JdbcKeyValueConfiguration) config);
     }

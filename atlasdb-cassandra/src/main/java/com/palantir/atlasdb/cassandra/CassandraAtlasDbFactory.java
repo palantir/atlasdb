@@ -37,20 +37,16 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
                 "CassandraAtlasDbFactory expects a configuration of type"
                 + " CassandraKeyValueServiceConfig, found %s", config.getClass());
-        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
-    }
-
-    private static CassandraKeyValueService createKv(
-            CassandraKeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                leaderConfig);
+                CassandraKeyValueServiceConfigManager.createSimpleManager((CassandraKeyValueServiceConfig) config),
+                leaderConfig,
+                initializeAsync);
     }
 
     @Override

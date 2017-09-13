@@ -15,12 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.Optional;
 
-import org.apache.cassandra.thrift.InvalidRequestException;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -46,24 +42,10 @@ public class CassandraConnectionIntegrationTest {
                 CassandraContainer.LEADER_CONFIG).close();
     }
 
-    // Don't worry about failing this test if you're running against a local Cassandra that isn't setup with auth magic
     @Test
     public void testAuthMissing() {
-        try {
-            CassandraKeyValueServiceImpl.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG),
-                    CassandraContainer.LEADER_CONFIG);
-            fail();
-        } catch (RuntimeException e) {
-            boolean threwInvalidRequestException = false;
-            Throwable cause = e.getCause();
-            while (!threwInvalidRequestException && cause != null) {
-                threwInvalidRequestException = cause instanceof InvalidRequestException;
-                cause = cause.getCause();
-            }
-            assertTrue(threwInvalidRequestException);
-            return;
-        }
-        fail();
+        CassandraKeyValueServiceImpl.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG),
+                CassandraContainer.LEADER_CONFIG).close();
     }
 }

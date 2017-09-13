@@ -31,6 +31,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -45,10 +46,8 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-public class CassandraExpiringKeyValueService extends CassandraKeyValueServiceImpl implements ExpiringKeyValueService {
-
+public final class CassandraExpiringKeyValueService extends CassandraKeyValueServiceImpl
+        implements ExpiringKeyValueService {
     public static CassandraExpiringKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
@@ -57,17 +56,19 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueServiceIm
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraExpiringKeyValueService kvs =
-                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig);
-        kvs.init();
+                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig,
+                        AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        kvs.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return kvs;
     }
 
-    @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
-    protected CassandraExpiringKeyValueService(
+    private CassandraExpiringKeyValueService(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<CassandraJmxCompactionManager> compactionManager,
-            Optional<LeaderConfig> leaderConfig) {
-        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig);
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
+        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig,
+                initializeAsync);
     }
 
     @Override

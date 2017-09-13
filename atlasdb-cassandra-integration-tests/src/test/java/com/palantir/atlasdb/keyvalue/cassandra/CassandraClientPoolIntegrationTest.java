@@ -165,7 +165,7 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
         clientPool.blacklistedHosts.putAll(
-                Maps.transformValues(clientPool.currentPools, clientPoolContainer -> Long.MAX_VALUE));
+                Maps.transformValues(clientPool.getCurrentPools(), clientPoolContainer -> Long.MAX_VALUE));
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
