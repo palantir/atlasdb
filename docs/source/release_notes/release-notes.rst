@@ -45,7 +45,8 @@ develop
          - Change
 
     *    - |fixed|
-         - Fixes potential incorrect ordering in `Transaction#getRanges`.
+         - The new concurrent version of `Transaction#getRanges` added in 0.56.0 did not correctly guarantee ordering of the results returned in its stream.
+           This will make sure the resulting ordering matches that of the input.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
