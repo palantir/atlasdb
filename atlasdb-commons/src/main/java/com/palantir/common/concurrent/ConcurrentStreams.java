@@ -27,6 +27,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.immutables.value.Value;
+
 import com.palantir.common.base.Throwables;
 
 public class ConcurrentStreams {
@@ -55,7 +57,7 @@ public class ConcurrentStreams {
         }
 
         List<StreamElement<T, S>> elements = values.stream()
-                .map(value -> new StreamElement<T, S>(value))
+                .map(value -> StreamElement.of(value, new CompletableFuture<S>()))
                 .collect(Collectors.toList());
         Queue<StreamElement<T, S>> queue = new ConcurrentLinkedQueue<>(elements);
 
@@ -113,21 +115,16 @@ public class ConcurrentStreams {
         }
     }
 
-    private static class StreamElement<T, S> {
-        private final T value;
-        private final CompletableFuture<S> future;
+    @Value.Immutable
+    static abstract class StreamElement<T, S> {
+        abstract T getValue();
+        abstract CompletableFuture<S> getFuture();
 
-        StreamElement(T value) {
-            this.value = value;
-            this.future = new CompletableFuture<>();
-        }
-
-        T getValue() {
-            return value;
-        }
-
-        CompletableFuture<S> getFuture() {
-            return future;
+        static <T, S> StreamElement<T, S> of(T value, CompletableFuture<S> future) {
+            return ImmutableStreamElement.<T, S>builder()
+                    .value(value)
+                    .future(future)
+                    .build();
         }
     }
 
