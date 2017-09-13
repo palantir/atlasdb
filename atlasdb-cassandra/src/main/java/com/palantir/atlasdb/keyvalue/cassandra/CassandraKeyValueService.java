@@ -197,7 +197,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = new CassandraClientPool(configManager.getConfig());
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig());
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -2157,7 +2157,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private ClusterAvailabilityStatus getStatusByRunningOperationsOnEachHost() {
         int countUnreachableNodes = 0;
-        for (InetSocketAddress host : clientPool.currentPools.keySet()) {
+        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
             try {
                 clientPool.runOnHost(host, CassandraVerifier.healthCheck);
                 if (!partitionerIsValid(host)) {
@@ -2172,7 +2172,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private boolean partitionerIsValid(InetSocketAddress host) {
         try {
-            clientPool.runOnHost(host, clientPool.validatePartitioner);
+            clientPool.runOnHost(host, clientPool.getValidatePartitioner());
             return true;
         } catch (Exception e) {
             return false;

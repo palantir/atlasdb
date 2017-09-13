@@ -35,7 +35,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 
 public abstract class NodesDownTestSetup {
@@ -133,7 +133,7 @@ public abstract class NodesDownTestSetup {
                 ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            new CassandraClientPool(manager.getConfig());
+            CassandraClientPoolImpl.create(manager.getConfig());
             return true;
         } catch (Exception e) {
             return false;
