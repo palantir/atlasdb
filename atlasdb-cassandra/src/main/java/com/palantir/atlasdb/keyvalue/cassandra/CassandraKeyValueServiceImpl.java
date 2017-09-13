@@ -172,7 +172,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
-        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueServiceImpl.class));
+        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
     }
 
     public static CassandraKeyValueServiceImpl create(
