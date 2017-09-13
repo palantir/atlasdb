@@ -105,7 +105,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
-        return CassandraKeyValueService.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 CassandraContainer.LEADER_CONFIG,
                 testLogger);
@@ -173,14 +173,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testCfEqualityChecker() throws TException {
-        CassandraKeyValueService kvs;
+        CassandraKeyValueServiceImpl kvs;
         if (keyValueService instanceof CassandraKeyValueService) {
-            kvs = (CassandraKeyValueService) keyValueService;
+            kvs = (CassandraKeyValueServiceImpl) keyValueService;
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
             assertTrue("The nesting of Key Value Services has apparently changed",
                     delegate instanceof CassandraKeyValueService);
-            kvs = (CassandraKeyValueService) delegate;
+            kvs = (CassandraKeyValueServiceImpl) delegate;
         } else {
             throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
         }

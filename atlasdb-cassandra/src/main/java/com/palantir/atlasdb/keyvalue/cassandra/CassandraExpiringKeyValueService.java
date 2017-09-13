@@ -47,7 +47,7 @@ import com.palantir.common.collect.Maps2;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CassandraExpiringKeyValueService extends CassandraKeyValueService implements ExpiringKeyValueService {
+public class CassandraExpiringKeyValueService extends CassandraKeyValueServiceImpl implements ExpiringKeyValueService {
 
     public static CassandraExpiringKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,

@@ -72,7 +72,7 @@ public class SchemaMutationLockTables {
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
         CfDef cf = ColumnFamilyDefinitions.getStandardCfDef(
                 config.keyspace(),
-                CassandraKeyValueService.internalTableName(tableRef));
+                CassandraKeyValueServiceImpl.internalTableName(tableRef));
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(
                 client,

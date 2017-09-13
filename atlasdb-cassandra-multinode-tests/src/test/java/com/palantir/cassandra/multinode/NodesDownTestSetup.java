@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 
 public abstract class NodesDownTestSetup {
 
@@ -95,7 +96,7 @@ public abstract class NodesDownTestSetup {
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
                 .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(3_000);
-        return CassandraKeyValueService.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 ThreeNodeCassandraCluster.LEADER_CONFIG);
     }

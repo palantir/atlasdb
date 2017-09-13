@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 import io.airlift.airline.Command;
@@ -39,7 +40,7 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
         Preconditions.checkState(isOffline(), "This CLI can only be run offline");
 
         CassandraKeyValueServiceConfig config = getCassandraKvsConfig();
-        CassandraKeyValueService ckvs = CassandraKeyValueService.create(
+        CassandraKeyValueService ckvs = CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 Optional.empty());
 
