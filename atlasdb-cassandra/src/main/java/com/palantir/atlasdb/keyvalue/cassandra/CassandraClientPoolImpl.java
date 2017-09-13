@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -63,6 +64,8 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -71,6 +74,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting2.tracing.Tracers;
 
 /**
@@ -90,7 +95,24 @@ import com.palantir.remoting2.tracing.Tracers;
  *   ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("VisibilityModifier")
-public class CassandraClientPoolImpl implements CassandraClientPool {
+@AutoDelegate(typeToExtend = CassandraClientPool.class)
+public final class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitializer {
+    public static class InitializingWrapper implements AutoDelegate_CassandraClientPool {
+        private CassandraClientPoolImpl cassandraClientPool;
+
+        public InitializingWrapper(CassandraClientPoolImpl cassandraClientPool) {
+            this.cassandraClientPool = cassandraClientPool;
+        }
+
+        @Override
+        public CassandraClientPool delegate() {
+            if (cassandraClientPool.isInitialized()) {
+                return cassandraClientPool;
+            }
+            throw new NotInitializedException("CassandraClientPool");
+        }
+    }
+
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
     private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
             + " Error writing to Cassandra socket."
@@ -110,11 +132,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
+    private final StartupChecks startupChecks;
     final ScheduledExecutorService refreshDaemon;
+    private ScheduledFuture<?> refreshPoolFuture;
 
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+
+    private volatile boolean isInitialized = false;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -194,27 +220,43 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return new CassandraClientPoolImpl(config, StartupChecks.RUN);
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.RUN);
+        cassandraClientPool.initialize(initializeAsync);
+        return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
     }
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks) {
-        return new CassandraClientPoolImpl(config, startupChecks);
-    }
-
-    public CassandraClientPoolImpl(CassandraKeyValueServiceConfig config) {
-        this(config, StartupChecks.RUN);
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+        cassandraClientPool.tryInitialize();
+        return cassandraClientPool;
     }
 
     private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
-        config.servers().forEach(this::addPool);
-        refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+        this.startupChecks = startupChecks;
+        this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
-        refreshDaemon.scheduleWithFixedDelay(() -> {
+    }
+
+    @Override
+    public synchronized boolean isInitialized() {
+        return isInitialized;
+    }
+
+    @Override
+    public synchronized void tryInitialize() {
+        assertNotInitialized();
+
+        config.servers().forEach(this::addPool);
+        refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
             } catch (Throwable t) {
@@ -229,6 +271,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
         refreshPool(); // ensure we've initialized before returning
         registerAggregateMetrics();
+        isInitialized = true;
+    }
+
+    @Override
+    public synchronized void cleanUpOnInitFailure() {
+        metricsManager.deregisterMetrics();
+        refreshPoolFuture.cancel(true);
+        currentPools.forEach((address, cassandraClientPoolingContainer) ->
+                cassandraClientPoolingContainer.shutdownPooling());
+        currentPools.clear();
     }
 
     @Override

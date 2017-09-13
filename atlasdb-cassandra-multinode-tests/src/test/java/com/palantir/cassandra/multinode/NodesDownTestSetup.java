@@ -61,7 +61,7 @@ public abstract class NodesDownTestSetup {
     static final long OLD_TIMESTAMP = 1L;
     static final Value DEFAULT_VALUE = Value.create(DEFAULT_CONTENTS, DEFAULT_TIMESTAMP);
 
-    static CassandraKeyValueService kvs;
+    static CassandraKeyValueServiceImpl kvs;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
@@ -92,7 +92,7 @@ public abstract class NodesDownTestSetup {
         setupDb.close();
     }
 
-    protected static CassandraKeyValueService createCassandraKvs() {
+    protected static CassandraKeyValueServiceImpl createCassandraKvs() {
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
                 .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(3_000);

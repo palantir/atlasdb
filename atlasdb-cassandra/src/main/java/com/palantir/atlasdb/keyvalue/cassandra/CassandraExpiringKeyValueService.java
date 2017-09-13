@@ -52,13 +52,20 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueServiceIm
     public static CassandraExpiringKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
+        return create(configManager, leaderConfig, true);
+    }
+
+    public static CassandraExpiringKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraExpiringKeyValueService kvs =
-                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig);
-        kvs.init();
+                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig, initializeAsync);
+        kvs.initialize(initializeAsync);
         return kvs;
     }
 
@@ -66,8 +73,10 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueServiceIm
     protected CassandraExpiringKeyValueService(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<CassandraJmxCompactionManager> compactionManager,
-            Optional<LeaderConfig> leaderConfig) {
-        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig);
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
+        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig,
+                initializeAsync);
     }
 
     @Override

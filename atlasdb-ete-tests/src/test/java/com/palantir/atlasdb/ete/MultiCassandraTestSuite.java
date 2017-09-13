@@ -37,7 +37,8 @@ import com.palantir.docker.compose.connection.DockerPort;
         CommandLineEteTest.class,
         ServiceExposureEteTest.class,
         MultiCassandraSingleNodeDownEteTest.class,
-        MultiCassandraDoubleNodeDownEteTest.class
+        MultiCassandraDoubleNodeDownEteTest.class,
+        MultiCassandraStartupOrderingEteTest.class
         })
 public class MultiCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

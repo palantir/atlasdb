@@ -79,6 +79,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -125,8 +126,10 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -144,7 +147,31 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * if some nodes are down, and the change can be detected through active hosts,
  * and these inactive nodes will be removed afterwards.
  */
-public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
+@AutoDelegate(typeToExtend = CassandraKeyValueService.class)
+public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
+        implements AsyncInitializer, CassandraKeyValueService {
+
+    public static class InitializeCheckingWrapper implements AutoDelegate_CassandraKeyValueService {
+        private CassandraKeyValueServiceImpl kvs;
+
+        public InitializeCheckingWrapper(CassandraKeyValueServiceImpl kvs) {
+            this.kvs = kvs;
+        }
+
+        @Override
+        public CassandraKeyValueService delegate() {
+            if (kvs.isInitialized()) {
+                return kvs;
+            }
+            throw new NotInitializedException("CassandraKeyValueService");
+        }
+
+        @Override
+        public boolean supportsCheckAndSet() {
+            return kvs.supportsCheckAndSet();
+        }
+    }
+
     private final Logger log;
 
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
@@ -155,6 +182,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     private final CassandraClientPool clientPool;
+
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
     private final HiddenTables hiddenTables;
@@ -169,36 +197,58 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
-    public static CassandraKeyValueServiceImpl create(
-            CassandraKeyValueServiceConfigManager configManager,
-            Optional<LeaderConfig> leaderConfig) {
-        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
-    }
+    private volatile boolean isInitialized = false;
 
     public static CassandraKeyValueServiceImpl create(
             CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig) {
+        return (CassandraKeyValueServiceImpl)
+                create(configManager, leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
+        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class),
+                initializeAsync);
+    }
+
+    @VisibleForTesting
+    static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
+        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    private static CassandraKeyValueServiceImpl create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            Logger log,
+            boolean initializeAsync) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl ret = new CassandraKeyValueServiceImpl(
                 log,
                 configManager,
                 compactionManager,
-                leaderConfig);
-        ret.init();
+                leaderConfig,
+                initializeAsync);
+        ret.initialize(initializeAsync);
         return ret;
     }
 
     protected CassandraKeyValueServiceImpl(Logger log,
                                        CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
-                                       Optional<LeaderConfig> leaderConfig) {
+                                       Optional<LeaderConfig> leaderConfig,
+                                       boolean initializeAsync) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig());
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -216,7 +266,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
-    protected void init() {
+    @Override
+    public synchronized void cleanUpOnInitFailure() {
+        // no-op
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
+    @Override
+    public synchronized void tryInitialize() {
+        assertNotInitialized();
+
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
@@ -241,6 +304,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
+
+        isInitialized = true;
     }
 
     private void upgradeFromOlderInternalSchema() {

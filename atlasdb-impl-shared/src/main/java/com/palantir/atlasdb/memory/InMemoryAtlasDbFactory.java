@@ -23,6 +23,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -75,7 +76,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }
@@ -154,6 +156,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv);
+        return StaticTableMappingService.create(kv, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 }
