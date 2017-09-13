@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -75,11 +76,9 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        return SuccessOrFailure.onResultOf(() -> {
-            CassandraKeyValueServiceImpl.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
-                    LEADER_CONFIG);
-            return true;
-        });
+        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
+                LEADER_CONFIG)
+                .isInitialized());
     }
 }

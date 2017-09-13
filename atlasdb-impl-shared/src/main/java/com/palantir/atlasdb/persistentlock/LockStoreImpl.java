@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -36,6 +37,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.processors.AutoDelegate;
 
 /**
  * LockStore manages {@link LockEntry} objects, specifically for the "Backup Lock" (to be taken out by backup and
@@ -58,10 +61,28 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  * This is actually OK - all we care about is that we're in the state machine _somewhere_.
  */
 @SuppressWarnings("checkstyle:FinalClass") // Non-final as we'd like to mock it.
-public class LockStoreImpl implements LockStore {
-    private static final Logger log = LoggerFactory.getLogger(LockStore.class);
+@AutoDelegate(typeToExtend = LockStore.class)
+public class LockStoreImpl implements LockStore, AsyncInitializer {
+    public static class InitializingWrapper implements AutoDelegate_LockStore {
+        private LockStoreImpl lockStore;
 
+        InitializingWrapper(LockStoreImpl lockStore) {
+            this.lockStore = lockStore;
+        }
+
+        @Override
+        public LockStore delegate() {
+            if (lockStore.isInitialized()) {
+                return lockStore;
+            }
+            throw new NotInitializedException("LockStore");
+        }
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(LockStore.class);
     private static final String BACKUP_LOCK_NAME = "BackupLock";
+    private volatile boolean isInitialized = false;
+
     private final KeyValueService keyValueService;
 
     public static final LockEntry LOCK_OPEN = ImmutableLockEntry.builder()
@@ -74,18 +95,46 @@ public class LockStoreImpl implements LockStore {
         this.keyValueService = kvs;
     }
 
-    public static LockStoreImpl create(KeyValueService kvs) {
-        return createImplForTest(kvs);
+    public static LockStore create(KeyValueService kvs) {
+        return create(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static LockStore create(KeyValueService kvs, boolean initializeAsync) {
+        LockStoreImpl lockStore = createImplForTest(kvs, initializeAsync);
+        return lockStore.isInitialized() ? lockStore : new InitializingWrapper(lockStore);
     }
 
     @VisibleForTesting
     static LockStoreImpl createImplForTest(KeyValueService kvs) {
-        kvs.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        return createImplForTest(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    private static LockStoreImpl createImplForTest(KeyValueService kvs, boolean initializeAsync) {
         LockStoreImpl lockStore = new LockStoreImpl(kvs);
-        if (lockStore.allLockEntries().isEmpty()) {
-            new LockStorePopulator(kvs).populate();
-        }
+        lockStore.initialize(initializeAsync);
         return lockStore;
+    }
+
+    @Override
+    public synchronized boolean isInitialized() {
+        return isInitialized;
+    }
+
+    @Override
+    public synchronized void tryInitialize() {
+        assertNotInitialized();
+
+        keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        if (allLockEntries().isEmpty()) {
+            new LockStorePopulator(keyValueService).populate();
+        }
+
+        isInitialized = true;
+    }
+
+    @Override
+    public synchronized void cleanUpOnInitFailure() {
+        // no-op
     }
 
     @Override

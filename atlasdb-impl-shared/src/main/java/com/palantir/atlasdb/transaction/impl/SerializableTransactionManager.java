@@ -24,14 +24,57 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampService;
 
+@AutoDelegate(typeToExtend = SerializableTransactionManager.class)
 public class SerializableTransactionManager extends SnapshotTransactionManager {
+
+    public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
+        private SerializableTransactionManager manager;
+        private volatile boolean isInitialized = false;
+
+        public InitializeCheckingWrapper(SerializableTransactionManager manager) {
+            this.manager = manager;
+        }
+
+        @Override
+        public SerializableTransactionManager delegate() {
+            if (!isInitialized) {
+                try {
+                    manager.getKeyValueService().getClusterAvailabilityStatus();
+                } catch (NotInitializedException e) {
+                    throw e;
+                }
+                isInitialized = true;
+            }
+            return manager;
+        }
+
+        @Override
+        public RemoteLockService getLockService() {
+            return manager.getLockService();
+        }
+
+        @Override
+        public void registerClosingCallback(Runnable closingCallback) {
+            manager.registerClosingCallback(closingCallback);
+        }
+    }
+
+    /*
+     * This constructor is necessary for the InitializeCheckingWrapper. We initialize a dummy transaction manager and
+     * use the delegate instead.
+     */
+    protected SerializableTransactionManager() {
+        this(null, null, null, null, null, null, null, null, null);
+    }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,

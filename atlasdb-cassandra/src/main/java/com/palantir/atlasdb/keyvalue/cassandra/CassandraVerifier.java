@@ -211,7 +211,8 @@ public final class CassandraVerifier {
         CassandraKeyValueServices.waitForSchemaVersions(
                 client,
                 "(adding the initial empty keyspace)",
-                config.schemaMutationTimeoutMillis());
+                config.schemaMutationTimeoutMillis(),
+                true);
     }
 
     private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {

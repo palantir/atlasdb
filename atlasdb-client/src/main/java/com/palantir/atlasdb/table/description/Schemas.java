@@ -83,10 +83,6 @@ public final class Schemas {
         return true;
     }
 
-    private Schemas() {
-        //
-    }
-
     /**
      * Creates tables/indexes for this schema.
      *

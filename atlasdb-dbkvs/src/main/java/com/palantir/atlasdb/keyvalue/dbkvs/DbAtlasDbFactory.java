@@ -38,8 +38,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         return TYPE;
     }
 
+    // TODO(gmaretic): async initialization not implemented/propagated
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());
