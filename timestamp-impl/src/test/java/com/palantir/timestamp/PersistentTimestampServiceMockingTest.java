@@ -41,7 +41,7 @@ public class PersistentTimestampServiceMockingTest {
 
     private PersistentTimestamp timestamp = mock(PersistentTimestamp.class);
     private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private PersistentTimestampService timestampService = new PersistentTimestampService(timestamp);
+    private PersistentTimestampService timestampService = new PersistentTimestampServiceImpl(timestamp);
 
     @Test
     public void

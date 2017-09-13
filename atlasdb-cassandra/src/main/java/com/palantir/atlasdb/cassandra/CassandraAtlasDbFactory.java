@@ -22,12 +22,13 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -47,7 +48,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     private static CassandraKeyValueService createKv(
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig) {
-        return CassandraKeyValueService.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 leaderConfig);
     }
@@ -58,7 +59,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
                 + " CassandraKeyValueService, found %s", rawKvs.getClass());
-        return PersistentTimestampService.create(
+        return PersistentTimestampServiceImpl.create(
                 CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
     }
 

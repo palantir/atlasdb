@@ -44,6 +44,7 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.Observables;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 
 import io.reactivex.Observable;
@@ -115,7 +116,7 @@ public class PaxosTimestampCreator {
                         ImmutableList.copyOf(learners),
                         Observables.blockingMostRecent(paxosRuntime).get().maximumWaitBeforeProposalMs()),
                 client);
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(boundStore);
+        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
         return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
     }
 
