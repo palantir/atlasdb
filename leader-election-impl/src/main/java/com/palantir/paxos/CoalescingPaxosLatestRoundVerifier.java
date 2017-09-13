@@ -16,8 +16,6 @@
 
 package com.palantir.paxos;
 
-import java.util.function.Function;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -28,28 +26,20 @@ import com.google.common.cache.LoadingCache;
  */
 public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifier {
 
-    // Due to concurrency, it's possible that verifications for different rounds might be requested out of order.
-    // So, we maintain a cache of {@link CoalescingSupplier}s for the two most recently requested rounds.
-    // We could alternatively assume that a verification for an older round will always return
-    // {@link PaxosQuorumStatus.SOME_DISAGREED}, but that depends on assumptions about how paxos works and how this
-    // class will be used, which feel out of place here.
-    private final LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> verifiersByRound;
+    private final PaxosLatestRoundVerifier delegate;
+    // we only care about keeping the verifier for the latest round; the cache is just here to handle concurrency
+    // around creating a new verifier for a newly requested round
+    private final LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> verifiersByRound = CacheBuilder.newBuilder()
+            .maximumSize(1)
+            .build(new CacheLoader<Long, CoalescingSupplier<PaxosQuorumStatus>>() {
+                @Override
+                public CoalescingSupplier<PaxosQuorumStatus> load(Long key) throws Exception {
+                    return new CoalescingSupplier<>(() -> delegate.isLatestRound(key));
+                }
+            });
 
     public CoalescingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
-        this.verifiersByRound = buildCache(
-                round -> new CoalescingSupplier<>(() -> delegate.isLatestRound(round)));
-    }
-
-    private static LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> buildCache(
-            Function<Long, CoalescingSupplier<PaxosQuorumStatus>> verifierFactory) {
-        return CacheBuilder.newBuilder()
-                .maximumSize(2)
-                .build(new CacheLoader<Long, CoalescingSupplier<PaxosQuorumStatus>>() {
-                    @Override
-                    public CoalescingSupplier<PaxosQuorumStatus> load(Long round) throws Exception {
-                        return verifierFactory.apply(round);
-                    }
-                });
+        this.delegate = delegate;
     }
 
     @Override
