@@ -44,8 +44,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Fixes potential incorrect ordering in `Transaction#getRanges`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

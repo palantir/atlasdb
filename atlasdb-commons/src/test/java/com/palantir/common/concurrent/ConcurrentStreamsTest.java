@@ -16,8 +16,10 @@
 
 package com.palantir.common.concurrent;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,7 +33,8 @@ public class ConcurrentStreamsTest {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(32);
 
-    private static class CustomRuntimeException extends RuntimeException {}
+    private static class CustomExecutionException extends RuntimeException {}
+    private static class LatchTimedOutException extends RuntimeException {}
 
     @Test
     public void testDoesEvaluateResultsWithFullConcurrency() {
@@ -54,30 +57,69 @@ public class ConcurrentStreamsTest {
     }
 
     @Test
+    public void testDoesMaintainCorrectOrdering() {
+        Stream<Integer> values = ConcurrentStreams.map(
+                ImmutableList.of(5, 3, 6, 2, 1, 9),
+                value -> {
+                    if (value <= 3) {
+                        pause(100);
+                    }
+                    return value + 1;
+                },
+                executor,
+                2);
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(6, 4, 7, 3, 2, 10));
+    }
+
+    @Test
+    public void testCanHandleValueDuplicates() {
+        Stream<Integer> values = ConcurrentStreams.map(
+                ImmutableList.of(1, 2, 1, 2),
+                value -> value + 1,
+                executor,
+                2);
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 2, 3));
+    }
+
+    @Test
     public void testShouldOnlyRunWithProvidedConcurrency() throws Exception {
+        CountDownLatch stage1 = new CountDownLatch(3);
+        CountDownLatch stage2 = new CountDownLatch(3);
+        CountDownLatch stage3 = new CountDownLatch(3);
+        CountDownLatch stage4 = new CountDownLatch(3);
+
         AtomicInteger numStarted = new AtomicInteger(0);
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
                     numStarted.getAndIncrement();
-                    pause(100);
+                    if (value <= 2) {
+                        countdownAndBlock(stage1);
+                        countdownAndBlock(stage2);
+                    } else {
+                        countdownAndBlock(stage3);
+                        countdownAndBlock(stage4);
+                    }
                     return value + 1;
                 },
                 executor,
                 2);
-        pause(50);
+
+        countdownAndBlock(stage1);
         Assert.assertEquals(numStarted.get(), 2);
-        pause(100);
+        countdownAndBlock(stage2);
+        countdownAndBlock(stage3);
         Assert.assertEquals(numStarted.get(), 4);
+        countdownAndBlock(stage4);
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
     }
 
-    @Test(expected = CustomRuntimeException.class)
+    @Test(expected = CustomExecutionException.class)
     public void testShouldPropogateExceptions() {
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
-                    throw new CustomRuntimeException();
+                    throw new CustomExecutionException();
                 },
                 executor,
                 2);
@@ -89,7 +131,7 @@ public class ConcurrentStreamsTest {
         ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
-                    throw new CustomRuntimeException();
+                    throw new CustomExecutionException();
                 },
                 executor,
                 2);
@@ -97,19 +139,23 @@ public class ConcurrentStreamsTest {
 
     @Test
     public void testShouldAbortWaitingTasksEarlyOnFailure() {
+        CountDownLatch latch = new CountDownLatch(3);
         AtomicInteger numStarted = new AtomicInteger(0);
+
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
                     numStarted.getAndIncrement();
-                    pause(50);
-                    throw new CustomRuntimeException();
+                    countdownAndBlock(latch);
+                    throw new CustomExecutionException();
                 },
                 executor,
                 2);
+
+        countdownAndBlock(latch);
         try {
             values.collect(Collectors.toList());
-        } catch (CustomRuntimeException e) {
+        } catch (CustomExecutionException e) {
             Assert.assertEquals(numStarted.get(), 2);
             return;
         }
@@ -118,26 +164,49 @@ public class ConcurrentStreamsTest {
 
     @Test
     public void testCanOperateOnStreamWhileTasksAreStillRunning() {
+        CountDownLatch stage1 = new CountDownLatch(3);
+        CountDownLatch stage2 = new CountDownLatch(3);
+        CountDownLatch stage3 = new CountDownLatch(3);
+
         AtomicInteger numStarted = new AtomicInteger(0);
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
-                    numStarted.getAndIncrement();
-                    if (value == 3) {
-                        pause(100);
+                    if (value < 3) {
+                        numStarted.getAndIncrement();
+                        countdownAndBlock(stage1);
+                    } else {
+                        countdownAndBlock(stage2);
+                        numStarted.getAndIncrement();
+                        countdownAndBlock(stage3);
                     }
                     return value + 1;
                 },
                 executor,
                 2);
-        values.map(value -> {
-            if (value >= 4) {
-                Assert.assertEquals(numStarted.get(), 4);
+        countdownAndBlock(stage1);
+        values.forEach(value -> {
+            if (value <= 3) {
+                Assert.assertEquals(numStarted.get(), 2);
+                if (value == 3) {
+                    countdownAndBlock(stage2);
+                    countdownAndBlock(stage3);
+                }
             } else {
-                Assert.assertNotEquals(numStarted.get(), 4);
+                Assert.assertEquals(numStarted.get(), 4);
             }
-            return null;
         });
+    }
+
+    private void countdownAndBlock(CountDownLatch latch) {
+        latch.countDown();
+        try {
+            if (!latch.await(1, TimeUnit.SECONDS)) {
+                throw new LatchTimedOutException();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void pause(int millis) {

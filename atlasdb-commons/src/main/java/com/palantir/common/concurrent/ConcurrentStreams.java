@@ -16,9 +16,7 @@
 
 package com.palantir.common.concurrent;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -56,36 +54,38 @@ public class ConcurrentStreams {
             return values.stream().map(mapper);
         }
 
-        Map<T, CompletableFuture<S>> futuresByValue = values.stream()
-                .collect(Collectors.toMap(Function.identity(), value -> new CompletableFuture<>()));
-        Queue<T> valueQueue = new ConcurrentLinkedQueue<T>(values);
+        List<StreamElement<T, S>> elements = values.stream()
+                .map((Function<T, StreamElement<T, S>>) StreamElement::new)
+                .collect(Collectors.toList());
+        Queue<StreamElement<T, S>> queue = new ConcurrentLinkedQueue<>(elements);
 
         if (size < concurrency) {
             concurrency = size;
         }
         for (int i = 0; i < concurrency; i++) {
-            executor.execute(() -> runOperationsAndUpdateFutures(futuresByValue, valueQueue, mapper));
+            executor.execute(() -> runOperationsAndUpdateFutures(queue, mapper));
         }
-        return streamAllUnchecked(values, futuresByValue);
+        return streamAllUnchecked(elements);
     }
 
     private static <T, S> void runOperationsAndUpdateFutures(
-            Map<T, CompletableFuture<S>> futuresByValue, Queue<T> valueQueue, Function<T, S> operation) {
+            Queue<StreamElement<T, S>> queue, Function<T, S> operation) {
 
-        runUntilEmpty(valueQueue, value -> {
-            CompletableFuture<S> future = futuresByValue.get(value);
+        runUntilEmpty(queue, element -> {
+            T value = element.getValue();
+            CompletableFuture<S> future = element.getFuture();
+
             try {
                 future.complete(operation.apply(value));
             } catch (Exception e) {
                 future.completeExceptionally(e);
-                completeAllExceptionally(futuresByValue, valueQueue);
+                completeAllExceptionally(queue);
             }
         });
     }
 
-    private static <T, S> void completeAllExceptionally(
-            Map<T, CompletableFuture<S>> futuresByValue, Queue<T> valueQueue) {
-        runUntilEmpty(valueQueue, value -> futuresByValue.get(value).completeExceptionally(TASK_CANCELED_EXCEPTION));
+    private static <T, S> void completeAllExceptionally(Queue<StreamElement<T, S>> queue) {
+        runUntilEmpty(queue, element -> element.getFuture().completeExceptionally(TASK_CANCELED_EXCEPTION));
     }
 
     private static <T> void runUntilEmpty(Queue<T> queue, Consumer<T> consumer) {
@@ -94,10 +94,10 @@ public class ConcurrentStreams {
         }
     }
 
-    private static <T, S> Stream<S> streamAllUnchecked(List<T> values, Map<T, CompletableFuture<S>> futuresByValue) {
-        return values.stream().map(value -> {
+    private static <T, S> Stream<S> streamAllUnchecked(List<StreamElement<T, S>> elements) {
+        return elements.stream().map(element -> {
             try {
-                return futuresByValue.get(value).get();
+                return element.getFuture().get();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
@@ -113,6 +113,24 @@ public class ConcurrentStreams {
         public synchronized Throwable fillInStackTrace() {
             return this;
         }
-    };
+    }
+
+    private static class StreamElement<T, S> {
+        private final T value;
+        private final CompletableFuture<S> future;
+
+        StreamElement(T value) {
+            this.value = value;
+            this.future = new CompletableFuture<>();
+        }
+
+        T getValue() {
+            return value;
+        }
+
+        CompletableFuture<S> getFuture() {
+            return future;
+        }
+    }
 
 }
