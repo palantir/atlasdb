@@ -148,7 +148,7 @@ public class CassandraClientPoolTest {
             hostList.add(new InetSocketAddress(i));
         }
 
-        CassandraClientPool cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
+        CassandraClientPoolImpl cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
                 ImmutableSet.copyOf(hostList), new SocketTimeoutException());
         runNoopOnHostWithRetryWithException(hostList.get(0), cassandraClientPool);
 
@@ -160,7 +160,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldKeepRetryingIfNowhereToRedirectTo() {
-        CassandraClientPool cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
+        CassandraClientPoolImpl cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1), new SocketTimeoutException());
 
         runNoopOnHostWithRetryWithException(HOST_1, cassandraClientPool);
@@ -186,7 +186,8 @@ public class CassandraClientPoolTest {
     }
 
     private void runTwoNoopsOnTwoHostsAndThrowFromSecondRunOnFirstHost(Exception exception) {
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
+                ImmutableSet.of(HOST_1, HOST_2));
 
         runNoopOnHost(HOST_1, cassandraClientPool);
         runNoopOnHost(HOST_2, cassandraClientPool);
@@ -210,14 +211,14 @@ public class CassandraClientPoolTest {
     }
 
     private void verifyNumberOfAttemptsOnHost(InetSocketAddress host,
-                                              CassandraClientPool cassandraClientPool,
-                                              int numAttempts) {
+            CassandraClientPool cassandraClientPool,
+            int numAttempts) {
         Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
                 .runWithPooledResource(
                         Mockito.<FunctionCheckedException<Cassandra.Client, Object, RuntimeException>>any());
     }
 
-    private CassandraClientPool clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
+    private CassandraClientPoolImpl clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
         return clientPoolWith(servers, ImmutableSet.of(), Optional.empty());
     }
 
@@ -226,7 +227,7 @@ public class CassandraClientPoolTest {
     }
 
     private CassandraClientPoolImpl throwingClientPoolWithServersInCurrentPool(ImmutableSet<InetSocketAddress> servers,
-                                                                           Exception exception) {
+            Exception exception) {
         return clientPoolWith(ImmutableSet.of(), servers, Optional.of(exception));
     }
 
@@ -249,7 +250,7 @@ public class CassandraClientPoolTest {
     }
 
     private CassandraClientPoolingContainer getMockPoolingContainerForHost(InetSocketAddress address,
-                                                                           Optional<Exception> maybeFailureMode) {
+            Optional<Exception> maybeFailureMode) {
         CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
         when(poolingContainer.getHost()).thenReturn(address);
         if (maybeFailureMode.isPresent()) {

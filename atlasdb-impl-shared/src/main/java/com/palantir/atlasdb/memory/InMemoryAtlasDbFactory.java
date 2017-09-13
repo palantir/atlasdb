@@ -75,7 +75,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }
@@ -154,6 +155,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv);
+        return StaticTableMappingService.create(kv, false);
     }
 }

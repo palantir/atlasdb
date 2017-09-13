@@ -25,7 +25,8 @@ public final class NamespacedKeyValueServices {
     }
 
     public static KeyValueService wrapWithStaticNamespaceMappingKvs(KeyValueService keyValueService) {
-        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
+        TableMappingService tableMap = new StaticTableMappingService.InitializingWrapper(
+                StaticTableMappingService.create(keyValueService));
         NamespacedKeyValueService namespacedKeyValueService = TableRemappingKeyValueService.create(
                 keyValueService,
                 tableMap);

@@ -58,13 +58,11 @@ import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
@@ -79,7 +77,6 @@ import com.palantir.atlasdb.sweep.SweepMetrics;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -87,7 +84,6 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -220,7 +216,6 @@ public final class TransactionManagers {
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
-
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
@@ -231,7 +226,6 @@ public final class TransactionManagers {
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent);
-
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs,
@@ -241,25 +235,13 @@ public final class TransactionManagers {
                 MetricRegistry.name(KeyValueService.class, userAgent));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        TransactionTables.createTables(kvs);
-
-        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env);
+        TransactionManagersInitializer.createInitialTables(kvs, schemas, config.initializeAsync());
+        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env,
+                config.initializeAsync());
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
-
-        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
-                .add(SweepSchema.INSTANCE.getLatestSchema())
-                .addAll(schemas)
-                .build();
-        for (Schema schema : allSchemas) {
-            Schemas.createTablesAndIndexes(schema, kvs);
-        }
-
-        // Prime the key value service with logging information.
-        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
-        LoggingArgs.hydrate(kvs.getMetadataForTables());
 
         CleanupFollower follower = CleanupFollower.create(schemas);
 
@@ -274,18 +256,21 @@ public final class TransactionManagers {
                 .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
                 .setPunchIntervalMillis(config.getPunchIntervalMillis())
                 .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                .setInitializeAsync(config.initializeAsync())
                 .buildCleaner();
 
-        SerializableTransactionManager transactionManager = new SerializableTransactionManager(kvs,
-                lockAndTimestampServices.timelock(),
-                lockAndTimestampServices.lock(),
-                transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
-                conflictManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess,
-                () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis());
+        SerializableTransactionManager transactionManager = new SerializableTransactionManager
+                .InitializeCheckingWrapper(
+                new SerializableTransactionManager(kvs,
+                        lockAndTimestampServices.timelock(),
+                        lockAndTimestampServices.lock(),
+                        transactionService,
+                        Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                        conflictManager,
+                        sweepStrategyManager,
+                        cleaner,
+                        allowHiddenTableAccess,
+                        () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis()));
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
@@ -385,12 +370,13 @@ public final class TransactionManagers {
                 .build();
     }
 
-    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+    private static PersistentLockService createAndRegisterPersistentLockService(KeyValueService kvs, Environment env,
+            boolean initialializaAsync) {
         if (!kvs.supportsCheckAndSet()) {
             return new NoOpPersistentLockService();
         }
 
-        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
+        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs, initialializaAsync);
         env.register(pls);
         env.register(new CheckAndSetExceptionMapper());
         return pls;

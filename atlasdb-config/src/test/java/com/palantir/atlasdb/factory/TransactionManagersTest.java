@@ -151,6 +151,8 @@ public class TransactionManagersTest {
         when(config.lock()).thenReturn(Optional.empty());
         when(config.timelock()).thenReturn(Optional.empty());
         when(config.keyValueService()).thenReturn(new InMemoryAtlasDbConfig());
+//        when(config.initializeAsync()).thenReturn();
+
 
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
@@ -325,6 +327,17 @@ public class TransactionManagersTest {
         manager.close();
         verify(callback, times(1)).run();
     }
+
+//    @Test
+//    public void newTest() {
+//        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+//                .keyValueService(new InMemoryAtlasDbConfig())
+//                .defaultLockTimeoutSeconds(120)
+//                .build();
+//        SerializableTransactionManager manager =
+//                TransactionManagers.create(realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+//        manager.getKeyValueService().getAllTableNames();
+//    }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
         verifyUserAgentOnTimestampAndLockRequests(TIMESTAMP_PATH, LOCK_PATH);

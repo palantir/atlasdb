@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -102,9 +103,9 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     private static boolean canCreateCassandraKeyValueService() {
-        CassandraKeyValueServiceImpl.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
-                LEADER_CONFIG);
-        return true;
+                LEADER_CONFIG)
+                .isInitialized();
     }
 }
