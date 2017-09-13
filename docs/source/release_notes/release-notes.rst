@@ -47,7 +47,7 @@ develop
     *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
            This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
-           To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/pull/2168/files#diff-e5f647257e88bc553a662bb004213f0bR39>`__.
+           To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2339>`__)
 
     *    - |userbreak| |fixed|

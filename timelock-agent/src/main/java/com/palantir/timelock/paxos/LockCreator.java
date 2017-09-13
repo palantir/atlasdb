@@ -39,7 +39,7 @@ public class LockCreator {
     }
 
     public CloseableLockService createThreadPoolingLockService() {
-        // TODO (jkong): Live reload slow lock timeout, plus clients
+        // TODO (jkong): Live reload slow lock timeout, plus clients (issue #2342)
         // TODO (?????): Rewrite ThreadPooled to cope with live reload, and/or remove ThreadPooled (if using Async)
         TimeLockRuntimeConfiguration timeLockRuntimeConfiguration = runtime.get();
         CloseableLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
