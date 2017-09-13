@@ -287,11 +287,9 @@ public class CassandraClientPool {
     @VisibleForTesting
     void addPool(InetSocketAddress server, CassandraClientPoolingContainer container) {
         currentPools.put(server, container);
-        registerMetricsForHost(server);
     }
 
     private void removePool(InetSocketAddress removedServerAddress) {
-        deregisterMetricsForHost(removedServerAddress);
         blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
@@ -300,24 +298,6 @@ public class CassandraClientPool {
                     removedServerAddress, e);
         }
         currentPools.remove(removedServerAddress);
-    }
-
-    private void registerMetricsForHost(InetSocketAddress server) {
-        RequestMetrics requestMetrics = new RequestMetrics(server.getHostString());
-        metricsManager.registerMetric(
-                CassandraClientPool.class,
-                server.getHostString(), "requestFailureProportion",
-                requestMetrics::getExceptionProportion);
-        metricsManager.registerMetric(
-                CassandraClientPool.class,
-                server.getHostString(), "requestConnectionExceptionProportion",
-                requestMetrics::getConnectionExceptionProportion);
-        metricsByHost.put(server, requestMetrics);
-    }
-
-    private void deregisterMetricsForHost(InetSocketAddress removedServerAddress) {
-        metricsByHost.remove(removedServerAddress);
-        metricsManager.deregisterMetricsWithPrefix(CassandraClientPool.class, removedServerAddress.getHostString());
     }
 
     private void debugLogStateOfPool() {
