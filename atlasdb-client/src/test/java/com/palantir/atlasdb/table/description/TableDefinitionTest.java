@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableDefinitionTest {
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE,
             TableDefinitionTest.class.getSimpleName());

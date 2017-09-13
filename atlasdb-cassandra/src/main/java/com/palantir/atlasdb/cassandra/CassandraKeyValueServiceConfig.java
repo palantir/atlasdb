@@ -241,6 +241,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return TYPE;
     }
 
+    @Override
+    @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return poolSize() * servers().size();
+    }
+
     @JsonIgnore
     @Value.Derived
     public boolean usingSsl() {

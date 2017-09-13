@@ -18,7 +18,7 @@ package com.palantir.atlasdb.table.description;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.table.description.render.Renderers;
 
-public class IndexComponent {
+public final class IndexComponent {
     final NameComponentDescription rowKeyDesc;
 
     // getting data from the row key
@@ -109,7 +109,8 @@ public class IndexComponent {
 
     public IndexComponent withPartitioners(RowNamePartitioner... partitioners) {
         NameComponentDescription newRowKeyDesc = rowKeyDesc.withPartitioners(partitioners);
-        return new IndexComponent(newRowKeyDesc, rowComponentName, dynamicColumnComponentName, columnNameToGetData, codeToAccessValue, isMultiple);
+        return new IndexComponent(newRowKeyDesc, rowComponentName, dynamicColumnComponentName,
+                columnNameToGetData, codeToAccessValue, isMultiple);
     }
 
     public NameComponentDescription getRowKeyDescription() {
@@ -119,7 +120,7 @@ public class IndexComponent {
     public String getValueCode(String rowCode, String dynamicColCode, String columnCode) {
         if (rowComponentName != null) {
             return rowCode + ".get" + Renderers.CamelCase(rowComponentName) + "()";
-        } else if (dynamicColumnComponentName != null){
+        } else if (dynamicColumnComponentName != null) {
             Preconditions.checkArgument(dynamicColCode != null, "cannot apply to non dynamic table.");
             return dynamicColCode + ".get" + Renderers.CamelCase(dynamicColumnComponentName) + "()";
         } else {

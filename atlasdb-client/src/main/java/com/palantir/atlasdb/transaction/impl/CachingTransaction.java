@@ -139,7 +139,7 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
-    final public void delete(TableReference tableRef, Set<Cell> cells) {
+    public final void delete(TableReference tableRef, Set<Cell> cells) {
         super.delete(tableRef, cells);
         addToCache(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }

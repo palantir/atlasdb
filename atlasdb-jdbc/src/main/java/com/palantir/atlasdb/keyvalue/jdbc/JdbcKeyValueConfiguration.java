@@ -84,6 +84,12 @@ public abstract class JdbcKeyValueConfiguration implements KeyValueServiceConfig
 
     public abstract JdbcDataSourceConfiguration getDataSourceConfig();
 
+    @Override
+    @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return 64;
+    }
+
     @Value.Check
     void check() {
         if (getTablePrefix().length() > MAX_TABLE_PREFIX_LENGTH) {

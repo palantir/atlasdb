@@ -18,13 +18,16 @@ package com.palantir.atlasdb.table.description;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public class ConflictHandlers {
-        public static TableMetadataPersistence.TableConflictHandler persistToProto(ConflictHandler conflictHandler) {
-            return TableMetadataPersistence.TableConflictHandler.valueOf(conflictHandler.name());
-        }
+public final class ConflictHandlers {
+    private ConflictHandlers() {
+        // Utility
+    }
 
-        public static ConflictHandler hydrateFromProto(TableMetadataPersistence.TableConflictHandler conflictHandler) {
-            return ConflictHandler.valueOf(conflictHandler.name());
-        }
+    public static TableMetadataPersistence.TableConflictHandler persistToProto(ConflictHandler conflictHandler) {
+        return TableMetadataPersistence.TableConflictHandler.valueOf(conflictHandler.name());
+    }
 
+    public static ConflictHandler hydrateFromProto(TableMetadataPersistence.TableConflictHandler conflictHandler) {
+        return ConflictHandler.valueOf(conflictHandler.name());
+    }
 }

@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class ConstraintMetadata {
+public final class ConstraintMetadata {
     private final List<RowConstraintMetadata> rowConstraints;
     private final List<TableConstraint> tableConstraints;
     private final List<ForeignKeyConstraintMetadata> foreignKeyConstraints;
@@ -34,7 +34,7 @@ public class ConstraintMetadata {
     }
 
     public static ConstraintMetadata none() {
-        return new ConstraintMetadata(new ArrayList<RowConstraintMetadata>(), new ArrayList<TableConstraint>(), new ArrayList<ForeignKeyConstraintMetadata>());
+        return new ConstraintMetadata(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
     private ConstraintMetadata(List<RowConstraintMetadata> rowConstraints, List<TableConstraint> tableConstraints,
@@ -62,10 +62,10 @@ public class ConstraintMetadata {
 
     public Set<String> getAllRowVariableNames() {
         Set<String> names = Sets.newHashSet();
-        for(RowConstraintMetadata constraint: rowConstraints) {
+        for (RowConstraintMetadata constraint : rowConstraints) {
             names.addAll(constraint.getRowVariables());
         }
-        for(ForeignKeyConstraintMetadata constraint: foreignKeyConstraints) {
+        for (ForeignKeyConstraintMetadata constraint : foreignKeyConstraints) {
             names.addAll(constraint.getRowVariables());
         }
         return names;
@@ -73,10 +73,10 @@ public class ConstraintMetadata {
 
     public Set<String> getAllColumnVariableNames() {
         Set<String> names = Sets.newHashSet();
-        for(RowConstraintMetadata constraint: rowConstraints) {
+        for (RowConstraintMetadata constraint : rowConstraints) {
             names.addAll(constraint.getColumnVariables());
         }
-        for(ForeignKeyConstraintMetadata constraint: foreignKeyConstraints) {
+        for (ForeignKeyConstraintMetadata constraint : foreignKeyConstraints) {
             names.addAll(constraint.getColumnVariables());
         }
         return names;

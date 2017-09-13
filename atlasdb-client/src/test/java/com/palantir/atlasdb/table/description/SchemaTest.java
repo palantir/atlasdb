@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -137,6 +137,7 @@ public class SchemaTest {
         return new String(Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
     }
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {{
             javaTableName(tableRef.getTablename());
@@ -148,10 +149,10 @@ public class SchemaTest {
     }
 
     private String getErrorMessage(String tableName, List<CharacterLimitType> kvsExceeded) {
-        return String.format("Internal table name %s is too long, known to exceed character limits for " +
-                        "the following KVS: %s. If using a table prefix, please ensure that the concatenation " +
-                        "of the prefix with the internal table name is below the KVS limit. " +
-                        "If running only against a different KVS, set the ignoreTableNameLength flag.",
+        return String.format("Internal table name %s is too long, known to exceed character limits for "
+                        + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
+                        + "of the prefix with the internal table name is below the KVS limit. "
+                        + "If running only against a different KVS, set the ignoreTableNameLength flag.",
                 tableName, StringUtils.join(kvsExceeded, ", "));
     }
 

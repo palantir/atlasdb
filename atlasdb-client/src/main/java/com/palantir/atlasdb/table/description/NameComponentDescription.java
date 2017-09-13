@@ -67,7 +67,7 @@ public final class NameComponentDescription {
 
         public Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
             this.uniformPartitioner = partitioner;
-            uniformPartitionerExplicitlyNull = (partitioner == null);
+            uniformPartitionerExplicitlyNull = partitioner == null;
             return this;
         }
 
@@ -162,6 +162,8 @@ public final class NameComponentDescription {
     }
 
     /**
+     * Returns true iff the component has a uniform partitioner.
+     *
      * NB: a component can have both a uniform partitioner and an explicit partitioner
      */
     public boolean hasUniformPartitioner() {
@@ -169,6 +171,8 @@ public final class NameComponentDescription {
     }
 
     /**
+     * Returns true iff the component has an explicit partitioner.
+     *
      * NB: a component can have both an explicit partitioner and a uniform partitioner
      */
     @Nullable
@@ -185,15 +189,15 @@ public final class NameComponentDescription {
                 explicit.addAll(((ExplicitRowNamePartitioner) p).values);
             }
         }
-        UniformRowNamePartitioner u = null;
+        UniformRowNamePartitioner up = null;
         if (hasUniform) {
-            u = new UniformRowNamePartitioner(type);
+            up = new UniformRowNamePartitioner(type);
         }
-        ExplicitRowNamePartitioner e = null;
+        ExplicitRowNamePartitioner ep = null;
         if (!explicit.isEmpty()) {
-            e = new ExplicitRowNamePartitioner(type, explicit);
+            ep = new ExplicitRowNamePartitioner(type, explicit);
         }
-        return new NameComponentDescription(componentName, type, order, u, e, logSafety);
+        return new NameComponentDescription(componentName, type, order, up, ep, logSafety);
     }
 
     @Override
@@ -216,12 +220,15 @@ public final class NameComponentDescription {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         NameComponentDescription other = (NameComponentDescription) obj;
         if (componentName == null) {
             if (other.getComponentName() != null) {

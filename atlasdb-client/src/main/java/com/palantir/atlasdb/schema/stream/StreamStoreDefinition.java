@@ -33,7 +33,8 @@ public class StreamStoreDefinition {
     public static final int MAX_IN_MEMORY_THRESHOLD = Integer.MAX_VALUE - 8;
 
     private final Map<String, TableDefinition> streamStoreTables;
-    private final String shortName, longName;
+    private final String shortName;
+    private final String longName;
     private final ValueType idType;
     private final boolean compressStream;
 

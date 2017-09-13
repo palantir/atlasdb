@@ -67,6 +67,12 @@ import com.palantir.timestamp.TimestampService;
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
+    /**
+     * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
+     */
+    @Deprecated
+    private static final int DEFAULT_MAX_CONCURRENT_RANGES = 64;
+
     @Override
     public String getType() {
         return "memory";
@@ -137,7 +143,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                cleaner);
+                cleaner,
+                DEFAULT_MAX_CONCURRENT_RANGES);
         cleaner.start(ret);
         return ret;
     }
