@@ -59,7 +59,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  */
 @SuppressWarnings("checkstyle:FinalClass") // Non-final as we'd like to mock it.
 public class LockStoreImpl implements LockStore {
-    private static final Logger log = LoggerFactory.getLogger(LockStoreImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(LockStore.class);
 
     private static final String BACKUP_LOCK_NAME = "BackupLock";
     private final KeyValueService keyValueService;
@@ -75,17 +75,17 @@ public class LockStoreImpl implements LockStore {
     }
 
     public static LockStoreImpl create(KeyValueService kvs) {
+        return createImplForTest(kvs);
+    }
+
+    @VisibleForTesting
+    static LockStoreImpl createImplForTest(KeyValueService kvs) {
         kvs.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         LockStoreImpl lockStore = new LockStoreImpl(kvs);
         if (lockStore.allLockEntries().isEmpty()) {
             new LockStorePopulator(kvs).populate();
         }
         return lockStore;
-    }
-
-    @VisibleForTesting
-    static LockStoreImpl createImplForTest(KeyValueService kvs) {
-        return new LockStoreImpl(kvs);
     }
 
     @Override
