@@ -687,13 +687,6 @@
                 "io.dropwizard:dropwizard-metrics"
             ]
         },
-        "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:timelock-agent",
-                "com.palantir.atlasdb:timelock-impl"
-            ]
-        },
         "javax.annotation:javax.annotation-api": {
             "locked": "1.2",
             "transitive": [
@@ -1036,12 +1029,6 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.0",
-            "transitive": [
-                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {
@@ -1787,13 +1774,6 @@
                 "io.dropwizard:dropwizard-metrics"
             ]
         },
-        "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:timelock-agent",
-                "com.palantir.atlasdb:timelock-impl"
-            ]
-        },
         "javax.annotation:javax.annotation-api": {
             "locked": "1.2",
             "transitive": [
@@ -2136,12 +2116,6 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.0",
-            "transitive": [
-                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {
