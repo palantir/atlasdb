@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
