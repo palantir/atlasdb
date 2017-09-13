@@ -48,6 +48,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         public SerializableTransactionManager delegate() {
             if (!isInitialized) {
                 try {
+                    // SerializableTransactionManager should throw until the underlying KVS is initialized.
+                    // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
                     manager.getKeyValueService().getClusterAvailabilityStatus();
                 } catch (NotInitializedException e) {
                     throw e;
@@ -74,6 +76,33 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      */
     protected SerializableTransactionManager() {
         this(null, null, null, null, null, null, null, null, null);
+    }
+
+    public static SerializableTransactionManager create(KeyValueService keyValueService,
+            TimelockService timelockService,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs,
+            boolean initializeAsync) {
+        SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
+                keyValueService,
+                timelockService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                allowHiddenTableAccess,
+                lockAcquireTimeoutMs);
+
+        return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager)
+                : serializableTransactionManager;
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,

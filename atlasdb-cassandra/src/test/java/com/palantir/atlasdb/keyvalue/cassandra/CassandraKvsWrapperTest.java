@@ -29,6 +29,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.exception.NotInitializedException;
 
 public class CassandraKvsWrapperTest {
     private static final CassandraKeyValueServiceImpl kvs = mock(CassandraKeyValueServiceImpl.class);
@@ -47,7 +48,7 @@ public class CassandraKvsWrapperTest {
         when(kvs.isInitialized()).thenReturn(false);
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
         assertThatThrownBy(() -> kvsWrapper.createTable(tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(NotInitializedException.class);
         verify(kvs, never()).createTable(any(TableReference.class), any());
     }
 }

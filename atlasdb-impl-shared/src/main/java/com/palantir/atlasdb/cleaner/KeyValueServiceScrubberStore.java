@@ -83,7 +83,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
     private final KeyValueService keyValueService;
 
     public static KeyValueServiceScrubberStore create(KeyValueService keyValueService) {
-        return create(keyValueService, true);
+        return create(keyValueService, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static KeyValueServiceScrubberStore create(KeyValueService keyValueService, boolean initializeAsync) {
@@ -130,6 +130,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
 
     @Override
     public synchronized void cleanUpOnInitFailure() {
+        // no-op
     }
 
     @Override

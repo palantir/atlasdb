@@ -223,9 +223,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initAsync) {
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.RUN);
-        cassandraClientPool.initialize(initAsync);
+        cassandraClientPool.initialize(initializeAsync);
         return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
     }
 
@@ -274,8 +274,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         isInitialized = true;
     }
 
-    // TODO(gmaretic): if cleanup is necessary, initialization is not thread safe. It is an odd corner case,
-    // but making a note for now
     @Override
     public synchronized void cleanUpOnInitFailure() {
         metricsManager.deregisterMetrics();

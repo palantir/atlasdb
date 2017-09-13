@@ -17,12 +17,18 @@ package com.palantir.atlasdb;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.table.description.Schema;
@@ -40,6 +46,10 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbEteServer.class);
+    private static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 60;
+    private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
+
     private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
@@ -59,16 +69,38 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        TransactionManager transactionManager = createTransactionManager(config, environment);
+        TransactionManager transactionManager = tryToCreateTransactionManager(config, environment);
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
     }
 
-    private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)
+    private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
+        if (config.getAtlasDbConfig().initializeAsync()) {
+            createTransactionManager(config.getAtlasDbConfig(), environment);
+        } else {
+            return retryOnTransactionManagersCreationFailure(config.getAtlasDbConfig(), environment);
+        }
+    }
+
+    private TransactionManager retryOnTransactionManagersCreationFailure(AtlasDbConfig config, Environment environment)
+            throws InterruptedException {
+        Stopwatch sw = Stopwatch.createStarted();
+        while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
+            try {
+                return createTransactionManager(config, environment);
+            } catch (RuntimeException e) {
+                log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
+                Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
+            }
+        }
+        throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
+    }
+
+    private TransactionManager createTransactionManager(AtlasDbConfig config, Environment environment) {
         return TransactionManagers.create(
-                config.getAtlasDbConfig(),
+                config,
                 Optional::empty,
                 ETE_SCHEMAS,
                 environment.jersey()::register,
