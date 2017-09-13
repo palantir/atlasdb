@@ -49,6 +49,18 @@ develop
            This will make sure the resulting ordering matches that of the input.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
 
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer embeds Cassandra host names in its metrics.
+           Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
+           This was necessary for compatibility with an internal log-ingestion tool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
+
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer embeds table names in Sweep metrics.
+           Sweep aggregate metrics continue to be reported.
+           This was necessary for compatibility with an internal log-ingestion tool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
+           
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -92,6 +104,7 @@ v0.56.0
 
     *    - |userbreak| |fixed|
          - AtlasDB no longer embeds user-agents in metric names.
+           This affects both AtlasDB clients as well as TimeLock Server.
            All metrics are still available; however, metrics which previously included a user-agent component will no longer do so.
            For example, the timer ``com.palantir.timestamp.TimestampService.myUserAgent_version.getFreshTimestamp`` is now named ``com.palantir.timestamp.TimestampService.getFreshTimestamp``.
            This was necessary for compatibility with an internal log-ingestion tool.

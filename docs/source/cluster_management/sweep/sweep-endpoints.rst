@@ -25,3 +25,4 @@ If you ever need to force a particular table to be swept immediately, you can ru
  |                                          | ``deleteBatchSize``: cells to delete per batch  |                                                                                                  |
  +------------------------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------+
 
+Note that using the sweep endpoints to manually kick off sweep will *not* update the Background Sweeper's sweep priority table.

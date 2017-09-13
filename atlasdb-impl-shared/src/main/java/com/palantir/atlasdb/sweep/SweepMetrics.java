@@ -17,7 +17,6 @@ package com.palantir.atlasdb.sweep;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 
 @SuppressWarnings("checkstyle:FinalClass")
@@ -40,18 +39,12 @@ public class SweepMetrics {
             this.name = name;
         }
 
-        void update(TableReference tableRef, long value) {
-            /* Lazily generate histogram since we need table-specific metrics */
-            metricsManager.getRegistry().histogram(getTableSpecificName(tableRef)).update(value);
+        void update(long value) {
             metricsManager.getRegistry().histogram(aggregateMetric()).update(value);
         }
 
         private String aggregateMetric() {
             return MetricRegistry.name(SweepMetrics.class, name);
-        }
-
-        private String getTableSpecificName(TableReference tableRef) {
-            return MetricRegistry.name(SweepMetrics.class, name, tableRef.getQualifiedName());
         }
     }
 
@@ -67,13 +60,13 @@ public class SweepMetrics {
         }
     }
 
-    void examinedCells(TableReference tableRef, long numExamined) {
-        cellsSweptHistogram.update(tableRef, numExamined);
+    void examinedCells(long numExamined) {
+        cellsSweptHistogram.update(numExamined);
         cellsSweptMeter.update(numExamined);
     }
 
-    void deletedCells(TableReference tableRef, long numDeleted) {
-        cellsDeletedHistogram.update(tableRef, numDeleted);
+    void deletedCells(long numDeleted) {
+        cellsDeletedHistogram.update(numDeleted);
         cellsDeletedMeter.update(numDeleted);
     }
 
