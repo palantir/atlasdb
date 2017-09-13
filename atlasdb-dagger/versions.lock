@@ -423,13 +423,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.4.1",
+            "locked": "3.5.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.9.0",
+            "locked": "1.11.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -985,13 +985,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.4.1",
+            "locked": "3.5.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.9.0",
+            "locked": "1.11.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
