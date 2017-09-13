@@ -65,6 +65,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -218,14 +219,14 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         DO_NOT_RUN
     }
 
-    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config) {
-        return create(config, true);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config, boolean initAsync) {
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.RUN);
         cassandraClientPool.initialize(initAsync);
-        return cassandraClientPool;
+        return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
     }
 
     @VisibleForTesting
