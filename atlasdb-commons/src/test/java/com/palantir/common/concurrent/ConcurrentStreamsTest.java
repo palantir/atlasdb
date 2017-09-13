@@ -108,8 +108,10 @@ public class ConcurrentStreamsTest {
         countdownAndBlock(firstTwoValuesStartProcessing);
         Assert.assertEquals(numStarted.get(), 2);
         countdownAndBlock(mainThreadHasValidatedFirstTwoValues);
+
         countdownAndBlock(latterTwoValuesStartProcessing);
         Assert.assertEquals(numStarted.get(), 4);
+
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
     }
 
