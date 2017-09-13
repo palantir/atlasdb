@@ -16,6 +16,8 @@
 
 package com.palantir.common.concurrent;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -115,7 +117,7 @@ public class ConcurrentStreamsTest {
         Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
     }
 
-    @Test(expected = CustomExecutionException.class)
+    @Test
     public void testShouldPropogateExceptions() {
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
@@ -124,18 +126,8 @@ public class ConcurrentStreamsTest {
                 },
                 executor,
                 2);
-        values.collect(Collectors.toList());
-    }
-
-    @Test
-    public void testShouldNotThrowBeforeCollected() {
-        ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
-                value -> {
-                    throw new CustomExecutionException();
-                },
-                executor,
-                2);
+        assertThatThrownBy(() -> values.collect(Collectors.toList()))
+                .isInstanceOf(CustomExecutionException.class);
     }
 
     @Test
