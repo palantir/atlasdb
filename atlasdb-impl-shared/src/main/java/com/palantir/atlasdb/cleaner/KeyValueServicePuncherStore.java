@@ -68,7 +68,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore, AsyncIni
     private volatile boolean isInitialized = false;
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
-        return create(keyValueService, true);
+        return create(keyValueService, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService, boolean initializeAsync) {

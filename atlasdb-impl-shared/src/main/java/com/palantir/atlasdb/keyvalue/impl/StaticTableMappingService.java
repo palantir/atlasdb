@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.AutoDelegate_TableMappingService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -47,7 +48,7 @@ public final class StaticTableMappingService extends AbstractTableMappingService
     private final KeyValueService kv;
 
     public static StaticTableMappingService create(KeyValueService kv) {
-        return create(kv, true);
+        return create(kv, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static StaticTableMappingService create(KeyValueService kv, boolean initalizeAsync) {
