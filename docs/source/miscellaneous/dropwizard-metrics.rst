@@ -20,18 +20,16 @@ A reasonably comprehensive list of metrics exposed by AtlasDB can be found below
 **Gauges**
 
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.numBlacklistedHosts``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.<host>.requestConnectionExceptionProportion``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.<host>.requestFailureProportion``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestConnectionExceptionProportion``
  - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestFailureProportion``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.approximatePoolSize``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.meanActiveTimeMillis``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.meanBorrowWaitTimeMillis``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.meanIdleTimeMillis``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.numIdle``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.numActive``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.proportionDestroyedByBorrower``
- - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.<host>.proportionDestroyedByEvictor``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.approximatePoolSize``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanActiveTimeMillis``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanBorrowWaitTimeMillis``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanIdleTimeMillis``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.numIdle``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.numActive``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.proportionDestroyedByBorrower``
+ - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.proportionDestroyedByEvictor``
  - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.estimated.size``
  - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.eviction.count``
  - ``com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.hit.count``
@@ -48,14 +46,9 @@ A reasonably comprehensive list of metrics exposed by AtlasDB can be found below
 - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.byteSizeTx``
 - ``com.palantir.atlasdb.sweep.SweepMetrics.cellTimestampPairsExamined``
 - ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted``
-- ``com.palantir.atlasdb.sweep.SweepMetrics.cellTimestampPairsExamined.<table>``
-- ``com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted.<table>``
 
 **Meters**
 
-- ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.<host>.requestConnectionExceptions``
-- ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.<host>.requestExceptions``
-- ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.<host>.requests``
 - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestConnectionExceptions``
 - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestExceptions``
 - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requests``
