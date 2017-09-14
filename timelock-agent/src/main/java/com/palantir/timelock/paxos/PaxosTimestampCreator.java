@@ -29,7 +29,11 @@ import javax.net.ssl.SSLSocketFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.factory.Leaders;
+import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.timelock.paxos.DbBoundManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
@@ -44,6 +48,7 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.timestamp.TimestampService;
 
 public class PaxosTimestampCreator {
     private final PaxosResource paxosResource;
@@ -96,6 +101,21 @@ public class PaxosTimestampCreator {
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
 
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
+    }
+
+    public Supplier<ManagedTimestampService> createDatabaseBackedTimestampService(String client, KeyValueServiceConfig kvsConfig) {
+        Set<String> namespacedUris = PaxosTimeLockUriUtils.getClientPaxosUris(remoteServers, client);
+
+        ImmutableLeaderConfig.Builder leaderConfigBuilder = ImmutableLeaderConfig.builder();
+        namespacedUris.stream().forEach(uri -> leaderConfigBuilder.addLeaders(uri));
+        ImmutableLeaderConfig leaderConfig = leaderConfigBuilder.build();
+
+        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(kvsConfig,
+                Optional.of(leaderConfig));
+
+        TimestampService timestampService = atlasFactory.getTimestampService();
+
+        return () -> new DbBoundManagedTimestampService(timestampService);
     }
 
     private ManagedTimestampService createManagedPaxosTimestampService(

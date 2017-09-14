@@ -24,7 +24,7 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 public interface TimeLockInstallConfiguration {
     Optional<PaxosInstallConfiguration> optionalPaxosConfig();
 
-    Optional<KeyValueServiceConfig> kvsConfig();
+    Optional<KeyValueServiceConfig> optionalKvsConfig();
 
     ClusterConfiguration cluster();
 
@@ -38,4 +38,12 @@ public interface TimeLockInstallConfiguration {
         Preconditions.checkState(optionalPaxosConfig().isPresent(), "PaxosConfig was not specified in the config.");
         return optionalPaxosConfig().get();
     }
+
+    @Value.Check
+    default void check() {
+        Preconditions.checkArgument(optionalPaxosConfig().isPresent() || optionalKvsConfig().isPresent(),
+                "Exactly one of PaxosInstallConfiguration or KeyValueServiceConfig"
+                        + " must be present in the timelock install config.");
+    }
+
 }

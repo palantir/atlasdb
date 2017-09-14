@@ -16,11 +16,13 @@
 
 package com.palantir.timelock.paxos;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -82,7 +84,7 @@ public class TimeLockAgent {
         // Finally, register the endpoints associated with the clients.
         registrar.accept(
                 new TimeLockResource(
-                        this::createInvalidatingTimeLockServices,
+                        client -> createInvalidatingTimeLockServices(client, install.optionalKvsConfig()),
                         JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime)));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
@@ -117,9 +119,12 @@ public class TimeLockAgent {
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
-    private TimeLockServices createInvalidatingTimeLockServices(String client) {
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
-                timestampCreator.createPaxosBackedTimestampService(client);
+    private TimeLockServices createInvalidatingTimeLockServices(String client, Optional<KeyValueServiceConfig> kvsConfig) {
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier;
+        rawTimestampServiceSupplier = kvsConfig.map(
+                keyValueServiceConfig -> timestampCreator.createDatabaseBackedTimestampService(client,
+                        keyValueServiceConfig))
+                .orElseGet(() -> timestampCreator.createPaxosBackedTimestampService(client));
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
