@@ -15,15 +15,18 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.Optional;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos"),
-        @JsonSubTypes.Type(value = TimestampBoundStoreConfiguration.class, name = "timestampBoundStore")
-})
-public interface TimeLockAlgorithmConfiguration {
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+
+@JsonSerialize(as = ImmutableTimestampBoundStoreConfiguration.class)
+@JsonDeserialize(as = ImmutableTimestampBoundStoreConfiguration.class)
+@Value.Immutable
+public abstract class TimestampBoundStoreConfiguration implements TimeLockAlgorithmConfiguration {
+
+    public abstract Optional<KeyValueServiceConfig> kvsConfig();
 }

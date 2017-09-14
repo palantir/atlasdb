@@ -15,15 +15,17 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos"),
-        @JsonSubTypes.Type(value = TimestampBoundStoreConfiguration.class, name = "timestampBoundStore")
-})
-public interface TimeLockAlgorithmConfiguration {
+import org.junit.Test;
+
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+
+public class TimestampBoundStoreConfigurationTest {
+    @Test
+    public void canCreateWithInMemoryKvsConfig() {
+        ImmutableTimestampBoundStoreConfiguration config = ImmutableTimestampBoundStoreConfiguration.builder().kvsConfig(
+                new InMemoryAtlasDbConfig()).build();
+        assertThat(config).isNotNull();
+    }
 }

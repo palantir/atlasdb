@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 
 import org.junit.Test;
 
@@ -30,13 +29,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
-public class TimeLockServerConfigurationDeserializationTest {
-    private static final File TEST_CONFIG_FILE = new File(
-            TimeLockServerConfigurationDeserializationTest.class.getResource("/paxosTestConfig.yml").getPath());
+public abstract class AbstractTimelockServerConfigDeserializationTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
@@ -48,10 +44,18 @@ public class TimeLockServerConfigurationDeserializationTest {
         OBJECT_MAPPER.registerModule(new Jdk8Module());
     }
 
+    protected AbstractTimelockServerConfigDeserializationTest() {}
+
+    public abstract String getConfigFileName();
+
+    public abstract void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration);
+
     @Test
     public void canDeserializeTimeLockServerConfiguration() throws IOException {
+        File testConfigFile = new File(
+                PaxosConfigDeserializationTest.class.getResource(getConfigFileName()).getPath());
         TimeLockServerConfiguration configuration =
-                OBJECT_MAPPER.readValue(TEST_CONFIG_FILE, TimeLockServerConfiguration.class);
+                OBJECT_MAPPER.readValue(testConfigFile, TimeLockServerConfiguration.class);
 
         assertThat(configuration.cluster().localServer()).isEqualTo("localhost:8080");
         assertThat(configuration.cluster().servers()).containsExactlyInAnyOrder(
@@ -69,20 +73,5 @@ public class TimeLockServerConfigurationDeserializationTest {
         assertThat(configuration.asyncLockConfiguration().useAsyncLockService()).isTrue();
         assertThat(configuration.asyncLockConfiguration().disableLegacySafetyChecksWarningPotentialDataCorruption())
                 .isFalse();
-    }
-
-    private void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {
-        assertThat(configuration).isInstanceOf(PaxosConfiguration.class);
-
-        PaxosConfiguration paxosConfiguration = (PaxosConfiguration) configuration;
-
-        assertSslConfigurationCorrect(paxosConfiguration.sslConfiguration().get());
-        assertThat(paxosConfiguration.paxosDataDir()).isEqualTo(Paths.get("var", "data", "paxos").toFile());
-    }
-
-    private void assertSslConfigurationCorrect(SslConfiguration sslConfiguration) {
-        assertThat(sslConfiguration.trustStorePath()).isEqualTo(Paths.get("var", "security", "trustStore.jks"));
-        assertThat(sslConfiguration.keyStorePath().isPresent()).isFalse();
-        assertThat(sslConfiguration.keyStorePassword().isPresent()).isFalse();
     }
 }
