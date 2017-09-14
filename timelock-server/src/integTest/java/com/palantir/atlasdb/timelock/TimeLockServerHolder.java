@@ -70,7 +70,7 @@ public class TimeLockServerHolder extends ExternalResource {
 
     public String getTimelockUri() {
         // TODO(nziebart): hack
-        return "http://localhost:" + timelockPort;
+        return "https://localhost:" + timelockPort;
     }
 
     public synchronized void kill() {

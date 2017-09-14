@@ -49,4 +49,4 @@ server:
       - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
   adminConnectors:
     - type: http
-      port: 7082
+      port: 7092
