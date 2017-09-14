@@ -26,7 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 
 public class HeartbeatService {
