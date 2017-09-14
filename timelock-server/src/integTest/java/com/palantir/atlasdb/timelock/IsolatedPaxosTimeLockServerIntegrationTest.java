@@ -39,7 +39,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     private static final String CLIENT = "isolated";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost",
+            "https://localhost",
             CLIENT,
             "paxosThreeServers.yml");
 
@@ -86,7 +86,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 Optional.empty(),
-                String.format("http://localhost:%d/%s/%s/%s",
+                String.format("https://localhost:%d/%s/%s/%s",
                         SERVER.serverHolder().getTimelockPort(),
                         PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,

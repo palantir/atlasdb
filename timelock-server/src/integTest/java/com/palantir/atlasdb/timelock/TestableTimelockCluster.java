@@ -41,17 +41,12 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.remoting3.http2.Http2Agent;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
 
 public class TestableTimelockCluster {
-
-    static {
-        Http2Agent.install();
-    }
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 

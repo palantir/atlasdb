@@ -125,7 +125,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
                 NO_SSL,
-                "http://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
+                "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
