@@ -25,16 +25,16 @@ import java.util.stream.Collectors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.table.description.integrationInput.IntegrationTestTableFactory;
-import com.palantir.atlasdb.table.description.integrationInput.SchemaApiTestTable;
-import com.palantir.atlasdb.table.description.integrationInput.SchemaApiTestTable.SchemaApiTestRow;
-import com.palantir.atlasdb.table.description.integrationInput.SchemaApiTestTable.SchemaApiTestRowResult;
+import com.palantir.atlasdb.table.description.generated.ApiTestTableFactory;
+import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
+import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRow;
+import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
 
 public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
-    private static final IntegrationTestTableFactory tableFactory = IntegrationTestTableFactory.of();
+    private static final ApiTestTableFactory tableFactory = ApiTestTableFactory.of();
 
     @Override
     protected void putSingleRowFirstColumn(Transaction transaction, String rowKey, long value) {
