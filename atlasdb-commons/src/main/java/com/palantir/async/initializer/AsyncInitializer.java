@@ -33,7 +33,6 @@ import com.palantir.logsafe.SafeArg;
  * Implements basic infrastructure to allow an object to be asynchronously initialized.
  * In order to be ThreadSafe, the abstract methods of the inheriting class need to be synchronized.
  */
-// TODO: Enforce that all methods from this interface are synchronized.
 @ThreadSafe
 public interface AsyncInitializer {
     Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
