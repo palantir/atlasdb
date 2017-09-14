@@ -45,6 +45,12 @@ develop
          - Change
 
     *    - |devbreak| |improved|
+         - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
+           Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
+           Note that *users* of AtlasDB clients are not affected, in that the wire format of configuration files has not changed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2348>`__)
+
+    *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
            This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
            To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48>`__.
