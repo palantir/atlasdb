@@ -140,20 +140,19 @@ public class SchemaTest {
 
     @Test
     // If you are intentionally making Table API changes, please manually regenerate the ApiTestSchema
-    public void checkAgainstAccidentalAPIChanges() throws IOException {
+    public void checkAgainstAccidentalTableAPIChanges() throws IOException {
+        // TODO (amarzoca): Add tests for schemas that use more of the rendering features (Triggers, StreamStores, etc)
         Schema schema = ApiTestSchema.getSchema();
         schema.renderTables(testFolder.getRoot());
-        String generatedTestTableName = "SchemaApiTestTable";
-        String generatedFilePath = "com/palantir/atlasdb/table/description/generated/";
 
-        File expectedFile = new File("src/test/java", generatedFilePath + generatedTestTableName + ".java");
-        File actualFile = new File(testFolder.getRoot(), generatedFilePath + generatedTestTableName + ".java");
+        String generatedTestTableName = "SchemaApiTestTable";
+        String generatedFilePath =
+                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
+
+        File expectedFile = new File("src/test/java", generatedFilePath);
+        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
 
         assertThat(actualFile).hasSameContentAs(expectedFile);
-    }
-
-    private String fileToString(File file) throws IOException {
-        return new String(Files.toByteArray(file), StandardCharsets.UTF_8);
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
