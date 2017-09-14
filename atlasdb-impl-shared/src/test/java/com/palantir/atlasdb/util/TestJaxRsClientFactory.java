@@ -32,9 +32,9 @@ public final class TestJaxRsClientFactory {
         // utility
     }
 
-    public static <SERVICE, TEST> SERVICE createJaxRsClientForTest(
-            Class<SERVICE> serviceClass,
-            Class<TEST> testClass,
+    public static <S, T> S createJaxRsClientForTest(
+            Class<S> serviceClass,
+            Class<T> testClass,
             String... uris) {
         return JaxRsClient.create(
                 serviceClass,
