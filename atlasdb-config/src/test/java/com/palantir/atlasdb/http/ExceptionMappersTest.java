@@ -25,7 +25,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HttpHeaders;
-import com.palantir.remoting.api.errors.SerializableError;
+import com.palantir.remoting2.errors.SerializableError;
 
 public class ExceptionMappersTest {
     private static final Exception RUNTIME_EXCEPTION = new RuntimeException("foo");
@@ -86,6 +86,7 @@ public class ExceptionMappersTest {
 
     private static void assertSerializedFormOfRuntimeException(Object entity) {
         SerializableError error = (SerializableError) entity;
-        assertThat(error.errorName()).isEqualTo(RUNTIME_EXCEPTION.getClass().getName());
+        assertThat(error.getErrorName()).isEqualTo(RUNTIME_EXCEPTION.getClass().getName());
+        assertThat(error.getMessage()).isEqualTo(RUNTIME_EXCEPTION.getMessage());
     }
 }
