@@ -285,8 +285,7 @@ public final class TransactionManagers {
                 sweepStrategyManager,
                 follower,
                 transactionManager,
-                persistentLockManager,
-                config.initializeAsync());
+                persistentLockManager);
 
         return transactionManager;
     }
@@ -310,8 +309,7 @@ public final class TransactionManagers {
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
             SerializableTransactionManager transactionManager,
-            PersistentLockManager persistentLockManager,
-            boolean initializeAsync) {
+            PersistentLockManager persistentLockManager) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
