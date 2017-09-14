@@ -281,7 +281,7 @@ public class BatchingVisitables {
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
                                                                      final ConsistentVisitor<T, K> v) throws K {
                 if (batchSizeHint > limit) {
-                    batchSizeHint = (int)limit;
+                    batchSizeHint = (int) limit;
                 }
                 visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<T>, K>() {
                     long visited = 0;
