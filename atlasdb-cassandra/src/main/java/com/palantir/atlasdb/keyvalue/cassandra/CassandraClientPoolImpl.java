@@ -226,16 +226,21 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, StartupChecks.RUN);
-        cassandraClientPool.initialize(initializeAsync);
+        CassandraClientPoolImpl cassandraClientPool = create(config,
+                StartupChecks.RUN, initializeAsync);
         return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
     }
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks) {
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
-        cassandraClientPool.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        cassandraClientPool.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
