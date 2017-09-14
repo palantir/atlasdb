@@ -35,7 +35,7 @@ import com.palantir.remoting2.config.ssl.SslSocketFactories;
 
 public class TestProxies {
 
-    private static final SSLSocketFactory SSL_SOCKET_FACTORY =
+    public static final SSLSocketFactory SSL_SOCKET_FACTORY =
             SslSocketFactories.createSslSocketFactory(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
 
     private final String baseUri;
