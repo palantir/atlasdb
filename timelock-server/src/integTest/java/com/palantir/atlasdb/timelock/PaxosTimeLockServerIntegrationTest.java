@@ -498,7 +498,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static String getRootUriForClient(String client) {
-        return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
+        return String.format("https://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
     }
 
     private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
