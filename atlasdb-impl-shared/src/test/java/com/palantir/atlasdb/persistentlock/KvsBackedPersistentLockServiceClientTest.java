@@ -29,7 +29,6 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.remoting.api.errors.RemoteException;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
