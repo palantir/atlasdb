@@ -44,11 +44,6 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed|
-         - The new concurrent version of `Transaction#getRanges` added in 0.56.0 did not correctly guarantee ordering of the results returned in its stream.
-           This will make sure the resulting ordering matches that of the input.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
-
     *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
            This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
@@ -66,7 +61,27 @@ develop
            Sweep aggregate metrics continue to be reported.
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
-           
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.56.1
+=======
+
+14 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The new concurrent version of `Transaction#getRanges` did not correctly guarantee ordering of the results returned in its stream.
+           We now make sure the resulting ordering matches that of the input RangeRequests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
