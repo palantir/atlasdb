@@ -79,6 +79,7 @@ public class TestableTimelockCluster {
                         timestampService.getFreshTimestamp();
                         return true;
                     } catch (Throwable t) {
+                        t.printStackTrace();
                         return false;
                     }
                 });
