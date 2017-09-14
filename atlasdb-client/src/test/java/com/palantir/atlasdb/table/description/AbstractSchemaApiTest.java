@@ -34,6 +34,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -47,7 +48,6 @@ import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
 import com.palantir.common.base.BatchingVisitableFromIterable;
-
 
 public abstract class AbstractSchemaApiTest {
     private static final TableReference tableRef =
@@ -79,10 +79,10 @@ public abstract class AbstractSchemaApiTest {
         ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(transaction, times(1)).put(eq(tableRef), argument.capture());
 
+        Map<Cell, byte[]> foundMap = argument.getValue();
         Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
-        assertThat(argument.getValue().entrySet().size()).isEqualTo(1);
-        assertThat(argument.getValue().keySet().toArray()[0]).isEqualTo(expectedCell);
-        assertThat((byte[]) argument.getValue().values().toArray()[0])
+        assertThat(Iterables.getOnlyElement(foundMap.keySet())).isEqualTo(expectedCell);
+        assertThat(Iterables.getOnlyElement(foundMap.values()))
                 .usingComparator(UnsignedBytes.lexicographicalComparator())
                 .isEqualTo(EncodingUtils.encodeUnsignedVarLong(TEST_VALUE));
     }
@@ -105,8 +105,7 @@ public abstract class AbstractSchemaApiTest {
                 .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
-        assertThat(argumentRows.size()).isEqualTo(1);
-        assertThat(argumentRows.get(0))
+        assertThat(Iterables.getOnlyElement(argumentRows))
                 .usingComparator(UnsignedBytes.lexicographicalComparator())
                 .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));
     }
@@ -167,15 +166,16 @@ public abstract class AbstractSchemaApiTest {
         Mockito.verify(transaction, times(1))
                 .getRange(eq(tableRef), argument.capture());
 
-        RangeRequest rangeRequest = argument.getValue();
-        assertThat(rangeRequest.getStartInclusive())
+        RangeRequest rangeRequestFound = argument.getValue();
+        assertThat(rangeRequestFound.getStartInclusive())
                 .usingComparator(UnsignedBytes.lexicographicalComparator())
                 .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));
-        assertThat(rangeRequest.getEndExclusive())
+        assertThat(rangeRequestFound.getEndExclusive())
                 .usingComparator(UnsignedBytes.lexicographicalComparator())
                 .isEqualTo(PtBytes.toBytes(endRowKey));
-        assertThat(rangeRequest.getColumnNames().size()).isEqualTo(1);
-        assertThat(rangeRequest.containsColumn(PtBytes.toBytes(SECOND_COL_SHORT_NAME))).isTrue();
+        assertThat(Iterables.getOnlyElement(rangeRequestFound.getColumnNames()))
+                .usingComparator(UnsignedBytes.lexicographicalComparator())
+                .isEqualTo(PtBytes.toBytes(SECOND_COL_SHORT_NAME));
     }
 
     @Test
