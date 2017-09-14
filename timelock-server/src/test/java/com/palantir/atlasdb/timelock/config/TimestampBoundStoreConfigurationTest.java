@@ -24,8 +24,9 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 public class TimestampBoundStoreConfigurationTest {
     @Test
     public void canCreateWithInMemoryKvsConfig() {
-        ImmutableTimestampBoundStoreConfiguration config = ImmutableTimestampBoundStoreConfiguration.builder().kvsConfig(
-                new InMemoryAtlasDbConfig()).build();
+        ImmutableTimestampBoundStoreConfiguration config = ImmutableTimestampBoundStoreConfiguration.builder()
+                .kvsConfig(new InMemoryAtlasDbConfig())
+                .build();
         assertThat(config).isNotNull();
     }
 }

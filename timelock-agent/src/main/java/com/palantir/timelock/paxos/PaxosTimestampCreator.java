@@ -103,7 +103,9 @@ public class PaxosTimestampCreator {
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
     }
 
-    public Supplier<ManagedTimestampService> createDatabaseBackedTimestampService(String client, KeyValueServiceConfig kvsConfig) {
+    public Supplier<ManagedTimestampService> createDatabaseBackedTimestampService(
+            String client,
+            KeyValueServiceConfig kvsConfig) {
         Set<String> namespacedUris = PaxosTimeLockUriUtils.getClientPaxosUris(remoteServers, client);
 
         ImmutableLeaderConfig.Builder leaderConfigBuilder = ImmutableLeaderConfig.builder();

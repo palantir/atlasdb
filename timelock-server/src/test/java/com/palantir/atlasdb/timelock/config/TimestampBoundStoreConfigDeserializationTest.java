@@ -18,22 +18,7 @@ package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-
-import org.junit.Test;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
-
-import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public class TimestampBoundStoreConfigDeserializationTest extends AbstractTimelockServerConfigDeserializationTest {
     @Override
@@ -45,7 +30,8 @@ public class TimestampBoundStoreConfigDeserializationTest extends AbstractTimelo
     public void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {
         assertThat(configuration).isInstanceOf(TimestampBoundStoreConfiguration.class);
 
-        TimestampBoundStoreConfiguration timestampBoundStoreConfiguration = (TimestampBoundStoreConfiguration) configuration;
+        TimestampBoundStoreConfiguration timestampBoundStoreConfiguration =
+                (TimestampBoundStoreConfiguration) configuration;
 
         assertThat(timestampBoundStoreConfiguration.kvsConfig()).isPresent();
         assertThat(timestampBoundStoreConfiguration.kvsConfig().get()).isEqualTo(new InMemoryAtlasDbConfig());

@@ -119,7 +119,9 @@ public class TimeLockAgent {
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
-    private TimeLockServices createInvalidatingTimeLockServices(String client, Optional<KeyValueServiceConfig> kvsConfig) {
+    private TimeLockServices createInvalidatingTimeLockServices(
+            String client,
+            Optional<KeyValueServiceConfig> kvsConfig) {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier;
         rawTimestampServiceSupplier = kvsConfig.map(
                 keyValueServiceConfig -> timestampCreator.createDatabaseBackedTimestampService(client,

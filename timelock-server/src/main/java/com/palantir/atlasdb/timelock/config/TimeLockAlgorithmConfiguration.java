@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos"),
-        @JsonSubTypes.Type(value = TimestampBoundStoreConfiguration.class, name = "timestampBoundStore")
-})
+        @JsonSubTypes.Type(value = TimestampBoundStoreConfiguration.class, name = "timestampBoundStore")})
 public interface TimeLockAlgorithmConfiguration {
 }

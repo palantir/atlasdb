@@ -28,30 +28,31 @@ public final class TimeLockConfigMigrator {
         TimeLockRuntimeConfiguration runtime;
         if (PaxosConfiguration.class.isInstance(config.algorithm())) {
             PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
-        install = ImmutableTimeLockInstallConfiguration.builder()
-                .optionalPaxosConfig(ImmutablePaxosInstallConfiguration.builder()
-                        .dataDirectory(paxos.paxosDataDir())
-                        .build())
-                .cluster(ImmutableClusterConfiguration.builder()
-                        .cluster(ServiceConfiguration.builder()
-                                .security(paxos.sslConfiguration())
-                                .uris(config.cluster().servers())
-                                .build())
-                        .localServer(config.cluster().localServer())
-                        .build())
-                .asyncLock(config.asyncLockConfiguration())
-                .build();
+            install = ImmutableTimeLockInstallConfiguration.builder()
+                    .optionalPaxosConfig(ImmutablePaxosInstallConfiguration.builder()
+                            .dataDirectory(paxos.paxosDataDir())
+                            .build())
+                    .cluster(ImmutableClusterConfiguration.builder()
+                            .cluster(ServiceConfiguration.builder()
+                                    .security(paxos.sslConfiguration())
+                                    .uris(config.cluster().servers())
+                                    .build())
+                            .localServer(config.cluster().localServer())
+                            .build())
+                    .asyncLock(config.asyncLockConfiguration())
+                    .build();
 
-        runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                .optionalPaxos(ImmutablePaxosRuntimeConfiguration.builder()
-                        .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
-                        .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
-                        .pingRateMs(paxos.pingRateMs())
-                        .build())
-                .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
-                .build();
+            runtime = ImmutableTimeLockRuntimeConfiguration.builder()
+                    .optionalPaxos(ImmutablePaxosRuntimeConfiguration.builder()
+                            .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
+                            .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
+                            .pingRateMs(paxos.pingRateMs())
+                            .build())
+                    .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
+                    .build();
         } else if (TimestampBoundStoreConfiguration.class.isInstance(config.algorithm())) {
-            TimestampBoundStoreConfiguration timestampBoundStoreConfiguration = (TimestampBoundStoreConfiguration) config.algorithm();
+            TimestampBoundStoreConfiguration timestampBoundStoreConfiguration =
+                    (TimestampBoundStoreConfiguration) config.algorithm();
             install = ImmutableTimeLockInstallConfiguration.builder()
                     .cluster(ImmutableClusterConfiguration.builder()
                             .cluster(ServiceConfiguration.builder()
