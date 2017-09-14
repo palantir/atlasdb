@@ -40,6 +40,7 @@ public class BatchingVisitables {
     private BatchingVisitables() {/**/}
 
     public static final int DEFAULT_BATCH_SIZE = 1000;
+    @SuppressWarnings("unused") // Used in internal legacy code
     public static final int KEEP_ALL_BATCH_SIZE = 100000;
 
     public static <T> BatchingVisitableView<T> emptyBatchingVisitable() {
