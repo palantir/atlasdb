@@ -41,6 +41,7 @@ import com.palantir.util.Mutables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
+@SuppressWarnings("Guava") // BatchingVisitables uses Guava.
 public class BatchingVisitablesTest {
     @Test
     public void testGetFirstPage() {
@@ -216,7 +217,7 @@ public class BatchingVisitablesTest {
         assertTrue("anonymous assert 33212B", limited.batchAccept(2, AbortingVisitors.alwaysTrue()));
         assertTrue("anonymous assert 8EF750", limited.batchAccept(3, AbortingVisitors.alwaysTrue()));
 
-        CountingVisitor<Long> cv = new CountingVisitor<Long>();
+        CountingVisitor<Long> cv = new CountingVisitor<>();
         assertTrue("anonymous assert F935C9", limited.batchAccept(2, AbortingVisitors.batching(cv)));
         assertEquals("anonymous assert 24BD1B", 3, cv.count);
         assertTrue("anonymous assert 15643D", limited.batchAccept(3, AbortingVisitors.batching(cv)));
@@ -248,7 +249,7 @@ public class BatchingVisitablesTest {
         BatchingVisitableView<Long> limited = BatchingVisitableView.of(visitor).limit(3);
         BatchingVisitableView<Long> concat = BatchingVisitables.concat(limited, visitor);
         assertTrue("anonymous assert CED0ED", concat.batchAccept(2, AbortingVisitors
-                .batching(AbortingVisitors.<Long>alwaysTrue())));
+                .batching(AbortingVisitors.alwaysTrue())));
     }
 
     static class CountingVisitor<T> implements AbortingVisitor<T, RuntimeException> {
@@ -272,10 +273,7 @@ public class BatchingVisitablesTest {
         @Override
         public boolean visit(T item) throws RuntimeException {
             count++;
-            if (count >= limit) {
-                return false;
-            }
-            return true;
+            return count < limit;
         }
     }
 
@@ -305,11 +303,11 @@ public class BatchingVisitablesTest {
     public void testHintPageSize() {
         InfiniteVisitable infinite = new InfiniteVisitable();
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(infinite);
-        long first = bv.filter(new TakeEvery<Long>(100)).getFirst();
+        long first = bv.filter(new TakeEvery<>(100)).getFirst();
         assertEquals("anonymous assert A16A34", 99L, first);
         assertEquals("anonymous assert 55EE6D", 100L, infinite.count);
 
-        first = bv.filter(new TakeEvery<Long>(100)).hintBatchSize(100).getFirst();
+        first = bv.filter(new TakeEvery<>(100)).hintBatchSize(100).getFirst();
         assertEquals("anonymous assert 709532", 199L, first);
         assertEquals("anonymous assert D4A406", 200L, infinite.count);
     }
@@ -354,7 +352,7 @@ public class BatchingVisitablesTest {
         }
 
         public static <T> BatchingVisitable<T> create(List<T> list) {
-            return new ListVisitor<T>(list);
+            return new ListVisitor<>(list);
         }
 
         @Override
