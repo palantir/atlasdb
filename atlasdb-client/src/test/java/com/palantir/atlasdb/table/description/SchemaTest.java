@@ -15,15 +15,20 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -133,8 +138,27 @@ public class SchemaTest {
                 .hasMessage(getErrorMessage(longTableName, kvsList));
     }
 
+    @Test
+    // If you are intentionally making Table API changes, please manually regenerate the ApiTestSchema
+    public void checkAgainstAccidentalAPIChanges() throws IOException {
+        Schema schema = ApiTestSchema.getSchema();
+        schema.renderTables(testFolder.getRoot());
+        String generatedTestTableName = "SchemaApiTestTable";
+        String generatedFilePath = "com/palantir/atlasdb/table/description/generated/";
+
+        File expectedFile = new File("src/test/java", generatedFilePath + generatedTestTableName + ".java");
+        File actualFile = new File(testFolder.getRoot(), generatedFilePath + generatedTestTableName + ".java");
+
+        assertThat(actualFile).hasSameContentAs(expectedFile);
+    }
+
+    private String fileToString(File file) throws IOException {
+        return new String(Files.toByteArray(file), StandardCharsets.UTF_8);
+    }
+
     private String readFileIntoString(File baseDir, String path) throws IOException {
-        return new String(Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
+        return new String(
+                Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
     }
 
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
