@@ -44,6 +44,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - The new concurrent version of `Transaction#getRanges` added in 0.56.0 did not correctly guarantee ordering of the results returned in its stream.
+           This will make sure the resulting ordering matches that of the input.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
+
     *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
            This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
