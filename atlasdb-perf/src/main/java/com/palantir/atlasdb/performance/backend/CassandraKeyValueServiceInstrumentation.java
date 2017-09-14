@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -60,13 +61,13 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     @Override
     public boolean canConnect(InetSocketAddress addr) {
         return CassandraKeyValueServiceImpl.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(
-                            (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
-                    Optional.of(ImmutableLeaderConfig.builder()
-                            .quorumSize(1)
-                            .localServer(addr.getHostString())
-                            .leaders(ImmutableSet.of(addr.getHostString()))
-                            .build()))
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
+                Optional.of(ImmutableLeaderConfig.builder()
+                        .quorumSize(1)
+                        .localServer(addr.getHostString())
+                        .leaders(ImmutableSet.of(addr.getHostString()))
+                        .build()))
                 .isInitialized();
     }
 
