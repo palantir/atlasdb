@@ -41,10 +41,10 @@ public class CellsSweeper {
     private final PersistentLockManager persistentLockManager;
 
     public CellsSweeper(
-                TransactionManager txManager,
-                KeyValueService keyValueService,
-                PersistentLockManager persistentLockManager,
-                Collection<Follower> followers) {
+            TransactionManager txManager,
+            KeyValueService keyValueService,
+            PersistentLockManager persistentLockManager,
+            Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
         this.followers = followers;
