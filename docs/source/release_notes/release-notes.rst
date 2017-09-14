@@ -43,6 +43,10 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |devbreak| |fixed|
+         - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
 
     *    - |fixed|
          - The new concurrent version of `Transaction#getRanges` added in 0.56.0 did not correctly guarantee ordering of the results returned in its stream.
