@@ -399,6 +399,12 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "commons-lang:commons-lang": {
             "locked": "2.6",
             "transitive": [
@@ -918,6 +924,12 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "commons-lang:commons-lang": {
