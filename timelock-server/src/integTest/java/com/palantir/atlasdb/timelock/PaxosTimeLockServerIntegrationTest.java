@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
@@ -461,7 +462,10 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static Response makeEmptyPostToUri(String uri) throws IOException {
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .sslSocketFactory(TestProxies.SSL_SOCKET_FACTORY)
+                .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CYPHER_SUITES)
+                .build();
         return client.newCall(new Request.Builder()
                 .url(uri)
                 .post(RequestBody.create(MediaType.parse("application/json"), ""))
