@@ -16,9 +16,7 @@
 
 package com.palantir.common.concurrent;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -28,6 +26,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.immutables.value.Value;
 
 import com.palantir.common.base.Throwables;
 
@@ -56,36 +56,36 @@ public class ConcurrentStreams {
             return values.stream().map(mapper);
         }
 
-        Map<T, CompletableFuture<S>> futuresByValue = values.stream()
-                .collect(Collectors.toMap(Function.identity(), value -> new CompletableFuture<>()));
-        Queue<T> valueQueue = new ConcurrentLinkedQueue<T>(values);
+        List<StreamElement<T, S>> elements = values.stream()
+                .map(value -> StreamElement.of(value, new CompletableFuture<S>()))
+                .collect(Collectors.toList());
+        Queue<StreamElement<T, S>> queue = new ConcurrentLinkedQueue<>(elements);
 
-        if (size < concurrency) {
-            concurrency = size;
+        int numThreads = size < concurrency ? size : concurrency;
+        for (int i = 0; i < numThreads; i++) {
+            executor.execute(() -> runOperationsAndUpdateFutures(queue, mapper));
         }
-        for (int i = 0; i < concurrency; i++) {
-            executor.execute(() -> runOperationsAndUpdateFutures(futuresByValue, valueQueue, mapper));
-        }
-        return streamAllUnchecked(futuresByValue.values());
+        return streamAllUnchecked(elements);
     }
 
     private static <T, S> void runOperationsAndUpdateFutures(
-            Map<T, CompletableFuture<S>> futuresByValue, Queue<T> valueQueue, Function<T, S> operation) {
+            Queue<StreamElement<T, S>> queue, Function<T, S> operation) {
 
-        runUntilEmpty(valueQueue, value -> {
-            CompletableFuture<S> future = futuresByValue.get(value);
+        runUntilEmpty(queue, element -> {
+            T value = element.getValue();
+            CompletableFuture<S> future = element.getFuture();
+
             try {
                 future.complete(operation.apply(value));
             } catch (Exception e) {
                 future.completeExceptionally(e);
-                completeAllExceptionally(futuresByValue, valueQueue);
+                completeAllExceptionally(queue);
             }
         });
     }
 
-    private static <T, S> void completeAllExceptionally(
-            Map<T, CompletableFuture<S>> futuresByValue, Queue<T> valueQueue) {
-        runUntilEmpty(valueQueue, value -> futuresByValue.get(value).completeExceptionally(TASK_CANCELED_EXCEPTION));
+    private static <T, S> void completeAllExceptionally(Queue<StreamElement<T, S>> queue) {
+        runUntilEmpty(queue, element -> element.getFuture().completeExceptionally(TASK_CANCELED_EXCEPTION));
     }
 
     private static <T> void runUntilEmpty(Queue<T> queue, Consumer<T> consumer) {
@@ -94,10 +94,10 @@ public class ConcurrentStreams {
         }
     }
 
-    private static <S> Stream<S> streamAllUnchecked(Collection<CompletableFuture<S>> futures) {
-        return futures.stream().map(future -> {
+    private static <T, S> Stream<S> streamAllUnchecked(List<StreamElement<T, S>> elements) {
+        return elements.stream().map(element -> {
             try {
-                return future.get();
+                return element.getFuture().get();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
@@ -113,6 +113,19 @@ public class ConcurrentStreams {
         public synchronized Throwable fillInStackTrace() {
             return this;
         }
-    };
+    }
+
+    @Value.Immutable
+    static abstract class StreamElement<T, S> {
+        abstract T getValue();
+        abstract CompletableFuture<S> getFuture();
+
+        static <T, S> StreamElement<T, S> of(T value, CompletableFuture<S> future) {
+            return ImmutableStreamElement.<T, S>builder()
+                    .value(value)
+                    .future(future)
+                    .build();
+        }
+    }
 
 }

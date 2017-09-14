@@ -16,8 +16,12 @@
 
 package com.palantir.common.concurrent;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,7 +35,8 @@ public class ConcurrentStreamsTest {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(32);
 
-    private static class CustomRuntimeException extends RuntimeException {}
+    private static class CustomExecutionException extends RuntimeException {}
+    private static class LatchTimedOutException extends RuntimeException {}
 
     @Test
     public void testDoesEvaluateResultsWithFullConcurrency() {
@@ -54,62 +59,96 @@ public class ConcurrentStreamsTest {
     }
 
     @Test
-    public void testShouldOnlyRunWithProvidedConcurrency() throws Exception {
-        AtomicInteger numStarted = new AtomicInteger(0);
+    public void testDoesMaintainCorrectOrdering() {
         Stream<Integer> values = ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
+                ImmutableList.of(5, 3, 6, 2, 1, 9),
                 value -> {
-                    numStarted.getAndIncrement();
-                    pause(100);
+                    if (value <= 3) {
+                        // Add delay on some elements so that subsequent values will be processed first so that
+                        // we can better guarantee the ordering is maintained regardless of processing order
+                        pause(100);
+                    }
                     return value + 1;
                 },
                 executor,
                 2);
-        pause(50);
-        Assert.assertEquals(numStarted.get(), 2);
-        pause(100);
-        Assert.assertEquals(numStarted.get(), 4);
-        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(6, 4, 7, 3, 2, 10));
     }
 
-    @Test(expected = CustomRuntimeException.class)
-    public void testShouldPropogateExceptions() {
+    @Test
+    public void testCanHandleValueDuplicates() {
         Stream<Integer> values = ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
-                value -> {
-                    throw new CustomRuntimeException();
-                },
+                ImmutableList.of(1, 2, 1, 2),
+                value -> value + 1,
                 executor,
                 2);
-        values.collect(Collectors.toList());
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 2, 3));
     }
 
     @Test
-    public void testShouldNotThrowBeforeCollected() {
-        ConcurrentStreams.map(
-                ImmutableList.of(1, 2, 3, 4),
-                value -> {
-                    throw new CustomRuntimeException();
-                },
-                executor,
-                2);
-    }
+    public void testShouldOnlyRunWithProvidedConcurrency() throws Exception {
+        CountDownLatch firstTwoValuesStartProcessing = new CountDownLatch(3);
+        CountDownLatch mainThreadHasValidatedFirstTwoValues = new CountDownLatch(3);
+        CountDownLatch latterTwoValuesStartProcessing = new CountDownLatch(3);
 
-    @Test
-    public void testShouldAbortWaitingTasksEarlyOnFailure() {
         AtomicInteger numStarted = new AtomicInteger(0);
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
                     numStarted.getAndIncrement();
-                    pause(50);
-                    throw new CustomRuntimeException();
+                    if (value <= 2) {
+                        countdownAndBlock(firstTwoValuesStartProcessing);
+                        countdownAndBlock(mainThreadHasValidatedFirstTwoValues);
+                    } else {
+                        countdownAndBlock(latterTwoValuesStartProcessing);
+                    }
+                    return value + 1;
                 },
                 executor,
                 2);
+
+        countdownAndBlock(firstTwoValuesStartProcessing);
+        Assert.assertEquals(numStarted.get(), 2);
+        countdownAndBlock(mainThreadHasValidatedFirstTwoValues);
+
+        countdownAndBlock(latterTwoValuesStartProcessing);
+        Assert.assertEquals(numStarted.get(), 4);
+
+        Assert.assertEquals(values.collect(Collectors.toList()), ImmutableList.of(2, 3, 4, 5));
+    }
+
+    @Test
+    public void testShouldPropogateExceptions() {
+        Stream<Integer> values = ConcurrentStreams.map(
+                ImmutableList.of(1, 2, 3, 4),
+                value -> {
+                    throw new CustomExecutionException();
+                },
+                executor,
+                2);
+        assertThatThrownBy(() -> values.collect(Collectors.toList()))
+                .isInstanceOf(CustomExecutionException.class);
+    }
+
+    @Test
+    public void testShouldAbortWaitingTasksEarlyOnFailure() {
+        CountDownLatch firstTwoValuesIncrementCounter = new CountDownLatch(3);
+        AtomicInteger numStarted = new AtomicInteger(0);
+
+        Stream<Integer> values = ConcurrentStreams.map(
+                ImmutableList.of(1, 2, 3, 4),
+                value -> {
+                    numStarted.getAndIncrement();
+                    countdownAndBlock(firstTwoValuesIncrementCounter);
+                    throw new CustomExecutionException();
+                },
+                executor,
+                2);
+
+        countdownAndBlock(firstTwoValuesIncrementCounter);
         try {
             values.collect(Collectors.toList());
-        } catch (CustomRuntimeException e) {
+        } catch (CustomExecutionException e) {
             Assert.assertEquals(numStarted.get(), 2);
             return;
         }
@@ -118,26 +157,47 @@ public class ConcurrentStreamsTest {
 
     @Test
     public void testCanOperateOnStreamWhileTasksAreStillRunning() {
+        CountDownLatch latterTwoValuesStartProcessing = new CountDownLatch(3);
+        CountDownLatch latterTwoValuesIncrementCounter = new CountDownLatch(3);
+
         AtomicInteger numStarted = new AtomicInteger(0);
         Stream<Integer> values = ConcurrentStreams.map(
                 ImmutableList.of(1, 2, 3, 4),
                 value -> {
-                    numStarted.getAndIncrement();
-                    if (value == 3) {
-                        pause(100);
+                    if (value < 3) {
+                        numStarted.getAndIncrement();
+                    } else {
+                        countdownAndBlock(latterTwoValuesStartProcessing);
+                        numStarted.getAndIncrement();
+                        countdownAndBlock(latterTwoValuesIncrementCounter);
                     }
                     return value + 1;
                 },
                 executor,
                 2);
-        values.map(value -> {
-            if (value >= 4) {
-                Assert.assertEquals(numStarted.get(), 4);
+        values.forEach(value -> {
+            if (value <= 3) {
+                Assert.assertEquals(numStarted.get(), 2);
+                if (value == 3) {
+                    // Release last two threads and then ensure they both increment the counter before proceeding
+                    countdownAndBlock(latterTwoValuesStartProcessing);
+                    countdownAndBlock(latterTwoValuesIncrementCounter);
+                }
             } else {
-                Assert.assertNotEquals(numStarted.get(), 4);
+                Assert.assertEquals(numStarted.get(), 4);
             }
-            return null;
         });
+    }
+
+    private void countdownAndBlock(CountDownLatch latch) {
+        latch.countDown();
+        try {
+            if (!latch.await(1, TimeUnit.SECONDS)) {
+                throw new LatchTimedOutException();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void pause(int millis) {
