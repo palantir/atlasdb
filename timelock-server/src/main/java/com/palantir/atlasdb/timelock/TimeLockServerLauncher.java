@@ -31,7 +31,6 @@ import com.palantir.tritium.metrics.MetricRegistries;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import io.reactivex.Observable;
 
 public class TimeLockServerLauncher extends Application<TimeLockServerConfiguration> {
     public static void main(String[] args) throws Exception {
@@ -56,7 +55,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         Consumer<Object> registrar = component -> environment.jersey().register(component);
         TimeLockAgent agent = new TimeLockAgent(
                 combined.install(),
-                Observable.just(combined.runtime()), // this won't actually live reload
+                combined::runtime, // this won't actually live reload
                 combined.deprecated(),
                 registrar);
         agent.createAndRegisterResources();

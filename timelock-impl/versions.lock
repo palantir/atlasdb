@@ -414,9 +414,6 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
-        "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.1.1"
-        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -473,12 +470,6 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.0",
-            "transitive": [
-                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -923,9 +914,6 @@
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
-        "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.1.1"
-        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -982,12 +970,6 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
-            ]
-        },
-        "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.0",
-            "transitive": [
-                "io.reactivex.rxjava2:rxjava"
             ]
         },
         "org.slf4j:slf4j-api": {

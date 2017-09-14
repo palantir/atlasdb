@@ -17,33 +17,31 @@
 package com.palantir.timelock.paxos;
 
 import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
 
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.ThreadPooledLockService;
-import com.palantir.timelock.Observables;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
-import io.reactivex.Observable;
-
 public class LockCreator {
-    private final Observable<TimeLockRuntimeConfiguration> runtime;
+    private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final TimeLockDeprecatedConfiguration deprecated;
 
     private static Semaphore sharedThreadPool = new Semaphore(-1);
 
-    public LockCreator(Observable<TimeLockRuntimeConfiguration> runtime, TimeLockDeprecatedConfiguration deprecated) {
+    public LockCreator(Supplier<TimeLockRuntimeConfiguration> runtime, TimeLockDeprecatedConfiguration deprecated) {
         this.runtime = runtime;
         this.deprecated = deprecated;
     }
 
     public CloseableLockService createThreadPoolingLockService() {
-        // TODO (jkong): Live reload slow lock timeout, plus clients
+        // TODO (jkong): Live reload slow lock timeout, plus clients (issue #2342)
         // TODO (?????): Rewrite ThreadPooled to cope with live reload, and/or remove ThreadPooled (if using Async)
-        TimeLockRuntimeConfiguration timeLockRuntimeConfiguration = Observables.blockingMostRecent(runtime).get();
+        TimeLockRuntimeConfiguration timeLockRuntimeConfiguration = runtime.get();
         CloseableLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
                 timeLockRuntimeConfiguration.slowLockLogTriggerMillis());
 

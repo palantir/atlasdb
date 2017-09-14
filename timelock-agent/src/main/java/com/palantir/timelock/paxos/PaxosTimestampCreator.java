@@ -41,23 +41,20 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.timelock.Observables;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampBoundStore;
-
-import io.reactivex.Observable;
 
 public class PaxosTimestampCreator {
     private final PaxosResource paxosResource;
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
-    private final Observable<PaxosRuntimeConfiguration> paxosRuntime;
+    private final Supplier<PaxosRuntimeConfiguration> paxosRuntime;
 
     public PaxosTimestampCreator(PaxosResource paxosResource,
             Set<String> remoteServers,
             Optional<SSLSocketFactory> optionalSecurity,
-            Observable<PaxosRuntimeConfiguration> paxosRuntime) {
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
         this.paxosResource = paxosResource;
         this.remoteServers = remoteServers;
         this.optionalSecurity = optionalSecurity;
@@ -113,7 +110,7 @@ public class PaxosTimestampCreator {
                         paxosResource.getPaxosLearner(client),
                         ImmutableList.copyOf(acceptors),
                         ImmutableList.copyOf(learners),
-                        Observables.blockingMostRecent(paxosRuntime).get().maximumWaitBeforeProposalMs()),
+                        paxosRuntime.get().maximumWaitBeforeProposalMs()),
                 client);
         PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(boundStore);
         return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
