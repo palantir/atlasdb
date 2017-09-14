@@ -30,9 +30,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
+import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.remoting.api.errors.RemoteException;
-import com.palantir.remoting3.clients.ClientConfiguration;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
@@ -54,10 +53,10 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Override
     @Before
     public void setup() {
-        sweeperService = JaxRsClient.create(
+        sweeperService = TestJaxRsClientFactory.createJaxRsClientForTest(
                 SweeperService.class,
-                SweeperServiceImplTest.class.getName(),
-                ClientConfiguration.builder().addUris(dropwizardClientRule.baseUri().toString()).build());
+                SweeperServiceImplTest.class,
+                dropwizardClientRule.baseUri().toString());
     }
 
     @Test

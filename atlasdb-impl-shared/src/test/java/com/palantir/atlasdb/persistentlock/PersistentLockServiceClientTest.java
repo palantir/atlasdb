@@ -27,9 +27,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.remoting.api.errors.RemoteException;
-import com.palantir.remoting3.clients.ClientConfiguration;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
@@ -45,10 +44,10 @@ public class PersistentLockServiceClientTest {
             HttpRemotingJerseyFeature.INSTANCE);
 
     private final PersistentLockService lockService =
-            JaxRsClient.create(
+            TestJaxRsClientFactory.createJaxRsClientForTest(
                     PersistentLockService.class,
-                    PersistentLockServiceClientTest.class.getName(),
-                    ClientConfiguration.builder().addUris(DW.baseUri().toString()).build());
+                    PersistentLockServiceClientTest.class,
+                    DW.baseUri().toString());
 
     @After
     public void lockCleanup() {
