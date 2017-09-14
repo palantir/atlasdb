@@ -24,7 +24,7 @@ import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.MetricRegistries;
 
@@ -49,7 +49,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module());
-        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
 
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);

@@ -25,7 +25,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
 import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
-import com.palantir.remoting2.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 

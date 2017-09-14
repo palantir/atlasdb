@@ -22,7 +22,10 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.palantir.remoting2.errors.SerializableError;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.remoting.api.errors.ErrorType;
+import com.palantir.remoting.api.errors.SerializableError;
+import com.palantir.remoting.api.errors.ServiceException;
 
 public final class ExceptionMappers {
     private ExceptionMappers() {
@@ -64,10 +67,9 @@ public final class ExceptionMappers {
     }
 
     private static SerializableError createSerializableError(Exception exception) {
-        return SerializableError.of(
-                exception.getMessage(),
-                exception.getClass(),
-                getStackTraceElementsAsList(exception));
+        ServiceException serviceException =
+                new ServiceException(ErrorType.INTERNAL, exception, UnsafeArg.of("message", exception.getMessage()));
+        return SerializableError.forException(serviceException);
     }
 
     private static List<StackTraceElement> getStackTraceElementsAsList(Exception exception) {
