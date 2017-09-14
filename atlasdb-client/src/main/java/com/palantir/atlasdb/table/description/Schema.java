@@ -332,7 +332,7 @@ public class Schema {
                  renderer.getMetadataCleanupTaskClassName());
         }
         TableFactoryRenderer tableFactoryRenderer =
-                new TableFactoryRenderer(
+                TableFactoryRenderer.of(
                         name,
                         packageName,
                         namespace,

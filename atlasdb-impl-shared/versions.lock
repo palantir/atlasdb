@@ -272,6 +272,12 @@
                 "com.palantir.tritium:tritium-lib"
             ]
         },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "commons-lang:commons-lang": {
             "locked": "2.6",
             "transitive": [
@@ -631,6 +637,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "commons-lang:commons-lang": {
