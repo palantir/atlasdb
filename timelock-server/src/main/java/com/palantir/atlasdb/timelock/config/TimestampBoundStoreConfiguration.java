@@ -22,11 +22,13 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.remoting2.config.ssl.SslConfiguration;
 
 @JsonSerialize(as = ImmutableTimestampBoundStoreConfiguration.class)
 @JsonDeserialize(as = ImmutableTimestampBoundStoreConfiguration.class)
 @Value.Immutable
 public abstract class TimestampBoundStoreConfiguration implements TimeLockAlgorithmConfiguration {
 
+    public abstract Optional<SslConfiguration> sslConfiguration();
     public abstract Optional<KeyValueServiceConfig> kvsConfig();
 }

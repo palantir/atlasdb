@@ -4,7 +4,6 @@
 
 package com.palantir.atlasdb.timelock.config;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.remoting2.config.service.ServiceConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
@@ -24,14 +23,13 @@ public final class TimeLockConfigMigrator {
 
     public static CombinedTimeLockServerConfiguration convert(TimeLockServerConfiguration config,
             Environment environment) {
-        // taking advantage of the fact that there is only one algorithm impl at the moment
-        Preconditions.checkArgument(PaxosConfiguration.class.isInstance(config.algorithm()),
-                "Paxos is the only leader election algorithm currently supported. Not: %s",
-                config.algorithm().getClass());
-        PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
 
-        TimeLockInstallConfiguration install = ImmutableTimeLockInstallConfiguration.builder()
-                .paxos(ImmutablePaxosInstallConfiguration.builder()
+        TimeLockInstallConfiguration install;
+        TimeLockRuntimeConfiguration runtime;
+        if (PaxosConfiguration.class.isInstance(config.algorithm())) {
+            PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
+        install = ImmutableTimeLockInstallConfiguration.builder()
+                .optionalPaxosConfig(ImmutablePaxosInstallConfiguration.builder()
                         .dataDirectory(paxos.paxosDataDir())
                         .build())
                 .cluster(ImmutableClusterConfiguration.builder()
@@ -44,14 +42,34 @@ public final class TimeLockConfigMigrator {
                 .asyncLock(config.asyncLockConfiguration())
                 .build();
 
-        TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                .paxos(ImmutablePaxosRuntimeConfiguration.builder()
+        runtime = ImmutableTimeLockRuntimeConfiguration.builder()
+                .optionalPaxos(ImmutablePaxosRuntimeConfiguration.builder()
                         .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
                         .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
                         .pingRateMs(paxos.pingRateMs())
                         .build())
                 .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
                 .build();
+        } else if (TimestampBoundStoreConfiguration.class.isInstance(config.algorithm())) {
+            TimestampBoundStoreConfiguration timestampBoundStoreConfiguration = (TimestampBoundStoreConfiguration) config.algorithm();
+            install = ImmutableTimeLockInstallConfiguration.builder()
+                    .cluster(ImmutableClusterConfiguration.builder()
+                            .cluster(ServiceConfiguration.builder()
+                                    .security(timestampBoundStoreConfiguration.sslConfiguration())
+                                    .uris(config.cluster().servers())
+                                    .build())
+                            .localServer(config.cluster().localServer())
+                            .build())
+                    .asyncLock(config.asyncLockConfiguration())
+                    .build();
+
+            runtime = ImmutableTimeLockRuntimeConfiguration.builder()
+                    .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
+                    .build();
+        } else {
+            throw new RuntimeException("The algorithm config was expected to be of type PaxosConfiguration "
+                    + "or TimestampBoundStoreConfiguration, but found " + config.algorithm().getClass());
+        }
 
         TimeLockDeprecatedConfiguration deprecated = createDeprecatedConfiguration(config, environment);
 

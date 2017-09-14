@@ -9,6 +9,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 /**
@@ -19,10 +20,15 @@ import com.google.common.base.Preconditions;
 @Value.Immutable
 public abstract class TimeLockRuntimeConfiguration {
 
-    @Value.Default
+    @Value.Derived
     public PaxosRuntimeConfiguration paxos() {
+        if (optionalPaxos().isPresent()) {
+            return optionalPaxos().get();
+        }
         return ImmutablePaxosRuntimeConfiguration.builder().build();
     }
+
+    public abstract Optional<PaxosRuntimeConfiguration> optionalPaxos();
 
     /**
      * The maximum number of client namespaces to allow. Each distinct client consumes some amount of memory and disk

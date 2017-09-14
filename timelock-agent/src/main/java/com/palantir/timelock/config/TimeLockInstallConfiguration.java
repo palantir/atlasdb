@@ -4,10 +4,14 @@
 
 package com.palantir.timelock.config;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 
@@ -18,12 +22,20 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
 public interface TimeLockInstallConfiguration {
-    PaxosInstallConfiguration paxos();
+    Optional<PaxosInstallConfiguration> optionalPaxosConfig();
+
+    Optional<KeyValueServiceConfig> kvsConfig();
 
     ClusterConfiguration cluster();
 
     @Value.Default
     default AsyncLockConfiguration asyncLock() {
         return ImmutableAsyncLockConfiguration.builder().build();
+    }
+
+    @Value.Derived
+    default PaxosInstallConfiguration paxos() {
+        Preconditions.checkState(optionalPaxosConfig().isPresent(), "PaxosConfig was not specified in the config.");
+        return optionalPaxosConfig().get();
     }
 }
