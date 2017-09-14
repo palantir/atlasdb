@@ -115,50 +115,32 @@ public class BatchingVisitablesTest {
     @Test
     public void testPageSize() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L));
-        visitor.batchAccept(5, new AbortingVisitor<List<Long>, RuntimeException>() {
-            @Override
-            public boolean visit(List<Long> item) {
-                assertEquals("anonymous assert 8A150B", 5, item.size());
-                return false;
-            }
+        visitor.batchAccept(5, item -> {
+            assertEquals("anonymous assert 8A150B", 5, item.size());
+            return false;
         });
-        visitor.batchAccept(1, new AbortingVisitor<List<Long>, RuntimeException>() {
-            @Override
-            public boolean visit(List<Long> item) {
-                assertEquals("anonymous assert 49A3AF", 1, item.size());
-                return false;
-            }
+        visitor.batchAccept(1, item -> {
+            assertEquals("anonymous assert 49A3AF", 1, item.size());
+            return false;
         });
-        visitor.batchAccept(2, new AbortingVisitor<List<Long>, RuntimeException>() {
-            @Override
-            public boolean visit(List<Long> item) {
-                assertEquals("anonymous assert B07B27", 2, item.size());
-                return true;
-            }
+        visitor.batchAccept(2, item -> {
+            assertEquals("anonymous assert B07B27", 2, item.size());
+            return true;
         });
 
-        visitor.batchAccept(4, new AbortingVisitor<List<Long>, RuntimeException>() {
-            @Override
-            public boolean visit(List<Long> item) {
-                Preconditions.checkState(item.size() == 4);
-                return false;
-            }
+        visitor.batchAccept(4, item -> {
+            Preconditions.checkState(item.size() == 4);
+            return false;
         });
 
-        visitor.batchAccept(4, new AbortingVisitor<List<Long>, RuntimeException>() {
-            @Override
-            public boolean visit(List<Long> item) {
-                Preconditions.checkState(item.size() == 4 || item.size() == 2);
-                return true;
-            }
+        visitor.batchAccept(4, item -> {
+            Preconditions.checkState(item.size() == 4 || item.size() == 2);
+            return true;
         });
 
-        visitor.batchAccept(20, new AbortingVisitor<List<Long>, RuntimeException>() {
-            @Override
-            public boolean visit(List<Long> item) {
-                assertEquals("anonymous assert 0757C9", 6, item.size());
-                return true;
-            }
+        visitor.batchAccept(20, item -> {
+            assertEquals("anonymous assert 0757C9", 6, item.size());
+            return true;
         });
     }
 
@@ -172,13 +154,10 @@ public class BatchingVisitablesTest {
         BatchingVisitableView<String> visitable = BatchingVisitableView.of(visitor).transformBatch(trans)
                 .hintBatchSize(2);
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
-        visitable.batchAccept(10000, new AbortingVisitor<List<String>, RuntimeException>() {
-            @Override
-            public boolean visit(List<String> item) throws RuntimeException {
-                hasTripped.set(true);
-                assertEquals("anonymous assert F13DE1", 8, item.size());
-                return false;
-            }
+        visitable.batchAccept(10000, item -> {
+            hasTripped.set(true);
+            assertEquals("anonymous assert F13DE1", 8, item.size());
+            return false;
         });
         assertTrue("anonymous assert 323FF5", hasTripped.get());
     }
@@ -187,13 +166,10 @@ public class BatchingVisitablesTest {
     public void testBatchWrap() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
-        AbortingVisitor<List<Object>, RuntimeException> bv = new AbortingVisitor<List<Object>, RuntimeException>() {
-            @Override
-            public boolean visit(List<Object> item) throws RuntimeException {
-                hasTripped.set(true);
-                assertEquals("anonymous assert 626F1C", 8, item.size());
-                return false;
-            }
+        AbortingVisitor<List<Object>, RuntimeException> bv = item -> {
+            hasTripped.set(true);
+            assertEquals("anonymous assert 626F1C", 8, item.size());
+            return false;
         };
         AbortingVisitor<List<Long>, RuntimeException> wrap = AbortingVisitors.wrapBatching(bv);
         BatchingVisitableView.of(visitor).batchAccept(1000, wrap);
