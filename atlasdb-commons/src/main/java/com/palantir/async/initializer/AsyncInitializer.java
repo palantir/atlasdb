@@ -68,7 +68,8 @@ public interface AsyncInitializer {
         executorService.schedule(() -> {
             try {
                 tryToInitializeIfNotInitialized();
-                log.warn("Initialized " +  this.getClass().getName() + " asynchronously.");
+                log.warn("Initialized {} asynchronously.",
+                        SafeArg.of("className", this.getClass().getName()));
             } catch (Throwable throwable) {
                 cleanUpOnInitFailure();
                 scheduleInitialization();
@@ -79,7 +80,8 @@ public interface AsyncInitializer {
     // TODO (JAVA9): Make this private.
     default void tryToInitializeIfNotInitialized() {
         if (isInitialized()) {
-            log.warn(this.getClass().getName() + "was initialized underneath us.");
+            log.warn("{} was initialized underneath us.",
+                    SafeArg.of("className", this.getClass().getName()));
         } else {
             tryInitialize();
         }
