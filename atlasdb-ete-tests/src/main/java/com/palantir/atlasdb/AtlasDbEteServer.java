@@ -78,7 +78,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
-            createTransactionManager(config.getAtlasDbConfig(), environment);
+            return createTransactionManager(config.getAtlasDbConfig(), environment);
         } else {
             return retryOnTransactionManagersCreationFailure(config.getAtlasDbConfig(), environment);
         }
