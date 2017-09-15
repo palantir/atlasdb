@@ -66,6 +66,10 @@ develop
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
 
+    *    - |improved|
+         - AtlasDB table definitions now support specifying log safety without having to also specify value byte order for row components.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2349>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
