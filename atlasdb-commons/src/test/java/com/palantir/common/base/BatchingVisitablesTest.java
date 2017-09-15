@@ -277,7 +277,7 @@ public class BatchingVisitablesTest {
     }
 
     @Test
-    public void testAny() {
+    public void testAnyAndAllForNonEmptyLists() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
         assertTrue("anonymous assert 447C52", bv.any(Predicates.alwaysTrue()));
@@ -288,7 +288,7 @@ public class BatchingVisitablesTest {
     }
 
     @Test
-    public void testAll() {
+    public void testAnyAndAllForEmptyLists() {
         BatchingVisitable<Long> visitor = BatchingVisitables.emptyBatchingVisitable();
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
         assertFalse("anonymous assert 94F1C3", bv.any(Predicates.alwaysTrue()));
