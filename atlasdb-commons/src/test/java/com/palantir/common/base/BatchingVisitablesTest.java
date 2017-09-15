@@ -208,38 +208,40 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> limited = BatchingVisitableView.of(visitor).limit(3);
         ImmutableList<Long> copy = limited.immutableCopy();
-        assertEquals("anonymous assert 939C77", ImmutableList.of(0L, 1L, 2L), copy);
+        assertEquals("limit produced unexpected result", ImmutableList.of(0L, 1L, 2L), copy);
 
-        assertFalse("anonymous assert 38D61C", limited.batchAccept(1, AbortingVisitors.alwaysFalse()));
-        assertTrue("anonymous assert 70A3FC", limited.batchAccept(1, AbortingVisitors.alwaysTrue()));
+        assertFalse("alwaysFalse should be false", limited.batchAccept(1, AbortingVisitors.alwaysFalse()));
+        assertTrue("alwaysTrue should be true", limited.batchAccept(1, AbortingVisitors.alwaysTrue()));
 
-        assertTrue("anonymous assert 33212B", limited.batchAccept(2, AbortingVisitors.alwaysTrue()));
-        assertTrue("anonymous assert 8EF750", limited.batchAccept(3, AbortingVisitors.alwaysTrue()));
+        assertTrue("alwaysTrue should be true twice", limited.batchAccept(2, AbortingVisitors.alwaysTrue()));
+        assertTrue("alwaysTrue should be true thrice", limited.batchAccept(3, AbortingVisitors.alwaysTrue()));
 
         CountingVisitor<Long> cv = new CountingVisitor<>();
-        assertTrue("anonymous assert F935C9", limited.batchAccept(2, AbortingVisitors.batching(cv)));
-        assertEquals("anonymous assert 24BD1B", 3, cv.count);
-        assertTrue("anonymous assert 15643D", limited.batchAccept(3, AbortingVisitors.batching(cv)));
-        assertEquals("anonymous assert 97E616", 6, cv.count);
-        assertTrue("anonymous assert 93B081", limited.batchAccept(4, AbortingVisitors.batching(cv)));
-        assertEquals("anonymous assert 53317E", 9, cv.count);
-        assertTrue("anonymous assert C44EC3", limited.skip(3).batchAccept(1, AbortingVisitors.alwaysFalse()));
+        assertTrue("batchAccept should be true", limited.batchAccept(2, AbortingVisitors.batching(cv)));
+        assertEquals("CountingVisitor had wrong count", 3, cv.count);
+        assertTrue("batchAccept should be true", limited.batchAccept(3, AbortingVisitors.batching(cv)));
+        assertEquals("CountingVisitor had wrong count", 6, cv.count);
+        assertTrue("batchAccept should be true", limited.batchAccept(4, AbortingVisitors.batching(cv)));
+        assertEquals("CountingVisitor had wrong count", 9, cv.count);
+
+        assertTrue("batchAccept should be trivially true after everything was skipped",
+                limited.skip(3).batchAccept(1, AbortingVisitors.alwaysFalse()));
 
         LimitVisitor<Long> lv = new LimitVisitor<>(3);
-        assertFalse("anonymous assert 94391F", limited.batchAccept(1, AbortingVisitors.batching(lv)));
+        assertFalse("batchAccept should be false", limited.batchAccept(1, AbortingVisitors.batching(lv)));
         lv = new LimitVisitor<>(4);
-        assertTrue("anonymous assert 1830FC", limited.batchAccept(1, AbortingVisitors.batching(lv)));
+        assertTrue("batchAccept should be true", limited.batchAccept(1, AbortingVisitors.batching(lv)));
         lv = new LimitVisitor<>(2);
-        assertFalse("anonymous assert 52C831", limited.batchAccept(1, AbortingVisitors.batching(lv)));
+        assertFalse("batchAccept should be false", limited.batchAccept(1, AbortingVisitors.batching(lv)));
 
-        assertFalse("anonymous assert 21BD70", limited.hintBatchSize(10)
+        assertFalse("batchAccept should be false", limited.hintBatchSize(10)
                 .batchAccept(1, AbortingVisitors.alwaysFalse()));
-        assertTrue("anonymous assert 530244", limited.hintBatchSize(10).skip(3)
+        assertTrue("batchAccept should be trivially true after everything was skipped", limited.hintBatchSize(10).skip(3)
                 .batchAccept(1, AbortingVisitors.alwaysFalse()));
 
-        assertEquals("anonymous assert 22261C", 2, limited.limit(2).limit(4).size());
-        assertEquals("anonymous assert 860268", 2, limited.limit(4).limit(2).size());
-        assertEquals("anonymous assert 56B69B", 3, limited.limit(4).size());
+        assertEquals("smaller limits should precede larger limits", 2, limited.limit(2).limit(4).size());
+        assertEquals("smaller limits should precede larger limits", 2, limited.limit(4).limit(2).size());
+        assertEquals("limited size shouldn't be greater than the original size!", 3, limited.limit(4).size());
     }
 
     @Test
@@ -247,7 +249,7 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> limited = BatchingVisitableView.of(visitor).limit(3);
         BatchingVisitableView<Long> concat = BatchingVisitables.concat(limited, visitor);
-        assertTrue("anonymous assert CED0ED", concat.batchAccept(2, AbortingVisitors
+        assertTrue("concatenated batchAccept should be true", concat.batchAccept(2, AbortingVisitors
                 .batching(AbortingVisitors.alwaysTrue())));
     }
 
@@ -280,22 +282,22 @@ public class BatchingVisitablesTest {
     public void testAnyAndAllForNonEmptyLists() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
-        assertTrue("anonymous assert 447C52", bv.any(Predicates.alwaysTrue()));
-        assertTrue("anonymous assert 6A41BA", bv.all(Predicates.alwaysTrue()));
+        assertTrue("any(true) should be true", bv.any(Predicates.alwaysTrue()));
+        assertTrue("all(true) should be true", bv.all(Predicates.alwaysTrue()));
 
-        assertFalse("anonymous assert 8F527C", bv.any(Predicates.alwaysFalse()));
-        assertFalse("anonymous assert 28FD17", bv.all(Predicates.alwaysFalse()));
+        assertFalse("any(false) should be false", bv.any(Predicates.alwaysFalse()));
+        assertFalse("all(false) should be false", bv.all(Predicates.alwaysFalse()));
     }
 
     @Test
     public void testAnyAndAllForEmptyLists() {
         BatchingVisitable<Long> visitor = BatchingVisitables.emptyBatchingVisitable();
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
-        assertFalse("anonymous assert 94F1C3", bv.any(Predicates.alwaysTrue()));
-        assertTrue("anonymous assert ED0ED7", bv.all(Predicates.alwaysTrue()));
+        assertFalse("any(empty-set-of-trues) should be false", bv.any(Predicates.alwaysTrue()));
+        assertTrue("all(empty-set-of-trues) should be true", bv.all(Predicates.alwaysTrue()));
 
-        assertFalse("anonymous assert FDEDF7", bv.any(Predicates.alwaysFalse()));
-        assertTrue("anonymous assert 01080C", bv.all(Predicates.alwaysFalse()));
+        assertFalse("any(empty-set-of-falses) should be false", bv.any(Predicates.alwaysFalse()));
+        assertTrue("all(empty-set-of-falses) should be true", bv.all(Predicates.alwaysFalse()));
     }
 
     @Test
@@ -303,12 +305,12 @@ public class BatchingVisitablesTest {
         InfiniteVisitable infinite = new InfiniteVisitable();
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(infinite);
         long first = bv.filter(new TakeEvery<>(100)).getFirst();
-        assertEquals("anonymous assert A16A34", 99L, first);
-        assertEquals("anonymous assert 55EE6D", 100L, infinite.count);
+        assertEquals("first element returned was wrong", 99L, first);
+        assertEquals("count of InfiniteVisitable didn't match", 100L, infinite.count);
 
         first = bv.filter(new TakeEvery<>(100)).hintBatchSize(100).getFirst();
-        assertEquals("anonymous assert 709532", 199L, first);
-        assertEquals("anonymous assert D4A406", 200L, infinite.count);
+        assertEquals("first element returned was wrong", 199L, first);
+        assertEquals("count of InfiniteVisitable didn't match", 200L, infinite.count);
     }
 
     static class InfiniteVisitable extends AbstractBatchingVisitable<Long> {
@@ -340,7 +342,7 @@ public class BatchingVisitablesTest {
     public void testSkip() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         ImmutableList<Long> copy = BatchingVisitableView.of(visitor).skip(5).immutableCopy();
-        assertEquals("anonymous assert 82C94E", ImmutableList.of(5L, 6L, 7L), copy);
+        assertEquals("unexpected list remnants after skipping", ImmutableList.of(5L, 6L, 7L), copy);
     }
 
     static class ListVisitor<T> extends AbstractBatchingVisitable<T> {
@@ -376,18 +378,20 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitable = ListVisitor.create(longList);
         BatchingVisitableView<Long> view = BatchingVisitables.visitWhile(
                 BatchingVisitableView.of(visitable), (input) -> input.longValue() < 5L);
-        assertEquals("anonymous assert 7B93D7", 5L, view.size());
-        assertEquals("anonymous assert 5FCD36", 0L, view.getFirst().longValue());
-        assertEquals("anonymous assert 0280B1", 4L, view.getLast().longValue());
-        assertTrue("anonymous assert 03417A", view.immutableCopy().containsAll(ImmutableSet.of(0L, 1L, 2L, 3L, 4L)));
+        assertEquals("visitWhile visited the wrong number of elements", 5L, view.size());
+        assertEquals("visitWhile visited the wrong element first", 0L, view.getFirst().longValue());
+        assertEquals("visitWhile visited the wrong element last", 4L, view.getLast().longValue());
+        assertTrue("visitWhile visited the wrong elements",
+                view.immutableCopy().containsAll(ImmutableSet.of(0L, 1L, 2L, 3L, 4L)));
 
         visitable = ListVisitor.create(Lists.reverse(longList));
         view = BatchingVisitables.visitWhile(
                 BatchingVisitableView.of(visitable), (input) -> input.longValue() >= 5L);
-        assertEquals("anonymous assert FFBC60", 5L, view.size());
-        assertEquals("anonymous assert E46C52", 9L, view.getFirst().longValue());
-        assertEquals("anonymous assert 8D6CA6", 5L, view.getLast().longValue());
-        assertTrue("anonymous assert 165D8C", view.immutableCopy().containsAll(ImmutableSet.of(5L, 6L, 7L, 8L, 9L)));
+        assertEquals("visitWhile visited the wrong number of elements", 5L, view.size());
+        assertEquals("visitWhile visited the wrong element first", 9L, view.getFirst().longValue());
+        assertEquals("visitWhile visited the wrong element last", 5L, view.getLast().longValue());
+        assertTrue("visitWhile visited the wrong elements",
+                view.immutableCopy().containsAll(ImmutableSet.of(5L, 6L, 7L, 8L, 9L)));
     }
 
     @Test
@@ -408,7 +412,7 @@ public class BatchingVisitablesTest {
         UnmodifiableIterator<String> iter = BatchingVisitables.flatten(7, bv).immutableCopy().iterator();
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
-                assertEquals("anonymous assert E5D518", "" + (char) ('a' + i) + (char) ('0' + j), iter.next());
+                assertEquals("unexpected flattened result", "" + (char) ('a' + i) + (char) ('0' + j), iter.next());
             }
         }
     }
