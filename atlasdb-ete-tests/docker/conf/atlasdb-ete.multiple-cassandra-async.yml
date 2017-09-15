@@ -16,7 +16,7 @@ atlasdb:
       - cassandra1:9160
       - cassandra2:9160
       - cassandra3:9160
-    keyspace: atlasete
+    namespace: atlasete
     ssl: false
     replicationFactor: 3
 

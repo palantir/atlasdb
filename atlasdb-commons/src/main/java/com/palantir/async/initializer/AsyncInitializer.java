@@ -57,7 +57,7 @@ public interface AsyncInitializer {
         try {
             tryToInitializeIfNotInitialized();
         } catch (Throwable throwable) {
-            log.warn("Failed to initialize {} in the first attempt, will initialize asynchronously.",
+            log.info("Failed to initialize {} in the first attempt, will initialize asynchronously.",
                     SafeArg.of("className", this.getClass().getName()), throwable);
             cleanUpOnInitFailure();
             scheduleInitialization();
@@ -70,7 +70,7 @@ public interface AsyncInitializer {
             synchronized (this) {
                 try {
                     tryToInitializeIfNotInitialized();
-                    log.warn("Initialized {} asynchronously.",
+                    log.info("Initialized {} asynchronously.",
                             SafeArg.of("className", this.getClass().getName()));
                 } catch (Throwable throwable) {
                     cleanUpOnInitFailure();

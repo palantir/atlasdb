@@ -16,8 +16,10 @@
 
 package com.palantir.exception;
 
+import com.palantir.logsafe.SafeArg;
+
 public class NotInitializedException extends RuntimeException {
     public NotInitializedException(String objectNotInitialized) {
-        super(String.format("The %s is not initialized yet", objectNotInitialized));
+        super(String.format("The %s is not initialized yet", SafeArg.of("objectName", objectNotInitialized)));
     }
 }

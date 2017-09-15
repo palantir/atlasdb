@@ -56,8 +56,6 @@ import com.palantir.processors.AutoDelegate;
  *
  * A ScrubberStore implemented as a table in the KeyValueService.
  *
- *
- * @author ejin
  */
 @AutoDelegate(typeToExtend = ScrubberStore.class)
 public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncInitializer {

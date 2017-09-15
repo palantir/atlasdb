@@ -80,11 +80,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         if (config.getAtlasDbConfig().initializeAsync()) {
             return createTransactionManager(config.getAtlasDbConfig(), environment);
         } else {
-            return retryOnTransactionManagersCreationFailure(config.getAtlasDbConfig(), environment);
+            return createTransactionManagerWithRetry(config.getAtlasDbConfig(), environment);
         }
     }
 
-    private TransactionManager retryOnTransactionManagersCreationFailure(AtlasDbConfig config, Environment environment)
+    private TransactionManager createTransactionManagerWithRetry(AtlasDbConfig config, Environment environment)
             throws InterruptedException {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {

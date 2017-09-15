@@ -134,7 +134,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
-    // Suppressing Slf4j warnings for test
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
@@ -206,7 +205,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return testTable.getQualifiedName().replaceFirst("\\.", "__");
     }
 
-    // Suppressing Slf4j warnings for test
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() throws Exception {

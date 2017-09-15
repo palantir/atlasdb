@@ -118,108 +118,30 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
             + " Error writing to Cassandra socket."
             + " Likely cause: Exceeded maximum thrift frame size;"
             + " unlikely cause: network issues.";
-
     /**
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
     @VisibleForTesting
     static final int MAX_TRIES_SAME_HOST = 3;
+
     @VisibleForTesting
     static final int MAX_TRIES_TOTAL = 6;
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+    @VisibleForTesting
+    Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
 
     private final CassandraKeyValueServiceConfig config;
-    private Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
-    private Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
+    private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
-    private ScheduledFuture<?> refreshPoolFuture;
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+
+    private ScheduledFuture<?> refreshPoolFuture;
     private volatile boolean isInitialized = false;
-
-    public static class LightweightOppToken implements Comparable<LightweightOppToken> {
-
-        final byte[] bytes;
-
-        public LightweightOppToken(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public int compareTo(LightweightOppToken other) {
-            return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null || getClass() != obj.getClass()) {
-                return false;
-            }
-            LightweightOppToken that = (LightweightOppToken) obj;
-            return Arrays.equals(bytes, that.bytes);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(bytes);
-        }
-
-        @Override
-        public String toString() {
-            return BaseEncoding.base16().encode(bytes);
-        }
-
-    }
-
-    private class RequestMetrics {
-        private final Meter totalRequests;
-        private final Meter totalRequestExceptions;
-        private final Meter totalRequestConnectionExceptions;
-
-        RequestMetrics(String metricPrefix) {
-            totalRequests = metricsManager.registerMeter(
-                    CassandraClientPool.class, metricPrefix, "requests");
-            totalRequestExceptions = metricsManager.registerMeter(
-                    CassandraClientPool.class, metricPrefix, "requestExceptions");
-            totalRequestConnectionExceptions = metricsManager.registerMeter(
-                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
-        }
-
-        void markRequest() {
-            totalRequests.mark();
-        }
-
-        void markRequestException() {
-            totalRequestExceptions.mark();
-        }
-
-        void markRequestConnectionException() {
-            totalRequestConnectionExceptions.mark();
-        }
-
-        // Approximate
-        double getExceptionProportion() {
-            return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
-        }
-
-        // Approximate
-        double getConnectionExceptionProportion() {
-            return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
-        }
-    }
-
-    @VisibleForTesting
-    enum StartupChecks {
-        RUN,
-        DO_NOT_RUN
-    }
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
@@ -301,11 +223,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return currentPools;
-    }
-
-    @Override
-    public Map<InetSocketAddress, Long> getBlacklistedHosts() {
-        return blacklistedHosts;
     }
 
     private void registerAggregateMetrics() {
@@ -932,5 +849,85 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         InetSocketAddress getRandomHostInternal(int index) {
             return hosts.higherEntry(index).getValue();
         }
+    }
+
+    public static class LightweightOppToken implements Comparable<LightweightOppToken> {
+
+        final byte[] bytes;
+
+        public LightweightOppToken(byte[] bytes) {
+            this.bytes = bytes;
+        }
+
+        @Override
+        public int compareTo(LightweightOppToken other) {
+            return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            LightweightOppToken that = (LightweightOppToken) obj;
+            return Arrays.equals(bytes, that.bytes);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(bytes);
+        }
+
+        @Override
+        public String toString() {
+            return BaseEncoding.base16().encode(bytes);
+        }
+
+    }
+
+    private class RequestMetrics {
+        private final Meter totalRequests;
+        private final Meter totalRequestExceptions;
+        private final Meter totalRequestConnectionExceptions;
+
+        RequestMetrics(String metricPrefix) {
+            totalRequests = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requests");
+            totalRequestExceptions = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requestExceptions");
+            totalRequestConnectionExceptions = metricsManager.registerMeter(
+                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
+        }
+
+        void markRequest() {
+            totalRequests.mark();
+        }
+
+        void markRequestException() {
+            totalRequestExceptions.mark();
+        }
+
+        void markRequestConnectionException() {
+            totalRequestConnectionExceptions.mark();
+        }
+
+        // Approximate
+        double getExceptionProportion() {
+            return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
+        }
+
+        // Approximate
+        double getConnectionExceptionProportion() {
+            return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
+        }
+    }
+
+    @VisibleForTesting
+    enum StartupChecks {
+        RUN,
+        DO_NOT_RUN
     }
 }
