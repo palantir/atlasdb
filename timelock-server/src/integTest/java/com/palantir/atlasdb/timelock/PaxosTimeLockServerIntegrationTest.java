@@ -80,7 +80,9 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
-    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
+    private static final String LEARNER = "learner";
+    private static final String ACCEPTOR = "acceptor";
+    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
     private static final String INVALID_CLIENT = "test2\b";
 
     private static final int MAX_SERVER_THREADS = 100;
@@ -133,8 +135,8 @@ public class PaxosTimeLockServerIntegrationTest {
                 .until(() -> {
                     try {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.
-                        CLIENTS.forEach(client -> getTimestampService(client).getFreshTimestamp());
-                        CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
+                        CLIENTS.forEach(client -> getTimelockService(client).getFreshTimestamp());
+                        CLIENTS.forEach(client -> getTimelockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
                         return false;
@@ -394,8 +396,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void supportsClientNamesMatchingPaxosRoles() throws InterruptedException {
-        getTimestampService("learner").getFreshTimestamp();
-        getTimestampService("acceptor").getFreshTimestamp();
+        getTimestampService(LEARNER).getFreshTimestamp();
+        getTimestampService(ACCEPTOR).getFreshTimestamp();
     }
 
     @Test
