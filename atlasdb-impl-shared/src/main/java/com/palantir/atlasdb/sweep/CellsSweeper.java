@@ -54,13 +54,6 @@ public class CellsSweeper {
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
-            Collection<Follower> followers) {
-        this(txManager, keyValueService, followers, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    public CellsSweeper(
-            TransactionManager txManager,
-            KeyValueService keyValueService,
             Collection<Follower> followers,
             boolean initializeAsync) {
         this(txManager, keyValueService,

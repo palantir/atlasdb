@@ -126,7 +126,7 @@ public class CassandraClientPoolTest {
         CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1, HOST_2));
 
-        cassandraClientPool.getBlacklistedHosts().put(HOST_1, System.currentTimeMillis());
+        cassandraClientPool.blacklistedHosts.put(HOST_1, System.currentTimeMillis());
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertThat(container.isPresent(), is(true));
@@ -135,7 +135,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldNotAttemptMoreThanOneConnectionOnSuccess() {
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
         cassandraClientPool.runWithRetryOnHost(HOST_1, input -> null);
         verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, 1);
     }

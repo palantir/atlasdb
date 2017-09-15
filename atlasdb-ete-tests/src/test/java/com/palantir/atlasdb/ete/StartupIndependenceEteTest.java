@@ -60,8 +60,8 @@ public class StartupIndependenceEteTest {
             CassandraEnvironment.get());
 
     @Before
-    public void randomizeKeyspace() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("sed -i 's/keyspace: .*/keyspace: " + UUID.randomUUID().toString().replace("-", "_")
+    public void randomizeNamespace() throws IOException, InterruptedException {
+        EteSetup.execCliCommand("sed -i 's/namespace: .*/namespace: " + UUID.randomUUID().toString().replace("-", "_")
                 + "/' var/conf/atlasdb-ete.yml");
     }
 

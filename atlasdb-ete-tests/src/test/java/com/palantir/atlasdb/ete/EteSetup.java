@@ -62,7 +62,7 @@ public abstract class EteSetup {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
     }
 
-    static RuleChain setupComposition(
+    private static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -78,7 +78,7 @@ public abstract class EteSetup {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
     }
 
-    static RuleChain setupComposition(
+    private static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -96,7 +96,7 @@ public abstract class EteSetup {
         return setup(eteClass, composeFile, availableClientNames, environment, false);
     }
 
-    static RuleChain setup(
+    private static RuleChain setup(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
