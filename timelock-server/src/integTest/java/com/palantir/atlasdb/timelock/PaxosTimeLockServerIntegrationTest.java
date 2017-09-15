@@ -136,6 +136,7 @@ public class PaxosTimeLockServerIntegrationTest {
                     try {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.
                         CLIENTS.forEach(client -> getTimelockService(client).getFreshTimestamp());
+                        CLIENTS.forEach(client -> getTimelockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
                         return false;

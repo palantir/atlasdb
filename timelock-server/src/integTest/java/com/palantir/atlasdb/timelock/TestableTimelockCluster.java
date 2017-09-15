@@ -75,15 +75,12 @@ public class TestableTimelockCluster {
     }
 
     public void waitUntilReadyToServeClients(List<String> clients) {
-        Set<TimelockService> timelockServices = clients.stream()
-                .map(this::timelockServiceForClient)
-                .collect(Collectors.toSet());
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        timelockServices.forEach(TimelockService::getFreshTimestamp);
+                        clients.forEach(client -> timelockServiceForClient(client).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
