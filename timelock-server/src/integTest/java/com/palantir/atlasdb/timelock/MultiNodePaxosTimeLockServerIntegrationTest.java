@@ -49,7 +49,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_3 = "test3";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost",
+            "https://localhost",
             CLIENT_1,
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",

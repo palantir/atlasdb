@@ -37,7 +37,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.BadRequestException;
 
 import org.assertj.core.util.Lists;
@@ -55,7 +54,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
+import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -93,7 +94,6 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final long TWO_MILLION = 2000000;
     private static final int FORTY_TWO = 42;
 
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
     private static final String LOCK_CLIENT_NAME = "remoteLock-client-name";
     public static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
@@ -124,8 +124,8 @@ public class PaxosTimeLockServerIntegrationTest {
     @BeforeClass
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                "http://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
+                Optional.of(TestProxies.SSL_SOCKET_FACTORY),
+                "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -462,7 +462,10 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static Response makeEmptyPostToUri(String uri) throws IOException {
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .sslSocketFactory(TestProxies.SSL_SOCKET_FACTORY)
+                .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CYPHER_SUITES)
+                .build();
         return client.newCall(new Request.Builder()
                 .url(uri)
                 .post(RequestBody.create(MediaType.parse("application/json"), ""))
@@ -492,14 +495,14 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                NO_SSL,
+                Optional.of(TestProxies.SSL_SOCKET_FACTORY),
                 getRootUriForClient(client),
                 clazz,
                 client);
     }
 
     private static String getRootUriForClient(String client) {
-        return String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
+        return String.format("https://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client);
     }
 
     private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {

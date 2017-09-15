@@ -23,7 +23,7 @@ import org.junit.rules.RuleChain;
 
 public class NonBlockingAppenderIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost",
+            "https://localhost",
             "test",
             "paxosSingleServerWithNonBlockingAppender.yml");
 

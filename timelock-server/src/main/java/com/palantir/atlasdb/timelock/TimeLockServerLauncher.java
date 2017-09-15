@@ -43,6 +43,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
+        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         super.initialize(bootstrap);
     }
 

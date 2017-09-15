@@ -43,6 +43,10 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |devbreak| |fixed|
+         - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
 
     *    - |devbreak| |improved|
          - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).

@@ -43,4 +43,5 @@ dependencies {
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+    integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
 }
