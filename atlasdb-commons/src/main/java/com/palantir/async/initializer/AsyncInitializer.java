@@ -25,6 +25,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.SafeArg;
@@ -66,15 +67,23 @@ public interface AsyncInitializer {
     // TODO (JAVA9): Make this private.
     default void scheduleInitialization() {
         executorService.schedule(() -> {
-            try {
-                tryToInitializeIfNotInitialized();
-                log.warn("Initialized {} asynchronously.",
-                        SafeArg.of("className", this.getClass().getName()));
-            } catch (Throwable throwable) {
-                cleanUpOnInitFailure();
-                scheduleInitialization();
+            synchronized (this) {
+                try {
+                    tryToInitializeIfNotInitialized();
+                    log.warn("Initialized {} asynchronously.",
+                            SafeArg.of("className", this.getClass().getName()));
+                } catch (Throwable throwable) {
+                    cleanUpOnInitFailure();
+                    scheduleInitialization();
+                }
             }
-        }, 10, TimeUnit.SECONDS);
+        }, millisToNextAttempt(), TimeUnit.MILLISECONDS);
+    }
+
+    // TODO (JAVA9): Make this package private.
+    @VisibleForTesting
+    default int millisToNextAttempt() {
+        return 10_000;
     }
 
     // TODO (JAVA9): Make this private.
