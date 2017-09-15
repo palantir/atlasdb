@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -30,6 +31,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -47,6 +49,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
+    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "https://localhost",
@@ -70,12 +73,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        CLUSTER.waitUntilLeaderIsElected();
+        CLUSTER.waitUntilReadyToServeClients(CLIENTS);
     }
 
     @Before
     public void bringAllNodesOnline() {
-        CLUSTER.waitUntillAllSeversAreOnlineAndLeaderIsElected();
+        CLUSTER.waitUntilAllServersOnlineAndReadyToServeClients(CLIENTS);
     }
 
     @Test

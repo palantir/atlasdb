@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
@@ -70,13 +71,19 @@ public class TestableTimelockCluster {
     }
 
     public void waitUntilLeaderIsElected() {
-        TimestampService timestampService = timestampService();
+        waitUntilReadyToServeClients(ImmutableList.of(defaultClient));
+    }
+
+    public void waitUntilReadyToServeClients(List<String> clients) {
+        Set<TimelockService> timelockServices = clients.stream()
+                .map(this::timelockServiceForClient)
+                .collect(Collectors.toSet());
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        timestampService.getFreshTimestamp();
+                        timelockServices.forEach(TimelockService::getFreshTimestamp);
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -84,9 +91,9 @@ public class TestableTimelockCluster {
                 });
     }
 
-    public void waitUntillAllSeversAreOnlineAndLeaderIsElected() {
+    public void waitUntilAllServersOnlineAndReadyToServeClients(List<String> clients) {
         servers.forEach(TestableTimelockServer::start);
-        waitUntilLeaderIsElected();
+        waitUntilReadyToServeClients(clients);
     }
 
     public TestableTimelockServer currentLeader() {
