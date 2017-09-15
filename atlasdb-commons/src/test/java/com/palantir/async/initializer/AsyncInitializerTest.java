@@ -27,7 +27,7 @@ import com.jayway.awaitility.Awaitility;
 
 public class AsyncInitializerTest {
 
-    public static final int WAIT_TIME_MILLIS = 100;
+    public static final int WAIT_TIME_MILLIS = 500;
     public static final int ASYNC_INIT_DELAY = WAIT_TIME_MILLIS / 10;
 
     static class AlwaysFailingInitializer implements AsyncInitializer {
