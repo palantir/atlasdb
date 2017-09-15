@@ -125,7 +125,7 @@ import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.common.concurrent.ConcurrentStreams;
+import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -709,8 +709,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)))
                         .collect(Collectors.toList());
 
-        return ConcurrentStreams.map(
-                requestAndVisitables,
+        return MoreStreams.inCompletionOrder(
+                requestAndVisitables.stream(),
                 pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
