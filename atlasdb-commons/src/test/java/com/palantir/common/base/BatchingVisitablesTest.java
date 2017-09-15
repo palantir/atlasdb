@@ -48,28 +48,28 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
 
         TokenBackedBasicResultsPage<Long, Long> page = BatchingVisitables.getFirstPage(visitor, 0);
-        assertEquals("anonymous assert 6BC9FC", 0, page.getResults().size());
-        assertEquals("anonymous assert 7EBA34", true, page.moreResultsAvailable());
+        assertEquals("page results had wrong size!", 0, page.getResults().size());
+        assertEquals("page.moreResultsAvailable was wrong", true, page.moreResultsAvailable());
 
         page = BatchingVisitables.getFirstPage(visitor, 1);
-        assertEquals("anonymous assert 1B3BD6", 1, page.getResults().size());
-        assertEquals("anonymous assert BDAB68", Lists.newArrayList(0L), page.getResults());
-        assertEquals("anonymous assert F4E06A", true, page.moreResultsAvailable());
+        assertEquals("page results had wrong size!", 1, page.getResults().size());
+        assertEquals("page.getResults was wrong", Lists.newArrayList(0L), page.getResults());
+        assertEquals("page.moreResultsAvailable was wrong", true, page.moreResultsAvailable());
 
         page = BatchingVisitables.getFirstPage(visitor, 3);
-        assertEquals("anonymous assert 87CB3C", 3, page.getResults().size());
-        assertEquals("anonymous assert 0AB14A", Lists.newArrayList(0L, 1L, 2L), page.getResults());
-        assertEquals("anonymous assert 178C51", true, page.moreResultsAvailable());
+        assertEquals("page results had wrong size!", 3, page.getResults().size());
+        assertEquals("page.getResults was wrong", Lists.newArrayList(0L, 1L, 2L), page.getResults());
+        assertEquals("page.moreResultsAvailable was wrong", true, page.moreResultsAvailable());
 
         page = BatchingVisitables.getFirstPage(visitor, 4);
-        assertEquals("anonymous assert 6215D2", 4, page.getResults().size());
-        assertEquals("anonymous assert C1D8C0", Lists.newArrayList(0L, 1L, 2L, 3L), page.getResults());
-        assertEquals("anonymous assert 91F5FF", false, page.moreResultsAvailable());
+        assertEquals("page results had wrong size!", 4, page.getResults().size());
+        assertEquals("page.getResults was wrong", Lists.newArrayList(0L, 1L, 2L, 3L), page.getResults());
+        assertEquals("page.moreResultsAvailable was wrong", false, page.moreResultsAvailable());
 
         page = BatchingVisitables.getFirstPage(visitor, 7);
-        assertEquals("anonymous assert 77AABC", 4, page.getResults().size());
-        assertEquals("anonymous assert E250DA", Lists.newArrayList(0L, 1L, 2L, 3L), page.getResults());
-        assertEquals("anonymous assert 516AA9", false, page.moreResultsAvailable());
+        assertEquals("page results had wrong size!", 4, page.getResults().size());
+        assertEquals("page.getResults was wrong", Lists.newArrayList(0L, 1L, 2L, 3L), page.getResults());
+        assertEquals("page.moreResultsAvailable was wrong", false, page.moreResultsAvailable());
 
         try {
             BatchingVisitables.getFirstPage(visitor, -1);
@@ -83,8 +83,8 @@ public class BatchingVisitablesTest {
     public void testMinMax() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
 
-        assertEquals("anonymous assert 3C39F5", 0L, (long) BatchingVisitables.getMin(visitor));
-        assertEquals("anonymous assert CC2B13", 3L, (long) BatchingVisitables.getMax(visitor));
+        assertEquals("BatchingVisitables.getMin was wrong", 0L, (long) BatchingVisitables.getMin(visitor));
+        assertEquals("BatchingVisitables.getMax was wrong", 3L, (long) BatchingVisitables.getMax(visitor));
 
         BatchingVisitable<Pair<Long, Long>> pairedVisitable = ListVisitor.create(Lists.newArrayList(
                 Pair.create(0L, 0L),
@@ -93,23 +93,23 @@ public class BatchingVisitablesTest {
                 Pair.create(1L, 1L)));
 
         Ordering<Pair<Long, Long>> ordering = Pair.compareLhSide();
-        assertEquals("anonymous assert C849C7", Pair.create(0L, 0L),
+        assertEquals("BatchingVisitables.getMin was wrong", Pair.create(0L, 0L),
                 BatchingVisitables.getMin(pairedVisitable, ordering, null));
-        assertEquals("anonymous assert A7358D", Pair.create(1L, 0L),
+        assertEquals("BatchingVisitables.getMax was wrong", Pair.create(1L, 0L),
                 BatchingVisitables.getMax(pairedVisitable, ordering, null));
     }
 
     @Test
     public void testEmpty() {
-        assertTrue("anonymous assert 08BE89",
+        assertTrue("empty batching visitable should be empty!",
                 BatchingVisitables.isEmpty(BatchingVisitables.emptyBatchingVisitable()));
-        assertEquals("anonymous assert 3E0F41", 0,
+        assertEquals("empty batching visitable should be empty!", 0,
                 BatchingVisitables.count(BatchingVisitables.emptyBatchingVisitable()));
 
         BatchingVisitable<Long> bv = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
-        assertFalse("anonymous assert DDDE16", BatchingVisitables.isEmpty(bv));
-        assertEquals("anonymous assert 1832D8", 4, BatchingVisitables.count(bv));
-        assertTrue("anonymous assert C6A211",
+        assertFalse("non-empty batching visitable should not be empty!", BatchingVisitables.isEmpty(bv));
+        assertEquals("visitable had wrong size", 4, BatchingVisitables.count(bv));
+        assertTrue("empty visitable should always be true, even when told to visit an always-false place",
                 BatchingVisitables.emptyBatchingVisitable().batchAccept(1, AbortingVisitors.alwaysFalse()));
     }
 
@@ -117,30 +117,30 @@ public class BatchingVisitablesTest {
     public void testPageSize() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L));
         visitor.batchAccept(5, item -> {
-            assertEquals("anonymous assert 8A150B", 5, item.size());
+            assertEquals("batched item had wrong size", 5, item.size());
             return false;
         });
         visitor.batchAccept(1, item -> {
-            assertEquals("anonymous assert 49A3AF", 1, item.size());
+            assertEquals("batched item had wrong size", 1, item.size());
             return false;
         });
         visitor.batchAccept(2, item -> {
-            assertEquals("anonymous assert B07B27", 2, item.size());
+            assertEquals("batched item had wrong size", 2, item.size());
             return true;
         });
 
         visitor.batchAccept(4, item -> {
-            Preconditions.checkState(item.size() == 4);
+            Preconditions.checkState(item.size() == 4, "batched item had wrong size");
             return false;
         });
 
         visitor.batchAccept(4, item -> {
-            Preconditions.checkState(item.size() == 4 || item.size() == 2);
+            Preconditions.checkState(item.size() == 4 || item.size() == 2, "batched item had wrong size");
             return true;
         });
 
         visitor.batchAccept(20, item -> {
-            assertEquals("anonymous assert 0757C9", 6, item.size());
+            assertEquals("batched item had wrong size", 6, item.size());
             return true;
         });
     }
@@ -149,7 +149,7 @@ public class BatchingVisitablesTest {
     public void testBatchHints() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         Function<List<Long>, List<String>> trans = (input) -> {
-            assertEquals("anonymous assert 110D40", 2, input.size());
+            assertEquals("batched item had wrong size", 2, input.size());
             return Lists.transform(input, Functions.toStringFunction());
         };
         BatchingVisitableView<String> visitable = BatchingVisitableView.of(visitor).transformBatch(trans)
@@ -157,10 +157,10 @@ public class BatchingVisitablesTest {
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
         visitable.batchAccept(10000, item -> {
             hasTripped.set(true);
-            assertEquals("anonymous assert F13DE1", 8, item.size());
+            assertEquals("batched item had wrong size", 8, item.size());
             return false;
         });
-        assertTrue("anonymous assert 323FF5", hasTripped.get());
+        assertTrue("should have been tripped!", hasTripped.get());
     }
 
     @Test
@@ -169,13 +169,13 @@ public class BatchingVisitablesTest {
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
         AbortingVisitor<List<Object>, RuntimeException> bv = item -> {
             hasTripped.set(true);
-            assertEquals("anonymous assert 626F1C", 8, item.size());
+            assertEquals("batched item had wrong size", 8, item.size());
             return false;
         };
         AbortingVisitor<List<Long>, RuntimeException> wrap = AbortingVisitors.wrapBatching(bv);
         BatchingVisitableView.of(visitor).batchAccept(1000, wrap);
 
-        assertTrue("anonymous assert 755B51", hasTripped.get());
+        assertTrue("should have been tripped!", hasTripped.get());
     }
 
     @Test
@@ -184,13 +184,13 @@ public class BatchingVisitablesTest {
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
         AbortingVisitor<List<? extends Long>, RuntimeException> bv = item -> {
             hasTripped.set(true);
-            assertEquals("anonymous assert 2BC193", 8, item.size());
+            assertEquals("batched item had wrong size", 8, item.size());
             return false;
         };
         AbortingVisitor<List<Long>, RuntimeException> wrap = AbortingVisitors.wrapBatching(bv);
         BatchingVisitableView.of(visitor).batchAccept(1000, wrap);
 
-        assertTrue("anonymous assert 380CE5", hasTripped.get());
+        assertTrue("should have been tripped!", hasTripped.get());
     }
 
     @Test
@@ -198,7 +198,9 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(
                 0L, 1L, 1L, 2L, 2L, 2L, 3L, 4L, 5L, 5L, 6L, 7L, 7L));
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
-        assertEquals("anonymous assert 139904", ImmutableList.of(0L, 1L, 2L, 3L), bv.unique().limit(4).immutableCopy());
+        assertEquals("unexpected result for unique view",
+                ImmutableList.of(0L, 1L, 2L, 3L),
+                bv.unique().limit(4).immutableCopy());
     }
 
     @Test
