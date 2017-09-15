@@ -209,10 +209,7 @@ public class BatchingVisitablesTest {
         BatchingVisitableView<Long> limited = BatchingVisitableView.of(visitor).limit(3);
         ImmutableList<Long> copy = limited.immutableCopy();
         assertEquals("anonymous assert 939C77", ImmutableList.of(0L, 1L, 2L), copy);
-        copy = BatchingVisitableView.of(visitor).limit(3).immutableCopy();
-        assertEquals("anonymous assert 67B112", ImmutableList.of(0L, 1L, 2L), copy);
-        copy = limited.immutableCopy();
-        assertEquals("anonymous assert BE4BE6", ImmutableList.of(0L, 1L, 2L), copy);
+
         assertFalse("anonymous assert 38D61C", limited.batchAccept(1, AbortingVisitors.alwaysFalse()));
         assertTrue("anonymous assert 70A3FC", limited.batchAccept(1, AbortingVisitors.alwaysTrue()));
 
