@@ -116,6 +116,13 @@ public final class CheckAndSetV2Table {
         t.delete(tableRef, cells);
     }
 
+    public void deleteValue(Long id) {
+        CheckAndSetTable.CheckAndSetRow row = CheckAndSetTable.CheckAndSetRow.of(id);
+        byte[] rowBytes = row.persistToBytes();
+        Set<Cell> cells = ImmutableSet.of(Cell.create(rowBytes, PtBytes.toCachedBytes("v")));
+        t.delete(tableRef, cells);
+    }
+
     public void putValue(Long id, Long value) {
         CheckAndSetTable.CheckAndSetRow row = CheckAndSetTable.CheckAndSetRow.of(id);
         t.put(tableRef, ColumnValues.toCellValues(ImmutableMultimap.of(row, CheckAndSetTable.Value.of(value))));

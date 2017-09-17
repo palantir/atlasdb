@@ -188,7 +188,7 @@ public class TableClassRendererV2 {
         results.add(renderGetNamespace());
         if (!tableMetadata.getColumns().hasDynamicColumns()) {
             results.addAll(renderNamedGet());
-            results.add(renderNamedDeleteRow());
+            results.addAll(renderNamedDelete());
             results.addAll(renderNamedPutAndUpdate());
         }
         return results;
@@ -406,6 +406,16 @@ public class TableClassRendererV2 {
         return getterBuilder.build();
     }
 
+    private List<MethodSpec> renderNamedDelete() {
+        List<MethodSpec> deleteResults = new ArrayList<>();
+        deleteResults.add(renderNamedDeleteRow());
+        for (NamedColumnDescription col : ColumnRenderers.namedColumns(tableMetadata)) {
+            deleteResults.add(renderNamedDeleteColumn(col));
+        }
+
+        return deleteResults;
+    }
+
     private MethodSpec renderNamedDeleteRow() {
         MethodSpec.Builder deleteRowBuilder = MethodSpec.methodBuilder("deleteRow")
                 .addModifiers(Modifier.PUBLIC);
@@ -425,6 +435,23 @@ public class TableClassRendererV2 {
         deleteRowBuilder.addStatement("t.delete(tableRef, cells)");
         return deleteRowBuilder.build();
 
+    }
+
+    private MethodSpec renderNamedDeleteColumn(NamedColumnDescription col) {
+        MethodSpec.Builder deleteColumnBuilder =
+                MethodSpec.methodBuilder("delete" + VarName(col))
+                        .addModifiers(Modifier.PUBLIC);
+
+        deleteColumnBuilder = addParametersFromRowComponents(deleteColumnBuilder, tableMetadata);
+
+        return deleteColumnBuilder
+                .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
+                .addStatement("byte[] rowBytes = row.persistToBytes()", Persistables.class)
+                .addStatement("$T<$T> cells = $T.of($T.create(rowBytes, $T.toCachedBytes($L)))",
+                        Set.class, Cell.class, ImmutableSet.class,
+                        Cell.class, PtBytes.class, ColumnRenderers.short_name(col))
+                .addStatement("t.delete(tableRef, cells)")
+                .build();
     }
 
     private List<MethodSpec> renderNamedPutAndUpdate() {

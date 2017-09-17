@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -303,7 +305,7 @@ public final class TableFactoryRenderer {
     }
 
     private String getV2TableName(String name) {
-        return name + "V2Table";
+        return name + SCHEMA_V2_TABLE_NAME;
     }
 
     private FieldSpec getDefaultNamespaceField() {
