@@ -171,6 +171,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
                     throw new NotInitializedException("CassandraKeyValueService");
                 }
             }
+            return delegateInternal();
+        }
+
+        private CassandraKeyValueService delegateInternal() {
             if (kvs.isInitialized()) {
                 return kvs;
             }
@@ -190,11 +194,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         @Override
         public void close() {
             if (status != Status.CLOSED) {
-                status = Status.OPEN;
                 try {
-                    delegate().close();
+                    delegateInternal().close();
                     status = Status.CLOSED;
                 } catch (NotInitializedException e) {
+                    // The wrapper is closed, but we still have to propagate this to the delegate, once it initializes.
                     status = Status.CLOSING;
                 }
             }
