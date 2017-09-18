@@ -35,7 +35,7 @@ import com.palantir.logsafe.SafeArg;
  */
 @ThreadSafe
 public interface AsyncInitializer {
-    int sleepIntervalInSeconds = 10; // in seconds
+    int millisUntilNextAttempt = 10_000;
     Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
     int nThreads = 20;
     ScheduledExecutorService executorService = Executors.newScheduledThreadPool(
@@ -77,7 +77,11 @@ public interface AsyncInitializer {
                     scheduleInitialization();
                 }
             }
-        }, sleepIntervalInSeconds, TimeUnit.SECONDS);
+        }, millisUntilNextAttempt, TimeUnit.MILLISECONDS);
+    }
+
+    default int millisToNextAttempt() {
+        return millisUntilNextAttempt;
     }
 
     // TODO (JAVA9): Make this private.
