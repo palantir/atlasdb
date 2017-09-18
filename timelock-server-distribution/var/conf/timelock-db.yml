@@ -12,7 +12,23 @@ algorithm:
   type: timestampBoundStore
   kvsConfig:
       type: memory
-
+#  kvsConfig: For testing against CCM.
+#    type: cassandra
+#    keyspace: test
+#    servers:
+#      - 127.0.0.1:9160
+#      - 127.0.0.2:9160
+#      - 127.0.0.3:9160
+#    poolSize: 20
+#    credentials:
+#      username: cassandra
+#      password: cassandra
+#    ssl: false
+#    replicationFactor: 3
+#    ignoreInconsistentRingChecks: true
+#    ignoreDatacenterConfigurationChecks: true
+#    ignoreNodeTopologyChecks: true
+#    ignorePartitionerChecks: true
 server:
   applicationConnectors:
     - type: http
