@@ -23,7 +23,6 @@ public final class TimeLockConfigMigrator {
 
     public static CombinedTimeLockServerConfiguration convert(TimeLockServerConfiguration config,
             Environment environment) {
-
         TimeLockInstallConfiguration install;
         TimeLockRuntimeConfiguration runtime;
         if (PaxosConfiguration.class.isInstance(config.algorithm())) {
@@ -62,6 +61,7 @@ public final class TimeLockConfigMigrator {
                             .localServer(config.cluster().localServer())
                             .build())
                     .asyncLock(config.asyncLockConfiguration())
+                    .optionalKvsConfig(((TimestampBoundStoreConfiguration) config.algorithm()).kvsConfig())
                     .build();
 
             runtime = ImmutableTimeLockRuntimeConfiguration.builder()

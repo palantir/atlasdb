@@ -124,7 +124,7 @@ public class TimeLockAgent {
             Optional<KeyValueServiceConfig> kvsConfig) {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier;
         rawTimestampServiceSupplier = kvsConfig.map(
-                keyValueServiceConfig -> timestampCreator.createDatabaseBackedTimestampService(client,
+                keyValueServiceConfig -> timestampCreator.createDatabaseBackedTimestampService(
                         keyValueServiceConfig))
                 .orElseGet(() -> timestampCreator.createPaxosBackedTimestampService(client));
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;

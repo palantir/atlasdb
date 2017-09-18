@@ -34,6 +34,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -74,7 +75,11 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private final CassandraClientPool clientPool;
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
-        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        return create(kvs, AtlasDbConstants.TIMESTAMP_TABLE);
+    }
+
+    public static TimestampBoundStore create(CassandraKeyValueService kvs, TableReference timestampTable) {
+        kvs.createTable(timestampTable, TIMESTAMP_TABLE_METADATA.persistToBytes());
         return new CassandraTimestampBoundStore(kvs.getClientPool());
     }
 

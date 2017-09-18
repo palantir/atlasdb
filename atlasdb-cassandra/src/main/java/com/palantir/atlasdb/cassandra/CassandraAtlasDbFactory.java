@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
@@ -67,7 +68,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs,
+            Optional<TableReference> timestampTable) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"

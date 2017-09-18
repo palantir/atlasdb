@@ -20,6 +20,7 @@ import java.util.Optional;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
@@ -42,7 +43,8 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs,
+            Optional<TableReference> timestampTable) {
         AtlasDbVersion.ensureVersionReported();
         return PersistentTimestampService.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));
     }

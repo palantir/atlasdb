@@ -29,6 +29,6 @@ import com.palantir.remoting2.config.ssl.SslConfiguration;
 @Value.Immutable
 public abstract class TimestampBoundStoreConfiguration implements TimeLockAlgorithmConfiguration {
 
+    public abstract KeyValueServiceConfig kvsConfig();
     public abstract Optional<SslConfiguration> sslConfiguration();
-    public abstract Optional<KeyValueServiceConfig> kvsConfig();
 }

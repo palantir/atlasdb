@@ -33,10 +33,9 @@ public interface TimeLockInstallConfiguration {
         return ImmutableAsyncLockConfiguration.builder().build();
     }
 
-    @Value.Derived
+    @Value.Default
     default PaxosInstallConfiguration paxos() {
-        Preconditions.checkState(optionalPaxosConfig().isPresent(), "PaxosConfig was not specified in the config.");
-        return optionalPaxosConfig().get();
+        return optionalPaxosConfig().orElseGet(() -> ImmutablePaxosInstallConfiguration.builder().build());
     }
 
     @Value.Check

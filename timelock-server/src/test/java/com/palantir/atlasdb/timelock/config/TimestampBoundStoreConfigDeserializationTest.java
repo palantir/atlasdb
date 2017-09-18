@@ -33,7 +33,6 @@ public class TimestampBoundStoreConfigDeserializationTest extends AbstractTimelo
         TimestampBoundStoreConfiguration timestampBoundStoreConfiguration =
                 (TimestampBoundStoreConfiguration) configuration;
 
-        assertThat(timestampBoundStoreConfiguration.kvsConfig()).isPresent();
-        assertThat(timestampBoundStoreConfiguration.kvsConfig().get()).isEqualTo(new InMemoryAtlasDbConfig());
+        assertThat(timestampBoundStoreConfiguration.kvsConfig()).isEqualTo(new InMemoryAtlasDbConfig());
     }
 }

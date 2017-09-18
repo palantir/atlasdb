@@ -29,9 +29,9 @@ import javax.net.ssl.SSLSocketFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.paxos.DbBoundManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
@@ -104,16 +104,13 @@ public class PaxosTimestampCreator {
     }
 
     public Supplier<ManagedTimestampService> createDatabaseBackedTimestampService(
-            String client,
             KeyValueServiceConfig kvsConfig) {
-        Set<String> namespacedUris = PaxosTimeLockUriUtils.getClientPaxosUris(remoteServers, client);
-
-        ImmutableLeaderConfig.Builder leaderConfigBuilder = ImmutableLeaderConfig.builder();
-        namespacedUris.stream().forEach(uri -> leaderConfigBuilder.addLeaders(uri));
-        ImmutableLeaderConfig leaderConfig = leaderConfigBuilder.build();
+        TableReference internalTimestampTable = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
 
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(kvsConfig,
-                Optional.of(leaderConfig));
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(internalTimestampTable));
 
         TimestampService timestampService = atlasFactory.getTimestampService();
 

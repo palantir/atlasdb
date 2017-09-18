@@ -35,6 +35,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
@@ -61,6 +62,14 @@ public class ServiceDiscoveringAtlasSupplier {
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace) {
+        this(config, leaderConfig, namespace, Optional.empty());
+    }
+
+    public ServiceDiscoveringAtlasSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            Optional<TableReference> timestampTable) {
         this.config = config;
         this.leaderConfig = leaderConfig;
 
@@ -73,7 +82,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 ));
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(config, leaderConfig, namespace));
-        timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
+        timestampService = () -> atlasFactory.createTimestampService(getKeyValueService(), timestampTable);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
