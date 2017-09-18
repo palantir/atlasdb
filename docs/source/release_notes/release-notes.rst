@@ -41,8 +41,9 @@ develop
     :widths: 5 40
     :header-rows: 1
 
-    *    - Type
-         - Change
+    *    - |improved|
+         - AtlasDB now logs slow queries CQL queries (via ``kvs-slow-log``) used for sweep
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2363>`__)     
          
     *    - |devbreak| |fixed|
          - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
