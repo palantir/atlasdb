@@ -43,10 +43,10 @@ develop
 
     *    - Type
          - Change
-         
+
     *    - |devbreak| |fixed|
          - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)
 
     *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
@@ -65,6 +65,10 @@ develop
            Sweep aggregate metrics continue to be reported.
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
+
+    *    - |fixed|
+         - KVS migration no longer fails when the old ``_scrub`` table is present.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
