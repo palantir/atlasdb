@@ -145,15 +145,14 @@ public class SchemaTest {
         String generatedFilePath =
                 String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
 
-        File expectedFile = new File("src/test/java", generatedFilePath);
+        File expectedFile = new File("src/integrationInput/java", generatedFilePath);
         File actualFile = new File(testFolder.getRoot(), generatedFilePath);
 
         assertThat(actualFile).hasSameContentAs(expectedFile);
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
-        return new String(
-                Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
+        return new String(Files.toByteArray(new File(baseDir, path)), StandardCharsets.UTF_8);
     }
 
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {

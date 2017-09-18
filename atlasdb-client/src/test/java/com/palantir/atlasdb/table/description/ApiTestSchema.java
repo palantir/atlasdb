@@ -30,7 +30,7 @@ public class ApiTestSchema implements AtlasSchema {
     private static final Schema GENERIC_TEST_SCHEMA = generateSchema();
 
     private static Schema generateSchema() {
-        Schema schema = new Schema("IntegrationTest",
+        Schema schema = new Schema("ApiTest",
                 ApiTestSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
@@ -56,7 +56,7 @@ public class ApiTestSchema implements AtlasSchema {
     }
 
     public static void main(String[]  args) throws Exception {
-        GENERIC_TEST_SCHEMA.renderTables(new File("src/test/java"));
+        GENERIC_TEST_SCHEMA.renderTables(new File("src/integrationInput/java"));
     }
 
     @Override
