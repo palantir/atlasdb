@@ -31,7 +31,8 @@ public enum PaxosQuorumStatus {
                 return StillLeadingStatus.NOT_LEADING;
             case NO_QUORUM:
                 return StillLeadingStatus.NO_QUORUM;
+            default:
+                throw new IllegalStateException("unknown status: " + this);
         }
-        throw new IllegalStateException("unknown status: " + this);
     }
 }

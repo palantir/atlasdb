@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -34,7 +35,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,7 +44,6 @@ public class CoalescingSupplierTest {
 
     private static final int DEFAULT_VALUE = 123;
 
-    private final DeterministicScheduler executor = new DeterministicScheduler();
     private final Supplier<Integer> delegate = mock(Supplier.class);
     private final FreezableSupplier freezableDelegate = new FreezableSupplier(delegate);
     private final CoalescingSupplier<Integer> supplier = new CoalescingSupplier<>(freezableDelegate);
@@ -55,18 +54,23 @@ public class CoalescingSupplierTest {
     }
 
     @Test
-    public void delegates_to_delegate() {
+    public void delegatesToDelegate() {
         assertThat(supplier.get()).isEqualTo(DEFAULT_VALUE);
+
+        verify(delegate).get();
+        verifyNoMoreInteractions(delegate);
     }
 
     @Test
     public void batchesConcurrentRequests() throws InterruptedException {
         freezableDelegate.freeze();
-        AsyncTasks tasks = getConcurrently(5);
+        AsyncTasks initialTask = getConcurrently(1);
+        AsyncTasks batch = getConcurrently(5);
         freezableDelegate.unfreeze();
 
-        tasks.await();
+        batch.await();
 
+        // once for initial task; once for batch
         verify(delegate, times(2)).get();
     }
 

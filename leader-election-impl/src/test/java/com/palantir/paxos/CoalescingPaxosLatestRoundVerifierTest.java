@@ -60,7 +60,7 @@ public class CoalescingPaxosLatestRoundVerifierTest {
 
         when(delegate.isLatestRound(ROUND_ONE)).thenThrow(expected);
 
-        assertThatThrownBy(() -> verifier.isLatestRound(1L)).isEqualTo(expected);
+        assertThatThrownBy(() -> verifier.isLatestRound(ROUND_ONE)).isEqualTo(expected);
     }
 
 }
