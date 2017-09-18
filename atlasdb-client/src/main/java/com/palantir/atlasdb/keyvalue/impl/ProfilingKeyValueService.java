@@ -71,6 +71,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
      */
     @Deprecated
     public static ProfilingKeyValueService create(KeyValueService delegate, long slowLogThresholdMillis) {
+        KvsProfilingLogger.setSlowLogThresholdMillis(slowLogThresholdMillis);
         return create(delegate);
     }
 
