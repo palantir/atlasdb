@@ -65,6 +65,8 @@ public final class TransactionManagersInitializer implements AsyncInitializer {
             Schemas.createTablesAndIndexes(schema, keyValueService);
         }
 
+        // Prime the key value service with logging information.
+        // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
         LoggingArgs.hydrate(keyValueService.getMetadataForTables());
         isInitialized = true;
     }
