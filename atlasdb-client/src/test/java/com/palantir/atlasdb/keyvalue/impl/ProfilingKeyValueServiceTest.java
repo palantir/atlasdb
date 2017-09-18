@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -66,7 +67,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == ProfilingKeyValueService.SLOW_LOGGER_NAME
+            return ev.getLoggerName() == KvsProfilingLogger.SLOW_LOGGER_NAME
                     && ev.getLevel() == Level.WARN;
         }
     });
@@ -75,7 +76,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == LoggerFactory.getLogger(ProfilingKeyValueService.class).getName()
+            return ev.getLoggerName() == LoggerFactory.getLogger(KvsProfilingLogger.class).getName()
                     && ev.getLevel() == Level.TRACE;
         }
     });

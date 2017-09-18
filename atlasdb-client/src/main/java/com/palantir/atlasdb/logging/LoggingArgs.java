@@ -64,6 +64,10 @@ public final class LoggingArgs {
         return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
+    public static Arg<String> customTableName(TableReference tableReference, String tableName) {
+        return getArg("tableName", tableName, logArbitrator.isTableReferenceSafe(tableReference));
+    }
+
     public static Arg<String> rowComponent(String argName, TableReference tableReference, String rowComponentName) {
         return getArg(argName,
                 rowComponentName,
