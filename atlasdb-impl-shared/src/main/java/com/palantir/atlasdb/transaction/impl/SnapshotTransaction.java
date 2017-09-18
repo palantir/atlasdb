@@ -709,7 +709,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)))
                         .collect(Collectors.toList());
 
-        return MoreStreams.inCompletionOrder(
+        return MoreStreams.blockingStreamWithParallelism(
                 requestAndVisitables.stream(),
                 pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
