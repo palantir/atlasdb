@@ -183,11 +183,15 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void rowComponent(String componentName, ValueType valueType) {
-        rowComponent(componentName, valueType, ValueByteOrder.ASCENDING);
+        rowComponent(componentName, valueType, defaultNamedComponentLogSafety);
     }
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
         rowComponent(componentName, valueType, valueByteOrder, defaultNamedComponentLogSafety);
+    }
+
+    public void rowComponent(String componentName, ValueType valueType, LogSafety rowNameLoggable) {
+        rowComponent(componentName, valueType, ValueByteOrder.ASCENDING, rowNameLoggable);
     }
 
     public void rowComponent(
