@@ -74,7 +74,8 @@ public class LockStoreImpl implements LockStore {
 
         @Override
         protected void tryInitialize() {
-            keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+            keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+                    AtlasDbConstants.GENERIC_TABLE_METADATA);
             if (allLockEntries().isEmpty()) {
                 new LockStorePopulator(keyValueService).populate();
             }

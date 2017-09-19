@@ -130,7 +130,6 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;

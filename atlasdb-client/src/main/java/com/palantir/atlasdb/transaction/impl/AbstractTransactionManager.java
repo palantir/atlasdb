@@ -17,14 +17,11 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
