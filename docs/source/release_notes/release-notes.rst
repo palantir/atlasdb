@@ -53,7 +53,7 @@ develop
 0.57.0
 =======
 
-.. replace this with the release date
+19 September 2017
 
 .. list-table::
     :widths: 5 40
