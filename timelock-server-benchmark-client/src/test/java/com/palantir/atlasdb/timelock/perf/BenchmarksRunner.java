@@ -75,4 +75,15 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
         runAndPrintResults(client::contendedWriteTransaction, 2000, 1);
     }
 
+    @Test
+    public void rowsRangeScan() {
+        runAndPrintResults(() -> client.rangeScanRows(1, 100, 100, 100));
+    }
+
+    @Test
+    public void dynamicColumnsRangeScan() {
+        runAndPrintResults(() -> client.rangeScanDynamicColumns(1, 100, 100, 100));
+    }
+
 }
+

@@ -1,6 +1,6 @@
 atlas:
+  namespace: benchmarks123
   timelock:
-    client: test
     serversList:
       servers:
         - https://SERVER1:9421
@@ -12,22 +12,15 @@ atlas:
         trustStorePath: var/security/trustStore.jks
   defaultLockTimeoutSeconds: 20
   keyValueService:
-    type: memory
-#  keyValueService:
-#    type: cassandra
-#    keyspace: benchmarks
-#    ssl: true
-#    replicationFactor: 1
-#    poolSize: 100
-#    maxConnectionBurstSize: 400
-#    sslConfiguration:
-#      keyStorePath: var/security/keyStore-cassandra.jks
-#      keyStorePassword: W04xkPDALcCTlsU4
-#      trustStorePath: var/security/trustStore-cassandra.jks
-#    servers:
-#      - 'CASSANDRA1:9160'
-#      - 'CASSANDRA2:9160'
-#      - 'CASSANDRA3:9160'
+    type: cassandra
+    ssl: false
+    replicationFactor: 3
+    poolSize: 100
+    maxConnectionBurstSize: 400
+    servers:
+      - 'CASSANDRA1:9160'
+      - 'CASSANDRA2:9160'
+      - 'CASSANDRA3:9160'
 
 server:
   requestLog:

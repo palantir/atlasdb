@@ -86,4 +86,20 @@ public interface BenchmarksService {
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
+    @GET
+    @Path("/range-scan-rows")
+    Map<String, Object> rangeScanRows(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("dataSize") int dataSize,
+            @QueryParam("numRows") int numRows);
+
+    @GET
+    @Path("/range-scan-dynamic-columns")
+    Map<String, Object> rangeScanDynamicColumns(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("dataSize") int dataSize,
+            @QueryParam("numRows") int numRows);
+
 }

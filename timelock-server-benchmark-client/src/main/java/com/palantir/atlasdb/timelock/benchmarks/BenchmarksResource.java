@@ -22,6 +22,7 @@ import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public class BenchmarksResource implements BenchmarksService {
@@ -31,7 +32,9 @@ public class BenchmarksResource implements BenchmarksService {
 
     public BenchmarksResource(AtlasDbConfig config) {
         this.config = config;
-        this.txnManager = TransactionManagers.create(config, () -> Optional.empty(), ImmutableSet.of(), res -> { }, true);
+        this.txnManager = TransactionManagers.create(config, () -> Optional.empty(),
+                ImmutableSet.of(BenchmarksSchema.SCHEMA), res -> {
+                }, true);
     }
 
     @Override
@@ -78,5 +81,16 @@ public class BenchmarksResource implements BenchmarksService {
     @Override
     public Map<String, Object> timestamp(int numClients, int numRequestsPerClient) {
         return TimestampBenchmark.execute(txnManager, numClients, numRequestsPerClient);
+    }
+
+    @Override
+    public Map<String, Object> rangeScanRows(int numClients, int numRequestsPerClient, int dataSize, int numRows) {
+        return RowsRangeScanBenchmark.execute(txnManager, numClients, numRequestsPerClient, dataSize, numRows);
+    }
+
+    @Override
+    public Map<String, Object> rangeScanDynamicColumns(int numClients, int numRequestsPerClient, int dataSize,
+            int numRows) {
+        return DynamicColumnsRangeScanBenchmark.execute(txnManager, numClients, numRequestsPerClient, dataSize, numRows);
     }
 }
