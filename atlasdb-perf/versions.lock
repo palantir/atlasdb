@@ -257,6 +257,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.common:streams",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.docker.compose:docker-compose-rule-core",
@@ -507,6 +508,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.common:streams": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -1255,6 +1262,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.common:streams",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.docker.compose:docker-compose-rule-core",
@@ -1505,6 +1513,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.common:streams": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {

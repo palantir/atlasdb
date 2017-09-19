@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -125,7 +124,7 @@ import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.common.concurrent.ConcurrentStreams;
+import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -703,17 +702,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
-
-        List<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
+        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
                 StreamSupport.stream(rangeRequests.spliterator(), false)
-                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)))
-                        .collect(Collectors.toList());
+                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
 
-        return ConcurrentStreams.map(
+        if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
+            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
+        }
+
+        return MoreStreams.blockingStreamWithParallelism(
                 requestAndVisitables,
                 pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
+    }
+
+    private static boolean isSingleton(Iterable<?> elements) {
+        Iterator<?> it = elements.iterator();
+        if (it.hasNext()) {
+            it.next();
+            return !it.hasNext();
+        }
+        return false;
     }
 
     @Override
