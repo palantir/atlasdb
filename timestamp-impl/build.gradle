@@ -1,4 +1,5 @@
 import org.gradle.plugins.ide.eclipse.model.AccessRule
+apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
@@ -7,9 +8,13 @@ dependencies {
   compile(project(":timestamp-api"))
   compile(project(":timestamp-client"))
   compile(project(":atlasdb-commons"))
+  compile(project(":atlasdb-client"))
 
   compile group: 'com.palantir.remoting2', name: 'tracing'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+
+  processor 'com.google.auto.service:auto-service:1.0-rc2'
+  processor project(":atlasdb-processors")
 
   testCompile project(":atlasdb-tests-shared")
   testCompile group: 'junit', name: 'junit'

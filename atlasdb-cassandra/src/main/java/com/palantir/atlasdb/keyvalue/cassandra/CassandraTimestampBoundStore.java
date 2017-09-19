@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -44,16 +45,40 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.exception.NotInitializedException;
+import com.palantir.processors.AutoDelegate;
+import com.palantir.timestamp.AutoDelegate_TimestampBoundStore;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.util.debug.ThreadDumps;
 
-public final class CassandraTimestampBoundStore implements TimestampBoundStore {
+@AutoDelegate(typeToExtend = TimestampBoundStore.class)
+public final class CassandraTimestampBoundStore implements AsyncInitializer, TimestampBoundStore {
+
+    public static class InitializingWrapper implements AutoDelegate_TimestampBoundStore {
+        private CassandraTimestampBoundStore store;
+
+        public InitializingWrapper(CassandraTimestampBoundStore store) {
+            this.store = store;
+        }
+
+        @Override
+        public TimestampBoundStore delegate() {
+            if (store.isInitialized()) {
+                return store;
+            }
+            throw new NotInitializedException("CassandraTimestampBoundStore");
+        }
+    }
+
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
 
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
+
+    private volatile boolean isInitialized = false;
+    private CassandraKeyValueService kvs;
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
@@ -74,15 +99,37 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private final CassandraClientPool clientPool;
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
-        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
-        return new CassandraTimestampBoundStore(kvs.getClientPool());
+        return create(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
+    public static TimestampBoundStore create(CassandraKeyValueService kvs, boolean initializeAsync) {
+        CassandraTimestampBoundStore store = new CassandraTimestampBoundStore(kvs.getClientPool(), kvs);
+        store.initialize(initializeAsync);
+        return store.isInitialized() ? store : new CassandraTimestampBoundStore.InitializingWrapper(store);
+    }
+
+    private CassandraTimestampBoundStore(CassandraClientPool clientPool, CassandraKeyValueService kvs) {
         DebugLogger.logger.info(
                 "Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
                 Thread.currentThread().getName());
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
+        this.kvs = kvs;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
+    @Override
+    public synchronized void tryInitialize() {
+        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        isInitialized = true;
+    }
+
+    @Override
+    public void cleanUpOnInitFailure() {
+        // noop
     }
 
     @Override
