@@ -50,7 +50,7 @@ public abstract class CloseableAsyncInitializer<T extends AutoCloseable> extends
                 // The wrapper is closed, but we still have to propagate this to the delegate, once it initializes.
                 status = Status.CLOSING;
             } catch (Exception e) {
-                throw new RuntimeException("", e);
+                throw new RuntimeException("Exception thrown when closing an initialized object", e);
             }
         }
     }

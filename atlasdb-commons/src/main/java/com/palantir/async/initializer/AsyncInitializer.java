@@ -36,7 +36,7 @@ import com.palantir.logsafe.SafeArg;
 @ThreadSafe
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
-    private static final int NUM_THREADS = 20;
+    private static final int NUM_THREADS = 100;
     private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newScheduledThreadPool(
             NUM_THREADS, new NamedThreadFactory("AsyncInitializer", true));
 
@@ -63,7 +63,7 @@ public abstract class AsyncInitializer {
             synchronized (this) {
                 try {
                     tryToInitializeIfNotInitialized();
-                    log.warn("Initialized {} asynchronously.",
+                    log.info("Initialized {} asynchronously.",
                             SafeArg.of("className", this.getClass().getName()));
                 } catch (Throwable throwable) {
                     cleanUpOnInitFailure();
