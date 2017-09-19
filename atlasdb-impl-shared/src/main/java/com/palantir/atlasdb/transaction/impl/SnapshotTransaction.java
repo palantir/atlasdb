@@ -708,7 +708,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
 
         if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
-            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight());
+            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()));
         }
 
         return MoreStreams.blockingStreamWithParallelism(
