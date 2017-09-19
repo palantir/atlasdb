@@ -32,7 +32,7 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void timestamp() {
-        runAndPrintResults(client::timestamp, 8, 1000);
+        runAndPrintResults(client::timestamp, 4, 1000);
     }
 
     @Test

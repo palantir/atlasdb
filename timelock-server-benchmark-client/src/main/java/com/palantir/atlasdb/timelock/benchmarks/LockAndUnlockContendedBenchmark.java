@@ -24,59 +24,52 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 
 public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
-    private final RemoteLockService lockService;
-    private final List<LockRequest> lockRequests;
+    private final TimelockService timelock;
+    private final List<LockDescriptor> lockDescriptors;
     private final AtomicLong counter = new AtomicLong(0);
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient, int numDistinctLocks) {
-        return new LockAndUnlockContendedBenchmark(txnManager.getLockService(), numClients, requestsPerClient,
+        return new LockAndUnlockContendedBenchmark(txnManager.getTimelockService(), numClients, requestsPerClient,
                 numDistinctLocks).execute();
     }
 
-    protected LockAndUnlockContendedBenchmark(RemoteLockService lockService, int numClients, int numRequestsPerClient,
+    protected LockAndUnlockContendedBenchmark(TimelockService timelock, int numClients, int numRequestsPerClient,
             int numDistinctLocks) {
         super(numClients, numRequestsPerClient);
-        this.lockService = lockService;
+        this.timelock = timelock;
 
-        List<LockRequest> requests = Lists.newArrayList();
+        List<LockDescriptor> descriptors = Lists.newArrayList();
         for (int i = 0; i < numDistinctLocks; i++) {
-            requests.add(LockRequest.builder(
-                    ImmutableSortedMap.of(StringLockDescriptor.of(UUID.randomUUID().toString()),
-                            LockMode.WRITE))
-                    .build());
+            descriptors.add(StringLockDescriptor.of(UUID.randomUUID().toString()));
         }
-        lockRequests = ImmutableList.copyOf(requests);
+        lockDescriptors = ImmutableList.copyOf(descriptors);
     }
 
     @Override
     protected void performOneCall() {
-        try {
-            LockRefreshToken token = lockService.lock(Long.toString(counter.incrementAndGet()), nextRequest());
-            boolean wasUnlocked = lockService.unlock(token);
-            Preconditions.checkState(wasUnlocked, "unlock returned false");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
+        LockToken token = timelock.lock(nextRequest()).getToken();
+        boolean wasUnlocked = timelock.unlock(ImmutableSet.of(token)).contains(token);
+        Preconditions.checkState(wasUnlocked, "unlock returned false");
     }
 
     @Override
     protected Map<String, Object> getExtraParameters() {
-        return ImmutableMap.of("numDistinctLocks", lockRequests.size());
+        return ImmutableMap.of("numDistinctLocks", lockDescriptors.size());
     }
 
     private LockRequest nextRequest() {
-        return lockRequests.get((int) (counter.incrementAndGet() % lockRequests.size()));
+        LockDescriptor lockDescriptor = lockDescriptors.get((int) (counter.incrementAndGet() % lockDescriptors.size()));
+        return LockRequest.of(ImmutableSet.of(lockDescriptor), 50_000);
     }
 }
