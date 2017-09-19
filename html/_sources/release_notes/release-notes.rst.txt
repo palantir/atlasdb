@@ -77,6 +77,10 @@ develop
            Alternatively, call ``BatchingVisitableView.hintBatchSize(int)`` before making a copy.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2347>`__)
 
+    *    - |improved|
+         - AtlasDB table definitions now support specifying log safety without having to also specify value byte order for row components.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2349>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
