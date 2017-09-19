@@ -21,6 +21,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,7 +33,6 @@ import java.util.TreeMap;
 
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -77,7 +78,7 @@ public abstract class AbstractSchemaApiTest {
         putSingleRowFirstColumn(transaction, TEST_ROW_KEY, TEST_VALUE);
 
         ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(transaction, times(1)).put(eq(tableRef), argument.capture());
+        verify(transaction, times(1)).put(eq(tableRef), argument.capture());
 
         Map<Cell, byte[]> foundMap = argument.getValue();
         Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
@@ -95,13 +96,13 @@ public abstract class AbstractSchemaApiTest {
         expectedResults.put(
                 TEST_ROW_KEY.getBytes(),
                 RowResult.of(resultCell, EncodingUtils.encodeUnsignedVarLong(TEST_VALUE)));
-        Mockito.when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(expectedResults);
+        when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(expectedResults);
 
         long value = getSingleRowFirstColumn(transaction, TEST_ROW_KEY);
 
         assertThat(value).isEqualTo(TEST_VALUE);
         ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
-        Mockito.verify(transaction, times(1))
+        verify(transaction, times(1))
                 .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
@@ -123,13 +124,13 @@ public abstract class AbstractSchemaApiTest {
         resultsMap.put(
                 TEST_ROW_KEY2.getBytes(),
                 RowResult.of(anotherExpectedCell, EncodingUtils.encodeUnsignedVarLong(ANOTHER_TEST_VALUE)));
-        Mockito.when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);
+        when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);
 
         List<Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
 
         assertThat(result).isEqualTo(Arrays.asList(TEST_VALUE, ANOTHER_TEST_VALUE));
         ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
-        Mockito.verify(transaction, times(1))
+        verify(transaction, times(1))
                 .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
@@ -152,7 +153,7 @@ public abstract class AbstractSchemaApiTest {
         Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(SECOND_COL_SHORT_NAME));
         Cell anotherExpectedCell =
                 Cell.create(PtBytes.toBytes(TEST_ROW_KEY2), PtBytes.toBytes(SECOND_COL_SHORT_NAME));
-        Mockito.when(transaction.getRange(eq(tableRef), any())).thenReturn(
+        when(transaction.getRange(eq(tableRef), any())).thenReturn(
                 BatchingVisitableFromIterable.create(Arrays.asList(
                         RowResult.of(expectedCell, testStringValue.getBytes()),
                         RowResult.of(anotherExpectedCell, anotherTestStringValue.getBytes())
@@ -163,7 +164,7 @@ public abstract class AbstractSchemaApiTest {
 
         assertThat(result).isEqualTo(Arrays.asList(testStringValue, anotherTestStringValue));
         ArgumentCaptor<RangeRequest> argument = ArgumentCaptor.forClass(RangeRequest.class);
-        Mockito.verify(transaction, times(1))
+        verify(transaction, times(1))
                 .getRange(eq(tableRef), argument.capture());
 
         RangeRequest rangeRequestFound = argument.getValue();
@@ -188,7 +189,7 @@ public abstract class AbstractSchemaApiTest {
                 PtBytes.toBytes(FIRST_COL_SHORT_NAME));
         Cell expectedDeletedSecondCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY),
                 PtBytes.toBytes(SECOND_COL_SHORT_NAME));
-        Mockito.verify(transaction, times(1)).delete(tableRef,
+        verify(transaction, times(1)).delete(tableRef,
                 ImmutableSet.of(expectedDeletedFirstCell, expectedDeletedSecondCell));
     }
 
@@ -199,7 +200,7 @@ public abstract class AbstractSchemaApiTest {
         deleteFirstColumn(transaction, TEST_ROW_KEY);
 
         Cell expectedDeletedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
-        Mockito.verify(transaction, times(1)).delete(tableRef,
+        verify(transaction, times(1)).delete(tableRef,
                 ImmutableSet.of(expectedDeletedCell));
     }
 }
