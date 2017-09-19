@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 // TODO(nziebart): these tests are mostly sanity checks, until we have better tests for {@link PaxosQuorumChecker}.
 public class PaxosLatestRoundVerifierTest {
 
+    private static final long EARLIER_ROUND = 4L;
     private static final long ROUND = 5L;
     private static final long LATER_ROUND = 6L;
 
@@ -58,6 +59,15 @@ public class PaxosLatestRoundVerifierTest {
     public void hasQuorumIfQuorumAgrees() {
         when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
         when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
+        when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
+
+        assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
+    }
+
+    @Test
+    public void hasAgreementIfLatestSequenceIsOlder() {
+        when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(EARLIER_ROUND);
+        when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(EARLIER_ROUND);
         when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
