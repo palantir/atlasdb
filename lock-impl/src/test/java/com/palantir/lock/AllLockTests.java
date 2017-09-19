@@ -21,6 +21,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.lock.client.LockRefreshingLockServiceTest;
 import com.palantir.lock.impl.ClientAwareLockTest;
+import com.palantir.lock.logger.LockServiceStateLoggerTest;
 
 /**
  * Runs all lock server tests.
@@ -30,6 +31,7 @@ import com.palantir.lock.impl.ClientAwareLockTest;
 @SuiteClasses(value = {
         ClientAwareLockTest.class,
         LockServiceImplTest.class,
+        LockServiceStateLoggerTest.class,
         LockRefreshingLockServiceTest.class
 }) @RunWith(value = Suite.class) public final class AllLockTests {
     /* Empty; the annotations above take care of everything. */

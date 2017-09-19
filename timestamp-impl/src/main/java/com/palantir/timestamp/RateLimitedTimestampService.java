@@ -78,7 +78,7 @@ public class RateLimitedTimestampService implements TimestampService {
             try {
                 batch.awaitPopulation();
             } catch (InterruptedException e) {
-                log.error("Interrupted waiting for timestamp batch to populate. Trying another batch.", e);
+                log.warn("Interrupted waiting for timestamp batch to populate. Trying another batch.", e);
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }
             if (!batch.isFailed()) {

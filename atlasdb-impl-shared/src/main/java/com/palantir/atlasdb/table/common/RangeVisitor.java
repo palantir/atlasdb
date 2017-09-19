@@ -29,6 +29,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -50,6 +51,7 @@ public class RangeVisitor {
     private byte[] endRow = new byte[0];
     private int batchSize = 1000;
     private int threadCount = 1;
+    private ColumnSelection columnSelection = ColumnSelection.all();
     private ExecutorService exec = MoreExecutors.newDirectExecutorService();
     private Iterable<HeldLocksToken> lockTokens = ImmutableList.of();
     private AtomicLong counter = new AtomicLong();
@@ -98,6 +100,11 @@ public class RangeVisitor {
 
     public RangeVisitor setProgressCounter(AtomicLong counter) {
         this.counter = counter;
+        return this;
+    }
+
+    public RangeVisitor setColumnSelection(ColumnSelection columnSelection) {
+        this.columnSelection = columnSelection;
         return this;
     }
 
@@ -174,7 +181,7 @@ public class RangeVisitor {
 
     private Iterable<MutableRange> getRanges() {
         if (threadCount == 1) {
-            return ImmutableList.of(new MutableRange(startRow, endRow, batchSize));
+            return ImmutableList.of(new MutableRange(startRow, endRow, batchSize, columnSelection));
         }
         int length = Math.max(startRow.length, endRow.length);
         length = Math.max(1, length);
@@ -188,13 +195,13 @@ public class RangeVisitor {
         BigInteger step = endNum.subtract(startNum).divide(BigInteger.valueOf(threadCount));
         BigInteger curr = startNum.add(step);
         Collection<MutableRange> ranges = Lists.newArrayListWithCapacity(threadCount);
-        ranges.add(new MutableRange(startRow, toBytes(curr, length), batchSize));
+        ranges.add(new MutableRange(startRow, toBytes(curr, length), batchSize, columnSelection));
         for (int i = 1; i < threadCount - 1; i++) {
             BigInteger next = curr.add(step);
-            ranges.add(new MutableRange(toBytes(curr, length), toBytes(next, length), batchSize));
+            ranges.add(new MutableRange(toBytes(curr, length), toBytes(next, length), batchSize, columnSelection));
             curr = next;
         }
-        ranges.add(new MutableRange(toBytes(curr, length), endRow, batchSize));
+        ranges.add(new MutableRange(toBytes(curr, length), endRow, batchSize, columnSelection));
         return ranges;
     }
 

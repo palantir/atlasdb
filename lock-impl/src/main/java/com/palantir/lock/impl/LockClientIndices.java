@@ -19,6 +19,7 @@ import java.util.Map;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -26,7 +27,8 @@ import com.google.common.collect.Maps;
 import com.palantir.lock.LockClient;
 
 @ThreadSafe
-class LockClientIndices {
+@VisibleForTesting
+public class LockClientIndices {
     private final Map<LockClient, Integer> indexByClient = Maps.newConcurrentMap();
     private final Map<Integer, LockClient> clientByIndex = Maps.newConcurrentMap();
 

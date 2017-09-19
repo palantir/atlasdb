@@ -22,7 +22,6 @@ import java.util.Set;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -30,11 +29,13 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -128,7 +129,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return tableMapper.mapToFullTableNames(delegate().getAllTableNames());
+        return ImmutableSet.copyOf(tableMapper.generateMapToFullTableNames(delegate().getAllTableNames()).values());
     }
 
     @Override
@@ -168,13 +169,15 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> tableRefToBytes = Maps.newHashMap();
-        for (Entry<TableReference, byte[]> entry : delegate().getMetadataForTables().entrySet()) {
-            tableRefToBytes.put(
-                    Iterables.getOnlyElement(tableMapper.mapToFullTableNames(ImmutableSet.of(entry.getKey()))),
-                    entry.getValue());
+        Map<TableReference, byte[]> tableMetadata = delegate().getMetadataForTables();
+        Map<TableReference, TableReference> metadataNamesToFullTableNames = tableMapper.generateMapToFullTableNames(
+                tableMetadata.keySet());
+        Map<TableReference, byte[]> fullTableNameToBytes = Maps.newHashMapWithExpectedSize(
+                metadataNamesToFullTableNames.size());
+        for (Entry<TableReference, byte[]> entry : tableMetadata.entrySet()) {
+            fullTableNameToBytes.put(metadataNamesToFullTableNames.get(entry.getKey()), entry.getValue());
         }
-        return tableRefToBytes;
+        return fullTableNameToBytes;
     }
 
     @Override
@@ -213,6 +216,14 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
                 tableMapper.getMappedTableName(tableRef),
                 rows,
                 columnSelection,
+                timestamp);
+    }
+
+    @Override
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+        return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
+                rows,
+                columnRangeSelection,
                 timestamp);
     }
 
@@ -287,4 +298,5 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     public void compactInternally(TableReference tableRef) {
         delegate().compactInternally(tableMapper.getMappedTableName(tableRef));
     }
+
 }

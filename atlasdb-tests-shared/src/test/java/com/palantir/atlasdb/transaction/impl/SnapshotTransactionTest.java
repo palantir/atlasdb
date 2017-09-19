@@ -90,6 +90,8 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.TimeDuration;
 
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private class UnstableKeyValueService extends ForwardingKeyValueService {
@@ -660,10 +662,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 ImmutableSortedMap.naturalOrder();
         builder.put(AtlasRowLockDescriptor.of(TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(0L)), LockMode.WRITE);
-        return new HeldLocksToken(new BigInteger("0"), lockClient,
-                System.currentTimeMillis(), System.currentTimeMillis(),
+        return new HeldLocksToken(new BigInteger("0"),
+                lockClient,
+                System.currentTimeMillis(),
+                System.currentTimeMillis(),
                 LockCollections.of(builder.build()),
-                LockRequest.DEFAULT_LOCK_TIMEOUT, 0L);
+                LockRequest.DEFAULT_LOCK_TIMEOUT,
+                0L,
+                "fakeHeldLocksToken");
     }
 
     private TableMetadata getTableMetadataForSweepStrategy(SweepStrategy sweepStrategy) {
@@ -688,6 +694,38 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         txManager.runTaskWithLocksThrowOnConflict(
                 ImmutableList.of(getFakeHeldLocksToken()),
                 lockAwareTransactionTask);
+    }
+
+    private HeldLocksToken getExpiredHeldLocksToken() {
+        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+        builder.put(
+                AtlasRowLockDescriptor.of(
+                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                        TransactionConstants.getValueForTimestamp(0L)),
+                LockMode.WRITE);
+        long creationDateMs = System.currentTimeMillis();
+        long expirationDateMs = creationDateMs - 1;
+        TimeDuration lockTimeout = SimpleTimeDuration.of(0, TimeUnit.SECONDS);
+        long versionId = 0L;
+        return new HeldLocksToken(
+                BigInteger.ZERO,
+                lockClient,
+                creationDateMs,
+                expirationDateMs,
+                LockCollections.of(builder.build()),
+                lockTimeout,
+                versionId,
+                "Dummy thread");
+    }
+
+
+    /**
+     * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
+     * {@link AtlasDbTestCase#setUp()}.
+     */
+    private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
+        Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
+        return ((RawTransaction) unwrapped).delegate();
     }
 
 }

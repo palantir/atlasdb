@@ -80,6 +80,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Integer> sweepRowBatchSize;
     private final Supplier<Integer> sweepCellBatchSize;
     private final SweepTableFactory tableFactory;
+    private final Supplier<Set<TableReference>> blackList;
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
 
@@ -95,7 +96,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
-            SweepTableFactory tableFactory) {
+            SweepTableFactory tableFactory,
+            Supplier<Set<TableReference>> blackList) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
@@ -104,6 +106,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepRowBatchSize = sweepBatchSize;
         this.sweepCellBatchSize = sweepCellBatchSize;
         this.tableFactory = tableFactory;
+        this.blackList = blackList;
     }
 
     @Override
@@ -141,10 +144,11 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                     if (checkAndRepairTableDrop()) {
                         log.error("The table being swept by the background sweeper was dropped, moving on...");
                     } else {
-                        log.error("The background sweep job failed unexpectedly with a batch size of " +
+                        log.error("The background sweep job failed unexpectedly with a batch size of "
                                 ((int) (batchSizeMultiplier * sweepRowBatchSize.get())) +
-                                ". Attempting to continue with a lower batch size...", e);
-                        batchSizeMultiplier = Math.min(batchSizeMultiplier / 2, 1.0f / sweepRowBatchSize.get());
+                                + ". Attempting to continue with a lower batch size...", e);
+                        // Cut batch size in half, always sweep at least one row (we round down).
+                        batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5f / sweepRowBatchSize.get());
                     }
                 }
                 if (sweptSuccessfully) {
@@ -212,7 +216,8 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @Nullable
     private SweepProgressRowResult chooseNextTableToSweep(SweepTransaction t) {
-        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
+        Set<TableReference> tablesToSkip = Sets.union(AtlasDbConstants.hiddenTables, blackList.get());
+        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), tablesToSkip);
         SweepPriorityTable oldPriorityTable = tableFactory.getSweepPriorityTable(t);
         SweepPriorityTable newPriorityTable = tableFactory.getSweepPriorityTable(t.delegate());
 

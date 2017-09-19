@@ -1,8 +1,13 @@
+apply plugin: 'org.inferred.processors'
+
 apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile(project(":lock-api"))
   compile(project(":atlasdb-commons"))
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
-  compile 'joda-time:joda-time:' + libVersions.joda_time
+  compile group: 'joda-time', name: 'joda-time', version: libVersions.joda_time
+  compile group: 'org.yaml', name: 'snakeyaml', version: libVersions.snakeyaml
+  
+  processor 'org.immutables:value:2.0.21'
 }
