@@ -30,25 +30,23 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = TableMappingService.class)
-public final class StaticTableMappingService extends AbstractTableMappingService implements AsyncInitializer {
-    public static class InitializingWrapper implements AutoDelegate_TableMappingService {
-
-        private StaticTableMappingService tableMappingService;
-
-        public InitializingWrapper(StaticTableMappingService tableMappingService) {
-            this.tableMappingService = tableMappingService;
-        }
-
+public final class StaticTableMappingService extends AbstractTableMappingService {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TableMappingService {
         @Override
         public TableMappingService delegate() {
-            if (tableMappingService.isInitialized()) {
-                return tableMappingService;
+            if (isInitialized()) {
+                return StaticTableMappingService.this;
             }
             throw new NotInitializedException("TableMappingService");
         }
+
+        @Override
+        protected void tryInitialize() {
+            StaticTableMappingService.this.updateTableMap();
+        }
     }
 
-    private volatile boolean isInitialized = false;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
     private final KeyValueService kv;
 
     public static TableMappingService create(KeyValueService kv) {
@@ -57,28 +55,12 @@ public final class StaticTableMappingService extends AbstractTableMappingService
 
     public static TableMappingService create(KeyValueService kv, boolean initializeAsync) {
         StaticTableMappingService tableMappingService = new StaticTableMappingService(kv);
-        tableMappingService.initialize(initializeAsync);
-        return tableMappingService.isInitialized() ? tableMappingService : new InitializingWrapper(tableMappingService);
+        tableMappingService.wrapper.initialize(initializeAsync);
+        return tableMappingService.wrapper.isInitialized() ? tableMappingService : tableMappingService.wrapper;
     }
 
     private StaticTableMappingService(KeyValueService kv) {
         this.kv = kv;
-    }
-
-    @Override
-    public synchronized boolean isInitialized() {
-        return isInitialized;
-    }
-
-    @Override
-    public synchronized void tryInitialize() {
-        assertNotInitialized();
-        updateTableMap();
-        isInitialized = true;
-    }
-
-    @Override
-    public synchronized void cleanUpOnInitFailure() {
     }
 
     @Override

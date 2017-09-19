@@ -58,26 +58,24 @@ import com.palantir.processors.AutoDelegate;
  *
  */
 @AutoDelegate(typeToExtend = ScrubberStore.class)
-public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncInitializer {
-    public static class InitializingWrapper implements AutoDelegate_ScrubberStore {
-        private KeyValueServiceScrubberStore scrubberStore;
-
-        public InitializingWrapper(KeyValueServiceScrubberStore scrubberStore) {
-            this.scrubberStore = scrubberStore;
-        }
-
-
+public final class KeyValueServiceScrubberStore implements ScrubberStore {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_ScrubberStore {
         @Override
         public ScrubberStore delegate() {
-            if (scrubberStore.isInitialized()) {
-                return scrubberStore;
+            if (isInitialized()) {
+                return KeyValueServiceScrubberStore.this;
             }
             throw new NotInitializedException("ScrubberStore");
+        }
+
+        @Override
+        protected void tryInitialize() {
+            KeyValueServiceScrubberStore.this.tryInitialize();
         }
     }
 
     private static final byte[] EMPTY_CONTENTS = new byte[] {1};
-    private volatile boolean isInitialized = false;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
     private final KeyValueService keyValueService;
 
     public static ScrubberStore create(KeyValueService keyValueService) {
@@ -86,23 +84,15 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
 
     public static ScrubberStore create(KeyValueService keyValueService, boolean initializeAsync) {
         KeyValueServiceScrubberStore scrubberStore = new KeyValueServiceScrubberStore(keyValueService);
-        scrubberStore.initialize(initializeAsync);
-        return scrubberStore.isInitialized() ? scrubberStore : new InitializingWrapper(scrubberStore);
+        scrubberStore.wrapper.initialize(initializeAsync);
+        return scrubberStore.wrapper.isInitialized() ? scrubberStore : scrubberStore.wrapper;
     }
 
     private KeyValueServiceScrubberStore(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
     }
 
-    @Override
-    public synchronized boolean isInitialized() {
-        return isInitialized;
-    }
-
-    @Override
-    public synchronized void tryInitialize() {
-        assertNotInitialized();
-
+    private void tryInitialize() {
         TableMetadata scrubTableMeta = new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(
                         new NameComponentDescription.Builder()
@@ -122,13 +112,6 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore, AsyncI
                         ColumnValueDescription.forType(ValueType.VAR_LONG))),
                 ConflictHandler.IGNORE_ALL);
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
-
-        isInitialized = true;
-    }
-
-    @Override
-    public synchronized void cleanUpOnInitFailure() {
-        // no-op
     }
 
     @Override

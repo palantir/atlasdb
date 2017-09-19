@@ -25,7 +25,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.SafeArg;
 
@@ -34,21 +34,15 @@ import com.palantir.logsafe.SafeArg;
  * In order to be ThreadSafe, the abstract methods of the inheriting class need to be synchronized.
  */
 @ThreadSafe
-public interface AsyncInitializer {
-    int millisUntilNextAttempt = 10_000;
-    Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
-    int nThreads = 20;
-    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(
-            nThreads, new NamedThreadFactory("AsyncInitializer", true));
+public abstract class AsyncInitializer {
+    private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
+    private static final int NUM_THREADS = 20;
+    private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newScheduledThreadPool(
+            NUM_THREADS, new NamedThreadFactory("AsyncInitializer", true));
 
-    default void initialize(boolean initializeAsync) {
-        synchronized (this) {
-            initializeInternal(initializeAsync);
-        }
-    }
+    private volatile boolean initialized = false;
 
-    // TODO (JAVA9): Make this private.
-    default void initializeInternal(boolean initializeAsync) {
+    public synchronized void initialize(boolean initializeAsync) {
         if (!initializeAsync) {
             tryToInitializeIfNotInitialized();
             return;
@@ -64,53 +58,47 @@ public interface AsyncInitializer {
         }
     }
 
-    // TODO (JAVA9): Make this private.
-    default void scheduleInitialization() {
-        executorService.schedule(() -> {
+    private void scheduleInitialization() {
+        EXECUTOR_SERVICE.schedule(() -> {
             synchronized (this) {
                 try {
                     tryToInitializeIfNotInitialized();
-                    log.info("Initialized {} asynchronously.",
+                    log.warn("Initialized {} asynchronously.",
                             SafeArg.of("className", this.getClass().getName()));
                 } catch (Throwable throwable) {
                     cleanUpOnInitFailure();
                     scheduleInitialization();
                 }
             }
-        }, millisUntilNextAttempt, TimeUnit.MILLISECONDS);
+        }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
     }
 
-    default int millisToNextAttempt() {
-        return millisUntilNextAttempt;
+    @VisibleForTesting
+    protected int sleepIntervalInMillis() {
+        return 10_000;
     }
 
-    // TODO (JAVA9): Make this private.
-    default void tryToInitializeIfNotInitialized() {
+    private void tryToInitializeIfNotInitialized() {
         if (isInitialized()) {
             log.warn("{} was initialized underneath us.",
                     SafeArg.of("className", this.getClass().getName()));
         } else {
             tryInitialize();
+            initialized = true;
         }
     }
 
-    default void assertNotInitialized() {
-        Preconditions.checkState(!isInitialized(),
-                "Tried to initialize " + this.getClass().getName() + " , but was already initialized");
+    public boolean isInitialized() {
+        return initialized;
     }
-
-    boolean isInitialized();
 
     /**
-     * Tries to initialize the object synchronously.
-     * @throws IllegalStateException if object has already been initialized.
+     * Override this method if there's anything to be cleaned up on initialization failure.
+     * Default implementation is no-op.
      */
-    // TODO: Make this method protected abstract.
-    void tryInitialize();
-
-    void cleanUpOnInitFailure();
-
-    default void close() {
-        // you must implement this method if you are asynchronously initializing a closeable class
+    protected synchronized void cleanUpOnInitFailure() {
+        // no-op
     }
+
+    protected abstract void tryInitialize();
 }
