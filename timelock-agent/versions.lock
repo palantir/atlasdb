@@ -129,6 +129,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.common:streams",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
@@ -291,6 +292,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:timelock-impl"
+            ]
+        },
+        "com.palantir.common:streams": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -656,6 +663,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.common:streams",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
@@ -818,6 +826,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:timelock-impl"
+            ]
+        },
+        "com.palantir.common:streams": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
