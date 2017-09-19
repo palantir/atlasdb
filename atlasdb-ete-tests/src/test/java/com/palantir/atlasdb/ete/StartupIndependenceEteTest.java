@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.ete;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.List;
@@ -166,6 +167,7 @@ public class StartupIndependenceEteTest {
     private void assertNotInitializedExceptionIsThrownAndMappedCorrectly() {
         try {
             addTodo();
+            fail();
         } catch (Exception e) {
             assertTrue(exceptionIsRetryableAndContainsMessage(e, "CassandraKeyValueService is not initialized yet"));
         }
