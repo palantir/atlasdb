@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.exception.NotInitializedException;
