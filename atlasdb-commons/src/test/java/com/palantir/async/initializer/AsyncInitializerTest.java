@@ -30,18 +30,8 @@ public class AsyncInitializerTest {
     public static final int WAIT_TIME_MILLIS = 500;
     public static final int ASYNC_INIT_DELAY = WAIT_TIME_MILLIS / 10;
 
-    static class AlwaysFailingInitializer implements AsyncInitializer {
+    private class AlwaysFailingInitializer extends AsyncInitializer {
         volatile int initializationAttempts = 0;
-
-        @Override
-        public int millisToNextAttempt() {
-            return ASYNC_INIT_DELAY;
-        }
-
-        @Override
-        public boolean isInitialized() {
-            return false;
-        }
 
         @Override
         public void tryInitialize() {
@@ -50,8 +40,8 @@ public class AsyncInitializerTest {
         }
 
         @Override
-        public void cleanUpOnInitFailure() {
-            // noop
+        protected int sleepIntervalInMillis() {
+            return ASYNC_INIT_DELAY;
         }
     }
 

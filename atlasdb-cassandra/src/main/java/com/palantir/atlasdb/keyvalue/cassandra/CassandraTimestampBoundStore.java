@@ -54,21 +54,19 @@ import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.util.debug.ThreadDumps;
 
 @AutoDelegate(typeToExtend = TimestampBoundStore.class)
-public final class CassandraTimestampBoundStore implements AsyncInitializer, TimestampBoundStore {
-
-    public static class InitializingWrapper implements AutoDelegate_TimestampBoundStore {
-        private CassandraTimestampBoundStore store;
-
-        public InitializingWrapper(CassandraTimestampBoundStore store) {
-            this.store = store;
+public final class CassandraTimestampBoundStore implements TimestampBoundStore {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
+        @Override
+        public TimestampBoundStore delegate() {
+            if (isInitialized()) {
+                return CassandraTimestampBoundStore.this;
+            }
+            throw new NotInitializedException("CassandraTimestampBoundStore");
         }
 
         @Override
-        public TimestampBoundStore delegate() {
-            if (store.isInitialized()) {
-                return store;
-            }
-            throw new NotInitializedException("CassandraTimestampBoundStore");
+        protected void tryInitialize() {
+            kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
         }
     }
 
@@ -77,7 +75,7 @@ public final class CassandraTimestampBoundStore implements AsyncInitializer, Tim
     private static final long CASSANDRA_TIMESTAMP = 0L;
     private static final String ROW_AND_COLUMN_NAME = "ts";
 
-    private volatile boolean isInitialized = false;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
     private CassandraKeyValueService kvs;
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
@@ -104,8 +102,8 @@ public final class CassandraTimestampBoundStore implements AsyncInitializer, Tim
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs, boolean initializeAsync) {
         CassandraTimestampBoundStore store = new CassandraTimestampBoundStore(kvs.getClientPool(), kvs);
-        store.initialize(initializeAsync);
-        return store.isInitialized() ? store : new CassandraTimestampBoundStore.InitializingWrapper(store);
+        store.wrapper.initialize(initializeAsync);
+        return store.wrapper.isInitialized() ? store : store.wrapper;
     }
 
     private CassandraTimestampBoundStore(CassandraClientPool clientPool, CassandraKeyValueService kvs) {
@@ -114,22 +112,6 @@ public final class CassandraTimestampBoundStore implements AsyncInitializer, Tim
                 Thread.currentThread().getName());
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
         this.kvs = kvs;
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return isInitialized;
-    }
-
-    @Override
-    public synchronized void tryInitialize() {
-        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
-        isInitialized = true;
-    }
-
-    @Override
-    public void cleanUpOnInitFailure() {
-        // noop
     }
 
     @Override

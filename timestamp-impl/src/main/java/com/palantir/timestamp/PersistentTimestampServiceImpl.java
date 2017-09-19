@@ -26,31 +26,29 @@ import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = PersistentTimestampService.class)
 @ThreadSafe
-public class PersistentTimestampServiceImpl implements AsyncInitializer, PersistentTimestampService {
-
-    private volatile boolean isInitialized = false;
-    private ErrorCheckingTimestampBoundStore store;
-
-    public static class InitializingWrapper implements AutoDelegate_PersistentTimestampService {
-
-        private PersistentTimestampServiceImpl service;
-        public InitializingWrapper(PersistentTimestampServiceImpl service) {
-            this.service = service;
-        }
-
+public class PersistentTimestampServiceImpl implements PersistentTimestampService {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PersistentTimestampService {
         @Override
         public PersistentTimestampService delegate() {
-            if (service.isInitialized()) {
-                return service;
+            if (isInitialized()) {
+                return PersistentTimestampServiceImpl.this;
             }
             throw new NotInitializedException("PersistentTimestampService");
         }
 
+        @Override
+        protected void tryInitialize() {
+            long latestTimestamp = store.getUpperLimit();
+            PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
+            timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
+        }
     }
 
     private static final int MAX_TIMESTAMPS_PER_REQUEST = 10_000;
 
+    private ErrorCheckingTimestampBoundStore store;
     private PersistentTimestamp timestamp;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
     public static PersistentTimestampService create(TimestampBoundStore store) {
         return create(new ErrorCheckingTimestampBoundStore(store), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -67,8 +65,8 @@ public class PersistentTimestampServiceImpl implements AsyncInitializer, Persist
     public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store,
             boolean initializeAsync) {
         PersistentTimestampServiceImpl service = new PersistentTimestampServiceImpl(store);
-        service.initialize(initializeAsync);
-        return service.isInitialized() ? service : new InitializingWrapper(service);
+        service.wrapper.initialize(initializeAsync);
+        return service.wrapper.isInitialized() ? service : service.wrapper;
     }
 
     @VisibleForTesting
@@ -78,24 +76,6 @@ public class PersistentTimestampServiceImpl implements AsyncInitializer, Persist
 
     private PersistentTimestampServiceImpl(ErrorCheckingTimestampBoundStore store) {
         this.store = store;
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return isInitialized;
-    }
-
-    @Override
-    public synchronized void tryInitialize() {
-        long latestTimestamp = store.getUpperLimit();
-        PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
-        this.timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
-        isInitialized = true;
-    }
-
-    @Override
-    public void cleanUpOnInitFailure() {
-        // no-op
     }
 
     @Override
