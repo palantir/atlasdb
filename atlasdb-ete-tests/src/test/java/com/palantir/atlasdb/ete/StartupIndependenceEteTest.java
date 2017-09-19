@@ -85,8 +85,6 @@ public class StartupIndependenceEteTest {
         assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
     }
 
-
-
     @Test
     public void atlasInitializesSynchronouslyIfCassandraIsInGoodState() throws InterruptedException, IOException {
         startCassandraNodes(ALL_CASSANDRA_NODES);
@@ -167,7 +165,7 @@ public class StartupIndependenceEteTest {
     private void assertNotInitializedExceptionIsThrownAndMappedCorrectly() {
         try {
             addTodo();
-            fail();
+            fail("Expected to throw an exception");
         } catch (Exception e) {
             assertTrue(exceptionIsRetryableAndContainsMessage(e, "CassandraKeyValueService is not initialized yet"));
         }

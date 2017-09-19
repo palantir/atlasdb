@@ -74,7 +74,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 log.warn("Asynchronous initialization of resources is not complete. Retrying in 10 seconds.", e);
                 Uninterruptibles.sleepUninterruptibly(AsyncInitializer.millisUntilNextAttempt, TimeUnit.MILLISECONDS);
             } catch (RuntimeException e) {
-                log.warn("[{}] RuntimeException while processing transaction. {}", SafeArg.of("runId", runId), e);
+                log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;
             }
             sleepForBackoff(failureCount);

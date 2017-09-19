@@ -55,9 +55,12 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config);
     }
 
-    // TODO(gmaretic): async initialization not implemented/propagated
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
+
         Preconditions.checkArgument(rawKvs instanceof ConnectionManagerAwareDbKvs,
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;

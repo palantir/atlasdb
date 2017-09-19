@@ -39,7 +39,6 @@ public interface AtlasDbFactory {
     KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync);
 
-
     default TimestampService createTimestampService(KeyValueService rawKvs) {
         return createTimestampService(rawKvs, DEFAULT_INITIALIZE_ASYNC);
     }
