@@ -703,17 +703,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
-
-        List<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
+        Stream<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> requestAndVisitables =
                 StreamSupport.stream(rangeRequests.spliterator(), false)
-                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)))
-                        .collect(Collectors.toList());
+                        .map(rangeRequest -> Pair.of(rangeRequest, getLazyRange(tableRef, rangeRequest)));
+
+        if (concurrencyLevel == 1 || isSingleton(rangeRequests)) {
+            return requestAndVisitables.map(pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight());
+        }
 
         return MoreStreams.blockingStreamWithParallelism(
-                requestAndVisitables.stream(),
+                requestAndVisitables,
                 pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
+    }
+
+    private static boolean isSingleton(Iterable<?> elements) {
+        Iterator<?> it = elements.iterator();
+        if (it.hasNext()) {
+            it.next();
+            return !it.hasNext();
+        }
+        return false;
     }
 
     @Override
