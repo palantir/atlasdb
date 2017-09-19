@@ -106,6 +106,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.common:streams",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
@@ -191,6 +192,9 @@
         },
         "com.palantir.atlasdb:timestamp-client": {
             "project": true
+        },
+        "com.palantir.common:streams": {
+            "locked": "1.9.0"
         },
         "com.palantir.patches.sourceforge:trove3": {
             "locked": "3.0.3-p5",
@@ -467,6 +471,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.common:streams",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
@@ -552,6 +557,9 @@
         },
         "com.palantir.atlasdb:timestamp-client": {
             "project": true
+        },
+        "com.palantir.common:streams": {
+            "locked": "1.9.0"
         },
         "com.palantir.patches.sourceforge:trove3": {
             "locked": "3.0.3-p5",
