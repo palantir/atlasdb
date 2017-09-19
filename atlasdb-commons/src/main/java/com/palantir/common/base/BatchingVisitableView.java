@@ -225,7 +225,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     public ImmutableList<T> immutableCopy() {
         final ImmutableList.Builder<T> builder = ImmutableList.builder();
         delegate().batchAccept(
-                BatchingVisitables.KEEP_ALL_BATCH_SIZE,
+                BatchingVisitables.DEFAULT_BATCH_SIZE,
                 items -> {
                     builder.addAll(items);
                     return true;
@@ -241,7 +241,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     public ImmutableSet<T> immutableSetCopy() {
         final ImmutableSet.Builder<T> builder = ImmutableSet.builder();
         delegate().batchAccept(
-                BatchingVisitables.KEEP_ALL_BATCH_SIZE,
+                BatchingVisitables.DEFAULT_BATCH_SIZE,
                 items -> {
                     builder.addAll(items);
                     return true;
@@ -258,7 +258,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     public <S extends Collection<? super T>> S copyInto(final S collection) {
         Preconditions.checkNotNull(collection, "Cannot copy the visitable into a null collection");
         delegate().batchAccept(
-                BatchingVisitables.KEEP_ALL_BATCH_SIZE,
+                BatchingVisitables.DEFAULT_BATCH_SIZE,
                 items -> {
                     collection.addAll(items);
                     return true;

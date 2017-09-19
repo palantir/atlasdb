@@ -72,6 +72,13 @@ develop
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
 
+    *    - |improved|
+         - ``BatchingVisitableView`` methods ``immutableCopy``, ``immutableSetCopy``, and ``copyInto`` use the default batch hint of 1000, instead of a batch hint of 100,000.
+           We previously defaulted to the higher value because the result set was assumed to be small; however, in practice this has turned out not to be the case, leading to timeouts and OOMs in the field.
+           To use a custom batch hint, set the ``batchHint`` property for your ``RangeRequest``.
+           Alternatively, call ``BatchingVisitableView.hintBatchSize(int)`` before making a copy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2347>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
