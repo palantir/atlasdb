@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
@@ -63,7 +64,7 @@ public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
         try {
             LockRefreshToken token = lockService.lock(Long.toString(counter.incrementAndGet()), nextRequest());
             boolean wasUnlocked = lockService.unlock(token);
-           // Preconditions.checkState(wasUnlocked, "unlock returned false");
+            Preconditions.checkState(wasUnlocked, "unlock returned false");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

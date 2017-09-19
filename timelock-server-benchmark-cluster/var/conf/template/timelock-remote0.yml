@@ -1,26 +1,19 @@
-clients:
-  - test
-  - test2
+install:
+  paxos: {}
+  cluster:
+    local-server: SERVER1:9421
+    cluster:
+      security:
+        keyStoreKeyAlias: palantir-dev
+        keyStorePassword: keystore
+        keyStorePath: ./var/security/keystore.jks
+        trustStorePath: ./var/security/truststore.jks
+      uris:
+      - SERVER1:9421
+      - SERVER2:9421
+      - SERVER3:9421
+runtime: {}
 
-cluster:
-  localServer: SERVER1:9421
-  servers:
-    - SERVER1:9421
-    - SERVER2:9421
-    - SERVER3:9421
-
-algorithm:
-  type: paxos
-  sslConfiguration:
-    keyStorePath: var/security/keyStore.jks
-    keyStorePassword: keystore
-    trustStorePath: var/security/trustStore.jks
-
-useClientRequestLimit: true
-
-timeLimiter:
-  enableTimeLimiting: true
-  blockingTimeoutErrorMargin: 0.8
 server:
   idleThreadTimeout: 60s
   maxThreads: 2048
@@ -28,15 +21,15 @@ server:
   maxQueuedRequests: 4096
   requestLog:
     appenders:
-      - type: file
+      - type: non-blocking-file
         archive: false
         currentLogFilename: var/log/request.log
   applicationConnectors:
   - type: h2
     port: 9421
-    keyStorePath: var/security/keyStore.jks
+    keyStorePath: var/security/keystore.jks
     keyStorePassword: keystore
-    trustStorePath: var/security/trustStore.jks
+    trustStorePath: var/security/truststore.jks
     validateCerts: false  
     supportedCipherSuites:
       - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256

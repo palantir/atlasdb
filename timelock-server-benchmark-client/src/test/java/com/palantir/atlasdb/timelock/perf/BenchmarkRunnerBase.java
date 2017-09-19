@@ -16,21 +16,27 @@
 
 package com.palantir.atlasdb.timelock.perf;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
 
 public class BenchmarkRunnerBase {
 
-    // TODO(nziebart): read this from servers.txt
-    private static final String BENCHMARK_SERVER = "http://il-pg-alpha-1086751.usw1.palantir.global:9425";
+    private static final String BENCHMARK_SERVER = readBenchmarkServerUri();
+
     private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
     protected static final BenchmarksService client = createClient();
@@ -57,6 +63,20 @@ public class BenchmarkRunnerBase {
     protected static final BenchmarksService createClient() {
         // TODO(nziebart): set a longer timeout here
         return AtlasDbHttpClients.createProxy(Optional.empty(), BENCHMARK_SERVER, BenchmarksService.class);
+    }
+
+    private static String readBenchmarkServerUri() {
+        try {
+            for (String line : Files.readLines(new File("../scripts/benchmarks/servers.txt"), Charsets.UTF_8)) {
+                if (line.startsWith("CLIENT")) {
+                    return "http://" + StringUtils.split(line, '=')[1] + ":9425";
+                }
+            }
+
+            throw new IllegalStateException("CLIENT declaration not found in servers.txt");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

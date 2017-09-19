@@ -21,11 +21,11 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 
 import io.dropwizard.Configuration;
 
-public class TimelockBenchmarksConfig extends Configuration {
+public class TimelockBenchmarkClientConfig extends Configuration {
 
     private final AtlasDbConfig atlas;
 
-    public TimelockBenchmarksConfig(
+    public TimelockBenchmarkClientConfig(
             @JsonProperty(value = "atlas", required = false) AtlasDbConfig atlasDbConfig) {
         this.atlas = atlasDbConfig;
     }

@@ -17,10 +17,10 @@ dependencies {
 }
 
 distribution {
-    serviceName "timelock-benchmarks-server"
-    mainClass 'com.palantir.atlasdb.timelock.benchmarks.BenchmarksServerLauncher'
+    serviceName "timelock-benchmark-client"
+    mainClass 'com.palantir.atlasdb.timelock.benchmarks.TimelockBenchmarkClientLauncher'
     args 'server', 'var/conf/timelock.yml'
-    defaultJvmOpts "-Xms512m", "-Xmx512m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
+    defaultJvmOpts "-Xms512m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
 }
 
 configurations.all {

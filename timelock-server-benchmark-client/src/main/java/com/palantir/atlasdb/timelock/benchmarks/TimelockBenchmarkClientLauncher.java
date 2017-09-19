@@ -18,7 +18,9 @@ package com.palantir.atlasdb.timelock.benchmarks;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarksConfig;
+import com.palantir.atlasdb.http.FeignOkHttpClients;
+import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarkClientConfig;
+import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -27,23 +29,26 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
-public class BenchmarksServerLauncher extends Application<TimelockBenchmarksConfig> {
+public class TimelockBenchmarkClientLauncher extends Application<TimelockBenchmarkClientConfig> {
 
     public static void main(String[] args) throws Exception {
-        new BenchmarksServerLauncher().run(args);
+        new TimelockBenchmarkClientLauncher().run(args);
     }
 
     @Override
-    public void initialize(Bootstrap<TimelockBenchmarksConfig> bootstrap) {
+    public void initialize(Bootstrap<TimelockBenchmarkClientConfig> bootstrap) {
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
+        bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         super.initialize(bootstrap);
     }
 
     @Override
-    public void run(TimelockBenchmarksConfig configuration, Environment environment) throws Exception {
+    public void run(TimelockBenchmarkClientConfig configuration, Environment environment) throws Exception {
+        FeignOkHttpClients.globalClientSetttings = client -> client.hostnameVerifier((a, b) -> true);
+
         environment.jersey().register(new BenchmarksResource(configuration.getAtlas()));
         environment.jersey().register(HttpRemotingJerseyFeature.with(HttpRemotingJerseyFeature.StacktracePropagation.PROPAGATE));
     }

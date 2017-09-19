@@ -110,7 +110,6 @@ public abstract class AbstractBenchmark {
         performOneCall();
         long end = System.nanoTime();
 
-        counter.incrementAndGet();
         return end - start;
     }
 
