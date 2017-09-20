@@ -44,8 +44,12 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |devbreak| |improved|
+         - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
+           Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
+           Note that *users* of AtlasDB clients are not affected, in that the wire format of configuration files has not changed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2348>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

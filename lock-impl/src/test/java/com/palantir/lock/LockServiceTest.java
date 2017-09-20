@@ -41,7 +41,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.logger.LockServiceTestUtils;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
