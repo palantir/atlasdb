@@ -63,6 +63,10 @@ develop
          - The ``LockServiceImpl`` now, in addition to lock tokens and grants (which are unsafe for logging), also logs token and grant IDs (which are big-integer IDs) as safe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
 
+    *    - |fixed|
+         - Sweep log priority has been increased to INFO for logs of when a table is starting to be swept and when a table has just been completely swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
