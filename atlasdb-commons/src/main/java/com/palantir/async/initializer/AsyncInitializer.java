@@ -106,7 +106,7 @@ public abstract class AsyncInitializer {
     }
 
     protected final void checkInitialized() {
-        if (!initialized) {
+        if (!isInitialized()) {
             throw new NotInitializedException(getInitializingClassName());
         }
     }
