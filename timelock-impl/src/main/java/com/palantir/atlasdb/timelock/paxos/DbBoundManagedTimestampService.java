@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -22,7 +24,6 @@ public class DbBoundManagedTimestampService implements ManagedTimestampService {
     private TimestampService timestampService;
 
     public DbBoundManagedTimestampService(TimestampService timestampService) {
-
         this.timestampService = timestampService;
     }
 
@@ -38,7 +39,13 @@ public class DbBoundManagedTimestampService implements ManagedTimestampService {
 
     @Override
     public void fastForwardTimestamp(long currentTimestamp) {
-        throw new UnsupportedOperationException("Cannot fastforward timestamp on DB store");
+        if (PersistentTimestampService.class.isInstance(timestampService)) {
+            ((PersistentTimestampService) timestampService).fastForwardTimestamp(currentTimestamp);
+        } else if (InMemoryTimestampService.class.isInstance(timestampService)) {
+            ((InMemoryTimestampService) timestampService).fastForwardTimestamp(currentTimestamp);
+        } else {
+            throw new UnsupportedOperationException("Cannot fastforward timestamp on DB store");
+        }
     }
 
     @Override
