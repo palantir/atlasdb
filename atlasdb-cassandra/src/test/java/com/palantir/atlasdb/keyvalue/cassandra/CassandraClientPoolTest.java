@@ -298,29 +298,12 @@ public class CassandraClientPoolTest {
                 requestConnectionExceptionProportion);
     }
 
-    private void verifyFailureMetricsOnHost(
-            InetSocketAddress host,
-            double requestFailureProportion,
-            double requestConnectionExceptionProportion) {
-        assertEquals(
-                getMetricValueFromHostAndMetricName(host.getHostString(), "requestFailureProportion"),
-                requestFailureProportion);
-        assertEquals(
-                getMetricValueFromHostAndMetricName(host.getHostString(), "requestConnectionExceptionProportion"),
-                requestConnectionExceptionProportion);
-    }
-
     private void verifyBlacklistMetric(Integer expectedSize) {
         assertEquals(getAggregateMetricValueForMetricName("numBlacklistedHosts"), expectedSize);
     }
 
     private Object getAggregateMetricValueForMetricName(String metricName) {
         String fullyQualifiedMetricName = MetricRegistry.name(CassandraClientPool.class, metricName);
-        return metricRegistry.getGauges().get(fullyQualifiedMetricName).getValue();
-    }
-
-    private Object getMetricValueFromHostAndMetricName(String hostname, String metricName) {
-        String fullyQualifiedMetricName = MetricRegistry.name(CassandraClientPool.class, hostname, metricName);
         return metricRegistry.getGauges().get(fullyQualifiedMetricName).getValue();
     }
 
