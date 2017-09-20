@@ -196,31 +196,54 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
-<td>The <code class="docutils literal"><span class="pre">ConcurrentStreams</span></code> class has been deleted and replaced with calls to <code class="docutils literal"><span class="pre">MoreStreams.blockingStreamWithParallelism</span></code>, from <a class="reference external" href="https://github.com/palantir/streams">streams</a>.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2361/files">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Upgraded all uses of <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
+Developers may need to check their dependencies, as well as update instantiation of their calls to <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> to use the remoting3 API.
+Note that <em>users</em> of AtlasDB clients are not affected, in that the wire format of configuration files has not changed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2348">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1">
+<h2>0.57.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>19 September 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB no longer embeds Cassandra host names in its metrics.
+Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
+This was necessary for compatibility with an internal log-ingestion tool.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2324">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB no longer embeds table names in Sweep metrics.
+Sweep aggregate metrics continue to be reported.
+This was necessary for compatibility with an internal log-ingestion tool.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2324">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw “shutdown” exceptions, which was likely due to a documented bug in okhttp 3.4.1.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2343">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>The <code class="docutils literal"><span class="pre">ConcurrentStreams</span></code> class has been deleted and replaced with calls to <code class="docutils literal"><span class="pre">MoreStreams.blockingStreamWithParallelism</span></code>, from <a class="reference external" href="https://github.com/palantir/streams">streams</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2361/files">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>TimeLockAgent’s constructor now accepts a Supplier instead of an RxJava Observable.
 This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
 To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method <cite>blockingMostRecent</cite> as implemented <a class="reference external" href="https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48">here</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2339">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
-<td>AtlasDB no longer embeds Cassandra host names in its metrics.
-Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
-This was necessary for compatibility with an internal log-ingestion tool.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2324">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
-<td>AtlasDB no longer embeds table names in Sweep metrics.
-Sweep aggregate metrics continue to be reported.
-This was necessary for compatibility with an internal log-ingestion tool.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2324">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">BatchingVisitableView</span></code> methods <code class="docutils literal"><span class="pre">immutableCopy</span></code>, <code class="docutils literal"><span class="pre">immutableSetCopy</span></code>, and <code class="docutils literal"><span class="pre">copyInto</span></code> use the default batch hint of 1000, instead of a batch hint of 100,000.
