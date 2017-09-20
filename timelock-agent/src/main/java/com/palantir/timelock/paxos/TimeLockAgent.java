@@ -24,7 +24,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.LockService;

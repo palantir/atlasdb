@@ -20,7 +20,7 @@ import java.io.Closeable;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;

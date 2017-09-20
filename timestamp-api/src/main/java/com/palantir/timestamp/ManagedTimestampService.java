@@ -13,10 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.paxos;
-
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+package com.palantir.timestamp;
 
 public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
 }

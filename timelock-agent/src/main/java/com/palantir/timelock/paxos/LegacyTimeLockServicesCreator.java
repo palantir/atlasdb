@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.timelock.TimeLockServices;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockClient;
