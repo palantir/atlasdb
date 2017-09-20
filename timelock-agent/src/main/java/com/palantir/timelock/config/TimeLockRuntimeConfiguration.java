@@ -19,7 +19,10 @@ import com.google.common.base.Preconditions;
 @Value.Immutable
 public abstract class TimeLockRuntimeConfiguration {
 
-    public abstract PaxosRuntimeConfiguration paxos();
+    @Value.Default
+    public PaxosRuntimeConfiguration paxos() {
+        return ImmutablePaxosRuntimeConfiguration.builder().build();
+    }
 
     /**
      * The maximum number of client namespaces to allow. Each distinct client consumes some amount of memory and disk

@@ -117,8 +117,7 @@ public class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier;
-        rawTimestampServiceSupplier = install.optionalKvsConfig()
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = install.optionalKvsConfig()
                 .map(timestampCreator::createDatabaseBackedTimestampService)
                 .orElseGet(() -> timestampCreator.createPaxosBackedTimestampService(client));
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
