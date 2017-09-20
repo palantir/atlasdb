@@ -98,17 +98,10 @@ public final class CheckAndSetV2Table {
     public Map<Long, Long> getAllValue() {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("v")));
-        return BatchingVisitableView.of(t.getRange(tableRef, 
-                RangeRequest.builder().retainColumns(colSelection).build()))
-                .immutableCopy()
-                .stream()
-                .map(entry -> CheckAndSetTable.CheckAndSetRowResult.of(entry))
-                .collect(Collectors.toMap(
-                     entry -> entry.getRowName().getId(), 
-                     CheckAndSetTable.CheckAndSetRowResult::getValue));
+        return getRangeValue(RangeRequest.all());
     }
 
-    public Map<Long, Long> getRangeValue(RangeRequest rangeRequest) {
+    private Map<Long, Long> getRangeValue(RangeRequest rangeRequest) {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("v")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
