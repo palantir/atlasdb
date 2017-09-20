@@ -48,7 +48,7 @@ public interface TimestampManagementService {
     @Path("fast-forward")
     @Produces(MediaType.APPLICATION_JSON)
     void fastForwardTimestamp(
-            @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp);
+            @Safe @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp);
 
     @GET
     @Path("ping")
