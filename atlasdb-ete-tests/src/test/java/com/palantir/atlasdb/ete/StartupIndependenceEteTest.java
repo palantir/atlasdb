@@ -90,6 +90,16 @@ public class StartupIndependenceEteTest {
     }
 
     @Test
+    public void atlasStartsWithQuorumAndInitializesAfterAllNodesAreUp() throws InterruptedException, IOException {
+        startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
+        restartAtlasWithChecks();
+        assertNotInitializedExceptionIsThrownAndMappedCorrectly();
+        assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
+        startCassandraNodes(ALL_CASSANDRA_NODES);
+        assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
+    }
+
+    @Test
     public void atlasInitializesSynchronouslyIfCassandraIsInGoodState() throws InterruptedException, IOException {
         startCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
