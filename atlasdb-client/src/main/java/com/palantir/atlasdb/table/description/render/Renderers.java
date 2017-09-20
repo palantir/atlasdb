@@ -106,7 +106,7 @@ public class Renderers {
 
     public static String getArgumentsFromRowComponents(TableMetadata tableMetadata) {
         List<String> args = getRowComponents(tableMetadata).stream()
-                .map(NameComponentDescription:: getComponentName)
+                .map(NameComponentDescription::getComponentName)
                 .collect(Collectors.toList());
 
         return String.join(", ", args);
