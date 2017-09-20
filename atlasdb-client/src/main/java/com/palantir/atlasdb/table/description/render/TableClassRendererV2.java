@@ -57,7 +57,9 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.persist.Persistables;
+import com.palantir.util.Pair;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -233,9 +235,11 @@ public class TableClassRendererV2 {
             if (tableMetadata.getRowMetadata().getRowParts().size() == 1) {
                 getterResults.add(renderNamedGetSeveralRows(col));
                 getterResults.add(renderNamedGetAllRows(col));
+                getterResults.add(renderNamedGetRangeColumn(col));
             } else {
-                getterResults.add(renderNamedGetSeveralRowsFromRowObjects(col));
-                getterResults.add(renderNamedGetAllRowsFromRowObjects(col));
+                getterResults.add(renderNamedGetSeveralRowObjects(col));
+                getterResults.add(renderNamedGetAllRowsObjects(col));
+                getterResults.add(renderNamedGetRangeColumnRowObjects(col));
             }
         }
 
@@ -276,7 +280,7 @@ public class TableClassRendererV2 {
         Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col) + 's')
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(
                         ParameterizedTypeName.get(
@@ -316,8 +320,8 @@ public class TableClassRendererV2 {
         return getterBuilder.build();
     }
 
-    private MethodSpec renderNamedGetSeveralRowsFromRowObjects(NamedColumnDescription col) {
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col) + 's')
+    private MethodSpec renderNamedGetSeveralRowObjects(NamedColumnDescription col) {
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(ParameterizedTypeName.get(ClassName.get(Iterable.class), rowType), "rowKeys");
 
@@ -351,7 +355,7 @@ public class TableClassRendererV2 {
         Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col) + 's')
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
                 .addModifiers(Modifier.PUBLIC);
 
         getterBuilder.returns(ParameterizedTypeName.get(
@@ -379,8 +383,8 @@ public class TableClassRendererV2 {
         return getterBuilder.build();
     }
 
-    private MethodSpec renderNamedGetAllRowsFromRowObjects(NamedColumnDescription col) {
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col) + 's')
+    private MethodSpec renderNamedGetAllRowsObjects(NamedColumnDescription col) {
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
                 .addModifiers(Modifier.PUBLIC);
 
         getterBuilder.returns(ParameterizedTypeName.get(
@@ -402,6 +406,60 @@ public class TableClassRendererV2 {
                                 + "     $T::get$L))",
                         BatchingVisitableView.class, RangeRequest.class, rowResultType,
                         Collectors.class, rowResultType, VarName(col));
+
+        return getterBuilder.build();
+    }
+
+    private MethodSpec renderNamedGetRangeColumn(NamedColumnDescription col) {
+        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+
+        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRange" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(RangeRequest.class, "rangeRequest")
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(BatchingVisitableView.class),
+                        ParameterizedTypeName.get(
+                                ClassName.get(Pair.class),
+                                ClassName.get(rowComponent.getType().getTypeClass()),
+                                ClassName.get(getColumnTypeClass(col)))));
+
+        getterBuilder.addStatement("$T colSelection = \n"
+                        + "$T.create($T.singletonList($T.toCachedBytes($L)))",
+                ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
+                ColumnRenderers.short_name(col));
+        getterBuilder.addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()");
+        getterBuilder.addStatement("return $T.transform(t.getRange(tableRef, rangeRequest), (input) -> {\n"
+                        + "     $T rowResult = $T.of(input);\n"
+                        + "     return new $T(rowResult.getRowName().get$L(), rowResult.get$L());\n"
+                        + "})",
+                BatchingVisitables.class, rowResultType, rowResultType, Pair.class,
+                CamelCase(rowComponent.getComponentName()), VarName(col));
+
+        return getterBuilder.build();
+    }
+
+    private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col) {
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRange" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(RangeRequest.class, "rangeRequest")
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(BatchingVisitableView.class),
+                        ParameterizedTypeName.get(
+                                ClassName.get(Pair.class),
+                                rowType,
+                                ClassName.get(getColumnTypeClass(col)))));
+
+        getterBuilder.addStatement("$T colSelection = \n"
+                        + "$T.create($T.singletonList($T.toCachedBytes($L)))",
+                ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
+                ColumnRenderers.short_name(col));
+        getterBuilder.addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()");
+        getterBuilder.addStatement("return $T.transform(t.getRange(tableRef, rangeRequest), (input) -> {\n"
+                        + "     $T rowResult = $T.of(input);\n"
+                        + "     return new $T(rowResult.getRowName(), rowResult.get$L());\n"
+                        + "})",
+                BatchingVisitables.class, rowResultType, rowResultType, Pair.class, VarName(col));
 
         return getterBuilder.build();
     }
