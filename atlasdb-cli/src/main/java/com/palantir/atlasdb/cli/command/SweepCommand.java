@@ -37,6 +37,7 @@ import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -103,6 +104,10 @@ public class SweepCommand extends SingleBackendCommand {
                     + AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT + ")")
     Integer readLimit;
 
+    @Option(name = {"--get-cols-parallelism"},
+            description = "Number of parallel range requests")
+    Integer getColsParallelism;
+
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
                     + " (throttles long-running sweep jobs, default: 0)")
@@ -157,6 +162,10 @@ public class SweepCommand extends SingleBackendCommand {
                     Sets.difference(
                             services.getKeyValueService().getAllTableNames(), AtlasDbConstants.hiddenTables),
                     Functions.constant(new byte[0])));
+        }
+
+        if (getColsParallelism != null) {
+            CqlColumnGetter.getColumnsByRowParallelism = getColsParallelism;
         }
 
         SweepBatchConfig batchConfig = getSweepBatchConfig();
