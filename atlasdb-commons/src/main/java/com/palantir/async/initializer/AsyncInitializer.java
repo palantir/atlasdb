@@ -116,7 +116,7 @@ public abstract class AsyncInitializer {
         initialized = true;
     }
 
-    public boolean isInitialized() {
+    public final boolean isInitialized() {
         return initialized;
     }
 
