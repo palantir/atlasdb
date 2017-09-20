@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -38,7 +37,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -51,15 +49,18 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PuncherStore {
         @Override
         public PuncherStore delegate() {
-            if (isInitialized()) {
-                return KeyValueServicePuncherStore.this;
-            }
-            throw new NotInitializedException("PuncherStore");
+            checkInitialized();
+            return KeyValueServicePuncherStore.this;
         }
 
         @Override
         protected void tryInitialize() {
             KeyValueServicePuncherStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "KeyValueServicePuncherStore";
         }
     }
 

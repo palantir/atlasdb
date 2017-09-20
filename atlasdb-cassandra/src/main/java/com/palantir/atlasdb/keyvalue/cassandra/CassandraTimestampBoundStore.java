@@ -45,7 +45,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.AutoDelegate_TimestampBoundStore;
 import com.palantir.timestamp.DebugLogger;
@@ -58,15 +57,18 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
         @Override
         public TimestampBoundStore delegate() {
-            if (isInitialized()) {
-                return CassandraTimestampBoundStore.this;
-            }
-            throw new NotInitializedException("CassandraTimestampBoundStore");
+            checkInitialized();
+            return CassandraTimestampBoundStore.this;
         }
 
         @Override
         protected void tryInitialize() {
             CassandraTimestampBoundStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "CassandraTimestampBoundStore";
         }
     }
 

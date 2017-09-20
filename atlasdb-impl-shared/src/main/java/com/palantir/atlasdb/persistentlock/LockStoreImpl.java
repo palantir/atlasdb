@@ -37,7 +37,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -66,15 +65,18 @@ public class LockStoreImpl implements LockStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_LockStore {
         @Override
         public LockStore delegate() {
-            if (isInitialized()) {
-                return LockStoreImpl.this;
-            }
-            throw new NotInitializedException("LockStore");
+            checkInitialized();
+            return LockStoreImpl.this;
         }
 
         @Override
         protected void tryInitialize() {
             LockStoreImpl.this.tryInitialize();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "LockStore";
         }
     }
 

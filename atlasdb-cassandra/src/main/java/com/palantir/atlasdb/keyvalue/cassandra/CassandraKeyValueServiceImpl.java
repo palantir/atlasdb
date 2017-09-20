@@ -79,7 +79,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.async.initializer.CloseableAsyncInitializer;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -126,7 +126,6 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
@@ -150,16 +149,14 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @AutoDelegate(typeToExtend = CassandraKeyValueService.class)
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
     @VisibleForTesting
-    class InitializingWrapper extends CloseableAsyncInitializer<CassandraKeyValueService>
-            implements AutoDelegate_CassandraKeyValueService {
+    class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
-        protected CassandraKeyValueServiceImpl delegateInternal() {
-            if (isInitialized()) {
-                return CassandraKeyValueServiceImpl.this;
-            }
-            throw new NotInitializedException("CassandraKeyValueService");
+        public CassandraKeyValueServiceImpl delegate() {
+            checkInitialized();
+            return CassandraKeyValueServiceImpl.this;
         }
 
+        @Override
         protected void tryInitialize() {
             CassandraKeyValueServiceImpl.this.tryInitialize();
         }
@@ -172,6 +169,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         @Override
         public CassandraClientPool getClientPool() {
             return CassandraKeyValueServiceImpl.this.getClientPool();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "CassandraKeyValueService";
+        }
+
+        @Override
+        public void close() {
+            cancelInitialization(CassandraKeyValueServiceImpl.this::close);
         }
     }
 
@@ -1997,7 +2004,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
         super.close();
     }
-
 
     /**
      * Adds a value with timestamp = Value.INVALID_VALUE_TIMESTAMP to each of the given cells. If

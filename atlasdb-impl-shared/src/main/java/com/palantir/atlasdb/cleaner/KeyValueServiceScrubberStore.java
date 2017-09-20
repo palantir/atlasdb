@@ -49,7 +49,6 @@ import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -62,15 +61,18 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_ScrubberStore {
         @Override
         public ScrubberStore delegate() {
-            if (isInitialized()) {
-                return KeyValueServiceScrubberStore.this;
-            }
-            throw new NotInitializedException("ScrubberStore");
+            checkInitialized();
+            return KeyValueServiceScrubberStore.this;
         }
 
         @Override
         protected void tryInitialize() {
             KeyValueServiceScrubberStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "KeyValueServiceScrubberStore";
         }
     }
 

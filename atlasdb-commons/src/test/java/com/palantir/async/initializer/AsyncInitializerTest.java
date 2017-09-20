@@ -43,6 +43,11 @@ public class AsyncInitializerTest {
         protected int sleepIntervalInMillis() {
             return ASYNC_INIT_DELAY;
         }
+
+        @Override
+        protected String getClassName() {
+            return "AlwaysFailingInitializer";
+        }
     }
 
     @Test

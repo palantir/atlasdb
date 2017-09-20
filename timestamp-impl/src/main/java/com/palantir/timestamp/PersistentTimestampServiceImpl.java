@@ -30,15 +30,18 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PersistentTimestampService {
         @Override
         public PersistentTimestampService delegate() {
-            if (isInitialized()) {
-                return PersistentTimestampServiceImpl.this;
-            }
-            throw new NotInitializedException("PersistentTimestampService");
+            checkInitialized();
+            return PersistentTimestampServiceImpl.this;
         }
 
         @Override
         protected void tryInitialize() {
             PersistentTimestampServiceImpl.this.tryInitialize();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "PersistentTimestampService";
         }
     }
 

@@ -61,4 +61,9 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
         // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
         LoggingArgs.hydrate(keyValueService.getMetadataForTables());
     }
+
+    @Override
+    protected String getClassName() {
+        return "TransactionManagersInitializer";
+    }
 }

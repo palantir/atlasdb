@@ -74,7 +74,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting2.tracing.Tracers;
 
@@ -100,10 +99,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
         public CassandraClientPool delegate() {
-            if (isInitialized()) {
-                return CassandraClientPoolImpl.this;
-            }
-            throw new NotInitializedException("CassandraClientPool");
+            checkInitialized();
+            return CassandraClientPoolImpl.this;
         }
 
         @Override
@@ -112,8 +109,18 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         @Override
-        protected synchronized void cleanUpOnInitFailure() {
+        protected void cleanUpOnInitFailure() {
             CassandraClientPoolImpl.this.cleanUpOnInitFailure();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "CassandraClientPool";
+        }
+
+        @Override
+        public void shutdown() {
+            cancelInitialization(CassandraClientPoolImpl.this::shutdown);
         }
     }
 

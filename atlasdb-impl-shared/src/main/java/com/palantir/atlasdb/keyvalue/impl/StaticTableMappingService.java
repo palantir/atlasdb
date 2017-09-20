@@ -34,15 +34,18 @@ public final class StaticTableMappingService extends AbstractTableMappingService
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TableMappingService {
         @Override
         public TableMappingService delegate() {
-            if (isInitialized()) {
-                return StaticTableMappingService.this;
-            }
-            throw new NotInitializedException("TableMappingService");
+            checkInitialized();
+            return StaticTableMappingService.this;
         }
 
         @Override
         protected void tryInitialize() {
             StaticTableMappingService.this.updateTableMap();
+        }
+
+        @Override
+        protected String getClassName() {
+            return "StaticTableMappingService";
         }
     }
 

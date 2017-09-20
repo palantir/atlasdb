@@ -19,6 +19,7 @@ package com.palantir.async.initializer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 /**
@@ -36,13 +38,20 @@ import com.palantir.logsafe.SafeArg;
 @ThreadSafe
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
-    private static final int NUM_THREADS = 100;
-    private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newScheduledThreadPool(
-            NUM_THREADS, new NamedThreadFactory("AsyncInitializer", true));
 
+    private final ScheduledExecutorService singleExecutorService = Executors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("AsyncInitializer", true));
+    private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
+    private volatile boolean canceledInitialization = false;
 
-    public synchronized void initialize(boolean initializeAsync) {
+    public void initialize(boolean initializeAsync) {
+        if (!isInitializing.compareAndSet(false, true)) {
+            throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
+                    + "Each instance should have a single thread trying to initialize it.\n"
+                    + "Object being initialized multiple times: " + getClassName());
+        }
+
         if (!initializeAsync) {
             tryToInitializeIfNotInitialized();
             return;
@@ -52,23 +61,24 @@ public abstract class AsyncInitializer {
             tryToInitializeIfNotInitialized();
         } catch (Throwable throwable) {
             log.info("Failed to initialize {} in the first attempt, will initialize asynchronously.",
-                    SafeArg.of("className", this.getClass().getName()), throwable);
+                    SafeArg.of("className", getClassName()), throwable);
             cleanUpOnInitFailure();
             scheduleInitialization();
         }
     }
 
     private void scheduleInitialization() {
-        EXECUTOR_SERVICE.schedule(() -> {
-            synchronized (this) {
-                try {
-                    tryToInitializeIfNotInitialized();
-                    log.info("Initialized {} asynchronously.",
-                            SafeArg.of("className", this.getClass().getName()));
-                } catch (Throwable throwable) {
-                    cleanUpOnInitFailure();
-                    scheduleInitialization();
-                }
+        singleExecutorService.schedule(() -> {
+            if (canceledInitialization) {
+                return;
+            }
+
+            try {
+                tryToInitializeIfNotInitialized();
+                log.info("Initialized {} asynchronously.", SafeArg.of("className", getClassName()));
+            } catch (Throwable throwable) {
+                cleanUpOnInitFailure();
+                scheduleInitialization();
             }
         }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
     }
@@ -78,10 +88,29 @@ public abstract class AsyncInitializer {
         return 10_000;
     }
 
+    /**
+     * Cancels future initializations and registers a callback to be called if the initialization is
+     */
+    protected void cancelInitialization(Runnable handler) {
+        canceledInitialization = true;
+
+        singleExecutorService.submit(() -> {
+            if (isInitialized()) {
+                handler.run();
+            }
+        });
+    }
+
+    protected void checkInitialized() {
+        if (!initialized) {
+            throw new NotInitializedException(getClassName());
+        }
+    }
+
     private void tryToInitializeIfNotInitialized() {
         if (isInitialized()) {
             log.warn("{} was initialized underneath us.",
-                    SafeArg.of("className", this.getClass().getName()));
+                    SafeArg.of("className", getClassName()));
         } else {
             tryInitialize();
             initialized = true;
@@ -96,9 +125,17 @@ public abstract class AsyncInitializer {
      * Override this method if there's anything to be cleaned up on initialization failure.
      * Default implementation is no-op.
      */
-    protected synchronized void cleanUpOnInitFailure() {
+    protected void cleanUpOnInitFailure() {
         // no-op
     }
 
+    /**
+     * Override this method with the calls to initialize an object that may fail.
+     * This method will be retried if any exception is thrown on its execution.
+     * If there's any follow up action to clean any state left by a previous initialization failure, see
+     * {@link AsyncInitializer#cleanUpOnInitFailure}.
+     */
     protected abstract void tryInitialize();
+
+    protected abstract String getClassName();
 }
