@@ -418,23 +418,25 @@ public class TableClassRendererV2 {
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
-                        ClassName.get(BatchingVisitableView.class),
-                        ParameterizedTypeName.get(
-                                ClassName.get(Pair.class),
-                                ClassName.get(rowComponent.getType().getTypeClass()),
-                                ClassName.get(getColumnTypeClass(col)))));
+                        ClassName.get(Map.class),
+                        ClassName.get(rowComponent.getType().getTypeClass()),
+                        ClassName.get(getColumnTypeClass(col))));
 
-        getterBuilder.addStatement("$T colSelection = \n"
-                        + "$T.create($T.singletonList($T.toCachedBytes($L)))",
-                ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
-                ColumnRenderers.short_name(col));
-        getterBuilder.addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()");
-        getterBuilder.addStatement("return $T.transform(t.getRange(tableRef, rangeRequest), (input) -> {\n"
-                        + "     $T rowResult = $T.of(input);\n"
-                        + "     return new $T(rowResult.getRowName().get$L(), rowResult.get$L());\n"
-                        + "})",
-                BatchingVisitables.class, rowResultType, rowResultType, Pair.class,
-                CamelCase(rowComponent.getComponentName()), VarName(col));
+        getterBuilder
+                .addStatement("$T colSelection = \n"
+                                + "$T.create($T.singletonList($T.toCachedBytes($L)))",
+                        ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
+                        ColumnRenderers.short_name(col))
+                .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
+                .addStatement("return $T.of(t.getRange(tableRef, rangeRequest))\n"
+                                + ".immutableCopy()\n"
+                                + ".stream()\n"
+                                + ".map(entry -> $T.of(entry))\n"
+                                + ".collect($T.toMap(\n"
+                                + "     entry -> entry.getRowName().get$L(), \n"
+                                + "     $T::get$L))",
+                        BatchingVisitableView.class, rowResultType, Collectors.class,
+                        CamelCase(rowComponent.getComponentName()), rowResultType, VarName(col));
 
         return getterBuilder.build();
     }
@@ -444,22 +446,24 @@ public class TableClassRendererV2 {
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
-                        ClassName.get(BatchingVisitableView.class),
-                        ParameterizedTypeName.get(
-                                ClassName.get(Pair.class),
-                                rowType,
-                                ClassName.get(getColumnTypeClass(col)))));
+                            ClassName.get(Map.class),
+                            rowType,
+                            ClassName.get(getColumnTypeClass(col))));
 
-        getterBuilder.addStatement("$T colSelection = \n"
-                        + "$T.create($T.singletonList($T.toCachedBytes($L)))",
-                ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
-                ColumnRenderers.short_name(col));
-        getterBuilder.addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()");
-        getterBuilder.addStatement("return $T.transform(t.getRange(tableRef, rangeRequest), (input) -> {\n"
-                        + "     $T rowResult = $T.of(input);\n"
-                        + "     return new $T(rowResult.getRowName(), rowResult.get$L());\n"
-                        + "})",
-                BatchingVisitables.class, rowResultType, rowResultType, Pair.class, VarName(col));
+        getterBuilder
+                .addStatement("$T colSelection = \n"
+                                + "$T.create($T.singletonList($T.toCachedBytes($L)))",
+                        ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
+                        ColumnRenderers.short_name(col))
+                .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
+                .addStatement("return $T.of(t.getRange(tableRef, rangeRequest))\n"
+                                + ".immutableCopy()\n"
+                                + ".stream()\n"
+                                + ".map(entry -> $T.of(entry))\n"
+                                + ".collect($T.toMap(\n"
+                                + "     entry -> entry.getRowName(), \n"
+                                + "     $T::get$L))",
+                        BatchingVisitableView.class, rowResultType, Collectors.class, rowResultType, VarName(col));
 
         return getterBuilder.build();
     }
