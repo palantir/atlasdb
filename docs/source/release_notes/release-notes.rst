@@ -44,19 +44,23 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak| |fixed|
-         - The ``ConcurrentStreams`` class has been deleted and replaced with calls to ``MoreStreams.blockingStreamWithParallelism``, from `streams <https://github.com/palantir/streams>`__.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2361/files>`__)
-         
-    *    - |devbreak| |fixed|
-         - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+    *    -
+         -
 
-    *    - |devbreak| |improved|
-         - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
-           This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
-           To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48>`__.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2339>`__)
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+0.57.0
+=======
+
+19 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |userbreak| |fixed|
          - AtlasDB no longer embeds Cassandra host names in its metrics.
@@ -69,6 +73,20 @@ develop
            Sweep aggregate metrics continue to be reported.
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
+
+    *    - |devbreak| |fixed|
+         - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+
+    *    - |devbreak| |fixed|
+         - The ``ConcurrentStreams`` class has been deleted and replaced with calls to ``MoreStreams.blockingStreamWithParallelism``, from `streams <https://github.com/palantir/streams>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2361/files>`__)
+         
+    *    - |devbreak| |improved|
+         - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
+           This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
+           To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2339>`__)
 
     *    - |improved|
          - ``BatchingVisitableView`` methods ``immutableCopy``, ``immutableSetCopy``, and ``copyInto`` use the default batch hint of 1000, instead of a batch hint of 100,000.
