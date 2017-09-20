@@ -20,6 +20,7 @@ import java.util.Optional;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -75,7 +76,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 "TimestampService must be created from an instance of"
                 + " CassandraKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(
-                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
+                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs,
+                        timestampTable.orElse(AtlasDbConstants.TIMESTAMP_TABLE)));
     }
 
     @Override

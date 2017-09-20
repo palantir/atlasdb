@@ -84,7 +84,8 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Test
     public void canBackupAndRestoreTimestampTable() {
-        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
+        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv,
+                AtlasDbConstants.TIMESTAMP_TABLE);
         long limit = timestampBoundStore.getUpperLimit();
         timestampBoundStore.storeUpperLimit(limit + ONE_MILLION);
         invalidator.backupAndInvalidate();
@@ -157,12 +158,14 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     }
 
     private void assertWeCanReadTimestamp(long expectedTimestamp) {
-        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
+        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv,
+                AtlasDbConstants.TIMESTAMP_TABLE);
         assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(expectedTimestamp);
     }
 
     private long getBoundAfterTakingOutOneMillionTimestamps() {
-        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
+        TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv,
+                AtlasDbConstants.TIMESTAMP_TABLE);
         long newLimit = timestampBoundStore.getUpperLimit() + ONE_MILLION;
         timestampBoundStore.storeUpperLimit(newLimit);
         return newLimit;

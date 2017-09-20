@@ -47,7 +47,8 @@ public class CassandraTimestampBackupIntegrationTest {
     private final CassandraKeyValueService kv = CassandraKeyValueService.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
-    private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
+    private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv,
+            AtlasDbConstants.TIMESTAMP_TABLE);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
     @Before
