@@ -134,7 +134,7 @@ public class CassandraClientPoolTest {
     @Test
     public void shouldNotAttemptMoreThanOneConnectionOnSuccess() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
-        cassandraClientPool.runWithRetryOnHost(HOST_1, input -> null);
+        cassandraClientPool.runWithRetryOnHost(HOST_1, noOp());
         verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, 1);
     }
 
@@ -262,16 +262,16 @@ public class CassandraClientPoolTest {
     }
 
     private void runNoopOnHost(InetSocketAddress host, CassandraClientPool pool) {
-        pool.runOnHost(host, input -> null);
+        pool.runOnHost(host, noOp());
     }
 
     private void runNoopWithRetryOnHost(InetSocketAddress host, CassandraClientPool pool) {
-        pool.runWithRetryOnHost(host, input -> null);
+        pool.runWithRetryOnHost(host, noOp());
     }
 
     private void runNoopOnHostWithException(InetSocketAddress host, CassandraClientPool pool) {
         try {
-            pool.runOnHost(host, input -> null);
+            pool.runOnHost(host, noOp());
             fail();
         } catch (Exception e) {
             // expected
@@ -280,11 +280,25 @@ public class CassandraClientPoolTest {
 
     private void runNoopOnHostWithRetryWithException(InetSocketAddress host, CassandraClientPool pool) {
         try {
-            pool.runWithRetryOnHost(host, input -> null);
+            pool.runWithRetryOnHost(host, noOp());
             fail();
         } catch (Exception e) {
             // expected
         }
+    }
+
+    private FunctionCheckedException<Cassandra.Client, Object, RuntimeException> noOp() {
+        return new FunctionCheckedException<Cassandra.Client, Object, RuntimeException>() {
+            @Override
+            public Object apply(Cassandra.Client input) throws RuntimeException {
+                return null;
+            }
+
+            @Override
+            public String toString() {
+                return "no-op";
+            }
+        };
     }
 
     private void verifyAggregateFailureMetrics(
