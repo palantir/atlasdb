@@ -172,7 +172,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "CassandraKeyValueService";
         }
 

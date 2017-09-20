@@ -114,7 +114,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "CassandraClientPool";
         }
 

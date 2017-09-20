@@ -63,7 +63,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     }
 
     @Override
-    protected String getClassName() {
+    protected String getInitializingClassName() {
         return "TransactionManagersInitializer";
     }
 }

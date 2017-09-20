@@ -43,7 +43,7 @@ public final class StaticTableMappingService extends AbstractTableMappingService
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "StaticTableMappingService";
         }
     }

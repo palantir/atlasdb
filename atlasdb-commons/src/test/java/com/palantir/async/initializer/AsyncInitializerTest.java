@@ -45,7 +45,7 @@ public class AsyncInitializerTest {
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "AlwaysFailingInitializer";
         }
     }

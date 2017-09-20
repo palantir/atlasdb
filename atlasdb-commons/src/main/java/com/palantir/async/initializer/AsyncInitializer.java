@@ -40,7 +40,7 @@ public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
     private final ScheduledExecutorService singleThreadedExecutor = Executors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("AsyncInitializer", true));
+            new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
     private volatile boolean canceledInitialization = false;
@@ -49,7 +49,7 @@ public abstract class AsyncInitializer {
         if (!isInitializing.compareAndSet(false, true)) {
             throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
                     + "Each instance should have a single thread trying to initialize it.\n"
-                    + "Object being initialized multiple times: " + getClassName());
+                    + "Object being initialized multiple times: " + getInitializingClassName());
         }
 
         if (!initializeAsync) {
@@ -61,7 +61,7 @@ public abstract class AsyncInitializer {
             tryInitializeInternal();
         } catch (Throwable throwable) {
             log.info("Failed to initialize {} in the first attempt, will initialize asynchronously.",
-                    SafeArg.of("className", getClassName()), throwable);
+                    SafeArg.of("className", getInitializingClassName()), throwable);
             cleanUpOnInitFailure();
             scheduleInitialization();
         }
@@ -75,10 +75,10 @@ public abstract class AsyncInitializer {
 
             try {
                 tryInitializeInternal();
-                log.info("Initialized {} asynchronously.", SafeArg.of("className", getClassName()));
+                log.info("Initialized {} asynchronously.", SafeArg.of("className", getInitializingClassName()));
             } catch (Throwable throwable) {
                 log.info("Failed to initialize {} asynchronously.",
-                        SafeArg.of("className", getClassName()), throwable);
+                        SafeArg.of("className", getInitializingClassName()), throwable);
                 cleanUpOnInitFailure();
                 scheduleInitialization();
             }
@@ -107,7 +107,7 @@ public abstract class AsyncInitializer {
 
     protected final void checkInitialized() {
         if (!initialized) {
-            throw new NotInitializedException(getClassName());
+            throw new NotInitializedException(getInitializingClassName());
         }
     }
 
@@ -137,7 +137,7 @@ public abstract class AsyncInitializer {
     protected abstract void tryInitialize();
 
     /**
-     * This method should contain the wrapped init class
+     * This method should contain the name of the initializing class. It's used for logging and exception propagation.
      */
-    protected abstract String getClassName();
+    protected abstract String getInitializingClassName();
 }

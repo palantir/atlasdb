@@ -59,7 +59,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "KeyValueServicePuncherStore";
         }
     }

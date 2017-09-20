@@ -39,7 +39,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "PersistentTimestampService";
         }
     }

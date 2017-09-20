@@ -75,7 +75,7 @@ public class LockStoreImpl implements LockStore {
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "LockStore";
         }
     }

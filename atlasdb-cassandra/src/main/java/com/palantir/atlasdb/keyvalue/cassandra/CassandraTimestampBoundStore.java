@@ -67,7 +67,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "CassandraTimestampBoundStore";
         }
     }

@@ -71,7 +71,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
         }
 
         @Override
-        protected String getClassName() {
+        protected String getInitializingClassName() {
             return "KeyValueServiceScrubberStore";
         }
     }
