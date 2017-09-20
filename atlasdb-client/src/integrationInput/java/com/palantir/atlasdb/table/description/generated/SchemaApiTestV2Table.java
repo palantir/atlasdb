@@ -13,9 +13,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
-import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.persist.Persistables;
-import com.palantir.util.Pair;
 import java.lang.Iterable;
 import java.lang.Long;
 import java.lang.String;
@@ -110,14 +108,17 @@ public final class SchemaApiTestV2Table {
                      SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
     }
 
-    public BatchingVisitableView<Pair<String, Long>> getRangeColumn1(RangeRequest rangeRequest) {
+    public Map<String, Long> getRangeColumn1(RangeRequest rangeRequest) {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
-        return BatchingVisitables.transform(t.getRange(tableRef, rangeRequest), (input) -> {
-                     SchemaApiTestTable.SchemaApiTestRowResult rowResult = SchemaApiTestTable.SchemaApiTestRowResult.of(input);
-                     return new Pair(rowResult.getRowName().getComponent1(), rowResult.getColumn1());
-                });
+        return BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
+                .immutableCopy()
+                .stream()
+                .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
+                .collect(Collectors.toMap(
+                     entry -> entry.getRowName().getComponent1(), 
+                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
     }
 
     public Optional<String> getColumn2(String component1) {
@@ -165,14 +166,17 @@ public final class SchemaApiTestV2Table {
                      SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
     }
 
-    public BatchingVisitableView<Pair<String, String>> getRangeColumn2(RangeRequest rangeRequest) {
+    public Map<String, String> getRangeColumn2(RangeRequest rangeRequest) {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
-        return BatchingVisitables.transform(t.getRange(tableRef, rangeRequest), (input) -> {
-                     SchemaApiTestTable.SchemaApiTestRowResult rowResult = SchemaApiTestTable.SchemaApiTestRowResult.of(input);
-                     return new Pair(rowResult.getRowName().getComponent1(), rowResult.getColumn2());
-                });
+        return BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
+                .immutableCopy()
+                .stream()
+                .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
+                .collect(Collectors.toMap(
+                     entry -> entry.getRowName().getComponent1(), 
+                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
     }
 
     public void deleteRow(String component1) {

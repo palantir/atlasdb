@@ -34,6 +34,7 @@ package com.palantir.atlasdb.table.description;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -65,13 +66,13 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected List<Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
+    protected Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
         SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
-        return new ArrayList<>(table.getColumn1(rowKeys).values());
+        return table.getColumn1(rowKeys);
     }
 
     @Override
-    protected List<String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
 
         RangeRequest rangeRequest = RangeRequest.builder()
@@ -79,8 +80,7 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
                 .endRowExclusive(SchemaApiTestTable.SchemaApiTestRow.of(endRowKey).persistToBytes())
                 .build();
 
-        BatchingVisitableView<Pair<String, String>> rangeRequestResult = table.getRangeColumn2(rangeRequest);
-        return rangeRequestResult.immutableCopy().stream().map(Pair::getRhSide).collect(Collectors.toList());
+        return table.getRangeColumn2(rangeRequest);
     }
 
     @Override

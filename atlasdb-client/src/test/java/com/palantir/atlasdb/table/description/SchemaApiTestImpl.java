@@ -19,6 +19,7 @@ package com.palantir.atlasdb.table.description;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected List<Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
+    protected Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
         ColumnSelection firstColSelection =
@@ -63,11 +64,15 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
                         rowKeys.stream().map(SchemaApiTestRow::of).collect(Collectors.toList()),
                         firstColSelection
                 );
-        return result.stream().map(SchemaApiTestRowResult::getColumn1).collect(Collectors.toList());
+        return result
+                .stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
     }
 
     @Override
-    protected List<String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
         ColumnSelection secondColSelection =
@@ -80,9 +85,11 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
                 .build();
 
         BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
-        ArrayList finalResult = new ArrayList<>();
-        rangeRequestResult.forEach(entry -> finalResult.add(entry.getColumn2()));
-        return finalResult;
+        return rangeRequestResult.immutableCopy()
+                .stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
     }
 
     @Override

@@ -34,6 +34,7 @@ import java.util.TreeMap;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -66,8 +67,8 @@ public abstract class AbstractSchemaApiTest {
 
     protected abstract void putSingleRowFirstColumn(Transaction transaction, String roWKey, long value);
     protected abstract Long getSingleRowFirstColumn(Transaction transaction, String rowKey);
-    protected abstract List<Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKey);
-    protected abstract List<String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey);
+    protected abstract Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKey);
+    protected abstract Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey);
     protected abstract void deleteWholeRow(Transaction transaction, String rowKey);
     protected abstract void deleteFirstColumn(Transaction transaction, String rowKey);
 
@@ -126,9 +127,9 @@ public abstract class AbstractSchemaApiTest {
                 RowResult.of(anotherExpectedCell, EncodingUtils.encodeUnsignedVarLong(ANOTHER_TEST_VALUE)));
         when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);
 
-        List<Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
+        Map<String, Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
 
-        assertThat(result).isEqualTo(Arrays.asList(TEST_VALUE, ANOTHER_TEST_VALUE));
+        assertThat(result).isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE, TEST_ROW_KEY2, ANOTHER_TEST_VALUE));
         ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
         verify(transaction, times(1))
                 .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
@@ -160,9 +161,10 @@ public abstract class AbstractSchemaApiTest {
                 ))
         );
 
-        List<String> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, endRowKey);
+        Map<String, String> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, endRowKey);
 
-        assertThat(result).isEqualTo(Arrays.asList(testStringValue, anotherTestStringValue));
+        assertThat(result)
+                .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, testStringValue, TEST_ROW_KEY2, anotherTestStringValue));
         ArgumentCaptor<RangeRequest> argument = ArgumentCaptor.forClass(RangeRequest.class);
         verify(transaction, times(1))
                 .getRange(eq(tableRef), argument.capture());
