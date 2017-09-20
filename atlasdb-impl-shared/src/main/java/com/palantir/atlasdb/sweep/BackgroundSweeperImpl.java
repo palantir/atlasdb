@@ -209,7 +209,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
                                     tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
                             if (nextTable.isPresent()) {
-                                log.debug("Now starting to sweep next table: {}.",
+                                log.info("Now starting to sweep next table: {}.",
                                         LoggingArgs.tableRef("table name", nextTable.get()));
                                 return Optional.of(new TableToSweep(nextTable.get(), null));
                             } else {
@@ -253,7 +253,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         if (daemon == null) {
             return;
         }
-        log.debug("Signalling background sweeper to shut down.");
+        log.info("Signalling background sweeper to shut down.");
         daemon.interrupt();
         try {
             daemon.join();
