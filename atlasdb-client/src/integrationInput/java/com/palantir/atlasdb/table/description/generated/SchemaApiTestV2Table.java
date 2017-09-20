@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -98,13 +99,15 @@ public final class SchemaApiTestV2Table {
     public Map<String, Long> getAllColumn1() {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
-        return getRangeColumn1(RangeRequest.all());
+        return getRowRangeColumn1(RangeRequest.all());
     }
 
-    public Map<String, Long> getRangeColumn1(RangeRequest rangeRequest) {
+    public Map<String, Long> getRowRangeColumn1(RangeRequest rangeRequest) {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
+        Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
+                "Must not request additional columns.");
         return BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
                 .immutableCopy()
                 .stream()
@@ -149,13 +152,15 @@ public final class SchemaApiTestV2Table {
     public Map<String, String> getAllColumn2() {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
-        return getRangeColumn2(RangeRequest.all());
+        return getRowRangeColumn2(RangeRequest.all());
     }
 
-    public Map<String, String> getRangeColumn2(RangeRequest rangeRequest) {
+    public Map<String, String> getRowRangeColumn2(RangeRequest rangeRequest) {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
+        Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
+                "Must not request additional columns.");
         return BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
                 .immutableCopy()
                 .stream()
