@@ -54,10 +54,15 @@ develop
          - KVS migration no longer fails when the old ``_scrub`` table is present.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
 
+    *    - |fixed|
+         - Path and query parameters for TimeLock endpoints have now been marked as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-0.57.0
+v0.57.0
 =======
 
 19 September 2017
