@@ -235,11 +235,11 @@ public class TableClassRendererV2 {
             if (tableMetadata.getRowMetadata().getRowParts().size() == 1) {
                 getterResults.add(renderNamedGetSeveralRows(col));
                 getterResults.add(renderNamedGetAllRows(col));
-                getterResults.add(renderNamedGetRangeColumn(col));
+                getterResults.add(renderNamedGetRangeColumn(col, tableMetadata.isRangeScanAllowed()));
             } else {
                 getterResults.add(renderNamedGetSeveralRowObjects(col));
                 getterResults.add(renderNamedGetAllRowsObjects(col));
-                getterResults.add(renderNamedGetRangeColumnRowObjects(col));
+                getterResults.add(renderNamedGetRangeColumnRowObjects(col, tableMetadata.isRangeScanAllowed()));
             }
         }
 
@@ -368,17 +368,8 @@ public class TableClassRendererV2 {
                                 + "$T.create($T.singletonList($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, Collections.class,
                         PtBytes.class, col.getShortName())
-                .addStatement("return $T.of(t.getRange("
-                                + "tableRef, \n"
-                                + "$T.builder().retainColumns(colSelection).build()))\n"
-                                + ".immutableCopy()\n"
-                                + ".stream()\n"
-                                + ".map(entry -> $T.of(entry))\n"
-                                + ".collect($T.toMap(\n"
-                                + "     entry -> entry.getRowName().get$L(), \n"
-                                + "     $T::get$L))",
-                        BatchingVisitableView.class, RangeRequest.class, rowResultType,
-                        Collectors.class, CamelCase(rowComponent.getComponentName()), rowResultType, VarName(col));
+                .addStatement("return getRange$L($T.all())",
+                        VarName(col), RangeRequest.class);
 
         return getterBuilder.build();
     }
@@ -395,27 +386,18 @@ public class TableClassRendererV2 {
                                 + "$T.create($T.singletonList($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, Collections.class,
                         PtBytes.class, col.getShortName())
-                .addStatement("return $T.of(t.getRange("
-                                + "tableRef, \n"
-                                + "$T.builder().retainColumns(colSelection).build()))\n"
-                                + ".immutableCopy()\n"
-                                + ".stream()\n"
-                                + ".map(entry -> $T.of(entry))\n"
-                                + ".collect($T.toMap(\n"
-                                + "     entry -> entry.getRowName(), \n"
-                                + "     $T::get$L))",
-                        BatchingVisitableView.class, RangeRequest.class, rowResultType,
-                        Collectors.class, rowResultType, VarName(col));
+                .addStatement("return getRange$L($T.all())",
+                        VarName(col), RangeRequest.class);
 
         return getterBuilder.build();
     }
 
-    private MethodSpec renderNamedGetRangeColumn(NamedColumnDescription col) {
+    private MethodSpec renderNamedGetRangeColumn(NamedColumnDescription col, boolean shouldBePublic) {
         Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRange" + VarName(col))
-                .addModifiers(Modifier.PUBLIC)
+                .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(Map.class),
@@ -441,9 +423,9 @@ public class TableClassRendererV2 {
         return getterBuilder.build();
     }
 
-    private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col) {
+    private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col, boolean shouldBePublic) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRange" + VarName(col))
-                .addModifiers(Modifier.PUBLIC)
+                .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                             ClassName.get(Map.class),

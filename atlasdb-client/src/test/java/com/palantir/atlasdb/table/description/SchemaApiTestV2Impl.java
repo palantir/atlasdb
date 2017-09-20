@@ -31,22 +31,15 @@
 
 package com.palantir.atlasdb.table.description;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.table.description.generated.ApiTestTableFactory;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestV2Table;
-import com.palantir.atlasdb.table.description.generated.ApiTestTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.common.base.BatchingVisitableView;
-import com.palantir.util.Pair;
 
 public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
 

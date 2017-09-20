@@ -98,14 +98,7 @@ public final class SchemaApiTestV2Table {
     public Map<String, Long> getAllColumn1() {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
-        return BatchingVisitableView.of(t.getRange(tableRef, 
-                RangeRequest.builder().retainColumns(colSelection).build()))
-                .immutableCopy()
-                .stream()
-                .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
-                .collect(Collectors.toMap(
-                     entry -> entry.getRowName().getComponent1(), 
-                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
+        return getRangeColumn1(RangeRequest.all());
     }
 
     public Map<String, Long> getRangeColumn1(RangeRequest rangeRequest) {
@@ -156,14 +149,7 @@ public final class SchemaApiTestV2Table {
     public Map<String, String> getAllColumn2() {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
-        return BatchingVisitableView.of(t.getRange(tableRef, 
-                RangeRequest.builder().retainColumns(colSelection).build()))
-                .immutableCopy()
-                .stream()
-                .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
-                .collect(Collectors.toMap(
-                     entry -> entry.getRowName().getComponent1(), 
-                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
+        return getRangeColumn2(RangeRequest.all());
     }
 
     public Map<String, String> getRangeColumn2(RangeRequest rangeRequest) {
