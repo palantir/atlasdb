@@ -47,6 +47,8 @@ public abstract class AbstractBenchmark {
     }
 
     public Map<String, Object> execute() {
+        setup();
+
         try {
             runTests();
             return getStatistics();
@@ -114,6 +116,8 @@ public abstract class AbstractBenchmark {
     }
 
     protected abstract void performOneCall();
+
+    protected void setup() { }
 
     protected Map<String, Object> getExtraParameters() {
         return ImmutableMap.of();
