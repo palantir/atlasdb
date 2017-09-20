@@ -28,7 +28,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.LockService;
-import com.palantir.remoting2.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;

@@ -35,7 +35,7 @@ import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -71,7 +71,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         TransactionManager transactionManager = createTransactionManager(config, environment);
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
-        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
     }
 
     private TransactionManager createTransactionManager(AtlasDbEteConfiguration config, Environment environment)

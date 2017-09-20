@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -131,6 +132,23 @@ public class SchemaTest {
                 schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(getErrorMessage(longTableName, kvsList));
+    }
+
+    @Test
+    // If you are intentionally making Table API changes, please manually regenerate the ApiTestSchema
+    public void checkAgainstAccidentalTableAPIChanges() throws IOException {
+        // TODO (amarzoca): Add tests for schemas that use more of the rendering features (Triggers, StreamStores, etc)
+        Schema schema = ApiTestSchema.getSchema();
+        schema.renderTables(testFolder.getRoot());
+
+        String generatedTestTableName = "SchemaApiTestTable";
+        String generatedFilePath =
+                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
+
+        File expectedFile = new File("src/integrationInput/java", generatedFilePath);
+        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+
+        assertThat(actualFile).hasSameContentAs(expectedFile);
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
