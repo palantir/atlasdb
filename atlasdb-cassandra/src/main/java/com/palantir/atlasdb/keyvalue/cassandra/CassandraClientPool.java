@@ -582,7 +582,8 @@ public class CassandraClientPool {
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
-                    log.warn("Retrying with backoff a query intended for host {}. Exception message was: {} : {}",
+                    log.warn("Retrying with backoff a query, {}, intended for host {}. Exception message was: {} : {}",
+                            fn.toString(),
                             hostPool.getHost(),
                             e.getClass().getTypeName(),
                             e.getMessage());
