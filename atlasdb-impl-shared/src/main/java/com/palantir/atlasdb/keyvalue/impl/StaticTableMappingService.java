@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.AutoDelegate_TableMappingService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = TableMappingService.class)
