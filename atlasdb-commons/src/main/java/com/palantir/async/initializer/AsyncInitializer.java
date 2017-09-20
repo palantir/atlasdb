@@ -46,11 +46,7 @@ public abstract class AsyncInitializer {
     private volatile boolean canceledInitialization = false;
 
     public final void initialize(boolean initializeAsync) {
-        if (!isInitializing.compareAndSet(false, true)) {
-            throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
-                    + "Each instance should have a single thread trying to initialize it.\n"
-                    + "Object being initialized multiple times: " + getInitializingClassName());
-        }
+        assertNeverCalledInitialize();
 
         if (!initializeAsync) {
             tryInitializeInternal();
@@ -67,7 +63,15 @@ public abstract class AsyncInitializer {
         }
     }
 
-    private void scheduleInitialization() {
+    void assertNeverCalledInitialize() {
+        if (!isInitializing.compareAndSet(false, true)) {
+            throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
+                    + "Each instance should have a single thread trying to initialize it.\n"
+                    + "Object being initialized multiple times: " + getInitializingClassName());
+        }
+    }
+
+    void scheduleInitialization() {
         singleThreadedExecutor.schedule(() -> {
             if (canceledInitialization) {
                 return;
