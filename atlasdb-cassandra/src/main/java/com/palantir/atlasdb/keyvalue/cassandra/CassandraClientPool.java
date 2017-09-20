@@ -582,7 +582,11 @@ public class CassandraClientPool {
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
-                    log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
+                    log.warn("Retrying with backoff a query intended for host {}. Exception message was: {} : {}",
+                            hostPool.getHost(),
+                            e.getClass().getTypeName(),
+                            e.getMessage());
+
                     try {
                         // And value between -500 and +500ms to backoff to better spread load on failover
                         Thread.sleep(numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500));
@@ -661,7 +665,11 @@ public class CassandraClientPool {
                     throw (K) ex;
                 }
             } else {
-                log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, MAX_TRIES_TOTAL, ex);
+                log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+                        numTries,
+                        MAX_TRIES_TOTAL,
+                        ex.getClass().getTypeName(),
+                        ex.getMessage());
                 if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
                     addToBlacklist(host);
                 }
