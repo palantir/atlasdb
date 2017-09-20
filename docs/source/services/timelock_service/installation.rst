@@ -79,7 +79,7 @@ Add client(s) to Timelock
 
 9. Configure each client to use Timelock.
    Detailed documentation is :ref:`here <timelock-client-configuration>`.
-   You must remove any ``leader``, ``timestamp``, or ``lock`` blocks; the ``timelock`` block to add looks like this.
+   You must remove any ``leader``, ``timestamp``, or ``lock`` blocks; the ``timelock`` block to add looks like this:
 
 .. code-block:: yaml
 
@@ -114,5 +114,5 @@ Add client(s) to Timelock
 
 14. Restart each client.
 
-15. To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
+15. (Optional) To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
     For each client, the timestamp returned should be strictly greater than the corresponding timestamp obtained in step 10.
