@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.table.description;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +61,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
         List<SchemaApiTestRowResult> result =
                 table.getRows(
                         rowKeys.stream().map(SchemaApiTestRow::of).collect(Collectors.toList()),
-                        firstColSelection
-                );
+                        firstColSelection);
         return result
                 .stream()
                 .collect(Collectors.toMap(

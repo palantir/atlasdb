@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.cas.generated;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -98,13 +99,15 @@ public final class CheckAndSetV2Table {
     public Map<Long, Long> getAllValue() {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("v")));
-        return getRangeValue(RangeRequest.all());
+        return getRowRangeValue(RangeRequest.all());
     }
 
-    private Map<Long, Long> getRangeValue(RangeRequest rangeRequest) {
+    private Map<Long, Long> getRowRangeValue(RangeRequest rangeRequest) {
         ColumnSelection colSelection = 
                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("v")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
+        Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
+                "Must not request additional columns.");
         return BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
                 .immutableCopy()
                 .stream()

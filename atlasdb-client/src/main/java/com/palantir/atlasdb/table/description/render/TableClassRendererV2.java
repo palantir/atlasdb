@@ -57,9 +57,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
-import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.persist.Persistables;
-import com.palantir.util.Pair;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -368,7 +366,7 @@ public class TableClassRendererV2 {
                                 + "$T.create($T.singletonList($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, Collections.class,
                         PtBytes.class, col.getShortName())
-                .addStatement("return getRange$L($T.all())",
+                .addStatement("return getRowRange$L($T.all())",
                         VarName(col), RangeRequest.class);
 
         return getterBuilder.build();
@@ -386,7 +384,7 @@ public class TableClassRendererV2 {
                                 + "$T.create($T.singletonList($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, Collections.class,
                         PtBytes.class, col.getShortName())
-                .addStatement("return getRange$L($T.all())",
+                .addStatement("return getRowRange$L($T.all())",
                         VarName(col), RangeRequest.class);
 
         return getterBuilder.build();
@@ -396,7 +394,7 @@ public class TableClassRendererV2 {
         Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRange" + VarName(col))
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
@@ -410,6 +408,8 @@ public class TableClassRendererV2 {
                         ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
+                .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
+                        Preconditions.class, "Must not request additional columns.")
                 .addStatement("return $T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".immutableCopy()\n"
                                 + ".stream()\n"
@@ -424,7 +424,7 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col, boolean shouldBePublic) {
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRange" + VarName(col))
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
@@ -438,6 +438,8 @@ public class TableClassRendererV2 {
                         ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
+                .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
+                        Preconditions.class, "Must not request additional columns.")
                 .addStatement("return $T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".immutableCopy()\n"
                                 + ".stream()\n"
