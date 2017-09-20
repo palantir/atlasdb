@@ -1,6 +1,6 @@
 algorithm:
   type: timestampBoundStore
-  kvsConfig:
+  key-value-service:
     type: memory
 
 cluster:

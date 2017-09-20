@@ -46,7 +46,7 @@ public class PaxosRemotingUtilsTest {
             .cluster(ServiceConfiguration.builder().addAllUris(CLUSTER_URIS).build())
             .build();
     private static final TimeLockInstallConfiguration NO_SSL_TIMELOCK = ImmutableTimeLockInstallConfiguration.builder()
-            .optionalPaxosConfig(mock(PaxosInstallConfiguration.class))
+            .paxos(mock(PaxosInstallConfiguration.class))
             .cluster(NO_SSL_CLUSTER)
             .build();
 
@@ -59,7 +59,7 @@ public class PaxosRemotingUtilsTest {
                     .build())
             .build();
     private static final TimeLockInstallConfiguration SSL_TIMELOCK = ImmutableTimeLockInstallConfiguration.builder()
-            .optionalPaxosConfig(mock(PaxosInstallConfiguration.class))
+            .paxos(mock(PaxosInstallConfiguration.class))
             .cluster(SSL_CLUSTER)
             .build();
 

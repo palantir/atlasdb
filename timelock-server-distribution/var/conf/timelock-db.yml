@@ -10,9 +10,9 @@ cluster:
 
 algorithm:
   type: timestampBoundStore
-  kvsConfig:
+  key-value-service:
       type: memory
-#  kvsConfig: For testing against CCM.
+#  key-value-service: #For testing against CCM.
 #    type: cassandra
 #    keyspace: test
 #    servers:

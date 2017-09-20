@@ -4,6 +4,9 @@
 
 package com.palantir.atlasdb.timelock.config;
 
+import java.util.Optional;
+
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
 import com.palantir.remoting2.config.service.ServiceConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
@@ -21,56 +24,34 @@ import io.dropwizard.setup.Environment;
 public final class TimeLockConfigMigrator {
     private TimeLockConfigMigrator() { /* Utility Class */ }
 
-    public static CombinedTimeLockServerConfiguration convert(TimeLockServerConfiguration config,
+    public static CombinedTimeLockServerConfiguration convert(
+            TimeLockServerConfiguration config,
             Environment environment) {
-        TimeLockInstallConfiguration install;
-        TimeLockRuntimeConfiguration runtime;
-        if (PaxosConfiguration.class.isInstance(config.algorithm())) {
-            PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
-            install = ImmutableTimeLockInstallConfiguration.builder()
-                    .optionalPaxosConfig(ImmutablePaxosInstallConfiguration.builder()
-                            .dataDirectory(paxos.paxosDataDir())
-                            .build())
-                    .cluster(ImmutableClusterConfiguration.builder()
-                            .cluster(ServiceConfiguration.builder()
-                                    .security(paxos.sslConfiguration())
-                                    .uris(config.cluster().servers())
-                                    .build())
-                            .localServer(config.cluster().localServer())
-                            .build())
-                    .asyncLock(config.asyncLockConfiguration())
-                    .build();
+        PaxosConfiguration paxosConfiguration = getPaxosConfiguration(config);
+        Optional<KeyValueServiceConfig> optionalKvsConfig = getOptionalKvsConfig(config);
+        TimeLockInstallConfiguration install = ImmutableTimeLockInstallConfiguration.builder()
+                .optionalKvsConfig(optionalKvsConfig)
+                .paxos(ImmutablePaxosInstallConfiguration.builder()
+                        .dataDirectory(paxosConfiguration.paxosDataDir())
+                        .build())
+                .cluster(ImmutableClusterConfiguration.builder()
+                        .cluster(ServiceConfiguration.builder()
+                                .security(paxosConfiguration.sslConfiguration())
+                                .uris(config.cluster().servers())
+                                .build())
+                        .localServer(config.cluster().localServer())
+                        .build())
+                .asyncLock(config.asyncLockConfiguration())
+                .build();
 
-            runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                    .optionalPaxos(ImmutablePaxosRuntimeConfiguration.builder()
-                            .leaderPingResponseWaitMs(paxos.leaderPingResponseWaitMs())
-                            .maximumWaitBeforeProposalMs(paxos.maximumWaitBeforeProposalMs())
-                            .pingRateMs(paxos.pingRateMs())
-                            .build())
-                    .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
-                    .build();
-        } else if (TimestampBoundStoreConfiguration.class.isInstance(config.algorithm())) {
-            TimestampBoundStoreConfiguration timestampBoundStoreConfiguration =
-                    (TimestampBoundStoreConfiguration) config.algorithm();
-            install = ImmutableTimeLockInstallConfiguration.builder()
-                    .cluster(ImmutableClusterConfiguration.builder()
-                            .cluster(ServiceConfiguration.builder()
-                                    .security(timestampBoundStoreConfiguration.sslConfiguration())
-                                    .uris(config.cluster().servers())
-                                    .build())
-                            .localServer(config.cluster().localServer())
-                            .build())
-                    .asyncLock(config.asyncLockConfiguration())
-                    .optionalKvsConfig(((TimestampBoundStoreConfiguration) config.algorithm()).kvsConfig())
-                    .build();
-
-            runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                    .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
-                    .build();
-        } else {
-            throw new RuntimeException("The algorithm config was expected to be of type PaxosConfiguration "
-                    + "or TimestampBoundStoreConfiguration, but found " + config.algorithm().getClass());
-        }
+        TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
+                .paxos(ImmutablePaxosRuntimeConfiguration.builder()
+                        .leaderPingResponseWaitMs(paxosConfiguration.leaderPingResponseWaitMs())
+                        .maximumWaitBeforeProposalMs(paxosConfiguration.maximumWaitBeforeProposalMs())
+                        .pingRateMs(paxosConfiguration.pingRateMs())
+                        .build())
+                .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
+                .build();
 
         TimeLockDeprecatedConfiguration deprecated = createDeprecatedConfiguration(config, environment);
 
@@ -79,6 +60,23 @@ public final class TimeLockConfigMigrator {
                 .runtime(runtime)
                 .deprecated(deprecated)
                 .build();
+    }
+
+    private static Optional<KeyValueServiceConfig> getOptionalKvsConfig(TimeLockServerConfiguration config) {
+        if (TimestampBoundStoreConfiguration.class.isInstance(config.algorithm())) {
+            return Optional.of(((TimestampBoundStoreConfiguration) config.algorithm()).kvsConfig());
+        }
+        return Optional.empty();
+    }
+
+    private static PaxosConfiguration getPaxosConfiguration(TimeLockServerConfiguration config) {
+        if (PaxosConfiguration.class.isInstance(config.algorithm())) {
+            return  (PaxosConfiguration) config.algorithm();
+        } else if (TimestampBoundStoreConfiguration.class.isInstance(config.algorithm())) {
+            return  ((TimestampBoundStoreConfiguration) config.algorithm()).paxos();
+        } else {
+            throw new RuntimeException("Timelock algorithm config is of unknown type.");
+        }
     }
 
     private static TimeLockDeprecatedConfiguration createDeprecatedConfiguration(TimeLockServerConfiguration config,

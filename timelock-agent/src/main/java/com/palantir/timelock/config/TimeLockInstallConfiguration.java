@@ -11,7 +11,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
@@ -23,9 +22,9 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
 public interface TimeLockInstallConfiguration {
-    @JsonProperty("paxos")
-    Optional<PaxosInstallConfiguration> optionalPaxosConfig();
+    PaxosInstallConfiguration paxos();
 
+    @JsonProperty("key-value-service")
     Optional<KeyValueServiceConfig> optionalKvsConfig();
 
     ClusterConfiguration cluster();
@@ -34,12 +33,4 @@ public interface TimeLockInstallConfiguration {
     default AsyncLockConfiguration asyncLock() {
         return ImmutableAsyncLockConfiguration.builder().build();
     }
-
-    @Value.Check
-    default void check() {
-        Preconditions.checkArgument(optionalPaxosConfig().isPresent() || optionalKvsConfig().isPresent(),
-                "Exactly one of PaxosInstallConfiguration or KeyValueServiceConfig"
-                        + " must be present in the timelock install config.");
-    }
-
 }
