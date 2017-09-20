@@ -54,6 +54,10 @@ develop
          - KVS migration no longer fails when the old ``_scrub`` table is present.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
 
+    *    - |fixed|
+         - Sweep log priority has been increased to INFO for logs of when a table is starting to be swept and when a table has just been completely swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
