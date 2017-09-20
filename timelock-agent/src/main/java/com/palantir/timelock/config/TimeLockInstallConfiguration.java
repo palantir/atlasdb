@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -22,6 +23,7 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
 public interface TimeLockInstallConfiguration {
+    @JsonProperty("paxos")
     Optional<PaxosInstallConfiguration> optionalPaxosConfig();
 
     Optional<KeyValueServiceConfig> optionalKvsConfig();
@@ -31,11 +33,6 @@ public interface TimeLockInstallConfiguration {
     @Value.Default
     default AsyncLockConfiguration asyncLock() {
         return ImmutableAsyncLockConfiguration.builder().build();
-    }
-
-    @Value.Default
-    default PaxosInstallConfiguration paxos() {
-        return optionalPaxosConfig().orElseGet(() -> ImmutablePaxosInstallConfiguration.builder().build());
     }
 
     @Value.Check
