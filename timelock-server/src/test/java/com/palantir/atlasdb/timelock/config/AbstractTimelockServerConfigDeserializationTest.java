@@ -53,7 +53,7 @@ public abstract class AbstractTimelockServerConfigDeserializationTest {
     @Test
     public void canDeserializeTimeLockServerConfiguration() throws IOException {
         File testConfigFile = new File(
-                PaxosConfigDeserializationTest.class.getResource(getConfigFileName()).getPath());
+                AbstractTimelockServerConfigDeserializationTest.class.getResource(getConfigFileName()).getPath());
         TimeLockServerConfiguration configuration =
                 OBJECT_MAPPER.readValue(testConfigFile, TimeLockServerConfiguration.class);
 

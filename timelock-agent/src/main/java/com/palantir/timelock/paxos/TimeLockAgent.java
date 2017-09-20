@@ -16,13 +16,11 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -83,8 +81,7 @@ public class TimeLockAgent {
 
         // Finally, register the endpoints associated with the clients.
         registrar.accept(
-                new TimeLockResource(
-                        client -> createInvalidatingTimeLockServices(client, install.optionalKvsConfig()),
+                new TimeLockResource(this::createInvalidatingTimeLockServices,
                         JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime)));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
@@ -119,12 +116,10 @@ public class TimeLockAgent {
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
-    private TimeLockServices createInvalidatingTimeLockServices(
-            String client,
-            Optional<KeyValueServiceConfig> kvsConfig) {
+    private TimeLockServices createInvalidatingTimeLockServices(String client) {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier;
-        rawTimestampServiceSupplier = kvsConfig.map(
-                keyValueServiceConfig -> timestampCreator.createDatabaseBackedTimestampService(keyValueServiceConfig))
+        rawTimestampServiceSupplier = install.optionalKvsConfig()
+                .map(timestampCreator::createDatabaseBackedTimestampService)
                 .orElseGet(() -> timestampCreator.createPaxosBackedTimestampService(client));
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
