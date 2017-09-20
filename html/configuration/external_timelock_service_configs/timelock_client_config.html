@@ -204,7 +204,7 @@ blocks must be absent from the config if you are using the Timelock Server.</p>
 <p class="last">Changing the TimeLock <code class="docutils literal"><span class="pre">client</span></code> will mean that one receives timestamps from a different timestamp service.
 This may result in <strong>SEVERE DATA CORRUPTION</strong> as the timestamp service’s guarantees may be broken.
 Doing this safely requires a fast forward of the new client to at least the highest timestamp given out from the old client.
-Please contact the AtlasDB team for assistance on such a operation.</p>
+Please contact the AtlasDB team for assistance on such an operation.</p>
 </div>
 <p>Required parameters:</p>
 <table border="1" class="colwidths-given docutils">
@@ -219,9 +219,12 @@ Please contact the AtlasDB team for assistance on such a operation.</p>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>client</td>
-<td>The name of your client, generally the same as your application name.
+<td><p class="first">The name of your client, generally the same as your application name.
 Note that if the top-level AtlasDB <code class="docutils literal"><span class="pre">namespace</span></code> configuration parameter is set, then this parameter need not be set.
-However, if it is, then this parameter MUST be equal to the AtlasDB <code class="docutils literal"><span class="pre">namespace</span></code>, or AtlasDB will fail to start.</td>
+However, if it is, then this parameter MUST be equal to the AtlasDB <code class="docutils literal"><span class="pre">namespace</span></code>, or AtlasDB will fail to start.</p>
+<p class="last">Note that client names must be non-empty and consist of only alphanumeric characters, dashes and
+underscores (succinctly, <code class="docutils literal"><span class="pre">[a-zA-Z0-9_-]+</span></code>) and for backwards compatibility cannot be the reserved word <code class="docutils literal"><span class="pre">leader</span></code>.</p>
+</td>
 </tr>
 <tr class="row-odd"><td>serversList::servers</td>
 <td>A list of all hosts. The hosts must be specified as addresses, i.e. <code class="docutils literal"><span class="pre">https://host:port</span></code>.
@@ -253,7 +256,9 @@ library. This should also be in alignment with the protocol used when configurin
 <div class="section" id="timelock-configuration-examples">
 <span id="timelock-config-examples"></span><h2>Timelock Configuration Examples<a class="headerlink" href="#timelock-configuration-examples" title="Permalink to this headline">¶</a></h2>
 <p>Here is an example of an AtlasDB configuration with the <code class="docutils literal"><span class="pre">timelock</span></code> block.</p>
-<p>You must ensure that you have migrated to the Timelock Server before adding a <code class="docutils literal"><span class="pre">timelock</span></code> block to the config.</p>
+<p>If you are using Cassandra, then automated migration will be performed when starting up your AtlasDB clients.
+If you are using another key-value-service, then you MUST ensure that you have migrated to the Timelock Server before
+adding a <code class="docutils literal"><span class="pre">timelock</span></code> block to the config.</p>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
 
 <span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>

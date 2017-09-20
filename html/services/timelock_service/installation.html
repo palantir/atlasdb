@@ -265,7 +265,6 @@ You must remove any <code class="docutils literal"><span class="pre">leader</spa
 </ol>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
    <span class="l l-Scalar l-Scalar-Plain">timelock</span><span class="p p-Indicator">:</span>
-     <span class="l l-Scalar l-Scalar-Plain">client</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">tom</span>
      <span class="l l-Scalar l-Scalar-Plain">serversList</span><span class="p p-Indicator">:</span>
        <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
          <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
@@ -276,16 +275,15 @@ You must remove any <code class="docutils literal"><span class="pre">leader</spa
 </pre></div>
 </div>
 <ol class="arabic simple" start="10">
-<li>Configure Timelock to respond to your clients.
-Add each client as a named entry in the <code class="docutils literal"><span class="pre">clients</span></code> block of your <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-configuration"><span class="std std-ref">Timelock Server Configuration</span></a>.</li>
+<li>(Optional) For verification purposes, you may retrieve a timestamp from each client you are configuring to use TimeLock.
+This can typically be performed with the Fetch Timestamp CLI or Dropwizard bundle. For example, using the Dropwizard bundle:</li>
 </ol>
-<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">clients</span><span class="p p-Indicator">:</span>
-   <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">tom</span>
-   <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">jerry</span>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb timestamp fetch
+
+ Note down the value of the timestamp returned<span class="p">;</span> we will subsequently use these values to ensure that migration took place.
 </pre></div>
 </div>
-<ol class="arabic simple" start="10">
-<li>As a verification step, request a fresh timestamp from each client. We will use these values later to check that the migration is complete.</li>
+<ol class="arabic simple" start="11">
 <li>Shut down each client that has been newly added.</li>
 <li>Restart your Timelock cluster.</li>
 <li>Migrate each client to the timelock server - see the <a class="reference internal" href="migration.html#timelock-migration"><span class="std std-ref">separate migration docs</span></a>. For Cassandra KVS, this is automatic.</li>
@@ -296,7 +294,7 @@ Add each client as a named entry in the <code class="docutils literal"><span cla
 </div>
 <ol class="arabic simple" start="14">
 <li>Restart each client.</li>
-<li>To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
+<li>(Optional) To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
 For each client, the timestamp returned should be strictly greater than the corresponding timestamp obtained in step 10.</li>
 </ol>
 </div>

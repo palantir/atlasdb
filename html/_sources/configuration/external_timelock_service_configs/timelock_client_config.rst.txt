@@ -19,7 +19,7 @@ Timelock
     Changing the TimeLock ``client`` will mean that one receives timestamps from a different timestamp service.
     This may result in **SEVERE DATA CORRUPTION** as the timestamp service's guarantees may be broken.
     Doing this safely requires a fast forward of the new client to at least the highest timestamp given out from the old client.
-    Please contact the AtlasDB team for assistance on such a operation.
+    Please contact the AtlasDB team for assistance on such an operation.
 
 Required parameters:
 
@@ -34,6 +34,9 @@ Required parameters:
          - The name of your client, generally the same as your application name.
            Note that if the top-level AtlasDB ``namespace`` configuration parameter is set, then this parameter need not be set.
            However, if it is, then this parameter MUST be equal to the AtlasDB ``namespace``, or AtlasDB will fail to start.
+
+           Note that client names must be non-empty and consist of only alphanumeric characters, dashes and
+           underscores (succinctly, ``[a-zA-Z0-9_-]+``) and for backwards compatibility cannot be the reserved word ``leader``.
 
     *    - serversList::servers
          - A list of all hosts. The hosts must be specified as addresses, i.e. ``https://host:port``.
@@ -61,7 +64,9 @@ Timelock Configuration Examples
 
 Here is an example of an AtlasDB configuration with the ``timelock`` block.
 
-You must ensure that you have migrated to the Timelock Server before adding a ``timelock`` block to the config.
+If you are using Cassandra, then automated migration will be performed when starting up your AtlasDB clients.
+If you are using another key-value-service, then you MUST ensure that you have migrated to the Timelock Server before
+adding a ``timelock`` block to the config.
 
 .. code-block:: yaml
 
