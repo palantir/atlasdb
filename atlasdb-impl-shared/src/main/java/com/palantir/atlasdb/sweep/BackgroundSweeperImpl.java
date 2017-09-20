@@ -145,7 +145,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                         log.error("The table being swept by the background sweeper was dropped, moving on...");
                     } else {
                         log.error("The background sweep job failed unexpectedly with a batch size of "
-                                ((int) (batchSizeMultiplier * sweepRowBatchSize.get())) +
+                                + ((int) (batchSizeMultiplier * sweepRowBatchSize.get()))
                                 + ". Attempting to continue with a lower batch size...", e);
                         // Cut batch size in half, always sweep at least one row (we round down).
                         batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5f / sweepRowBatchSize.get());
