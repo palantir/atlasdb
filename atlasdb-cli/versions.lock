@@ -539,6 +539,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers"
@@ -1362,6 +1363,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers"
