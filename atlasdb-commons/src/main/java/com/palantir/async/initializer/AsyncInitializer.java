@@ -39,13 +39,13 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    private final ScheduledExecutorService singleExecutorService = Executors.newSingleThreadScheduledExecutor(
+    private final ScheduledExecutorService singleThreadedExecutor = Executors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("AsyncInitializer", true));
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
     private volatile boolean canceledInitialization = false;
 
-    public void initialize(boolean initializeAsync) {
+    public final void initialize(boolean initializeAsync) {
         if (!isInitializing.compareAndSet(false, true)) {
             throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
                     + "Each instance should have a single thread trying to initialize it.\n"
@@ -53,12 +53,12 @@ public abstract class AsyncInitializer {
         }
 
         if (!initializeAsync) {
-            tryToInitializeIfNotInitialized();
+            tryInitializeInternal();
             return;
         }
 
         try {
-            tryToInitializeIfNotInitialized();
+            tryInitializeInternal();
         } catch (Throwable throwable) {
             log.info("Failed to initialize {} in the first attempt, will initialize asynchronously.",
                     SafeArg.of("className", getClassName()), throwable);
@@ -68,15 +68,17 @@ public abstract class AsyncInitializer {
     }
 
     private void scheduleInitialization() {
-        singleExecutorService.schedule(() -> {
+        singleThreadedExecutor.schedule(() -> {
             if (canceledInitialization) {
                 return;
             }
 
             try {
-                tryToInitializeIfNotInitialized();
+                tryInitializeInternal();
                 log.info("Initialized {} asynchronously.", SafeArg.of("className", getClassName()));
             } catch (Throwable throwable) {
+                log.info("Failed to initialize {} asynchronously.",
+                        SafeArg.of("className", getClassName()), throwable);
                 cleanUpOnInitFailure();
                 scheduleInitialization();
             }
@@ -89,32 +91,29 @@ public abstract class AsyncInitializer {
     }
 
     /**
-     * Cancels future initializations and registers a callback to be called if the initialization is
+     * Cancels future initializations and registers a callback to be called if the initialization is happening.
+     * If the instance is closeable, it's recommended that the this method is invoked in a close call, and the callback
+     * contains a call to the instance's close method.
      */
-    protected void cancelInitialization(Runnable handler) {
+    protected final void cancelInitialization(Runnable handler) {
         canceledInitialization = true;
 
-        singleExecutorService.submit(() -> {
+        singleThreadedExecutor.submit(() -> {
             if (isInitialized()) {
                 handler.run();
             }
         });
     }
 
-    protected void checkInitialized() {
+    protected final void checkInitialized() {
         if (!initialized) {
             throw new NotInitializedException(getClassName());
         }
     }
 
-    private void tryToInitializeIfNotInitialized() {
-        if (isInitialized()) {
-            log.warn("{} was initialized underneath us.",
-                    SafeArg.of("className", getClassName()));
-        } else {
-            tryInitialize();
-            initialized = true;
-        }
+    private void tryInitializeInternal() {
+        tryInitialize();
+        initialized = true;
     }
 
     public boolean isInitialized() {
@@ -137,5 +136,8 @@ public abstract class AsyncInitializer {
      */
     protected abstract void tryInitialize();
 
+    /**
+     * This method should contain the wrapped init class
+     */
     protected abstract String getClassName();
 }

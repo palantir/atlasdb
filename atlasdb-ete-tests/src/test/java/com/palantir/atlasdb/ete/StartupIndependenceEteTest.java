@@ -62,6 +62,11 @@ public class StartupIndependenceEteTest {
             CassandraEnvironment.get());
 
     @Before
+    public void setUp() throws IOException, InterruptedException {
+        randomizeNamespace();
+        killCassandraNodes(ALL_CASSANDRA_NODES);
+    }
+
     public void randomizeNamespace() throws IOException, InterruptedException {
         EteSetup.execCliCommand("sed -i 's/keyspace: .*/keyspace: " + UUID.randomUUID().toString().replace("-", "_")
                 + "/' var/conf/atlasdb-ete.yml");
@@ -70,7 +75,6 @@ public class StartupIndependenceEteTest {
     @Test
     public void atlasStartsWithCassandraDownAndOnlyNeedsQuorumAfterTheFirstTime()
             throws IOException, InterruptedException {
-        killCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
         assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
