@@ -167,6 +167,7 @@ public class SweepCommand extends SingleBackendCommand {
         if (getColsParallelism != null) {
             CqlColumnGetter.getColumnsByRowParallelism = getColsParallelism;
         }
+        printer.info("using getColumnsByRowParallelism = {}", CqlColumnGetter.getColumnsByRowParallelism);
 
         SweepBatchConfig batchConfig = getSweepBatchConfig();
 
