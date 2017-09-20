@@ -199,7 +199,7 @@ public class SpecificTableSweeper {
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.debug("Finished sweeping.",
+            log.info("Finished sweeping.",
                     LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                     SafeArg.of("unique cells examined count", cellsExamined),
                     SafeArg.of("stale values deleted count", staleValuesDeleted));
