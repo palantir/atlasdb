@@ -34,10 +34,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.table.description.generated.GenericHashFirstComponentTestTable;
+import com.palantir.atlasdb.table.description.generated.GenericHashFirstTwoComponentsTestTable;
 
 public class SchemaTest {
 
@@ -149,6 +154,35 @@ public class SchemaTest {
         File actualFile = new File(testFolder.getRoot(), generatedFilePath);
 
         assertThat(actualFile).hasSameContentAs(expectedFile);
+    }
+
+    @Test
+    public void testHashFirstRowComponent() {
+        GenericHashFirstComponentTestTable.GenericHashFirstComponentTestRow testRow =
+                GenericHashFirstComponentTestTable.GenericHashFirstComponentTestRow.of(1, "test");
+
+        byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(1);
+        long hashOfFirstComponent = Hashing.murmur3_128().hashBytes(component1Bytes).asLong();
+        byte[] hashOfFirstComponentBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfFirstComponent);
+        byte[] component2Bytes = EncodingUtils.encodeVarString("test");
+
+        assertThat(testRow.persistToBytes())
+                .isEqualTo(EncodingUtils.add(hashOfFirstComponentBytes, component1Bytes, component2Bytes));
+    }
+
+    @Test
+    public void testHashFirstTwoRowComponents() {
+        GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestRow testRow =
+                GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestRow.of(1, "test");
+
+        byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(1);
+        byte[] component2Bytes = EncodingUtils.encodeVarString("test");
+        long hashOfFirstTwoComponents =
+                Hashing.murmur3_128().hashBytes(EncodingUtils.add(component1Bytes, component2Bytes)).asLong();
+        byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfFirstTwoComponents);
+
+        assertThat(testRow.persistToBytes())
+                .isEqualTo(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
