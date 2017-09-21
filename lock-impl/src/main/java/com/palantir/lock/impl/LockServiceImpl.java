@@ -848,7 +848,7 @@ public final class LockServiceImpl
                 "Converted from Grant, Missing Thread Name");
         if (log.isTraceEnabled()) {
             log.trace(".useGrant({}, {}) (grant ID {}) returns {} (token ID {})",
-                    UnsafeArg.of("client", client),
+                    SafeArg.of("client", client),
                     UnsafeArg.of("grant", grant),
                     SafeArg.of("grantId", grant.getGrantId()),
                     UnsafeArg.of("token", token),

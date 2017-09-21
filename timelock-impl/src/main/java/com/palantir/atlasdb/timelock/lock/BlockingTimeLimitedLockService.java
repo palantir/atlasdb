@@ -193,7 +193,7 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
             // In this case, the thread was interrupted for some other reason, perhaps because we lost leadership.
             log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
                     SafeArg.of("method", specification.method()),
-                    UnsafeArg.of("client", specification.client()),
+                    SafeArg.of("client", specification.client()),
                     UnsafeArg.of("lockRequest", specification.lockRequest()),
                     e);
             throw e;
@@ -212,7 +212,7 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
         log.info(logMessage,
                 SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis),
                 SafeArg.of("method", specification.method()),
-                UnsafeArg.of("client", specification.client()),
+                SafeArg.of("client", specification.client()),
                 UnsafeArg.of("lockRequest", specification.lockRequest()));
 
         String errorMessage = String.format(
