@@ -38,16 +38,16 @@ public class LockWithMode {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object other) {
+        if (this == other) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        LockWithMode that = (LockWithMode) o;
-        return Objects.equals(lockDescriptor, that.lockDescriptor) &&
-                lockMode == that.lockMode;
+        LockWithMode that = (LockWithMode) other;
+        return Objects.equals(lockDescriptor, that.lockDescriptor)
+                && lockMode == that.lockMode;
     }
 
     @Override
