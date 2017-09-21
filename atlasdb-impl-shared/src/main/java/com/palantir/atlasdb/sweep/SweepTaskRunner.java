@@ -127,7 +127,7 @@ public class SweepTaskRunner {
                     UnsafeArg.of("table name", tableRef));
             return SweepResults.createEmptySweepResult();
         }
-        SweepStrategy sweepStrategy = SweepStrategy.THOROUGH;
+        SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
         Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResult();
