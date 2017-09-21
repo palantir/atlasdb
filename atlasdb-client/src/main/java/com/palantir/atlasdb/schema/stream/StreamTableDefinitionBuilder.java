@@ -34,6 +34,7 @@ public class StreamTableDefinitionBuilder {
     private boolean hashFirstRowComponent = false;
     private boolean appendHeavyAndReadLight = false;
     private boolean dbSideCompressionForBlocks = false;
+    private int numberOfComponentsHashed = 0;
 
     public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType) {
         this.streamTableType = type;
@@ -57,8 +58,8 @@ public class StreamTableDefinitionBuilder {
         return this;
     }
 
-    public StreamTableDefinitionBuilder hashFirstRowComponent() {
-        hashFirstRowComponent = true;
+    public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
+        this.numberOfComponentsHashed = numberOfComponentsHashed;
         return this;
     }
 
@@ -98,13 +99,13 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                if (hashFirstRowComponent) {
-                    hashFirstRowComponent();
-                }
-                rowComponent("id",            idType);
+                    if (numberOfComponentsHashed > 0) {
+                        hashFirstNRowComponents(numberOfComponentsHashed);
+                    }
+                    rowComponent("id",            idType);
                 dynamicColumns();
-                columnComponent("reference", ValueType.SIZED_BLOB);
-                value(ValueType.VAR_LONG);
+                    columnComponent("reference", ValueType.SIZED_BLOB);
+                    value(ValueType.VAR_LONG);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(1);
                 explicitCompressionRequested();
@@ -119,8 +120,8 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                    if (hashFirstRowComponent) {
-                        hashFirstRowComponent();
+                    if (numberOfComponentsHashed > 0) {
+                        hashFirstNRowComponents(numberOfComponentsHashed);
                     }
                     rowComponent("id", idType);
                 columns();
@@ -140,8 +141,8 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                    if (hashFirstRowComponent) {
-                        hashFirstRowComponent();
+                    if (numberOfComponentsHashed > 0) {
+                        hashFirstNRowComponents(numberOfComponentsHashed);
                     }
                     rowComponent("id",              idType);
                     rowComponent("block_id",        ValueType.VAR_LONG);
