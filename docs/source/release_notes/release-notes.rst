@@ -56,7 +56,7 @@ develop
 
     *    - |fixed|
          - Path and query parameters for TimeLock endpoints have now been marked as safe.
-           Several logging parameters in TimeLock (e.g. in ``PaxosTimestampBoundStore`` and ``PaxosSynchronizer`` have also been marked as safe).
+           Several logging parameters in TimeLock (e.g. in ``PaxosTimestampBoundStore`` and ``PaxosSynchronizer``) have also been marked as safe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
 
     *    - |improved|
