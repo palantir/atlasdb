@@ -44,6 +44,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Improved the performance of sweep on Postgres-backed DbKvs by making fewer round trips to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2021>`__)
+
     *    - |devbreak| |improved|
          - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
            Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
@@ -83,12 +87,12 @@ develop
 
     *    - |devbreak| |fixed|
          - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)
 
     *    - |devbreak| |fixed|
          - The ``ConcurrentStreams`` class has been deleted and replaced with calls to ``MoreStreams.blockingStreamWithParallelism``, from `streams <https://github.com/palantir/streams>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2361/files>`__)
-         
+
     *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
            This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
@@ -296,7 +300,6 @@ v0.54.0
     *    - |changed|
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
