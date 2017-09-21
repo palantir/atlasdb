@@ -63,6 +63,7 @@ public abstract class AsyncInitializer {
         }
     }
 
+    // Not final for tests.
     void assertNeverCalledInitialize() {
         if (!isInitializing.compareAndSet(false, true)) {
             throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
@@ -71,6 +72,7 @@ public abstract class AsyncInitializer {
         }
     }
 
+    // Not final for tests.
     void scheduleInitialization() {
         singleThreadedExecutor.schedule(() -> {
             if (canceledInitialization) {
@@ -89,8 +91,8 @@ public abstract class AsyncInitializer {
         }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
     }
 
-    @VisibleForTesting
-    protected int sleepIntervalInMillis() {
+    // Not final for tests.
+    int sleepIntervalInMillis() {
         return 10_000;
     }
 
@@ -120,7 +122,8 @@ public abstract class AsyncInitializer {
         initialized = true;
     }
 
-    public final boolean isInitialized() {
+    // Not final for tests.
+    boolean isInitialized() {
         return initialized;
     }
 
