@@ -77,6 +77,7 @@ public class SchemaMutationLockTables {
         CassandraKeyValueServices.waitForSchemaVersions(
                 client,
                 tableRef.getQualifiedName(),
-                config.schemaMutationTimeoutMillis());
+                config.schemaMutationTimeoutMillis(),
+                true);
     }
 }

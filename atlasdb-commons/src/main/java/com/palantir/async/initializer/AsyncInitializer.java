@@ -54,6 +54,7 @@ public abstract class AsyncInitializer {
 
         try {
             tryInitializeInternal();
+            log.info("Initialized {} synchronously", SafeArg.of("className", getInitializingClassName()));
         } catch (Throwable throwable) {
             log.info("Failed to initialize {} in the first attempt, will initialize asynchronously.",
                     SafeArg.of("className", getInitializingClassName()), throwable);
