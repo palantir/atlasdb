@@ -191,6 +191,7 @@ public final class SchemaApiTestTable implements
             }
         };
 
+
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -869,5 +870,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "naMZHA9IbuXS7r60a/1+gQ==";
+    static String __CLASS_HASH = "7KpdAfk/MtigcE2zD4u+GQ==";
 }

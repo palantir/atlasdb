@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import static java.lang.Math.max;
+
+import static com.google.common.primitives.Ints.min;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.TypeName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.VarName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.typeName;
@@ -73,6 +76,10 @@ class RowOrDynamicColumnRenderer extends Renderer {
             line();
             bytesHydrator();
             line();
+            if (desc.numberOfComponentsHashed() > 0) {
+                renderComputeFirstNComponentsHashMethod(desc.numberOfComponentsHashed());
+            }
+            line();
             if (rangeScanAllowed || isDynamicColumn) {
                 int firstSortedIndex = desc.getRowParts().size() - 1;
                 for ( ; firstSortedIndex > 0; firstSortedIndex--) {
@@ -80,7 +87,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
                         break;
                     }
                 }
-                for (int i = 1; i <= desc.getRowParts().size() - 1; i++) {
+                for (int i = max(desc.numberOfComponentsHashed(), 1); i <= desc.getRowParts().size() - 1; i++) {
                     if (isDynamicColumn) {
                         createColumnPrefixRange(i, firstSortedIndex < i);
                     } else {
@@ -122,8 +129,8 @@ class RowOrDynamicColumnRenderer extends Renderer {
 
     private void staticFactory() {
         line("public static ", Name, " of"); renderParameterList(getRowPartsWithoutHash()); lineEnd(" {"); {
-            if (desc.hasFirstComponentHash()) {
-                renderComputeFirstComponentHash();
+            if (desc.numberOfComponentsHashed() > 0) {
+                renderComputeFirstNComponentHash(desc.numberOfComponentsHashed());
             }
             line("return new ", Name); renderArgumentList(); lineEnd(";");
         } line("}");
@@ -221,8 +228,8 @@ class RowOrDynamicColumnRenderer extends Renderer {
 
     private List<String> renderComponentBytes(List<NameComponentDescription> components) {
         List<String> vars = Lists.newArrayList();
-        if (desc.hasFirstComponentHash()) {
-            renderComputeFirstComponentHash();
+        if (desc.numberOfComponentsHashed() > 0) {
+            renderComputeFirstNComponentHash(desc.numberOfComponentsHashed());
             String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
             vars.add(var);
             line("byte[] ", var, " = ", ValueType.FIXED_LONG.getPersistCode(NameMetadataDescription.HASH_ROW_COMPONENT_NAME), ";");
@@ -242,8 +249,8 @@ class RowOrDynamicColumnRenderer extends Renderer {
         List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, i);
         line("public static Prefix prefix", isSorted ? "" : "Unsorted"); renderParameterList(components); lineEnd(" {"); {
             List<String> vars = Lists.newArrayList();
-            if (desc.hasFirstComponentHash()) {
-                renderComputeFirstComponentHash();
+            if (desc.numberOfComponentsHashed() > 0) {
+                renderComputeFirstNComponentHash(desc.numberOfComponentsHashed());
                 String var = NameMetadataDescription.HASH_ROW_COMPONENT_NAME + "Bytes";
                 vars.add(var);
                 line("byte[] ", var, " = ", ValueType.FIXED_LONG.getPersistCode(NameMetadataDescription.HASH_ROW_COMPONENT_NAME), ";");
@@ -263,6 +270,33 @@ class RowOrDynamicColumnRenderer extends Renderer {
     private void renderComputeFirstComponentHash() {
         NameComponentDescription firstRowPart = getRowPartsWithoutHash().get(0);
         line("long ", NameMetadataDescription.HASH_ROW_COMPONENT_NAME, " = Hashing.murmur3_128().hashBytes(ValueType.", firstRowPart.getType().name(), ".convertFromJava(", varName(firstRowPart), ")).asLong();");
+    }
+
+    private void renderComputeFirstNComponentHash(int n) {
+        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, n);
+        List<String> vars = Lists.newArrayList();
+        for (NameComponentDescription comp : components) {
+            vars.add(varName(comp));
+        }
+        line("long ", NameMetadataDescription.HASH_ROW_COMPONENT_NAME, " = computeHashFirstComponents(", Joiner.on(", ").join(vars), ");");
+    }
+
+    private void renderComputeFirstNComponentsHashMethod(int n) {
+        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, n);
+        Preconditions.checkArgument(components.size() <= 1 || rangeScanAllowed);
+        Preconditions.checkArgument(components.size() <= n);
+        line("public static long computeHashFirstComponents"); renderParameterList(components); lineEnd(" {"); {
+            List<String> vars = Lists.newArrayList();
+            for (NameComponentDescription comp : components) {
+                String var = varName(comp) + "Bytes";
+                vars.add(var);
+                line("byte[] ", var, " = ", comp.getType().getPersistCode(varName(comp)), ";");
+                if (comp.getOrder() == ValueByteOrder.DESCENDING) {
+                    line("EncodingUtils.flipAllBitsInPlace(", var, ");");
+                }
+            }
+            line("return Hashing.murmur3_128().hashBytes(EncodingUtils.add(", Joiner.on(", ").join(vars), ")).asLong();");
+        } line("}");
     }
 
     private void renderToString() {
