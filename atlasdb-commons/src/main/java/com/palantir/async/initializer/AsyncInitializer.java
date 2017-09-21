@@ -26,7 +26,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
@@ -123,7 +122,7 @@ public abstract class AsyncInitializer {
     }
 
     // Not final for tests.
-    boolean isInitialized() {
+    public boolean isInitialized() {
         return initialized;
     }
 
