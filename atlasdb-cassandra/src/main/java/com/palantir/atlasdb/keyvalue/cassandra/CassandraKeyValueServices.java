@@ -80,6 +80,7 @@ public final class CassandraKeyValueServices {
         do {
             versions = client.describe_schema_versions();
             if (versions.size() <= 1) {
+                log.info("Schema versions: {}", versions);
                 return;
             }
             try {
