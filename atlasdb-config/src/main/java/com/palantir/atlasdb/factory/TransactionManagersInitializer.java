@@ -28,15 +28,14 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.common.annotation.Idempotent;
 
-public final class TransactionManagersInitializer implements AsyncInitializer {
-    private volatile boolean isInitialized = false;
-
+public final class TransactionManagersInitializer extends AsyncInitializer {
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
 
     public static void createInitialTables(KeyValueService keyValueService, Set<Schema> schemas,
             boolean initializeAsync) {
-        new TransactionManagersInitializer(keyValueService, schemas).initialize(initializeAsync);
+        new TransactionManagersInitializer(keyValueService, schemas)
+                .initialize(initializeAsync);
     }
 
     private TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas) {
@@ -45,15 +44,8 @@ public final class TransactionManagersInitializer implements AsyncInitializer {
     }
 
     @Override
-    public synchronized boolean isInitialized() {
-        return isInitialized;
-    }
-
-    @Override
     @Idempotent
     public synchronized void tryInitialize() {
-        assertNotInitialized();
-
         TransactionTables.createTables(keyValueService);
 
         Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
@@ -68,11 +60,10 @@ public final class TransactionManagersInitializer implements AsyncInitializer {
         // Prime the key value service with logging information.
         // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
         LoggingArgs.hydrate(keyValueService.getMetadataForTables());
-        isInitialized = true;
     }
 
     @Override
-    public synchronized void cleanUpOnInitFailure() {
-        // no-op
+    protected String getInitializingClassName() {
+        return "TransactionManagersInitializer";
     }
 }

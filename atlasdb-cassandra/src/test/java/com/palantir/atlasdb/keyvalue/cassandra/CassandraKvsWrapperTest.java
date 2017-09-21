@@ -20,24 +20,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.exception.NotInitializedException;
 
 public class CassandraKvsWrapperTest {
     private static final CassandraKeyValueServiceImpl kvs = mock(CassandraKeyValueServiceImpl.class);
-    private static final KeyValueService kvsWrapper = new CassandraKeyValueServiceImpl.InitializeCheckingWrapper(kvs);
+    private static final CassandraKeyValueService kvsWrapper = spy(kvs.new InitializingWrapper());
 
     @Test
     public void ifWrapperIsInitializedDelegateIsCalled() {
-        when(kvs.isInitialized()).thenReturn(true);
+        when(kvsWrapper.isInitialized()).thenReturn(true);
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
         kvsWrapper.createTable(tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA);
         verify(kvs).createTable(any(TableReference.class), any());
@@ -45,7 +45,7 @@ public class CassandraKvsWrapperTest {
 
     @Test
     public void ifWrapperIsNotInitializedDelegateIsNotCalled() {
-        when(kvs.isInitialized()).thenReturn(false);
+        when(kvsWrapper.isInitialized()).thenReturn(false);
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test");
         assertThatThrownBy(() -> kvsWrapper.createTable(tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA))
                 .isInstanceOf(NotInitializedException.class);

@@ -17,14 +17,11 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -71,8 +68,8 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                         SafeArg.of("runId", runId),
                         SafeArg.of("failureCount", failureCount), e);
             } catch (NotInitializedException e) {
-                log.warn("Asynchronous initialization of resources is not complete. Retrying in 10 seconds.", e);
-                Uninterruptibles.sleepUninterruptibly(AsyncInitializer.millisUntilNextAttempt, TimeUnit.MILLISECONDS);
+                log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", e);
+                throw e;
             } catch (RuntimeException e) {
                 log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;

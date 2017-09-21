@@ -37,7 +37,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -62,26 +61,28 @@ import com.palantir.processors.AutoDelegate;
  */
 @SuppressWarnings("checkstyle:FinalClass") // Non-final as we'd like to mock it.
 @AutoDelegate(typeToExtend = LockStore.class)
-public class LockStoreImpl implements LockStore, AsyncInitializer {
-    public static class InitializingWrapper implements AutoDelegate_LockStore {
-        private LockStoreImpl lockStore;
-
-        InitializingWrapper(LockStoreImpl lockStore) {
-            this.lockStore = lockStore;
+public class LockStoreImpl implements LockStore {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_LockStore {
+        @Override
+        public LockStore delegate() {
+            checkInitialized();
+            return LockStoreImpl.this;
         }
 
         @Override
-        public LockStore delegate() {
-            if (lockStore.isInitialized()) {
-                return lockStore;
-            }
-            throw new NotInitializedException("LockStore");
+        protected void tryInitialize() {
+            LockStoreImpl.this.tryInitialize();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "LockStore";
         }
     }
 
     private static final Logger log = LoggerFactory.getLogger(LockStore.class);
     private static final String BACKUP_LOCK_NAME = "BackupLock";
-    private volatile boolean isInitialized = false;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private final KeyValueService keyValueService;
 
@@ -101,7 +102,7 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
 
     public static LockStore create(KeyValueService kvs, boolean initializeAsync) {
         LockStoreImpl lockStore = createImplForTest(kvs, initializeAsync);
-        return lockStore.isInitialized() ? lockStore : new InitializingWrapper(lockStore);
+        return lockStore.wrapper.isInitialized() ? lockStore : lockStore.wrapper;
     }
 
     @VisibleForTesting
@@ -111,30 +112,15 @@ public class LockStoreImpl implements LockStore, AsyncInitializer {
 
     private static LockStoreImpl createImplForTest(KeyValueService kvs, boolean initializeAsync) {
         LockStoreImpl lockStore = new LockStoreImpl(kvs);
-        lockStore.initialize(initializeAsync);
+        lockStore.wrapper.initialize(initializeAsync);
         return lockStore;
     }
 
-    @Override
-    public synchronized boolean isInitialized() {
-        return isInitialized;
-    }
-
-    @Override
-    public synchronized void tryInitialize() {
-        assertNotInitialized();
-
+    private void tryInitialize() {
         keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         if (allLockEntries().isEmpty()) {
             new LockStorePopulator(keyValueService).populate();
         }
-
-        isInitialized = true;
-    }
-
-    @Override
-    public synchronized void cleanUpOnInitFailure() {
-        // no-op
     }
 
     @Override

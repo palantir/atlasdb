@@ -126,7 +126,6 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
@@ -148,60 +147,38 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * and these inactive nodes will be removed afterwards.
  */
 @AutoDelegate(typeToExtend = CassandraKeyValueService.class)
-public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
-        implements AsyncInitializer, CassandraKeyValueService {
-
-    public static class InitializeCheckingWrapper implements AutoDelegate_CassandraKeyValueService {
-        private enum Status {
-            OPEN, CLOSING, CLOSED
-        }
-
-        private CassandraKeyValueServiceImpl kvs;
-        private volatile Status status = Status.OPEN;
-
-        public InitializeCheckingWrapper(CassandraKeyValueServiceImpl kvs) {
-            this.kvs = kvs;
+public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
+    @VisibleForTesting
+    class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
+        @Override
+        public CassandraKeyValueServiceImpl delegate() {
+            checkInitialized();
+            return CassandraKeyValueServiceImpl.this;
         }
 
         @Override
-        public CassandraKeyValueService delegate() {
-            if (status == Status.CLOSING) {
-                close();
-                if (status != Status.CLOSED) {
-                    throw new NotInitializedException("CassandraKeyValueService");
-                }
-            }
-            return delegateInternal();
-        }
-
-        private CassandraKeyValueService delegateInternal() {
-            if (kvs.isInitialized()) {
-                return kvs;
-            }
-            throw new NotInitializedException("CassandraKeyValueService");
+        protected void tryInitialize() {
+            CassandraKeyValueServiceImpl.this.tryInitialize();
         }
 
         @Override
         public boolean supportsCheckAndSet() {
-            return kvs.supportsCheckAndSet();
+            return CassandraKeyValueServiceImpl.this.supportsCheckAndSet();
         }
 
         @Override
         public CassandraClientPool getClientPool() {
-            return kvs.getClientPool();
+            return CassandraKeyValueServiceImpl.this.getClientPool();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "CassandraKeyValueService";
         }
 
         @Override
         public void close() {
-            if (status != Status.CLOSED) {
-                try {
-                    delegateInternal().close();
-                    status = Status.CLOSED;
-                } catch (NotInitializedException e) {
-                    // The wrapper is closed, but we still have to propagate this to the delegate, once it initializes.
-                    status = Status.CLOSING;
-                }
-            }
+            cancelInitialization(CassandraKeyValueServiceImpl.this::close);
         }
     }
 
@@ -230,7 +207,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
-    private volatile boolean isInitialized = false;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
@@ -263,8 +240,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl keyValueService =
                 new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
-        keyValueService.initialize(initializeAsync);
-        return keyValueService.isInitialized() ? keyValueService : new InitializeCheckingWrapper(keyValueService);
+        keyValueService.wrapper.initialize(initializeAsync);
+        return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
 
     protected CassandraKeyValueServiceImpl(Logger log,
@@ -288,26 +265,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         this.cassandraTables = new CassandraTables(clientPool, configManager);
     }
 
-    private LockLeader whoIsTheLockCreator() {
-        return leaderConfig
-                .map((config) -> config.whoIsTheLockLeader())
-                .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
-    }
-
-    @Override
-    public synchronized void cleanUpOnInitFailure() {
-        // no-op
-    }
-
-    @Override
     public boolean isInitialized() {
-        return isInitialized;
+        return wrapper.isInitialized();
     }
 
-    @Override
-    public synchronized void tryInitialize() {
-        assertNotInitialized();
+    protected void initialize(boolean asyncInitialize) {
+        wrapper.initialize(asyncInitialize);
+    }
 
+    private void tryInitialize() {
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
@@ -332,8 +298,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
+    }
 
-        isInitialized = true;
+    private LockLeader whoIsTheLockCreator() {
+        return leaderConfig
+                .map((config) -> config.whoIsTheLockLeader())
+                .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
     private void upgradeFromOlderInternalSchema() {
@@ -2034,7 +2004,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService
         }
         super.close();
     }
-
 
     /**
      * Adds a value with timestamp = Value.INVALID_VALUE_TIMESTAMP to each of the given cells. If

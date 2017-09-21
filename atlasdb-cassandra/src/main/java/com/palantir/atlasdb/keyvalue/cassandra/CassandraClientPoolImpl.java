@@ -74,7 +74,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting2.tracing.Tracers;
 
@@ -96,20 +95,32 @@ import com.palantir.remoting2.tracing.Tracers;
  **/
 @SuppressWarnings("VisibilityModifier")
 @AutoDelegate(typeToExtend = CassandraClientPool.class)
-public final class CassandraClientPoolImpl implements CassandraClientPool, AsyncInitializer {
-    public static class InitializingWrapper implements AutoDelegate_CassandraClientPool {
-        private CassandraClientPoolImpl cassandraClientPool;
-
-        public InitializingWrapper(CassandraClientPoolImpl cassandraClientPool) {
-            this.cassandraClientPool = cassandraClientPool;
+public final class CassandraClientPoolImpl implements CassandraClientPool {
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
+        @Override
+        public CassandraClientPool delegate() {
+            checkInitialized();
+            return CassandraClientPoolImpl.this;
         }
 
         @Override
-        public CassandraClientPool delegate() {
-            if (cassandraClientPool.isInitialized()) {
-                return cassandraClientPool;
-            }
-            throw new NotInitializedException("CassandraClientPool");
+        protected void tryInitialize() {
+            CassandraClientPoolImpl.this.tryInitialize();
+        }
+
+        @Override
+        protected void cleanUpOnInitFailure() {
+            CassandraClientPoolImpl.this.cleanUpOnInitFailure();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "CassandraClientPool";
+        }
+
+        @Override
+        public void shutdown() {
+            cancelInitialization(CassandraClientPoolImpl.this::shutdown);
         }
     }
 
@@ -139,9 +150,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private ScheduledFuture<?> refreshPoolFuture;
-    private volatile boolean isInitialized = false;
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
@@ -156,13 +167,13 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = create(config,
                 StartupChecks.RUN, initializeAsync);
-        return cassandraClientPool.isInitialized() ? cassandraClientPool : new InitializingWrapper(cassandraClientPool);
+        return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
-        cassandraClientPool.initialize(initializeAsync);
+        cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
@@ -175,16 +186,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
                 .build()));
     }
 
-    @Override
-    public synchronized boolean isInitialized() {
-        return isInitialized;
-    }
-
-    @Override
-    public synchronized void tryInitialize() {
-        assertNotInitialized();
-
-        config.servers().forEach(this::addPool);
+    private void tryInitialize() {
+        config.servers().forEach(CassandraClientPoolImpl.this::addPool);
         refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
@@ -200,11 +203,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool, Async
         }
         refreshPool(); // ensure we've initialized before returning
         registerAggregateMetrics();
-        isInitialized = true;
     }
 
-    @Override
-    public synchronized void cleanUpOnInitFailure() {
+    private void cleanUpOnInitFailure() {
         metricsManager.deregisterMetrics();
         refreshPoolFuture.cancel(true);
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
