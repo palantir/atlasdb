@@ -269,7 +269,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
 
     private void renderComputeFirstComponentHash() {
         NameComponentDescription firstRowPart = getRowPartsWithoutHash().get(0);
-        line("long ", NameMetadataDescription.HASH_ROW_COMPONENT_NAME, " = Hashing.murmur3_128().hashBytes(ValueType.", firstRowPart.getType().name(), ".convertFromJava(", varName(firstRowPart), ")).asLong();");
+        line("long ", NameMetadataDescription.HASH_ROW_COMPONENT_NAME, "2 = Hashing.murmur3_128().hashBytes(ValueType.", firstRowPart.getType().name(), ".convertFromJava(", varName(firstRowPart), ")).asLong();");
     }
 
     private void renderComputeFirstNComponentHash(int n) {

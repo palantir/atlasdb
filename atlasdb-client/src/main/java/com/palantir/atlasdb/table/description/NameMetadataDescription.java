@@ -37,7 +37,7 @@ import com.palantir.util.Pair;
 
 @Immutable
 public class NameMetadataDescription {
-    public static final String HASH_ROW_COMPONENT_NAME = "firstComponentHash";
+    public static final String HASH_ROW_COMPONENT_NAME = "hashOfComponents";
 
     private final List<NameComponentDescription> rowParts;
     private final int numberOfComponentsHashed;
@@ -55,7 +55,6 @@ public class NameMetadataDescription {
                 throw new IllegalArgumentException("string or blob must be on end.  components were: " + components);
             }
         }
-        //this.hasFirstComponentHash = hasFirstComponentHash;
         this.numberOfComponentsHashed = numberOfComponentsHashed;
     }
 
@@ -80,10 +79,6 @@ public class NameMetadataDescription {
     public List<NameComponentDescription> getRowParts() {
         return rowParts;
     }
-
-//    public boolean hasFirstComponentHash() {
-//        return hasFirstComponentHash;
-//    }
 
     public int numberOfComponentsHashed() {
         return numberOfComponentsHashed;
