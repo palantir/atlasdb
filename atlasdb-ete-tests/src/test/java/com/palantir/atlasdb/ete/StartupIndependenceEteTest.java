@@ -90,15 +90,12 @@ public class StartupIndependenceEteTest {
     }
 
     @Test
-    public void atlasInitializesSynchronouslyIfQuorumOfNodesIsUp() throws InterruptedException, IOException {
-        startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
-        restartAtlasWithChecks();
-        assertTrue(canPerformTransaction());
-    }
-
-    @Test
     public void atlasInitializesSynchronouslyIfCassandraIsInGoodState() throws InterruptedException, IOException {
         startCassandraNodes(ALL_CASSANDRA_NODES);
+        restartAtlasWithChecks();
+        assertTrue(canPerformTransaction());
+
+        killCassandraNodes(ONE_CASSANDRA_NODE);
         restartAtlasWithChecks();
         assertTrue(canPerformTransaction());
     }

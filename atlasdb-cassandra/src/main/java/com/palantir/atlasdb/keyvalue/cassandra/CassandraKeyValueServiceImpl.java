@@ -1723,7 +1723,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServices.waitForSchemaVersions(
                     client,
                     "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
-                    configManager.getConfig().schemaMutationTimeoutMillis(), true);
+                    configManager.getConfig().schemaMutationTimeoutMillis());
             return null;
         });
     }
