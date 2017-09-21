@@ -38,8 +38,9 @@ dependencies {
 
   explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
 
-  explicitShadow group: 'com.palantir.remoting2', name: 'ssl-config'
-  explicitShadow group: 'com.palantir.remoting2', name: 'tracing'
+  explicitShadow group: 'com.palantir.remoting-api', name: 'ssl-config'
+  explicitShadow group: 'com.palantir.remoting3', name: 'keystores'
+  explicitShadow group: 'com.palantir.remoting3', name: 'tracing'
 
   explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
 

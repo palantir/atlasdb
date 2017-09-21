@@ -8,7 +8,7 @@ import java.util.Optional;
 
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
-import com.palantir.remoting2.config.service.ServiceConfiguration;
+import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
 import com.palantir.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
@@ -35,7 +35,7 @@ public final class TimeLockConfigMigrator {
                         .dataDirectory(paxosConfiguration.paxosDataDir())
                         .build())
                 .cluster(ImmutableClusterConfiguration.builder()
-                        .cluster(ServiceConfiguration.builder()
+                        .cluster(PartialServiceConfiguration.builder()
                                 .security(paxosConfiguration.sslConfiguration())
                                 .uris(config.cluster().servers())
                                 .build())

@@ -11,6 +11,7 @@ configurations.all {
                     break
                 case 'com.fasterxml.jackson.core':
                 case 'com.fasterxml.jackson.datatype':
+                case 'com.fasterxml.jackson.jaxrs':
                     details.useVersion libVersions.timelock_jackson
                     break
                 case 'org.eclipse.jetty':
