@@ -1292,7 +1292,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 rowPuts.put(internalTableName(tableRef), Lists.<Mutation>newArrayList());
                             }
                             rowPuts.get(internalTableName(tableRef)).add(mutation);
-                            mapIndex++;
+                            //mapIndex++;
                             numVersions += cellVersions.getValue().size();
                         }
                     }
