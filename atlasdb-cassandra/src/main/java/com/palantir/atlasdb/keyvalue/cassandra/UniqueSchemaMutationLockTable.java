@@ -72,9 +72,12 @@ public class UniqueSchemaMutationLockTable {
 
     private synchronized TableReference ensureLockTableExists() throws TException {
         Set<TableReference> tables = schemaMutationLockTables.getAllLockTables();
+        log.info("Initial lock tables fetched: {}", tables);
 
         if (tables.isEmpty()) {
+            log.info("Lock tables empty, creating lock table. This should happen only once");
             schemaMutationLockTables.createLockTable();
+            log.info("Lock tables created");
         }
 
         return getSingleTable();
@@ -82,6 +85,7 @@ public class UniqueSchemaMutationLockTable {
 
     private TableReference getSingleTable() throws TException {
         Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
+        log.info("All lock tables fetched: {}", lockTables.toString());
 
         if (lockTables.size() > 1) {
             throw new IllegalStateException("Multiple schema mutation lock tables have been created.\n"
