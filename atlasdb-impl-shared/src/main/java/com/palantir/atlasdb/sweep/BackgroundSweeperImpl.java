@@ -204,6 +204,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
                                 tx);
                         if (progress.isPresent()) {
+                            log.info("Sweeping another batch of table: {}.",
+                                    LoggingArgs.tableRef("table name", progress.get().tableRef()));
                             return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
                         } else {
                             Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
