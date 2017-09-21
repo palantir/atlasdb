@@ -3,9 +3,6 @@
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
         },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5"
         }
@@ -13,9 +10,6 @@
     "runtime": {
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3"
-        },
-        "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5"

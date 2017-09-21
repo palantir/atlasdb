@@ -23,9 +23,10 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
     HASH("_stream_hash_aidx", "StreamHashAidx"),
     INDEX("_stream_idx", "StreamIdx");
 
-    private final String tableSuffix, javaSuffix;
+    private final String tableSuffix;
+    private final String javaSuffix;
 
-    private StreamTableType(final String tableSuffix, final String javaSuffix) {
+    StreamTableType(final String tableSuffix, final String javaSuffix) {
         this.tableSuffix = tableSuffix;
         this.javaSuffix = javaSuffix;
     }

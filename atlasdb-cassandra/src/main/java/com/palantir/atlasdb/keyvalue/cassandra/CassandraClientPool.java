@@ -71,7 +71,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Feature breakdown:
@@ -287,11 +287,9 @@ public class CassandraClientPool {
     @VisibleForTesting
     void addPool(InetSocketAddress server, CassandraClientPoolingContainer container) {
         currentPools.put(server, container);
-        registerMetricsForHost(server);
     }
 
     private void removePool(InetSocketAddress removedServerAddress) {
-        deregisterMetricsForHost(removedServerAddress);
         blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
@@ -300,24 +298,6 @@ public class CassandraClientPool {
                     removedServerAddress, e);
         }
         currentPools.remove(removedServerAddress);
-    }
-
-    private void registerMetricsForHost(InetSocketAddress server) {
-        RequestMetrics requestMetrics = new RequestMetrics(server.getHostString());
-        metricsManager.registerMetric(
-                CassandraClientPool.class,
-                server.getHostString(), "requestFailureProportion",
-                requestMetrics::getExceptionProportion);
-        metricsManager.registerMetric(
-                CassandraClientPool.class,
-                server.getHostString(), "requestConnectionExceptionProportion",
-                requestMetrics::getConnectionExceptionProportion);
-        metricsByHost.put(server, requestMetrics);
-    }
-
-    private void deregisterMetricsForHost(InetSocketAddress removedServerAddress) {
-        metricsByHost.remove(removedServerAddress);
-        metricsManager.deregisterMetricsWithPrefix(CassandraClientPool.class, removedServerAddress.getHostString());
     }
 
     private void debugLogStateOfPool() {
@@ -568,7 +548,7 @@ public class CassandraClientPool {
             new FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception>() {
                 @Override
                 public List<TokenRange> apply(Cassandra.Client client) throws Exception {
-                    return client.describe_ring(config.keyspace());
+                    return client.describe_ring(config.getKeyspaceOrThrow());
                 }
             };
 
@@ -702,11 +682,11 @@ public class CassandraClientPool {
             try {
                 client = CassandraClientFactory.getClientInternal(host, config);
                 try {
-                    client.describe_keyspace(config.keyspace());
+                    client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
                     return; // don't care to check for ring consistency when we're not even fully initialized
                 }
-                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.keyspace())), host);
+                tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
                 log.warn("failed to get ring info from host: {}", host, e);
             } finally {
@@ -717,7 +697,7 @@ public class CassandraClientPool {
 
             if (tokenRangesToHost.isEmpty()) {
                 log.warn("Failed to get ring info for entire Cassandra cluster ({});"
-                        + " ring could not be checked for consistency.", config.keyspace());
+                        + " ring could not be checked for consistency.", config.getKeyspaceOrThrow());
                 return;
             }
 
@@ -746,7 +726,7 @@ public class CassandraClientPool {
                         tokenRangesToHost.get(set2));
             }
 
-            CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.safetyDisabled());
+            CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
         }
     }
 
@@ -784,7 +764,7 @@ public class CassandraClientPool {
             new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
                 @Override
                 public Void apply(Cassandra.Client client) throws Exception {
-                    CassandraVerifier.validatePartitioner(client, config);
+                    CassandraVerifier.validatePartitioner(client.describe_partitioner(), config);
                     return null;
                 }
             };

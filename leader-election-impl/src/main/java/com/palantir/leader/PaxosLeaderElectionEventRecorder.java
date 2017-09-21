@@ -33,6 +33,15 @@ public interface PaxosLeaderElectionEventRecorder {
     /** Called when we attempt to propose a new value. */
     void recordProposalAttempt(long round);
 
+    /** Called when we are unable to ping the current leader. */
+    void recordLeaderPingFailure(Throwable error);
+
+    /** Called when an attempt to ping the current leader times out. */
+    void recordLeaderPingTimeout();
+
+    /** Called when we successfully contacted the suspected leader, but it reported that it was not the leader. */
+    void recordLeaderPingReturnedFalse();
+
     PaxosLeaderElectionEventRecorder NO_OP = new PaxosLeaderElectionEventRecorder() {
         @Override
         public void recordNotLeading(PaxosValue value) { }
@@ -45,6 +54,15 @@ public interface PaxosLeaderElectionEventRecorder {
 
         @Override
         public void recordProposalAttempt(long round) { }
+
+        @Override
+        public void recordLeaderPingFailure(Throwable error) { }
+
+        @Override
+        public void recordLeaderPingTimeout() { }
+
+        @Override
+        public void recordLeaderPingReturnedFalse() { }
     };
 
 }

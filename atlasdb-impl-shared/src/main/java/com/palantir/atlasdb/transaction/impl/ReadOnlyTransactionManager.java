@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.concurrent.ExecutorService;
+
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -32,6 +34,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 
 /**
  * This {@link TransactionManager} will provide transactions that will read the most recently
@@ -45,25 +48,20 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     protected final Supplier<Long> startTimestamp;
     protected final TransactionReadSentinelBehavior readSentinelBehavior;
     protected final boolean allowHiddenTableAccess;
+    final ExecutorService getRangesExecutor;
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
                                       TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode) {
+                                      AtlasDbConstraintCheckingMode constraintCheckingMode,
+                                      int concurrentGetRangesThreadPoolSize) {
         this(
                 keyValueService,
                 transactionService,
                 constraintCheckingMode,
                 Suppliers.ofInstance(Long.MAX_VALUE),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false);
-    }
-
-    public ReadOnlyTransactionManager(KeyValueService keyValueService,
-                                      TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                      Supplier<Long> startTimestamp,
-                                      TransactionReadSentinelBehavior readSentinelBehavior) {
-        this(keyValueService, transactionService, constraintCheckingMode, startTimestamp, readSentinelBehavior, false);
+                false,
+                concurrentGetRangesThreadPoolSize);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
@@ -71,13 +69,31 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                                       AtlasDbConstraintCheckingMode constraintCheckingMode,
                                       Supplier<Long> startTimestamp,
                                       TransactionReadSentinelBehavior readSentinelBehavior,
-                                      boolean allowHiddenTableAccess) {
+                                      int concurrentGetRangesThreadPoolSize) {
+        this(
+                keyValueService,
+                transactionService,
+                constraintCheckingMode,
+                startTimestamp,
+                readSentinelBehavior,
+                false,
+                concurrentGetRangesThreadPoolSize);
+    }
+
+    public ReadOnlyTransactionManager(KeyValueService keyValueService,
+                                      TransactionService transactionService,
+                                      AtlasDbConstraintCheckingMode constraintCheckingMode,
+                                      Supplier<Long> startTimestamp,
+                                      TransactionReadSentinelBehavior readSentinelBehavior,
+                                      boolean allowHiddenTableAccess,
+                                      int concurrentGetRangesThreadPoolSize) {
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
         this.constraintCheckingMode = constraintCheckingMode;
         this.startTimestamp = startTimestamp;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
     }
 
     @Override
@@ -90,7 +106,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 constraintCheckingMode,
                 readSentinelBehavior,
                 allowHiddenTableAccess,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                getRangesExecutor);
         return runTaskThrowOnConflict(task, new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 
@@ -160,6 +177,11 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
 
     @Override
     public LockService getLockService() {
+        return null;
+    }
+
+    @Override
+    public TimelockService getTimelockService() {
         return null;
     }
 }

@@ -60,16 +60,16 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     }
 
     @Override
-    public void checkpoint(String extraId, long rangeId, byte[] nextRowName, Transaction t) {
+    public void checkpoint(String extraId, long rangeId, byte[] nextRowName, Transaction tx) {
         Cell cell = getCell(extraId, rangeId);
         Map<Cell, byte[]> values = ImmutableMap.of(cell, toDb(nextRowName, false));
-        t.put(checkpointTable, values);
+        tx.put(checkpointTable, values);
     }
 
     @Override
-    public byte[] getCheckpoint(String extraId, long rangeId, Transaction t) {
+    public byte[] getCheckpoint(String extraId, long rangeId, Transaction tx) {
         Cell cell = getCell(extraId, rangeId);
-        byte[] value = t.get(checkpointTable, ImmutableSet.of(cell)).get(cell);
+        byte[] value = tx.get(checkpointTable, ImmutableSet.of(cell)).get(cell);
         return fromDb(value);
     }
 
@@ -78,30 +78,27 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
                                   final Map<Long, byte[]> startById) {
         Schemas.createTable(getSchema(), kvs, checkpointTable);
 
-        txManager.runTaskWithRetry(new TransactionTask<Map<Long, byte[]>, RuntimeException>() {
-            @Override
-            public Map<Long, byte[]> execute(Transaction t) {
-                Set<byte[]> rows = Sets.newHashSet();
-                for (long rangeId : startById.keySet()) {
-                    rows.add(getRowName(extraId, rangeId));
-                }
-
-                Map<byte[], RowResult<byte[]>> rr = t.getRows(
-                        checkpointTable,
-                        rows,
-                        ColumnSelection.all());
-
-                if (rr.isEmpty()) {
-                    Map<Cell, byte[]> values = Maps.newHashMap();
-                    for (Entry<Long, byte[]> e : startById.entrySet()) {
-                        Cell cell = getCell(extraId, e.getKey());
-                        byte[] value = toDb(e.getValue(), true);
-                        values.put(cell, value);
-                    }
-                    t.put(checkpointTable, values);
-                }
-                return null;
+        txManager.runTaskWithRetry((TransactionTask<Map<Long, byte[]>, RuntimeException>) t -> {
+            Set<byte[]> rows = Sets.newHashSet();
+            for (long rangeId : startById.keySet()) {
+                rows.add(getRowName(extraId, rangeId));
             }
+
+            Map<byte[], RowResult<byte[]>> rr = t.getRows(
+                    checkpointTable,
+                    rows,
+                    ColumnSelection.all());
+
+            if (rr.isEmpty()) {
+                Map<Cell, byte[]> values = Maps.newHashMap();
+                for (Entry<Long, byte[]> e : startById.entrySet()) {
+                    Cell cell = getCell(extraId, e.getKey());
+                    byte[] value = toDb(e.getValue(), true);
+                    values.put(cell, value);
+                }
+                t.put(checkpointTable, values);
+            }
+            return null;
         });
     }
 
@@ -126,6 +123,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
         return EncodingUtils.toBytes(types, components);
     }
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private Schema getSchema() {
         Schema schema = new Schema(checkpointTable.getNamespace());
         schema.addTableDefinition(checkpointTable.getTablename(), new TableDefinition() {{

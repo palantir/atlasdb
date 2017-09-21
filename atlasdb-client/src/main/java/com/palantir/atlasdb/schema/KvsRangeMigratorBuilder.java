@@ -61,12 +61,7 @@ public class KvsRangeMigratorBuilder {
     }
 
     private static Function<RowResult<byte[]>, Map<Cell, byte[]>> getIdentityTransform() {
-        return new Function<RowResult<byte[]>, Map<Cell,byte[]>>() {
-            @Override
-            public Map<Cell, byte[]> apply(RowResult<byte[]> input) {
-                return Maps2.fromEntries(input.getCells());
-            }
-        };
+        return input -> Maps2.fromEntries(input.getCells());
     }
 
     public KvsRangeMigratorBuilder srcTable(TableReference table) {
@@ -111,15 +106,15 @@ public class KvsRangeMigratorBuilder {
         return this;
     }
 
-    public KvsRangeMigratorBuilder checkpointer(AbstractTaskCheckpointer c) {
-        Preconditions.checkNotNull(c);
-        this.checkpointer = c;
+    public KvsRangeMigratorBuilder checkpointer(AbstractTaskCheckpointer cp) {
+        Preconditions.checkNotNull(cp);
+        this.checkpointer = cp;
         return this;
     }
 
-    public KvsRangeMigratorBuilder rowTransformer(Function<RowResult<byte[]>, Map<Cell, byte[]>> f) {
-        Preconditions.checkNotNull(f);
-        this.rowTransform = f;
+    public KvsRangeMigratorBuilder rowTransformer(Function<RowResult<byte[]>, Map<Cell, byte[]>> function) {
+        Preconditions.checkNotNull(function);
+        this.rowTransform = function;
         return this;
     }
 

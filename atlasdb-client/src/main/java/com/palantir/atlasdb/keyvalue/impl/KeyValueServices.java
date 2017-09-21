@@ -28,7 +28,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -96,7 +95,7 @@ public class KeyValueServices {
                 ret.put(request, SimpleTokenBackedResultsPage.create(request.getEndExclusive(), results, false));
                 return;
             }
-            RowResult<Value> last = results.get(results.size()-1);
+            RowResult<Value> last = results.get(results.size() - 1);
             byte[] lastRowName = last.getRowName();
             if (RangeRequests.isTerminalRow(request.isReverse(), lastRowName)) {
                 ret.put(request, SimpleTokenBackedResultsPage.create(lastRowName, results, false));
@@ -113,6 +112,7 @@ public class KeyValueServices {
         }
     }
 
+    @SuppressWarnings("checkstyle:LineLength")
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRangeConcurrent(
             ExecutorService executor,
             final KeyValueService kv,
@@ -124,12 +124,7 @@ public class KeyValueServices {
         BlockingWorkerPool pool = new BlockingWorkerPool(executor, maxConcurrentRequests);
         try {
             for (final RangeRequest request : rangeRequests) {
-                pool.submitTask(new Runnable() {
-                    @Override
-                    public void run() {
-                        getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret);
-                    }
-                });
+                pool.submitTask(() -> getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret));
             }
             pool.waitForSubmittedTasks();
             return ret;
@@ -138,6 +133,7 @@ public class KeyValueServices {
         }
     }
 
+    @SuppressWarnings("checkstyle:LineLength")
     public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRange(
             KeyValueService kv,
             TableReference tableRef,
@@ -150,19 +146,20 @@ public class KeyValueServices {
         return ret;
     }
 
-    public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
-        return Collections2.transform(cells, new Function<Map.Entry<Cell, byte[]>, Map.Entry<Cell, Value>>() {
-            @Override
-            public Map.Entry<Cell, Value> apply(Map.Entry<Cell, byte[]> entry) {
-                return Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp));
-            }
-        });
+    public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(
+            final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
+        return Collections2.transform(cells,
+                entry -> Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp)));
     }
 
-    // TODO: kill this when we can properly implement this on all KVSes
-    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
-        log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. Production " +
-                "environments should use a KVS with a proper implementation.");
+    // TODO(gsheasby): kill this when we can properly implement this on all KVSes
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs,
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection,
+            long timestamp) {
+        log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. "
+                + "Production environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
         Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
         Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
@@ -201,11 +198,11 @@ public class KeyValueServices {
     }
 
     public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(KeyValueService kvs,
-                                                                                   TableReference tableRef,
-                                                                                   Iterable<byte[]> rows,
-                                                                                   ColumnRangeSelection columnRangeSelection,
-                                                                                   int batchHint,
-                                                                                   long timestamp) {
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int batchHint,
+            long timestamp) {
         if (Iterables.isEmpty(rows)) {
             return new LocalRowColumnRangeIterator(Collections.emptyIterator());
         }

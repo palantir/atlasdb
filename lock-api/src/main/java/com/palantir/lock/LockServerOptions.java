@@ -21,8 +21,12 @@ import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
@@ -32,19 +36,20 @@ import com.google.common.base.Objects;
  *
  * @author jtamer
  */
-@Immutable public class LockServerOptions implements Serializable {
+
+@JsonDeserialize(builder =
+        LockServerOptions.SerializationProxy.class)
+@Value.Immutable
+public class LockServerOptions implements Serializable {
     private static final long serialVersionUID = 2930574230723753879L;
-
-    /** The default lock server option values. */
-    public static final LockServerOptions DEFAULT = new LockServerOptions();
-
-    protected LockServerOptions() { /* empty */ }
+    public static final LockServerOptions DEFAULT = builder().build();
 
     /**
      * Returns <code>true</code> if this is a standalone lock server or
      * <code>false</code> if the lock server code is running in-process with the only
      * client accessing it.
      */
+    @Value.Default
     public boolean isStandaloneServer() {
         return true;
     }
@@ -54,6 +59,7 @@ import com.google.common.base.Objects;
      * {@link LockRequest.Builder#timeoutAfter(TimeDuration)}. The default value
      * is 10 minutes.
      */
+    @Value.Default
     public TimeDuration getMaxAllowedLockTimeout() {
         return SimpleTimeDuration.of(10, TimeUnit.MINUTES);
     }
@@ -62,6 +68,7 @@ import com.google.common.base.Objects;
      * Returns the maximum permitted clock drift between the server and any
      * client. The default value is 5 seconds.
      */
+    @Value.Default
     public TimeDuration getMaxAllowedClockDrift() {
         return SimpleTimeDuration.of(5, TimeUnit.SECONDS);
     }
@@ -70,7 +77,11 @@ import com.google.common.base.Objects;
      * Returns the maximum amount of time that may be passed to
      * {@link LockRequest.Builder#blockForAtMost(TimeDuration)}. The default
      * value is 60 seconds.
+     *
+     * @deprecated this value is no longer used or respected.
      */
+    @Deprecated
+    @Value.Default
     public TimeDuration getMaxAllowedBlockingDuration() {
         return SimpleTimeDuration.of(60, TimeUnit.SECONDS);
     }
@@ -79,6 +90,7 @@ import com.google.common.base.Objects;
      * Returns the maximum amount of time a lock is usually held for.
      * The default value is 1 hour.
      */
+    @Value.Default
     public TimeDuration getMaxNormalLockAge() {
         return SimpleTimeDuration.of(1, TimeUnit.HOURS);
     }
@@ -86,7 +98,11 @@ import com.google.common.base.Objects;
     /**
      * Returns the number of bits used to create random lock token IDs. The
      * default value is 64 bits.
+     *
+     * @deprecated this value is no longer used or respected
      */
+    @Deprecated
+    @Value.Default
     public int getRandomBitCount() {
         return Long.SIZE;
     }
@@ -95,11 +111,14 @@ import com.google.common.base.Objects;
      * Info level logging for any lock request that receives a response after given time.
      * If the duration is zero or negative, slow lock logging will be disabled.
      */
+    @JsonProperty("slowLogTriggerMillis")
+    @Value.Default
     public long slowLogTriggerMillis() {
-        return 10000;
+        return 10000L;
     }
 
-    @Override public final boolean equals(@Nullable Object obj) {
+    @Override
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
@@ -112,21 +131,25 @@ import com.google.common.base.Objects;
                 && Objects.equal(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
                 && Objects.equal(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equal(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && (getRandomBitCount() == other.getRandomBitCount()
-                && getLockStateLoggerDir().equals(other.getLockStateLoggerDir()));
+                && Objects.equal(getRandomBitCount(), other.getRandomBitCount())
+                && Objects.equal(getLockStateLoggerDir(), other.getLockStateLoggerDir())
+                && Objects.equal(slowLogTriggerMillis(), other.slowLogTriggerMillis());
     }
 
-    @Override public final int hashCode() {
+    @Override
+    public int hashCode() {
         return Objects.hashCode(isStandaloneServer(),
                 getMaxAllowedLockTimeout(),
                 getMaxAllowedClockDrift(),
                 getMaxAllowedBlockingDuration(),
                 getMaxNormalLockAge(),
                 getRandomBitCount(),
-                getLockStateLoggerDir());
+                getLockStateLoggerDir(),
+                slowLogTriggerMillis());
     }
 
-    @Override public final String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("isStandaloneServer", isStandaloneServer())
                 .add("maxAllowedLockTimeout", getMaxAllowedLockTimeout())
@@ -135,6 +158,7 @@ import com.google.common.base.Objects;
                 .add("maxNormalLockAge", getMaxNormalLockAge())
                 .add("randomBitCount", getRandomBitCount())
                 .add("lockStateLoggerDir", getLockStateLoggerDir())
+                .add("slowLogTriggerMillis", slowLogTriggerMillis())
                 .toString();
     }
 
@@ -143,15 +167,22 @@ import com.google.common.base.Objects;
         throw new InvalidObjectException("proxy required");
     }
 
-    protected final Object writeReplace() {
+    protected Object writeReplace() {
         return new SerializationProxy(this);
     }
 
+    @Value.Default
     public String getLockStateLoggerDir() {
         return "log/state";
     }
 
-    private static class SerializationProxy implements Serializable {
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder extends ImmutableLockServerOptions.Builder {}
+
+    static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 4043798817916565364L;
 
         private final boolean isStandaloneServer;
@@ -161,6 +192,7 @@ import com.google.common.base.Objects;
         private final SimpleTimeDuration maxNormalLockAge;
         private final int randomBitCount;
         private final String lockStateLoggerDir;
+        private final long slowLogTriggerMillis;
 
         SerializationProxy(LockServerOptions lockServerOptions) {
             isStandaloneServer = lockServerOptions.isStandaloneServer();
@@ -174,32 +206,43 @@ import com.google.common.base.Objects;
                     lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
             lockStateLoggerDir = lockServerOptions.getLockStateLoggerDir();
+            slowLogTriggerMillis = lockServerOptions.slowLogTriggerMillis();
+        }
+
+        @JsonCreator
+        SerializationProxy(@JsonProperty("isStandaloneServer") boolean isStandaloneServer,
+                @JsonProperty("maxAllowedLockTimeout") SimpleTimeDuration maxAllowedLockTimeout,
+                @JsonProperty("maxAllowedClockDrift") SimpleTimeDuration maxAllowedClockDrift,
+                @JsonProperty("maxAllowedBlockingDuration") SimpleTimeDuration maxAllowedBlockingDuration,
+                @JsonProperty("maxNormalLockAge") SimpleTimeDuration maxNormalLockAge,
+                @JsonProperty("randomBitCount") int randomBitCount,
+                @JsonProperty("lockStateLoggerDir") String lockStateLoggerDir,
+                @JsonProperty("slowLogTriggerMillis") long slowLogTriggerMillis) {
+            this.isStandaloneServer = isStandaloneServer;
+            this.maxAllowedLockTimeout = maxAllowedLockTimeout;
+            this.maxAllowedClockDrift = maxAllowedClockDrift;
+            this.maxAllowedBlockingDuration = maxAllowedBlockingDuration;
+            this.maxNormalLockAge = maxNormalLockAge;
+            this.randomBitCount = randomBitCount;
+            this.lockStateLoggerDir = lockStateLoggerDir;
+            this.slowLogTriggerMillis = slowLogTriggerMillis;
+        }
+
+        public LockServerOptions build() {
+            return (LockServerOptions) readResolve();
         }
 
         Object readResolve() {
-            return new LockServerOptions() {
-                @Override public boolean isStandaloneServer() {
-                    return isStandaloneServer;
-                }
-                @Override public TimeDuration getMaxAllowedLockTimeout() {
-                    return maxAllowedLockTimeout;
-                }
-                @Override public TimeDuration getMaxAllowedClockDrift() {
-                    return maxAllowedClockDrift;
-                }
-                @Override public TimeDuration getMaxAllowedBlockingDuration() {
-                    return maxAllowedBlockingDuration;
-                }
-                @Override public TimeDuration getMaxNormalLockAge() {
-                    return maxNormalLockAge;
-                }
-                @Override public int getRandomBitCount() {
-                    return randomBitCount;
-                }
-                @Override public String getLockStateLoggerDir() {
-                    return lockStateLoggerDir;
-                }
-            };
+            return new Builder()
+                    .isStandaloneServer(isStandaloneServer)
+                    .maxAllowedLockTimeout(maxAllowedLockTimeout)
+                    .maxAllowedClockDrift(maxAllowedClockDrift)
+                    .maxAllowedBlockingDuration(maxAllowedBlockingDuration)
+                    .maxNormalLockAge(maxNormalLockAge)
+                    .randomBitCount(randomBitCount)
+                    .lockStateLoggerDir(lockStateLoggerDir)
+                    .slowLogTriggerMillis(slowLogTriggerMillis)
+                    .build();
         }
     }
 }

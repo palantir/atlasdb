@@ -32,12 +32,9 @@ final class CombinedSqlTimer implements SqlTimer {
         for (SqlTimer sqlTimer : sqlTimers) {
             handles.add(sqlTimer.start(module, sqlKey, rawSql));
         }
-        return new Handle() {
-            @Override
-            public void stop() {
-                for (Handle handle : handles) {
-                    handle.stop();
-                }
+        return () -> {
+            for (Handle handle : handles) {
+                handle.stop();
             }
         };
     }

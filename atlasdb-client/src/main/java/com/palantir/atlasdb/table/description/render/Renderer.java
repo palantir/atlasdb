@@ -24,47 +24,47 @@ import com.google.common.hash.Hashing;
 
 @NotThreadSafe
 public abstract class Renderer {
-    private final StringBuilder s;
+    private final StringBuilder builder;
     private final AtomicInteger indent;
 
     public Renderer() {
-        this.s = new StringBuilder();
+        this.builder = new StringBuilder();
         this.indent = new AtomicInteger();
     }
 
     public Renderer(Renderer parent) {
-        this.s = parent.s;
+        this.builder = parent.builder;
         this.indent = parent.indent;
     }
 
     protected abstract void run();
 
     protected String render() {
-        Preconditions.checkState(s.length() == 0);
+        Preconditions.checkState(builder.length() == 0);
         run();
-        return s.toString();
+        return builder.toString();
     }
 
     protected void line() {
-        s.append("\n");
+        builder.append("\n");
     }
 
     protected void line(String... strings) {
-        if (s.length() != 0) {
-            s.append("\n");
+        if (builder.length() != 0) {
+            builder.append("\n");
         }
         if (strings[0].startsWith("}")) {
             indent.decrementAndGet();
         }
         for (int i = 0; i < indent.get(); i++) {
-            s.append("    ");
+            builder.append("    ");
         }
         lineEnd(strings);
     }
 
     protected void lineEnd(String... strings) {
         for (String string : strings) {
-            s.append(string);
+            builder.append(string);
         }
         if (strings[strings.length - 1].endsWith("{")) {
             indent.incrementAndGet();
@@ -72,8 +72,8 @@ public abstract class Renderer {
     }
 
     protected void strip(String suffix) {
-        if (s.lastIndexOf(suffix) + suffix.length() == s.length()) {
-            s.delete(s.length() - suffix.length(), s.length());
+        if (builder.lastIndexOf(suffix) + suffix.length() == builder.length()) {
+            builder.delete(builder.length() - suffix.length(), builder.length());
         }
     }
 
@@ -83,6 +83,6 @@ public abstract class Renderer {
     }
 
     protected byte[] getHash() {
-        return Hashing.murmur3_128().hashUnencodedChars(s).asBytes();
+        return Hashing.murmur3_128().hashUnencodedChars(builder).asBytes();
     }
 }

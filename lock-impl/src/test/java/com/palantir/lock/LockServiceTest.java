@@ -40,8 +40,8 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.logger.LockServiceLoggerTestUtils;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.lock.logger.LockServiceTestUtils;
+import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 
@@ -168,30 +168,27 @@ public abstract class LockServiceTest {
         Assert.assertTrue(token1.getExpirationDateMs()
                 <= System.currentTimeMillis() + lockTimeoutMs);
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                LockResponse response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock2, LockMode.READ))
-                        .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS)).build());
-                Assert.assertFalse(response.success());
-                Assert.assertFalse(response.getLockHolders().isEmpty());
-                Assert.assertEquals(ImmutableSortedMap.of(lock2, client), response.getLockHolders());
-                HeldLocksToken nullToken = response.getToken();
-                Assert.assertNull(nullToken);
-                barrier.await();
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            LockResponse response1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock2, LockMode.READ))
+                    .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS)).build());
+            Assert.assertFalse(response1.success());
+            Assert.assertFalse(response1.getLockHolders().isEmpty());
+            Assert.assertEquals(ImmutableSortedMap.of(lock2, client), response1.getLockHolders());
+            HeldLocksToken nullToken = response1.getToken();
+            Assert.assertNull(nullToken);
+            barrier.await();
 
-                response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock2, LockMode.READ))
-                        .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS)).build());
-                Assert.assertTrue(response.success());
-                Assert.assertTrue(response.getLockHolders().isEmpty());
-                HeldLocksToken validToken = response.getToken();
-                Assert.assertNotNull(validToken);
-                server.unlock(validToken);
+            response1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock2, LockMode.READ))
+                    .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS)).build());
+            Assert.assertTrue(response1.success());
+            Assert.assertTrue(response1.getLockHolders().isEmpty());
+            HeldLocksToken validToken = response1.getToken();
+            Assert.assertNotNull(validToken);
+            server.unlock(validToken);
 
-                return null;
-            }
+            return null;
         });
 
         barrier.await();
@@ -263,17 +260,14 @@ public abstract class LockServiceTest {
         Assert.assertTrue(token1.getExpirationDateMs()
                 <= System.currentTimeMillis() + lockTimeoutMs);
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock2, LockMode.READ)).build()).getToken();
-                Assert.assertNotNull(validToken);
-                server.unlock(validToken);
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock2, LockMode.READ)).build()).getToken();
+            Assert.assertNotNull(validToken);
+            server.unlock(validToken);
 
-                return null;
-            }
+            return null;
         });
 
         barrier.await();
@@ -323,14 +317,11 @@ public abstract class LockServiceTest {
         LockResponse resp2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, hasLock2);
         Assert.assertTrue(resp2.success());
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws InterruptedException {
-                LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-                Assert.assertNotNull(resp);
-                Assert.assertTrue(resp.success());
-                return null;
-            }
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
+            Assert.assertNotNull(resp);
+            Assert.assertTrue(resp.success());
+            return null;
         });
 
         try {
@@ -357,14 +348,11 @@ public abstract class LockServiceTest {
         LockResponse resp2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, hasLock2);
         Assert.assertTrue(resp2.success());
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws InterruptedException {
-                LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-                Assert.assertNotNull(resp);
-                Assert.assertTrue(resp.success());
-                return null;
-            }
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
+            Assert.assertNotNull(resp);
+            Assert.assertTrue(resp.success());
+            return null;
         });
 
         Thread.sleep(10);
@@ -445,17 +433,14 @@ public abstract class LockServiceTest {
                 <= System.currentTimeMillis() + lockTimeoutMs);
 
         // Second request grabs corresponding WRITE lock, will block inside LockServer until READ lock expires
-        executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                LockRequest request2 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE)).build();
-                LockResponse response2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
-                HeldLocksToken validToken = response2.getToken();
-                Assert.assertNotNull(validToken);
-                server.unlock(validToken);
-                return null;
-            }
+        executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            LockRequest request2 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE)).build();
+            LockResponse response2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
+            HeldLocksToken validToken = response2.getToken();
+            Assert.assertNotNull(validToken);
+            server.unlock(validToken);
+            return null;
         });
 
         /* Now make the logCurrentState() request; with the WRITE lock request blocked inside LockServer.lock(),
@@ -466,12 +451,9 @@ public abstract class LockServiceTest {
          */
         barrier.await();
         Thread.sleep(500);
-        Future<?> logCallFuture = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() {
-                server.logCurrentState();
-                return null;
-            }
+        Future<?> logCallFuture = executor.submit((Callable<Void>) () -> {
+            server.logCurrentState();
+            return null;
         });
 
         try {
@@ -480,7 +462,7 @@ public abstract class LockServiceTest {
             // If we exceed the timeout, the call is hung and it's a failure
             Assert.fail();
         } finally {
-            LockServiceLoggerTestUtils.cleanUpLogStateDir();
+            LockServiceTestUtils.cleanUpLogStateDir();
         }
     }
 
@@ -591,17 +573,14 @@ public abstract class LockServiceTest {
         token1 = server.lockWithFullLockResponse(client, requestWrite).getToken();
         Assert.assertNotNull(token1);
         Assert.assertEquals(client, token1.getClient());
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws InterruptedException {
-                HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
-                        ImmutableSortedMap.of(lock1, LockMode.WRITE)).build()).getToken();
-                Assert.assertNotNull(validToken);
-                Assert.assertEquals(LockClient.ANONYMOUS, validToken.getClient());
-                server.unlock(validToken);
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            HeldLocksToken validToken1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, LockRequest.builder(
+                    ImmutableSortedMap.of(lock1, LockMode.WRITE)).build()).getToken();
+            Assert.assertNotNull(validToken1);
+            Assert.assertEquals(LockClient.ANONYMOUS, validToken1.getClient());
+            server.unlock(validToken1);
 
-                return null;
-            }
+            return null;
         });
         grantToken = server.convertToGrant(token1);
         Assert.assertNull(grantToken.getClient());
@@ -785,13 +764,9 @@ public abstract class LockServiceTest {
     @Test public void testNumerousClientsPerLock() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public TimeDuration getMaxAllowedClockDrift() {
-                        return SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS);
-                    }
-                }), 100);
-
+                LockServerOptions.builder()
+                .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
+                .build()), 100);
 
         final int partitions = 5;
         final int[] partition = new int[partitions - 1];
@@ -898,13 +873,9 @@ public abstract class LockServiceTest {
     @Test public void testExpiringTokensAndGrants() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public TimeDuration getMaxAllowedClockDrift() {
-                        return SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS);
-                    }
-                }), 100);
-
+                LockServerOptions.builder()
+                        .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
+                        .build()), 100);
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
                 .doNotBlock().timeoutAfter(SimpleTimeDuration.of(500, TimeUnit.MILLISECONDS))
                 .build();
@@ -954,17 +925,14 @@ public abstract class LockServiceTest {
         Assert.assertEquals(client, token1.getClient());
         Assert.assertEquals(request1.getLockDescriptors(), token1.getLockDescriptors());
 
-        Future<?> future = executor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                barrier.await();
-                HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2).getToken();
-                Assert.assertNotNull(validToken);
-                Assert.assertEquals(LockClient.ANONYMOUS, validToken.getClient());
-                Assert.assertEquals(request2.getLockDescriptors(), validToken.getLockDescriptors());
-                Assert.assertTrue(server.unlock(validToken));
-                return null;
-            }
+        Future<?> future = executor.submit((Callable<Void>) () -> {
+            barrier.await();
+            HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2).getToken();
+            Assert.assertNotNull(validToken);
+            Assert.assertEquals(LockClient.ANONYMOUS, validToken.getClient());
+            Assert.assertEquals(request2.getLockDescriptors(), validToken.getLockDescriptors());
+            Assert.assertTrue(server.unlock(validToken));
+            return null;
         });
         barrier.await();
         Thread.sleep(50);
@@ -1030,12 +998,6 @@ public abstract class LockServiceTest {
                 server.getLockServerOptions().getMaxAllowedBlockingDuration().toSeconds() + 10, TimeUnit.SECONDS);
         request2 = LockRequest.builder(ImmutableSortedMap.of(
                 lock, LockMode.READ)).blockForAtMost(beyondMaxDuration).build();
-        try {
-            token2 = server.lockWithFullLockResponse(client, request2).getToken();
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: exceeded maximum allowed blocking duration */
-        }
         TimeDuration negativeDuration = SimpleTimeDuration.of(-10, TimeUnit.SECONDS);
         try {
             request2 = LockRequest.builder(ImmutableSortedMap.of(
@@ -1050,12 +1012,9 @@ public abstract class LockServiceTest {
     @Test public void testUnlockAndFreeze() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public TimeDuration getMaxAllowedClockDrift() {
-                        return SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS);
-                    }
-                }), 10);
+                LockServerOptions.builder()
+                        .maxAllowedClockDrift(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
+                        .build()), 10);
 
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
                 .timeoutAfter(SimpleTimeDuration.of(1, TimeUnit.SECONDS)).doNotBlock().build();
@@ -1117,7 +1076,7 @@ public abstract class LockServiceTest {
         testReentrancy(LockMode.READ, LockMode.READ);
     }
 
-    @Test(expected=IllegalMonitorStateException.class)
+    @Test(expected = IllegalMonitorStateException.class)
     public void testReentrantReadWrite() throws InterruptedException {
         testReentrancy(LockMode.READ, LockMode.WRITE);
     }

@@ -33,8 +33,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.lock.v2.TimelockService;
 
 import dagger.Module;
 import dagger.Provides;
@@ -58,17 +57,13 @@ public class TransactionManagerModule {
     @Singleton
     public Cleaner provideCleaner(ServicesConfig config,
                                   @Named("kvs") KeyValueService kvs,
-                                  RemoteLockService rlc,
-                                  TimestampService tss,
-                                  LockClient lockClient,
+                                  TimelockService timelock,
                                   Follower follower,
                                   TransactionService transactionService) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
                 kvs,
-                rlc,
-                tss,
-                lockClient,
+                timelock,
                 ImmutableList.of(follower),
                 transactionService)
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
@@ -92,15 +87,15 @@ public class TransactionManagerModule {
                                                                     Cleaner cleaner) {
         return new SerializableTransactionManager(
                 kvs,
-                lts.time(),
-                lockClient,
+                lts.timelock(),
                 lts.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                config.allowAccessToHiddenTables());
+                config.allowAccessToHiddenTables(),
+                config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize());
     }
 
 }

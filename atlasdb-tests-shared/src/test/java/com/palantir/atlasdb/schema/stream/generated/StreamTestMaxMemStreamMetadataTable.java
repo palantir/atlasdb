@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -460,6 +462,8 @@ public final class StreamTestMaxMemStreamMetadataTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestMaxMemStreamMetadataRow, ? extends StreamTestMaxMemStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<StreamTestMaxMemStreamMetadataRow, StreamTestMaxMemStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -640,6 +644,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -696,6 +701,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -705,5 +711,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HKvQ9TJunorh9i3zxTM3Jw==";
+    static String __CLASS_HASH = "az7LPfbueatwCl631Hwngg==";
 }

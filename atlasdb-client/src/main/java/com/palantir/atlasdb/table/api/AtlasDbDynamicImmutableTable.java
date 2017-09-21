@@ -22,5 +22,5 @@ import com.google.common.collect.Multimap;
  */
 public interface AtlasDbDynamicImmutableTable<ROW, COLUMN, COLUMN_VALUE, ROW_RESULT> extends
             AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
-    Multimap<ROW,COLUMN_VALUE> get(Multimap<ROW,COLUMN> cells);
+    Multimap<ROW, COLUMN_VALUE> get(Multimap<ROW, COLUMN> cells);
 }

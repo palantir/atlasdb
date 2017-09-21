@@ -15,7 +15,6 @@ atlasdb:
     servers:
       - cassandra:9160
     poolSize: 20
-    keyspace: atlasete
     credentials:
       username: cassandra
       password: cassandra
@@ -24,8 +23,9 @@ atlasdb:
     mutationBatchCount: 10000
     mutationBatchSizeBytes: 10000000
     fetchBatchCount: 1000
-    safetyDisabled: false
     autoRefreshNodes: false
+
+  namespace: atlasete
 
   leader:
     quorumSize: 2

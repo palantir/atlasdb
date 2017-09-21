@@ -31,6 +31,8 @@ import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
+import com.palantir.lock.LockService;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 
@@ -104,9 +106,11 @@ public class TestFastForwardTimestampCommand {
 
         @Override
         public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {
+            LockService lockService = LockServiceImpl.create();
             return ImmutableLockAndTimestampServices.builder()
                     .lock(LockServiceImpl.create())
-                    .time(timestampService)
+                    .timestamp(timestampService)
+                    .timelock(new LegacyTimelockService(timestampService, lockService, TransactionManagers.LOCK_CLIENT))
                     .build();
         }
     }

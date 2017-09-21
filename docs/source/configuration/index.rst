@@ -15,6 +15,7 @@ Configuration
    enabling_cassandra_tracing
    leader_config
    logging
+   timestamp_client
 
 AtlasDB Configuration
 =====================
@@ -28,11 +29,18 @@ In addition to the ``keyValueServiceConfig``, you must specify a configuration f
 If you are using an embedded timestamp and lock service, see the :ref:`Leader Configuration <leader-config>` documentation.
 If you are using the :ref:`external Timelock service <external-timelock-service>`, then see the :ref:`Timelock client configuration <timelock-client-configuration>`.
 
+Furthermore, you may configure a ``namespace`` for your AtlasDB client.
+If using TimeLock, this will be the name of your TimeLock client; if using Cassandra, this will also be the name of your keyspace.
+If this is not configured, we will read the ``client`` from the TimeLock client block, and the ``keyspace`` directly from the Cassandra KVS config block respectively.
+Note that AtlasDB will fail to start if any pair of the following are not equal: the ``namespace``, the Cassandra ``keyspace`` or the TimeLock ``client``.
+Previously, users' Cassandra keyspaces and TimeLock clients were configured independently; this could lead to data corruption if one misconfigured one of the parameters.
+
 For a full list of the configurations available at the ``atlasdb`` root level, see
 `AtlasDbConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
 
-A second root configuration block, denoted ``atlasdb-runtime``, can be specified for live-reloadable configs.
+A second root configuration block can be specified for live-reloadable configs.
 Parameters related to :ref:`Sweep <sweep>` can be specified there and will be reloaded in each sweep run.
+Parameters concerning batching of timestamp requests may also be configured; see :ref:`Timestamp Client <timestamp-client-config>` for more details.
 For a full list of the configurations available at this block, see
 `AtlasDbRuntimeConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java>`__.
 
@@ -42,6 +50,8 @@ Example Configuration
 .. code-block:: yaml
 
     atlasdb:
+      namespace: yourapp
+
       keyValueService:
         type: cassandra
         servers:
@@ -49,7 +59,6 @@ Example Configuration
           - cassandra-2:9160
           - cassandra-3:9160
         poolSize: 30
-        keyspace: yourapp
         credentials:
           username: cassandra
           password: cassandra
@@ -59,7 +68,6 @@ Example Configuration
         mutationBatchCount: 10000
         mutationBatchSizeBytes: 10000000
         fetchBatchCount: 1000
-        safetyDisabled: false
         autoRefreshNodes: false
 
       leader:
@@ -77,7 +85,6 @@ Example Configuration
         sslConfiguration:
           trustStorePath: var/security/truststore.jks
 
-
     atlasdb-runtime:
-      sweep:
-        enabled: false
+      timestampClient:
+        enableTimestampBatching: true

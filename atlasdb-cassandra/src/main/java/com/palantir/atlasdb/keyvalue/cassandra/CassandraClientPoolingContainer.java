@@ -36,6 +36,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -186,7 +187,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
                 .add("host", this.host)
-                .add("keyspace", config.keyspace())
+                .add("keyspace", config.getKeyspaceOrThrow())
                 .add("usingSsl", config.usingSsl())
                 .add("sslConfiguration", config.sslConfiguration().isPresent()
                         ? config.sslConfiguration().get()
@@ -245,30 +246,24 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
         poolConfig.setJmxNamePrefix(host.getHostString());
         GenericObjectPool<Client> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
-        registerMetrics(pool, host.getHostString());
+        registerMetrics(pool);
         return pool;
     }
 
-    private void registerMetrics(GenericObjectPool<Client> pool, String metricPrefix) {
-        metricsManager.registerMetric(
-                CassandraClientPoolingContainer.class,
-                metricPrefix, "meanActiveTimeMillis",
-                pool::getMeanActiveTimeMillis);
-        metricsManager.registerMetric(
-                CassandraClientPoolingContainer.class,
-                metricPrefix, "meanIdleTimeMillis",
-                pool::getMeanIdleTimeMillis);
-        metricsManager.registerMetric(
-                CassandraClientPoolingContainer.class,
-                metricPrefix, "meanBorrowWaitTimeMillis",
-                pool::getMeanBorrowWaitTimeMillis);
-        metricsManager.registerMetric(
-                CassandraClientPoolingContainer.class,
-                metricPrefix, "proportionDestroyedByEvictor",
+    private void registerMetrics(GenericObjectPool<Client> pool) {
+        registerMetric("meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
+        registerMetric("meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
+        registerMetric("meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
+        registerMetric("numIdle", pool::getNumIdle);
+        registerMetric("numActive", pool::getNumActive);
+        registerMetric("approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
+        registerMetric("proportionDestroyedByEvictor",
                 () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
-        metricsManager.registerMetric(
-                CassandraClientPoolingContainer.class,
-                metricPrefix, "proportionDestroyedByBorrower",
+        registerMetric("proportionDestroyedByBorrower",
                 () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
+    }
+
+    private void registerMetric(String metricName, Gauge gauge) {
+        metricsManager.registerMetric(CassandraClientPoolingContainer.class, metricName, gauge);
     }
 }

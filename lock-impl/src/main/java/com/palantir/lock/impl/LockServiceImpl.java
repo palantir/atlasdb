@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
@@ -75,6 +76,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.random.SecureRandomPool;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.lock.BlockingMode;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
@@ -100,7 +102,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -110,7 +112,7 @@ import com.palantir.util.JMXUtils;
  */
 @ThreadSafe
 public final class LockServiceImpl
-        implements LockService, CloseableRemoteLockService, RemoteLockService, LockServiceImplMBean {
+        implements LockService, CloseableRemoteLockService, CloseableLockService, RemoteLockService, LockServiceImplMBean {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
@@ -120,7 +122,9 @@ public final class LockServiceImpl
     private static final String UNLOCK_AND_FREEZE_FROM_ANONYMOUS_CLIENT = "Received .unlockAndFreeze()"
             + " call for anonymous client with token {}";
     private static final String UNLOCK_AND_FREEZE = "Received .unlockAndFreeze() call for read locks: {}";
-
+    // LegacyTimelockServiceAdapter relies on token ids being convertible to UUIDs; thus this should
+    // never be > 127
+    public static final int RANDOM_BIT_COUNT = 127;
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
@@ -130,12 +134,7 @@ public final class LockServiceImpl
             new NamedThreadFactory(LockServiceImpl.class.getName(), true)));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
-            new Function<HeldLocksToken, String>() {
-        @Override
-        public String apply(HeldLocksToken from) {
-            return from.getTokenId().toString(Character.MAX_RADIX);
-        }
-    };
+            from -> from.getTokenId().toString(Character.MAX_RADIX);
 
     @Immutable
     public static class HeldLocks<T extends ExpiringToken> {
@@ -171,13 +170,11 @@ public final class LockServiceImpl
 
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
-    private final TimeDuration maxAllowedLockTimeout;
-    private final TimeDuration maxAllowedClockDrift;
-    private final TimeDuration maxAllowedBlockingDuration;
-    private final TimeDuration maxNormalLockAge;
-    private final int randomBitCount;
+    private final SimpleTimeDuration maxAllowedLockTimeout;
+    private final SimpleTimeDuration maxAllowedClockDrift;
+    private final SimpleTimeDuration maxNormalLockAge;
     private final Runnable callOnClose;
-    private volatile boolean isShutDown = false;
+    private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
 
     private final LockClientIndices clientIndices = new LockClientIndices();
@@ -219,12 +216,7 @@ public final class LockServiceImpl
             Sets.newConcurrentHashSet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
-            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), new Supplier<TreeMultiset<Long>>() {
-                @Override
-                public TreeMultiset<Long> get() {
-                    return TreeMultiset.create();
-                }
-            }));
+            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), () -> TreeMultiset.create()));
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
@@ -241,11 +233,8 @@ public final class LockServiceImpl
             log.trace("Creating LockService with options={}", options);
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
-        LockServiceImpl lockService = new LockServiceImpl(options, new Runnable() {
-            @Override public void run() {
-                JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName);
-            }
-        });
+        LockServiceImpl lockService = new LockServiceImpl(options,
+                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName));
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }
@@ -256,9 +245,7 @@ public final class LockServiceImpl
         isStandaloneServer = options.isStandaloneServer();
         maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        maxAllowedBlockingDuration = SimpleTimeDuration.of(options.getMaxAllowedBlockingDuration());
         maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        randomBitCount = options.getRandomBitCount();
         lockStateLoggerDir = options.getLockStateLoggerDir();
 
         slowLogTriggerMillis = options.slowLogTriggerMillis();
@@ -277,7 +264,7 @@ public final class LockServiceImpl
             LockCollection<? extends ClientAwareReadWriteLock> heldLocksMap, TimeDuration lockTimeout,
             @Nullable Long versionId, String requestThread) {
         while (true) {
-            BigInteger tokenId = new BigInteger(randomBitCount, randomPool.getSecureRandom());
+            BigInteger tokenId = new BigInteger(RANDOM_BIT_COUNT, randomPool.getSecureRandom());
             long expirationDateMs = currentTimeMillis() + lockTimeout.toMillis();
             HeldLocksToken token = new HeldLocksToken(tokenId, client, currentTimeMillis(),
                     expirationDateMs, lockDescriptorMap, lockTimeout, versionId, requestThread);
@@ -289,9 +276,9 @@ public final class LockServiceImpl
                 }
                 return token;
             }
-            log.error("Lock ID collision! The RANDOM_BIT_COUNT constant must be increased. "
+            log.error("Lock ID collision! "
                     + "Count of held tokens = {}"
-                    + "; random bit count = {}", heldLocksTokenMap.size(), randomBitCount);
+                    + "; random bit count = {}", heldLocksTokenMap.size(), RANDOM_BIT_COUNT);
         }
     }
 
@@ -299,7 +286,7 @@ public final class LockServiceImpl
             LockCollection<? extends ClientAwareReadWriteLock> heldLocksMap, TimeDuration lockTimeout,
             @Nullable Long versionId) {
         while (true) {
-            BigInteger grantId = new BigInteger(randomBitCount, randomPool.getSecureRandom());
+            BigInteger grantId = new BigInteger(RANDOM_BIT_COUNT, randomPool.getSecureRandom());
             long expirationDateMs = currentTimeMillis() + lockTimeout.toMillis();
             HeldLocksGrant grant = new HeldLocksGrant(grantId, System.currentTimeMillis(),
                     expirationDateMs, lockDescriptorMap, lockTimeout, versionId);
@@ -308,9 +295,9 @@ public final class LockServiceImpl
                 lockGrantReaperQueue.add(grant);
                 return grant;
             }
-            log.error("Lock ID collision! The RANDOM_BIT_COUNT constant must be increased. "
+            log.error("Lock ID collision! "
                     + "Count of held grants = {}"
-                    + "; random bit count = {}", heldLocksGrantMap.size(), randomBitCount);
+                    + "; random bit count = {}", heldLocksGrantMap.size(), RANDOM_BIT_COUNT);
         }
     }
 
@@ -332,21 +319,18 @@ public final class LockServiceImpl
     // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
         Preconditions.checkNotNull(client);
-        Preconditions.checkArgument(client != INTERNAL_LOCK_GRANT_CLIENT);
+        Preconditions.checkArgument(!client.equals(INTERNAL_LOCK_GRANT_CLIENT));
         Preconditions.checkArgument(request.getLockTimeout().compareTo(maxAllowedLockTimeout) <= 0,
                 "Requested lock timeout (%s) is greater than maximum allowed lock timeout (%s)",
                 request.getLockTimeout(), maxAllowedLockTimeout);
-        Preconditions.checkArgument((request.getBlockingMode() != BLOCK_UNTIL_TIMEOUT)
-                || (request.getBlockingDuration().compareTo(maxAllowedBlockingDuration) <= 0),
-                "Requested blocking duration (%s) is greater than maximum allowed blocking duration (%s)",
-                request.getBlockingDuration(), maxAllowedBlockingDuration);
+
         long startTime = System.currentTimeMillis();
         if (requestLogger.isDebugEnabled()) {
             requestLogger.debug("LockServiceImpl processing lock request {} for requesting thread {}",
                     request, request.getCreatingThreadName());
         }
         Map<ClientAwareReadWriteLock, LockMode> locks = Maps.newLinkedHashMap();
-        if (isShutDown) {
+        if (isShutDown.get()) {
             throw new ServiceNotAvailableException("This lock server is shut down.");
         }
         try {
@@ -656,7 +640,7 @@ public final class LockServiceImpl
         Preconditions.checkNotNull(client);
         if (client.isAnonymous()) {
             throw new IllegalArgumentException("client must not be anonymous");
-        } else if (client == INTERNAL_LOCK_GRANT_CLIENT) {
+        } else if (client.equals(INTERNAL_LOCK_GRANT_CLIENT)) {
             throw new IllegalArgumentException("Illegal client!");
         }
         ImmutableSet.Builder<HeldLocksToken> tokens = ImmutableSet.builder();
@@ -943,7 +927,7 @@ public final class LockServiceImpl
             // If interrupt signal happens right after try {} catch (InterruptedException),
             // the interrupt state MIGHT be swallowed in catch (Throwable t) {}; so threads will
             // miss the shutdown signal.
-            if (isShutDown) {
+            if (isShutDown.get()) {
                 break;
             }
             try {
@@ -958,7 +942,7 @@ public final class LockServiceImpl
                         Thread.sleep(sleepTimeMs);
                     }
                 } catch (InterruptedException e) {
-                    if (isShutDown) {
+                    if (isShutDown.get()) {
                         break;
                     } else {
                         log.warn("The lock server reaper thread should not be " +
@@ -988,24 +972,13 @@ public final class LockServiceImpl
 
     @Override
     public LockServerOptions getLockServerOptions() {
-        LockServerOptions options = new LockServerOptions() {
-            private static final long serialVersionUID = 0x3ffa5b160e838725l;
-            @Override public boolean isStandaloneServer() {
-                return isStandaloneServer;
-            }
-            @Override public TimeDuration getMaxAllowedLockTimeout() {
-                return maxAllowedLockTimeout;
-            }
-            @Override public TimeDuration getMaxAllowedClockDrift() {
-                return maxAllowedClockDrift;
-            }
-            @Override public TimeDuration getMaxAllowedBlockingDuration() {
-                return maxAllowedBlockingDuration;
-            }
-            @Override public int getRandomBitCount() {
-                return randomBitCount;
-            }
-        };
+        LockServerOptions options = LockServerOptions.builder()
+                .isStandaloneServer(isStandaloneServer)
+                .maxAllowedLockTimeout(maxAllowedLockTimeout)
+                .maxAllowedClockDrift(maxAllowedClockDrift)
+                .randomBitCount(RANDOM_BIT_COUNT)
+                .build();
+
         if (log.isTraceEnabled()) {
             log.trace(".getLockServerOptions() returns {}", options);
         }
@@ -1043,9 +1016,6 @@ public final class LockServiceImpl
         logString.append("isStandaloneServer = ").append(isStandaloneServer).append("\n");
         logString.append("maxAllowedLockTimeout = ").append(maxAllowedLockTimeout).append("\n");
         logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
-        logString.append("maxAllowedBlockingDuration = ").append(maxAllowedBlockingDuration).append("\n");
-        logString.append("randomBitCount = ").append(randomBitCount).append("\n");
-
         logString.append("descriptorToLockMap.size = ").append(descriptorToLockMap.size()).append("\n");
         logString.append("outstandingLockRequestMultimap.size = ").append(descriptorToLockMap.size()).append("\n");
         logString.append("heldLocksTokenMap.size = ").append(heldLocksTokenMap.size()).append("\n");
@@ -1061,10 +1031,11 @@ public final class LockServiceImpl
 
     @Override
     public void close() {
-        isShutDown = true;
-        executor.shutdownNow();
-        wakeIndefiniteBlockers();
-        callOnClose.run();
+        if (isShutDown.compareAndSet(false, true)) {
+            executor.shutdownNow();
+            wakeIndefiniteBlockers();
+            callOnClose.run();
+        }
     }
 
     private void wakeIndefiniteBlockers() {

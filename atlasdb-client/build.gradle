@@ -3,6 +3,7 @@ apply from: "../gradle/shared.gradle"
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
+apply plugin: 'org.inferred.processors'
 
 repositories {
     mavenCentral()
@@ -12,6 +13,20 @@ schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
     'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]
+
+sourceSets {
+  integrationInput
+  test {
+    compileClasspath += integrationInput.output
+    runtimeClasspath += integrationInput.output
+  }
+}
+
+idea {
+  module {
+    testSourceDirs += sourceSets.integrationInput.java.srcDirs
+  }
+}
 
 libsDirName = file('build/artifacts')
 
@@ -42,8 +57,11 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
-  compile group: 'com.palantir.remoting2', name: 'tracing'
+  compile group: 'com.palantir.remoting3', name: 'tracing'
+  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'com.palantir.tritium', name: 'tritium-lib'
+
+  processor group: 'org.immutables', name: 'value'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
@@ -52,4 +70,6 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
   testCompile group: 'org.assertj', name: 'assertj-core'
+
+  integrationInputCompile project(":atlasdb-client")
 }

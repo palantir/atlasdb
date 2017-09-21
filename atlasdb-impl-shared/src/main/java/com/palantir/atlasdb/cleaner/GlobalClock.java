@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import java.util.function.Supplier;
+
 import com.palantir.common.time.Clock;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 
 /**
  * Clock implementation that delegates to a LockService.
@@ -24,18 +27,22 @@ import com.palantir.lock.RemoteLockService;
  * @author jweel
  */
 public final class GlobalClock implements Clock {
-    private final RemoteLockService lockService;
+    private final Supplier<Long> globalTimeSupplier;
 
-    private GlobalClock(RemoteLockService lockService) {
-        this.lockService = lockService;
+    private GlobalClock(Supplier<Long> globalTimeSupplier) {
+        this.globalTimeSupplier = globalTimeSupplier;
     }
 
-    public static GlobalClock create(RemoteLockService lockService) {
-        return new GlobalClock(lockService);
+    public static GlobalClock create(LockService lockService) {
+        return new GlobalClock(lockService::currentTimeMillis);
+    }
+
+    public static GlobalClock create(TimelockService timelockService) {
+        return new GlobalClock(timelockService::currentTimeMillis);
     }
 
     @Override
     public long getTimeMillis() {
-        return lockService.currentTimeMillis();
+        return globalTimeSupplier.get();
     }
 }

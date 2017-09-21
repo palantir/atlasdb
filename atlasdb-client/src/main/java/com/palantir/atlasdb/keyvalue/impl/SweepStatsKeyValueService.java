@@ -77,7 +77,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private final TimestampService timestampService;
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
 
-    private final Set<TableReference> clearedTables = Collections.newSetFromMap(new ConcurrentHashMap<TableReference, Boolean>());
+    private final Set<TableReference> clearedTables = Collections.newSetFromMap(
+            new ConcurrentHashMap<TableReference, Boolean>());
 
     private final AtomicInteger totalModifications = new AtomicInteger();
     private final Lock flushLock = new ReentrantLock();
@@ -91,7 +92,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                                      TimestampService timestampService) {
         this.delegate = delegate;
         this.timestampService = timestampService;
-        this.flushExecutor.scheduleWithFixedDelay(createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
+        this.flushExecutor.scheduleWithFixedDelay(createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS,
+                TimeUnit.SECONDS);
     }
 
     @VisibleForTesting
@@ -184,31 +186,28 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     private Runnable createFlushTask() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (totalModifications.get() >= WRITE_THRESHOLD && flushLock.tryLock()) {
-                        try {
-                            if (totalModifications.get() >= WRITE_THRESHOLD) {
-                                // snapshot current values while holding the lock and flush
-                                totalModifications.set(0);
-                                Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
-                                writesByTable.clear();
-                                Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
-                                clearedTables.clear();
+        return () -> {
+            try {
+                if (totalModifications.get() >= WRITE_THRESHOLD && flushLock.tryLock()) {
+                    try {
+                        if (totalModifications.get() >= WRITE_THRESHOLD) {
+                            // snapshot current values while holding the lock and flush
+                            totalModifications.set(0);
+                            Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
+                            writesByTable.clear();
+                            Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
+                            clearedTables.clear();
 
-                                // apply back pressure by only allowing one flush at a time
-                                flushWrites(localWritesByTable, localClearedTables);
-                            }
-                        } finally {
-                            flushLock.unlock();
+                            // apply back pressure by only allowing one flush at a time
+                            flushWrites(localWritesByTable, localClearedTables);
                         }
+                    } finally {
+                        flushLock.unlock();
                     }
-                } catch (Throwable t) {
-                    if (!Thread.interrupted()) {
-                        log.error("Error occurred while flushing sweep stats: {}", t, t);
-                    }
+                }
+            } catch (Throwable t) {
+                if (!Thread.interrupted()) {
+                    log.error("Error occurred while flushing sweep stats: {}", t, t);
                 }
             }
         };
@@ -240,7 +239,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 Cell cell = Cell.create(row, col);
                 Value oldValue = oldWriteCounts.get(cell);
                 long oldCount = oldValue == null || oldValue.getContents().length == 0 ? 0 :
-                    SweepPriorityTable.WriteCount.BYTES_HYDRATOR.hydrateFromBytes(oldValue.getContents()).getValue();
+                        SweepPriorityTable.WriteCount.BYTES_HYDRATOR.hydrateFromBytes(oldValue.getContents())
+                                .getValue();
                 long newValue = clears.contains(tableRef) ? writes.count(tableRef) : oldCount + writes.count(tableRef);
                 log.debug("Sweep priority for {} has {} writes (was {})", tableRef, newValue, oldCount);
                 newWriteCounts.put(cell, SweepPriorityTable.WriteCount.of(newValue).persistValue());

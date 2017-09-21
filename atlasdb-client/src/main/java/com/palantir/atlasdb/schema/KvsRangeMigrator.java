@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema;
 
 import java.util.Map;
 
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.io.BaseEncoding;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -36,7 +37,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
@@ -80,6 +80,31 @@ public class KvsRangeMigrator implements RangeMigrator {
     }
 
     @Override
+    public void logStatus(int numRangeBoundaries) {
+        txManager.runTaskWithRetry(transaction -> {
+            logStatus(transaction, numRangeBoundaries);
+            return null;
+        });
+    }
+
+    private void logStatus(Transaction tx, int numRangeBoundaries) {
+        for (int rangeId = 0; rangeId < numRangeBoundaries; rangeId++) {
+            byte[] checkpoint = getCheckpoint(rangeId, tx);
+            if (checkpoint != null) {
+                log.info("({}/{}) Migration from table {} to table {} will start/resume at {}",
+                        rangeId,
+                        numRangeBoundaries,
+                        srcTable,
+                        destTable,
+                        PtBytes.encodeHexString(checkpoint)
+                );
+                return;
+            }
+        }
+        log.info("Migration from table {} to {} has already been completed", srcTable, destTable);
+    }
+
+    @Override
     public void migrateRange(RangeRequest range, long rangeId) {
         byte[] lastRow;
         do {
@@ -92,12 +117,7 @@ public class KvsRangeMigrator implements RangeMigrator {
     }
 
     private byte[] copyOneTransaction(final RangeRequest range, final long rangeId) {
-        return txManager.runTaskWithRetry(new TransactionTask<byte[], RuntimeException>() {
-            @Override
-            public byte[] execute(final Transaction writeT) {
-                return copyOneTransactionFromReadTxManager(range, rangeId, writeT);
-            }
-        });
+        return txManager.runTaskWithRetry(writeT -> copyOneTransactionFromReadTxManager(range, rangeId, writeT));
     }
 
     private byte[] copyOneTransactionFromReadTxManager(final RangeRequest range,
@@ -108,12 +128,7 @@ public class KvsRangeMigrator implements RangeMigrator {
             return copyOneTransactionInternal(range, rangeId, writeT, writeT);
         } else {
             // read only, but need to use a write tx in case the source table has SweepStrategy.THOROUGH
-            return readTxManager.runTaskWithRetry(new TransactionTask<byte[], RuntimeException>() {
-                @Override
-                public byte[] execute(Transaction readT) {
-                    return copyOneTransactionInternal(range, rangeId, readT, writeT);
-                }
-            });
+            return readTxManager.runTaskWithRetry(readT -> copyOneTransactionInternal(range, rangeId, readT, writeT));
         }
     }
 
@@ -122,7 +137,7 @@ public class KvsRangeMigrator implements RangeMigrator {
                                               Transaction readT,
                                               Transaction writeT) {
         final long maxBytes = TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES / 2;
-        byte[] start = checkpointer.getCheckpoint(srcTable.getQualifiedName(), rangeId, writeT);
+        byte[] start = getCheckpoint(rangeId, writeT);
         if (start == null) {
             return null;
         }
@@ -150,6 +165,10 @@ public class KvsRangeMigrator implements RangeMigrator {
         checkpointer.checkpoint(srcTable.getQualifiedName(), rangeId, nextRow, writeT);
 
         return lastRow;
+    }
+
+    private byte[] getCheckpoint(long rangeId, Transaction writeT) {
+        return checkpointer.getCheckpoint(srcTable.getQualifiedName(), rangeId, writeT);
     }
 
     protected void writeToKvs(Map<Cell, byte[]> writeMap) {
@@ -181,12 +200,14 @@ public class KvsRangeMigrator implements RangeMigrator {
         final Mutable<byte[]> lastRowName = Mutables.newMutable(null);
         final MutableLong bytesPut = new MutableLong(0L);
         bv.batchAccept(readBatchSize, AbortingVisitors.batching(
+                // Replacing this with a lambda results in an unreported exception compile error
+                // even though no exception can be thrown :-(
                 new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
-            @Override
-            public boolean visit(RowResult<byte[]> rr) {
-                return internalCopyRow(rr, maxBytes, writeMap, bytesPut, lastRowName);
-            }
-        }));
+                    @Override
+                    public boolean visit(RowResult<byte[]> rr) throws RuntimeException {
+                        return KvsRangeMigrator.this.internalCopyRow(rr, maxBytes, writeMap, bytesPut, lastRowName);
+                    }
+                }));
         return lastRowName.get();
     }
 

@@ -36,6 +36,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
+    private static final int GET_RANGES_CONCURRENCY = 16;
+
     public TestTransactionManagerImpl(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
@@ -52,7 +54,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 sweepStrategyManager,
-                NoOpCleaner.INSTANCE);
+                NoOpCleaner.INSTANCE,
+                GET_RANGES_CONCURRENCY);
     }
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -70,7 +73,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 Suppliers.ofInstance(constraintCheckingMode),
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
-                NoOpCleaner.INSTANCE);
+                NoOpCleaner.INSTANCE,
+                GET_RANGES_CONCURRENCY);
     }
 
     @Override
@@ -95,15 +99,15 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
         return new SnapshotTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                timelockService,
                 transactionService,
                 cleaner,
-                timestampService.getFreshTimestamp(),
+                timelockService.getFreshTimestamp(),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(conflictHandlersWithOverrides),
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                getRangesExecutor);
     }
 
     @Override

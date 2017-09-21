@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,11 +62,9 @@ import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
@@ -122,7 +119,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
-import com.palantir.remoting2.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -171,7 +168,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         Collection<InetSocketAddress> configuredHosts = config.servers();
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPointsWithPorts(configuredHosts);
-        clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.keyspace()); // for JMX metrics
+        clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.getKeyspaceOrThrow()); // for JMX metrics
         clusterBuilder.withCompression(Compression.LZ4);
 
         if (config.sslConfiguration().isPresent()) {
@@ -281,22 +278,12 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         Metadata metadata = cluster.getMetadata();
 
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        String partitioner = metadata.getPartitioner();
-        if (!config.safetyDisabled()) {
-            Validate.isTrue(
-                    CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner),
-                    "partitioner is: " + partitioner);
-        }
-
+        CassandraVerifier.validatePartitioner(metadata.getPartitioner(), config);
 
         Set<Peer> peers = CqlKeyValueServices.getPeers(session);
 
-        boolean allNodesHaveSaneNumberOfVnodes = Iterables.all(peers, new Predicate<Peer>() {
-            @Override
-            public boolean apply(Peer peer) {
-                return peer.tokens.size() > CassandraConstants.ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE;
-            }
-        });
+        boolean allNodesHaveSaneNumberOfVnodes = Iterables.all(peers,
+                peer -> peer.tokens.size() > CassandraConstants.ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE);
 
         // node we're querying doesn't count itself as a peer
         if (peers.size() > 0 && !allNodesHaveSaneNumberOfVnodes) {
@@ -314,8 +301,9 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         }
         dcsInCluster.add(getLocalDataCenter());
 
-        if (metadata.getKeyspace(config.keyspace()) == null) { // keyspace previously didn't exist; we need to set it up
-            createKeyspace(config.keyspace(), dcsInCluster);
+        if (metadata.getKeyspace(config.getKeyspaceOrThrow()) == null) {
+            // keyspace previously didn't exist; we need to set it up
+            createKeyspace(config.getKeyspaceOrThrow(), dcsInCluster);
             return;
         }
 
@@ -1076,7 +1064,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     public void createTables(final Map<TableReference, byte[]> tableRefsToTableMetadata) {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Collection<com.datastax.driver.core.TableMetadata> tables = cluster.getMetadata()
-                .getKeyspace(config.keyspace()).getTables();
+                .getKeyspace(config.getKeyspaceOrThrow()).getTables();
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(tables,
                 input -> TableReference.createUnsafe(input.getName())));
 
@@ -1111,7 +1099,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         List<Row> rows = session.execute(cqlStatementCache.normalQuery.getUnchecked(
                 "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ?")
-                .bind(config.keyspace()))
+                .bind(config.getKeyspaceOrThrow()))
                 .all();
 
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(rows,
@@ -1171,12 +1159,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             final Value value = Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP);
             putInternal(
                     tableRef,
-                    Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
-                        @Override
-                        public Entry<Cell, Value> apply(Cell cell) {
-                            return Maps.immutableEntry(cell, value);
-                        }
-                    }), TransactionType.NONE);
+                    Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)), TransactionType.NONE);
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }
@@ -1220,7 +1203,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     }
 
     String getFullTableName(TableReference tableRef) {
-        return configManager.getConfig().keyspace() + ".\"" + internalTableName(tableRef) + "\"";
+        return configManager.getConfig().getKeyspaceOrThrow() + ".\"" + internalTableName(tableRef) + "\"";
     }
 
     @Override
@@ -1232,7 +1215,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             log.error("No compaction client was configured, but compact was called."
                     + " If you actually want to clear deleted data immediately"
                     + " from Cassandra, lower your gc_grace_seconds setting and"
-                    + " run `nodetool compact {} {}`.", config.keyspace(), tableRef);
+                    + " run `nodetool compact {} {}`.", config.getKeyspaceOrThrow(), tableRef);
             return;
         }
 
@@ -1240,16 +1223,19 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         try {
             alterTableForCompaction(tableRef, 0, 0.0f);
             CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables for compaction", this);
-            compactionManager.get().performTombstoneCompaction(compactionTimeoutSeconds, config.keyspace(), tableRef);
+            compactionManager.get().performTombstoneCompaction(
+                    compactionTimeoutSeconds,
+                    config.getKeyspaceOrThrow(),
+                    tableRef);
         } catch (TimeoutException e) {
             log.error("Compaction could not finish in {} seconds. {}", compactionTimeoutSeconds, e.getMessage());
             log.error("Compaction status: {}", compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
-            log.error("Compaction for {}.{} was interrupted.", config.keyspace(), tableRef);
+            log.error("Compaction for {}.{} was interrupted.", config.getKeyspaceOrThrow(), tableRef);
         } finally {
             alterTableForCompaction(
                     tableRef,
-                    CassandraConstants.GC_GRACE_SECONDS,
+                    config.gcGraceSeconds(),
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
             CqlKeyValueServices.waitForSchemaVersionsToCoalesce("setting up tables post-compaction", this);
         }

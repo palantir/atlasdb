@@ -44,6 +44,20 @@ public abstract class AtlasDbConfig {
     public abstract Optional<ServerListConfig> timestamp();
 
     /**
+     * A namespace refers to a String that is used to identify this AtlasDB client to the relevant timestamp, lock and
+     * key value services. Currently, this only applies to external timelock services, and Cassandra KVS (where it is
+     * used as the keyspace).
+     *
+     * For backwards compatibility reasons, this is optional. If no namespace is specified:
+     *   - if using Cassandra, the keyspace must be explicitly specified.
+     *   - if using TimeLock, the client name must be explicitly specified.
+     *
+     * If a namespace is specified and a Cassandra keyspace / TimeLock client name is also explicitly specified, then
+     * AtlasDB will fail to start if these are contradictory.
+     */
+    public abstract Optional<String> namespace();
+
+    /**
      * The transaction read timeout is the maximum amount of
      * time a read only transaction can safely run. Read only
      * transactions that run any longer may fail if they attempt
@@ -225,6 +239,12 @@ public abstract class AtlasDbConfig {
 
     @Value.Check
     protected final void check() {
+        checkLeaderAndTimelockBlocks();
+        checkLockAndTimestampBlocks();
+        checkNamespaceConfig();
+    }
+
+    private void checkLeaderAndTimelockBlocks() {
         if (leader().isPresent()) {
             Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
@@ -236,17 +256,50 @@ public abstract class AtlasDbConfig {
             Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the timelock block is present, then the lock and timestamp blocks must both be absent.");
         }
+    }
 
+    private void checkLockAndTimestampBlocks() {
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
+    }
 
-        Preconditions.checkState(getSweepBatchSize() == null
-                        && getSweepCellBatchSize() == null
-                        && getSweepReadLimit() == null
-                        && getSweepCandidateBatchHint() == null
-                        && getSweepDeleteBatchHint() == null,
-                "Your configuration specifies sweep parameters on the install config."
-                        + " Please use the runtime config to specify them.");
+    private void checkNamespaceConfig() {
+        if (namespace().isPresent()) {
+            String namespace = namespace().get();
+
+            keyValueService().namespace().ifPresent(kvsNamespace ->
+                    Preconditions.checkState(kvsNamespace.equals(namespace),
+                            "If present, keyspace/dbName/sid config should be the same as the"
+                                    + " atlas root-level namespace config."));
+
+            timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
+                    Preconditions.checkState(client.equals(namespace),
+                            "If present, the TimeLock client config should be the same as the"
+                                    + " atlas root-level namespace config.")));
+        } else {
+            Preconditions.checkState(keyValueService().namespace().isPresent(),
+                    "Either the atlas root-level namespace"
+                            + " or the keyspace/dbName/sid config needs to be set.");
+
+            Optional<String> keyValueServiceNamespace = keyValueService().namespace();
+
+            if (timelock().isPresent()) {
+                TimeLockClientConfig timeLockConfig = timelock().get();
+
+                Preconditions.checkState(timeLockConfig.client().isPresent(),
+                        "Either the atlas root-level namespace config or the TimeLock client config"
+                                + " should be present.");
+
+                // In this case, we need to change the TimeLock client name to be equal to the KVS namespace
+                // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
+                // will return the timestamp bound store to 0, so we also need to fast forward the new client bound
+                // to a value above of the original bound.
+                Preconditions.checkState(timeLockConfig.client().equals(keyValueServiceNamespace),
+                        "AtlasDB refused to start, in order to avoid potential data corruption."
+                                + " Please contact AtlasDB support to remediate this. Specific steps are required;"
+                                + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
+            }
+        }
     }
 
     private boolean areTimeAndLockConfigsAbsent() {

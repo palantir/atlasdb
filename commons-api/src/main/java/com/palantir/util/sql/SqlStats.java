@@ -129,7 +129,7 @@ public final class SqlStats implements SqlStatsMBean {
             entries.add(new Pair<Long, SqlCallStats>(stats.getTotalTime(), stats));
         }
 
-        Collections.sort(entries, Pair.<Long, SqlCallStats>compareLhSide());
+        entries.sort(Pair.compareLhSide());
         Collections.reverse(entries);
 
         StringBuilder sb = new StringBuilder();
@@ -145,12 +145,9 @@ public final class SqlStats implements SqlStatsMBean {
     }
 
     private String getNameForUnregisteredQuery(String rawSql) {
-        String name = namesByUnregisteredSql.get(rawSql);
-        if (name == null) {
-            name = String.format("UNREGISTERED_QUERY_%03d", //$NON-NLS-1$
-                    namesByUnregisteredSql.size() + 1);
-            namesByUnregisteredSql.put(rawSql, name);
-        }
+        String name = namesByUnregisteredSql.computeIfAbsent(rawSql,
+                k -> String.format("UNREGISTERED_QUERY_%03d", //$NON-NLS-1$
+                        namesByUnregisteredSql.size() + 1));
         return name;
     }
 

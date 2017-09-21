@@ -25,7 +25,7 @@ public interface HintedHandOffManagerMBean {
      *
      * @param host String rep. of endpoint address to delete hints for, either ip address ("127.0.0.1") or hostname
      */
-    void deleteHintsForEndpoint(final String host);
+    void deleteHintsForEndpoint(String host);
 
     /**
      *  Truncate all the hints.

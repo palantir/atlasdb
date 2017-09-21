@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -489,16 +491,22 @@ public final class StreamTestMaxMemStreamIdxTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestMaxMemStreamIdxRow rowName, Iterable<StreamTestMaxMemStreamIdxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(StreamTestMaxMemStreamIdxRow rowName, StreamTestMaxMemStreamIdxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestMaxMemStreamIdxRow, ? extends StreamTestMaxMemStreamIdxColumnValue> rows) {
         Multimap<StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxColumn> toGet = Multimaps.transformValues(rows, StreamTestMaxMemStreamIdxColumnValue.getColumnNameFun());
@@ -671,6 +679,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -727,6 +736,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -736,5 +746,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "nYbolFkQFApw7mj7fX894A==";
+    static String __CLASS_HASH = "UqZuV6+wSHAeAyC6SaZgxA==";
 }

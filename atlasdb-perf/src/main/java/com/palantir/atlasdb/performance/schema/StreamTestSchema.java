@@ -20,6 +20,7 @@ import java.io.File;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
+import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -34,7 +35,8 @@ public final class StreamTestSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("StreamTest",
                 StreamTestSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE,
+                OptionalType.JAVA8);
 
         schema.addTableDefinition("blobs", new TableDefinition() {
             {

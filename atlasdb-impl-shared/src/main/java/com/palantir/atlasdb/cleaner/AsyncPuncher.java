@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Wrap another Puncher, optimizing the #punch() operation to operate just on a local variable; the
@@ -57,13 +57,10 @@ public final class AsyncPuncher implements Puncher {
     }
 
     private void start() {
-        service.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
-                if (timestamp != INVALID_TIMESTAMP) {
-                    delegate.punch(timestamp);
-                }
+        service.scheduleAtFixedRate(() -> {
+            long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
+            if (timestamp != INVALID_TIMESTAMP) {
+                delegate.punch(timestamp);
             }
         }, 0, interval, TimeUnit.MILLISECONDS);
     }

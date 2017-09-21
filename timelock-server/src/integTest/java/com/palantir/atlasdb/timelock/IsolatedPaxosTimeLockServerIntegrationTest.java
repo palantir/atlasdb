@@ -27,19 +27,20 @@ import org.junit.rules.RuleChain;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
 /**
  * This test creates a single TimeLock server that is configured in a three node configuration.
- * Since it has no quorum, timestamp and lock requests (and fast-forward) should fail.
+ * Since it has no quorum, timestamp and remoteLock requests (and fast-forward) should fail.
  * However it should still be pingable and should be able to participate in Paxos as well.
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {
     private static final String CLIENT = "isolated";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost",
+            "https://localhost",
             CLIENT,
             "paxosThreeServers.yml");
 
@@ -85,8 +86,8 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(),
-                String.format("http://localhost:%d/%s/%s/%s",
+                Optional.of(TestProxies.SSL_SOCKET_FACTORY),
+                String.format("https://localhost:%d/%s/%s/%s",
                         SERVER.serverHolder().getTimelockPort(),
                         PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,

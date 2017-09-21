@@ -21,7 +21,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.remoting2:ssl-config"
+                "com.palantir.remoting-api:ssl-config"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -43,8 +43,7 @@
         "com.google.guava:guava": {
             "locked": "18.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting2:ssl-config"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
@@ -69,23 +68,20 @@
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
-        "com.palantir.remoting2:ssl-config": {
-            "locked": "2.3.0",
+        "com.palantir.remoting-api:ssl-config": {
+            "locked": "1.2.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
@@ -151,7 +147,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.remoting2:ssl-config"
+                "com.palantir.remoting-api:ssl-config"
             ]
         },
         "com.google.code.findbugs:annotations": {
@@ -173,8 +169,7 @@
         "com.google.guava:guava": {
             "locked": "18.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting2:ssl-config"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.palantir.atlasdb:atlasdb-api": {
@@ -199,23 +194,20 @@
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
-        "com.palantir.remoting2:ssl-config": {
-            "locked": "2.3.0",
+        "com.palantir.remoting-api:ssl-config": {
+            "locked": "1.2.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.1",
+            "locked": "0.1.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:commons-executors",
-                "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:timestamp-api"
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {

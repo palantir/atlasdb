@@ -17,7 +17,8 @@ package com.palantir.atlasdb.timelock;
 
 import org.immutables.value.Value;
 
-import com.palantir.lock.RemoteLockService;
+import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
+import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -25,16 +26,19 @@ import com.palantir.timestamp.TimestampService;
 public interface TimeLockServices {
     static TimeLockServices create(
             TimestampService timestampService,
-            RemoteLockService lockService,
+            LockService lockService,
+            AsyncOrLegacyTimelockService timelockService,
             TimestampManagementService timestampManagementService) {
         return ImmutableTimeLockServices.builder()
                 .timestampService(timestampService)
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
+                .timelockService(timelockService)
                 .build();
     }
 
     TimestampManagementService getTimestampManagementService();
     TimestampService getTimestampService();
-    RemoteLockService getLockService();
+    AsyncOrLegacyTimelockService getTimelockService();
+    LockService getLockService();
 }

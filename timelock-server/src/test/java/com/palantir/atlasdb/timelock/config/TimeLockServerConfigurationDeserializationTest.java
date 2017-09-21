@@ -30,7 +30,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
@@ -65,6 +65,10 @@ public class TimeLockServerConfigurationDeserializationTest {
 
         assertThat(configuration.timeLimiterConfiguration().enableTimeLimiting()).isTrue();
         assertThat(configuration.timeLimiterConfiguration().blockingTimeoutErrorMargin()).isEqualTo(0.03);
+
+        assertThat(configuration.asyncLockConfiguration().useAsyncLockService()).isTrue();
+        assertThat(configuration.asyncLockConfiguration().disableLegacySafetyChecksWarningPotentialDataCorruption())
+                .isFalse();
     }
 
     private void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {

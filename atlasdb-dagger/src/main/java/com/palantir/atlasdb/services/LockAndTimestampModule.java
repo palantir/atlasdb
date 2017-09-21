@@ -18,8 +18,9 @@ package com.palantir.atlasdb.services;
 import javax.inject.Singleton;
 
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -40,13 +41,19 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public TimestampService provideTimestampService(TransactionManagers.LockAndTimestampServices lts) {
-        return lts.time();
+    public TimelockService provideTimelockService(TransactionManagers.LockAndTimestampServices lts) {
+        return lts.timelock();
     }
 
     @Provides
     @Singleton
-    public RemoteLockService provideLockService(TransactionManagers.LockAndTimestampServices lts) {
+    public TimestampService provideTimestampService(TransactionManagers.LockAndTimestampServices lts) {
+        return lts.timestamp();
+    }
+
+    @Provides
+    @Singleton
+    public LockService provideLockService(TransactionManagers.LockAndTimestampServices lts) {
         return lts.lock();
     }
 

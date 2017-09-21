@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.util;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -119,7 +119,6 @@ public class AnnotatedRunnableTest {
             assertThat(expected.getSuppressed()[0].getMessage(),
                     is("Error [java.lang.OutOfMemoryError: test message]"
                             + " occurred while processing thread (test thread name AnnotatedRunnableTest)"));
-            assertThat(expected.getSuppressed()[0].getCause(), is(expected));
         }
     }
 }

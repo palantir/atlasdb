@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +30,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 
+@SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class SchemaHotspottingTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -73,7 +74,8 @@ public class SchemaHotspottingTest {
 
     private static Schema getIndexHotspottingSchema() {
         Schema suffersFromIndexHotspoting = getIgnoredHotspottingSchema();
-        suffersFromIndexHotspoting.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+        suffersFromIndexHotspoting.addIndexDefinition(INDEX_NAME,
+                new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
             onTable(TABLE_NAME);
             rowName();
                 componentFromRow(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
@@ -83,7 +85,8 @@ public class SchemaHotspottingTest {
 
     private static Schema getIgnoredIndexHotspottingSchema() {
         Schema ignoredIndexHotspottingSchema = getIgnoredHotspottingSchema();
-        ignoredIndexHotspottingSchema.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+        ignoredIndexHotspottingSchema.addIndexDefinition(INDEX_NAME,
+                new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
             ignoreHotspottingChecks();
             onTable(TABLE_NAME);
             rowName();
@@ -94,7 +97,8 @@ public class SchemaHotspottingTest {
 
     private static Schema getIndexFirstRowComponentHashedSchema() {
         Schema indexFirstRowComponentHashed = getIgnoredHotspottingSchema();
-        indexFirstRowComponentHashed.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+        indexFirstRowComponentHashed.addIndexDefinition(INDEX_NAME,
+                new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
             onTable(TABLE_NAME);
             rowName();
                 hashFirstRowComponent();
@@ -152,6 +156,7 @@ public class SchemaHotspottingTest {
 
         File validDirectory = srcDir.listFiles()[0];
         assertThat(Arrays.asList(validDirectory.list()), contains(equalTo("package")));
-        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), containsInAnyOrder(equalTo(SCHEMA_NAME + "TableFactory.java"), equalTo(TABLE_NAME + "Table.java")));
+        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()),
+                containsInAnyOrder(equalTo(SCHEMA_NAME + "TableFactory.java"), equalTo(TABLE_NAME + "Table.java")));
     }
 }

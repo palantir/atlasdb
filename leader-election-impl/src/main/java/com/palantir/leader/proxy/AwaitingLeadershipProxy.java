@@ -41,7 +41,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
@@ -178,12 +178,21 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof ServiceNotAvailableException
-                    || e.getCause() instanceof NotCurrentLeaderException) {
+            if (e.getTargetException() instanceof ServiceNotAvailableException
+                    || e.getTargetException() instanceof NotCurrentLeaderException) {
                 markAsNotLeading(leadershipToken, e.getCause());
             }
-            throw e.getCause();
+            // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts in case of a leader election.
+            if (e.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
+                throw notCurrentLeaderException("received an interrupt due to leader election.",
+                        e.getTargetException());
+            }
+            throw e.getTargetException();
         }
+    }
+
+    private boolean isStillCurrentToken(LeadershipToken leadershipToken) {
+        return leadershipTokenRef.get() == leadershipToken;
     }
 
     private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {

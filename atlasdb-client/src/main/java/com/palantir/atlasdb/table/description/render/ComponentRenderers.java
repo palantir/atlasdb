@@ -17,7 +17,7 @@ package com.palantir.atlasdb.table.description.render;
 
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 
-class ComponentRenderers {
+final class ComponentRenderers {
     private ComponentRenderers() {
         // cannot instantiate
     }
@@ -26,6 +26,7 @@ class ComponentRenderers {
         return comp.getType().getJavaClassName();
     }
 
+    @SuppressWarnings("checkstyle:MethodName")
     static String TypeName(NameComponentDescription comp) {
         return comp.getType().getJavaObjectClassName();
     }
@@ -34,6 +35,7 @@ class ComponentRenderers {
         return Renderers.camelCase(comp.getComponentName());
     }
 
+    @SuppressWarnings("checkstyle:MethodName")
     static String VarName(NameComponentDescription comp) {
         return Renderers.CamelCase(comp.getComponentName());
     }

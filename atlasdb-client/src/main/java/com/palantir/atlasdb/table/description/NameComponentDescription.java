@@ -20,69 +20,92 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameComponentDescription.Builder;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 
 @Immutable
-public class NameComponentDescription {
+public final class NameComponentDescription {
     final String componentName;
     final ValueType type;
     final ValueByteOrder order;
     @Nullable final UniformRowNamePartitioner uniformPartitioner;
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
-    final boolean nameLoggable;
+    final LogSafety logSafety;
 
-    public NameComponentDescription() {
-        this("name", ValueType.BLOB);
+    /**
+     * Builder for NameComponentDescription. componentName and valueType are required.
+     * uniformRowNamePartitioner will be set to a default value unless explicitly set to null.
+     */
+    public static final class Builder {
+        private String componentName;
+        private ValueType type;
+        private ValueByteOrder order = ValueByteOrder.ASCENDING;
+        private UniformRowNamePartitioner uniformPartitioner;
+        private ExplicitRowNamePartitioner explicitPartitioner;
+        private LogSafety logSafety = LogSafety.UNSAFE;
+
+        private boolean uniformPartitionerExplicitlyNull = false;
+
+        public Builder componentName(String name) {
+            this.componentName = name;
+            return this;
+        }
+
+        public Builder type(ValueType valueType) {
+            this.type = valueType;
+            return this;
+        }
+
+        public Builder byteOrder(ValueByteOrder byteOrder) {
+            this.order = byteOrder;
+            return this;
+        }
+
+        public Builder uniformRowNamePartitioner(UniformRowNamePartitioner partitioner) {
+            this.uniformPartitioner = partitioner;
+            uniformPartitionerExplicitlyNull = partitioner == null;
+            return this;
+        }
+
+        public Builder explicitRowNamePartitioner(ExplicitRowNamePartitioner partitioner) {
+            this.explicitPartitioner = partitioner;
+            return this;
+        }
+
+        public Builder logSafety(LogSafety safety) {
+            this.logSafety = safety;
+            return this;
+        }
+
+        public NameComponentDescription build() {
+            Validate.notNull(componentName, "componentName must be set when building a NameComponentDescription");
+            Validate.notNull(type, "type must be set when building a NameComponentDescription");
+
+            if (uniformPartitioner == null && !uniformPartitionerExplicitlyNull) {
+                uniformPartitioner = new UniformRowNamePartitioner(type);
+            }
+
+            return new NameComponentDescription(componentName, type, order,
+                    uniformPartitioner, explicitPartitioner, logSafety);
+        }
     }
 
-    public NameComponentDescription(String componentName, ValueType type) {
-        this(componentName, type, ValueByteOrder.ASCENDING, new UniformRowNamePartitioner(type), null);
-    }
-
-    @Deprecated
-    public NameComponentDescription(String componentName, ValueType type, boolean reverseOrder) {
-        this.componentName = componentName;
-        this.type = type;
-        this.order = reverseOrder ? ValueByteOrder.DESCENDING : ValueByteOrder.ASCENDING;
-        this.uniformPartitioner = new UniformRowNamePartitioner(type);
-        this.explicitPartitioner = null;
-        this.nameLoggable = false;
-    }
-
-    public NameComponentDescription(String componentName,
-                                    ValueType type,
-                                    ValueByteOrder order) {
-        this(componentName, type, order, new UniformRowNamePartitioner(type), null);
-    }
-
-    public NameComponentDescription(String componentName,
-                                    ValueType type,
-                                    ValueByteOrder order,
-                                    UniformRowNamePartitioner uniform,
-                                    ExplicitRowNamePartitioner explicit) {
-        this(componentName, type, order, uniform, explicit, false);
-    }
-
-    public NameComponentDescription(String componentName,
+    private NameComponentDescription(String componentName,
                                     ValueType type,
                                     ValueByteOrder order,
                                     UniformRowNamePartitioner uniform,
                                     ExplicitRowNamePartitioner explicit,
-                                    boolean nameLoggable) {
-        Validate.notNull(componentName);
-        Validate.notNull(type);
-        Validate.notNull(order);
+                                    LogSafety logSafety) {
         this.componentName = componentName;
         this.type = type;
         this.order = order;
         this.uniformPartitioner = uniform;
         this.explicitPartitioner = explicit;
-        this.nameLoggable = nameLoggable;
+        this.logSafety = logSafety;
     }
 
     public String getComponentName() {
@@ -101,12 +124,13 @@ public class NameComponentDescription {
         return order;
     }
 
-    public boolean isNameLoggable() {
-        return nameLoggable;
+    public LogSafety getLogSafety() {
+        return logSafety;
     }
 
     public TableMetadataPersistence.NameComponentDescription.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.NameComponentDescription.newBuilder();
+        TableMetadataPersistence.NameComponentDescription.Builder builder
+                = TableMetadataPersistence.NameComponentDescription.newBuilder();
         builder.setComponentName(componentName);
         builder.setType(type.persistToProto());
         builder.setOrder(getOrder());
@@ -114,25 +138,32 @@ public class NameComponentDescription {
         if (explicitPartitioner != null) {
             builder.addAllExplicitPartitions(explicitPartitioner.values);
         }
-        builder.setNameLoggable(nameLoggable);
+        builder.setLogSafety(logSafety);
         return builder;
     }
 
     public static NameComponentDescription hydrateFromProto(TableMetadataPersistence.NameComponentDescription message) {
         ValueType type = ValueType.hydrateFromProto(message.getType());
-        UniformRowNamePartitioner u = new UniformRowNamePartitioner(type);
+        UniformRowNamePartitioner uniformPartitioner = new UniformRowNamePartitioner(type);
         if (message.hasHasUniformPartitioner()) {
-            u = message.getHasUniformPartitioner() ? new UniformRowNamePartitioner(type) : null;
+            uniformPartitioner = message.getHasUniformPartitioner() ? new UniformRowNamePartitioner(type) : null;
         }
-        ExplicitRowNamePartitioner e = null;
+        ExplicitRowNamePartitioner explicitPartitioner = null;
         if (message.getExplicitPartitionsCount() > 0) {
-            e = new ExplicitRowNamePartitioner(type, message.getExplicitPartitionsList());
+            explicitPartitioner = new ExplicitRowNamePartitioner(type, message.getExplicitPartitionsList());
         }
-        boolean nameLoggable = message.hasNameLoggable() && message.getNameLoggable();
-        return new NameComponentDescription(message.getComponentName(), type, message.getOrder(), u, e, nameLoggable);
+        return new NameComponentDescription(
+                message.getComponentName(),
+                type,
+                message.getOrder(),
+                uniformPartitioner,
+                explicitPartitioner,
+                message.getLogSafety());
     }
 
     /**
+     * Returns true iff the component has a uniform partitioner.
+     *
      * NB: a component can have both a uniform partitioner and an explicit partitioner
      */
     public boolean hasUniformPartitioner() {
@@ -140,6 +171,8 @@ public class NameComponentDescription {
     }
 
     /**
+     * Returns true iff the component has an explicit partitioner.
+     *
      * NB: a component can have both an explicit partitioner and a uniform partitioner
      */
     @Nullable
@@ -156,21 +189,21 @@ public class NameComponentDescription {
                 explicit.addAll(((ExplicitRowNamePartitioner) p).values);
             }
         }
-        UniformRowNamePartitioner u = null;
+        UniformRowNamePartitioner up = null;
         if (hasUniform) {
-            u = new UniformRowNamePartitioner(type);
+            up = new UniformRowNamePartitioner(type);
         }
-        ExplicitRowNamePartitioner e = null;
+        ExplicitRowNamePartitioner ep = null;
         if (!explicit.isEmpty()) {
-            e = new ExplicitRowNamePartitioner(type, explicit);
+            ep = new ExplicitRowNamePartitioner(type, explicit);
         }
-        return new NameComponentDescription(componentName, type, order, u, e, nameLoggable);
+        return new NameComponentDescription(componentName, type, order, up, ep, logSafety);
     }
 
     @Override
     public String toString() {
         return "NameComponentDescription [componentName=" + componentName
-                + ", order=" + order + ", type=" + type + "]";
+                + ", order=" + order + ", type=" + type + ", logSafety=" + logSafety + "]";
     }
 
     @Override
@@ -181,17 +214,21 @@ public class NameComponentDescription {
         result = prime * result + (componentName == null ? 0 : componentName.hashCode());
         result = prime * result + (type == null ? 0 : type.hashCode());
         result = prime * result + (order == null ? 0 : order.hashCode());
+        result = prime * result + logSafety.hashCode();
         return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         NameComponentDescription other = (NameComponentDescription) obj;
         if (componentName == null) {
             if (other.getComponentName() != null) {
@@ -212,6 +249,9 @@ public class NameComponentDescription {
                 return false;
             }
         } else if (!order.equals(other.getOrder())) {
+            return false;
+        }
+        if (logSafety != other.logSafety) {
             return false;
         }
         return true;

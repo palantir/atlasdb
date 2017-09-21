@@ -37,7 +37,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 
-public class ColumnValues {
+public final class ColumnValues {
 
     private ColumnValues(){
         //should not be instantiated
@@ -47,7 +47,8 @@ public class ColumnValues {
         return toCellValues(map, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
     }
 
-    public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map, long duration, TimeUnit durationTimeUnit) {
+    public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map,
+            long duration, TimeUnit durationTimeUnit) {
         Map<Cell, byte[]> ret = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<T, Collection<V>> e : map.asMap().entrySet()) {
             byte[] rowName = e.getKey().persistToBytes();
@@ -77,12 +78,7 @@ public class ColumnValues {
     }
 
     public static <T> Function<ColumnValue<T>, T> getValuesFun() {
-        return new Function<ColumnValue<T>, T>() {
-            @Override
-            public T apply(ColumnValue<T> input) {
-                return input.getValue();
-            }
-        };
+        return input -> input.getValue();
     }
 
     @SuppressWarnings("unchecked")
@@ -97,9 +93,9 @@ public class ColumnValues {
 
     public static <T extends Persistable> T parsePersistable(Class<T> persistableClazz, byte[] bytes) {
         try {
-            Field f = persistableClazz.getDeclaredField(Persistable.HYDRATOR_NAME);
+            Field field = persistableClazz.getDeclaredField(Persistable.HYDRATOR_NAME);
             @SuppressWarnings("unchecked")
-            Hydrator<T> hydrator = (Hydrator<T>)f.get(null);
+            Hydrator<T> hydrator = (Hydrator<T>) field.get(null);
             return hydrator.hydrateFromBytes(bytes);
         } catch (SecurityException e) {
             throw Throwables.throwUncheckedException(e);

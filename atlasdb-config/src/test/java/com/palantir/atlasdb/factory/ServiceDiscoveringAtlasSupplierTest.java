@@ -33,12 +33,12 @@ import org.junit.rules.ExpectedException;
 
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.timestamp.TimestampService;
 
 public class ServiceDiscoveringAtlasSupplierTest {
-    private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
-    private final KeyValueServiceConfig invalidKvsConfig = () -> "should not be found kvs";
+    private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
+    private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
     private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
     private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
 

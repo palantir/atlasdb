@@ -30,11 +30,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockServiceClientTest;
-import com.palantir.remoting2.clients.UserAgents;
-import com.palantir.remoting2.errors.RemoteException;
-import com.palantir.remoting2.jaxrs.JaxRsClient;
-import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.atlasdb.util.TestJaxRsClientFactory;
+import com.palantir.remoting.api.errors.RemoteException;
+import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
@@ -48,13 +46,16 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
             new SweeperServiceImpl(getSpecificTableSweeperService()),
             new CheckAndSetExceptionMapper(),
-            HttpRemotingJerseyFeature.DEFAULT);
+            HttpRemotingJerseyFeature.INSTANCE);
 
+    // This method overrides the SweeperTestSetup method. Not sure if this is the intention, but leaving
+    // as such for now.
+    @Override
     @Before
     public void setup() {
-        sweeperService = JaxRsClient.builder().build(
+        sweeperService = TestJaxRsClientFactory.createJaxRsClientForTest(
                 SweeperService.class,
-                UserAgents.fromClass(KvsBackedPersistentLockServiceClientTest.class, "test", "unknown"),
+                SweeperServiceImplTest.class,
                 dropwizardClientRule.baseUri().toString());
     }
 

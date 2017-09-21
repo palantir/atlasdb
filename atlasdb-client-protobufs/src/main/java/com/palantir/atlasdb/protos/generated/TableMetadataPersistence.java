@@ -908,6 +908,88 @@ public final class TableMetadataPersistence {
     // @@protoc_insertion_point(enum_scope:com.palantir.atlasdb.protos.generated.ExpirationStrategy)
   }
 
+  /**
+   * Protobuf enum {@code com.palantir.atlasdb.protos.generated.LogSafety}
+   */
+  public enum LogSafety
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>SAFE = 0;</code>
+     */
+    SAFE(0, 0),
+    /**
+     * <code>UNSAFE = 1;</code>
+     */
+    UNSAFE(1, 1),
+    ;
+
+    /**
+     * <code>SAFE = 0;</code>
+     */
+    public static final int SAFE_VALUE = 0;
+    /**
+     * <code>UNSAFE = 1;</code>
+     */
+    public static final int UNSAFE_VALUE = 1;
+
+
+    public final int getNumber() { return value; }
+
+    public static LogSafety valueOf(int value) {
+      switch (value) {
+        case 0: return SAFE;
+        case 1: return UNSAFE;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<LogSafety>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<LogSafety>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<LogSafety>() {
+            public LogSafety findValueByNumber(int number) {
+              return LogSafety.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(9);
+    }
+
+    private static final LogSafety[] VALUES = values();
+
+    public static LogSafety valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private LogSafety(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:com.palantir.atlasdb.protos.generated.LogSafety)
+  }
+
   public interface TableMetadataOrBuilder extends
       // @@protoc_insertion_point(interface_extends:com.palantir.atlasdb.protos.generated.TableMetadata)
       com.google.protobuf.MessageOrBuilder {
@@ -1020,13 +1102,13 @@ public final class TableMetadataPersistence {
     boolean getAppendHeavyAndReadLight();
 
     /**
-     * <code>optional bool nameLoggable = 12 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
      */
-    boolean hasNameLoggable();
+    boolean hasNameLogSafety();
     /**
-     * <code>optional bool nameLoggable = 12 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
      */
-    boolean getNameLoggable();
+    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getNameLogSafety();
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.TableMetadata}
@@ -1176,8 +1258,14 @@ public final class TableMetadataPersistence {
               break;
             }
             case 96: {
-              bitField0_ |= 0x00000800;
-              nameLoggable_ = input.readBool();
+              int rawValue = input.readEnum();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety value = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(12, rawValue);
+              } else {
+                bitField0_ |= 0x00000800;
+                nameLogSafety_ = value;
+              }
               break;
             }
           }
@@ -1397,19 +1485,19 @@ public final class TableMetadataPersistence {
       return appendHeavyAndReadLight_;
     }
 
-    public static final int NAMELOGGABLE_FIELD_NUMBER = 12;
-    private boolean nameLoggable_;
+    public static final int NAMELOGSAFETY_FIELD_NUMBER = 12;
+    private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety nameLogSafety_;
     /**
-     * <code>optional bool nameLoggable = 12 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
      */
-    public boolean hasNameLoggable() {
+    public boolean hasNameLogSafety() {
       return ((bitField0_ & 0x00000800) == 0x00000800);
     }
     /**
-     * <code>optional bool nameLoggable = 12 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
      */
-    public boolean getNameLoggable() {
-      return nameLoggable_;
+    public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getNameLogSafety() {
+      return nameLogSafety_;
     }
 
     private void initFields() {
@@ -1424,7 +1512,7 @@ public final class TableMetadataPersistence {
       sweepStrategy_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.NOTHING;
       explicitCompressionBlockSizeKiloBytes_ = 0;
       appendHeavyAndReadLight_ = false;
-      nameLoggable_ = false;
+      nameLogSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1493,7 +1581,7 @@ public final class TableMetadataPersistence {
         output.writeBool(11, appendHeavyAndReadLight_);
       }
       if (((bitField0_ & 0x00000800) == 0x00000800)) {
-        output.writeBool(12, nameLoggable_);
+        output.writeEnum(12, nameLogSafety_.getNumber());
       }
       getUnknownFields().writeTo(output);
     }
@@ -1550,7 +1638,7 @@ public final class TableMetadataPersistence {
       }
       if (((bitField0_ & 0x00000800) == 0x00000800)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(12, nameLoggable_);
+          .computeEnumSize(12, nameLogSafety_.getNumber());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1701,7 +1789,7 @@ public final class TableMetadataPersistence {
         bitField0_ = (bitField0_ & ~0x00000200);
         appendHeavyAndReadLight_ = false;
         bitField0_ = (bitField0_ & ~0x00000400);
-        nameLoggable_ = false;
+        nameLogSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
         bitField0_ = (bitField0_ & ~0x00000800);
         return this;
       }
@@ -1786,7 +1874,7 @@ public final class TableMetadataPersistence {
         if (((from_bitField0_ & 0x00000800) == 0x00000800)) {
           to_bitField0_ |= 0x00000800;
         }
-        result.nameLoggable_ = nameLoggable_;
+        result.nameLogSafety_ = nameLogSafety_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -1836,8 +1924,8 @@ public final class TableMetadataPersistence {
         if (other.hasAppendHeavyAndReadLight()) {
           setAppendHeavyAndReadLight(other.getAppendHeavyAndReadLight());
         }
-        if (other.hasNameLoggable()) {
-          setNameLoggable(other.getNameLoggable());
+        if (other.hasNameLogSafety()) {
+          setNameLogSafety(other.getNameLogSafety());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -2418,34 +2506,37 @@ public final class TableMetadataPersistence {
         return this;
       }
 
-      private boolean nameLoggable_ ;
+      private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety nameLogSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
       /**
-       * <code>optional bool nameLoggable = 12 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
        */
-      public boolean hasNameLoggable() {
+      public boolean hasNameLogSafety() {
         return ((bitField0_ & 0x00000800) == 0x00000800);
       }
       /**
-       * <code>optional bool nameLoggable = 12 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
        */
-      public boolean getNameLoggable() {
-        return nameLoggable_;
+      public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getNameLogSafety() {
+        return nameLogSafety_;
       }
       /**
-       * <code>optional bool nameLoggable = 12 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
        */
-      public Builder setNameLoggable(boolean value) {
+      public Builder setNameLogSafety(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
         bitField0_ |= 0x00000800;
-        nameLoggable_ = value;
+        nameLogSafety_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bool nameLoggable = 12 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety nameLogSafety = 12 [default = UNSAFE];</code>
        */
-      public Builder clearNameLoggable() {
+      public Builder clearNameLogSafety() {
         bitField0_ = (bitField0_ & ~0x00000800);
-        nameLoggable_ = false;
+        nameLogSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
         onChanged();
         return this;
       }
@@ -3295,13 +3386,13 @@ public final class TableMetadataPersistence {
         getExplicitPartitionsBytes(int index);
 
     /**
-     * <code>optional bool nameLoggable = 6 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
      */
-    boolean hasNameLoggable();
+    boolean hasLogSafety();
     /**
-     * <code>optional bool nameLoggable = 6 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
      */
-    boolean getNameLoggable();
+    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getLogSafety();
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.NameComponentDescription}
@@ -3398,8 +3489,14 @@ public final class TableMetadataPersistence {
               break;
             }
             case 48: {
-              bitField0_ |= 0x00000010;
-              nameLoggable_ = input.readBool();
+              int rawValue = input.readEnum();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety value = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(6, rawValue);
+              } else {
+                bitField0_ |= 0x00000010;
+                logSafety_ = value;
+              }
               break;
             }
           }
@@ -3561,19 +3658,19 @@ public final class TableMetadataPersistence {
       return explicitPartitions_.getByteString(index);
     }
 
-    public static final int NAMELOGGABLE_FIELD_NUMBER = 6;
-    private boolean nameLoggable_;
+    public static final int LOGSAFETY_FIELD_NUMBER = 6;
+    private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety logSafety_;
     /**
-     * <code>optional bool nameLoggable = 6 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
      */
-    public boolean hasNameLoggable() {
+    public boolean hasLogSafety() {
       return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>optional bool nameLoggable = 6 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
      */
-    public boolean getNameLoggable() {
-      return nameLoggable_;
+    public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getLogSafety() {
+      return logSafety_;
     }
 
     private void initFields() {
@@ -3582,7 +3679,7 @@ public final class TableMetadataPersistence {
       order_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder.ASCENDING;
       hasUniformPartitioner_ = false;
       explicitPartitions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      nameLoggable_ = false;
+      logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -3625,7 +3722,7 @@ public final class TableMetadataPersistence {
         output.writeBytes(5, explicitPartitions_.getByteString(i));
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeBool(6, nameLoggable_);
+        output.writeEnum(6, logSafety_.getNumber());
       }
       getUnknownFields().writeTo(output);
     }
@@ -3663,7 +3760,7 @@ public final class TableMetadataPersistence {
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(6, nameLoggable_);
+          .computeEnumSize(6, logSafety_.getNumber());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -3792,7 +3889,7 @@ public final class TableMetadataPersistence {
         bitField0_ = (bitField0_ & ~0x00000008);
         explicitPartitions_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000010);
-        nameLoggable_ = false;
+        logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
         bitField0_ = (bitField0_ & ~0x00000020);
         return this;
       }
@@ -3846,7 +3943,7 @@ public final class TableMetadataPersistence {
         if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
           to_bitField0_ |= 0x00000010;
         }
-        result.nameLoggable_ = nameLoggable_;
+        result.logSafety_ = logSafety_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3887,8 +3984,8 @@ public final class TableMetadataPersistence {
           }
           onChanged();
         }
-        if (other.hasNameLoggable()) {
-          setNameLoggable(other.getNameLoggable());
+        if (other.hasLogSafety()) {
+          setLogSafety(other.getLogSafety());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -4200,34 +4297,37 @@ public final class TableMetadataPersistence {
         return this;
       }
 
-      private boolean nameLoggable_ ;
+      private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
       /**
-       * <code>optional bool nameLoggable = 6 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
        */
-      public boolean hasNameLoggable() {
+      public boolean hasLogSafety() {
         return ((bitField0_ & 0x00000020) == 0x00000020);
       }
       /**
-       * <code>optional bool nameLoggable = 6 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
        */
-      public boolean getNameLoggable() {
-        return nameLoggable_;
+      public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getLogSafety() {
+        return logSafety_;
       }
       /**
-       * <code>optional bool nameLoggable = 6 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
        */
-      public Builder setNameLoggable(boolean value) {
+      public Builder setLogSafety(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
         bitField0_ |= 0x00000020;
-        nameLoggable_ = value;
+        logSafety_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bool nameLoggable = 6 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 6 [default = UNSAFE];</code>
        */
-      public Builder clearNameLoggable() {
+      public Builder clearLogSafety() {
         bitField0_ = (bitField0_ & ~0x00000020);
-        nameLoggable_ = false;
+        logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
         onChanged();
         return this;
       }
@@ -5910,13 +6010,13 @@ public final class TableMetadataPersistence {
     com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescriptionOrBuilder getValueOrBuilder();
 
     /**
-     * <code>optional bool nameLoggable = 4 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
      */
-    boolean hasNameLoggable();
+    boolean hasLogSafety();
     /**
-     * <code>optional bool nameLoggable = 4 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
      */
-    boolean getNameLoggable();
+    com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getLogSafety();
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.NamedColumnDescription}
@@ -5996,8 +6096,14 @@ public final class TableMetadataPersistence {
               break;
             }
             case 32: {
-              bitField0_ |= 0x00000008;
-              nameLoggable_ = input.readBool();
+              int rawValue = input.readEnum();
+              com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety value = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(4, rawValue);
+              } else {
+                bitField0_ |= 0x00000008;
+                logSafety_ = value;
+              }
               break;
             }
           }
@@ -6145,26 +6251,26 @@ public final class TableMetadataPersistence {
       return value_;
     }
 
-    public static final int NAMELOGGABLE_FIELD_NUMBER = 4;
-    private boolean nameLoggable_;
+    public static final int LOGSAFETY_FIELD_NUMBER = 4;
+    private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety logSafety_;
     /**
-     * <code>optional bool nameLoggable = 4 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
      */
-    public boolean hasNameLoggable() {
+    public boolean hasLogSafety() {
       return ((bitField0_ & 0x00000008) == 0x00000008);
     }
     /**
-     * <code>optional bool nameLoggable = 4 [default = false];</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
      */
-    public boolean getNameLoggable() {
-      return nameLoggable_;
+    public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getLogSafety() {
+      return logSafety_;
     }
 
     private void initFields() {
       shortName_ = "";
       longName_ = "";
       value_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ColumnValueDescription.getDefaultInstance();
-      nameLoggable_ = false;
+      logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -6205,7 +6311,7 @@ public final class TableMetadataPersistence {
         output.writeMessage(3, value_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeBool(4, nameLoggable_);
+        output.writeEnum(4, logSafety_.getNumber());
       }
       getUnknownFields().writeTo(output);
     }
@@ -6230,7 +6336,7 @@ public final class TableMetadataPersistence {
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBoolSize(4, nameLoggable_);
+          .computeEnumSize(4, logSafety_.getNumber());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -6360,7 +6466,7 @@ public final class TableMetadataPersistence {
           valueBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000004);
-        nameLoggable_ = false;
+        logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
         bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
@@ -6409,7 +6515,7 @@ public final class TableMetadataPersistence {
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
         }
-        result.nameLoggable_ = nameLoggable_;
+        result.logSafety_ = logSafety_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -6439,8 +6545,8 @@ public final class TableMetadataPersistence {
         if (other.hasValue()) {
           mergeValue(other.getValue());
         }
-        if (other.hasNameLoggable()) {
-          setNameLoggable(other.getNameLoggable());
+        if (other.hasLogSafety()) {
+          setLogSafety(other.getLogSafety());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -6753,34 +6859,37 @@ public final class TableMetadataPersistence {
         return valueBuilder_;
       }
 
-      private boolean nameLoggable_ ;
+      private com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
       /**
-       * <code>optional bool nameLoggable = 4 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
        */
-      public boolean hasNameLoggable() {
+      public boolean hasLogSafety() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>optional bool nameLoggable = 4 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
        */
-      public boolean getNameLoggable() {
-        return nameLoggable_;
+      public com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety getLogSafety() {
+        return logSafety_;
       }
       /**
-       * <code>optional bool nameLoggable = 4 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
        */
-      public Builder setNameLoggable(boolean value) {
+      public Builder setLogSafety(com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
         bitField0_ |= 0x00000008;
-        nameLoggable_ = value;
+        logSafety_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bool nameLoggable = 4 [default = false];</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.LogSafety logSafety = 4 [default = UNSAFE];</code>
        */
-      public Builder clearNameLoggable() {
+      public Builder clearLogSafety() {
         bitField0_ = (bitField0_ & ~0x00000008);
-        nameLoggable_ = false;
+        logSafety_ = com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety.UNSAFE;
         onChanged();
         return this;
       }
@@ -9048,7 +9157,7 @@ public final class TableMetadataPersistence {
     java.lang.String[] descriptorData = {
       "\nEmain/proto/com/palantir/atlasdb/protos" +
       "/TableMetadataPersistence.proto\022%com.pal" +
-      "antir.atlasdb.protos.generated\"\271\005\n\rTable" +
+      "antir.atlasdb.protos.generated\"\355\005\n\rTable" +
       "Metadata\022O\n\007rowName\030\001 \002(\0132>.com.palantir" +
       ".atlasdb.protos.generated.NameMetadataDe" +
       "scription\022Q\n\007columns\030\002 \002(\0132@.com.palanti" +
@@ -9065,66 +9174,70 @@ public final class TableMetadataPersistence {
       "y\030\t \001(\01624.com.palantir.atlasdb.protos.ge" +
       "nerated.SweepStrategy\022-\n%explicitCompres" +
       "sionBlockSizeKiloBytes\030\n \001(\005\022\037\n\027appendHe" +
-      "avyAndReadLight\030\013 \001(\010\022\033\n\014nameLoggable\030\014 ",
-      "\001(\010:\005false\"\214\001\n\027NameMetadataDescription\022R" +
-      "\n\tnameParts\030\001 \003(\0132?.com.palantir.atlasdb" +
-      ".protos.generated.NameComponentDescripti" +
-      "on\022\035\n\025hasFirstComponentHash\030\002 \001(\010\"\217\002\n\030Na" +
-      "meComponentDescription\022\025\n\rcomponentName\030" +
-      "\001 \002(\t\022>\n\004type\030\002 \002(\01620.com.palantir.atlas" +
-      "db.protos.generated.ValueType\022D\n\005order\030\003" +
-      " \002(\01625.com.palantir.atlasdb.protos.gener" +
-      "ated.ValueByteOrder\022\035\n\025hasUniformPartiti" +
-      "oner\030\004 \001(\010\022\032\n\022explicitPartitions\030\005 \003(\t\022\033",
-      "\n\014nameLoggable\030\006 \001(\010:\005false\"\310\001\n\031ColumnMe" +
-      "tadataDescription\022S\n\014namedColumns\030\001 \003(\0132" +
-      "=.com.palantir.atlasdb.protos.generated." +
-      "NamedColumnDescription\022V\n\rdynamicColumn\030" +
-      "\002 \001(\0132?.com.palantir.atlasdb.protos.gene" +
-      "rated.DynamicColumnDescription\"\300\001\n\030Dynam" +
-      "icColumnDescription\022V\n\016columnNameDesc\030\001 " +
-      "\002(\0132>.com.palantir.atlasdb.protos.genera" +
-      "ted.NameMetadataDescription\022L\n\005value\030\002 \002" +
-      "(\0132=.com.palantir.atlasdb.protos.generat",
-      "ed.ColumnValueDescription\"\250\001\n\026NamedColum" +
-      "nDescription\022\021\n\tshortName\030\001 \002(\t\022\020\n\010longN" +
-      "ame\030\002 \002(\t\022L\n\005value\030\003 \002(\0132=.com.palantir." +
-      "atlasdb.protos.generated.ColumnValueDesc" +
-      "ription\022\033\n\014nameLoggable\030\004 \001(\010:\005false\"\274\003\n" +
-      "\026ColumnValueDescription\022>\n\004type\030\001 \002(\01620." +
-      "com.palantir.atlasdb.protos.generated.Va" +
-      "lueType\022\021\n\tclassName\030\002 \001(\t\022M\n\013compressio" +
-      "n\030\003 \001(\01622.com.palantir.atlasdb.protos.ge" +
-      "nerated.Compression:\004NONE\022H\n\006format\030\004 \001(",
-      "\01628.com.palantir.atlasdb.protos.generate" +
-      "d.ColumnValueFormat\022\032\n\022canonicalClassNam" +
-      "e\030\005 \001(\t\022\037\n\023protoFileDescriptor\030\006 \001(\014B\002\030\001" +
-      "\022\030\n\020protoMessageName\030\007 \001(\t\022_\n\027protoFileD" +
-      "escriptorTree\030\010 \001(\0132>.com.palantir.atlas" +
-      "db.protos.generated.FileDescriptorTreePr" +
-      "oto\"\214\001\n\027FileDescriptorTreeProto\022\033\n\023proto" +
-      "FileDescriptor\030\001 \002(\014\022T\n\014dependencies\030\002 \003" +
-      "(\0132>.com.palantir.atlasdb.protos.generat" +
-      "ed.FileDescriptorTreeProto*\305\001\n\tValueType",
-      "\022\014\n\010VAR_LONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING" +
-      "\020\003\022\010\n\004BLOB\020\004\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIX" +
-      "ED_LONG_LITTLE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022" +
-      "\016\n\nVAR_STRING\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t" +
-      "\022\016\n\nSIZED_BLOB\020\n\022\010\n\004UUID\020\013*#\n\013Compressio" +
-      "n\022\010\n\004NONE\020\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueFo" +
-      "rmat\022\t\n\005PROTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALU" +
-      "E_TYPE\020\003\022\r\n\tPERSISTER\020\004*/\n\016ValueByteOrde" +
-      "r\022\r\n\tASCENDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024Tab" +
-      "leConflictHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RET",
-      "RY_ON_WRITE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CH" +
-      "ANGED\020\003\022\020\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WR" +
-      "ITE_WRITE_CELL\020\005*F\n\rCachePriority\022\013\n\007COL" +
-      "DEST\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007H" +
-      "OTTEST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED" +
-      "\020\000\022\010\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING" +
-      "\020\000\022\020\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022Ex" +
-      "pirationStrategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUA" +
-      "LLY_SPECIFIED\020\001"
+      "avyAndReadLight\030\013 \001(\010\022O\n\rnameLogSafety\030\014",
+      " \001(\01620.com.palantir.atlasdb.protos.gener" +
+      "ated.LogSafety:\006UNSAFE\"\214\001\n\027NameMetadataD" +
+      "escription\022R\n\tnameParts\030\001 \003(\0132?.com.pala" +
+      "ntir.atlasdb.protos.generated.NameCompon" +
+      "entDescription\022\035\n\025hasFirstComponentHash\030" +
+      "\002 \001(\010\"\277\002\n\030NameComponentDescription\022\025\n\rco" +
+      "mponentName\030\001 \002(\t\022>\n\004type\030\002 \002(\01620.com.pa" +
+      "lantir.atlasdb.protos.generated.ValueTyp" +
+      "e\022D\n\005order\030\003 \002(\01625.com.palantir.atlasdb." +
+      "protos.generated.ValueByteOrder\022\035\n\025hasUn",
+      "iformPartitioner\030\004 \001(\010\022\032\n\022explicitPartit" +
+      "ions\030\005 \003(\t\022K\n\tlogSafety\030\006 \001(\01620.com.pala" +
+      "ntir.atlasdb.protos.generated.LogSafety:" +
+      "\006UNSAFE\"\310\001\n\031ColumnMetadataDescription\022S\n" +
+      "\014namedColumns\030\001 \003(\0132=.com.palantir.atlas" +
+      "db.protos.generated.NamedColumnDescripti" +
+      "on\022V\n\rdynamicColumn\030\002 \001(\0132?.com.palantir" +
+      ".atlasdb.protos.generated.DynamicColumnD" +
+      "escription\"\300\001\n\030DynamicColumnDescription\022" +
+      "V\n\016columnNameDesc\030\001 \002(\0132>.com.palantir.a",
+      "tlasdb.protos.generated.NameMetadataDesc" +
+      "ription\022L\n\005value\030\002 \002(\0132=.com.palantir.at" +
+      "lasdb.protos.generated.ColumnValueDescri" +
+      "ption\"\330\001\n\026NamedColumnDescription\022\021\n\tshor" +
+      "tName\030\001 \002(\t\022\020\n\010longName\030\002 \002(\t\022L\n\005value\030\003" +
+      " \002(\0132=.com.palantir.atlasdb.protos.gener" +
+      "ated.ColumnValueDescription\022K\n\tlogSafety" +
+      "\030\004 \001(\01620.com.palantir.atlasdb.protos.gen" +
+      "erated.LogSafety:\006UNSAFE\"\274\003\n\026ColumnValue" +
+      "Description\022>\n\004type\030\001 \002(\01620.com.palantir",
+      ".atlasdb.protos.generated.ValueType\022\021\n\tc" +
+      "lassName\030\002 \001(\t\022M\n\013compression\030\003 \001(\01622.co" +
+      "m.palantir.atlasdb.protos.generated.Comp" +
+      "ression:\004NONE\022H\n\006format\030\004 \001(\01628.com.pala" +
+      "ntir.atlasdb.protos.generated.ColumnValu" +
+      "eFormat\022\032\n\022canonicalClassName\030\005 \001(\t\022\037\n\023p" +
+      "rotoFileDescriptor\030\006 \001(\014B\002\030\001\022\030\n\020protoMes" +
+      "sageName\030\007 \001(\t\022_\n\027protoFileDescriptorTre" +
+      "e\030\010 \001(\0132>.com.palantir.atlasdb.protos.ge" +
+      "nerated.FileDescriptorTreeProto\"\214\001\n\027File",
+      "DescriptorTreeProto\022\033\n\023protoFileDescript" +
+      "or\030\001 \002(\014\022T\n\014dependencies\030\002 \003(\0132>.com.pal" +
+      "antir.atlasdb.protos.generated.FileDescr" +
+      "iptorTreeProto*\305\001\n\tValueType\022\014\n\010VAR_LONG" +
+      "\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING\020\003\022\010\n\004BLOB\020\004" +
+      "\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIXED_LONG_LITT" +
+      "LE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022\016\n\nVAR_STRIN" +
+      "G\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t\022\016\n\nSIZED_BL" +
+      "OB\020\n\022\010\n\004UUID\020\013*#\n\013Compression\022\010\n\004NONE\020\001\022" +
+      "\n\n\006SNAPPY\020\002*N\n\021ColumnValueFormat\022\t\n\005PROT",
+      "O\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALUE_TYPE\020\003\022\r\n\t" +
+      "PERSISTER\020\004*/\n\016ValueByteOrder\022\r\n\tASCENDI" +
+      "NG\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024TableConflictHa" +
+      "ndler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETRY_ON_WRITE_" +
+      "WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHANGED\020\003\022\020\n\014S" +
+      "ERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRITE_WRITE_CE" +
+      "LL\020\005*F\n\rCachePriority\022\013\n\007COLDEST\020\000\022\010\n\004CO" +
+      "LD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOTTEST\020\177**\n\021" +
+      "PartitionStrategy\022\013\n\007ORDERED\020\000\022\010\n\004HASH\020\001" +
+      "*<\n\rSweepStrategy\022\013\n\007NOTHING\020\000\022\020\n\014CONSER",
+      "VATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022ExpirationStra" +
+      "tegy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUALLY_SPECIFIE" +
+      "D\020\001*!\n\tLogSafety\022\010\n\004SAFE\020\000\022\n\n\006UNSAFE\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -9143,7 +9256,7 @@ public final class TableMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_TableMetadata_descriptor,
-        new java.lang.String[] { "RowName", "Columns", "ConflictHandler", "CachePriority", "PartitionStrategy", "RangeScanAllowed", "ExplicitCompression", "NegativeLookups", "SweepStrategy", "ExplicitCompressionBlockSizeKiloBytes", "AppendHeavyAndReadLight", "NameLoggable", });
+        new java.lang.String[] { "RowName", "Columns", "ConflictHandler", "CachePriority", "PartitionStrategy", "RangeScanAllowed", "ExplicitCompression", "NegativeLookups", "SweepStrategy", "ExplicitCompressionBlockSizeKiloBytes", "AppendHeavyAndReadLight", "NameLogSafety", });
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable = new
@@ -9155,7 +9268,7 @@ public final class TableMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor,
-        new java.lang.String[] { "ComponentName", "Type", "Order", "HasUniformPartitioner", "ExplicitPartitions", "NameLoggable", });
+        new java.lang.String[] { "ComponentName", "Type", "Order", "HasUniformPartitioner", "ExplicitPartitions", "LogSafety", });
     internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_descriptor =
       getDescriptor().getMessageTypes().get(3);
     internal_static_com_palantir_atlasdb_protos_generated_ColumnMetadataDescription_fieldAccessorTable = new
@@ -9173,7 +9286,7 @@ public final class TableMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_NamedColumnDescription_descriptor,
-        new java.lang.String[] { "ShortName", "LongName", "Value", "NameLoggable", });
+        new java.lang.String[] { "ShortName", "LongName", "Value", "LogSafety", });
     internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_descriptor =
       getDescriptor().getMessageTypes().get(6);
     internal_static_com_palantir_atlasdb_protos_generated_ColumnValueDescription_fieldAccessorTable = new

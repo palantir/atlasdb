@@ -24,10 +24,16 @@ import org.junit.rules.ExternalResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.remoting3.http2.Http2Agent;
 
 import io.dropwizard.testing.DropwizardTestSupport;
 
 public class TimeLockServerHolder extends ExternalResource {
+
+    static {
+        Http2Agent.install();
+    }
+
     private Supplier<String> configFilePathSupplier;
     private DropwizardTestSupport<TimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
@@ -60,6 +66,11 @@ public class TimeLockServerHolder extends ExternalResource {
 
     public int getTimelockPort() {
         return timelockPort;
+    }
+
+    public String getTimelockUri() {
+        // TODO(nziebart): hack
+        return "https://localhost:" + timelockPort;
     }
 
     public synchronized void kill() {

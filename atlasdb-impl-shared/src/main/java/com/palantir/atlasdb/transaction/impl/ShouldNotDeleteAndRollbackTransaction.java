@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.concurrent.ExecutorService;
+
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -32,7 +35,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                TransactionReadSentinelBehavior readSentinelBehavior,
                                boolean allowHiddenTableAccess,
-                               TimestampCache timestampCache) {
+                               TimestampCache timestampCache,
+                               ExecutorService getRangesExecutor) {
         super(keyValueService,
               transactionService,
               null,
@@ -40,7 +44,10 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
               constraintCheckingMode,
               readSentinelBehavior,
               allowHiddenTableAccess,
-              timestampCache);
+              timestampCache,
+              // never actually used, since timelockService is null
+              AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+              getRangesExecutor);
     }
 
     @Override

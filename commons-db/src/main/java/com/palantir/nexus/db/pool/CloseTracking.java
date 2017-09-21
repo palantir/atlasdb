@@ -51,12 +51,9 @@ public class CloseTracking {
             return delegate;
         }
         final Tracking tracking = new Tracking(type.name());
-        R wrapped = type.closeWrapper(delegate, new ResourceOnClose<E>() {
-            @Override
-            public void close() throws E {
-                tracking.close();
-                type.close(delegate);
-            }
+        R wrapped = type.closeWrapper(delegate, () -> {
+            tracking.close();
+            type.close(delegate);
         });
         destructorReferences.add(new MyReference(wrapped, tracking));
         return wrapped;

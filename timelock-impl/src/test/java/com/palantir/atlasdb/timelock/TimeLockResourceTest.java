@@ -15,50 +15,89 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
-import javax.ws.rs.NotFoundException;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.lock.LockService;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
-
 public class TimeLockResourceTest {
-    private static final String EXISTING_CLIENT = "existing-client";
-    private static final String NON_EXISTING_CLIENT = "non-existing-client";
+    private static final String CLIENT_A = "a-client";
+    private static final String CLIENT_B = "b-client";
 
-    private static final LockService LOCK_SERVICE = mock(LockService.class);
-    private static final TimestampService TIMESTAMP_SERVICE = mock(TimestampService.class);
-    private static final TimestampManagementService TIMESTAMP_MANAGEMENT_SERVICE =
-            mock(TimestampManagementService.class);
-    private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(
-            TIMESTAMP_SERVICE,
-            LOCK_SERVICE,
-            TIMESTAMP_MANAGEMENT_SERVICE);
+    private static final int DEFAULT_MAX_NUMBER_OF_CLIENTS = 5;
 
-    private static final TimeLockResource RESOURCE = new TimeLockResource(
-            ImmutableMap.of(EXISTING_CLIENT, TIME_LOCK_SERVICES));
+    private final TimeLockServices servicesA = mock(TimeLockServices.class);
+    private final TimeLockServices servicesB = mock(TimeLockServices.class);
+
+    private final Function<String, TimeLockServices> serviceFactory = mock(Function.class);
+    private final Supplier<Integer> maxNumberOfClientsSupplier = mock(Supplier.class);
+    private final TimeLockResource resource = new TimeLockResource(
+            serviceFactory,
+            maxNumberOfClientsSupplier);
+
+
+    @Before
+    public void before() {
+        when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
+        when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
+        when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
+
+        when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
+    }
 
     @Test
-    public void canGetExistingTimeService() {
-        RESOURCE.getTimeService(EXISTING_CLIENT);
-    }
-
-    @Test(expected = NotFoundException.class)
-    public void throwWhenTimeServiceDoesntExist() {
-        RESOURCE.getTimeService(NON_EXISTING_CLIENT);
+    public void returnsProperServiceForEachClient() {
+        assertThat(resource.getOrCreateServices(CLIENT_A)).isEqualTo(servicesA);
+        assertThat(resource.getOrCreateServices(CLIENT_B)).isEqualTo(servicesB);
     }
 
     @Test
-    public void canGetExistingLockService() {
-        RESOURCE.getLockService(EXISTING_CLIENT);
+    public void servicesAreOnlyCreatedOncePerClient() {
+        resource.getTimeService(CLIENT_A);
+        resource.getTimeService(CLIENT_A);
+
+        verify(serviceFactory, times(1)).apply(any());
     }
 
-    @Test(expected = NotFoundException.class)
-    public void throwWhenLockServiceDoesntExist() {
-        RESOURCE.getLockService(NON_EXISTING_CLIENT);
+    @Test
+    public void doesNotCreateNewClientsAfterMaximumNumberHasBeenReached() {
+        createMaximumNumberOfClients();
+
+        assertThatThrownBy(() -> resource.getTimeService(uniqueClient()))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(serviceFactory, times(DEFAULT_MAX_NUMBER_OF_CLIENTS)).apply(any());
+        verifyNoMoreInteractions(serviceFactory);
     }
+
+    @Test
+    public void canDynamicallyIncreaseMaxAllowedClients() {
+        createMaximumNumberOfClients();
+
+        when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS + 1);
+
+        resource.getTimeService(uniqueClient());
+    }
+
+    private void createMaximumNumberOfClients() {
+        for (int i = 0; i < DEFAULT_MAX_NUMBER_OF_CLIENTS; i++) {
+            resource.getTimeService(uniqueClient());
+        }
+    }
+
+    private String uniqueClient() {
+        return UUID.randomUUID().toString();
+    }
+
 }

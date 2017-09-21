@@ -73,8 +73,15 @@ public class IndexDefinition extends AbstractDefinition {
         componentFromRow(componentName, valueType, ValueByteOrder.ASCENDING, sourceComponentName);
     }
 
-    public void componentFromRow(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceComponentName) {
-        addComponent(IndexComponent.createFromRow(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceComponentName));
+    public void componentFromRow(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+            String sourceComponentName) {
+        addComponent(IndexComponent.createFromRow(
+                new NameComponentDescription.Builder()
+                        .componentName(componentName)
+                        .type(valueType)
+                        .byteOrder(valueByteOrder)
+                        .build(),
+                sourceComponentName));
     }
 
     public void componentFromDynamicColumn(String componentName, ValueType valueType) {
@@ -89,8 +96,15 @@ public class IndexDefinition extends AbstractDefinition {
         componentFromDynamicColumn(componentName, valueType, ValueByteOrder.ASCENDING, sourceComponentName);
     }
 
-    public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceComponentName) {
-        addComponent(IndexComponent.createFromDynamicColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceComponentName));
+    public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+            String sourceComponentName) {
+        addComponent(IndexComponent.createFromDynamicColumn(
+                new NameComponentDescription.Builder()
+                        .componentName(componentName)
+                        .type(valueType)
+                        .byteOrder(valueByteOrder)
+                        .build(),
+                sourceComponentName));
     }
 
     /**
@@ -111,13 +125,14 @@ public class IndexDefinition extends AbstractDefinition {
 
     public void partition(RowNamePartitioner... partitioners) {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        IndexComponent last = rowComponents.get(rowComponents.size()-1);
+        IndexComponent last = rowComponents.get(rowComponents.size() - 1);
         rowComponents.set(rowComponents.size() - 1, last.withPartitioners(partitioners));
     }
 
     public ExplicitRowNamePartitioner explicit(String... componentValues) {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        return new ExplicitRowNamePartitioner(rowComponents.get(rowComponents.size()-1).rowKeyDesc.getType(), ImmutableSet.copyOf(componentValues));
+        return new ExplicitRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType(),
+                ImmutableSet.copyOf(componentValues));
     }
 
     public ExplicitRowNamePartitioner explicit(long... componentValues) {
@@ -126,35 +141,53 @@ public class IndexDefinition extends AbstractDefinition {
         for (long l : componentValues) {
             set.add(Long.toString(l));
         }
-        return new ExplicitRowNamePartitioner(rowComponents.get(rowComponents.size()-1).rowKeyDesc.getType(), set);
+        return new ExplicitRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType(), set);
     }
 
     public UniformRowNamePartitioner uniform() {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        return new UniformRowNamePartitioner(rowComponents.get(rowComponents.size()-1).rowKeyDesc.getType());
+        return new UniformRowNamePartitioner(rowComponents.get(rowComponents.size() - 1).rowKeyDesc.getType());
     }
 
-    public void componentFromColumn(String componentName, ValueType valueType, String sourceColumnName, String codeToAccessValue) {
+    public void componentFromColumn(String componentName, ValueType valueType, String sourceColumnName,
+            String codeToAccessValue) {
         componentFromColumn(componentName, valueType, ValueByteOrder.ASCENDING, sourceColumnName, codeToAccessValue);
     }
 
-    public void componentFromColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceColumnName, String codeToAccessValue) {
-        addComponent(IndexComponent.createFromColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceColumnName, codeToAccessValue));
+    public void componentFromColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+            String sourceColumnName, String codeToAccessValue) {
+        addComponent(IndexComponent.createFromColumn(
+                new NameComponentDescription.Builder()
+                        .componentName(componentName)
+                        .type(valueType)
+                        .byteOrder(valueByteOrder)
+                        .build(),
+                sourceColumnName,
+                codeToAccessValue));
     }
 
     /**
      * Allows multiple index rows when indexing by a cell with iterable values.
-     * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable<valueType> using codeToAccessValue.
+     * It doesn't support arbitrary protobuf structures - you need to be able to extract an iterable<valueType>
+     *     using codeToAccessValue.
      */
-    public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceColumnName, String codeToAccessValue) {
-        addComponent(IndexComponent.createIterableFromColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceColumnName, codeToAccessValue));
+    public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
+            String sourceColumnName, String codeToAccessValue) {
+        addComponent(IndexComponent.createIterableFromColumn(
+                new NameComponentDescription.Builder()
+                        .componentName(componentName)
+                        .type(valueType)
+                        .byteOrder(valueByteOrder)
+                        .build(),
+                sourceColumnName,
+                codeToAccessValue));
     }
 
-    private void addComponent(IndexComponent c) {
+    private void addComponent(IndexComponent component) {
         if (state == State.DEFINING_ROW_COMPONENTS) {
-            rowComponents.add(c);
+            rowComponents.add(component);
         } else if (state == State.DEFINING_COLUMN_COMPONENTS) {
-            colComponents.add(c);
+            colComponents.add(component);
         } else {
             throw new IllegalStateException("Can only specify components when defining row or column names.");
         }
@@ -208,7 +241,7 @@ public class IndexDefinition extends AbstractDefinition {
         CELL_REFERENCING("_idx");
 
         private final String indexSuffix;
-        private IndexType(String indexSuffix) {
+        IndexType(String indexSuffix) {
             this.indexSuffix = indexSuffix;
         }
 
@@ -226,8 +259,8 @@ public class IndexDefinition extends AbstractDefinition {
     public IndexMetadata toIndexMetadata(String indexTableName) {
         Preconditions.checkState(indexTableName != null, "No index table name specified.");
         Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
-        if (explicitCompressionRequested && explicitCompressionBlockSizeKB == 0) {
-            explicitCompressionBlockSizeKB = AtlasDbConstants.DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB;
+        if (explicitCompressionRequested && explicitCompressionBlockSizeKb == 0) {
+            explicitCompressionBlockSizeKb = AtlasDbConstants.DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB;
         }
 
         if (colComponents.isEmpty()) {
@@ -239,7 +272,7 @@ public class IndexDefinition extends AbstractDefinition {
                     partitionStrategy,
                     conflictHandler,
                     rangeScanAllowed,
-                    explicitCompressionBlockSizeKB,
+                    explicitCompressionBlockSizeKb,
                     negativeLookups,
                     indexCondition,
                     indexType,
@@ -257,7 +290,7 @@ public class IndexDefinition extends AbstractDefinition {
                     partitionStrategy,
                     conflictHandler,
                     rangeScanAllowed,
-                    explicitCompressionBlockSizeKB,
+                    explicitCompressionBlockSizeKb,
                     negativeLookups,
                     indexCondition,
                     indexType,

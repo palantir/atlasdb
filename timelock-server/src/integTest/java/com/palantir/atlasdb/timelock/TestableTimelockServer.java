@@ -16,24 +16,28 @@
 
 package com.palantir.atlasdb.timelock;
 
+import java.io.IOException;
+import java.net.URL;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestableTimelockServer {
 
-    private final String baseUri;
     private final TimeLockServerHolder serverHolder;
     private final String defaultClient;
     private final TestProxies proxies;
 
     public TestableTimelockServer(String baseUri, String defaultClient, TimeLockServerHolder serverHolder) {
-        this.baseUri = baseUri;
         this.defaultClient = defaultClient;
         this.serverHolder = serverHolder;
         this.proxies = new TestProxies(baseUri, ImmutableList.of());
@@ -51,8 +55,13 @@ public class TestableTimelockServer {
         return timestampService().getFreshTimestamp();
     }
 
-    public LockRefreshToken lock(String client, LockRequest lockRequest) throws InterruptedException {
+    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest)
+            throws InterruptedException {
         return lockService().lock(client, lockRequest);
+    }
+
+    public LockResponse lock(LockRequest lockRequest) {
+        return timelockService().lock(lockRequest);
     }
 
     public void kill() {
@@ -75,8 +84,26 @@ public class TestableTimelockServer {
         return proxies.singleNodeForClient(defaultClient, serverHolder, TimestampManagementService.class);
     }
 
-    public RemoteLockService lockService() {
-        return proxies.singleNodeForClient(defaultClient, serverHolder, RemoteLockService.class);
+    public LockService lockService() {
+        return proxies.singleNodeForClient(defaultClient, serverHolder, LockService.class);
+    }
+
+    public TimelockService timelockService() {
+        return timelockServiceForClient(defaultClient);
+    }
+
+    public TimelockService timelockServiceForClient(String client) {
+        return proxies.singleNodeForClient(client, serverHolder, TimelockService.class);
+    }
+
+    public MetricsOutput getMetricsOutput() {
+        try {
+            return new MetricsOutput(
+                    new ObjectMapper().readTree(
+                            new URL("http", "localhost", serverHolder.getAdminPort(), "/metrics")));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -26,7 +26,8 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 public class StreamStoreDefinitionBuilder {
     private final ValueType valueType;
-    private final String shortName, longName;
+    private final String shortName;
+    private final String longName;
     private Map<String, StreamTableDefinitionBuilder> streamTables =
             Maps.newHashMapWithExpectedSize(StreamTableType.values().length);
     private int inMemoryThreshold = AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD;

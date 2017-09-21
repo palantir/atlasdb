@@ -18,7 +18,8 @@ package com.palantir.atlasdb.transaction.api;
 import com.google.common.base.Supplier;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
+import com.palantir.lock.v2.TimelockService;
 
 public interface LockAwareTransactionManager extends TransactionManager {
     /**
@@ -76,5 +77,7 @@ public interface LockAwareTransactionManager extends TransactionManager {
      *
      * @return the lock service for this transaction manager
      */
-    RemoteLockService getLockService();
+    LockService getLockService();
+
+    TimelockService getTimelockService();
 }

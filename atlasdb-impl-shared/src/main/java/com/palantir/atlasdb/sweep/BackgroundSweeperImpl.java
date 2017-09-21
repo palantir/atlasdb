@@ -26,19 +26,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
-    private final RemoteLockService lockService;
+    private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
@@ -51,7 +51,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     BackgroundSweeperImpl(
-            RemoteLockService lockService,
+            LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
@@ -194,6 +194,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return Math.max(1, (int) (batchSizeMultiplier * parameterValue));
     }
 
+    // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made
+    // and try to lambda refactor this unless you live far enough in the future that this isn't an issue
     private Optional<TableToSweep> getTableToSweep() {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
                 new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
@@ -207,7 +209,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
                                     tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
                             if (nextTable.isPresent()) {
-                                log.debug("Now starting to sweep next table.", UnsafeArg.of("table name", nextTable));
+                                log.debug("Now starting to sweep next table: {}.",
+                                        LoggingArgs.tableRef("table name", nextTable.get()));
                                 return Optional.of(new TableToSweep(nextTable.get(), null));
                             } else {
                                 return Optional.empty();

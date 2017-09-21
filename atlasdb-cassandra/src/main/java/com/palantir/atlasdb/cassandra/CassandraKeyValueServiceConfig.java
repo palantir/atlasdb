@@ -28,8 +28,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -41,6 +42,13 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     public static final String TYPE = "cassandra";
 
     public abstract Set<InetSocketAddress> servers();
+
+    @Override
+    @JsonIgnore
+    @Value.Derived
+    public Optional<String> namespace() {
+        return keyspace();
+    }
 
     @Value.Default
     public int poolSize() {
@@ -89,7 +97,28 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 2 * 60;
     }
 
-    public abstract String keyspace();
+    /**
+     * The gc_grace_seconds for all tables(column families). This is the maximum TTL for tombstones in Cassandra
+     * as data marked with a tombstone is removed during the normal compaction process every gc_grace_seconds.
+     */
+    @Value.Default
+    public int gcGraceSeconds() {
+        return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
+    }
+
+    @JsonIgnore
+    @Value.Lazy
+    public String getKeyspaceOrThrow() {
+        return keyspace().orElseThrow(() -> new IllegalStateException(
+                "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
+    }
+
+    /**
+     * Note that when the keyspace is read, this field must be present.
+     * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
+     */
+    @Deprecated
+    public abstract Optional<String> keyspace();
 
     public abstract Optional<CassandraCredentialsConfig> credentials();
 
@@ -130,7 +159,22 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public boolean safetyDisabled() {
+    public boolean ignoreNodeTopologyChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignoreInconsistentRingChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignoreDatacenterConfigurationChecks() {
+        return false;
+    }
+
+    @Value.Default
+    public boolean ignorePartitionerChecks() {
         return false;
     }
 
@@ -185,13 +229,22 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return false;
     }
 
-    public abstract Optional<Integer> timestampsGetterBatchSize();
+    @Value.Default
+    public Integer timestampsGetterBatchSize() {
+        return 1_000;
+    }
 
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override
     public final String type() {
         return TYPE;
+    }
+
+    @Override
+    @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return poolSize() * servers().size();
     }
 
     @JsonIgnore
@@ -206,7 +259,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         for (InetSocketAddress addr : servers()) {
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
-        Preconditions.checkNotNull(keyspace(), "'keyspace' must be specified");
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");

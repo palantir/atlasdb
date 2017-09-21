@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +43,10 @@ public class PersistentLockManager {
     private final Meter lockFailureMeter;
 
     @VisibleForTesting
+    @GuardedBy("this")
     PersistentLockId lockId;
 
+    @GuardedBy("this")
     private boolean isShutDown = false;
 
     public PersistentLockManager(PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
@@ -62,25 +66,27 @@ public class PersistentLockManager {
         log.info("Shutdown completed!");
     }
 
-    public synchronized void acquirePersistentLockWithRetry() {
-        if (isShutDown) {
-            // To avoid a race condition on shutdown, we don't want to acquire any more.
-            log.info("The PersistentLockManager is shut down, and therefore rejected a request to acquire the lock.");
-            return;
+    // We don't synchronize this method, to avoid deadlocking if {@link #shutdown} is called while attempting
+    // to acquire a lock.
+    public void acquirePersistentLockWithRetry() {
+        while (!tryAcquirePersistentLock()) {
+            waitForRetry();
         }
+    }
 
+    private synchronized boolean tryAcquirePersistentLock() {
+        Preconditions.checkState(!isShutDown,
+                "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
         Preconditions.checkState(lockId == null, "Acquiring a lock is unsupported when we've already acquired a lock");
 
-        while (true) {
-            try {
-                lockId = persistentLockService.acquireBackupLock("Sweep");
-                log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
-                return;
-            } catch (CheckAndSetException e) {
-                lockFailureMeter.mark();
-                log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
-                waitForRetry();
-            }
+        try {
+            lockId = persistentLockService.acquireBackupLock("Sweep");
+            log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
+            return true;
+        } catch (CheckAndSetException e) {
+            lockFailureMeter.mark();
+            log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+            return false;
         }
     }
 

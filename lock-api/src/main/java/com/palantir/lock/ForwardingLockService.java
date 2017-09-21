@@ -19,6 +19,7 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -26,7 +27,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.common.annotation.Idempotent;
 
-public abstract class ForwardingLockService extends ForwardingObject implements LockService {
+public abstract class ForwardingLockService extends ForwardingObject implements CloseableLockService {
 
     @Override
     protected abstract LockService delegate();
@@ -150,5 +151,16 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     @Override
     public void logCurrentState() {
         delegate().logCurrentState();
+    }
+
+    @Override
+    public void close() {
+        if (delegate() instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) delegate()).close();
+            } catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
     }
 }

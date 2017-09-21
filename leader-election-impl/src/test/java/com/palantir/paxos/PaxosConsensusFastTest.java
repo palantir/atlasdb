@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.SortedMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +37,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 public class PaxosConsensusFastTest {
 
@@ -124,21 +123,18 @@ public class PaxosConsensusFastTest {
         LeadershipToken t = state.gainLeadership(0);
         state.goDown(QUORUM_SIZE - 1);
         ExecutorService exec = Tracers.wrap(PTExecutors.newSingleThreadExecutor());
-        Future<Void> f = exec.submit(new Callable<Void>() {
-            @Override
-            public Void call() {
-                int i = QUORUM_SIZE-1;
-                while (!Thread.currentThread().isInterrupted()) {
-                    int next = i+1;
-                    if (next == NUM_POTENTIAL_LEADERS) {
-                        next = QUORUM_SIZE-1;
-                    }
-                    state.goDown(next);
-                    state.comeUp(i);
-                    i = next;
+        Future<Void> f = exec.submit(() -> {
+            int i = QUORUM_SIZE-1;
+            while (!Thread.currentThread().isInterrupted()) {
+                int next = i+1;
+                if (next == NUM_POTENTIAL_LEADERS) {
+                    next = QUORUM_SIZE-1;
                 }
-                return null;
+                state.goDown(next);
+                state.comeUp(i);
+                i = next;
             }
+            return null;
         });
         // Don't check leadership immediately after gaining it, since quorum might get lost.
         LeadershipToken token2 = state.gainLeadershipWithoutCheckingAfter(0);

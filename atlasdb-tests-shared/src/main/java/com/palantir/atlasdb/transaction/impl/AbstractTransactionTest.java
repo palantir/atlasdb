@@ -22,15 +22,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -77,6 +80,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -88,11 +92,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return true;
     }
 
+    protected static final int GET_RANGES_CONCURRENCY = 16;
+    protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(GET_RANGES_CONCURRENCY);
+
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 timestampService.getFreshTimestamp(),
@@ -103,7 +109,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         ConflictHandler.IGNORE_ALL)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampCache);
+                timestampCache,
+                GET_RANGES_EXECUTOR);
     }
 
     @Test
@@ -410,7 +417,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testRangeAfterTimestmap() {
+    public void testRangeAfterTimestamp() {
         putDirect("row1", "col2", "", 5);
         putDirect("row2", "col2", "", 0);
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
@@ -462,7 +469,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testRangeAfterTimestmapReverse() {
+    public void testRangeAfterTimestampReverse() {
         if (!supportsReverse()) {
             return;
         }
@@ -491,11 +498,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         RangeRequest allRange = RangeRequest.builder().batchHint(3).build();
         t = startTransaction();
-        final Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(allRange), 1000));
-        for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
-            final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
-            assertEquals(1, list.size());
-        }
+
+        verifyAllGetRangesImplsRangeSizes(t, allRange, 1);
     }
 
     @Test
@@ -514,11 +518,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             assertEquals(1, list.get(0).getColumns().size());
         }
         RangeRequest range3 = range1.getBuilder().retainColumns(ColumnSelection.create(ImmutableSet.of(PtBytes.toBytes("col2")))).build();
-        ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(range3), 1000));
-        for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
-            final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
-            assertEquals(0, list.size());
-        }
+        verifyAllGetRangesImplsRangeSizes(t, range3, 0);
     }
 
     @Test
@@ -870,16 +870,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t, "row2", "col2", "v8");
 
         final Map<Cell, byte[]> vals = Maps.newHashMap();
-        visitable.batchAccept(100, AbortingVisitors.batching(new RowVisitor() {
-            @Override
-            public boolean visit(RowResult<byte[]> item) throws RuntimeException {
-                MapEntries.putAll(vals, item.getCells());
-                if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                    assertEquals(3, IterableView.of(item.getCells()).size());
-                    assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
-                }
-                return true;
+        visitable.batchAccept(100, AbortingVisitors.batching((RowVisitor) item -> {
+            MapEntries.putAll(vals, item.getCells());
+            if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
+                assertEquals(3, IterableView.of(item.getCells()).size());
+                assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
             }
+            return true;
         }));
         assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
         assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
@@ -912,37 +909,31 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         final CountDownLatch latch2 = new CountDownLatch(1);
         final BatchingVisitable<RowResult<byte[]>> visitable = t.getRange(TEST_TABLE, RangeRequest.builder().build());
 
-        FutureTask<Void> futureTask = new FutureTask<Void>(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                final Map<Cell, byte[]> vals = Maps.newHashMap();
-                try {
-                    visitable.batchAccept(1, AbortingVisitors.batching(new RowVisitor() {
-                        @Override
-                        public boolean visit(RowResult<byte[]> item) throws RuntimeException {
-                            try {
-                                latch.countDown();
-                                latch2.await();
-                            } catch (InterruptedException e) {
-                                throw Throwables.throwUncheckedException(e);
-                            }
-                            MapEntries.putAll(vals, item.getCells());
-                            if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                                assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
-                                assertEquals(3, IterableView.of(item.getCells()).size());
-                            }
-                            return true;
-                        }
-                    }));
-                    assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
-                    assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
-                    assertFalse(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes())));
-                    return null;
-                } catch (Throwable t) {
-                    latch.countDown();
-                    Throwables.throwIfInstance(t, Exception.class);
-                    throw Throwables.throwUncheckedException(t);
-                }
+        FutureTask<Void> futureTask = new FutureTask<Void>(() -> {
+            final Map<Cell, byte[]> vals = Maps.newHashMap();
+            try {
+                visitable.batchAccept(1, AbortingVisitors.batching((RowVisitor) item -> {
+                    try {
+                        latch.countDown();
+                        latch2.await();
+                    } catch (InterruptedException e) {
+                        throw Throwables.throwUncheckedException(e);
+                    }
+                    MapEntries.putAll(vals, item.getCells());
+                    if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
+                        assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
+                        assertEquals(3, IterableView.of(item.getCells()).size());
+                    }
+                    return true;
+                }));
+                assertTrue(vals.containsKey(Cell.create("row1".getBytes(), "col1".getBytes())));
+                assertTrue(Arrays.equals("v5".getBytes(), vals.get(Cell.create("row1".getBytes(), "col1".getBytes()))));
+                assertFalse(vals.containsKey(Cell.create("row2".getBytes(), "col1".getBytes())));
+                return null;
+            } catch (Throwable t1) {
+                latch.countDown();
+                Throwables.throwIfInstance(t1, Exception.class);
+                throw Throwables.throwUncheckedException(t1);
             }
         });
         Thread thread = new Thread(futureTask);
@@ -963,39 +954,30 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testReadMyWritesManager() {
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                put(t, "row1", "col2", "v2");
-                put(t, "row2", "col1", "v3");
-                assertEquals("v1", get(t, "row1", "col1"));
-                assertEquals("v2", get(t, "row1", "col2"));
-                assertEquals("v3", get(t, "row2", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            put(t, "row1", "col2", "v2");
+            put(t, "row2", "col1", "v3");
+            assertEquals("v1", get(t, "row1", "col1"));
+            assertEquals("v2", get(t, "row1", "col2"));
+            assertEquals("v3", get(t, "row2", "col1"));
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                assertEquals("v1", get(t, "row1", "col1"));
-                assertEquals("v2", get(t, "row1", "col2"));
-                assertEquals("v3", get(t, "row2", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            assertEquals("v1", get(t, "row1", "col1"));
+            assertEquals("v2", get(t, "row1", "col2"));
+            assertEquals("v3", get(t, "row2", "col1"));
+            return null;
         });
     }
 
     @Test
     public void testWriteFailsOnReadOnly() {
         try {
-            getManager().runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
-                @Override
-                public Void execute(Transaction t) throws RuntimeException {
-                    put(t, "row1", "col1", "v1");
-                    return null;
-                }
+            getManager().runTaskReadOnly((TransactionTask<Void, RuntimeException>) t -> {
+                put(t, "row1", "col1", "v1");
+                return null;
             });
             fail();
         } catch (RuntimeException e) {
@@ -1005,63 +987,42 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testDelete() {
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                assertEquals("v1", get(t, "row1", "col1"));
-                delete(t, "row1", "col1");
-                assertEquals(null, get(t, "row1", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            assertEquals("v1", get(t, "row1", "col1"));
+            delete(t, "row1", "col1");
+            assertEquals(null, get(t, "row1", "col1"));
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                delete(t, "row1", "col1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            delete(t, "row1", "col1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                assertEquals(null, get(t, "row1", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            assertEquals(null, get(t, "row1", "col1"));
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                put(t, "row1", "col1", "v1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TransactionTask<Void, RuntimeException>) t -> {
+            put(t, "row1", "col1", "v1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                delete(t, "row1", "col1");
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            delete(t, "row1", "col1");
+            return null;
         });
 
-        getManager().runTaskWithRetry(new TxTask() {
-            @Override
-            public Void execute(Transaction t) throws RuntimeException {
-                assertEquals(null, get(t, "row1", "col1"));
-                return null;
-            }
+        getManager().runTaskWithRetry((TxTask) t -> {
+            assertEquals(null, get(t, "row1", "col1"));
+            return null;
         });
     }
 
@@ -1134,14 +1095,19 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     public void testGetRanges() {
         Transaction t = startTransaction();
         byte[] row1Bytes = PtBytes.toBytes("row1");
-        Cell k = Cell.create(row1Bytes, PtBytes.toBytes("col"));
-        byte[] v = PtBytes.toBytes("v");
-        t.put(TEST_TABLE, ImmutableMap.of(k, v));
+        Cell row1Key = Cell.create(row1Bytes, PtBytes.toBytes("col"));
+        byte[] row1Value = PtBytes.toBytes("value1");
+        byte[] row2Bytes = PtBytes.toBytes("row2");
+        Cell row2Key = Cell.create(row2Bytes, PtBytes.toBytes("col"));
+        byte[] row2Value = PtBytes.toBytes("value2");
+        t.put(TEST_TABLE, ImmutableMap.of(row1Key, row1Value, row2Key, row2Value));
         t.commit();
 
         t = startTransaction();
-        List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row1Bytes).build());
-        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
+        List<RangeRequest> ranges = ImmutableList.of(
+                RangeRequest.builder().prefixRange(row1Bytes).build(),
+                RangeRequest.builder().prefixRange(row2Bytes).build());
+        verifyAllGetRangesImplsNumRanges(t, ranges, ImmutableList.of("value1", "value2"));
     }
 
     @Test
@@ -1166,7 +1132,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         t = startTransaction();
         byte[] rangeEnd = RangeRequests.nextLexicographicName(row00Bytes);
         List<RangeRequest> ranges = ImmutableList.of(RangeRequest.builder().prefixRange(row0Bytes).endRowExclusive(rangeEnd).batchHint(1).build());
-        assertEquals(1, BatchingVisitables.concat(t.getRanges(TEST_TABLE, ranges)).count());
+        verifyAllGetRangesImplsNumRanges(t, ranges, ImmutableList.of("v"));
     }
 
     @Test
@@ -1195,5 +1161,45 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
+    }
+
+    private void verifyAllGetRangesImplsRangeSizes(Transaction t, RangeRequest templateRangeRequest, int expectedRangeSize) {
+        Iterable<RangeRequest> rangeRequests = Iterables.limit(Iterables.cycle(templateRangeRequest), 1000);
+
+        List<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl = ImmutableList.copyOf(
+                t.getRanges(TEST_TABLE, rangeRequests));
+        List<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
+                t.getRanges(TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable).collect(Collectors.toList());
+        List<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
+                t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
+
+        assertEquals(getRangesWithPrefetchingImpl.size(), getRangesLazyImpl.size());
+        assertEquals(getRangesLazyImpl.size(), getRangesInParallelImpl.size());
+
+        for (int i = 0; i < getRangesWithPrefetchingImpl.size(); i++) {
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesWithPrefetchingImpl.get(i)).size());
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesInParallelImpl.get(i)).size());
+            assertEquals(expectedRangeSize, BatchingVisitables.copyToList(getRangesLazyImpl.get(i)).size());
+        }
+    }
+
+    private void verifyAllGetRangesImplsNumRanges(Transaction t, Iterable<RangeRequest> rangeRequests, List<String> expectedValues) {
+        Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesWithPrefetchingImpl =
+                t.getRanges(TEST_TABLE, rangeRequests);
+        Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInParallelImpl =
+                t.getRanges(TEST_TABLE, rangeRequests, 2, (rangeRequest, visitable) -> visitable).collect(Collectors.toList());
+        Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
+                t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
+
+        assertEquals(expectedValues, extractStringsFromVisitables(getRangesWithPrefetchingImpl));
+        assertEquals(expectedValues, extractStringsFromVisitables(getRangesInParallelImpl));
+        assertEquals(expectedValues, extractStringsFromVisitables(getRangesLazyImpl));
+    }
+
+    private List<String> extractStringsFromVisitables(Iterable<BatchingVisitable<RowResult<byte[]>>> visitables) {
+        return BatchingVisitables.concat(visitables)
+                .transform(RowResult::getOnlyColumnValue)
+                .transform(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                .immutableCopy();
     }
 }

@@ -15,29 +15,34 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Optional;
+
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
+import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            int concurrentGetRangesThreadPoolSize) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -47,52 +52,106 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                false);
+                false,
+                concurrentGetRangesThreadPoolSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
-                                          TimestampService timestampService,
-                                          LockClient lockClient,
-                                          RemoteLockService lockService,
-                                          TransactionService transactionService,
-                                          Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                          ConflictDetectionManager conflictDetectionManager,
-                                          SweepStrategyManager sweepStrategyManager,
-                                          Cleaner cleaner,
-                                          boolean allowHiddenTableAccess) {
-        super(
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize) {
+        this(
                 keyValueService,
-                timestampService,
-                lockClient,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess);
+                allowHiddenTableAccess,
+                concurrentGetRangesThreadPoolSize);
+    }
+
+    public SerializableTransactionManager(KeyValueService keyValueService,
+            TimelockService timelockService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize) {
+        this(
+                keyValueService,
+                timelockService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                allowHiddenTableAccess,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                concurrentGetRangesThreadPoolSize);
+    }
+
+    public SerializableTransactionManager(KeyValueService keyValueService,
+            TimelockService timelockService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess,
+            Supplier<Long> lockAcquireTimeoutMs,
+            int concurrentGetRangesThreadPoolSize) {
+        super(
+                keyValueService,
+                timelockService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                allowHiddenTableAccess,
+                lockAcquireTimeoutMs,
+                concurrentGetRangesThreadPoolSize);
     }
 
     @Override
-    protected SnapshotTransaction createTransaction(long immutableLockTs,
-                                                  Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<LockRefreshToken> allTokens) {
+    protected SnapshotTransaction createTransaction(long immutableTimestamp,
+            Supplier<Long> startTimestampSupplier,
+            LockToken immutableTsLock,
+            AdvisoryLockPreCommitCheck advisoryLockCheck) {
         return new SerializableTransaction(
                 keyValueService,
-                lockService,
-                timestampService,
+                timelockService,
                 transactionService,
                 cleaner,
                 startTimestampSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                getImmutableTimestampInternal(immutableLockTs),
-                allTokens,
+                immutableTimestamp,
+                Optional.of(immutableTsLock),
+                advisoryLockCheck,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
-                timestampValidationReadCache);
+                timestampValidationReadCache,
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor);
     }
 
 }

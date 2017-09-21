@@ -69,7 +69,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -167,23 +167,20 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
-        return getRangeInternal(tableRef, range, new ResultProducer<Value>() {
-            @Override
-            public Value apply(Iterator<Entry<Key, byte[]>> entries) {
-                Entry<Key, byte[]> lastEntry = null;
-                while (entries.hasNext()) {
-                    Entry<Key, byte[]> entry = entries.next();
-                    if (entry.getKey().ts >= timestamp) {
-                        break;
-                    }
-                    lastEntry = entry;
+        return getRangeInternal(tableRef, range, entries -> {
+            Entry<Key, byte[]> lastEntry = null;
+            while (entries.hasNext()) {
+                Entry<Key, byte[]> entry = entries.next();
+                if (entry.getKey().ts >= timestamp) {
+                    break;
                 }
-                if (lastEntry != null) {
-                    long ts = lastEntry.getKey().ts;
-                    return Value.createWithCopyOfData(lastEntry.getValue(), ts);
-                } else {
-                    return null;
-                }
+                lastEntry = entry;
+            }
+            if (lastEntry != null) {
+                long ts = lastEntry.getKey().ts;
+                return Value.createWithCopyOfData(lastEntry.getValue(), ts);
+            } else {
+                return null;
             }
         });
     }
@@ -193,23 +190,20 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
-        return getRangeInternal(tableRef, range, new ResultProducer<Set<Long>>() {
-            @Override
-            public Set<Long> apply(Iterator<Entry<Key, byte[]>> entries) {
-                Set<Long> timestamps = Sets.newTreeSet();
-                while (entries.hasNext()) {
-                    Entry<Key, byte[]> entry = entries.next();
-                    Key key = entry.getKey();
-                    if (key.ts >= timestamp) {
-                        break;
-                    }
-                    timestamps.add(key.ts);
+        return getRangeInternal(tableRef, range, entries -> {
+            Set<Long> timestamps = Sets.newTreeSet();
+            while (entries.hasNext()) {
+                Entry<Key, byte[]> entry = entries.next();
+                Key key = entry.getKey();
+                if (key.ts >= timestamp) {
+                    break;
                 }
-                if (!timestamps.isEmpty()) {
-                    return timestamps;
-                } else {
-                    return null;
-                }
+                timestamps.add(key.ts);
+            }
+            if (!timestamps.isEmpty()) {
+                return timestamps;
+            } else {
+                return null;
             }
         });
     }
@@ -593,18 +587,17 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     && UnsignedBytes.lexicographicalComparator().compare(col, key.col) == 0;
         }
 
-        @SuppressWarnings("CheckStyle")
         @Override
-        public int compareTo(Key o) {
-            int comparison = UnsignedBytes.lexicographicalComparator().compare(row, o.row);
+        public int compareTo(Key other) {
+            int comparison = UnsignedBytes.lexicographicalComparator().compare(row, other.row);
             if (comparison != 0) {
                 return comparison;
             }
-            comparison = UnsignedBytes.lexicographicalComparator().compare(col, o.col);
+            comparison = UnsignedBytes.lexicographicalComparator().compare(col, other.col);
             if (comparison != 0) {
                 return comparison;
             }
-            return Longs.compare(ts, o.ts);
+            return Longs.compare(ts, other.ts);
         }
 
 

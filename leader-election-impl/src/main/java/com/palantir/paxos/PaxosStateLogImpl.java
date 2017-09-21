@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -44,6 +42,8 @@ import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -56,29 +56,24 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
 
     private static Predicate<File> nameIsALongPredicate() {
-        return new Predicate<File>() {
-            @Override
-            public boolean apply(@Nullable File file) {
-                if (file == null) {
-                    return false;
-                }
-                try {
-                    getSeqFromFilename(file);
-                    return true;
-                } catch (NumberFormatException e) {
-                    return false;
-                }
-            }};
+        return file -> {
+            if (file == null) {
+                return false;
+            }
+            try {
+                getSeqFromFilename(file);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        };
     }
 
     private static final Comparator<File> nameAsLongComparator() {
-        return new Comparator<File>() {
-            @Override
-            public int compare(File f1, File f2) {
-                Long s1 = getSeqFromFilename(f1);
-                Long s2 = getSeqFromFilename(f2);
-                return s1.compareTo(s2);
-            }
+        return (f1, f2) -> {
+            Long s1 = getSeqFromFilename(f1);
+            Long s2 = getSeqFromFilename(f2);
+            return s1.compareTo(s2);
         };
     }
 
@@ -215,7 +210,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             }
             File dir = new File(path);
             List<File> files = getLogEntries(dir);
-            Collections.<File> sort(files, nameAsLongComparator());
+            files.sort(nameAsLongComparator());
             for (File file : files) {
                 long fileSeq = getSeqFromFilename(file);
                 if (fileSeq <= toDeleteInclusive) {
@@ -264,8 +259,13 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                     throw new CorruptLogFileException();
                 }
             } catch (FileNotFoundException e) {
+                // TODO (jkong): Check if this is intentional, or if the author intended FileNotFound to be a problem
+                // that should be treated in the same way as IOException.
             } catch (IOException e) {
-                log.error("problem reading paxos state");
+                // Note that the file name is a Paxos log entry - so it is the round number - and thus safe.
+                log.error("Problem reading paxos state, specifically when reading file {} (file-name {})",
+                        UnsafeArg.of("full path", file.getAbsolutePath()),
+                        SafeArg.of("file name", file.getName()));
                 throw Throwables.rewrap(e);
             } finally {
                 IOUtils.closeQuietly(fileIn);

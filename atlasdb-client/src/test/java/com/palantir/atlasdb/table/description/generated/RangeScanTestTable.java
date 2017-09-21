@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -436,6 +438,8 @@ public final class RangeScanTestTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
         Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -582,6 +586,7 @@ public final class RangeScanTestTable implements
         });
     }
 
+    @Deprecated
     public IterableView<BatchingVisitable<RangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
         return IterableView.of(rangeResults).transform(
@@ -596,6 +601,18 @@ public final class RangeScanTestTable implements
                 });
             }
         });
+    }
+
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   int concurrencyLevel,
+                                   BiFunction<RangeRequest, BatchingVisitable<RangeScanTestRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges, concurrencyLevel,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, RangeScanTestRowResult::of)));
+    }
+
+    public Stream<BatchingVisitable<RangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+        Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+        return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, RangeScanTestRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
@@ -646,6 +663,7 @@ public final class RangeScanTestTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -702,6 +720,7 @@ public final class RangeScanTestTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -711,5 +730,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ef8yxFRHZOgjdg0lSSe1EQ==";
+    static String __CLASS_HASH = "ZNS2g5wflr9FgsngCdFekQ==";
 }

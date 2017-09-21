@@ -84,7 +84,7 @@ import com.palantir.util.file.TempFileUtils;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 
-@SuppressWarnings("CheckStyle")
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamStoreRenderer {
     private final String name;
     private final ValueType streamIdType;
@@ -378,7 +378,7 @@ public class StreamStoreRenderer {
                             line(StreamId, " streamId = v.getColumnName().getStreamId();");
                             line("Sha256Hash hash = r.getHash();");
                             line("if (hashForStreams.containsKey(streamId)) {"); {
-                                line("AssertUtils.assertAndLog(hashForStreams.get(streamId).equals(hash), \"(BUG) Stream ID has 2 different hashes: \" + streamId);");
+                                line("AssertUtils.assertAndLog(log, hashForStreams.get(streamId).equals(hash), \"(BUG) Stream ID has 2 different hashes: \" + streamId);");
                             } line("}");
                             line("hashForStreams.put(streamId, hash);");
                         } line("}");
