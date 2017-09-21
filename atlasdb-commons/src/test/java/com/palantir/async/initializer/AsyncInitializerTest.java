@@ -25,8 +25,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -37,6 +39,7 @@ public class AsyncInitializerTest {
 
     private class AlwaysFailingInitializer extends AsyncInitializer {
         volatile int initializationAttempts = 0;
+        DeterministicScheduler deterministicScheduler;
 
         @Override
         public void tryInitialize() {
@@ -52,6 +55,12 @@ public class AsyncInitializerTest {
         @Override
         protected String getInitializingClassName() {
             return "AlwaysFailingInitializer";
+        }
+
+        @Override
+        ScheduledExecutorService getExecutorService() {
+            deterministicScheduler = new DeterministicScheduler();
+            return deterministicScheduler;
         }
     }
 
@@ -85,7 +94,7 @@ public class AsyncInitializerTest {
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
-        assertThat(initializer.initializationAttempts).isGreaterThan(0);
+        assertThat(initializer.initializationAttempts).isEqualTo(1);
     }
 
     @Test
@@ -96,12 +105,13 @@ public class AsyncInitializerTest {
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
-        assertThat(initializer.initializationAttempts).isGreaterThan(0);
+        initializer.deterministicScheduler.tick(0, TimeUnit.SECONDS);
+        assertThat(initializer.initializationAttempts).isEqualTo(1);
     }
 
     @Test
     public void asyncInitializationKeepsRetryingAndEventuallySucceeds() throws InterruptedException {
-        AsyncInitializer eventuallySuccessfulInitializer = new AlwaysFailingInitializer() {
+        AlwaysFailingInitializer eventuallySuccessfulInitializer = new AlwaysFailingInitializer() {
             @Override
             public void tryInitialize() {
                 if (initializationAttempts < 5) {
@@ -112,10 +122,8 @@ public class AsyncInitializerTest {
 
         eventuallySuccessfulInitializer.initialize(true);
         assertFalse(eventuallySuccessfulInitializer.isInitialized());
-        Awaitility.with()
-                .pollInterval(ASYNC_INIT_DELAY, TimeUnit.MILLISECONDS)
-                .atMost(ASYNC_INIT_DELAY * 20, TimeUnit.MILLISECONDS)
-                .until(() -> eventuallySuccessfulInitializer.isInitialized());
+        eventuallySuccessfulInitializer.deterministicScheduler.tick(5 * ASYNC_INIT_DELAY + 1, TimeUnit.MILLISECONDS);
+        assertThat(eventuallySuccessfulInitializer.isInitialized()).isTrue();
     }
 
     @Test
@@ -150,7 +158,7 @@ public class AsyncInitializerTest {
         initializer.initialize(true);
         initializer.cancelInitialization(cleanupTask);
         int numberOfAttemptsWhenCancelled = initializer.initializationAttempts;
-        Thread.sleep(ASYNC_INIT_DELAY * 5);
+        initializer.deterministicScheduler.tick(ASYNC_INIT_DELAY * 5 + 1, TimeUnit.MILLISECONDS);
         assertThat(initializer.initializationAttempts).isEqualTo(numberOfAttemptsWhenCancelled);
     }
 }

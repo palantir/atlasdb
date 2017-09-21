@@ -38,8 +38,8 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    private final ScheduledExecutorService singleThreadedExecutor = Executors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
+    private final ScheduledExecutorService singleThreadedExecutor = getExecutorService();
+
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
     private volatile boolean canceledInitialization = false;
@@ -60,6 +60,12 @@ public abstract class AsyncInitializer {
             cleanUpOnInitFailure();
             scheduleInitialization();
         }
+    }
+
+    // Not final for tests
+    ScheduledExecutorService getExecutorService() {
+        return Executors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
     }
 
     // Not final for tests.
