@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.benchmarks;
+package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -32,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.MetadataTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -53,23 +53,16 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
             SerializableTransactionManager txnManager, int dataSize, int numRows) {
         super(numClients, requestsPerClient);
         this.txnManager = txnManager;
-        this.bucket = UUID.randomUUID().toString();
         this.dataSize = dataSize;
         this.numRows = numRows;
         this.batchSize = Math.max(1, 9_000_000 / dataSize);
     }
 
-    protected byte[] randomDataOfLength(int dataSize) {
-        byte[] result = new byte[dataSize];
-        ThreadLocalRandom.current().nextBytes(result);
-        return result;
-    }
-
     @Override
     public final void setup() {
-        Optional<Metadata> existingMetadata = getMetadata();
-        if (existingMetadata.isPresent()) {
-            this.bucket = existingMetadata.get().bucket;
+        Optional<String> existingBucket = getExistingBucketForParameters();
+        if (existingBucket.isPresent()) {
+            this.bucket = existingBucket.get();
             log.info("found existing test data under bucket {}", bucket);
             return;
         }
@@ -85,7 +78,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
     private void writeData() {
         int numWritten = 0;
         AtomicLong key = new AtomicLong(0);
-        byte[] data = randomDataOfLength(dataSize);
+        byte[] data = RandomBytes.ofLength(dataSize);
 
         while (numWritten < numRows) {
             int numToWrite = Math.min(numRows - numWritten, batchSize);
@@ -128,7 +121,6 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
         @JsonProperty("bucket")
         String bucket;
 
-        public Metadata() { }
         public Metadata(String bucket) {
             this.bucket = bucket;
         }
@@ -150,22 +142,23 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
         });
     }
 
+    private Optional<String> getExistingBucketForParameters() {
+        return txnManager.runTaskReadOnly(txn -> {
+            MetadataTable table = BenchmarksTableFactory.of().getMetadataTable(txn);
+
+            return table.getRow(MetadataTable.MetadataRow.of(getKeyForParameters()))
+                    .map(MetadataTable.MetadataRowResult::getData)
+                    .map(AbstractRangeScanBenchmark::deserialize)
+                    .map(mdata -> mdata.bucket);
+        });
+    }
+
     private static byte[] serialize(Metadata metadata) {
         try {
             return new ObjectMapper().writeValueAsBytes(metadata);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private Optional<Metadata> getMetadata() {
-        return txnManager.runTaskReadOnly(txn -> {
-            MetadataTable table = BenchmarksTableFactory.of().getMetadataTable(txn);
-
-            return table.getRow(MetadataTable.MetadataRow.of(getKeyForParameters()))
-                    .map(MetadataTable.MetadataRowResult::getData)
-                    .map(AbstractRangeScanBenchmark::deserialize);
-        });
     }
 
     private static Metadata deserialize(byte[] blob) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.benchmarks;
+package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.List;
 import java.util.Map;

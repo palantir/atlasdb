@@ -14,45 +14,36 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.benchmarks;
+package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.Map;
-import java.util.UUID;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
+import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class KvsReadBenchmark extends AbstractBenchmark {
+public class KvsCasBenchmark extends AbstractBenchmark {
 
-    private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
-    private final byte[] data = UUID.randomUUID().toString().getBytes();
     private final KeyValueService keyValueService;
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient) {
-        txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-
-        return new KvsReadBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
+        return new KvsCasBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
     }
 
-    private KvsReadBenchmark(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
+    private KvsCasBenchmark(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
         super(numClients, numRequestsPerClient);
         this.keyValueService = keyValueService;
-
-        keyValueService.put(TABLE, ImmutableMap.of(Cell.create(data, data), data), 100L);
-
     }
 
     @Override
     protected void performOneCall() {
-        byte[] data = UUID.randomUUID().toString().getBytes();
-        int size = keyValueService.get(TABLE, ImmutableMap.of(Cell.create(data, data), 200L)).size();
-        Preconditions.checkState(size > 0);
+        byte[] data = RandomBytes.ofLength(16);
+        keyValueService.putUnlessExists(
+                BenchmarksSchema.BLOBS_TABLE_REF,
+                ImmutableMap.of(Cell.create(data, data), data));
     }
 }

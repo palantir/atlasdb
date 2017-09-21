@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -33,7 +32,6 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
 
 public class BenchmarkRunnerBase {
@@ -64,7 +62,6 @@ public class BenchmarkRunnerBase {
     }
 
     protected static final BenchmarksService createClient() {
-        FeignOkHttpClients.globalClientSetttings = client -> client.readTimeout(10, TimeUnit.MINUTES);
         return AtlasDbFeignTargetFactory.createProxyWithFailover(Optional.empty(), ImmutableSet.of(BENCHMARK_SERVER),
                 10_000, 1_000_000, 1_000, BenchmarksService.class, "benchmarks");
     }

@@ -22,6 +22,17 @@ import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.ContendedWriteTransactionBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.DynamicColumnsRangeScanBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsCasBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsReadBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsWriteBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.LockAndUnlockContendedBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.LockAndUnlockUncontendedBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.ReadTransactionBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RowsRangeScanBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TimestampBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.WriteTransactionBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 

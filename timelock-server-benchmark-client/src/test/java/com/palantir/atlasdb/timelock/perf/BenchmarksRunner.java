@@ -18,6 +18,10 @@ package com.palantir.atlasdb.timelock.perf;
 
 import org.junit.Test;
 
+import com.google.common.hash.Hashing;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.table.description.ValueType;
+
 /**
  * Note that there is no warmup time included in any of these tests, so if the server has just been started you'll want
  * to execute many requests until the results stabilize (give the JIT compiler time to optimize).
@@ -28,6 +32,13 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     public void warmup() {
         runAndPrintResults(client::timestamp, 8, 20000);
         runAndPrintResults(client::lockAndUnlockUncontended, 8, 10000);
+    }
+
+    @Test
+    public void hash() {
+        long value = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava("ri.compass.main.folder.0")).asLong();
+        byte[] hash = ValueType.FIXED_LONG.convertFromJava(value);
+        System.out.println("0x" + PtBytes.encodeHexString(hash));
     }
 
     @Test
@@ -77,7 +88,7 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void rowsRangeScan() {
-        runAndPrintResults(() -> client.rangeScanRows(16, 20, 1000, 10_000));
+        runAndPrintResults(() -> client.rangeScanRows(1, 20, 200, 1_000));
     }
 
     @Test

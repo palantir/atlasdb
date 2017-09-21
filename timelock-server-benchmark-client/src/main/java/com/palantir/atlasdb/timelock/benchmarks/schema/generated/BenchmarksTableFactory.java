@@ -38,6 +38,14 @@ public final class BenchmarksTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public BlobsTable getBlobsTable(Transaction t, BlobsTable.BlobsTrigger... triggers) {
+        return BlobsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public BlobsSerializableTable getBlobsSerializableTable(Transaction t, BlobsSerializableTable.BlobsSerializableTrigger... triggers) {
+        return BlobsSerializableTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public KvDynamicColumnsTable getKvDynamicColumnsTable(Transaction t, KvDynamicColumnsTable.KvDynamicColumnsTrigger... triggers) {
         return KvDynamicColumnsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -51,6 +59,8 @@ public final class BenchmarksTableFactory {
     }
 
     public interface SharedTriggers extends
+            BlobsTable.BlobsTrigger,
+            BlobsSerializableTable.BlobsSerializableTrigger,
             KvDynamicColumnsTable.KvDynamicColumnsTrigger,
             KvRowsTable.KvRowsTrigger,
             MetadataTable.MetadataTrigger {
@@ -58,6 +68,16 @@ public final class BenchmarksTableFactory {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putBlobs(Multimap<BlobsTable.BlobsRow, ? extends BlobsTable.BlobsNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putBlobsSerializable(Multimap<BlobsSerializableTable.BlobsSerializableRow, ? extends BlobsSerializableTable.BlobsSerializableNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putKvDynamicColumns(Multimap<KvDynamicColumnsTable.KvDynamicColumnsRow, ? extends KvDynamicColumnsTable.KvDynamicColumnsColumnValue> newRows) {
             // do nothing

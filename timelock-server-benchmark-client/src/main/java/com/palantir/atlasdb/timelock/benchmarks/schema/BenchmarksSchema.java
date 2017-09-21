@@ -20,15 +20,19 @@ import java.io.File;
 import java.io.IOException;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public final class BenchmarksSchema implements AtlasSchema {
     public static final Namespace NAMESPACE = Namespace.create("benchmarks");
     public static final Schema SCHEMA = generateSchema();
+
+    public static final TableReference BLOBS_TABLE_REF = TableReference.create(NAMESPACE, "Blobs");
 
     public Namespace getNamespace() {
         return NAMESPACE;
@@ -73,6 +77,28 @@ public final class BenchmarksSchema implements AtlasSchema {
                 value(ValueType.BLOB);
 
                 rangeScanAllowed();
+            }
+        });
+
+        schema.addTableDefinition("Blobs", new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+
+                columns();
+                column("data", "d", ValueType.BLOB);
+            }
+        });
+
+        schema.addTableDefinition("BlobsSerializable", new TableDefinition() {
+            {
+                conflictHandler(ConflictHandler.SERIALIZABLE);
+
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+
+                columns();
+                column("data", "d", ValueType.BLOB);
             }
         });
 

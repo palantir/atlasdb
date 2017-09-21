@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.benchmarks;
+package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.List;
 import java.util.Map;
@@ -44,6 +44,18 @@ public class DynamicColumnsRangeScanBenchmark extends AbstractRangeScanBenchmark
         super(numClients, requestsPerClient, txnManager, dataSize, numRows);
     }
 
+
+    @Override
+    protected void writeValues(Transaction txn, Map<Long, byte[]> valuesByKey) {
+        KvDynamicColumnsTable table = BenchmarksTableFactory.of().getKvDynamicColumnsTable(txn);
+
+        valuesByKey.forEach((key, value) -> {
+            table.put(
+                    KvDynamicColumnsRow.of(bucket),
+                    KvDynamicColumnsColumnValue.of(KvDynamicColumnsColumn.of(key), value));
+        });
+    }
+
     @Override
     protected List<byte[]> getRange(Transaction txn, long startInclusive, long endExclusive) {
         KvDynamicColumnsTable table = BenchmarksTableFactory.of().getKvDynamicColumnsTable(txn);
@@ -60,14 +72,5 @@ public class DynamicColumnsRangeScanBenchmark extends AbstractRangeScanBenchmark
         return data;
     }
 
-    @Override
-    protected void writeValues(Transaction txn, Map<Long, byte[]> valuesByKey) {
-        KvDynamicColumnsTable table = BenchmarksTableFactory.of().getKvDynamicColumnsTable(txn);
 
-        valuesByKey.forEach((key, value) -> {
-            table.put(
-                    KvDynamicColumnsRow.of(bucket),
-                    KvDynamicColumnsColumnValue.of(KvDynamicColumnsColumn.of(key), value));
-        });
-    }
 }
