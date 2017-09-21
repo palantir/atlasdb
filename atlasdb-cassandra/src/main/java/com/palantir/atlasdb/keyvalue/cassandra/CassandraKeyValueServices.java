@@ -55,6 +55,13 @@ public final class CassandraKeyValueServices {
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
+    private static final String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
+            + " after attempting to modify table {}. {}"
+            + " \nFind the nodes above that diverge from the majority schema"
+            + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
+            + " and examine their logs to determine the issue."
+            + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
+            + " You can quick-check this with 'nodetool describecluster'.";
 
     private CassandraKeyValueServices() {
         // Utility class
@@ -82,6 +89,11 @@ public final class CassandraKeyValueServices {
             if (versions.size() <= 1) {
                 return;
             }
+            if (allowUnresponsiveNode
+                    && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
+                log.info(messageTemplate, tableName, getLogMessage(versions));
+                return;
+            }
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
@@ -90,27 +102,19 @@ public final class CassandraKeyValueServices {
             sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
         } while (System.currentTimeMillis() < start + schemaTimeoutMillis);
 
+        throw new IllegalStateException(getLogMessage(versions));
+    }
+
+    private static String getLogMessage(Map<String, List<String>> versions) {
         StringBuilder sb = new StringBuilder();
-        final String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
-                + " after attempting to modify table {}. {}"
-                + " \nFind the nodes above that diverge from the majority schema"
-                + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
-                + " and examine their logs to determine the issue."
-                + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                + " You can quick-check this with 'nodetool describecluster'.";
+
         for (Entry<String, List<String>> version : versions.entrySet()) {
             sb.append(String.format("%nAt schema version %s:", version.getKey()));
             for (String node : version.getValue()) {
                 sb.append(String.format("%n\tNode: %s", node));
             }
         }
-
-        if (allowUnresponsiveNode
-                && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
-            log.error(messageTemplate, tableName, sb.toString());
-        } else {
-            throw new IllegalStateException(sb.toString());
-        }
+        return sb.toString();
     }
 
     private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(Map<String, List<String>> versions) {
