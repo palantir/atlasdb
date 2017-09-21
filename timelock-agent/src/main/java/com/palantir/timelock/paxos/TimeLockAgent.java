@@ -45,7 +45,7 @@ public class TimeLockAgent {
     private final PaxosResource paxosResource;
     private final PaxosLeadershipCreator leadershipCreator;
     private final LockCreator lockCreator;
-    private final PaxosTimestampCreator timestampCreator;
+    private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
 
     public TimeLockAgent(TimeLockInstallConfiguration install,
@@ -65,13 +65,19 @@ public class TimeLockAgent {
         this.paxosResource = PaxosResource.create(install.paxos().dataDirectory().toString());
         this.leadershipCreator = new PaxosLeadershipCreator(install, runtime, registrar);
         this.lockCreator = new LockCreator(runtime, deprecated);
-        this.timestampCreator = new PaxosTimestampCreator(paxosResource,
-                PaxosRemotingUtils.getRemoteServerPaths(install),
-                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
+        this.timestampCreator = install.optionalKvsConfig().isPresent()
+                ? new DbBoundTimestampCreator(install.optionalKvsConfig().get())
+                : getPaxosTimestampCreator();
         this.timelockCreator = install.asyncLock().useAsyncLockService()
                 ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
                 : new LegacyTimeLockServicesCreator(leadershipCreator);
+    }
+
+    private PaxosTimestampCreator getPaxosTimestampCreator() {
+        return new PaxosTimestampCreator(paxosResource,
+                PaxosRemotingUtils.getRemoteServerPaths(install),
+                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
+                JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
     }
 
     public void createAndRegisterResources() {
@@ -117,9 +123,7 @@ public class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = install.optionalKvsConfig()
-                .map(timestampCreator::createDatabaseBackedTimestampService)
-                .orElseGet(() -> timestampCreator.createPaxosBackedTimestampService(client));
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator.createTimestampService(client);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);

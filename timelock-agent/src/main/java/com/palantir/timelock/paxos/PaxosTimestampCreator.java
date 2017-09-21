@@ -27,13 +27,9 @@ import java.util.function.Supplier;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.factory.Leaders;
-import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosSynchronizer;
@@ -48,9 +44,8 @@ import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampBoundStore;
-import com.palantir.timestamp.TimestampService;
 
-public class PaxosTimestampCreator {
+public class PaxosTimestampCreator implements TimestampCreator {
     private final PaxosResource paxosResource;
     private final Set<String> remoteServers;
     private final Optional<SSLSocketFactory> optionalSecurity;
@@ -66,7 +61,8 @@ public class PaxosTimestampCreator {
         this.paxosRuntime = paxosRuntime;
     }
 
-    public Supplier<ManagedTimestampService> createPaxosBackedTimestampService(String client) {
+    @Override
+    public Supplier<ManagedTimestampService> createTimestampService(String client) {
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
                 .setDaemon(true)
@@ -101,22 +97,6 @@ public class PaxosTimestampCreator {
         PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
 
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
-    }
-
-    public Supplier<ManagedTimestampService> createDatabaseBackedTimestampService(
-            KeyValueServiceConfig kvsConfig) {
-        TableReference internalTimestampTable = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
-
-        ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(kvsConfig,
-                Optional.empty(),
-                Optional.empty(),
-                Optional.of(internalTimestampTable));
-
-        TimestampService timestampService = atlasFactory.getTimestampService();
-        Preconditions.checkArgument(ManagedTimestampService.class.isInstance(timestampService),
-                "The timestamp service is not a managed timestamp service.");
-
-        return () -> (ManagedTimestampService) timestampService;
     }
 
     private ManagedTimestampService createManagedPaxosTimestampService(
