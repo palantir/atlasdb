@@ -51,7 +51,7 @@ public class TableMigrator {
     private final RangeMigrator rangeMigrator;
 
     /**
-     * See {@link TableMigratorBuilder}
+     * See {@link TableMigratorBuilder}.
      */
     TableMigrator(TableReference srcTable,
                   int partitions,
@@ -73,15 +73,15 @@ public class TableMigrator {
         this.rangeMigrator = rangeMigrator;
     }
 
-    private int setPartitions(int p) {
-        Preconditions.checkArgument(p >= 1);
+    private int setPartitions(int minNumPartitions) {
+        Preconditions.checkArgument(minNumPartitions >= 1);
 
         // round partitions up to a power of 2
-        int highestOne = Integer.highestOneBit(p);
-        if (highestOne != p) {
+        int highestOne = Integer.highestOneBit(minNumPartitions);
+        if (highestOne != minNumPartitions) {
             return highestOne * 2;
         }
-        return p;
+        return minNumPartitions;
     }
 
     public void migrate() {
@@ -93,26 +93,29 @@ public class TableMigrator {
 
         Map<Long, byte[]> boundaryById = Maps.newHashMap();
         for (long rangeId = 0; rangeId < rangeBoundaries.size() - 1; rangeId++) {
-            boundaryById.put(rangeId, rangeBoundaries.get((int)rangeId));
+            boundaryById.put(rangeId, rangeBoundaries.get((int) rangeId));
         }
         checkpointer.createCheckpoints(srcTable.getQualifiedName(), boundaryById);
 
+        // Look up the checkpoints and log start point (or done)
+        rangeMigrator.logStatus(rangeBoundaries.size());
+
         List<Future<Void>> futures = Lists.newArrayList();
         for (long rangeId = 0; rangeId < rangeBoundaries.size() - 1; rangeId++) {
-            byte[] end = rangeBoundaries.get((int)rangeId + 1);
+            byte[] end = rangeBoundaries.get((int) rangeId + 1);
             // the range's start will be set within the transaction
-            RangeRequest range = RangeRequest.builder().
-                    endRowExclusive(end).
-                    batchHint(readBatchSize).
-                    retainColumns(columnSelection).
-                    build();
+            RangeRequest range = RangeRequest.builder()
+                    .endRowExclusive(end)
+                    .batchHint(readBatchSize)
+                    .retainColumns(columnSelection)
+                    .build();
 
             Callable<Void> task = createMigrationTask(
                     range,
                     rangeId);
             Callable<Void> wrappedTask = PTExecutors.wrap(task);
-            Future<Void> f = executor.submit(wrappedTask);
-            futures.add(f);
+            Future<Void> future = executor.submit(wrappedTask);
+            futures.add(future);
         }
 
         waitForFutures(futures);
@@ -167,7 +170,8 @@ public class TableMigrator {
             }
         }
 
-        List<byte[]> sortedBoundaries = Ordering.from(UnsignedBytes.lexicographicalComparator()).sortedCopy(rangeBoundaries);
+        List<byte[]> sortedBoundaries = Ordering.from(UnsignedBytes.lexicographicalComparator())
+                .sortedCopy(rangeBoundaries);
         sortedBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
         return sortedBoundaries;
     }

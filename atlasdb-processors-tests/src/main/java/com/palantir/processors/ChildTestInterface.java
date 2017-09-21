@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.processors;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
-
-public class DbKvsPostgresGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+@AutoDelegate(typeToExtend = ChildTestInterface.class)
+public interface ChildTestInterface extends TestInterface {
     @Override
-    protected KeyValueService createKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-    }
+    void overriddenMethod(Integer p1, Integer p2, Integer p3);
+
+    void methodOnChildInterface();
 }

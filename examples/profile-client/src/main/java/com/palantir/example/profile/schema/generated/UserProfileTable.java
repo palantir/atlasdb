@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -887,6 +889,8 @@ public final class UserProfileTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -1667,16 +1671,22 @@ public final class UserProfileTable implements
             }
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> rows) {
             Multimap<CookiesIdxRow, CookiesIdxColumn> toGet = Multimaps.transformValues(rows, CookiesIdxColumnValue.getColumnNameFun());
@@ -1815,6 +1825,7 @@ public final class UserProfileTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<CookiesIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -1829,6 +1840,18 @@ public final class UserProfileTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       BiFunction<RangeRequest, BatchingVisitable<CookiesIdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<CookiesIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, CookiesIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2328,16 +2351,22 @@ public final class UserProfileTable implements
             }
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> rows) {
             Multimap<CreatedIdxRow, CreatedIdxColumn> toGet = Multimaps.transformValues(rows, CreatedIdxColumnValue.getColumnNameFun());
@@ -2476,6 +2505,7 @@ public final class UserProfileTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<CreatedIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -2490,6 +2520,18 @@ public final class UserProfileTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       BiFunction<RangeRequest, BatchingVisitable<CreatedIdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<CreatedIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, CreatedIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2989,16 +3031,22 @@ public final class UserProfileTable implements
             }
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
             putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
             putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
         }
 
+        /** @deprecated Use separate read and write in a single transaction instead. */
+        @Deprecated
         @Override
         public void putUnlessExists(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> rows) {
             Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toGet = Multimaps.transformValues(rows, UserBirthdaysIdxColumnValue.getColumnNameFun());
@@ -3137,6 +3185,7 @@ public final class UserProfileTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<UserBirthdaysIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -3151,6 +3200,18 @@ public final class UserProfileTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       BiFunction<RangeRequest, BatchingVisitable<UserBirthdaysIdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<UserBirthdaysIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -3207,6 +3268,7 @@ public final class UserProfileTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -3263,6 +3325,7 @@ public final class UserProfileTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -3272,5 +3335,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "O3tAHyT0cLSDTg2WMe1aww==";
+    static String __CLASS_HASH = "XZOm4bE0zgUGoCBxygi4sQ==";
 }

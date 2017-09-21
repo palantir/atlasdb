@@ -51,7 +51,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
@@ -67,6 +67,12 @@ import com.palantir.timestamp.TimestampService;
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
+    /**
+     * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
+     */
+    @Deprecated
+    private static final int DEFAULT_MAX_CONCURRENT_RANGES = 64;
+
     @Override
     public String getType() {
         return "memory";
@@ -75,7 +81,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> unused) {
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }
@@ -113,14 +120,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public boolean isStandaloneServer() {
-                return false;
-            }
-        }));
+        LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(
+                 LockServerOptions.builder().isStandaloneServer(false).build()));
         LockClient client = LockClient.of("in memory atlasdb instance");
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -142,7 +143,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
-                cleaner);
+                cleaner,
+                DEFAULT_MAX_CONCURRENT_RANGES);
         cleaner.start(ret);
         return ret;
     }

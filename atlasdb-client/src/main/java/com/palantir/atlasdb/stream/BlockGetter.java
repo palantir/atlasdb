@@ -33,7 +33,8 @@ public interface BlockGetter {
     void get(long firstBlock, long numBlocks, OutputStream destination);
 
     /**
-     * @return the expected length of a block of data in bytes.
+     * Returns the expected length of a block of data.
+     * @return expected length in bytes
      */
     int expectedBlockLength();
 }

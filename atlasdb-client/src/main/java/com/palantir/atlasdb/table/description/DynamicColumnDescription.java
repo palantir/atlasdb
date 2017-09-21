@@ -46,7 +46,9 @@ public class DynamicColumnDescription {
     }
 
     public static DynamicColumnDescription hydrateFromProto(TableMetadataPersistence.DynamicColumnDescription message) {
-        return new DynamicColumnDescription(NameMetadataDescription.hydrateFromProto(message.getColumnNameDesc()), ColumnValueDescription.hydrateFromProto(message.getValue()));
+        return new DynamicColumnDescription(
+                NameMetadataDescription.hydrateFromProto(message.getColumnNameDesc()),
+                ColumnValueDescription.hydrateFromProto(message.getValue()));
     }
 
     @Override
@@ -66,12 +68,15 @@ public class DynamicColumnDescription {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         DynamicColumnDescription other = (DynamicColumnDescription) obj;
         if (columnNameDesc == null) {
             if (other.getColumnNameDesc() != null) {

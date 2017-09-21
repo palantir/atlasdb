@@ -39,10 +39,10 @@ import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 
 public class SynchronousLockClientTest {
-    private static final RemoteLockService LOCK_SERVICE = mock(RemoteLockService.class);
+    private static final LockService LOCK_SERVICE = mock(LockService.class);
     private static final SynchronousLockClient LOCK_CLIENT = new SynchronousLockClient(LOCK_SERVICE);
     private static final LockRefreshToken TOKEN_1 = new LockRefreshToken(BigInteger.ONE, 1L);
     private static final LockRefreshToken TOKEN_2 = new LockRefreshToken(BigInteger.TEN, 10L);
@@ -83,7 +83,7 @@ public class SynchronousLockClientTest {
 
     @Test
     public void unlockReturnsEmptySetIfTokensWereAlreadyUnlocked() throws InterruptedException {
-        when(LOCK_SERVICE.unlock(any())).thenReturn(false);
+        when(LOCK_SERVICE.unlock(any(LockRefreshToken.class))).thenReturn(false);
         assertThat(LOCK_CLIENT.unlock(ImmutableSet.of(TOKEN_1, TOKEN_2)), empty());
     }
 

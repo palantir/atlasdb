@@ -22,7 +22,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 public class StreamStoreDefinitionBuilderTest {
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testTooBigInMemoryThreshold() {
         new StreamStoreDefinitionBuilder("test", "test", ValueType.VAR_LONG)
                 .inMemoryThreshold(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD + 1)

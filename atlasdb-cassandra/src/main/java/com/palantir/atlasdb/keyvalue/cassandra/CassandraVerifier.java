@@ -188,7 +188,7 @@ public final class CassandraVerifier {
             throws TException {
         try {
             Client client = CassandraClientFactory.getClientInternal(host, config);
-            client.describe_keyspace(config.keyspace());
+            client.describe_keyspace(config.getKeyspaceOrThrow());
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -198,7 +198,7 @@ public final class CassandraVerifier {
     private static void attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
         Client client = CassandraClientFactory.getClientInternal(host, config);
-        KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY,
+        KsDef ks = new KsDef(config.getKeyspaceOrThrow(), CassandraConstants.NETWORK_STRATEGY,
                 ImmutableList.of());
         checkAndSetReplicationFactor(
                 client,
@@ -207,7 +207,7 @@ public final class CassandraVerifier {
                 config);
         ks.setDurable_writes(true);
         client.system_add_keyspace(ks);
-        log.info("Created keyspace: {}", config.keyspace());
+        log.info("Created keyspace: {}", config.getKeyspaceOrThrow());
         CassandraKeyValueServices.waitForSchemaVersions(
                 client,
                 "(adding the initial empty keyspace)",
@@ -229,7 +229,7 @@ public final class CassandraVerifier {
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
         clientPool.runWithRetry((FunctionCheckedException<Client, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(config.keyspace());
+            KsDef originalKsDef = client.describe_keyspace(config.getKeyspaceOrThrow());
             // there was an existing keyspace
             // check and make sure it's definition is up to date with our config
             KsDef modifiedKsDef = originalKsDef.deepCopy();
@@ -297,7 +297,7 @@ public final class CassandraVerifier {
 
     static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config)
             throws TException {
-        KsDef ks = client.describe_keyspace(config.keyspace());
+        KsDef ks = client.describe_keyspace(config.getKeyspaceOrThrow());
         Set<String> dcs = sanityCheckDatacenters(client, config);
         sanityCheckReplicationFactor(ks, config, dcs);
     }

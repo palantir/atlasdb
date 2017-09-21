@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -457,6 +459,8 @@ public final class StreamTestWithHashStreamValueTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows) {
         Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
@@ -637,6 +641,7 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -693,6 +698,7 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -702,5 +708,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dy6R6j1LYNNjmwxZlAyIww==";
+    static String __CLASS_HASH = "rjkbPRGg2A5EM3En+XGIsw==";
 }

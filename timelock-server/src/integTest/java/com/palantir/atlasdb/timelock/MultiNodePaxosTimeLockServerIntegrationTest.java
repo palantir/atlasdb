@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +31,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -40,14 +43,16 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
+    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost",
+            "https://localhost",
             CLIENT_1,
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",
@@ -68,12 +73,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        CLUSTER.waitUntilLeaderIsElected();
+        CLUSTER.waitUntilReadyToServeClients(CLIENTS);
     }
 
     @Before
     public void bringAllNodesOnline() {
-        CLUSTER.waitUntillAllSeversAreOnlineAndLeaderIsElected();
+        CLUSTER.waitUntilAllServersOnlineAndReadyToServeClients(CLIENTS);
     }
 
     @Test
@@ -194,6 +199,47 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             assertThat(CLUSTER.unlock(token)).isFalse();
             token = CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
         }
+    }
+
+    @Test
+    public void canCreateNewClientsDynamically() {
+        for (int i = 0; i < 5; i++) {
+            String client = UUID.randomUUID().toString();
+            TimelockService timelock = CLUSTER.timelockServiceForClient(client);
+
+            timelock.getFreshTimestamp();
+            LockToken token = timelock.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
+            CLUSTER.unlock(token);
+        }
+    }
+
+    @Test
+    public void clientsCreatedDynamicallyOnNonLeadersAreFunctionalAfterFailover() {
+        String client = UUID.randomUUID().toString();
+        CLUSTER.nonLeaders().forEach(server -> {
+            assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
+                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+        });
+
+        CLUSTER.failoverToNewLeader();
+
+        CLUSTER.getFreshTimestamp();
+    }
+
+    @Test
+    public void noConflictIfLeaderAndNonLeadersSeparatelyInitializeClient() {
+        String client = UUID.randomUUID().toString();
+        CLUSTER.nonLeaders().forEach(server -> {
+            assertThatThrownBy(() -> server.timelockServiceForClient(client).getFreshTimestamp())
+                    .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
+        });
+
+        long ts1 = CLUSTER.timelockServiceForClient(client).getFreshTimestamp();
+
+        CLUSTER.failoverToNewLeader();
+
+        long ts2 = CLUSTER.getFreshTimestamp();
+        assertThat(ts1).isLessThan(ts2);
     }
 
     @Test

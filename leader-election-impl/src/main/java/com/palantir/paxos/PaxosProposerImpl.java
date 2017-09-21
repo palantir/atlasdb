@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 /**
  * Implementation of a paxos proposer than can be a designated proposer (leader) and designated
@@ -126,7 +128,10 @@ public class PaxosProposerImpl implements PaxosProposer {
                 try {
                     learner.learn(seq, finalValue);
                 } catch (Throwable e) {
-                    log.warn("failed to teach learner", e);
+                    log.warn("Failed to teach learner the value {} at sequence {}",
+                            UnsafeArg.of("value", bytes),
+                            SafeArg.of("sequence", seq),
+                            e);
                 }
             });
         }

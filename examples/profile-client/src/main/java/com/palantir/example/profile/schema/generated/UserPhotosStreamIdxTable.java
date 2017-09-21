@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -489,16 +491,22 @@ public final class UserPhotosStreamIdxTable implements
         }
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(UserPhotosStreamIdxRow rowName, Iterable<UserPhotosStreamIdxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(UserPhotosStreamIdxRow rowName, UserPhotosStreamIdxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
+    /** @deprecated Use separate read and write in a single transaction instead. */
+    @Deprecated
     @Override
     public void putUnlessExists(Multimap<UserPhotosStreamIdxRow, ? extends UserPhotosStreamIdxColumnValue> rows) {
         Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumn> toGet = Multimaps.transformValues(rows, UserPhotosStreamIdxColumnValue.getColumnNameFun());
@@ -671,6 +679,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -727,6 +736,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -736,5 +746,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CcCfvZU8hRg+fnHdCMJxkA==";
+    static String __CLASS_HASH = "cRfNWltUJdrIE2WYQp2oIQ==";
 }

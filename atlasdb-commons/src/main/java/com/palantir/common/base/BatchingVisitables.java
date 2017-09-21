@@ -40,6 +40,7 @@ public class BatchingVisitables {
     private BatchingVisitables() {/**/}
 
     public static final int DEFAULT_BATCH_SIZE = 1000;
+    @SuppressWarnings("unused") // Used in internal legacy code
     public static final int KEEP_ALL_BATCH_SIZE = 100000;
 
     public static <T> BatchingVisitableView<T> emptyBatchingVisitable() {
@@ -281,7 +282,7 @@ public class BatchingVisitables {
             protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
                                                                      final ConsistentVisitor<T, K> v) throws K {
                 if (batchSizeHint > limit) {
-                    batchSizeHint = (int)limit;
+                    batchSizeHint = (int) limit;
                 }
                 visitable.batchAccept(batchSizeHint, new AbortingVisitor<List<T>, K>() {
                     long visited = 0;
@@ -435,7 +436,7 @@ public class BatchingVisitables {
      * <p>
      * This can be used to make the performance of batching visitables better.  One example of where this is useful
      * is if I just visit the results one at a time, but I know that I will visit 100 results, then I can save
-     * a lot of potential round trips my hinting a page size of 100.
+     * a lot of potential round trips by hinting a page size of 100.
      */
     public static <T> BatchingVisitableView<T> hintPageSize(final BatchingVisitable<T> bv, final int pageSize) {
         Preconditions.checkArgument(pageSize > 0);

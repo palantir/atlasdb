@@ -18,8 +18,9 @@ package com.palantir.lock;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -27,7 +28,9 @@ import javax.annotation.concurrent.Immutable;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 
@@ -39,6 +42,8 @@ import com.google.common.collect.ImmutableSortedMap;
  *
  * @author jtamer
  */
+@JsonDeserialize(builder =
+        LockResponse.SerializationProxy.class)
 @Immutable public final class LockResponse implements Serializable {
     private static final long serialVersionUID = 0xd67972b13e30eff7L;
 
@@ -46,9 +51,8 @@ import com.google.common.collect.ImmutableSortedMap;
     private final boolean isBlockAndRelease;
     private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
 
-    @JsonCreator
-    public LockResponse(@JsonProperty("token") @Nullable HeldLocksToken token) {
-        this(token, ImmutableSortedMap.<LockDescriptor, LockClient>of());
+    public LockResponse(@Nullable HeldLocksToken token) {
+        this(token, ImmutableSortedMap.of());
     }
 
     /**
@@ -103,8 +107,23 @@ import com.google.common.collect.ImmutableSortedMap;
         return token;
     }
 
+    @JsonIgnore
     @Nullable public LockRefreshToken getLockRefreshToken() {
         return token == null ? null : token.getLockRefreshToken();
+    }
+
+    public boolean isBlockAndRelease() {
+        return isBlockAndRelease;
+    }
+
+    public List<LockWithClient> getLocks() {
+        return lockHolders.entrySet()
+                .stream()
+                .map(input -> ImmutableLockWithClient.builder()
+                        .lockDescriptor(input.getKey())
+                        .lockClient(input.getValue())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     /**
@@ -122,14 +141,31 @@ import com.google.common.collect.ImmutableSortedMap;
      * {@link LockGroupBehavior#LOCK_AS_MANY_AS_POSSIBLE}.
      */
     @JsonIgnore
-    public SortedMap<LockDescriptor, LockClient> getLockHolders() {
+    public ImmutableSortedMap<LockDescriptor, LockClient> getLockHolders() {
         return lockHolders;
     }
 
-    @Override public String toString() {
+    @Override public boolean equals(@Nullable Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof LockResponse)) {
+            return false;
+        }
+        return token.equals(((LockResponse) obj).token)
+                && lockHolders.equals(((LockResponse) obj).getLockHolders())
+                && isBlockAndRelease == ((LockResponse) obj).isBlockAndRelease();
+    }
+
+    @Override public int hashCode() {
+        return Objects.hashCode(token, lockHolders, isBlockAndRelease);
+    }
+
+    public String toString(long currentTimeMillis) {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("token", token)
+                .add("token", token.toString(currentTimeMillis))
                 .add("lockHolders", lockHolders)
+                .add("isBlockAndRelease", isBlockAndRelease)
                 .toString();
     }
 
@@ -142,7 +178,7 @@ import com.google.common.collect.ImmutableSortedMap;
         return new SerializationProxy(this);
     }
 
-    private static class SerializationProxy implements Serializable {
+    static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xcff22b33b08dd857L;
 
         @Nullable private final HeldLocksToken token;
@@ -150,9 +186,31 @@ import com.google.common.collect.ImmutableSortedMap;
         private final boolean isBlockAndRelease;
 
         SerializationProxy(LockResponse lockResponse) {
-            token = lockResponse.token;
-            lockHolders = lockResponse.lockHolders;
-            isBlockAndRelease = lockResponse.isBlockAndRelease;
+            this.token = lockResponse.token;
+            this.lockHolders = lockResponse.lockHolders;
+            this.isBlockAndRelease = lockResponse.isBlockAndRelease;
+        }
+
+        @JsonCreator
+        SerializationProxy(@JsonProperty("token") HeldLocksToken token,
+                @JsonProperty("locks") List<LockWithClient> lockWithClients,
+                @JsonProperty("blockAndRelease") boolean isBlockAndRelease) {
+            if (lockWithClients == null) {
+                lockHolders = ImmutableSortedMap.of();
+            } else {
+                ImmutableSortedMap.Builder<LockDescriptor, LockClient> lockHoldersBuilder =
+                        ImmutableSortedMap.naturalOrder();
+                for (LockWithClient lock : lockWithClients) {
+                    lockHoldersBuilder.put(lock.getLockDescriptor(), lock.getLockClient());
+                }
+                this.lockHolders = lockHoldersBuilder.build();
+            }
+            this.token = token;
+            this.isBlockAndRelease = isBlockAndRelease;
+        }
+
+        public LockResponse build() {
+            return (LockResponse) readResolve();
         }
 
         Object readResolve() {

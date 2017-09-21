@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -45,6 +48,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
@@ -66,23 +70,37 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
-    private static final String USER_AGENT = "user-agent (3.14159265)";
+    private static final String USER_AGENT_NAME = "user-agent";
+    private static final String USER_AGENT = USER_AGENT_NAME + " (3.14159265)";
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
+
+    private static final String TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
+            MetricRegistry.name(TimelockService.class, "getFreshTimestamp");
+    private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
+            MetricRegistry.name(TimelockService.class, "currentTimeMillis");
+    private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
+            MetricRegistry.name(LockService.class, "currentTimeMillis");
+    private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
+            MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -120,6 +138,9 @@ public class TransactionManagersTest {
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+
+    @Rule
+    public MetricsRule metricsRule = new MetricsRule();
 
     @Before
     public void setup() throws JsonProcessingException {
@@ -192,37 +213,17 @@ public class TransactionManagersTest {
 
     @Test
     public void userAgentsPresentOnRequestsWithLeaderBlockConfigured() throws IOException {
-        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
-                .localServer(getUriForPort(availablePort))
-                .addLeaders(getUriForPort(availablePort))
-                .acceptorLogDir(temporaryFolder.newFolder())
-                .learnerLogDir(temporaryFolder.newFolder())
-                .quorumSize(1)
-                .build()));
+        setupLeaderBlockInConfig();
 
         verifyUserAgentOnRawTimestampAndLockRequests();
     }
 
     @Test
     public void remoteCallsStillMadeIfPingableLeader404s() throws IOException, InterruptedException {
-        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
-        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
-                .localServer(getUriForPort(availablePort))
-                .addLeaders(getUriForPort(availablePort))
-                .acceptorLogDir(temporaryFolder.newFolder())
-                .learnerLogDir(temporaryFolder.newFolder())
-                .quorumSize(1)
-                .build()));
+        setUpForRemoteServices();
+        setupLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
-                        config,
-                        () -> runtimeConfig.timestampClient(),
-                        environment,
-                        LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        invalidator,
-                        USER_AGENT);
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestampServices.timelock().getFreshTimestamp();
@@ -236,31 +237,10 @@ public class TransactionManagersTest {
 
     @Test
     public void remoteCallsElidedIfTalkingToLocalServer() throws IOException, InterruptedException {
-        doAnswer(invocation -> {
-            // Configure our server to reply with the same server ID as the registered PingableLeader.
-            PingableLeader localPingableLeader = invocation.getArgumentAt(0, PingableLeader.class);
-            availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
-                    .withStatus(200)
-                    .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
-            return null;
-        }).when(environment).register(isA(PingableLeader.class));
-        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
-                .localServer(getUriForPort(availablePort))
-                .addLeaders(getUriForPort(availablePort))
-                .acceptorLogDir(temporaryFolder.newFolder())
-                .learnerLogDir(temporaryFolder.newFolder())
-                .quorumSize(1)
-                .build()));
+        setUpForLocalServices();
+        setupLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
-                TransactionManagers.createLockAndTimestampServices(
-                        config,
-                        () -> runtimeConfig.timestampClient(),
-                        environment,
-                        LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        invalidator,
-                        USER_AGENT);
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
         lockAndTimestampServices.timelock().getFreshTimestamp();
@@ -324,6 +304,102 @@ public class TransactionManagersTest {
         manager.registerClosingCallback(callback);
         manager.close();
         verify(callback, times(1)).run();
+    }
+
+    @Test
+    public void keyValueServiceMetricsDoNotContainUserAgent() {
+        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+
+        TransactionManagers.create(realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        assertThat(metricsRule.metrics().getNames().stream()
+                .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
+    public void metricsAreReportedExactlyOnceWhenUsingLocalService() throws IOException, InterruptedException {
+        setUpForLocalServices();
+        setupLeaderBlockInConfig();
+
+        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                LOCK_SERVICE_CURRENT_TIME_METRIC);
+    }
+
+    @Test
+    public void metricsAreReportedExactlyOnceWhenUsingRemoteService() throws IOException, InterruptedException {
+        setUpForRemoteServices();
+        setupLeaderBlockInConfig();
+
+        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                LOCK_SERVICE_CURRENT_TIME_METRIC);
+    }
+
+    @Test
+    public void metricsAreReportedExactlyOnceWhenUsingTimelockService() {
+        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+
+        assertThatTimeAndLockMetricsAreRecorded(TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC,
+                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+    }
+
+    @Test
+    public void metricsAreReportedExactlyOnceWhenUsingTimelockServiceWithRequestBatching() {
+        when(config.timelock()).thenReturn(Optional.of(mockClientConfig));
+        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
+
+        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
+                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+    }
+
+    private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
+        assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(0L)));
+
+        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
+        lockAndTimestampServices.timelock().getFreshTimestamp();
+        lockAndTimestampServices.timelock().currentTimeMillis();
+
+        assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(1L)));
+        assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(1L)));
+    }
+
+    private void setUpForLocalServices() throws IOException {
+        doAnswer(invocation -> {
+            // Configure our server to reply with the same server ID as the registered PingableLeader.
+            PingableLeader localPingableLeader = invocation.getArgumentAt(0, PingableLeader.class);
+            availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
+                    .withStatus(200)
+                    .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
+            return null;
+        }).when(environment).register(isA(PingableLeader.class));
+        setupLeaderBlockInConfig();
+    }
+
+    private void setUpForRemoteServices() throws IOException {
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
+        setupLeaderBlockInConfig();
+    }
+
+    private void setupLeaderBlockInConfig() throws IOException {
+        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
+                .localServer(getUriForPort(availablePort))
+                .addLeaders(getUriForPort(availablePort))
+                .acceptorLogDir(temporaryFolder.newFolder())
+                .learnerLogDir(temporaryFolder.newFolder())
+                .quorumSize(1)
+                .build()));
+    }
+
+    private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
+        return TransactionManagers.createLockAndTimestampServices(
+                config,
+                () -> runtimeConfig.timestampClient(),
+                environment,
+                LockServiceImpl::create,
+                InMemoryTimestampService::new,
+                invalidator,
+                USER_AGENT);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {

@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.table.description.constraints.ForeignKeyConstraint;
 import com.palantir.atlasdb.table.description.constraints.tuples.TupleOf2;
 
-public class Select2Long implements ForeignKeyConstraint{
+public class Select2Long implements ForeignKeyConstraint {
     public static List<TupleOf2<Long, Long>> getKeys(Long param, Long param2) {
         return ImmutableList.of(TupleOf2.of(param, param2));
     }

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -46,7 +47,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -59,7 +60,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
-    final RemoteLockService lockService;
+    final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
     final Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier;
@@ -67,6 +68,7 @@ import com.palantir.timestamp.TimestampService;
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
     protected final Supplier<Long> lockAcquireTimeoutMs;
+    final ExecutorService getRangesExecutor;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -74,14 +76,15 @@ import com.palantir.timestamp.TimestampService;
     protected SnapshotTransactionManager(
             KeyValueService keyValueService,
             TimelockService timelockService,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs) {
+            Supplier<Long> lockAcquireTimeoutMs,
+            int concurrentGetRangesThreadPoolSize) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -94,6 +97,7 @@ import com.palantir.timestamp.TimestampService;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
+        this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
     }
 
     @Override
@@ -179,7 +183,8 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get());
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor);
     }
 
     @Override
@@ -202,7 +207,8 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get());
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor);
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 
@@ -258,7 +264,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public RemoteLockService getLockService() {
+    public LockService getLockService() {
         return lockService;
     }
 

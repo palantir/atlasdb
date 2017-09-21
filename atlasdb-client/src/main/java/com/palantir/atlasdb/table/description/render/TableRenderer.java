@@ -29,6 +29,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 import javax.annotation.Nullable;
@@ -114,6 +116,7 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableRenderer {
     private final String packageName;
     private final Namespace namespace;
@@ -508,11 +511,15 @@ public class TableRenderer {
                 } line("}");
             } line("}");
             line();
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
+            line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(", Row, " rowName, Iterable<", ColumnValue, "> values", lastParams, ") {"); {
                 line("putUnlessExists(ImmutableMultimap.<", Row, ", ", ColumnValue, ">builder().putAll(rowName, values).build()", args, ");");
             } line("}");
             line();
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
+            line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(", firstParams, Row, " rowName, ", ColumnValue, "... values) {"); {
                 line("putUnlessExists(ImmutableMultimap.<", Row, ", ", ColumnValue, ">builder().putAll(rowName, values).build()", args, ");");
@@ -760,6 +767,8 @@ public class TableRenderer {
         private void renderNamedPutUnlessExists() {
             String params = isExpiring(table) ? ", long duration, TimeUnit unit" : "";
             String args = isExpiring(table) ? ", duration, unit" : "";
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
+            line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows", params, ") {"); {
                 line("Multimap<", Row, ", ", ColumnValue, "> existing = getRowsMultimap(rows.keySet());");
@@ -776,6 +785,8 @@ public class TableRenderer {
         private void renderDynamicPutUnlessExists() {
             String params = isExpiring(table) ? ", long duration, TimeUnit unit" : "";
             String args = isExpiring(table) ? ", duration, unit" : "";
+            line("/** @deprecated Use separate read and write in a single transaction instead. */");
+            line("@Deprecated");
             line("@Override");
             line("public void putUnlessExists(Multimap<", Row, ", ? extends ", ColumnValue, "> rows", params, ") {"); {
                 line("Multimap<", Row, ", ", Column, "> toGet = Multimaps.transformValues(rows, ", ColumnValue, ".getColumnNameFun());");
@@ -969,6 +980,7 @@ public class TableRenderer {
         }
 
         private void renderGetRanges() {
+            line("@Deprecated");
             line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
                 line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);");
                 line("return IterableView.of(rangeResults).transform(");
@@ -983,6 +995,18 @@ public class TableRenderer {
                         } line("});");
                     } line("}");
                 } line("});");
+            } line("}");
+            line();
+            line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
+            line("                               int concurrencyLevel,");
+            line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
+                line("return t.getRanges(tableRef, ranges, concurrencyLevel,");
+                line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
+            } line("}");
+            line();
+            line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);");
+                line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
             } line("}");
         }
 
@@ -1276,6 +1300,7 @@ public class TableRenderer {
         Multimaps.class,
         Collection.class,
         Function.class,
+        BiFunction.class,
         Persistable.class,
         Hydrator.class,
         Transaction.class,
@@ -1326,6 +1351,7 @@ public class TableRenderer {
         Entry.class,
         Iterator.class,
         Iterables.class,
+        Stream.class,
         Supplier.class,
         InvalidProtocolBufferException.class,
         Throwables.class,

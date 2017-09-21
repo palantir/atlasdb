@@ -179,9 +179,9 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         }
     }
 
-    private static CandidateCellForSweepingRequest conservativeRequest(byte[] startRow,
-                                                                       long sweepTs,
-                                                                       long minUncommittedTs) {
+    protected static CandidateCellForSweepingRequest conservativeRequest(byte[] startRow,
+                                                                         long sweepTs,
+                                                                         long minUncommittedTs) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .sweepTimestamp(sweepTs)
@@ -191,9 +191,9 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .build();
     }
 
-    private static CandidateCellForSweepingRequest thoroughRequest(byte[] startRow,
-                                                                   long sweepTs,
-                                                                   long minUncommittedTs) {
+    protected static CandidateCellForSweepingRequest thoroughRequest(byte[] startRow,
+                                                                     long sweepTs,
+                                                                     long minUncommittedTs) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .sweepTimestamp(sweepTs)
@@ -209,6 +209,38 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     private static TestDataBuilder testDataBuilder() {
         return new TestDataBuilder(kvs, TEST_TABLE);
+    }
+
+    public class TestDataBuilder {
+        private Map<Long, Map<Cell, byte[]>> cellsByTimestamp = Maps.newHashMap();
+
+        public TestDataBuilder put(int row, int col, long ts) {
+            return put(row, col, ts, new byte[] { 1, 2, 3 });
+        }
+
+        public TestDataBuilder put(int row, int col, long ts, byte[] value) {
+            cellsByTimestamp.computeIfAbsent(ts, key -> Maps.newHashMap())
+                    .put(cell(row, col), value);
+            return this;
+        }
+
+        public TestDataBuilder putEmpty(int row, int col, long ts) {
+            return put(row, col, ts, PtBytes.EMPTY_BYTE_ARRAY);
+        }
+
+        public void store() {
+            for (Map.Entry<Long, Map<Cell, byte[]>> e : cellsByTimestamp.entrySet()) {
+                kvs.put(TEST_TABLE, e.getValue(), e.getKey());
+            }
+        }
+    }
+
+    protected static Cell cell(int rowNum, int colNum) {
+        return Cell.create(row(rowNum), row(colNum));
+    }
+
+    protected static byte[] row(int rowNum) {
+        return Ints.toByteArray(rowNum);
     }
 
     protected abstract KeyValueService createKeyValueService();

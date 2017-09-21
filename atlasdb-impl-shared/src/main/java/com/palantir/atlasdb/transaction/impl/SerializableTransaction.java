@@ -26,6 +26,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -112,7 +113,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    TransactionReadSentinelBehavior readSentinelBehavior,
                                    boolean allowHiddenTableAccess,
                                    TimestampCache timestampCache,
-                                   long lockAcquireTimeoutMs) {
+                                   long lockAcquireTimeoutMs,
+                                   ExecutorService getRangesExecutor) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -128,7 +130,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               readSentinelBehavior,
               allowHiddenTableAccess,
               timestampCache,
-              lockAcquireTimeoutMs);
+              lockAcquireTimeoutMs,
+              getRangesExecutor);
     }
 
     @Override
@@ -187,7 +190,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     @Idempotent
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(final TableReference tableRef,
-                                                             Iterable<RangeRequest> rangeRequests) {
+            Iterable<RangeRequest> rangeRequests) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> ret = super.getRanges(tableRef, rangeRequests);
         Iterable<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> zip = IterableUtils.zip(rangeRequests, ret);
         return Iterables.transform(zip, pair -> wrapRange(tableRef, pair.lhSide, pair.rhSide));
@@ -718,7 +721,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getReadSentinelBehavior(),
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs) {
+                lockAcquireTimeoutMs,
+                getRangesExecutor) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

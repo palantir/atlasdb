@@ -41,6 +41,7 @@ import org.mockito.Mockito;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -421,10 +422,15 @@ public abstract class AbstractSweepTaskRunnerTest {
 
         int deleteBatchSize = 2;
         List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
-                8, 1, deleteBatchSize);
-
-        List<List<Cell>> expectedCells = groupCells(BIG_LIST_OF_CELLS, 2 * deleteBatchSize);
-        assertEquals(expectedCells, sweptCells);
+                1000, 1, deleteBatchSize);
+        assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(BIG_LIST_OF_CELLS);
+        for (List<Cell> sweptBatch : sweptCells.subList(0, sweptCells.size() - 1)) {
+            // We requested deleteBatchSize = 2, so we expect between 2 and 4 timestamps deleted at a time.
+            // We also expect a single timestamp to be swept per each cell.
+            assertThat(sweptBatch.size()).isBetween(deleteBatchSize, 2 * deleteBatchSize);
+        }
+        // The last batch can be smaller than deleteBatchSize
+        assertThat(sweptCells.get(sweptCells.size() - 1).size()).isLessThanOrEqualTo(2 * deleteBatchSize);
     }
 
     private void putTwoValuesInEachCell(List<Cell> cells) {

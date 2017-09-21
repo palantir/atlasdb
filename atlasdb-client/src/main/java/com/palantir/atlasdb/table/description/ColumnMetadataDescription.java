@@ -20,7 +20,7 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -34,7 +34,8 @@ public class ColumnMetadataDescription {
     final DynamicColumnDescription dynamicColumn;
 
     public ColumnMetadataDescription() {
-        this(new DynamicColumnDescription(new NameMetadataDescription(), ColumnValueDescription.forType(ValueType.BLOB)));
+        this(new DynamicColumnDescription(new NameMetadataDescription(),
+                ColumnValueDescription.forType(ValueType.BLOB)));
     }
 
     public ColumnMetadataDescription(Iterable<NamedColumnDescription> namedColumns) {
@@ -89,13 +90,13 @@ public class ColumnMetadataDescription {
         return builder;
     }
 
-    public static ColumnMetadataDescription hydrateFromProto(TableMetadataPersistence.ColumnMetadataDescription message) {
-        if (message.hasDynamicColumn()) {
-            Validate.isTrue(message.getNamedColumnsCount() == 0);
-            return new ColumnMetadataDescription(DynamicColumnDescription.hydrateFromProto(message.getDynamicColumn()));
+    public static ColumnMetadataDescription hydrateFromProto(TableMetadataPersistence.ColumnMetadataDescription msg) {
+        if (msg.hasDynamicColumn()) {
+            Validate.isTrue(msg.getNamedColumnsCount() == 0);
+            return new ColumnMetadataDescription(DynamicColumnDescription.hydrateFromProto(msg.getDynamicColumn()));
         } else {
             List<NamedColumnDescription> list = Lists.newArrayList();
-            for (TableMetadataPersistence.NamedColumnDescription col : message.getNamedColumnsList()) {
+            for (TableMetadataPersistence.NamedColumnDescription col : msg.getNamedColumnsList()) {
                 list.add(NamedColumnDescription.hydrateFromProto(col));
             }
             return new ColumnMetadataDescription(list);
@@ -127,12 +128,15 @@ public class ColumnMetadataDescription {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         ColumnMetadataDescription other = (ColumnMetadataDescription) obj;
         if (namedColumns == null) {
             if (other.getNamedColumns() != null) {

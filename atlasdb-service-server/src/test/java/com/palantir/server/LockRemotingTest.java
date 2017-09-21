@@ -35,23 +35,21 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.logger.LockServiceLoggerTestUtils;
+import com.palantir.lock.logger.LockServiceTestUtils;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class LockRemotingTest {
-    private static LockServerOptions lockServerOptions = new LockServerOptions() {
-        @Override public String getLockStateLoggerDir() {
-            return LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR;
-        }
-    };
+    private static LockServerOptions lockServerOptions  = LockServerOptions.builder()
+            .lockStateLoggerDir(LockServiceTestUtils.TEST_LOG_STATE_DIR)
+            .build();
     private static LockServiceImpl rawLock = LockServiceImpl.create(lockServerOptions);
 
     @ClassRule
-    public final static DropwizardClientRule lockService = new DropwizardClientRule(rawLock);
+    public static final DropwizardClientRule lockService = new DropwizardClientRule(rawLock);
 
     @Test
     public void testLock() throws InterruptedException, IOException {
@@ -74,10 +72,10 @@ public class LockRemotingTest {
         writeValueAsString = mapper.writeValueAsString(lockResponse);
         LockRefreshToken lockResponse2 = mapper.readValue(writeValueAsString, LockRefreshToken.class);
 
-        RemoteLockService lock = AtlasDbFeignTargetFactory.createProxy(
+        LockService lock = AtlasDbFeignTargetFactory.createProxy(
                 Optional.empty(),
                 lockService.baseUri().toString(),
-                RemoteLockService.class,
+                LockService.class,
                 UserAgents.DEFAULT_USER_AGENT);
 
         String lockClient = "23234";
@@ -92,7 +90,7 @@ public class LockRemotingTest {
         try {
             lock.logCurrentState();
         } finally {
-            LockServiceLoggerTestUtils.cleanUpLogStateDir();
+            LockServiceTestUtils.cleanUpLogStateDir();
         }
         lock.currentTimeMillis();
 

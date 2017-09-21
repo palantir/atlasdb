@@ -15,16 +15,17 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Map;
+import java.util.function.Consumer;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -42,28 +43,22 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
+        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         super.initialize(bootstrap);
     }
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        TimeLockServer serverImpl = configuration.algorithm().createServerImpl(environment);
-        serverImpl.onStartup(configuration);
-        registerResources(configuration, environment, serverImpl);
-    }
-
-    private static void registerResources(
-            TimeLockServerConfiguration configuration,
-            Environment environment,
-            TimeLockServer serverImpl) {
-        Map<String, TimeLockServices> clientToServices = ImmutableMap.copyOf(Maps.asMap(
-                configuration.clients(),
-                client -> serverImpl.createInvalidatingTimeLockServices(client,
-                        configuration.slowLockLogTriggerMillis())));
-
         environment.getObjectMapper().registerModule(new Jdk8Module());
-        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
-        environment.jersey().register(new TimeLockResource(clientToServices));
-    }
+        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
 
+        CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
+        Consumer<Object> registrar = component -> environment.jersey().register(component);
+        TimeLockAgent agent = new TimeLockAgent(
+                combined.install(),
+                combined::runtime, // this won't actually live reload
+                combined.deprecated(),
+                registrar);
+        agent.createAndRegisterResources();
+    }
 }

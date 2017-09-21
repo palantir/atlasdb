@@ -32,7 +32,7 @@ import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 
 public class SweeperTestSetup {
 
@@ -54,7 +54,7 @@ public class SweeperTestSetup {
     public void setup() {
         specificTableSweeper = getSpecificTableSweeperService();
         backgroundSweeper = new BackgroundSweeperImpl(
-                Mockito.mock(RemoteLockService.class),
+                Mockito.mock(LockService.class),
                 nextTableToSweepProvider,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis

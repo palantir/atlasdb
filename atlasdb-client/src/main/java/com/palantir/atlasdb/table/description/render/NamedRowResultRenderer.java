@@ -23,21 +23,22 @@ import java.util.SortedSet;
 
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
+@SuppressWarnings("checkstyle:AvoidNestedBlocks")
 class NamedRowResultRenderer extends Renderer {
-    private final String Row;
-    private final String RowResult;
+    private final String row;
+    private final String rowResult;
     private final SortedSet<NamedColumnDescription> cols;
 
-    public NamedRowResultRenderer(Renderer parent, String name, SortedSet<NamedColumnDescription> cols) {
+    NamedRowResultRenderer(Renderer parent, String name, SortedSet<NamedColumnDescription> cols) {
         super(parent);
-        this.Row = name + "Row";
-        this.RowResult = name + "RowResult";
+        this.row = name + "Row";
+        this.rowResult = name + "RowResult";
         this.cols = cols;
     }
 
     @Override
     protected void run() {
-        line("public static final class ", RowResult, " implements TypedRowResult {"); {
+        line("public static final class ", rowResult, " implements TypedRowResult {"); {
             fields();
             line();
             staticFactory();
@@ -71,29 +72,29 @@ class NamedRowResultRenderer extends Renderer {
     }
 
     private void staticFactory() {
-        line("public static ", RowResult, " of(RowResult<byte[]> row) {"); {
-            line("return new ", RowResult, "(row);");
+        line("public static ", rowResult, " of(RowResult<byte[]> row) {"); {
+            line("return new ", rowResult, "(row);");
         } line("}");
     }
 
     private void constructor() {
-        line("private ", RowResult, "(RowResult<byte[]> row) {"); {
+        line("private ", rowResult, "(RowResult<byte[]> row) {"); {
             line("this.row = row;");
         } line("}");
     }
 
     private void getRowName() {
         line("@Override");
-        line("public ", Row, " getRowName() {"); {
-            line("return ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());");
+        line("public ", row, " getRowName() {"); {
+            line("return ", row, ".BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());");
         } line("}");
     }
 
     private void getRowNameFun() {
-        line("public static Function<", RowResult, ", ", Row, "> getRowNameFun() {"); {
-            line("return new Function<", RowResult, ", ", Row, ">() {"); {
+        line("public static Function<", rowResult, ", ", row, "> getRowNameFun() {"); {
+            line("return new Function<", rowResult, ", ", row, ">() {"); {
                 line("@Override");
-                line("public ", Row, " apply(", RowResult, " rowResult) {"); {
+                line("public ", row, " apply(", rowResult, " rowResult) {"); {
                     line("return rowResult.getRowName();");
                 } line("}");
             } line("};");
@@ -101,11 +102,11 @@ class NamedRowResultRenderer extends Renderer {
     }
 
     private void fromRawRowResultFun() {
-        line("public static Function<RowResult<byte[]>, ", RowResult, "> fromRawRowResultFun() {"); {
-            line("return new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+        line("public static Function<RowResult<byte[]>, ", rowResult, "> fromRawRowResultFun() {"); {
+            line("return new Function<RowResult<byte[]>, ", rowResult, ">() {"); {
                 line("@Override");
-                line("public ", RowResult, " apply(RowResult<byte[]> rowResult) {"); {
-                    line("return new ", RowResult, "(rowResult);");
+                line("public ", rowResult, " apply(RowResult<byte[]> rowResult) {"); {
+                    line("return new ", rowResult, "(rowResult);");
                 } line("}");
             } line("};");
         } line("}");
@@ -123,16 +124,17 @@ class NamedRowResultRenderer extends Renderer {
             line("if (bytes == null) {"); {
                 line("return null;");
             } line("}");
-            line(Renderers.CamelCase(col.getLongName()), " value = ", Renderers.CamelCase(col.getLongName()), ".BYTES_HYDRATOR.hydrateFromBytes(bytes);");
+            line(Renderers.CamelCase(col.getLongName()), " value = ", Renderers.CamelCase(col.getLongName()),
+                    ".BYTES_HYDRATOR.hydrateFromBytes(bytes);");
             line("return value.getValue();");
         } line("}");
     }
 
     private void getColFun(NamedColumnDescription col) {
-        line("public static Function<", RowResult, ", ", TypeName(col), "> get", VarName(col), "Fun() {"); {
-            line("return new Function<", RowResult, ", ", TypeName(col), ">() {"); {
+        line("public static Function<", rowResult, ", ", TypeName(col), "> get", VarName(col), "Fun() {"); {
+            line("return new Function<", rowResult, ", ", TypeName(col), ">() {"); {
                 line("@Override");
-                line("public ", TypeName(col), " apply(", RowResult, " rowResult) {"); {
+                line("public ", TypeName(col), " apply(", rowResult, " rowResult) {"); {
                     line("return rowResult.get", VarName(col), "();");
                 } line("}");
             } line("};");

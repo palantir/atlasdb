@@ -19,14 +19,16 @@ final class SuppressedException extends RuntimeException {
     static final long serialVersionUID = 1L;
     private static final Class[] namedThrowables = {Error.class, RuntimeException.class, Exception.class};
 
-    SuppressedException(String message, Throwable cause) {
-        super(message, cause);
+    SuppressedException(String message) {
+        super(message);
     }
 
     public static Throwable from(Throwable throwable) {
         String message = String.format("%s [%s] occurred while processing thread (%s)",
                 highLevelType(throwable), throwable, Thread.currentThread().getName());
-        return new SuppressedException(message, throwable);
+        SuppressedException suppressedException = new SuppressedException(message);
+        suppressedException.setStackTrace(throwable.getStackTrace());
+        return suppressedException;
     }
 
     @Override
@@ -41,7 +43,7 @@ final class SuppressedException extends RuntimeException {
     }
 
     private static String highLevelType(Throwable throwable) {
-        for (Class namedClass: namedThrowables) {
+        for (Class namedClass : namedThrowables) {
             if (namedClass.isInstance(throwable)) {
                 return namedClass.getSimpleName();
             }
