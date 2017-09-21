@@ -29,7 +29,7 @@ are expensive (like Cassandra - its caching optimisations are rendered ineffectu
 for the schema defined above:
 
 1. "Find John's smallest and cheapest todo" can be answered very efficiently.
-   Elements are stored in sorted order, so the very first key-value pair as stored in the database is actually the
+   Elements are stored in sorted order, so the very first key-value pair retrieved from the database is actually the
    correct answer to this query.
 2. "Find all of Tom's todos with size up to M, limited to N results" is easy, as this can be
    processed with a natural stopping point, as in query 1, and we are iterating in the right order for this query.
@@ -55,7 +55,15 @@ Using Dynamic Columns
 Storage
 =======
 
-TODO jkong
+.. code:: java
+
+    Todo2Table todo2Table = TodoSchemaTableFactory.of().getTodo2Table(tx);
+
+    todo2Table.put(Todo2Table.Todo2Row.of(person),
+            Todo2Table.Todo2ColumnValue.of(
+                    Todo2Table.Todo2Column.of(size, cost),
+                    description
+            ));
 
 Retrieval
 =========
@@ -65,9 +73,28 @@ that this method will call the underlying transaction's ``getRows`` method, whic
 memory!
 
 Alternatively, one can use ``getRowsColumnRange``. This takes a collection of rows and key ranges, and returns a map of
-row-keys to ``BatchingVisitable``s of column values. These may in turn be traversed
+row-keys to ``BatchingVisitable``s of column values. These may in turn be traversed using the ``BatchingVisitable``
+API. For example, the code below is an implementation of query 1 for an arbitrary String ``person``:
 
-TODO
+.. code:: java
+
+    TodoTable todoTable = TodoSchemaTableFactory.of().getTodoTable(tx);
+    Map<TodoTable.TodoRow, BatchingVisitable<TodoTable.TodoColumnValue>> results =
+            todoTable.getRowsColumnRange(
+                    ImmutableList.of(TodoTable.TodoRow.of(person)),
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+
+    if (!results.isEmpty()) {
+        AtomicReference<Todo> element = new AtomicReference<>();
+        BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
+        visitable.batchAccept(1, item -> {
+            element.set(ImmutableTodo.of(item.get(0).getValue()));
+            return false; // Do not want any more, since we know our first batch contains the one.
+        });
+        return element.get();
+    }
+    return null;
+
 
 Data Representation (Cassandra)
 -------------------------------
