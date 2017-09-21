@@ -56,8 +56,12 @@ develop
 
     *    - |fixed|
          - Path and query parameters for TimeLock endpoints have now been marked as safe.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/TODO>`__)
+           Several logging parameters in TimeLock (e.g. in ``PaxosTimestampBoundStore`` and ``PaxosSynchronizer`` have also been marked as safe).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
 
+    *    - |improved|
+         - The ``LockServiceImpl`` now, in addition to lock tokens and grants (which are unsafe for logging), also logs token and grant IDs (which are big-integer IDs) as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
