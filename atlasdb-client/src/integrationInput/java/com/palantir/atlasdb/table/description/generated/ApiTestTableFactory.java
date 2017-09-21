@@ -38,8 +38,8 @@ public final class ApiTestTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public HashComponentTable getHashComponentTable(Transaction t, HashComponentTable.HashComponentTrigger... triggers) {
-        return HashComponentTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    public HashExperimentTable getHashExperimentTable(Transaction t, HashExperimentTable.HashExperimentTrigger... triggers) {
+        return HashExperimentTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public SchemaApiTestTable getSchemaApiTestTable(Transaction t, SchemaApiTestTable.SchemaApiTestTrigger... triggers) {
@@ -47,14 +47,14 @@ public final class ApiTestTableFactory {
     }
 
     public interface SharedTriggers extends
-            HashComponentTable.HashComponentTrigger,
+            HashExperimentTable.HashExperimentTrigger,
             SchemaApiTestTable.SchemaApiTestTrigger {
         /* empty */
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putHashComponent(Multimap<HashComponentTable.HashComponentRow, ? extends HashComponentTable.HashComponentNamedColumnValue<?>> newRows) {
+        public void putHashExperiment(Multimap<HashExperimentTable.HashExperimentRow, ? extends HashExperimentTable.HashExperimentNamedColumnValue<?>> newRows) {
             // do nothing
         }
 

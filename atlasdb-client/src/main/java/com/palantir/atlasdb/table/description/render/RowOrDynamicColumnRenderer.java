@@ -401,7 +401,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private List<NameComponentDescription> getRowPartsWithoutHash() {
-        if (!desc.hasFirstComponentHash()) {
+        if (desc.numberOfComponentsHashed() == 0) {
             return desc.getRowParts();
         } else {
             return desc.getRowParts().subList(1, desc.getRowParts().size());

@@ -220,7 +220,7 @@ public class IndexMetadata {
             throw new IllegalArgumentException("Unknown index type " + indexType);
         }
         return new TableMetadata(
-                NameMetadataDescription.create(rowDescList, hashFirstRowComponent, 0),
+                NameMetadataDescription.create(rowDescList, hashFirstRowComponent ? 1 : 0),
                 column,
                 conflictHandler,
                 cachePriority,
