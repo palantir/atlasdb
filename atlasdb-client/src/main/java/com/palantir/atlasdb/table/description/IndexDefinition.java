@@ -117,9 +117,18 @@ public class IndexDefinition extends AbstractDefinition {
      * end of the row
      */
     public void hashFirstRowComponent() {
+        hashFirstNRowComponents(1);
+    }
+
+    /**
+     * Prefix the row with a hash of the first N row components
+     *
+     * This is not a feature for tables with range scanning enabled.
+     */
+    public void hashFirstNRowComponents(int numberOfComponents) {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         Preconditions.checkState(rowComponents.isEmpty(), "hashRowComponent must be the first row component");
-        hashFirstRowComponent = true;
+        numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
     }
 
@@ -229,6 +238,7 @@ public class IndexDefinition extends AbstractDefinition {
 
     private State state = State.NONE;
     private boolean hashFirstRowComponent = false;
+    private int numberOfComponentsHashed = 0;
     private String sourceTableName = null;
     private String javaIndexTableName = null;
     private List<IndexComponent> rowComponents = Lists.newArrayList();
@@ -279,7 +289,7 @@ public class IndexDefinition extends AbstractDefinition {
                     sweepStrategy,
                     expirationStrategy,
                     appendHeavyAndReadLight,
-                    hashFirstRowComponent);
+                    numberOfComponentsHashed);
         } else {
             return IndexMetadata.createDynamicIndex(
                     indexTableName,
@@ -297,7 +307,7 @@ public class IndexDefinition extends AbstractDefinition {
                     sweepStrategy,
                     expirationStrategy,
                     appendHeavyAndReadLight,
-                    hashFirstRowComponent);
+                    numberOfComponentsHashed);
         }
     }
 }
