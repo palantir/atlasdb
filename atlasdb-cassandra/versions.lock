@@ -211,6 +211,8 @@
             "locked": "3.0.3-p5",
             "requested": "3.0.3-p5"
         },
+        "com.palantir.remoting-api:ssl-config": {
+            "locked": "1.2.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.remoting3:keystores"
