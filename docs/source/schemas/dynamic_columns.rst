@@ -130,3 +130,10 @@ refers to the Atlas timestamp at which a write occurred. The clustering order of
 
 Conversely, observe that in a conventional (fixed columns) AtlasDB table, ``column1`` identifies which column is being
 encoded in the ``value``.
+
+When Not To Use Dynamic Columns
+-------------------------------
+
+Dynamic columns create wide rows in Cassandra, because they generate many (Cassandra) dynamic columns.
+This may add limits to the scalability of the data, because all data for a single row key will be stored on a
+single machine in the cluster.
