@@ -77,8 +77,8 @@ class RowOrDynamicColumnRenderer extends Renderer {
             line();
             if (desc.numberOfComponentsHashed() > 0) {
                 renderComputeFirstNComponentsHashMethod(desc.numberOfComponentsHashed());
+                line();
             }
-            line();
             if (rangeScanAllowed || isDynamicColumn) {
                 int firstSortedIndex = desc.getRowParts().size() - 1;
                 for ( ; firstSortedIndex > 0; firstSortedIndex--) {
