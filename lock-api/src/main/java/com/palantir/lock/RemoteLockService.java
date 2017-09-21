@@ -29,7 +29,6 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.logsafe.Safe;
 
-@Path("/lock")
 public interface RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks for the given client.

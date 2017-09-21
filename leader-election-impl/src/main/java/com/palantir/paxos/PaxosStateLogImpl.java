@@ -42,6 +42,8 @@ import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
 
@@ -257,8 +259,13 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                     throw new CorruptLogFileException();
                 }
             } catch (FileNotFoundException e) {
+                // TODO (jkong): Check if this is intentional, or if the author intended FileNotFound to be a problem
+                // that should be treated in the same way as IOException.
             } catch (IOException e) {
-                log.error("problem reading paxos state");
+                // Note that the file name is a Paxos log entry - so it is the round number - and thus safe.
+                log.error("Problem reading paxos state, specifically when reading file {} (file-name {})",
+                        UnsafeArg.of("full path", file.getAbsolutePath()),
+                        SafeArg.of("file name", file.getName()));
                 throw Throwables.rewrap(e);
             } finally {
                 IOUtils.closeQuietly(fileIn);

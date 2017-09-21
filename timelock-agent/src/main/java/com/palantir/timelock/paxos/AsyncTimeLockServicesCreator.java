@@ -20,6 +20,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
@@ -33,9 +36,12 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.JavaSuppliers;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
+import com.palantir.logsafe.SafeArg;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
+    private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);
+
     private final PaxosLeadershipCreator leadershipCreator;
     private final AsyncLockConfiguration asyncLockConfiguration;
 
@@ -49,7 +55,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     public TimeLockServices createTimeLockServices(
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            Supplier<RemoteLockService> rawLockServiceSupplier) {
+            Supplier<LockService> rawLockServiceSupplier) {
+        log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
         AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 AsyncTimelockService.class,
@@ -58,8 +65,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
                 new AsyncTimelockResource(asyncTimelockService));
 
-        RemoteLockService remoteLockService = instrumentInLeadershipProxy(
-                RemoteLockService.class,
+        LockService lockService = instrumentInLeadershipProxy(
+                LockService.class,
                 asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
                         ? rawLockServiceSupplier
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
@@ -67,7 +74,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         return TimeLockServices.create(
                 asyncTimelockService,
-                remoteLockService,
+                lockService,
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
     }

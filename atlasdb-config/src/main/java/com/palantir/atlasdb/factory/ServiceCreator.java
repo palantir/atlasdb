@@ -25,8 +25,8 @@ import com.google.common.base.Function;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
-import com.palantir.remoting2.config.ssl.SslSocketFactories;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
 public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     private final Class<T> serviceClass;
@@ -58,10 +58,10 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass, userAgent);
     }
 
-    public static <T> T createInstrumentedService(T service, Class<T> serviceClass, String userAgent) {
+    public static <T> T createInstrumentedService(T service, Class<T> serviceClass) {
         return AtlasDbMetrics.instrument(
                 serviceClass,
                 service,
-                MetricRegistry.name(serviceClass, userAgent));
+                MetricRegistry.name(serviceClass));
     }
 }

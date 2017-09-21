@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.lock.logger;
+package com.palantir.lock;
 
-import java.io.File;
-import java.io.IOException;
+import org.immutables.value.Value;
 
-public class LockServiceLoggerTestUtils {
-    public static final String TEST_LOG_STATE_DIR = "log-state";
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-    public static void cleanUpLogStateDir() throws IOException {
-        File rootDir = new File(TEST_LOG_STATE_DIR);
-        if (rootDir.isDirectory()) {
-            for (File file : rootDir.listFiles()) {
-                file.delete();
-            }
-        }
-        rootDir.delete();
-    }
+@Value.Immutable
+@JsonSerialize(as = ImmutableLockWithClient.class)
+@JsonDeserialize(as = ImmutableLockWithClient.class)
+public abstract class LockWithClient {
+    @Value.Parameter
+    public abstract LockDescriptor getLockDescriptor();
+
+    @Value.Parameter
+    public abstract LockClient getLockClient();
 }

@@ -22,7 +22,7 @@ import org.xerial.snappy.Snappy;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.common.base.Throwables;
 
-public class CompressionUtils {
+public final class CompressionUtils {
     private CompressionUtils() {
         // empty
     }

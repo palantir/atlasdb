@@ -10,13 +10,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.remoting2.config.service.ServiceConfiguration;
+import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
 
 @JsonDeserialize(as = ImmutableClusterConfiguration.class)
 @JsonSerialize(as = ImmutableClusterConfiguration.class)
 @Value.Immutable
 public interface ClusterConfiguration {
-    ServiceConfiguration cluster();
+    PartialServiceConfiguration cluster();
 
     @JsonProperty("local-server")
     String localServer();

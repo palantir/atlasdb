@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
+import com.palantir.logsafe.SafeArg;
 
 public class PaxosLearnerImpl implements PaxosLearner {
 
@@ -83,7 +84,8 @@ public class PaxosLearnerImpl implements PaxosLearner {
             }
             return state.get(seq);
         } catch (IOException e) {
-            logger.error("unable to get corrupt learned value", e);
+            logger.error("Unable to get corrupt learned value for sequence {}",
+                    SafeArg.of("sequence", seq), e);
             return null;
         }
     }

@@ -30,7 +30,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -239,6 +239,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Override
     public final String type() {
         return TYPE;
+    }
+
+    @Override
+    @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return poolSize() * servers().size();
     }
 
     @JsonIgnore

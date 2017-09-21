@@ -76,6 +76,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.random.SecureRandomPool;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.lock.BlockingMode;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
@@ -101,7 +102,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -111,7 +112,7 @@ import com.palantir.util.JMXUtils;
  */
 @ThreadSafe
 public final class LockServiceImpl
-        implements LockService, CloseableRemoteLockService, RemoteLockService, LockServiceImplMBean {
+        implements LockService, CloseableRemoteLockService, CloseableLockService, RemoteLockService, LockServiceImplMBean {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
     private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
@@ -169,9 +170,9 @@ public final class LockServiceImpl
 
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
-    private final TimeDuration maxAllowedLockTimeout;
-    private final TimeDuration maxAllowedClockDrift;
-    private final TimeDuration maxNormalLockAge;
+    private final SimpleTimeDuration maxAllowedLockTimeout;
+    private final SimpleTimeDuration maxAllowedClockDrift;
+    private final SimpleTimeDuration maxNormalLockAge;
     private final Runnable callOnClose;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
@@ -971,21 +972,13 @@ public final class LockServiceImpl
 
     @Override
     public LockServerOptions getLockServerOptions() {
-        LockServerOptions options = new LockServerOptions() {
-            private static final long serialVersionUID = 0x3ffa5b160e838725l;
-            @Override public boolean isStandaloneServer() {
-                return isStandaloneServer;
-            }
-            @Override public TimeDuration getMaxAllowedLockTimeout() {
-                return maxAllowedLockTimeout;
-            }
-            @Override public TimeDuration getMaxAllowedClockDrift() {
-                return maxAllowedClockDrift;
-            }
-            @Override public int getRandomBitCount() {
-                return RANDOM_BIT_COUNT;
-            }
-        };
+        LockServerOptions options = LockServerOptions.builder()
+                .isStandaloneServer(isStandaloneServer)
+                .maxAllowedLockTimeout(maxAllowedLockTimeout)
+                .maxAllowedClockDrift(maxAllowedClockDrift)
+                .randomBitCount(RANDOM_BIT_COUNT)
+                .build();
+
         if (log.isTraceEnabled()) {
             log.trace(".getLockServerOptions() returns {}", options);
         }

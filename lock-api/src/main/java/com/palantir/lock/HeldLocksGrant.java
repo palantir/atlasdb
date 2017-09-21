@@ -19,13 +19,23 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 
 /**
  * A grant for a set of locks which are currently held by the lock server. Lock
@@ -35,8 +45,13 @@ import com.google.common.base.Preconditions;
  *
  * @author jtamer
  */
+@JsonDeserialize(builder =
+        HeldLocksGrant.SerializationProxy.class)
 @Immutable public final class HeldLocksGrant implements ExpiringToken, Serializable {
     private static final long serialVersionUID = 0xcdf42e080ef965dcL;
+
+    private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
+            input -> new LockWithMode(input.getKey(), input.getValue());
 
     private final BigInteger grantId;
     private final long creationDateMs;
@@ -78,11 +93,13 @@ import com.google.common.base.Preconditions;
     }
 
     /** Always returns {@code null}. Lock grants are not held by a client. */
+    @JsonIgnore
     @Override
     @Nullable public LockClient getClient() {
         return null;
     }
 
+    @JsonIgnore
     @Override
     public SortedLockCollection<LockDescriptor> getLockDescriptors() {
         return getLocks();
@@ -111,9 +128,14 @@ import com.google.common.base.Preconditions;
      * Returns the set of locks which were successfully acquired, as a mapping
      * from descriptor to lock mode.
      */
+    @JsonIgnore
     public SortedLockCollection<LockDescriptor> getLocks() {
         Preconditions.checkState(!lockMap.isEmpty());
         return lockMap;
+    }
+
+    public List<LockWithMode> getLocksWithMode() {
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), TO_LOCK_WITH_MODE_FUNCTION));
     }
 
     /**
@@ -157,7 +179,7 @@ import com.google.common.base.Preconditions;
         return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("grantId", grantId.toString(Character.MAX_RADIX))
                 .add("createdAt", SimpleTimeDuration.of(creationDateMs, TimeUnit.MILLISECONDS))
-                .add("expiresIn", SimpleTimeDuration.of(expirationDateMs - currentTimeMillis,
+                .add("expiresIn", SimpleTimeDuration.of(expirationDateMs,
                         TimeUnit.MILLISECONDS))
                 .add("lockCount", lockMap.size())
                 .add("firstLock", lockMap.entries().iterator().next())
@@ -181,7 +203,7 @@ import com.google.common.base.Preconditions;
         return new SerializationProxy(this);
     }
 
-    private static class SerializationProxy implements Serializable {
+    static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xb9d2975ea14a7762L;
 
         private final BigInteger grantId;
@@ -198,6 +220,30 @@ import com.google.common.base.Preconditions;
             lockMap = heldLocksGrant.lockMap;
             lockTimeout = heldLocksGrant.lockTimeout;
             versionId = heldLocksGrant.versionId;
+        }
+
+        @JsonCreator
+        SerializationProxy(@JsonProperty("grantId") BigInteger grantId,
+                @JsonProperty("creationDateMs") long creationDateMs,
+                @JsonProperty("expirationDateMs") long expirationDateMs,
+                @JsonProperty("locksWithMode") List<LockWithMode> lockMap,
+                @JsonProperty("lockTimeout") SimpleTimeDuration lockTimeout,
+                @JsonProperty("versionId") Long versionId) {
+            this.grantId = grantId;
+            this.creationDateMs = creationDateMs;
+            this.expirationDateMs = expirationDateMs;
+            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder =
+                    ImmutableSortedMap.naturalOrder();
+            for (LockWithMode lock : lockMap) {
+                localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
+            }
+            this.lockMap = LockCollections.of(localLockMapBuilder.build());
+            this.lockTimeout = lockTimeout;
+            this.versionId = versionId;
+        }
+
+        public HeldLocksGrant build() {
+            return (HeldLocksGrant) readResolve();
         }
 
         Object readResolve() {

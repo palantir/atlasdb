@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.logsafe.UnsafeArg;
 
 /**
@@ -44,7 +44,7 @@ final class AdvisoryLockPreCommitCheck {
     public static final AdvisoryLockPreCommitCheck NO_OP = new AdvisoryLockPreCommitCheck(() -> { });
 
     public static AdvisoryLockPreCommitCheck forLockServiceLocks(Iterable<LockRefreshToken> tokens,
-            RemoteLockService lockService) {
+            LockService lockService) {
         Set<LockRefreshToken> toRefresh = ImmutableSet.copyOf(tokens);
         if (toRefresh.isEmpty()) {
             return NO_OP;

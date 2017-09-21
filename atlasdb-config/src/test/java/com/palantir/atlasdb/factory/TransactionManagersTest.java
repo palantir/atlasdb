@@ -74,7 +74,7 @@ import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
@@ -88,18 +88,19 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
-    private static final String USER_AGENT = "user-agent (3.14159265)";
+    private static final String USER_AGENT_NAME = "user-agent";
+    private static final String USER_AGENT = USER_AGENT_NAME + " (3.14159265)";
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
     private static final String TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
-            MetricRegistry.name(TimelockService.class, USER_AGENT, "getFreshTimestamp");
+            MetricRegistry.name(TimelockService.class, "getFreshTimestamp");
     private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(TimelockService.class, USER_AGENT, "currentTimeMillis");
-    private static final String REMOTELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(RemoteLockService.class, USER_AGENT, "currentTimeMillis");
+            MetricRegistry.name(TimelockService.class, "currentTimeMillis");
+    private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
+            MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
-            MetricRegistry.name(TimestampService.class, USER_AGENT, "getFreshTimestamp");
+            MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
 
     private static final String LEADER_UUID_PATH = "/leader/uuid";
     private static final MappingBuilder LEADER_UUID_MAPPING = get(urlEqualTo(LEADER_UUID_PATH));
@@ -306,12 +307,23 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void keyValueServiceMetricsDoNotContainUserAgent() {
+        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+
+        TransactionManagers.create(realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        assertThat(metricsRule.metrics().getNames().stream()
+                .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
     public void metricsAreReportedExactlyOnceWhenUsingLocalService() throws IOException, InterruptedException {
         setUpForLocalServices();
         setupLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
+                LOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
@@ -320,7 +332,7 @@ public class TransactionManagersTest {
         setupLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                REMOTELOCK_SERVICE_CURRENT_TIME_METRIC);
+                LOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
@@ -338,7 +350,6 @@ public class TransactionManagersTest {
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
-
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {

@@ -146,8 +146,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .sweptTimestamp(12345L)
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetrics).examinedCells(TABLE_REF, 21);
-        Mockito.verify(sweepMetrics).deletedCells(TABLE_REF, 5);
+        Mockito.verify(sweepMetrics).examinedCells(21);
+        Mockito.verify(sweepMetrics).deletedCells(5);
     }
 
     @Test

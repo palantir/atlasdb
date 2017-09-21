@@ -71,7 +71,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Feature breakdown:
@@ -287,11 +287,9 @@ public class CassandraClientPool {
     @VisibleForTesting
     void addPool(InetSocketAddress server, CassandraClientPoolingContainer container) {
         currentPools.put(server, container);
-        registerMetricsForHost(server);
     }
 
     private void removePool(InetSocketAddress removedServerAddress) {
-        deregisterMetricsForHost(removedServerAddress);
         blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
@@ -300,24 +298,6 @@ public class CassandraClientPool {
                     removedServerAddress, e);
         }
         currentPools.remove(removedServerAddress);
-    }
-
-    private void registerMetricsForHost(InetSocketAddress server) {
-        RequestMetrics requestMetrics = new RequestMetrics(server.getHostString());
-        metricsManager.registerMetric(
-                CassandraClientPool.class,
-                server.getHostString(), "requestFailureProportion",
-                requestMetrics::getExceptionProportion);
-        metricsManager.registerMetric(
-                CassandraClientPool.class,
-                server.getHostString(), "requestConnectionExceptionProportion",
-                requestMetrics::getConnectionExceptionProportion);
-        metricsByHost.put(server, requestMetrics);
-    }
-
-    private void deregisterMetricsForHost(InetSocketAddress removedServerAddress) {
-        metricsByHost.remove(removedServerAddress);
-        metricsManager.deregisterMetricsWithPrefix(CassandraClientPool.class, removedServerAddress.getHostString());
     }
 
     private void debugLogStateOfPool() {

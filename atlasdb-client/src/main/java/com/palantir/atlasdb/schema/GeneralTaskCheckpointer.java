@@ -60,16 +60,16 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
     }
 
     @Override
-    public void checkpoint(String extraId, long rangeId, byte[] nextRowName, Transaction t) {
+    public void checkpoint(String extraId, long rangeId, byte[] nextRowName, Transaction tx) {
         Cell cell = getCell(extraId, rangeId);
         Map<Cell, byte[]> values = ImmutableMap.of(cell, toDb(nextRowName, false));
-        t.put(checkpointTable, values);
+        tx.put(checkpointTable, values);
     }
 
     @Override
-    public byte[] getCheckpoint(String extraId, long rangeId, Transaction t) {
+    public byte[] getCheckpoint(String extraId, long rangeId, Transaction tx) {
         Cell cell = getCell(extraId, rangeId);
-        byte[] value = t.get(checkpointTable, ImmutableSet.of(cell)).get(cell);
+        byte[] value = tx.get(checkpointTable, ImmutableSet.of(cell)).get(cell);
         return fromDb(value);
     }
 
@@ -123,6 +123,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
         return EncodingUtils.toBytes(types, components);
     }
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private Schema getSchema() {
         Schema schema = new Schema(checkpointTable.getNamespace());
         schema.addTableDefinition(checkpointTable.getTablename(), new TableDefinition() {{

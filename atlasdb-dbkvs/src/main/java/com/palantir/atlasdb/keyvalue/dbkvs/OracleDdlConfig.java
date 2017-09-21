@@ -60,6 +60,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Value.Default
+    public boolean enableShrinkOnOracleStandardEdition() {
+        return true;
+    }
+
+    @Value.Default
     @Override
     public String tablePrefix() {
         return "a_";

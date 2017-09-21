@@ -25,6 +25,7 @@ public class GenericTestSchema implements AtlasSchema {
 
     private static final Schema GENERIC_TEST_SCHEMA = generateSchema();
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {
         Schema schema = new Schema("GenericTestSchema",
                 GenericTestSchema.class.getPackage().getName() + ".generated",

@@ -30,6 +30,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 @RunWith(Parameterized.class)
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableMetadataPersistenceTest {
 
     private static final int CUSTOM_COMPRESSION_BLOCK_SIZE = 32;

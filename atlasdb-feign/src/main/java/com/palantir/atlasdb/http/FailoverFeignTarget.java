@@ -143,7 +143,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             log.error("This connection has been instructed to fast failover for {}"
                     + " seconds without establishing a successful connection."
                     + " The remote hosts have been in a fast failover state for too long.",
-                    TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis));
+                    TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis), ex);
         } else if (failedDueToNumSwitches) {
             log.error("This connection has tried {} hosts rolling across {} servers, each {} times and has failed out.",
                     numServersToTryBeforeFailing, servers.size(), failuresBeforeSwitching, ex);

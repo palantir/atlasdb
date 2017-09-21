@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -40,7 +40,7 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract TimestampService getTimestampService();
 
-    public abstract RemoteLockService getLockService();
+    public abstract LockService getLockService();
 
     @Named("kvs")
     public abstract KeyValueService getKeyValueService();

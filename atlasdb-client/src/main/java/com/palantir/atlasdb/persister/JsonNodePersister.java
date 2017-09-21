@@ -27,9 +27,9 @@ public class JsonNodePersister implements Persister<JsonNode> {
     static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public byte[] persistToBytes(JsonNode t) {
+    public byte[] persistToBytes(JsonNode jsonNode) {
         try {
-            return mapper.writeValueAsBytes(t);
+            return mapper.writeValueAsBytes(jsonNode);
         } catch (JsonProcessingException e) {
             throw Throwables.throwUncheckedException(e);
         }

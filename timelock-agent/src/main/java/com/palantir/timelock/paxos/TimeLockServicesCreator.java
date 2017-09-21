@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 
 public interface TimeLockServicesCreator {
     /**
@@ -30,5 +30,5 @@ public interface TimeLockServicesCreator {
     TimeLockServices createTimeLockServices(
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            Supplier<RemoteLockService> rawLockServiceSupplier);
+            Supplier<LockService> rawLockServiceSupplier);
 }
