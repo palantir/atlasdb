@@ -231,36 +231,26 @@ public class NameMetadataDescription {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        //result = prime * result + (hasFirstComponentHash ? 1231 : 1237);
-        result = prime * result + ((rowParts == null) ? 0 : rowParts.hashCode());
-        return result;
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        NameMetadataDescription that = (NameMetadataDescription) o;
+
+        if (numberOfComponentsHashed != that.numberOfComponentsHashed) {
+            return false;
+        }
+        return rowParts != null ? rowParts.equals(that.rowParts) : that.rowParts == null;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        NameMetadataDescription other = (NameMetadataDescription) obj;
-        if (numberOfComponentsHashed != other.numberOfComponentsHashed) {
-            return false;
-        }
-        if (rowParts == null) {
-            if (other.rowParts != null) {
-                return false;
-            }
-        } else if (!rowParts.equals(other.rowParts)) {
-            return false;
-        }
-        return true;
+    public int hashCode() {
+        int result = rowParts != null ? rowParts.hashCode() : 0;
+        result = 31 * result + numberOfComponentsHashed;
+        return result;
     }
 }

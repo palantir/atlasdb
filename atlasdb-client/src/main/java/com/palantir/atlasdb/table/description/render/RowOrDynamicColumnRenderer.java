@@ -17,7 +17,6 @@ package com.palantir.atlasdb.table.description.render;
 
 import static java.lang.Math.max;
 
-import static com.google.common.primitives.Ints.min;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.TypeName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.VarName;
 import static com.palantir.atlasdb.table.description.render.ComponentRenderers.typeName;
@@ -267,13 +266,8 @@ class RowOrDynamicColumnRenderer extends Renderer {
         } line("}");
     }
 
-    private void renderComputeFirstComponentHash() {
-        NameComponentDescription firstRowPart = getRowPartsWithoutHash().get(0);
-        line("long ", NameMetadataDescription.HASH_ROW_COMPONENT_NAME, "2 = Hashing.murmur3_128().hashBytes(ValueType.", firstRowPart.getType().name(), ".convertFromJava(", varName(firstRowPart), ")).asLong();");
-    }
-
-    private void renderComputeFirstNComponentHash(int n) {
-        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, n);
+    private void renderComputeFirstNComponentHash(int numberOfComponentsHashed) {
+        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, numberOfComponentsHashed);
         List<String> vars = Lists.newArrayList();
         for (NameComponentDescription comp : components) {
             vars.add(varName(comp));
@@ -281,10 +275,10 @@ class RowOrDynamicColumnRenderer extends Renderer {
         line("long ", NameMetadataDescription.HASH_ROW_COMPONENT_NAME, " = computeHashFirstComponents(", Joiner.on(", ").join(vars), ");");
     }
 
-    private void renderComputeFirstNComponentsHashMethod(int n) {
-        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, n);
+    private void renderComputeFirstNComponentsHashMethod(int numberOfComponentsHashed) {
+        List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, numberOfComponentsHashed);
         Preconditions.checkArgument(components.size() <= 1 || rangeScanAllowed);
-        Preconditions.checkArgument(components.size() <= n);
+        Preconditions.checkArgument(components.size() <= numberOfComponentsHashed);
         line("public static long computeHashFirstComponents"); renderParameterList(components); lineEnd(" {"); {
             List<String> vars = Lists.newArrayList();
             for (NameComponentDescription comp : components) {
