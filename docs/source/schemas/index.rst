@@ -7,6 +7,7 @@ Schemas
 
    overview
    tables_and_indices
+   dynamic_columns
    streams
    cleanup_tasks
    physical_cleanup

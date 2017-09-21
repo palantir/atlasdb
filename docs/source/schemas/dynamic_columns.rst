@@ -28,7 +28,7 @@ defined as follows:
                     value(ValueType.STRING);
             }});
 
-Note that dynamic column components must be primitive ``ValueType``s which support partitioning and ordering.
+Note that dynamic column components must be primitive ValueTypes which support partitioning and ordering.
 Also, key-value pairs in an individual row will be returned in *lexicographically* sorted order of the key.
 
 Dynamic Columns are useful for avoiding KVS-level range scans, especially in key-value services where range scans
@@ -44,7 +44,8 @@ for the schema defined above:
 3. "Find all of Tom's todos with size of 10 to 15, limit to N results" can be performed via a range
    scan on the dynamic column *values*. This is also readily supported.
 4. "Find all of Tom's largest todos" is somewhat more difficult, as reverse range scans aren't supported by the
-   dynamic columns API.
+   dynamic columns API. If we were more interested in largest todos as opposed to smallest, we could set the
+   ``ValueByteOrder`` of the ``taskSize`` column component to decreasing.
 5. "Find all of Tom's todos which cost less than 5" will not be efficient; we need to retrieve the entire row to do
    this, because there is no sorting by sub-units.
 6. "Find all of Tom's todos which have size between 3 and 7, and cost between 5 and 10". This is achievable, though in
@@ -86,7 +87,7 @@ that this method will call the underlying transaction's ``getRows`` method, whic
 memory!
 
 Alternatively, one can use ``getRowsColumnRange``. This takes a collection of rows and key ranges, and returns a map of
-row-keys to ``BatchingVisitable``s of column values. These may in turn be traversed using the ``BatchingVisitable``
+row-keys to BatchingVisitables of column values. These may in turn be traversed using the BatchingVisitable
 API. For example, the code below is an implementation of query 1 for an arbitrary String ``person``:
 
 .. code:: java
