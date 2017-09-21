@@ -175,12 +175,7 @@ public class TableDefinition extends AbstractDefinition {
      * end of the row
      */
     public void hashFirstRowComponent() {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
-                "Can only indicate hashFirstRowComponent() inside the rowName scope.");
-        Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
-        hashFirstRowComponent = true;
-        numberOfComponentsHashed = 1;
-        ignoreHotspottingChecks = true;
+        hashFirstNRowComponents(1);
     }
 
     /**
@@ -192,7 +187,6 @@ public class TableDefinition extends AbstractDefinition {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME,
                 "Can only indicate hashFirstNRowComponents() inside the rowName scope.");
         Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
-        hashFirstRowComponent = true;
         numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
     }
@@ -364,7 +358,6 @@ public class TableDefinition extends AbstractDefinition {
     private int maxValueSize = Integer.MAX_VALUE;
     private String genericTableName = null;
     private String javaTableName = null;
-    private boolean hashFirstRowComponent = false;
     private int numberOfComponentsHashed = 0;
     private List<NameComponentDescription> rowNameComponents = Lists.newArrayList();
     private List<NamedColumnDescription> fixedColumns = Lists.newArrayList();
@@ -389,7 +382,7 @@ public class TableDefinition extends AbstractDefinition {
         }
 
         return new TableMetadata(
-                NameMetadataDescription.create(rowNameComponents, hashFirstRowComponent, numberOfComponentsHashed),
+                NameMetadataDescription.create(rowNameComponents, numberOfComponentsHashed),
                 getColumnMetadataDescription(),
                 conflictHandler,
                 cachePriority,

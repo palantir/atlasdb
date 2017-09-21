@@ -49,11 +49,11 @@ public class ApiTestSchema implements AtlasSchema {
         }});
 
         schema.addTableDefinition("SchemaApiTestHashRowComponent", new TableDefinition() {{
-            javaTableName("HashComponent");
+            javaTableName("HashExperiment");
 
             rowName();
             //hashFirstRowComponent();
-            hashFirstNRowComponents(1);
+            hashFirstNRowComponents(2);
             rowComponent("component1", ValueType.VAR_LONG);
             rowComponent("component2", ValueType.STRING);
 
