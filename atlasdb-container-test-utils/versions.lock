@@ -306,6 +306,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -876,6 +877,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },

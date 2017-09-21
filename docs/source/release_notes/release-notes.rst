@@ -54,10 +54,19 @@ develop
          - KVS migration no longer fails when the old ``_scrub`` table is present.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
 
+    *    - |fixed|
+         - Path and query parameters for TimeLock endpoints have now been marked as safe.
+           Several logging parameters in TimeLock (e.g. in ``PaxosTimestampBoundStore`` and ``PaxosSynchronizer``) have also been marked as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
+    *    - |improved|
+         - The ``LockServiceImpl`` now, in addition to lock tokens and grants (which are unsafe for logging), also logs token and grant IDs (which are big-integer IDs) as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-0.57.0
+v0.57.0
 =======
 
 19 September 2017
