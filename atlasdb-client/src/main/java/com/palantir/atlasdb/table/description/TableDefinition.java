@@ -179,8 +179,24 @@ public class TableDefinition extends AbstractDefinition {
                 "Can only indicate hashFirstRowComponent() inside the rowName scope.");
         Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
         hashFirstRowComponent = true;
+        numberOfComponentsHashed = 1;
         ignoreHotspottingChecks = true;
     }
+
+    /**
+     * Prefix the row with a hash of the first N row components
+     *
+     * This is not a feature for tables with range scanning enabled.
+     */
+    public void hashFirstNRowComponents(int numberOfComponents) {
+        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
+                "Can only indicate hashFirstNRowComponents() inside the rowName scope.");
+        Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
+        hashFirstRowComponent = true;
+        numberOfComponentsHashed = numberOfComponents;
+        ignoreHotspottingChecks = true;
+    }
+
 
     public void rowComponent(String componentName, ValueType valueType) {
         rowComponent(componentName, valueType, defaultNamedComponentLogSafety);
@@ -349,6 +365,7 @@ public class TableDefinition extends AbstractDefinition {
     private String genericTableName = null;
     private String javaTableName = null;
     private boolean hashFirstRowComponent = false;
+    private int numberOfComponentsHashed = 0;
     private List<NameComponentDescription> rowNameComponents = Lists.newArrayList();
     private List<NamedColumnDescription> fixedColumns = Lists.newArrayList();
     private List<NameComponentDescription> dynamicColumnNameComponents = Lists.newArrayList();
@@ -372,7 +389,7 @@ public class TableDefinition extends AbstractDefinition {
         }
 
         return new TableMetadata(
-                NameMetadataDescription.create(rowNameComponents, hashFirstRowComponent),
+                NameMetadataDescription.create(rowNameComponents, hashFirstRowComponent, numberOfComponentsHashed),
                 getColumnMetadataDescription(),
                 conflictHandler,
                 cachePriority,

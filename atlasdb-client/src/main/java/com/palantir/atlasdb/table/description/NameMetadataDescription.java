@@ -41,13 +41,14 @@ public class NameMetadataDescription {
 
     private final List<NameComponentDescription> rowParts;
     private final boolean hasFirstComponentHash;
+    private final int numberOfComponentsHashed;
 
     public NameMetadataDescription() {
         this(ImmutableList.of(
-                new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), false);
+                new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), false, 0);
     }
 
-    private NameMetadataDescription(List<NameComponentDescription> components, boolean hasFirstComponentHash) {
+    private NameMetadataDescription(List<NameComponentDescription> components, boolean hasFirstComponentHash, int numberOfComponentsHashed) {
         Preconditions.checkArgument(!components.isEmpty());
         this.rowParts = ImmutableList.copyOf(components);
         for (NameComponentDescription nameComponent : rowParts.subList(0, rowParts.size() - 1)) {
@@ -56,16 +57,17 @@ public class NameMetadataDescription {
             }
         }
         this.hasFirstComponentHash = hasFirstComponentHash;
+        this.numberOfComponentsHashed = numberOfComponentsHashed;
     }
 
     public static NameMetadataDescription create(List<NameComponentDescription> components) {
-        return create(components, false);
+        return create(components, false, 0);
     }
 
     public static NameMetadataDescription create(List<NameComponentDescription> components,
-                                                 boolean hasFirstComponentHash) {
+                                                 boolean hasFirstComponentHash, int numberOfComponentsHashed) {
         if (!hasFirstComponentHash) {
-            return new NameMetadataDescription(components, false);
+            return new NameMetadataDescription(components, false, numberOfComponentsHashed);
         } else {
             List<NameComponentDescription> withHashRowComponent = Lists.newArrayListWithCapacity(components.size() + 1);
             withHashRowComponent.add(new NameComponentDescription.Builder()
@@ -73,7 +75,7 @@ public class NameMetadataDescription {
                     .type(ValueType.FIXED_LONG)
                     .build());
             withHashRowComponent.addAll(components);
-            return new NameMetadataDescription(withHashRowComponent, true);
+            return new NameMetadataDescription(withHashRowComponent, true, numberOfComponentsHashed);
         }
     }
 
@@ -83,6 +85,10 @@ public class NameMetadataDescription {
 
     public boolean hasFirstComponentHash() {
         return hasFirstComponentHash;
+    }
+
+    public int numberOfComponentsHashed() {
+        return numberOfComponentsHashed;
     }
 
     public List<RowNamePartitioner> getPartitionersForRow() {
@@ -214,7 +220,7 @@ public class NameMetadataDescription {
             list.add(NameComponentDescription.hydrateFromProto(part));
         }
         // Call constructor over factory because the list might already contain the hash row component
-        return new NameMetadataDescription(list, message.getHasFirstComponentHash());
+        return new NameMetadataDescription(list, message.getHasFirstComponentHash(), 0);
     }
 
     @Override
