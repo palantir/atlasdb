@@ -276,6 +276,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void tryInitialize() {
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        log.info("Supports CAS");
 
         schemaMutationLock = new SchemaMutationLock(
                 supportsCas,
@@ -291,13 +292,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         schemaMutationLockTable.getOnlyTable(),
                         writeConsistency),
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
+        log.info("Schema mutation lock created");
 
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        log.info("Tables created");
+
         lowerConsistencyWhenSafe();
+        log.info("Consistency lowered");
+
         upgradeFromOlderInternalSchema();
+        log.info("Upgraded from older internal schema");
+
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
+        log.info("Warned");
     }
 
     private LockLeader whoIsTheLockCreator() {
@@ -1723,7 +1732,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServices.waitForSchemaVersions(
                     client,
                     "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
-                    configManager.getConfig().schemaMutationTimeoutMillis(), true);
+                    configManager.getConfig().schemaMutationTimeoutMillis(),
+                    true);
             return null;
         });
     }
