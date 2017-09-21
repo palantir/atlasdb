@@ -16,8 +16,8 @@ defined as follows:
                 rowName();
                     rowComponent("person", ValueType.STRING);
                 dynamicColumns();
-                    columnComponent("priority", ValueType.VAR_LONG);
-                    columnComponent("subunit", ValueType.VAR_LONG);
+                    columnComponent("taskSize", ValueType.VAR_LONG);
+                    columnComponent("monetaryCost", ValueType.VAR_LONG);
                     value(ValueType.STRING);
             }});
 
@@ -28,20 +28,23 @@ Dynamic Columns are useful for avoiding KVS-level range scans, especially in key
 are expensive (like Cassandra - its caching optimisations are rendered ineffectual for range scans). For example,
 for the schema defined above:
 
-1. "Find descriptions of all of John's highest priority todos (smallest number)" can be answered reasonably
-   efficiently. Elements with priority 0 will be stored before those with priority 1, before those with priority 2,
-   etc., so once we come across an element with non-maximum priority, we do not need to process any more batches.
-2. "Find descriptions of all of Tom's todos with priority less than M, limit to N results" is easy, as this can be
+1. "Find John's smallest and cheapest todo" can be answered very efficiently.
+   Elements are stored in sorted order, so the very first key-value pair as stored in the database is actually the
+   correct answer to this query.
+2. "Find all of Tom's todos with size up to M, limited to N results" is easy, as this can be
    processed with a natural stopping point, as in query 1, and we are iterating in the right order for this query.
-3. "Find descriptions of all of Tom's todos with priority P2, limit to N results" can be performed via a range scan
-   on the dynamic column *values*. This is also readily supported.
-4. "Find descriptions of all of Tom's lowest priority todos" is somewhat more difficult, as reverse range scans aren't
+3. "Find all of Tom's todos with size of 10 to 15, limit to N results" can be performed via a range
+   scan on the dynamic column *values*. This is also readily supported.
+4. "Find all of Tom's largest todos" is somewhat more difficult, as reverse range scans aren't
    supported in the dynamic columns API.
-5. "Find descriptions of all of Tom's todos with the smallest sub-unit" cannot be answered efficiently; we need to
+5. "Find all of Tom's todos which cost less than 5" cannot be answered efficiently; we need to
    retrieve the entire row to do this, because there is no sorting by sub-units.
-6. "Find descriptions of all of John's and Jeremy's highest priority todos" is easy for a similar reason to 1, and
-   we even provide an API, ``getRowsColumnRange``, to do this efficiently.
-7. "Find descriptions of the highest priority todos for everyone whose name begins with J" is NOT easy. While this
+6. "Find all of Tom's todos which have size between 3 and 7, and cost between 5 and 10". This is achievable, though in
+   addition to the values we want to see, we also need to scan through all values with size 4-6, and those with size
+   3 and cost >10, or 7 and cost <5.
+7. "Find all of John's and Jeremy's smallest todos" is easy for a similar reason to 1. We provide an API that allows
+   for this to be done seamlessly as well.
+8. "Find the highest priority todos for everyone whose name begins with J" is NOT easy. While this
    conceivably can be split into two parts (a range scan for J, and then the aforementioned getRowsColumnRange),
    the range scan for J is potentially costly, as it needs to iterate through every todo for people whose names
    do indeed begin with J.
