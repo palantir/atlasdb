@@ -50,6 +50,9 @@ develop
            Note that *users* of AtlasDB clients are not affected, in that the wire format of configuration files has not changed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2348>`__)
 
+    *    - |fixed|
+         - KVS migration no longer fails when the old ``_scrub`` table is present.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
