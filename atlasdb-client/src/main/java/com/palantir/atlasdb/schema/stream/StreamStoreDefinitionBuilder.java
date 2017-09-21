@@ -45,7 +45,11 @@ public class StreamStoreDefinitionBuilder {
     }
 
     public StreamStoreDefinitionBuilder hashFirstRowComponent() {
-        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.hashFirstRowComponent());
+        return hashFirstNRowComponents(1);
+    }
+
+    public StreamStoreDefinitionBuilder hashFirstNRowComponents(int n) {
+        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.hashFirstNRowComponents(n));
         return this;
     }
 
