@@ -82,7 +82,7 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (versions.size() <= 1 && getNumberOfNodes(versions) == config.servers().size()) {
+            if (versions.size() <= 1 && getNumberOfVisibleNodes(versions) == config.servers().size()) {
                 return;
             }
             try {
@@ -116,7 +116,7 @@ public final class CassandraKeyValueServices {
         }
     }
 
-    private static int getNumberOfNodes(Map<String, List<String>> versions) {
+    private static int getNumberOfVisibleNodes(Map<String, List<String>> versions) {
         return versions.values().stream().mapToInt(List::size).sum();
     }
 
