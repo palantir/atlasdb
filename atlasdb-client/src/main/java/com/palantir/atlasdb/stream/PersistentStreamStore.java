@@ -43,16 +43,16 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
      *
      * @return stream id
      */
-    long getByHashOrStoreStreamAndMarkAsUsed(Transaction t, Sha256Hash hash, InputStream stream, byte[] reference);
+    long getByHashOrStoreStreamAndMarkAsUsed(Transaction tx, Sha256Hash hash, InputStream stream, byte[] reference);
 
-    void markStreamAsUsed(Transaction t, long streamId, byte[] reference) throws StreamCleanedException;
-    void markStreamsAsUsed(Transaction t, Map<Long, byte[]> streamIdsToReference) throws StreamCleanedException;
+    void markStreamAsUsed(Transaction tx, long streamId, byte[] reference) throws StreamCleanedException;
+    void markStreamsAsUsed(Transaction tx, Map<Long, byte[]> streamIdsToReference) throws StreamCleanedException;
 
     /**
      * This removes the index references from streamId -&gt; reference and deletes streams with no remaining references.
      */
-    void unmarkStreamAsUsed(Transaction t, long streamId, byte[] reference);
-    void unmarkStreamsAsUsed(Transaction t, final Map<Long, byte[]> streamIdsToReference);
+    void unmarkStreamAsUsed(Transaction tx, long streamId, byte[] reference);
+    void unmarkStreamsAsUsed(Transaction tx, final Map<Long, byte[]> streamIdsToReference);
 
     /**
      * This method will store a stream, but it will not have any references.  This means that if cleanup
@@ -84,5 +84,5 @@ public interface PersistentStreamStore extends GenericStreamStore<Long> {
      * {@link #getByHashOrStoreStreamAndMarkAsUsed(Transaction, Sha256Hash, InputStream, byte[])} or
      * {@link #storeStream(InputStream)}.
      */
-    Map<Long, Sha256Hash> storeStreams(Transaction t, Map<Long, InputStream> streams);
+    Map<Long, Sha256Hash> storeStreams(Transaction tx, Map<Long, InputStream> streams);
 }

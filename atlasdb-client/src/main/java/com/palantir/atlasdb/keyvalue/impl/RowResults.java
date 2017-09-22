@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -43,19 +43,22 @@ public class RowResults {
         return viewOfEntries(map.entrySet());
     }
 
-    public static <T> IterableView<RowResult<T>> viewOfEntries(Iterable<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
+    public static <T> IterableView<RowResult<T>> viewOfEntries(
+            Iterable<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
         return IterableView.of(mapEntries).transform(RowResults.<T>createRowResultFunction());
+    }
+
+    public static <T> Iterator<RowResult<T>> viewOfEntries(
+            Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
+        return Iterators.transform(mapEntries, createRowResultFunction());
     }
 
     private static <T> Function<Entry<byte[], SortedMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
         return entry -> RowResult.create(entry.getKey(), entry.getValue());
     }
 
-    public static <T> Iterator<RowResult<T>> viewOfEntries(Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> mapEntries) {
-        return Iterators.transform(mapEntries, createRowResultFunction());
-    }
-
-    public static <T> IterableView<Map.Entry<byte[], SortedMap<byte[], T>>> entriesViewFromRows(Iterable<RowResult<T>> rows) {
+    public static <T> IterableView<Map.Entry<byte[], SortedMap<byte[], T>>> entriesViewFromRows(
+            Iterable<RowResult<T>> rows) {
         return IterableView.of(rows).transform(row -> Maps.immutableEntry(row.getRowName(), row.getColumns()));
     }
 
@@ -71,7 +74,8 @@ public class RowResults {
         return row -> RowResult.create(row.getRowName(), Maps.filterKeys(row.getColumns(), keepColumn));
     }
 
-    public static Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(final Predicate<byte[]> keepValue) {
+    public static Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(
+            final Predicate<byte[]> keepValue) {
         return row -> RowResult.create(row.getRowName(), Maps.filterValues(row.getColumns(), keepValue));
     }
 
@@ -80,7 +84,8 @@ public class RowResults {
     }
 
     public static Iterator<RowResult<byte[]>> filterDeletedColumnsAndEmptyRows(final Iterator<RowResult<byte[]>> it) {
-        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(it, createFilterColumnValues(Predicates.not(Value.IS_EMPTY)));
+        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(it,
+                createFilterColumnValues(Predicates.not(Value.IS_EMPTY)));
         return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
     }
 

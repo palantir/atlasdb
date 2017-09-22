@@ -1,5 +1,5 @@
-/**
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+/*
+ * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,10 +55,12 @@ public class LockServiceStateLoggerTest {
         LockDescriptor descriptor1 = StringLockDescriptor.of("logger-lock");
         LockDescriptor descriptor2 = StringLockDescriptor.of("logger-AAA");
 
-        LockRequest request1 = LockRequest.builder(LockCollections.of(ImmutableSortedMap.of(descriptor1, LockMode.WRITE)))
+        LockRequest request1 = LockRequest.builder(
+                LockCollections.of(ImmutableSortedMap.of(descriptor1, LockMode.WRITE)))
                 .blockForAtMost(SimpleTimeDuration.of(1000, TimeUnit.MILLISECONDS))
                 .build();
-        LockRequest request2 = LockRequest.builder(LockCollections.of(ImmutableSortedMap.of(descriptor2, LockMode.WRITE)))
+        LockRequest request2 = LockRequest.builder(
+                LockCollections.of(ImmutableSortedMap.of(descriptor2, LockMode.WRITE)))
                 .blockForAtMost(SimpleTimeDuration.of(1000, TimeUnit.MILLISECONDS))
                 .build();
 
@@ -66,25 +68,15 @@ public class LockServiceStateLoggerTest {
         outstandingLockRequestMultimap.put(clientB, request2);
         outstandingLockRequestMultimap.put(clientA, request2);
 
-        HeldLocksToken token = getFakeHeldLocksToken("client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
-        HeldLocksToken token2 = getFakeHeldLocksToken("client B", "Fake thread 2", new BigInteger("2"), "held-lock-2", "held-lock-3");
+        HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
+                new BigInteger("1"), "held-lock-1",
+                "logger-lock");
+        HeldLocksToken token2 = LockServiceTestUtils.getFakeHeldLocksToken("client B", "Fake thread 2",
+                new BigInteger("2"), "held-lock-2",
+                "held-lock-3");
 
         heldLocksTokenMap.putIfAbsent(token, LockServiceImpl.HeldLocks.of(token, LockCollections.of()));
         heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of()));
-    }
-
-    private HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId, String...descriptors) {
-        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
-                ImmutableSortedMap.naturalOrder();
-        for (String descriptor : descriptors) {
-            LockDescriptor descriptor1 = StringLockDescriptor.of(descriptor);
-            builder.put(descriptor1, LockMode.WRITE);
-        }
-
-        return new HeldLocksToken(tokenId, LockClient.of(clientName),
-                System.currentTimeMillis(), System.currentTimeMillis(),
-                LockCollections.of(builder.build()),
-                LockRequest.getDefaultLockTimeout(), 0L, requestingThread);
     }
 
     @Test
@@ -92,12 +84,12 @@ public class LockServiceStateLoggerTest {
         LockServiceStateLogger logger = new LockServiceStateLogger(
                 heldLocksTokenMap,
                 outstandingLockRequestMultimap,
-                LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR);
+                LockServiceTestUtils.TEST_LOG_STATE_DIR);
         logger.logLocks();
     }
 
     @After
     public void after() throws IOException {
-        LockServiceLoggerTestUtils.cleanUpLogStateDir();
+        LockServiceTestUtils.cleanUpLogStateDir();
     }
 }

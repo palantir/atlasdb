@@ -30,7 +30,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -44,15 +44,15 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 /**
- * A {@link TimelockService} implementation that delegates to a {@link RemoteLockService} and {@link TimestampService}.
+ * A {@link TimelockService} implementation that delegates to a {@link LockService} and {@link TimestampService}.
  */
 public class LegacyTimelockService implements TimelockService {
 
     private final TimestampService timestampService;
-    private final RemoteLockService lockService;
+    private final LockService lockService;
     private final LockClient immutableTsLockClient;
 
-    public LegacyTimelockService(TimestampService timestampService, RemoteLockService lockService,
+    public LegacyTimelockService(TimestampService timestampService, LockService lockService,
             LockClient immutableTsLockClient) {
         this.timestampService = timestampService;
         this.lockService = lockService;
@@ -165,10 +165,11 @@ public class LegacyTimelockService implements TimelockService {
         return minLocked == null ? ts : minLocked;
     }
 
-    private LockRefreshToken lockAnonymous(com.palantir.lock.LockRequest lockRequest) {
+    private LockRefreshToken lockAnonymous(com.palantir.lock.LockRequest request) {
         try {
-            return lockService.lock(LockClient.ANONYMOUS.getClientId(), lockRequest);
+            return lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(ex);
         }
     }

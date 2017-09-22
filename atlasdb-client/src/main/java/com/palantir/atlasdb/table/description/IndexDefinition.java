@@ -259,8 +259,8 @@ public class IndexDefinition extends AbstractDefinition {
     public IndexMetadata toIndexMetadata(String indexTableName) {
         Preconditions.checkState(indexTableName != null, "No index table name specified.");
         Preconditions.checkState(!rowComponents.isEmpty(), "No row components specified.");
-        if (explicitCompressionRequested && explicitCompressionBlockSizeKB == 0) {
-            explicitCompressionBlockSizeKB = AtlasDbConstants.DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB;
+        if (explicitCompressionRequested && explicitCompressionBlockSizeKb == 0) {
+            explicitCompressionBlockSizeKb = AtlasDbConstants.DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB;
         }
 
         if (colComponents.isEmpty()) {
@@ -272,7 +272,7 @@ public class IndexDefinition extends AbstractDefinition {
                     partitionStrategy,
                     conflictHandler,
                     rangeScanAllowed,
-                    explicitCompressionBlockSizeKB,
+                    explicitCompressionBlockSizeKb,
                     negativeLookups,
                     indexCondition,
                     indexType,
@@ -290,7 +290,7 @@ public class IndexDefinition extends AbstractDefinition {
                     partitionStrategy,
                     conflictHandler,
                     rangeScanAllowed,
-                    explicitCompressionBlockSizeKB,
+                    explicitCompressionBlockSizeKb,
                     negativeLookups,
                     indexCondition,
                     indexType,

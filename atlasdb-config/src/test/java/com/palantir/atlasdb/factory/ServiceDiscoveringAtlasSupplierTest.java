@@ -31,15 +31,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.timestamp.TimestampService;
 
 public class ServiceDiscoveringAtlasSupplierTest {
-    private final KeyValueServiceConfig kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
-    private final KeyValueServiceConfig invalidKvsConfig = () -> "should not be found kvs";
+    private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
+    private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
     private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
     private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
 
@@ -52,8 +51,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
         assertThat(
                 atlasSupplier.getKeyValueService(),
-                is(delegate.createRawKeyValueService(kvsConfig,
-                        leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)));
+                is(delegate.createRawKeyValueService(kvsConfig, leaderConfig)));
     }
 
     @Test

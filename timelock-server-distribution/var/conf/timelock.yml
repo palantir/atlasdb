@@ -1,6 +1,7 @@
 clients:
   - test
   - test2
+  - atlasete
 
 cluster:
   localServer: localhost:8421

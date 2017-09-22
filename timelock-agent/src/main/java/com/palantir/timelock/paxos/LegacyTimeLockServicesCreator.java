@@ -27,7 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 
@@ -45,14 +45,14 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     public TimeLockServices createTimeLockServices(
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
-            Supplier<RemoteLockService> rawLockServiceSupplier) {
+            Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating legacy timelock service for client {}", client);
         ManagedTimestampService timestampService = instrumentInLeadershipProxy(
                 ManagedTimestampService.class,
                 rawTimestampServiceSupplier,
                 client);
-        RemoteLockService remoteLockService = instrumentInLeadershipProxy(
-                RemoteLockService.class,
+        LockService lockService = instrumentInLeadershipProxy(
+                LockService.class,
                 rawLockServiceSupplier,
                 client);
 
@@ -60,22 +60,19 @@ public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
         // Wrapping this means that we will make 2 paxos checks per request, which is silly.
         TimelockService legacyTimelockService = instrument(
                 TimelockService.class,
-                createRawLegacyTimelockService(timestampService, remoteLockService),
+                createRawLegacyTimelockService(timestampService, lockService),
                 client);
         return TimeLockServices.create(
                 timestampService,
-                remoteLockService,
+                lockService,
                 AsyncOrLegacyTimelockService.createFromLegacyTimelock(legacyTimelockService),
                 timestampService);
     }
 
     private static LegacyTimelockService createRawLegacyTimelockService(
             ManagedTimestampService timestampService,
-            RemoteLockService lockService) {
-        return new LegacyTimelockService(
-                timestampService,
-                lockService,
-                LEGACY_LOCK_CLIENT);
+            LockService lockService) {
+        return new LegacyTimelockService(timestampService, lockService, LEGACY_LOCK_CLIENT);
     }
 
     private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {

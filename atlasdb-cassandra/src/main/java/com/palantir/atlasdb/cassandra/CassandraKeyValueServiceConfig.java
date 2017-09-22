@@ -30,7 +30,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
@@ -42,6 +42,13 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     public static final String TYPE = "cassandra";
 
     public abstract Set<InetSocketAddress> servers();
+
+    @Override
+    @JsonIgnore
+    @Value.Derived
+    public Optional<String> namespace() {
+        return keyspace();
+    }
 
     @Value.Default
     public int poolSize() {
@@ -99,7 +106,19 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
 
-    public abstract String keyspace();
+    @JsonIgnore
+    @Value.Lazy
+    public String getKeyspaceOrThrow() {
+        return keyspace().orElseThrow(() -> new IllegalStateException(
+                "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
+    }
+
+    /**
+     * Note that when the keyspace is read, this field must be present.
+     * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
+     */
+    @Deprecated
+    public abstract Optional<String> keyspace();
 
     public abstract Optional<CassandraCredentialsConfig> credentials();
 
@@ -222,6 +241,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return TYPE;
     }
 
+    @Override
+    @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return poolSize() * servers().size();
+    }
+
     @JsonIgnore
     @Value.Derived
     public boolean usingSsl() {
@@ -234,7 +259,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         for (InetSocketAddress addr : servers()) {
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
-        Preconditions.checkNotNull(keyspace(), "'keyspace' must be specified");
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");

@@ -59,7 +59,7 @@ public class TimeLockMigrationEteTest {
     private static final String ETE_CONTAINER = "ete1";
     private static final String TIMELOCK_CONTAINER = "timelock";
     private static final int TIMELOCK_PORT = 8421;
-    private static final String TEST_CLIENT = "test";
+    private static final String TEST_CLIENT = "atlasete";
 
     @ClassRule
     public static final RuleChain RULE_CHAIN = RuleChain.outerRule(GRADLE_PREPARE_TASK)

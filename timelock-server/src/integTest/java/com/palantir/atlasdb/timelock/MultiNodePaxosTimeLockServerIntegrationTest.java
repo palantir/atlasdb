@@ -52,7 +52,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
-            "http://localhost",
+            "https://localhost",
             CLIENT_1,
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",

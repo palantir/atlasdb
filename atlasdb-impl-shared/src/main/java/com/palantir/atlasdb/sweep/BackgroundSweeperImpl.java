@@ -33,12 +33,12 @@ import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
-    private final RemoteLockService lockService;
+    private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
@@ -51,7 +51,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     BackgroundSweeperImpl(
-            RemoteLockService lockService,
+            LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
