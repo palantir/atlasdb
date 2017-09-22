@@ -38,14 +38,6 @@ public final class GenericTestSchemaTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public GenericHashFirstComponentTestTable getGenericHashFirstComponentTestTable(Transaction t, GenericHashFirstComponentTestTable.GenericHashFirstComponentTestTrigger... triggers) {
-        return GenericHashFirstComponentTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
-    public GenericHashFirstTwoComponentsTestTable getGenericHashFirstTwoComponentsTestTable(Transaction t, GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestTrigger... triggers) {
-        return GenericHashFirstTwoComponentsTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
     public GenericRangeScanTestTable getGenericRangeScanTestTable(Transaction t, GenericRangeScanTestTable.GenericRangeScanTestTrigger... triggers) {
         return GenericRangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -55,24 +47,12 @@ public final class GenericTestSchemaTableFactory {
     }
 
     public interface SharedTriggers extends
-            GenericHashFirstComponentTestTable.GenericHashFirstComponentTestTrigger,
-            GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestTrigger,
             GenericRangeScanTestTable.GenericRangeScanTestTrigger,
             RangeScanTestTable.RangeScanTestTrigger {
         /* empty */
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
-        @Override
-        public void putGenericHashFirstComponentTest(Multimap<GenericHashFirstComponentTestTable.GenericHashFirstComponentTestRow, ? extends GenericHashFirstComponentTestTable.GenericHashFirstComponentTestNamedColumnValue<?>> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putGenericHashFirstTwoComponentsTest(Multimap<GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestRow, ? extends GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestNamedColumnValue<?>> newRows) {
-            // do nothing
-        }
-
         @Override
         public void putGenericRangeScanTest(Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
             // do nothing
