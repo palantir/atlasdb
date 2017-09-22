@@ -56,11 +56,11 @@ public abstract class EteSetup {
     private static List<String> availableClients;
     private static Duration waitDuration;
 
-    static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
+    public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
     }
 
-    static RuleChain setupComposition(
+    public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -68,7 +68,7 @@ public abstract class EteSetup {
         return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
     }
 
-    static RuleChain setupComposition(
+    public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -76,7 +76,7 @@ public abstract class EteSetup {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
     }
 
-    static RuleChain setupComposition(
+    public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
