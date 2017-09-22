@@ -20,7 +20,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.google.common.base.Preconditions;
 
 @ThreadSafe
-public class PersistentTimestampService implements ManagedTimestampService {
+public class PersistentTimestampService implements TimestampService, TimestampManagementService {
 
     private static final int MAX_TIMESTAMPS_PER_REQUEST = 10_000;
 
