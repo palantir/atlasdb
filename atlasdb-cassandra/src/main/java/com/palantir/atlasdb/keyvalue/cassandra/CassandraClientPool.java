@@ -331,16 +331,17 @@ public class CassandraClientPool {
                 InetSocketAddress host = blacklistedEntry.getKey();
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
-                    log.error("Added host {} back into the pool after a waiting period and successful health check.",
+                    log.info("Added host {} back into the pool after a waiting period and successful health check.",
                             SafeArg.of("host", host));
                 }
             }
         }
     }
 
+    // TODO (gsheasby): Why did we blacklist this host?
     private void addToBlacklist(InetSocketAddress badHost) {
         blacklistedHosts.put(badHost, System.currentTimeMillis());
-        log.info("Blacklisted host '{}'", SafeArg.of("badHost", badHost));
+        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", badHost));
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
@@ -350,8 +351,11 @@ public class CassandraClientPool {
             testingContainer.runWithPooledResource(validatePartitioner);
             return true;
         } catch (Exception e) {
-            log.error("We tried to add {} back into the pool, but got an exception"
-                    + " that caused us to distrust this host further.", SafeArg.of("host", host), e);
+            log.warn("We tried to add {} back into the pool, but got an exception"
+                    + " that caused us to distrust this host further. Exception message was: {} : {}",
+                    SafeArg.of("host", host),
+                    SafeArg.of("exceptionClass", e.getClass().getTypeName()),
+                    e.getMessage());
             return false;
         }
     }
@@ -586,15 +590,15 @@ public class CassandraClientPool {
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
-                    log.warn("Retrying with backoff a query, {}, intended for host {}. Exception message was: {} : {}",
+                    // And value between -500 and +500ms to backoff to better spread load on failover
+                    int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
+                    log.warn("Retrying with backoff ({}ms} a query, {}, intended for host {}.",
+                            SafeArg.of("sleepDuration", sleepDuration),
                             fn.toString(),
-                            SafeArg.of("hostName", hostPool.getHost()),
-                            SafeArg.of("exceptionClass", e.getClass().getTypeName()),
-                            e.getMessage());
+                            SafeArg.of("hostName", hostPool.getHost()));
 
                     try {
-                        // And value between -500 and +500ms to backoff to better spread load on failover
-                        Thread.sleep(numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500));
+                        Thread.sleep(sleepDuration);
                     } catch (InterruptedException i) {
                         throw new RuntimeException(i);
                     }
