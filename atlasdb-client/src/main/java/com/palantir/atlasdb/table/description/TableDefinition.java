@@ -180,6 +180,7 @@ public class TableDefinition extends AbstractDefinition {
 
     /**
      * Prefix the row with a hash of the first N row components.
+     * If using prefix range requests, the components that are hashed must also be specified in the prefix.
      */
     public void hashFirstNRowComponents(int numberOfComponents) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME,
