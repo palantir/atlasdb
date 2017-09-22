@@ -121,9 +121,7 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     /**
-     * Prefix the row with a hash of the first N row components
-     *
-     * This is not a feature for tables with range scanning enabled.
+     * Prefix the row with a hash of the first N row components.
      */
     public void hashFirstNRowComponents(int numberOfComponents) {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);

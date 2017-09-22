@@ -16,16 +16,23 @@
 
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.junit.Test;
+
+import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.generated.ApiTestTableFactory;
+import com.palantir.atlasdb.table.description.generated.HashComponentsTestTable;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRow;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRowResult;
@@ -35,6 +42,8 @@ import com.palantir.common.base.BatchingVisitableView;
 public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
     private static final ApiTestTableFactory tableFactory = ApiTestTableFactory.of();
+    private static final int TEST_VALUE_INTEGER = 1;
+    private static final String TEST_VALUE_STRING = "Test";
 
     @Override
     protected void putSingleRowFirstColumn(Transaction transaction, String rowKey, long value) {
@@ -95,5 +104,20 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     protected void deleteFirstColumn(Transaction transaction, String rowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
         table.deleteColumn1(SchemaApiTestRow.of(rowKey));
+    }
+
+    @Test
+    public void testHashFirstTwoRowComponents() {
+        HashComponentsTestTable.HashComponentsTestRow testRow =
+                HashComponentsTestTable.HashComponentsTestRow.of(TEST_VALUE_INTEGER, TEST_VALUE_STRING);
+
+        byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(TEST_VALUE_INTEGER);
+        byte[] component2Bytes = EncodingUtils.encodeVarString(TEST_VALUE_STRING);
+        long hashOfFirstTwoComponents =
+                Hashing.murmur3_128().hashBytes(EncodingUtils.add(component1Bytes, component2Bytes)).asLong();
+        byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfFirstTwoComponents);
+
+        assertThat(testRow.persistToBytes())
+                .isEqualTo(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
     }
 }

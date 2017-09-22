@@ -38,16 +38,26 @@ public final class ApiTestTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public HashComponentsTestTable getHashComponentsTestTable(Transaction t, HashComponentsTestTable.HashComponentsTestTrigger... triggers) {
+        return HashComponentsTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SchemaApiTestTable getSchemaApiTestTable(Transaction t, SchemaApiTestTable.SchemaApiTestTrigger... triggers) {
         return SchemaApiTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public interface SharedTriggers extends
+            HashComponentsTestTable.HashComponentsTestTrigger,
             SchemaApiTestTable.SchemaApiTestTrigger {
         /* empty */
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putHashComponentsTest(Multimap<HashComponentsTestTable.HashComponentsTestRow, ? extends HashComponentsTestTable.HashComponentsTestNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putSchemaApiTest(Multimap<SchemaApiTestTable.SchemaApiTestRow, ? extends SchemaApiTestTable.SchemaApiTestNamedColumnValue<?>> newRows) {
             // do nothing
