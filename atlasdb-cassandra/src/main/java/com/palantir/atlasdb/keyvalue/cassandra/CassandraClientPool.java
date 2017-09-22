@@ -670,11 +670,19 @@ public class CassandraClientPool {
                     throw (K) ex;
                 }
             } else {
-                log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
-                        SafeArg.of("numTries", numTries),
-                        SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
-                        SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
-                        ex.getMessage());
+                // Only log the actual exception the first time
+                if (numTries > 1) {
+                    log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+                            SafeArg.of("numTries", numTries),
+                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
+                            SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
+                            ex.getMessage());
+                } else {
+                    log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
+                            SafeArg.of("numTries", numTries),
+                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
+                            ex);
+                }
                 if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
                     addToBlacklist(host);
                 }
