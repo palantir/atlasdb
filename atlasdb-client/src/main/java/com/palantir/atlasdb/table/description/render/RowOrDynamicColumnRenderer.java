@@ -277,8 +277,6 @@ class RowOrDynamicColumnRenderer extends Renderer {
 
     private void renderComputeFirstNComponentsHashMethod(int numberOfComponentsHashed) {
         List<NameComponentDescription> components = getRowPartsWithoutHash().subList(0, numberOfComponentsHashed);
-        Preconditions.checkArgument(components.size() <= 1 || rangeScanAllowed);
-        Preconditions.checkArgument(components.size() <= numberOfComponentsHashed);
         line("public static long computeHashFirstComponents"); renderParameterList(components); lineEnd(" {"); {
             List<String> vars = Lists.newArrayList();
             for (NameComponentDescription comp : components) {

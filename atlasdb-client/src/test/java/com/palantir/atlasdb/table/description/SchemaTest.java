@@ -28,21 +28,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.description.generated.GenericHashFirstComponentTestTable;
-import com.palantir.atlasdb.table.description.generated.GenericHashFirstTwoComponentsTestTable;
 
 public class SchemaTest {
 
@@ -146,43 +142,18 @@ public class SchemaTest {
         Schema schema = ApiTestSchema.getSchema();
         schema.renderTables(testFolder.getRoot());
 
-        String generatedTestTableName = "SchemaApiTestTable";
-        String generatedFilePath =
-                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
+        List<String> generatedTestTables = ApiTestSchema.getSchema().getAllTables().stream()
+                .map(entry -> entry.getTablename() + "Table")
+                .collect(Collectors.toList());
 
-        File expectedFile = new File("src/integrationInput/java", generatedFilePath);
-        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+        generatedTestTables.forEach(tableName -> {
+            String generatedFilePath =
+                    String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
 
-        assertThat(actualFile).hasSameContentAs(expectedFile);
-    }
-
-    @Test
-    public void testHashFirstRowComponent() {
-        GenericHashFirstComponentTestTable.GenericHashFirstComponentTestRow testRow =
-                GenericHashFirstComponentTestTable.GenericHashFirstComponentTestRow.of(1, "test");
-
-        byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(1);
-        long hashOfFirstComponent = Hashing.murmur3_128().hashBytes(component1Bytes).asLong();
-        byte[] hashOfFirstComponentBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfFirstComponent);
-        byte[] component2Bytes = EncodingUtils.encodeVarString("test");
-
-        assertThat(testRow.persistToBytes())
-                .isEqualTo(EncodingUtils.add(hashOfFirstComponentBytes, component1Bytes, component2Bytes));
-    }
-
-    @Test
-    public void testHashFirstTwoRowComponents() {
-        GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestRow testRow =
-                GenericHashFirstTwoComponentsTestTable.GenericHashFirstTwoComponentsTestRow.of(1, "test");
-
-        byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(1);
-        byte[] component2Bytes = EncodingUtils.encodeVarString("test");
-        long hashOfFirstTwoComponents =
-                Hashing.murmur3_128().hashBytes(EncodingUtils.add(component1Bytes, component2Bytes)).asLong();
-        byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfFirstTwoComponents);
-
-        assertThat(testRow.persistToBytes())
-                .isEqualTo(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
+            File expectedFile = new File("src/integrationInput/java", generatedFilePath);
+            File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+            assertThat(actualFile).hasSameContentAs(expectedFile);
+        });
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {

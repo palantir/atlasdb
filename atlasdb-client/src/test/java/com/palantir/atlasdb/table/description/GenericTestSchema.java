@@ -59,34 +59,6 @@ public class GenericTestSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addTableDefinition("genericHashFirstComponentTest", new TableDefinition() {{
-            javaTableName("GenericHashFirstComponentTest");
-
-            rowName();
-            hashFirstRowComponent();
-            rowComponent("component1", ValueType.VAR_LONG);
-            rowComponent("component2", ValueType.VAR_STRING);
-
-            columns();
-            column("column", "c", ValueType.STRING);
-
-            rangeScanAllowed();
-        }});
-
-        schema.addTableDefinition("genericHashFirstTwoComponentsTest", new TableDefinition() {{
-            javaTableName("GenericHashFirstTwoComponentsTest");
-
-            rowName();
-            hashFirstNRowComponents(2);
-            rowComponent("component1", ValueType.VAR_LONG);
-            rowComponent("component2", ValueType.VAR_STRING);
-
-            columns();
-            column("column", "c", ValueType.STRING);
-
-            rangeScanAllowed();
-        }});
-
         return schema;
     }
 
