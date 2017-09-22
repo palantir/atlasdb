@@ -21,13 +21,16 @@ package com.palantir.atlasdb.table.description.constraints;
  * For named tables, the parameters should match the list of rows/columns passed in the AtlasDb schema.
  * Row variables should come before column variables in the method signature.
  *
- * If I add a foreign constraints like: .addForeignConstraint(ForeignConstraintMetadata.builder("SomeTableName", SomeConstraint.class)
+ * If I add a foreign constraints like: .addForeignConstraint(ForeignConstraintMetadata
+ *                                                  .builder("SomeTableName", SomeConstraint.class)
  *                                                  .addRowVariables("realm_id")
  *                                                  .addColumnVariables("data_event")),
  *
- * then the method signature should look like: public static List&lt;$SOMETUPLE$&gt; getKeys(long realmId, DataHistoryEvent dataEvent).
+ * then the method signature should look like:
+ *     public static List&lt;$SOMETUPLE$&gt; getKeys(long realmId, DataHistoryEvent dataEvent).
  *
- * The size of $SOMETUPLE$ should be equal to the number of fields in the key of "SomeTableName", and the types should match accordingly.
+ * The size of $SOMETUPLE$ should be equal to the number of fields in the key of "SomeTableName",
+ * and the types should match accordingly.
  *
  * Dynamic tables work similarly, except column parameters and values are given as Lists. If you want the
  * value of a column to be passed in, use TableRenderer.DYNAMIC_COLUMN_VALUE_VARIABLE.
@@ -35,9 +38,12 @@ package com.palantir.atlasdb.table.description.constraints;
  *
  * If I add a rowConstraint like: .addRowConstraint(RowConstraintMetadata.builder(SomeConstraint.class)
  *                                                  .addRowVariables("realm_id")
- *                                                  .addColumnVariables("data_event_id", TableRenderer.DYNAMIC_COLUMN_VALUE_VARIABLE)),
- * then the method signature should look like: public static List&lt;$SOMETUPLE$&gt; getKeys(long realmId, List&lt;Long&gt; dataEventIds, List&lt;LinkChangeSet&gt; linkChangeSets).
- * The size of $SOMETUPLE$ should be equal to the number of fields in the key of "SomeTableName", and the types should match accordingly.
+ *                                                  .addColumnVariables("data_event_id",
+ *                                                        TableRenderer.DYNAMIC_COLUMN_VALUE_VARIABLE)),
+ * then the method signature should look like: public static List&lt;$SOMETUPLE$&gt; getKeys(
+ *                        long realmId, List&lt;Long&gt; dataEventIds, List&lt;LinkChangeSet&gt; linkChangeSets).
+ * The size of $SOMETUPLE$ should be equal to the number of fields in the key of "SomeTableName",
+ * and the types should match accordingly.
  */
 public interface ForeignKeyConstraint {
     /* Marker interface */

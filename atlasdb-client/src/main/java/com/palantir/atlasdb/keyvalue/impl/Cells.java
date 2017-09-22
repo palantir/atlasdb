@@ -53,7 +53,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellCon
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 
-public class Cells {
+public final class Cells {
     private static final Logger log = LoggerFactory.getLogger(Cells.class);
 
     private Cells() { /* */ }
@@ -79,7 +79,7 @@ public class Cells {
 
     static byte[] getLargestName() {
         byte[] name = new byte[Cell.MAX_NAME_LENGTH];
-        for (int i = 0 ; i < Cell.MAX_NAME_LENGTH ; i++) {
+        for (int i = 0; i < Cell.MAX_NAME_LENGTH; i++) {
             name[i] = (byte) 0xff;
         }
         return name;
@@ -128,7 +128,8 @@ public class Cells {
      */
     public static <T> Iterator<RowResult<T>> createRowView(final Collection<Map.Entry<Cell, T>> sortedIterator) {
         final PeekingIterator<Entry<Cell, T>> it = Iterators.peekingIterator(sortedIterator.iterator());
-        Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> resultIt = new AbstractIterator<Map.Entry<byte[], SortedMap<byte[], T>>>() {
+        Iterator<Map.Entry<byte[], SortedMap<byte[], T>>> resultIt =
+                new AbstractIterator<Map.Entry<byte[], SortedMap<byte[], T>>>() {
             byte[] row = null;
             SortedMap<byte[], T> map = null;
             @Override
@@ -137,7 +138,8 @@ public class Cells {
                     return endOfData();
                 }
                 row = it.peek().getKey().getRowName();
-                ImmutableSortedMap.Builder<byte[], T> mapBuilder = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
+                ImmutableSortedMap.Builder<byte[], T> mapBuilder = ImmutableSortedMap.orderedBy(
+                        UnsignedBytes.lexicographicalComparator());
                 while (it.hasNext()) {
                     Entry<Cell, T> peek = it.peek();
                     if (!Arrays.equals(peek.getKey().getRowName(), row)) {
@@ -165,12 +167,13 @@ public class Cells {
         return ret;
     }
 
-    public static <K, V> Map<K, V> constantValueMap(Set<K> keys, V v) {
-        return Maps.asMap(keys, Functions.constant(v));
+    public static <K, V> Map<K, V> constantValueMap(Set<K> keys, V value) {
+        return Maps.asMap(keys, Functions.constant(value));
     }
 
     public static long getApproxSizeOfCell(Cell cell) {
-        return cell.getColumnName().length + cell.getRowName().length + TransactionConstants.APPROX_IN_MEM_CELL_OVERHEAD_BYTES;
+        return cell.getColumnName().length + cell.getRowName().length
+                + TransactionConstants.APPROX_IN_MEM_CELL_OVERHEAD_BYTES;
     }
 
     public static Function<byte[], String> getNameFromBytesFunction() {
@@ -204,7 +207,8 @@ public class Cells {
             String rowName = metadata.getRowMetadata().renderToJson(cell.getRowName());
             String colName;
             if (metadata.getColumns().hasDynamicColumns()) {
-                colName = metadata.getColumns().getDynamicColumn().getColumnNameDesc().renderToJson(cell.getColumnName());
+                colName = metadata.getColumns().getDynamicColumn().getColumnNameDesc().renderToJson(
+                        cell.getColumnName());
             } else {
                 colName = PtBytes.toString(cell.getColumnName());
             }

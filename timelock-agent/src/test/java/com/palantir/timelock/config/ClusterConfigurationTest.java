@@ -22,7 +22,8 @@ import java.util.Optional;
 
 import org.junit.Test;
 
-import com.palantir.remoting2.config.service.ServiceConfiguration;
+import com.google.common.collect.ImmutableList;
+import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
 
 public class ClusterConfigurationTest {
     private static final String ADDRESS_1 = "localhost:1";
@@ -46,7 +47,7 @@ public class ClusterConfigurationTest {
     public void shouldThrowIfLocalServerNotInServers() {
         assertThatThrownBy(ImmutableClusterConfiguration.builder()
                 .localServer(ADDRESS_1)
-                .cluster(ServiceConfiguration.of(ADDRESS_2, Optional.empty()))
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()))
                 ::build)
                 .isInstanceOf(IllegalStateException.class);
     }

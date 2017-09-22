@@ -38,6 +38,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -116,6 +118,7 @@ import com.palantir.remoting2.tracing.Tracers;
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     protected final TimestampCache timestampCache = TimestampCache.create();
+    protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(4);
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
@@ -278,7 +281,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampCache);
+                timestampCache,
+                getRangesExecutor);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -333,7 +337,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampCache);
+                timestampCache,
+                getRangesExecutor);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 

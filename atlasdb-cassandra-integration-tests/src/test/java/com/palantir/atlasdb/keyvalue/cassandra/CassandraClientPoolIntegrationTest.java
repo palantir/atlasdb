@@ -152,7 +152,7 @@ public class CassandraClientPoolIntegrationTest {
 
     private void changeReplicationFactor(int replicationFactor) throws TException {
         clientPool.run((FunctionCheckedException<Cassandra.Client, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.keyspace());
+            KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow());
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
             modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));

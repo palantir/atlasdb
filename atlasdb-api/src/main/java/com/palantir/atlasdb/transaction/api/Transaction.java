@@ -19,6 +19,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -76,11 +78,35 @@ public interface Transaction {
      * the batch hint in each RangeRequest. If this isn't done then this method may do more work
      * than you need and will be slower than it needs to be.  If the batchHint isn't specified it
      * will default to 1 for the first page in each range.
+     *
+     * @deprecated Should use either {@link #getRanges(TableReference, Iterable, int, BiFunction)} or
+     * {@link #getRangesLazy(TableReference, Iterable)} to ensure you are using an appropriate level
+     * of concurrency for your specific workflow.
      */
     @Idempotent
+    @Deprecated
     Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests);
+
+    /**
+     * Creates unvisited visitibles that scan the provided ranges and then applies the provided visitableProcessor
+     * function with concurrency specified by the concurrencyLevel parameter.
+     */
+    @Idempotent
+    <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            int concurrencyLevel,
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+
+    /**
+     * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
+     * visitibles will incur database reads on first access.
+     */
+    @Idempotent
+    Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
+            final TableReference tableRef, Iterable<RangeRequest> rangeRequests);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then

@@ -44,11 +44,15 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     // async initialization not implemented/propagated
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig,
+    public KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
             boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }
+
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());

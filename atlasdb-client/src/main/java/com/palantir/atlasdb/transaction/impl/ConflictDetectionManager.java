@@ -19,7 +19,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -51,7 +50,6 @@ public class ConflictDetectionManager {
         cache.putAll(preload);
     }
 
-    @VisibleForTesting
     public Map<TableReference, ConflictHandler> getCachedValues() {
         return cache.asMap();
     }

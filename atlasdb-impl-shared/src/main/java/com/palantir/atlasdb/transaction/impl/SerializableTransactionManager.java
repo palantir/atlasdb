@@ -26,7 +26,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -61,7 +61,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         @Override
-        public RemoteLockService getLockService() {
+        public LockService getLockService() {
             return manager.getLockService();
         }
 
@@ -76,12 +76,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * use the delegate instead.
      */
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null);
+        this(null, null, null, null, null, null, null, null, null, 0);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
             TimelockService timelockService,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
@@ -89,6 +89,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
+            int concurrentGetRangesThreadPoolSize,
             boolean initializeAsync) {
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 keyValueService,
@@ -100,7 +101,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                lockAcquireTimeoutMs);
+                lockAcquireTimeoutMs,
+                concurrentGetRangesThreadPoolSize);
 
         return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager)
                 : serializableTransactionManager;
@@ -109,12 +111,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner) {
+            Cleaner cleaner,
+            int concurrentGetRangesThreadPoolSize) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -124,19 +127,21 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                false);
+                false,
+                concurrentGetRangesThreadPoolSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            boolean allowHiddenTableAccess) {
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -146,18 +151,20 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess);
+                allowHiddenTableAccess,
+                concurrentGetRangesThreadPoolSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            boolean allowHiddenTableAccess) {
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize) {
         this(
                 keyValueService,
                 timelockService,
@@ -168,19 +175,21 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                concurrentGetRangesThreadPoolSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
-            RemoteLockService lockService,
+            LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs) {
+            Supplier<Long> lockAcquireTimeoutMs,
+            int concurrentGetRangesThreadPoolSize) {
         super(
                 keyValueService,
                 timelockService,
@@ -191,7 +200,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                lockAcquireTimeoutMs);
+                lockAcquireTimeoutMs,
+                concurrentGetRangesThreadPoolSize);
     }
 
     @Override
@@ -215,7 +225,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get());
+                lockAcquireTimeoutMs.get(),
+                getRangesExecutor);
     }
 
 }

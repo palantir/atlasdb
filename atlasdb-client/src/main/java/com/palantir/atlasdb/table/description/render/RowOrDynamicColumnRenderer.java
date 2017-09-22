@@ -31,6 +31,7 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
 
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 class RowOrDynamicColumnRenderer extends Renderer {
     private final String Name;
     private final NameMetadataDescription desc;

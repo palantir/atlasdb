@@ -26,22 +26,20 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
-import com.palantir.lock.RemoteLockService;
-import com.palantir.remoting2.config.ssl.SslSocketFactories;
-import com.palantir.timelock.Observables;
+import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.lock.LockService;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
-import io.reactivex.Observable;
-
 public class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 1L;
 
     private final TimeLockInstallConfiguration install;
-    private final Observable<TimeLockRuntimeConfiguration> runtime;
+    private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
 
     private final PaxosResource paxosResource;
@@ -51,13 +49,13 @@ public class TimeLockAgent {
     private final TimeLockServicesCreator timelockCreator;
 
     public TimeLockAgent(TimeLockInstallConfiguration install,
-            Observable<TimeLockRuntimeConfiguration> runtime,
+            Supplier<TimeLockRuntimeConfiguration> runtime,
             Consumer<Object> registrar) {
         this(install, runtime, ImmutableTimeLockDeprecatedConfiguration.builder().build(), registrar);
     }
 
     public TimeLockAgent(TimeLockInstallConfiguration install,
-            Observable<TimeLockRuntimeConfiguration> runtime,
+            Supplier<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
         this.install = install;
@@ -70,7 +68,7 @@ public class TimeLockAgent {
         this.timestampCreator = new PaxosTimestampCreator(paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
-                runtime.map(TimeLockRuntimeConfiguration::paxos));
+                JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
         this.timelockCreator = install.asyncLock().useAsyncLockService()
                 ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
                 : new LegacyTimeLockServicesCreator(leadershipCreator);
@@ -82,8 +80,10 @@ public class TimeLockAgent {
         leadershipCreator.registerLeaderElectionService();
 
         // Finally, register the endpoints associated with the clients.
-        registrar.accept(new TimeLockResource(this::createInvalidatingTimeLockServices, Observables.blockingMostRecent(
-                runtime.map(conf -> conf.maxNumberOfClients()))));
+        registrar.accept(
+                new TimeLockResource(
+                        this::createInvalidatingTimeLockServices,
+                        JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime)));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
     }
@@ -120,7 +120,7 @@ public class TimeLockAgent {
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
                 timestampCreator.createPaxosBackedTimestampService(client);
-        Supplier<RemoteLockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
+        Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
     }

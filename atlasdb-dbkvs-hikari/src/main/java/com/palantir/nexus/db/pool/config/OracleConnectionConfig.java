@@ -64,6 +64,13 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     @Override
+    @Value.Derived
+    @JsonIgnore
+    public Optional<String> namespace() {
+        return Optional.of(getSid());
+    }
+
+    @Override
     @Value.Default
     public String getDriverClass() {
         return "oracle.jdbc.driver.OracleDriver";

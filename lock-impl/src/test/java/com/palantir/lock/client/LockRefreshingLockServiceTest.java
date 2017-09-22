@@ -37,25 +37,15 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
 
-
 public class LockRefreshingLockServiceTest {
-
     private LockService server;
-//    private LockClient client;
     private LockDescriptor lock1;
-//    private LockDescriptor lock2;
 
     @Before public void setUp() {
-        server = LockRefreshingLockService.create(LockServiceImpl.create(
-                new LockServerOptions() {
-                    private static final long serialVersionUID = 1L;
-                    @Override public boolean isStandaloneServer() {
-                        return false;
-                    }
-                }));
-//        client = LockClient.of("a client");
+        server = LockRefreshingLockService.create(LockServiceImpl.create(LockServerOptions.builder()
+                .isStandaloneServer(false)
+                .build()));
         lock1 = StringLockDescriptor.of("lock1");
-//        lock2 = StringLockDescriptor.of("lock2");
     }
 
     @Test
@@ -67,5 +57,4 @@ public class LockRefreshingLockServiceTest {
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
         Assert.assertEquals(1, refreshTokens.size());
     }
-
 }

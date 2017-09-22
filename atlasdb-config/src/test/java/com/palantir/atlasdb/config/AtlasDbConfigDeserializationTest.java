@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class AtlasDbConfigDeserializationTest {
     private static final File TEST_CONFIG_FILE = new File(
@@ -37,9 +37,12 @@ public class AtlasDbConfigDeserializationTest {
     @Test
     public void canDeserializeAtlasDbConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(TEST_CONFIG_FILE);
+        assertThat(config.namespace().get()).isEqualTo("test");
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
+
         assertThat(config.timelock().isPresent()).isTrue();
         assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
+
         assertThat(config.leader().isPresent()).isFalse();
         assertThat(config.enableSweep()).isTrue();
     }
@@ -47,6 +50,7 @@ public class AtlasDbConfigDeserializationTest {
     @Test
     public void canDeserializeMinimalAtlasDbConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(MINIMAL_TEST_CONFIG_FILE);
+        assertThat(config.namespace().isPresent()).isFalse();
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
         assertThat(config.timelock().isPresent()).isFalse();
@@ -56,7 +60,7 @@ public class AtlasDbConfigDeserializationTest {
     }
 
     private void assertTimeLockConfigDeserializedCorrectly(TimeLockClientConfig timeLockClientConfig) {
-        assertThat(timeLockClientConfig.client()).isEqualTo("myatlasdb");
+        assertThat(timeLockClientConfig.getClientOrThrow()).isEqualTo("test");
         assertThat(timeLockClientConfig.serversList().servers()).containsExactlyInAnyOrder(
                 "timelock1:8080", "timelock2:8080", "timelock3:8080");
         assertThat(timeLockClientConfig.serversList().sslConfiguration().isPresent()).isTrue();

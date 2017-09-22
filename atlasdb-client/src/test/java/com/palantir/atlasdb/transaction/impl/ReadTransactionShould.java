@@ -58,6 +58,7 @@ public class ReadTransactionShould {
             .put("getRows", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(EMPTY_BYTES), ColumnSelection.all()})
             .put("getRange", new Object[] {DUMMY_THOROUGH_TABLE, RangeRequest.all()})
             .put("getRanges", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(RangeRequest.all())})
+            .put("getRangesLazy", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(RangeRequest.all())})
             .build();
 
     private ReadTransaction readTransaction;
@@ -104,11 +105,12 @@ public class ReadTransactionShould {
     public void notAllowSimpleGetsOnThoroughTables() throws IllegalAccessException {
         Method[] declaredMethods = ReadTransaction.class.getDeclaredMethods();
 
-        for (Method m : declaredMethods) {
-            if (simpleGets.containsKey(m.getName())) {
+        for (Method method : declaredMethods) {
+            // Ignore methods that are either not simple gets or are overloaded
+            if (simpleGets.containsKey(method.getName()) && hasExpectedParameterCount(method)) {
                 checkThrowsAndNoInteraction(() -> {
                             try {
-                                m.invoke(readTransaction, simpleGets.get(m.getName()));
+                                method.invoke(readTransaction, simpleGets.get(method.getName()));
                             } catch (InvocationTargetException e) {
                                 Throwables.throwIfInstance(e.getCause(), IllegalStateException.class);
                             } catch (IllegalAccessException e) {
@@ -153,5 +155,9 @@ public class ReadTransactionShould {
             Assert.assertThat(e.getMessage(), containsString(errorMessage));
             verifyZeroInteractions(delegateTransaction);
         }
+    }
+
+    private boolean hasExpectedParameterCount(Method method) {
+        return simpleGets.get(method.getName()).length == method.getParameterCount();
     }
 }

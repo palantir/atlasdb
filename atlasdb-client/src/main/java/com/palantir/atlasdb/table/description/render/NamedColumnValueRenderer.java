@@ -21,6 +21,7 @@ import static com.palantir.atlasdb.table.description.render.ColumnRenderers.shor
 
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class NamedColumnValueRenderer extends Renderer {
     private final String tableName;
     private final String Name;

@@ -16,9 +16,13 @@ atlasdb:
       - cassandra1:9160
       - cassandra2:9160
       - cassandra3:9160
-    keyspace: atlasete
+    credentials:
+      username: cassandra
+      password: cassandra
     ssl: false
     replicationFactor: 3
+
+  namespace: atlasete
 
   leader:
     quorumSize: 1

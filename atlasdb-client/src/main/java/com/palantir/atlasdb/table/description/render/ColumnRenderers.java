@@ -22,7 +22,7 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
-public class ColumnRenderers {
+public final class ColumnRenderers {
     private ColumnRenderers() {
         // cannot instantiate
     }
@@ -31,23 +31,25 @@ public class ColumnRenderers {
         return Renderers.camelCase(col.getLongName());
     }
 
+    @SuppressWarnings("checkstyle:MethodName")
     static String VarName(NamedColumnDescription col) {
         return Renderers.CamelCase(col.getLongName());
     }
 
     static String typeName(NamedColumnDescription col) {
         switch (col.getValue().getFormat()) {
-        case PERSISTER:
-        case PERSISTABLE:
-        case PROTO:
-            return col.getValue().getJavaObjectTypeName();
-        case VALUE_TYPE:
-            return col.getValue().getValueType().getJavaClassName();
-        default:
-            throw new UnsupportedOperationException("Unsupported value type: " + col.getValue().getFormat());
+            case PERSISTER:
+            case PERSISTABLE:
+            case PROTO:
+                return col.getValue().getJavaObjectTypeName();
+            case VALUE_TYPE:
+                return col.getValue().getValueType().getJavaClassName();
+            default:
+                throw new UnsupportedOperationException("Unsupported value type: " + col.getValue().getFormat());
         }
     }
 
+    @SuppressWarnings("checkstyle:MethodName")
     static String TypeName(NamedColumnDescription col) {
         return col.getValue().getJavaObjectTypeName();
     }

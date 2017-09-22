@@ -43,7 +43,7 @@ public final class BlockConsumingInputStream extends InputStream {
 
     // we don't want to actually create a very large array in tests, as the external test VM would run out of memory.
     @VisibleForTesting
-    protected static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
+    static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
         int expectedBlockLength = blockGetter.expectedBlockLength();
         int maxBlocksInMemory = StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD / expectedBlockLength;
         long expectedBufferSize = (long) expectedBlockLength * (long) blocksInMemory;
@@ -85,9 +85,9 @@ public final class BlockConsumingInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-        Preconditions.checkNotNull(b, "Cannot read into a null array!");
-        if (off < 0 || len < 0 || len > b.length - off) {
+    public int read(byte[] bytes, int off, int len) throws IOException {
+        Preconditions.checkNotNull(bytes, "Cannot read into a null array!");
+        if (off < 0 || len < 0 || len > bytes.length - off) {
             throw new IndexOutOfBoundsException();
         }
         if (len == 0) {
@@ -98,7 +98,7 @@ public final class BlockConsumingInputStream extends InputStream {
         while (bytesRead < len) {
             int bytesLeftInBuffer = buffer.length - positionInBuffer;
             int bytesToCopy = Math.min(bytesLeftInBuffer, len - bytesRead);
-            System.arraycopy(buffer, positionInBuffer, b, off + bytesRead, bytesToCopy);
+            System.arraycopy(buffer, positionInBuffer, bytes, off + bytesRead, bytesToCopy);
             positionInBuffer += bytesToCopy;
             bytesRead += bytesToCopy;
 

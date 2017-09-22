@@ -172,8 +172,6 @@ public class CassandraClientPoolTest {
         runTwoNoopsOnTwoHostsAndThrowFromSecondRunOnFirstHost(
                 new SocketTimeoutException("test_socket_timeout_exception"));
         verifyAggregateFailureMetrics(0.25, 0.25);
-        verifyFailureMetricsOnHost(HOST_1, 0.5, 0.5);
-        verifyFailureMetricsOnHost(HOST_2, 0.0, 0.0);
     }
 
     @Test
@@ -181,8 +179,6 @@ public class CassandraClientPoolTest {
         runTwoNoopsOnTwoHostsAndThrowFromSecondRunOnFirstHost(
                 new NoSuchElementException("test_non_connection_exception"));
         verifyAggregateFailureMetrics(0.25, 0.0);
-        verifyFailureMetricsOnHost(HOST_1, 0.5, 0.0);
-        verifyFailureMetricsOnHost(HOST_2, 0.0, 0.0);
     }
 
     private void runTwoNoopsOnTwoHostsAndThrowFromSecondRunOnFirstHost(Exception exception) {

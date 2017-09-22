@@ -34,7 +34,7 @@ public interface GenericStreamStore<ID> {
      * Implemented in the generated StreamStore implementation.
      * Use this to look up stream IDs, given a hash of the corresponding InputStream's content.
      */
-    Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction t, final Set<Sha256Hash> hashes);
+    Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction tx, final Set<Sha256Hash> hashes);
 
     /**
      * @deprecated use #loadSingleStream instead.
@@ -42,21 +42,21 @@ public interface GenericStreamStore<ID> {
      * Returns an InputStream if such a stream exists, throwing an exception if no stream exists.
      */
     @Deprecated
-    InputStream loadStream(Transaction t, ID id);
+    InputStream loadStream(Transaction tx, ID id);
 
     /**
      * Loads the stream with ID id, returning {@code Optional.empty} if no such stream exists.
      */
-    Optional<InputStream> loadSingleStream(Transaction t, ID id);
+    Optional<InputStream> loadSingleStream(Transaction tx, ID id);
 
     /**
      * Loads the streams for each ID in ids.
      * If an id has no corresponding stream, it will be omitted from the returned map.
      */
-    Map<ID, InputStream> loadStreams(Transaction t, Set<ID> ids);
+    Map<ID, InputStream> loadStreams(Transaction tx, Set<ID> ids);
 
     /**
      * Loads the whole stream, and saves it to a local temporary file.
      */
-    File loadStreamAsFile(Transaction t, ID id);
+    File loadStreamAsFile(Transaction tx, ID id);
 }

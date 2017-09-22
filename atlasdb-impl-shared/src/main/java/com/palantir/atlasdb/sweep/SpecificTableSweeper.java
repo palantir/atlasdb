@@ -264,7 +264,7 @@ public class SpecificTableSweeper {
             return null;
         });
 
-        sweepMetrics.examinedCells(tableToSweep.getTableRef(), sweepResults.getCellTsPairsExamined());
-        sweepMetrics.deletedCells(tableToSweep.getTableRef(), sweepResults.getStaleValuesDeleted());
+        sweepMetrics.examinedCells(sweepResults.getCellTsPairsExamined());
+        sweepMetrics.deletedCells(sweepResults.getStaleValuesDeleted());
     }
 }

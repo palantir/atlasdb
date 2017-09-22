@@ -61,7 +61,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
 
@@ -236,11 +236,11 @@ public class TestTimestampCommand {
     private void runAndVerifyCli(Verifier verifier) throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(cliArgs.toArray(new String[0]))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
-            RemoteLockService rls = services.getLockService();
+            LockService lockService = services.getLockService();
             TimestampService tss = services.getTimestampService();
             LockClient client = services.getTestLockClient();
 
-            Clock clock = GlobalClock.create(rls);
+            Clock clock = GlobalClock.create(lockService);
             long prePunch = clock.getTimeMillis();
             punch(services, tss, clock);
             long postPunch = clock.getTimeMillis();
@@ -250,12 +250,12 @@ public class TestTimestampCommand {
                     .withLockedInVersionId(immutableTs)
                     .doNotBlock()
                     .build();
-            LockRefreshToken token = rls.lock(client.getClientId(), request);
+            LockRefreshToken token = lockService.lock(client.getClientId(), request);
             long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
 
             verifier.verify(runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, true);
 
-            rls.unlock(token);
+            lockService.unlock(token);
             lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
 
             // there are no locks so we now expect immutable to just be a fresh

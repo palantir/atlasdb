@@ -23,40 +23,40 @@ public class Renderers {
         // cannot instantiate
     }
 
-    public static String camelCase(String string) {
-        return camelCase(string, false);
-    }
-
     public static String CamelCase(String string) {
         return camelCase(string, true);
     }
 
+    public static String camelCase(String string) {
+        return camelCase(string, false);
+    }
+
     private static String camelCase(String string, boolean lastWasUnderscore) {
-        StringBuilder s = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < string.length(); i++) {
-            char c = string.charAt(i);
-            if (c != '_') {
+            char ch = string.charAt(i);
+            if (ch != '_') {
                 if (lastWasUnderscore) {
-                    s.append(Character.toUpperCase(c));
+                    sb.append(Character.toUpperCase(ch));
                 } else {
-                    s.append(c);
+                    sb.append(ch);
                 }
             }
-            lastWasUnderscore = c == '_';
+            lastWasUnderscore = ch == '_';
         }
-        return s.toString();
+        return sb.toString();
     }
 
     static String lower_case(String string) {
-        StringBuilder s = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < string.length(); i++) {
-            char c = string.charAt(i);
-            if (Character.isUpperCase(c)) {
-                s.append('_');
+            char ch = string.charAt(i);
+            if (Character.isUpperCase(ch)) {
+                sb.append('_');
             }
-            s.append(Character.toLowerCase(c));
+            sb.append(Character.toLowerCase(ch));
         }
-        return s.toString();
+        return sb.toString();
     }
 
     static String UPPER_CASE(String string) {

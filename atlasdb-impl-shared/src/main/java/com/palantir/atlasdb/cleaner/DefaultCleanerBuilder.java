@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
@@ -46,7 +46,7 @@ public class DefaultCleanerBuilder {
     private boolean initalizeAsync = AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
 
     public DefaultCleanerBuilder(KeyValueService keyValueService,
-            RemoteLockService lockService,
+            LockService lockService,
             TimestampService timestampService,
             LockClient lockClient,
             List<? extends Follower> followerList,
