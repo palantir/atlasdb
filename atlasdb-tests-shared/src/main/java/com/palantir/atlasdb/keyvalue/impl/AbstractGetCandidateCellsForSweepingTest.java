@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.junit.AfterClass;
@@ -29,6 +30,8 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -66,7 +69,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void returnCandidateIfPossiblyUncommittedTimestamp() {
-        testDataBuilder().put(1, 1, 10L).store();
+        new TestDataBuilder().put(1, 1, 10L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 5L)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
@@ -78,13 +81,13 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void doNotReturnCandidateIfOnlyCommittedTimestamp() {
-        testDataBuilder().put(1, 1, 10L).store();
+        new TestDataBuilder().put(1, 1, 10L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L))).isEmpty();
     }
 
     @Test
     public void returnCandidateIfTwoCommittedTimestamps() {
-        testDataBuilder().put(1, 1, 10L).put(1, 1, 20L).store();
+        new TestDataBuilder().put(1, 1, 10L).put(1, 1, 20L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
@@ -96,13 +99,13 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void doNotReturnCandidateWithCommitedEmptyValueIfConservative() {
-        testDataBuilder().putEmpty(1, 1, 10L).store();
+        new TestDataBuilder().putEmpty(1, 1, 10L).store();
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L))).isEmpty();
     }
 
     @Test
     public void returnCandidateWithCommitedEmptyValueIfThorough() {
-        testDataBuilder().putEmpty(1, 1, 10L).store();
+        new TestDataBuilder().putEmpty(1, 1, 10L).store();
         assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
@@ -114,7 +117,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void returnCellsInOrder() {
-        testDataBuilder()
+        new TestDataBuilder()
                 .putEmpty(1, 1, 10L)
                 .putEmpty(1, 2, 10L)
                 .putEmpty(2, 2, 10L)
@@ -129,7 +132,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void startFromGivenRow() {
-        testDataBuilder()
+        new TestDataBuilder()
                 .putEmpty(1, 1, 10L)
                 .putEmpty(1, 2, 10L)
                 .putEmpty(2, 1, 10L)
@@ -144,7 +147,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     @Test
     public void largerTableWithSmallBatchSizeReturnsCorrectResults() {
-        TestDataBuilder builder = testDataBuilder();
+        TestDataBuilder builder = new TestDataBuilder();
         List<Cell> expectedCells = Lists.newArrayList();
         for (int rowNum = 1; rowNum <= 50; ++rowNum) {
             for (int colNum = 1; colNum <= rowNum; ++colNum) {
@@ -201,14 +204,6 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .shouldCheckIfLatestValueIsEmpty(true)
                 .timestampsToIgnore()
                 .build();
-    }
-
-    private Cell cell(int row, int col) {
-        return TestDataBuilder.cell(row, col);
-    }
-
-    private static TestDataBuilder testDataBuilder() {
-        return new TestDataBuilder(kvs, TEST_TABLE);
     }
 
     public class TestDataBuilder {
