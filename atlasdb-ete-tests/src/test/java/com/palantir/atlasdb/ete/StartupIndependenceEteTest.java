@@ -77,7 +77,7 @@ public class StartupIndependenceEteTest {
             throws IOException, InterruptedException {
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
-//        assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
+        assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
         startCassandraNodes(ALL_CASSANDRA_NODES);
         assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
 

@@ -61,38 +61,37 @@ public final class CassandraKeyValueServices {
     }
 
     static void waitForSchemaVersions(
+            CassandraKeyValueServiceConfig config,
             Cassandra.Client client,
-            String tableName,
-            int schemaTimeoutMillis)
+            String tableName)
             throws TException {
-        waitForSchemaVersions(client, tableName, schemaTimeoutMillis, false);
+        waitForSchemaVersions(config, client, tableName, false);
     }
 
     static void waitForSchemaVersions(
+            CassandraKeyValueServiceConfig config,
             Cassandra.Client client,
             String tableName,
-            int schemaTimeoutMillis,
             boolean allowUnresponsiveNode)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
         do {
+            // This only returns the schema versions of nodes that the client knows exist. In particular, if a node we
+            // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
+            // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            log.info("Versions in waitForSchemaVersions: {}", versions);
-            log.info("Values in check: {}, {}", versions.size(), versions.values().iterator().next().size());
-            if (versions.size() <= 1 && versions.values().iterator().next().size() == 3) {
-                log.info("Schema versions: {}", versions);
+            if (versions.size() <= 1 && getNumberOfNodes(versions) == config.servers().size()) {
                 return;
             }
-            if (versions.size() == 1) log.info("WE WOULD HAVE FAILED");
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
                 throw Throwables.throwUncheckedException(e);
             }
             sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
-        } while (System.currentTimeMillis() < start + schemaTimeoutMillis);
+        } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
 
         StringBuilder sb = new StringBuilder();
         final String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
@@ -117,6 +116,10 @@ public final class CassandraKeyValueServices {
         }
     }
 
+    private static int getNumberOfNodes(Map<String, List<String>> versions) {
+        return versions.values().stream().mapToInt(List::size).sum();
+    }
+
     private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(Map<String, List<String>> versions) {
         return versions.entrySet().size() == 2
                 && versions.keySet().contains("UNREACHABLE")
@@ -131,15 +134,12 @@ public final class CassandraKeyValueServices {
     static void warnUserInInitializationIfClusterAlreadyInInconsistentState(
             CassandraClientPool clientPool,
             CassandraKeyValueServiceConfig config) {
-        String warnMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
-                + " could not settle. Be aware that some operations will not work while you are in your current"
-                + " cluster status.";
         try {
             clientPool.run(client -> {
                 waitForSchemaVersions(
+                        config,
                         client,
                         "(none, just an initialization check)",
-                        config.schemaMutationTimeoutMillis(),
                         true);
                 return null;
             });

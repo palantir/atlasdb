@@ -209,9 +209,9 @@ public final class CassandraVerifier {
         client.system_add_keyspace(ks);
         log.info("Created keyspace: {}", config.keyspace());
         CassandraKeyValueServices.waitForSchemaVersions(
+                config,
                 client,
-                "(adding the initial empty keyspace)",
-                config.schemaMutationTimeoutMillis());
+                "(adding the initial empty keyspace)");
         log.info("Client keyspaces: {}", client.describe_keyspaces());
     }
 
@@ -245,9 +245,9 @@ public final class CassandraVerifier {
                 modifiedKsDef.setCf_defs(ImmutableList.of());
                 client.system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
+                        config,
                         client,
-                        "(updating the existing keyspace)",
-                        config.schemaMutationTimeoutMillis());
+                        "(updating the existing keyspace)");
             }
 
             return null;
