@@ -33,7 +33,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class AsyncInitializerTest {
-    public static final int ASYNC_INIT_DELAY = 10;
+    private static final int ASYNC_INIT_DELAY = 10;
+    private static final int FIVE = 5;
 
     private class AlwaysFailingInitializer extends AsyncInitializer {
         volatile int initializationAttempts = 0;
@@ -105,7 +106,7 @@ public class AsyncInitializerTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
         tickSchedulerFiveTimes(initializer);
-        assertThat(initializer.initializationAttempts).isEqualTo(1 + 5);
+        assertThat(initializer.initializationAttempts).isEqualTo(1 + FIVE);
     }
 
     @Test
@@ -113,7 +114,7 @@ public class AsyncInitializerTest {
         AlwaysFailingInitializer eventuallySuccessfulInitializer = new AlwaysFailingInitializer() {
             @Override
             public void tryInitialize() {
-                if (initializationAttempts < 5) {
+                if (initializationAttempts < FIVE) {
                     super.tryInitialize();
                 }
             }
@@ -168,6 +169,6 @@ public class AsyncInitializerTest {
     }
 
     private void tickSchedulerFiveTimes(AlwaysFailingInitializer initializer) {
-        initializer.deterministicScheduler.tick(ASYNC_INIT_DELAY * 5 + 1, TimeUnit.MILLISECONDS);
+        initializer.deterministicScheduler.tick(ASYNC_INIT_DELAY * FIVE + 1, TimeUnit.MILLISECONDS);
     }
 }
