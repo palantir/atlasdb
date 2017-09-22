@@ -79,10 +79,13 @@ public final class CassandraKeyValueServices {
         Map<String, List<String>> versions;
         do {
             versions = client.describe_schema_versions();
-            if (versions.size() <= 1) {
+            log.info("Versions in waitForSchemaVersions: {}", versions);
+            log.info("Values in check: {}, {}", versions.size(), versions.values().iterator().next().size());
+            if (versions.size() <= 1 && versions.values().iterator().next().size() == 3) {
                 log.info("Schema versions: {}", versions);
                 return;
             }
+            if (versions.size() == 1) log.info("WE WOULD HAVE FAILED");
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
