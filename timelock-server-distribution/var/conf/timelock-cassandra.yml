@@ -1,0 +1,30 @@
+clients:
+  - test
+  - test2
+  - atlasete
+
+cluster:
+  localServer: localhost:8421
+  servers:
+    - localhost:8421
+
+algorithm:
+  type: timestampBoundStore
+  key-value-service:
+    type: cassandra
+    keyspace: atlasete
+    servers:
+      - cassandra:9160
+    poolSize: 20
+    credentials:
+      username: cassandra
+      password: cassandra
+    ssl: false
+    replicationFactor: 1
+server:
+  applicationConnectors:
+    - type: http
+      port: 8421
+  adminConnectors:
+    - type: http
+      port: 8422
