@@ -32,8 +32,6 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.jayway.awaitility.Awaitility;
-
 public class AsyncInitializerTest {
     public static final int ASYNC_INIT_DELAY = 10;
 
@@ -85,7 +83,7 @@ public class AsyncInitializerTest {
     }
 
     @Test
-    public void initializationAlwaysFailsAfterTheFirstAsynchronousTry() {
+    public void initializationAlwaysFailsAfterTheFirstSynchronousTry() {
         AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
 
         assertThatThrownBy(() -> initializer.initialize(false))
@@ -94,19 +92,20 @@ public class AsyncInitializerTest {
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
+        tickSchedulerFiveTimes(initializer);
         assertThat(initializer.initializationAttempts).isEqualTo(1);
     }
 
     @Test
-    public void initializationAlwaysFailsAfterTheFirstSynchronousTry() {
+    public void initializationAlwaysFailsAfterTheFirstAsynchronousTry() {
         AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
 
         initializer.initialize(true);
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
-        initializer.deterministicScheduler.tick(0, TimeUnit.SECONDS);
-        assertThat(initializer.initializationAttempts).isEqualTo(1);
+        tickSchedulerFiveTimes(initializer);
+        assertThat(initializer.initializationAttempts).isEqualTo(1 + 5);
     }
 
     @Test
@@ -122,13 +121,22 @@ public class AsyncInitializerTest {
 
         eventuallySuccessfulInitializer.initialize(true);
         assertFalse(eventuallySuccessfulInitializer.isInitialized());
-        eventuallySuccessfulInitializer.deterministicScheduler.tick(5 * ASYNC_INIT_DELAY + 1, TimeUnit.MILLISECONDS);
+        tickSchedulerFiveTimes(eventuallySuccessfulInitializer);
         assertThat(eventuallySuccessfulInitializer.isInitialized()).isTrue();
     }
 
     @Test
-    public void canCancelInitializationAndPerformCleanupIfInitialized() throws InterruptedException {
+    public void canCancelInitializationAndNoCleanupIfNotInitialized() throws InterruptedException {
         AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
+        Runnable cleanupTask = mock(Runnable.class);
+        doNothing().when(cleanupTask).run();
+
+        initializeAsyncCancelAndVerifyCancelled(initializer, cleanupTask);
+        verify(cleanupTask, never()).run();
+    }
+
+    @Test
+    public void canCancelInitializationAndCleanupIfInitialized() throws InterruptedException {
         AlwaysFailingInitializer successfulInitializer = new AlwaysFailingInitializer() {
             @Override
             public boolean isInitialized() {
@@ -137,9 +145,6 @@ public class AsyncInitializerTest {
         };
         Runnable cleanupTask = mock(Runnable.class);
         doNothing().when(cleanupTask).run();
-
-        initializeAsyncCancelAndVerifyCancelled(initializer, cleanupTask);
-        verify(cleanupTask, never()).run();
 
         initializeAsyncCancelAndVerifyCancelled(successfulInitializer, cleanupTask);
         verify(cleanupTask).run();
@@ -158,7 +163,11 @@ public class AsyncInitializerTest {
         initializer.initialize(true);
         initializer.cancelInitialization(cleanupTask);
         int numberOfAttemptsWhenCancelled = initializer.initializationAttempts;
-        initializer.deterministicScheduler.tick(ASYNC_INIT_DELAY * 5 + 1, TimeUnit.MILLISECONDS);
+        tickSchedulerFiveTimes(initializer);
         assertThat(initializer.initializationAttempts).isEqualTo(numberOfAttemptsWhenCancelled);
+    }
+
+    private void tickSchedulerFiveTimes(AlwaysFailingInitializer initializer) {
+        initializer.deterministicScheduler.tick(ASYNC_INIT_DELAY * 5 + 1, TimeUnit.MILLISECONDS);
     }
 }
