@@ -70,7 +70,7 @@ v0.58.0
 
     *    - |fixed|
          - KVS migration no longer fails when the old ``_scrub`` table is present.
-           This allows users who have not performed the `Scrub migration<https://github.com/palantir/atlasdb/pull/2232>`__ to perform KVS migrations.
+           This allows users who have not performed the `Scrub migration <https://github.com/palantir/atlasdb/pull/2232>`__ to perform KVS migrations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
 
     *    - |fixed|
