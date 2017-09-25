@@ -25,7 +25,7 @@ import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class KvsCasBenchmark extends AbstractBenchmark {
+public final class KvsCasBenchmark extends AbstractBenchmark {
 
     private final KeyValueService keyValueService;
 

@@ -28,7 +28,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public abstract class AbstractWriteTransactionBenchmark extends AbstractBenchmark {
 
     private final TransactionManager txnManager;
-    protected final List<byte[]> values;
+    private final List<byte[]> allValues;
 
     protected final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
 
@@ -38,7 +38,7 @@ public abstract class AbstractWriteTransactionBenchmark extends AbstractBenchmar
 
         this.txnManager = txnManager;
 
-        this.values = IntStream.range(0, numRows)
+        this.allValues = IntStream.range(0, numRows)
                 .mapToObj(i -> RandomBytes.ofLength(dataSize))
                 .collect(Collectors.toList());
     }
@@ -46,7 +46,7 @@ public abstract class AbstractWriteTransactionBenchmark extends AbstractBenchmar
     @Override
     public final void performOneCall() {
         txnManager.runTaskWithRetry(txn -> {
-            writeValues(txn, values);
+            writeValues(txn, allValues);
             return null;
         });
     }

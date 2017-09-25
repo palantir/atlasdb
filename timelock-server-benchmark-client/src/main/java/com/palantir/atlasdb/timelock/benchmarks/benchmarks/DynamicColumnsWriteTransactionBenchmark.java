@@ -27,7 +27,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class DynamicColumnsWriteTransactionBenchmark extends AbstractWriteTransactionBenchmark {
+public final class DynamicColumnsWriteTransactionBenchmark extends AbstractWriteTransactionBenchmark {
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient, int numRows, int dataSize) {

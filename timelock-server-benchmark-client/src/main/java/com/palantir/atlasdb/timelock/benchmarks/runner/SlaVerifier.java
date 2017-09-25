@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.perf;
+package com.palantir.atlasdb.timelock.benchmarks.runner;
 
 
 import static org.assertj.core.api.Assertions.assertThat;

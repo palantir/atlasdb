@@ -32,7 +32,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable.Blob
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class RowsReadTransactionBenchmark extends AbstractBenchmark {
+public final class RowsReadTransactionBenchmark extends AbstractBenchmark {
 
     private static final Logger log = LoggerFactory.getLogger(RowsReadTransactionBenchmark.class);
 
@@ -46,7 +46,8 @@ public class RowsReadTransactionBenchmark extends AbstractBenchmark {
         return new RowsReadTransactionBenchmark(txnManager, numClients, requestsPerClient, numRows, dataSize).execute();
     }
 
-    private RowsReadTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient, int numRows, int dataSize) {
+    private RowsReadTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient,
+            int numRows, int dataSize) {
         super(numClients, requestsPerClient);
         this.txnManager = txnManager;
 

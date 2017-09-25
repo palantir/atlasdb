@@ -18,16 +18,16 @@ package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.security.SecureRandom;
 
-public class RandomBytes {
+public final class RandomBytes {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private RandomBytes() { }
 
     public static byte[] ofLength(int dataSize) {
-       byte[] result = new byte[dataSize];
-       RANDOM.nextBytes(result);
-       return result;
+        byte[] result = new byte[dataSize];
+        RANDOM.nextBytes(result);
+        return result;
     }
 
 }

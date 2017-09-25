@@ -34,6 +34,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
 public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
+    private static final int ACQUIRE_TIMEOUT_MS = 50_000;
+
     private final TimelockService timelock;
     private final List<LockDescriptor> lockDescriptors;
     private final AtomicLong counter = new AtomicLong(0);
@@ -70,6 +72,6 @@ public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
 
     private LockRequest nextRequest() {
         LockDescriptor lockDescriptor = lockDescriptors.get((int) (counter.incrementAndGet() % lockDescriptors.size()));
-        return LockRequest.of(ImmutableSet.of(lockDescriptor), 50_000);
+        return LockRequest.of(ImmutableSet.of(lockDescriptor), ACQUIRE_TIMEOUT_MS);
     }
 }

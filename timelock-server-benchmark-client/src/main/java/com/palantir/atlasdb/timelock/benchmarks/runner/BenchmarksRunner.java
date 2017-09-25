@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.perf;
+package com.palantir.atlasdb.timelock.benchmarks.runner;
 
 import org.junit.Test;
 
@@ -82,7 +82,7 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     }
     @Test
     public void dynamicColumnsRangeScan() {
-        runAndPrintResults(() -> client.rangeScanDynamicColumns(16, 20, 1000, 10_000));
+        runAndPrintResults(() -> client.rangeScanDynamicColumns(1, 20, 200, 1_000));
     }
 
 }

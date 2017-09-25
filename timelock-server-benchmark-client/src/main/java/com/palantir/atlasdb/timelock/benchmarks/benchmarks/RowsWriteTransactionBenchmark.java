@@ -25,11 +25,12 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class RowsWriteTransactionBenchmark extends AbstractWriteTransactionBenchmark {
+public final class RowsWriteTransactionBenchmark extends AbstractWriteTransactionBenchmark {
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient, int numRows, int dataSize) {
-        return new RowsWriteTransactionBenchmark(txnManager, numClients, requestsPerClient, numRows, dataSize).execute();
+        return new RowsWriteTransactionBenchmark(txnManager, numClients, requestsPerClient, numRows,
+                dataSize).execute();
     }
 
     private RowsWriteTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient,

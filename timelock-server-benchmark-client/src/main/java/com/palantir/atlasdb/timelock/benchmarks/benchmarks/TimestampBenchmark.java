@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.timestamp.TimestampService;
 
-public class TimestampBenchmark extends AbstractBenchmark {
+public final class TimestampBenchmark extends AbstractBenchmark {
 
     private final TimestampService timestampService;
 

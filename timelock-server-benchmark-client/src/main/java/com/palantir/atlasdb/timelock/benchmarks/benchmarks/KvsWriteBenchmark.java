@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class KvsWriteBenchmark extends AbstractBenchmark {
+public final class KvsWriteBenchmark extends AbstractBenchmark {
 
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
 

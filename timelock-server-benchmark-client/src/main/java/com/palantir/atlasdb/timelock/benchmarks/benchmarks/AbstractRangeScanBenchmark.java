@@ -37,13 +37,21 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.MetadataTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
+/**
+ * A base class for implementing range scan benchmarks. A primary function of this class is to store metadata
+ * about previous data that has been written, so that multiple benchmarks with the same parameters will just
+ * read the same data rather than writing new data for each benchmarks. Besides optimizing the time taken, this
+ * allows us to run compactions the KVS before reading the data.
+ */
 public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractRangeScanBenchmark.class);
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final SerializableTransactionManager txnManager;
 
-    private static final int MAX_BYTES_PER_WRITE = (int)(10_000_000 * 0.9);
+    private static final int MAX_BYTES_PER_WRITE = (int) (10_000_000 * 0.9);
 
     private final int dataSize;
     private final int numRows;
@@ -147,7 +155,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
     private static byte[] serialize(Metadata metadata) {
         try {
-            return new ObjectMapper().writeValueAsBytes(metadata);
+            return MAPPER.writeValueAsBytes(metadata);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -155,7 +163,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
     private static Metadata deserialize(byte[] blob) {
         try {
-            return new ObjectMapper().readValue(blob, Metadata.class);
+            return MAPPER.readValue(blob, Metadata.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -168,12 +176,12 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
     }
 
-    private final static class Metadata {
+    private static final class Metadata {
 
         @JsonProperty("bucket")
         String bucket;
 
-        public Metadata(String bucket) {
+        Metadata(@JsonProperty("bucket") String bucket) {
             this.bucket = bucket;
         }
     }

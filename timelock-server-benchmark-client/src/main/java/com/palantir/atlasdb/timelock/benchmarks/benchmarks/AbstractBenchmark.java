@@ -169,12 +169,12 @@ public abstract class AbstractBenchmark {
 
     private double getPercentile(double percentile) {
         double count = sortedTimes.length;
-        int index = (int)(count * percentile);
+        int index = (int) (count * percentile);
         return sortedTimes[index] / 1_000_000.0;
     }
 
     public double getThroughput() {
-        return (double)(numClients * requestsPerClient) / (totalTime / 1_000_000_000.0);
+        return (double) (numClients * requestsPerClient) / (totalTime / 1_000_000_000.0);
     }
 
 }

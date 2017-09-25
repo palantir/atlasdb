@@ -23,11 +23,11 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvRowsRow;
+import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvRowsTable.KvRowsRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class RowsRangeScanBenchmark extends AbstractRangeScanBenchmark {
-
+public final class RowsRangeScanBenchmark extends AbstractRangeScanBenchmark {
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient, int dataSize, int numRows) {
@@ -59,7 +59,7 @@ public class RowsRangeScanBenchmark extends AbstractRangeScanBenchmark {
                         .batchHint(batchSize)
                         .build())
                 .hintBatchSize(batchSize)
-                .transform(rr -> rr.getData())
+                .transform(KvRowsRowResult::getData)
                 .immutableCopy();
     }
 

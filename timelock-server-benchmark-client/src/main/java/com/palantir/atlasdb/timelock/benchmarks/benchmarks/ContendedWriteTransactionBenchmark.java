@@ -30,7 +30,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializab
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
+public final class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
 
     private static final Logger log = LoggerFactory.getLogger(ContendedWriteTransactionBenchmark.class);
 

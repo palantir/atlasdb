@@ -30,7 +30,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class DynamicColumnsRangeScanBenchmark extends AbstractRangeScanBenchmark {
+public final class DynamicColumnsRangeScanBenchmark extends AbstractRangeScanBenchmark {
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
             int requestsPerClient, int dataSize, int numRows) {

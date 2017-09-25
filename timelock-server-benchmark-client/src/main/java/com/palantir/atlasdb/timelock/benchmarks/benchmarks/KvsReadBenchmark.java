@@ -27,7 +27,7 @@ import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public class KvsReadBenchmark extends AbstractBenchmark {
+public final class KvsReadBenchmark extends AbstractBenchmark {
 
     private static final TableReference TABLE = BenchmarksSchema.BLOBS_TABLE_REF;
 
@@ -44,6 +44,7 @@ public class KvsReadBenchmark extends AbstractBenchmark {
         super(numClients, numRequestsPerClient);
         this.keyValueService = keyValueService;
     }
+
     @Override
     public void setup() {
         keyValueService.put(TABLE, ImmutableMap.of(cell, data), 100L);

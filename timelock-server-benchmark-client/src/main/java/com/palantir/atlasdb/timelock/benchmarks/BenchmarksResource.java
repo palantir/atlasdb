@@ -45,7 +45,8 @@ public class BenchmarksResource implements BenchmarksService {
     public BenchmarksResource(AtlasDbConfig config) {
         this.config = config;
         this.txnManager = TransactionManagers.create(config, () -> Optional.empty(),
-                ImmutableSet.of(BenchmarksSchema.SCHEMA), res -> { }, true);
+                ImmutableSet.of(BenchmarksSchema.SCHEMA), res -> {
+                }, true);
     }
 
     @Override
@@ -57,7 +58,8 @@ public class BenchmarksResource implements BenchmarksService {
     @Override
     public Map<String, Object> writeTransactionDynamicColumns(int numClients, int numRequestsPerClient, int numRows,
             int dataSize) {
-        return DynamicColumnsWriteTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
+        return DynamicColumnsWriteTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows,
+                dataSize);
     }
 
     @Override
@@ -109,6 +111,7 @@ public class BenchmarksResource implements BenchmarksService {
     @Override
     public Map<String, Object> rangeScanDynamicColumns(int numClients, int numRequestsPerClient, int dataSize,
             int numRows) {
-        return DynamicColumnsRangeScanBenchmark.execute(txnManager, numClients, numRequestsPerClient, dataSize, numRows);
+        return DynamicColumnsRangeScanBenchmark.execute(txnManager, numClients, numRequestsPerClient, dataSize,
+                numRows);
     }
 }

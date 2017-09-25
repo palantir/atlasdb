@@ -47,9 +47,10 @@ public class TimelockBenchmarkClientLauncher extends Application<TimelockBenchma
 
     @Override
     public void run(TimelockBenchmarkClientConfig configuration, Environment environment) throws Exception {
-        FeignOkHttpClients.globalClientSetttings = client -> client.hostnameVerifier((a, b) -> true);
+        FeignOkHttpClients.globalClientSetttings = client -> client.hostnameVerifier((ig, nored) -> true);
 
         environment.jersey().register(new BenchmarksResource(configuration.getAtlas()));
-        environment.jersey().register(HttpRemotingJerseyFeature.with(HttpRemotingJerseyFeature.StacktracePropagation.PROPAGATE));
+        environment.jersey().register(
+                HttpRemotingJerseyFeature.with(HttpRemotingJerseyFeature.StacktracePropagation.PROPAGATE));
     }
 }
