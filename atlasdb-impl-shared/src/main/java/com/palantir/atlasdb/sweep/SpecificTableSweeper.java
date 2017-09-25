@@ -139,8 +139,8 @@ public class SpecificTableSweeper {
             log.info("Swept successfully.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("unique cells swept", results.getCellTsPairsExamined()),
-                    SafeArg.of("deletion count", results.getStaleValuesDeleted()),
+                    SafeArg.of("cell+ts pairs examined", results.getCellTsPairsExamined()),
+                    SafeArg.of("cell+ts pairs deleted", results.getStaleValuesDeleted()),
                     SafeArg.of("time taken", elapsedMillis),
                     SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
             sweepPerfLogger.logSweepResults(
@@ -201,8 +201,8 @@ public class SpecificTableSweeper {
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
             log.info("Finished sweeping.",
                     LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
-                    SafeArg.of("unique cells examined count", cellsExamined),
-                    SafeArg.of("stale values deleted count", staleValuesDeleted));
+                    SafeArg.of("cell+ts pairs examined", cellsExamined),
+                    SafeArg.of("cell+ts pairs deleted", staleValuesDeleted));
             sweepProgressStore.clearProgress();
         }
     }
