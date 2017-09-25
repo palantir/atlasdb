@@ -246,7 +246,8 @@ public class TableClassRendererV2 {
 
     private MethodSpec renderNamedGetColumn(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns the value for column $L and specified row components.", VarName(col));
 
         getterBuilder = addParametersFromRowComponents(getterBuilder, tableMetadata);
 
@@ -280,6 +281,10 @@ public class TableClassRendererV2 {
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns a mapping from row keys to value at column $L. Ordering in the\n"
+                        + "map is not guaranteed. As the values are all loaded in memory, do not use\n"
+                        + "for large amounts of data. If the column does not exist for a key, the entry\n"
+                        + "will be omitted from the map.", VarName(col))
                 .addParameter(
                         ParameterizedTypeName.get(
                                 ClassName.get(Iterable.class),
@@ -321,6 +326,10 @@ public class TableClassRendererV2 {
     private MethodSpec renderNamedGetSeveralRowObjects(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns a mapping from row objects to value at column $L. Ordering in the\n"
+                        + "map is not guaranteed. As the values are all loaded in memory, do not use\n"
+                        + "for large amounts of data. If the column does not exist for a key, the entry\n"
+                        + "will be omitted from the map.", VarName(col))
                 .addParameter(ParameterizedTypeName.get(ClassName.get(Iterable.class), rowType), "rowKeys");
 
         getterBuilder.returns(ParameterizedTypeName.get(
@@ -354,7 +363,10 @@ public class TableClassRendererV2 {
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns a mapping from all the row keys to their value at column $L (if that column exists).\n"
+                        + "Ordering in the map is not guaranteed. As the values are all loaded in memory, do not use\n"
+                        + "for large amounts of data. ", VarName(col));
 
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class),
@@ -374,7 +386,11 @@ public class TableClassRendererV2 {
 
     private MethodSpec renderNamedGetAllRowsObjects(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns a mapping from all the row objects to their value at column $L\n"
+                        + "(if that column exists). Ordering in the map is not guaranteed.\n"
+                        + "As the values are all loaded in memory, do not use for large amounts of data.",
+                        VarName(col));
 
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class), rowType, ClassName.get(getColumnTypeClass(col))));
@@ -396,6 +412,9 @@ public class TableClassRendererV2 {
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
+                .addJavadoc("Returns a mapping from all the row keys in a rangeRequest to their value at column $L\n"
+                        + "(if that column exists). Ordering in the map is not guaranteed. As the values are all\n"
+                        + "loaded in memory, do not use for large amounts of data. ", VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(Map.class),
@@ -409,7 +428,7 @@ public class TableClassRendererV2 {
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
                 .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
-                        Preconditions.class, "Must not request additional columns.")
+                        Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
                 .addStatement("return $T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".immutableCopy()\n"
                                 + ".stream()\n"
@@ -426,6 +445,9 @@ public class TableClassRendererV2 {
     private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col, boolean shouldBePublic) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
+                .addJavadoc("Returns a mapping from all the row keys in a RangeRequest to their value at column $L\n"
+                        + "(if that column exists). Ordering in the map is not guaranteed. As the values are all\n"
+                        + "loaded in memory, do not use for large amounts of data. ", VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                             ClassName.get(Map.class),
@@ -464,7 +486,8 @@ public class TableClassRendererV2 {
 
     private MethodSpec renderNamedDeleteRow() {
         MethodSpec.Builder deleteRowBuilder = MethodSpec.methodBuilder("deleteRow")
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Delete all columns for specified row components.");
 
         deleteRowBuilder = addParametersFromRowComponents(deleteRowBuilder, tableMetadata);
 
@@ -484,9 +507,9 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedDeleteColumn(NamedColumnDescription col) {
-        MethodSpec.Builder deleteColumnBuilder =
-                MethodSpec.methodBuilder("delete" + VarName(col))
-                        .addModifiers(Modifier.PUBLIC);
+        MethodSpec.Builder deleteColumnBuilder = MethodSpec.methodBuilder("delete" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Delete the value at column $L (if it exists) for the specified row-key.", VarName(col));
 
         deleteColumnBuilder = addParametersFromRowComponents(deleteColumnBuilder, tableMetadata);
 
@@ -512,6 +535,7 @@ public class TableClassRendererV2 {
 
     private MethodSpec renderNamedPutColumn(NamedColumnDescription col) {
         MethodSpec.Builder putColumnBuilder = MethodSpec.methodBuilder("put" + VarName(col))
+                .addJavadoc("Takes the row-keys and a value to be inserted at column $L.", VarName(col))
                 .addModifiers(Modifier.PUBLIC);
 
         putColumnBuilder = addParametersFromRowComponents(putColumnBuilder, tableMetadata);
@@ -526,9 +550,10 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedUpdateColumn(NamedColumnDescription col) {
-        MethodSpec.Builder updateColumnIfExistsBuilder =
-                MethodSpec.methodBuilder("update" + VarName(col))
-                        .addModifiers(Modifier.PUBLIC);
+        MethodSpec.Builder updateColumnIfExistsBuilder = MethodSpec.methodBuilder("update" + VarName(col))
+                .addJavadoc("Takes a function that would update the value at column $L, for the specified row\n"
+                        + "components. No effect if there is no value at that column.", VarName(col))
+                .addModifiers(Modifier.PUBLIC);
 
         updateColumnIfExistsBuilder = addParametersFromRowComponents(updateColumnIfExistsBuilder, tableMetadata);
         updateColumnIfExistsBuilder.addParameter(ParameterizedTypeName.get(
