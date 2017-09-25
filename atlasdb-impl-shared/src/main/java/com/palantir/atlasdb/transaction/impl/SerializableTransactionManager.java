@@ -76,7 +76,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * use the delegate instead.
      */
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, 0);
+        this(null, null, null, null, null, null, null, null, null, 1);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
