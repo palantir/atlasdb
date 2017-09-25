@@ -1127,10 +1127,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                      Set<TableReference> tableRefs,
                                      Map<ByteBuffer, Map<String, List<Mutation>>> map,
                                      ConsistencyLevel consistency) throws TException {
-        return queryRunner.trace(() -> {
+        return queryRunner.run(client, tableRefs, () -> {
             client.batch_mutate(map, consistency);
             return null;
-        }, client, tableRefs);
+        });
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(

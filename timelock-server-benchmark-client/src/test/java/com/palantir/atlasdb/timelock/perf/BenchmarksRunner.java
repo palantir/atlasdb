@@ -18,28 +18,11 @@ package com.palantir.atlasdb.timelock.perf;
 
 import org.junit.Test;
 
-import com.google.common.hash.Hashing;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.table.description.ValueType;
-
 /**
  * Note that there is no warmup time included in any of these tests, so if the server has just been started you'll want
  * to execute many requests until the results stabilize (give the JIT compiler time to optimize).
  */
 public class BenchmarksRunner extends BenchmarkRunnerBase {
-
-    @Test
-    public void warmup() {
-        runAndPrintResults(client::timestamp, 8, 20000);
-        runAndPrintResults(client::lockAndUnlockUncontended, 8, 10000);
-    }
-
-    @Test
-    public void hash() {
-        long value = Hashing.murmur3_128().hashBytes(ValueType.VAR_STRING.convertFromJava("ri.compass.main.folder.0")).asLong();
-        byte[] hash = ValueType.FIXED_LONG.convertFromJava(value);
-        System.out.println("0x" + PtBytes.encodeHexString(hash));
-    }
 
     @Test
     public void timestamp() {
@@ -57,13 +40,19 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     }
 
     @Test
-    public void writeTransaction() {
-        runAndPrintResults(() -> client.writeTransaction(1, 20, 1000, 200));
+    public void writeTransactionRows() {
+        runAndPrintResults(() -> client.writeTransactionRows(1, 20, 1000, 200));
     }
 
     @Test
-    public void readTransaction() {
-        runAndPrintResults(() -> client.readTransaction(1, 20, 10_000, 200));
+    public void writeTransactionDynamicColumns() {
+        runAndPrintResults(() -> client.writeTransactionDynamicColumns(1, 20, 1000, 200));
+    }
+
+
+    @Test
+    public void readTransactionRows() {
+        runAndPrintResults(() -> client.readTransactionRows(1, 20, 10_000, 200));
     }
 
     @Test

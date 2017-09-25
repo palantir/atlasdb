@@ -20,13 +20,13 @@ import java.security.SecureRandom;
 
 public class RandomBytes {
 
-    private static final SecureRandom random = new SecureRandom();
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private RandomBytes() { }
 
     public static byte[] ofLength(int dataSize) {
        byte[] result = new byte[dataSize];
-       random.nextBytes(result);
+       RANDOM.nextBytes(result);
        return result;
     }
 

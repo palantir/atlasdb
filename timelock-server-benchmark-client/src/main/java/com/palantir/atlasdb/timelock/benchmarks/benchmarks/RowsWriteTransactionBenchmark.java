@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable;
+import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable.BlobsRow;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -41,7 +42,9 @@ public class RowsWriteTransactionBenchmark extends AbstractWriteTransactionBench
         BlobsTable table = tableFactory.getBlobsTable(txn);
 
         for (byte[] value : values) {
-            table.putData(BlobsTable.BlobsRow.of(RandomBytes.ofLength(16)), value);
+            table.putData(
+                    BlobsRow.of(RandomBytes.ofLength(16)),
+                    value);
         }
     }
 

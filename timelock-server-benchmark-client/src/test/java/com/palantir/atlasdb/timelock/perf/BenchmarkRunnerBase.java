@@ -37,6 +37,7 @@ import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
 public class BenchmarkRunnerBase {
 
     private static final String BENCHMARK_SERVER = readBenchmarkServerUri();
+    private static final int BENCHMARK_SERVER_PORT = 9425;
 
     private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -62,15 +63,22 @@ public class BenchmarkRunnerBase {
     }
 
     protected static final BenchmarksService createClient() {
-        return AtlasDbFeignTargetFactory.createProxyWithFailover(Optional.empty(), ImmutableSet.of(BENCHMARK_SERVER),
-                10_000, 1_000_000, 1_000, BenchmarksService.class, "benchmarks");
+        return AtlasDbFeignTargetFactory.createProxyWithFailover(
+                Optional.empty(),
+                ImmutableSet.of(BENCHMARK_SERVER),
+                10_000,
+                1_000_000,
+                1_000,
+                BenchmarksService.class,
+                "benchmarks");
     }
 
     private static String readBenchmarkServerUri() {
         try {
             for (String line : Files.readLines(new File("../scripts/benchmarks/servers.txt"), Charsets.UTF_8)) {
                 if (line.startsWith("CLIENT")) {
-                    return "http://" + StringUtils.split(line, '=')[1] + ":9425";
+                    String hostname = StringUtils.split(line, '=')[1];
+                    return "http://" + hostname + ":" + BENCHMARK_SERVER_PORT;
                 }
             }
 

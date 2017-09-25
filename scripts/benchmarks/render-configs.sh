@@ -2,7 +2,7 @@
 
 source scripts/benchmarks/servers.txt
 
-# cluster
+# timelock-server-benchmark-cluster
 TEMPLATE_DIR="./timelock-server-benchmark-cluster/var/conf/template"
 RENDERED_DIR="./timelock-server-benchmark-cluster/var/conf"
 
@@ -13,7 +13,7 @@ do
   cat "$TEMPLATE_DIR/$config" | sed "s/SERVER1/$SERVER1/g" | sed "s/SERVER2/$SERVER2/g" | sed "s/SERVER3/$SERVER3/g" > "$RENDERED_DIR/$config"
 done
 
-# client
+# timelock-server-benchmark-client
 TEMPLATE_DIR="./timelock-server-benchmark-client/var/conf/template"
 RENDERED_DIR="./timelock-server-benchmark-client/var/conf"
 
