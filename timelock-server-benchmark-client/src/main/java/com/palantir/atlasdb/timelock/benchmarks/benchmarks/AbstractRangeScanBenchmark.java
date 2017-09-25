@@ -94,7 +94,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
             int numToWrite = Math.min(numRows - numWritten, batchSize);
 
             txnManager.runTaskWithRetry(txn -> {
-                Map<Long, byte[]> values = Maps.newHashMap();
+                Map<Long, byte[]> values = Maps.newHashMapWithExpectedSize(numToWrite);
                 for (int i = 0; i < numToWrite; i++) {
                     values.put(key.getAndIncrement(), data);
                 }

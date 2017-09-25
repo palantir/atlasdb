@@ -51,7 +51,7 @@ public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
         super(numClients, numRequestsPerClient);
         this.timelock = timelock;
 
-        List<LockDescriptor> descriptors = Lists.newArrayList();
+        List<LockDescriptor> descriptors = Lists.newArrayListWithExpectedSize(numDistinctLocks);
         for (int i = 0; i < numDistinctLocks; i++) {
             descriptors.add(StringLockDescriptor.of(UUID.randomUUID().toString()));
         }

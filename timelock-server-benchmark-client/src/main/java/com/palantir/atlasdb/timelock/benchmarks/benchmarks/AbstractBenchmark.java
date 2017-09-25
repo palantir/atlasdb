@@ -164,7 +164,7 @@ public abstract class AbstractBenchmark {
     }
 
     private double getAverageTimeInMillis() {
-        return Arrays.stream(sortedTimes).average().getAsDouble() / 1_000_000f;
+        return Arrays.stream(sortedTimes).average().getAsDouble() / 1_000_000.0;
     }
 
     private double getPercentile(double percentile) {
