@@ -212,7 +212,6 @@ public final class CassandraVerifier {
                 config,
                 client,
                 "(adding the initial empty keyspace)");
-        log.info("Client keyspaces: {}", client.describe_keyspaces());
     }
 
     private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {
