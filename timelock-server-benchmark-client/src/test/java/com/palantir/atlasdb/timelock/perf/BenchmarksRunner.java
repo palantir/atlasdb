@@ -58,7 +58,7 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void writeTransaction() {
-        runAndPrintResults(() -> client.writeTransaction(1, 20, 1_000, 200));
+        runAndPrintResults(() -> client.writeTransaction(1, 20, 1000, 200));
     }
 
     @Test

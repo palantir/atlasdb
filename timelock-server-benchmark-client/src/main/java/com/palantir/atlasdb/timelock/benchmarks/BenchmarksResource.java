@@ -24,15 +24,16 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.ContendedWriteTransactionBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.DynamicColumnsRangeScanBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.DynamicColumnsWriteTransactionBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsCasBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsReadBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsWriteBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.LockAndUnlockContendedBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.LockAndUnlockUncontendedBenchmark;
-import com.palantir.atlasdb.timelock.benchmarks.benchmarks.ReadTransactionBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RowsRangeScanBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RowsReadTransactionBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RowsWriteTransactionBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TimestampBenchmark;
-import com.palantir.atlasdb.timelock.benchmarks.benchmarks.WriteTransactionBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
@@ -44,13 +45,19 @@ public class BenchmarksResource implements BenchmarksService {
     public BenchmarksResource(AtlasDbConfig config) {
         this.config = config;
         this.txnManager = TransactionManagers.create(config, () -> Optional.empty(),
-                ImmutableSet.of(BenchmarksSchema.SCHEMA), res -> {
-                }, true);
+                ImmutableSet.of(BenchmarksSchema.SCHEMA), res -> { }, true);
     }
 
     @Override
-    public Map<String, Object> writeTransaction(int numClients, int numRequestsPerClient, int numRows, int dataSize) {
-        return WriteTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
+    public Map<String, Object> writeTransactionRows(int numClients, int numRequestsPerClient, int numRows,
+            int dataSize) {
+        return RowsWriteTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
+    }
+
+    @Override
+    public Map<String, Object> writeTransactionDynamicColumns(int numClients, int numRequestsPerClient, int numRows,
+            int dataSize) {
+        return DynamicColumnsWriteTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
     }
 
     @Override
@@ -69,8 +76,9 @@ public class BenchmarksResource implements BenchmarksService {
     }
 
     @Override
-    public Map<String, Object> readTransaction(int numClients, int numRequestsPerClient, int numRows, int dataSize) {
-        return ReadTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
+    public Map<String, Object> readTransactionRows(int numClients, int numRequestsPerClient, int numRows,
+            int dataSize) {
+        return RowsReadTransactionBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
     }
 
     @Override

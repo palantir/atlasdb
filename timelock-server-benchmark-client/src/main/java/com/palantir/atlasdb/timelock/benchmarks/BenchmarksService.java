@@ -31,8 +31,16 @@ import javax.ws.rs.core.MediaType;
 public interface BenchmarksService {
 
     @GET
-    @Path("/write-txn")
-    Map<String, Object> writeTransaction(
+    @Path("/write-txn-rows")
+    Map<String, Object> writeTransactionRows(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("numRows") int numRows,
+            @QueryParam("dataSize") int dataSize);
+
+    @GET
+    @Path("/write-txn-dynamic-columns")
+    Map<String, Object> writeTransactionDynamicColumns(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("numRows") int numRows,
@@ -59,8 +67,8 @@ public interface BenchmarksService {
             @QueryParam("numDistinctLocks") int numDistinctLocks);
 
     @GET
-    @Path("/read-txn")
-    Map<String, Object> readTransaction(
+    @Path("/read-txn-rows")
+    Map<String, Object> readTransactionRows(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("numRows") int numRows,

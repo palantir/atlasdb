@@ -43,6 +43,8 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
     private final SerializableTransactionManager txnManager;
 
+    private static final int MAX_BYTES_PER_WRITE = (int)(10_000_000 * 0.9);
+
     private final int dataSize;
     private final int numRows;
 
@@ -55,7 +57,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
         this.txnManager = txnManager;
         this.dataSize = dataSize;
         this.numRows = numRows;
-        this.batchSize = Math.max(1, 9_000_000 / dataSize);
+        this.batchSize = Math.max(1, MAX_BYTES_PER_WRITE / dataSize);
     }
 
     @Override
@@ -72,7 +74,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
         writeData();
 
-        putMetadata();
+        recordMetadata();
     }
 
     private void writeData() {
@@ -116,23 +118,13 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
         return ImmutableMap.of("numRows", numRows, "dataSize", dataSize);
     }
 
-    private final static class Metadata {
-
-        @JsonProperty("bucket")
-        String bucket;
-
-        public Metadata(String bucket) {
-            this.bucket = bucket;
-        }
-    }
-
     public static void main(String[] args) {
         Metadata metadata = new Metadata("foo");
         byte[] data = serialize(metadata);
         deserialize(data);
     }
 
-    private void putMetadata() {
+    private void recordMetadata() {
         txnManager.runTaskWithRetry(txn -> {
             MetadataTable table = BenchmarksTableFactory.of().getMetadataTable(txn);
 
@@ -174,5 +166,15 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
                 + dataSize + "."
                 + numRows;
 
+    }
+
+    private final static class Metadata {
+
+        @JsonProperty("bucket")
+        String bucket;
+
+        public Metadata(String bucket) {
+            this.bucket = bucket;
+        }
     }
 }

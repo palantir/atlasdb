@@ -50,10 +50,6 @@ public final class BenchmarksTableFactory {
         return KvDynamicColumnsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public KvDynamicColumns2Table getKvDynamicColumns2Table(Transaction t, KvDynamicColumns2Table.KvDynamicColumns2Trigger... triggers) {
-        return KvDynamicColumns2Table.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
     public KvRowsTable getKvRowsTable(Transaction t, KvRowsTable.KvRowsTrigger... triggers) {
         return KvRowsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -66,7 +62,6 @@ public final class BenchmarksTableFactory {
             BlobsTable.BlobsTrigger,
             BlobsSerializableTable.BlobsSerializableTrigger,
             KvDynamicColumnsTable.KvDynamicColumnsTrigger,
-            KvDynamicColumns2Table.KvDynamicColumns2Trigger,
             KvRowsTable.KvRowsTrigger,
             MetadataTable.MetadataTrigger {
         /* empty */
@@ -85,11 +80,6 @@ public final class BenchmarksTableFactory {
 
         @Override
         public void putKvDynamicColumns(Multimap<KvDynamicColumnsTable.KvDynamicColumnsRow, ? extends KvDynamicColumnsTable.KvDynamicColumnsColumnValue> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putKvDynamicColumns2(Multimap<KvDynamicColumns2Table.KvDynamicColumns2Row, ? extends KvDynamicColumns2Table.KvDynamicColumns2ColumnValue> newRows) {
             // do nothing
         }
 

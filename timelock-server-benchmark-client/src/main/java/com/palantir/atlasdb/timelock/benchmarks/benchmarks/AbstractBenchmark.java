@@ -149,6 +149,7 @@ public abstract class AbstractBenchmark {
         result.put("throughput", getThroughput());
         result.put("name", getClass().getSimpleName());
         result.putAll(getExtraParameters());
+
         return result;
     }
 

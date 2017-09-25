@@ -32,7 +32,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 public class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
 
-    private static final Logger log = LoggerFactory.getLogger(WriteTransactionBenchmark.class);
+    private static final Logger log = LoggerFactory.getLogger(ContendedWriteTransactionBenchmark.class);
 
     private static final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
 
