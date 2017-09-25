@@ -268,7 +268,7 @@ final class SchemaMutationLock {
                                 + " clients operating on the %s keyspace and then run the clean-cass-locks-state"
                                 + " cli command.",
                         stopwatch.elapsed(TimeUnit.MILLISECONDS),
-                        configManager.getConfig().keyspace()));
+                        configManager.getConfig().getKeyspaceOrThrow()));
     }
 
     private void waitForSchemaMutationLockWithoutCas() throws TimeoutException {

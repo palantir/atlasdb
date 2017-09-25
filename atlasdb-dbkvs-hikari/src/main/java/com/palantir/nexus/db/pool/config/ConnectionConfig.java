@@ -16,6 +16,7 @@
 package com.palantir.nexus.db.pool.config;
 
 import java.sql.Connection;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -50,6 +51,10 @@ public abstract class ConnectionConfig {
     @JsonIgnore
     @Value.Derived
     public abstract DBType getDbType();
+
+    @JsonIgnore
+    @Value.Derived
+    public abstract Optional<String> namespace();
 
     @Value.Default
     public int getMinConnections() {

@@ -24,14 +24,14 @@ import java.util.concurrent.Semaphore;
 
 import org.junit.Test;
 
-import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.impl.ThreadPooledLockService;
 
 public class ThreadPooledLockServiceTest {
 
     @Test
     public void closesDelegate() throws IOException {
-        CloseableRemoteLockService delegate = mock(CloseableRemoteLockService.class);
+        CloseableLockService delegate = mock(CloseableLockService.class);
         ThreadPooledLockService pooledService = new ThreadPooledLockService(delegate, 1, new Semaphore(1));
 
         pooledService.close();

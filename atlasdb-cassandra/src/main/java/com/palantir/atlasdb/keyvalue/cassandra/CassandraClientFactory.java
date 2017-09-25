@@ -46,7 +46,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.remoting2.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
@@ -76,7 +76,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         try {
             return getClient(addr, config);
         } catch (Exception e) {
-            String message = String.format("Failed to construct client for %s/%s", addr, config.keyspace());
+            String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
                 message += " over SSL";
             }
@@ -88,10 +88,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                                               CassandraKeyValueServiceConfig config) throws Exception {
         Client ret = getClientInternal(addr, config);
         try {
-            ret.set_keyspace(config.keyspace());
+            ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
                     addr,
-                    config.keyspace(),
+                    config.getKeyspaceOrThrow(),
                     config.usingSsl() ? " over SSL" : "",
                     config.credentials().isPresent() ? " as user " + config.credentials().get().username() : "");
             return ret;

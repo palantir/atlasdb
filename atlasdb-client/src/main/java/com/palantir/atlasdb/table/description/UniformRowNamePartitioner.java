@@ -130,15 +130,19 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         UniformRowNamePartitioner other = (UniformRowNamePartitioner) obj;
-        if (valueType != other.valueType)
+        if (valueType != other.valueType) {
             return false;
+        }
         return true;
     }
 

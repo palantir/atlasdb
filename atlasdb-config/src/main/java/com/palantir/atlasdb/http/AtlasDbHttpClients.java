@@ -50,7 +50,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 type,
                 AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, type, userAgent),
-                MetricRegistry.name(type, userAgent));
+                MetricRegistry.name(type));
     }
 
     /**
@@ -101,7 +101,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(sslSocketFactory, endpointUris, type, userAgent),
-                MetricRegistry.name(type, userAgent));
+                MetricRegistry.name(type));
     }
 
     @VisibleForTesting

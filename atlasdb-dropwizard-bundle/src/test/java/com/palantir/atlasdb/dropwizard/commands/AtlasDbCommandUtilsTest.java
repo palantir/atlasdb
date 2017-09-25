@@ -17,6 +17,7 @@ package com.palantir.atlasdb.dropwizard.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +25,9 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -40,21 +43,10 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class AtlasDbCommandUtilsTest {
-    private static final String LOCAL_SERVER_NAME = "Local Server";
-    private static final AtlasDbConfig MINIMAL_LEADER_CONFIG = ImmutableAtlasDbConfig.builder()
-            .leader(ImmutableLeaderConfig.builder()
-                    .quorumSize(1)
-                    .addLeaders(LOCAL_SERVER_NAME)
-                    .localServer(LOCAL_SERVER_NAME)
-                    .build())
-            .keyValueService(mock(KeyValueServiceConfig.class))
-            .build();
-    private static final AtlasDbConfig MINIMAL_EMBEDDED_CONFIG = ImmutableAtlasDbConfig.builder()
-            .keyValueService(mock(KeyValueServiceConfig.class))
-            .build();
+    private static final String LOCAL_SERVER_NAME = "test";
     private static final ServerListConfig LOCAL_SERVER_LIST_CONFIG = ImmutableServerListConfig.builder()
             .addServers(LOCAL_SERVER_NAME)
             .build();
@@ -62,49 +54,70 @@ public class AtlasDbCommandUtilsTest {
             .client(LOCAL_SERVER_NAME)
             .serversList(LOCAL_SERVER_LIST_CONFIG)
             .build();
-    private static final AtlasDbConfig TIME_LOCK_CONFIG = ImmutableAtlasDbConfig.builder()
-            .timelock(TIME_LOCK_CLIENT_CONFIG)
-            .keyValueService(mock(KeyValueServiceConfig.class))
-            .build();
+
+    private static AtlasDbConfig minimalLeaderConfig;
+    private static AtlasDbConfig minimalEmbeddedConfig;
+    private static AtlasDbConfig timeLockConfig;
+
+    @Before
+    public void setUp() {
+        KeyValueServiceConfig kvsConfig = mock(KeyValueServiceConfig.class);
+        when(kvsConfig.namespace()).thenReturn(Optional.of("test"));
+        minimalLeaderConfig = ImmutableAtlasDbConfig.builder()
+                .leader(ImmutableLeaderConfig.builder()
+                        .quorumSize(1)
+                        .addLeaders(LOCAL_SERVER_NAME)
+                        .localServer(LOCAL_SERVER_NAME)
+                        .build())
+                .keyValueService(kvsConfig)
+                .build();
+        minimalEmbeddedConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvsConfig)
+                .build();
+        timeLockConfig = ImmutableAtlasDbConfig.builder()
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
+                .keyValueService(kvsConfig)
+                .build();
+    }
 
     @Test
     public void leaderBlockNoLongerExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
 
         assertThat(clientConfig.leader().isPresent()).isFalse();
     }
 
     @Test
     public void timestampBlockExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
 
         assertThat(clientConfig.timestamp().isPresent()).isTrue();
     }
 
     @Test
     public void timestampBlockContainsLeadersAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
 
         assertThat(clientConfig.timestamp().get().servers()).containsExactly(LOCAL_SERVER_NAME);
     }
 
     @Test
     public void lockBlockExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalLeaderConfig);
 
         assertThat(clientConfig.lock().get().servers()).containsExactly(LOCAL_SERVER_NAME);
     }
 
     @Test
     public void clientConfigMatchesServerConfigForTimelock() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(TIME_LOCK_CONFIG);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(timeLockConfig);
 
-        assertThat(clientConfig).isEqualTo(TIME_LOCK_CONFIG);
+        assertThat(clientConfig).isEqualTo(timeLockConfig);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void conversionFailsWhenUsingEmbeddedServerConfig() {
-        AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_EMBEDDED_CONFIG);
+        AtlasDbCommandUtils.convertServerConfigToClientConfig(minimalEmbeddedConfig);
     }
 
     @Test

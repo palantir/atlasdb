@@ -20,18 +20,19 @@ import java.util.SortedSet;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 
 public class NamedColumnRenderer extends Renderer {
-    private final String NamedColumn;
+    private final String namedColumn;
     private final SortedSet<NamedColumnDescription> cols;
 
     public NamedColumnRenderer(Renderer parent, String tableName, SortedSet<NamedColumnDescription> cols) {
         super(parent);
-        this.NamedColumn = tableName + "NamedColumn";
+        this.namedColumn = tableName + "NamedColumn";
         this.cols = cols;
     }
 
     @Override
+    @SuppressWarnings("checkstyle:AvoidNestedBlocks")
     protected void run() {
-        line("public enum ", NamedColumn, " {"); {
+        line("public enum ", namedColumn, " {"); {
             for (NamedColumnDescription col : cols) {
                 line(Renderers.UPPER_CASE(col.getLongName()), " {"); {
                     line("@Override");
@@ -44,10 +45,10 @@ public class NamedColumnRenderer extends Renderer {
             line();
             line("public abstract byte[] getShortName();");
             line();
-            line("public static Function<", NamedColumn, ", byte[]> toShortName() {"); {
-                line("return new Function<", NamedColumn, ", byte[]>() {"); {
+            line("public static Function<", namedColumn, ", byte[]> toShortName() {"); {
+                line("return new Function<", namedColumn, ", byte[]>() {"); {
                     line("@Override");
-                    line("public byte[] apply(", NamedColumn, " namedColumn) {"); {
+                    line("public byte[] apply(", namedColumn, " namedColumn) {"); {
                         line("return namedColumn.getShortName();");
                     } line("}");
                 } line("};");

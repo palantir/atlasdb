@@ -23,6 +23,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
+@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamTableDefinitionBuilder {
 
     private final StreamTableType streamTableType;

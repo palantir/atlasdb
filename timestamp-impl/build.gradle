@@ -10,7 +10,6 @@ dependencies {
   compile(project(":atlasdb-commons"))
   compile(project(":atlasdb-client"))
 
-  compile group: 'com.palantir.remoting2', name: 'tracing'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   processor 'com.google.auto.service:auto-service:1.0-rc2'

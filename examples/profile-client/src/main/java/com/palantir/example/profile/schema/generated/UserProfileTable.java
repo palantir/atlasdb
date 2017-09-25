@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
@@ -1823,6 +1825,7 @@ public final class UserProfileTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<CookiesIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -1837,6 +1840,18 @@ public final class UserProfileTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       BiFunction<RangeRequest, BatchingVisitable<CookiesIdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CookiesIdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<CookiesIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, CookiesIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -2490,6 +2505,7 @@ public final class UserProfileTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<CreatedIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -2504,6 +2520,18 @@ public final class UserProfileTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       BiFunction<RangeRequest, BatchingVisitable<CreatedIdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, CreatedIdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<CreatedIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, CreatedIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -3157,6 +3185,7 @@ public final class UserProfileTable implements
             });
         }
 
+        @Deprecated
         public IterableView<BatchingVisitable<UserBirthdaysIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
             Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
             return IterableView.of(rangeResults).transform(
@@ -3171,6 +3200,18 @@ public final class UserProfileTable implements
                     });
                 }
             });
+        }
+
+        public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                       int concurrencyLevel,
+                                       BiFunction<RangeRequest, BatchingVisitable<UserBirthdaysIdxRowResult>, T> visitableProcessor) {
+            return t.getRanges(tableRef, ranges, concurrencyLevel,
+                    (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of)));
+        }
+
+        public Stream<BatchingVisitable<UserBirthdaysIdxRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+            Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
+            return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, UserBirthdaysIdxRowResult::of));
         }
 
         public void deleteRange(RangeRequest range) {
@@ -3227,6 +3268,7 @@ public final class UserProfileTable implements
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -3283,6 +3325,7 @@ public final class UserProfileTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
@@ -3292,5 +3335,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "tbnsvai7vZfaaZW/Q5tKPw==";
+    static String __CLASS_HASH = "XZOm4bE0zgUGoCBxygi4sQ==";
 }

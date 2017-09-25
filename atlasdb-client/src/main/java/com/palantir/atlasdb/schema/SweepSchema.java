@@ -32,6 +32,7 @@ public enum SweepSchema implements AtlasSchema {
     private static final Namespace NAMESPACE = Namespace.create("sweep");
     private static final Supplier<Schema> SCHEMA = Suppliers.memoize(() -> generateSchema());
 
+    @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {
         Schema schema = new Schema("Sweep",
                 SweepSchema.class.getPackage().getName() + ".generated",

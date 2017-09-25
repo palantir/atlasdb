@@ -187,7 +187,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     public String toString() {
         return MoreObjects.toStringHelper(getClass())
                 .add("host", this.host)
-                .add("keyspace", config.keyspace())
+                .add("keyspace", config.getKeyspaceOrThrow())
                 .add("usingSsl", config.usingSsl())
                 .add("sslConfiguration", config.sslConfiguration().isPresent()
                         ? config.sslConfiguration().get()
@@ -246,24 +246,24 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
         poolConfig.setJmxNamePrefix(host.getHostString());
         GenericObjectPool<Client> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
-        registerMetrics(pool, host.getHostString());
+        registerMetrics(pool);
         return pool;
     }
 
-    private void registerMetrics(GenericObjectPool<Client> pool, String metricPrefix) {
-        registerMetric(metricPrefix, "meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
-        registerMetric(metricPrefix, "meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
-        registerMetric(metricPrefix, "meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
-        registerMetric(metricPrefix, "numIdle", pool::getNumIdle);
-        registerMetric(metricPrefix, "numActive", pool::getNumActive);
-        registerMetric(metricPrefix, "approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
-        registerMetric(metricPrefix, "proportionDestroyedByEvictor",
+    private void registerMetrics(GenericObjectPool<Client> pool) {
+        registerMetric("meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
+        registerMetric("meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
+        registerMetric("meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
+        registerMetric("numIdle", pool::getNumIdle);
+        registerMetric("numActive", pool::getNumActive);
+        registerMetric("approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
+        registerMetric("proportionDestroyedByEvictor",
                 () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
-        registerMetric(metricPrefix, "proportionDestroyedByBorrower",
+        registerMetric("proportionDestroyedByBorrower",
                 () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
     }
 
-    private void registerMetric(String metricPrefix, String metricName, Gauge gauge) {
-        metricsManager.registerMetric(CassandraClientPoolingContainer.class, metricPrefix, metricName, gauge);
+    private void registerMetric(String metricName, Gauge gauge) {
+        metricsManager.registerMetric(CassandraClientPoolingContainer.class, metricName, gauge);
     }
 }

@@ -42,14 +42,14 @@ public abstract class AbstractTaskCheckpointer {
     public abstract void checkpoint(String extraId,
                                     long rangeId,
                                     byte[] nextRowName,
-                                    Transaction t);
+                                    Transaction tx);
 
     /**
      * Get the next row name for this range. Returns null if the checkpoint is done.
      */
     public abstract @Nullable byte[] getCheckpoint(String extraId,
                                                    long rangeId,
-                                                   Transaction t);
+                                                   Transaction tx);
 
     /**
      * Initialize checkpointing. This will only write checkpoints if checkpoints don't already
@@ -69,10 +69,10 @@ public abstract class AbstractTaskCheckpointer {
     /**
      * Prepends the byte array with a value that indicates if this range is complete.
      */
-    protected byte[] toDb(byte[] b, boolean alwaysValid) {
-        byte[] ret = new byte[b.length + 1];
-        System.arraycopy(b, 0, ret, 1, b.length);
-        if (!alwaysValid && b.length == 0) {
+    protected byte[] toDb(byte[] bytes, boolean alwaysValid) {
+        byte[] ret = new byte[bytes.length + 1];
+        System.arraycopy(bytes, 0, ret, 1, bytes.length);
+        if (!alwaysValid && bytes.length == 0) {
             ret[0] = COMPLETE;
         } else {
             ret[0] = INCOMPLETE;
@@ -83,12 +83,12 @@ public abstract class AbstractTaskCheckpointer {
     /**
      * Removes the indicator from the byte array and returns null if it is complete.
      */
-    protected @Nullable byte[] fromDb(byte[] b) {
-        if (b[0] == COMPLETE) {
+    protected @Nullable byte[] fromDb(byte[] bytes) {
+        if (bytes[0] == COMPLETE) {
             return null;
         }
-        byte[] ret = new byte[b.length - 1];
-        System.arraycopy(b, 1, ret, 0, ret.length);
+        byte[] ret = new byte[bytes.length - 1];
+        System.arraycopy(bytes, 1, ret, 0, ret.length);
         return ret;
     }
 }

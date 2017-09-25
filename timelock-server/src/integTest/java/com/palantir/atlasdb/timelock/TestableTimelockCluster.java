@@ -35,7 +35,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -52,7 +52,6 @@ public class TestableTimelockCluster {
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final String defaultClient;
-    private final String baseUri;
     private final List<TemporaryConfigurationHolder> configs;
     private final List<TestableTimelockServer> servers;
     private final TestProxies proxies;
@@ -61,8 +60,7 @@ public class TestableTimelockCluster {
 
     public TestableTimelockCluster(String baseUri, String defaultClient, String... configFileTemplates) {
         this.defaultClient = defaultClient;
-        this.baseUri = baseUri;
-        this.configs = Arrays.asList(configFileTemplates).stream()
+        this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());
         this.servers = configs.stream()
@@ -196,8 +194,8 @@ public class TestableTimelockCluster {
         return proxies.failoverForClient(defaultClient, TimestampService.class);
     }
 
-    public RemoteLockService lockService() {
-        return proxies.failoverForClient(defaultClient, RemoteLockService.class);
+    public LockService lockService() {
+        return proxies.failoverForClient(defaultClient, LockService.class);
     }
 
     public TimelockService timelockService() {

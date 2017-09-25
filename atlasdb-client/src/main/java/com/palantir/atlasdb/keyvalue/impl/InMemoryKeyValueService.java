@@ -69,7 +69,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -587,18 +587,17 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     && UnsignedBytes.lexicographicalComparator().compare(col, key.col) == 0;
         }
 
-        @SuppressWarnings("CheckStyle")
         @Override
-        public int compareTo(Key o) {
-            int comparison = UnsignedBytes.lexicographicalComparator().compare(row, o.row);
+        public int compareTo(Key other) {
+            int comparison = UnsignedBytes.lexicographicalComparator().compare(row, other.row);
             if (comparison != 0) {
                 return comparison;
             }
-            comparison = UnsignedBytes.lexicographicalComparator().compare(col, o.col);
+            comparison = UnsignedBytes.lexicographicalComparator().compare(col, other.col);
             if (comparison != 0) {
                 return comparison;
             }
-            return Longs.compare(ts, o.ts);
+            return Longs.compare(ts, other.ts);
         }
 
 

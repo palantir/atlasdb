@@ -25,19 +25,19 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 
 public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken> {
-    private final RemoteLockService remoteLockService;
+    private final LockService lockService;
 
     @VisibleForTesting
-    SynchronousLockClient(RemoteLockService remoteLockService) {
-        this.remoteLockService = remoteLockService;
+    SynchronousLockClient(LockService lockService) {
+        this.lockService = lockService;
     }
 
     public static JepsenLockClient<LockRefreshToken> create(List<String> hosts) {
-        return new SynchronousLockClient(TimelockUtils.createClient(hosts, RemoteLockService.class));
+        return new SynchronousLockClient(TimelockUtils.createClient(hosts, LockService.class));
     }
 
     @Override
@@ -47,14 +47,14 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
                 .doNotBlock()
                 .build();
 
-        return remoteLockService.lock(client, request);
+        return lockService.lock(client, request);
     }
 
     @Override
     public Set<LockRefreshToken> unlock(Set<LockRefreshToken> lockRefreshTokens) throws InterruptedException {
         Set<LockRefreshToken> tokensUnlocked = Sets.newHashSet();
         lockRefreshTokens.forEach(token -> {
-            if (remoteLockService.unlock(token)) {
+            if (lockService.unlock(token)) {
                 tokensUnlocked.add(token);
             }
         });
@@ -63,6 +63,6 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
 
     @Override
     public Set<LockRefreshToken> refresh(Set<LockRefreshToken> lockRefreshTokens) throws InterruptedException {
-        return remoteLockService.refreshLockRefreshTokens(lockRefreshTokens);
+        return lockService.refreshLockRefreshTokens(lockRefreshTokens);
     }
 }

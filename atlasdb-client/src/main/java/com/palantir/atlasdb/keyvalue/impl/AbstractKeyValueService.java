@@ -65,7 +65,7 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -94,9 +94,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     /**
+     * Creates a fixed thread pool.
+     *
      * @param threadNamePrefix thread name prefix
      * @param poolSize fixed thread pool size
-     * @return a new fixed size thread pool with a keep alive time of 1 minute.
+     * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
     protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int poolSize) {
         ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
@@ -141,7 +143,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         ImmutableMap.Builder<TableReference, byte[]> builder = ImmutableMap.builder();
-        for (TableReference table: getAllTableNames()) {
+        for (TableReference table : getAllTableNames()) {
             builder.put(table, getMetadataForTable(table));
         }
         return builder.build();
@@ -159,7 +161,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) throws KeyAlreadyExistsException {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
+            throws KeyAlreadyExistsException {
         List<Callable<Void>> callables = Lists.newArrayList();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             final TableReference table = e.getKey();
@@ -212,7 +215,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                                              final long maximumBytesPerPartition,
                                                              final TableReference tableRef,
                                                              final Function<T, Long> sizingFunction) {
-        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition, tableRef.getQualifiedName(), sizingFunction);
+        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition,
+                tableRef.getQualifiedName(), sizingFunction);
     }
 
     protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
@@ -280,7 +284,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range,
+                AtlasDbConstants.MAX_TS)) {
             while (iterator.hasNext()) {
                 RowResult<Set<Long>> rowResult = iterator.next();
                 Multimap<Cell, Long> cellsToDelete = HashMultimap.create();

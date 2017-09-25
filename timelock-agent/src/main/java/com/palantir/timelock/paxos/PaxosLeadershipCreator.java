@@ -28,28 +28,26 @@ import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.timelock.Observables;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
-import io.reactivex.Observable;
-
 public class PaxosLeadershipCreator {
     private final TimeLockInstallConfiguration install;
-    private final Observable<PaxosRuntimeConfiguration> runtime;
+    private final Supplier<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
 
     private LeaderElectionService leaderElectionService;
 
     public PaxosLeadershipCreator(
             TimeLockInstallConfiguration install,
-            Observable<TimeLockRuntimeConfiguration> runtime,
+            Supplier<TimeLockRuntimeConfiguration> runtime,
             Consumer<Object> registrar) {
         this.install = install;
-        this.runtime = runtime.map(TimeLockRuntimeConfiguration::paxos);
+        this.runtime = JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime);
         this.registrar = registrar;
     }
 
@@ -85,7 +83,7 @@ public class PaxosLeadershipCreator {
 
     private LeaderConfig getLeaderConfig() {
         // TODO (jkong): Live Reload Paxos Ping Rates
-        PaxosRuntimeConfiguration paxosRuntimeConfiguration = Observables.blockingMostRecent(runtime).get();
+        PaxosRuntimeConfiguration paxosRuntimeConfiguration = runtime.get();
         return ImmutableLeaderConfig.builder()
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
                 .leaders(PaxosRemotingUtils.addProtocols(install, PaxosRemotingUtils.getClusterAddresses(install)))

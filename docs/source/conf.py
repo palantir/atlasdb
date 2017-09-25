@@ -57,7 +57,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'OSS AtlasDB'
-copyright = u'2016, Palantir Technologies'
+copyright = u'2017, Palantir Technologies'
 author = u'Palantir Technologies'
 
 def get_last_release_from_gradle():

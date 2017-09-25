@@ -15,11 +15,13 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -27,7 +29,20 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
 @Value.Immutable
 public abstract class TimeLockClientConfig {
-    public abstract String client();
+
+    /**
+     * Specifies the TimeLock client name.
+     * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
+     */
+    @Deprecated
+    public abstract Optional<String> client();
+
+    @JsonIgnore
+    @Value.Lazy
+    public String getClientOrThrow() {
+        return client().orElseThrow(() -> new IllegalStateException(
+                "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
+    }
 
     public abstract ServerListConfig serversList();
 
@@ -35,7 +50,7 @@ public abstract class TimeLockClientConfig {
         Set<String> serversWithNamespaces = serversList()
                 .servers()
                 .stream()
-                .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + client())
+                .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + getClientOrThrow())
                 .collect(Collectors.toSet());
         return ImmutableServerListConfig.copyOf(serversList())
                 .withServers(serversWithNamespaces);

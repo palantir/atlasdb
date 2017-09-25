@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.memory;
 
+import java.util.Optional;
+
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -35,7 +40,19 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     }
 
     @Override
+    @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return 64;
+    }
+
+    @Override
     public int hashCode() {
         return InMemoryAtlasDbConfig.class.hashCode();
+    }
+
+    @Override
+    @JsonIgnore
+    public Optional<String> namespace() {
+        return Optional.of("test");
     }
 }
