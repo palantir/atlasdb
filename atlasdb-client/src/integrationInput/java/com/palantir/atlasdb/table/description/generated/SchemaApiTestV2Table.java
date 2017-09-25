@@ -32,7 +32,7 @@ import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRendererV2")
 @SuppressWarnings("all")
-public final class SchemaApiTestV2Table {
+public class SchemaApiTestV2Table {
     private static final String rawTableName = "SchemaApiTest";
 
     private final Transaction t;
@@ -238,7 +238,8 @@ public final class SchemaApiTestV2Table {
 
     /**
      * Takes a function that would update the value at column Column1, for the specified row
-     * components. No effect if there is no value at that column. */
+     * components. No effect if there is no value at that column. Doesn't do an additional
+     * write if the new value is the same as the old one. */
     public void updateColumn1(String component1, Function<Long, Long> processor) {
         Optional<Long> result = getColumn1(component1);
         if (result.isPresent()) {
@@ -258,7 +259,8 @@ public final class SchemaApiTestV2Table {
 
     /**
      * Takes a function that would update the value at column Column2, for the specified row
-     * components. No effect if there is no value at that column. */
+     * components. No effect if there is no value at that column. Doesn't do an additional
+     * write if the new value is the same as the old one. */
     public void updateColumn2(String component1, Function<String, String> processor) {
         Optional<String> result = getColumn2(component1);
         if (result.isPresent()) {
