@@ -62,6 +62,23 @@ v0.58.0
     *    - Type
          - Change
 
+    *    - |new|
+         A new config option `initializeAsync` was added to AtlasDbConfig. If set to true, it will allow a SnapshotTransactionManager to be created even if the KVS is not up.
+         Calling any method on the returned TransactionManager will throw a NotInitializedException until it gets initialized - this is, until the backing store becomes available.
+         The default value for the config  is `false` in order to preserve previous behavior.
+         (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
+
+    *    - |devbreak| |improved|
+         - In order to limit the access to inner methods, and to make startup ordering feasible, we've extracted interfaces and renamed the following classes:
+
+              - ``CassandraClientPool``
+              - ``CassandraKeyValueService``
+              - ``LockStoreImpl``
+              - ``PersistentTimestampService``
+
+         Now the factory methods for the above classes return the interfaces. The actual implementation of such classes was moved to their correspondent *Impl files.
+         (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
+
     *    - |devbreak| |improved|
          - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
            Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
