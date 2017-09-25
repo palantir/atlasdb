@@ -49,7 +49,6 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
         runAndPrintResults(() -> client.writeTransactionDynamicColumns(1, 20, 1000, 200));
     }
 
-
     @Test
     public void readTransactionRows() {
         runAndPrintResults(() -> client.readTransactionRows(1, 20, 10_000, 200));

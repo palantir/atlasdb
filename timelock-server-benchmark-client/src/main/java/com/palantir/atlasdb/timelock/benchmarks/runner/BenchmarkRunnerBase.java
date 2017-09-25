@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.benchmarks.runner;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -28,7 +29,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -75,7 +75,8 @@ public class BenchmarkRunnerBase {
 
     private static String readBenchmarkServerUri() {
         try {
-            for (String line : Files.readLines(new File("../scripts/benchmarks/servers.txt"), Charsets.UTF_8)) {
+            for (String line : Files.readLines(new File("../scripts/benchmarks/servers.txt"),
+                    Charset.forName("UTF-8"))) {
                 if (line.startsWith("CLIENT")) {
                     String hostname = StringUtils.split(line, '=')[1];
                     return "http://" + hostname + ":" + BENCHMARK_SERVER_PORT;

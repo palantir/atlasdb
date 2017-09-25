@@ -43,21 +43,21 @@ public class SlaVerifier extends BenchmarkRunnerBase {
     public void timestampSingleThread() {
         Map<String, Object> results = client.timestamp(1, 10_000);
         assertThat((Double) results.get("throughput")).isGreaterThan(500);
-        assertThat((Double)results.get("average")).isLessThan(2.0);
+        assertThat((Double) results.get("average")).isLessThan(2.0);
     }
 
     @Test
     public void timestampMediumLoad() {
         Map<String, Object> results = client.timestamp(16, 5_000);
-        assertThat((Double)results.get("throughput")).isGreaterThan(4_000);
-        assertThat((Double)results.get("average")).isLessThan(3.5);
+        assertThat((Double) results.get("throughput")).isGreaterThan(4_000);
+        assertThat((Double) results.get("average")).isLessThan(3.5);
     }
 
     @Test
     public void timestampHighLoad() {
         Map<String, Object> results = client.timestamp(32, 3_000);
-        assertThat((Double)results.get("throughput")).isGreaterThan(7_500);
-        assertThat((Double)results.get("average")).isLessThan(5.0);
+        assertThat((Double) results.get("throughput")).isGreaterThan(7_500);
+        assertThat((Double) results.get("average")).isLessThan(5.0);
     }
 
     @Test
@@ -83,7 +83,7 @@ public class SlaVerifier extends BenchmarkRunnerBase {
         futures.stream()
                 .map(this::getUnchecked)
                 .forEach(results -> {
-                    assertThat((Double)results.get("totalTime")).isLessThan(120_000);
+                    assertThat((Double) results.get("totalTime")).isLessThan(120_000);
                 });
     }
 
