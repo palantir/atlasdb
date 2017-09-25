@@ -129,7 +129,7 @@ public class TableClassRendererV2 {
                 .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
                         .addMember("value", "$S", "all")
                         .build())
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+                .addModifiers(Modifier.PUBLIC);
 
         getFields().forEach(tableBuilder::addField);
         getConstructors().forEach(tableBuilder::addMethod);
@@ -552,7 +552,8 @@ public class TableClassRendererV2 {
     private MethodSpec renderNamedUpdateColumn(NamedColumnDescription col) {
         MethodSpec.Builder updateColumnIfExistsBuilder = MethodSpec.methodBuilder("update" + VarName(col))
                 .addJavadoc("Takes a function that would update the value at column $L, for the specified row\n"
-                        + "components. No effect if there is no value at that column.", VarName(col))
+                        + "components. No effect if there is no value at that column. Doesn't do an additional\n"
+                        + "write if the new value is the same as the old one.", VarName(col))
                 .addModifiers(Modifier.PUBLIC);
 
         updateColumnIfExistsBuilder = addParametersFromRowComponents(updateColumnIfExistsBuilder, tableMetadata);

@@ -46,8 +46,8 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     protected Long getSingleRowFirstColumn(Transaction transaction, String rowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
+        ColumnSelection firstColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
         Optional<SchemaApiTestRowResult> result = table.getRow(SchemaApiTestRow.of(rowKey), firstColSelection);
         return result.get().getColumn1();
     }
@@ -56,8 +56,8 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     protected Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
+        ColumnSelection firstColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
         List<SchemaApiTestRowResult> result =
                 table.getRows(
                         rowKeys.stream().map(SchemaApiTestRow::of).collect(Collectors.toList()),
@@ -73,8 +73,8 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection secondColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(SECOND_COL_SHORT_NAME)));
+        ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
 
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(SchemaApiTestRow.of(startRowKey).persistToBytes())
