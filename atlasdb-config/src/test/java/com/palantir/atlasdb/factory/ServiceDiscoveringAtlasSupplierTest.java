@@ -31,7 +31,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
@@ -52,8 +51,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
         assertThat(
                 atlasSupplier.getKeyValueService(),
-                is(delegate.createRawKeyValueService(kvsConfig,
-                        leaderConfig, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC)));
+                is(delegate.createRawKeyValueService(kvsConfig, leaderConfig)));
     }
 
     @Test
