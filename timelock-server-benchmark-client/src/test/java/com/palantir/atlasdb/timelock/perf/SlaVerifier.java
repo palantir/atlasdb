@@ -36,7 +36,7 @@ public class SlaVerifier extends BenchmarkRunnerBase {
     public static void warmUp() {
         client.timestamp(1, 20_000);
         client.timestamp(16, 2_000);
-        client.writeTransaction(1, 100);
+        client.writeTransaction(1, 100, 1, 100);
     }
 
     @Test

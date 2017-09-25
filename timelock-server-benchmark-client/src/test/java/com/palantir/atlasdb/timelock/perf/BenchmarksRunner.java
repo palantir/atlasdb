@@ -58,12 +58,12 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void writeTransaction() {
-        runAndPrintResults(client::writeTransaction, 10, 100);
+        runAndPrintResults(() -> client.writeTransaction(1, 20, 1_000, 200));
     }
 
     @Test
     public void readTransaction() {
-        runAndPrintResults(client::readTransaction, 1, 500);
+        runAndPrintResults(() -> client.readTransaction(1, 20, 10_000, 200));
     }
 
     @Test
@@ -89,8 +89,8 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
     @Test
     public void rowsRangeScan() {
         runAndPrintResults(() -> client.rangeScanRows(1, 20, 200, 1_000));
-    }
 
+    }
     @Test
     public void dynamicColumnsRangeScan() {
         runAndPrintResults(() -> client.rangeScanDynamicColumns(16, 20, 1000, 10_000));

@@ -34,7 +34,9 @@ public interface BenchmarksService {
     @Path("/write-txn")
     Map<String, Object> writeTransaction(
             @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("numRows") int numRows,
+            @QueryParam("dataSize") int dataSize);
 
     @GET
     @Path("/contended-write-txn")
@@ -60,7 +62,9 @@ public interface BenchmarksService {
     @Path("/read-txn")
     Map<String, Object> readTransaction(
             @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("numRows") int numRows,
+            @QueryParam("dataSize") int dataSize);
 
     @GET
     @Path("/kvs-write")

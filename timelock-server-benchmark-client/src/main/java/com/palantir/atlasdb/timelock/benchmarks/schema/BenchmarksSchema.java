@@ -80,6 +80,21 @@ public final class BenchmarksSchema implements AtlasSchema {
             }
         });
 
+        schema.addTableDefinition("KvDynamicColumns2", new TableDefinition() {
+            {
+
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("bucket", ValueType.VAR_STRING);
+
+                dynamicColumns();
+                columnComponent("key", ValueType.BLOB);
+                value(ValueType.BLOB);
+
+                rangeScanAllowed();
+            }
+        });
+
         schema.addTableDefinition("Blobs", new TableDefinition() {
             {
                 rowName();

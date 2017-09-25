@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,36 +39,75 @@ public class ReadTransactionBenchmark extends AbstractBenchmark {
 
     private final TransactionManager txnManager;
 
-    private final String key = UUID.randomUUID().toString();
-    private final byte[] data = RandomBytes.ofLength(16);
+    private final int dataSize;
+    private final List<byte[]> keys;
+    String bucket = UUID.randomUUID().toString();
+
 
     public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
-            int requestsPerClient) {
-        return new ReadTransactionBenchmark(txnManager, numClients, requestsPerClient).execute();
+            int requestsPerClient, int numRows, int dataSize) {
+        return new ReadTransactionBenchmark(txnManager, numClients, requestsPerClient, numRows, dataSize).execute();
     }
 
-    private ReadTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient) {
+    private ReadTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient, int numRows, int dataSize) {
         super(numClients, requestsPerClient);
         this.txnManager = txnManager;
+
+        this.keys = IntStream.range(0, numRows)
+                .mapToObj(i -> RandomBytes.ofLength(16))
+                .collect(Collectors.toList());
+        this.dataSize = dataSize;
     }
 
     @Override
     public void setup() {
         txnManager.runTaskWithRetry(txn -> {
             BlobsTable table = BenchmarksTableFactory.of().getBlobsTable(txn);
-            table.putData(BlobsRow.of(data), data);
+            for (byte[] key : keys) {
+                table.putData(BlobsRow.of(key), RandomBytes.ofLength(dataSize));
+            }
             return null;
         });
     }
 
     @Override
     public void performOneCall() {
-        byte[] result = txnManager.runTaskReadOnly(txn -> {
+        List<byte[]> result = txnManager.runTaskReadOnly(txn -> {
             BlobsTable table = BenchmarksTableFactory.of().getBlobsTable(txn);
-            return table.getRow(BlobsRow.of(data)).get().getData();
+            return table.getRows(keys.stream().map(BlobsRow::of).collect(Collectors.toList()))
+                    .stream().map(rr -> rr.getData()).collect(Collectors.toList());
         });
 
-        Preconditions.checkState(result != null);
+        Preconditions.checkState(result.size() == keys.size());
     }
+
+//    @Override
+//    public void setup() {
+//        txnManager.runTaskWithRetry(txn -> {
+//            KvDynamicColumns2Table table = BenchmarksTableFactory.of().getKvDynamicColumns2Table(txn);
+//
+//            for (byte[] key : keys) {
+//                table.put(KvDynamicColumns2Table.KvDynamicColumns2Row.of(bucket), KvDynamicColumns2Table.KvDynamicColumns2ColumnValue.of(
+//                        KvDynamicColumns2Table.KvDynamicColumns2Column.of(key), RandomBytes.ofLength(dataSize)));
+//            }
+//            return null;
+//        });
+//    }
+//
+//    @Override
+//    public void performOneCall() {
+//        List<byte[]> result = txnManager.runTaskReadOnly(txn -> {
+//            KvDynamicColumns2Table table = BenchmarksTableFactory.of().getKvDynamicColumns2Table(txn);
+//            Iterable<byte[]> columns = keys.stream()
+//                    .map(key -> KvDynamicColumns2Table.KvDynamicColumns2Column.of(key))
+//                    .map(c -> c.persistToBytes())
+//                    .collect(Collectors.toList());
+//
+//            return table.getRowColumns(KvDynamicColumns2Table.KvDynamicColumns2Row.of(bucket), ColumnSelection.create(columns))
+//                    .stream().map(v -> v.getValue()).collect(Collectors.toList());
+//        });
+//
+//        Preconditions.checkState(result.size() == keys.size());
+//    }
 
 }
