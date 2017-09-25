@@ -122,15 +122,15 @@ public class CqlExecutor {
         return query.executeAndGetCells(row);
     }
 
-    private UnsafeArg<String> key(byte[] row) {
+    private Arg<String> key(byte[] row) {
         return UnsafeArg.of("key", CassandraKeyValueServices.encodeAsHex(row));
     }
-    
-    private UnsafeArg<String> column1(byte[] column) {
+
+    private Arg<String> column1(byte[] column) {
         return UnsafeArg.of("column1", CassandraKeyValueServices.encodeAsHex(column));
     }
 
-    private SafeArg<Long> column2(long invertedTimestamp) {
+    private Arg<Long> column2(long invertedTimestamp) {
         return SafeArg.of("column2", invertedTimestamp);
     }
 
