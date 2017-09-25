@@ -42,3 +42,6 @@ atlasdb-cli/var/data/
 # Memory tracker nohup
 nohup.out
 nohup.err
+
+# Benchmark hosts
+scripts/benchmarks/servers.txt
