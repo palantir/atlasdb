@@ -28,7 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -37,7 +36,6 @@ import org.junit.rules.RuleChain;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.core.ConditionTimeoutException;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -67,7 +65,7 @@ public class StartupIndependenceEteTest {
         killCassandraNodes(ALL_CASSANDRA_NODES);
     }
 
-    public void randomizeNamespace() throws IOException, InterruptedException {
+    public static void randomizeNamespace() throws IOException, InterruptedException {
         EteSetup.execCliCommand("sed -i 's/keyspace: .*/keyspace: " + UUID.randomUUID().toString().replace("-", "_")
                 + "/' var/conf/atlasdb-ete.yml");
     }
@@ -77,28 +75,24 @@ public class StartupIndependenceEteTest {
             throws IOException, InterruptedException {
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
-        assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
         startCassandraNodes(ALL_CASSANDRA_NODES);
         assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
 
         killCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
-        assertNotSatisfiedWithin(40, StartupIndependenceEteTest::canPerformTransaction);
         startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
         assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
     }
 
     @Test
-    public void atlasInitializesSynchronouslyIfQuorumOfNodesIsUp() throws InterruptedException, IOException {
-        startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
-        restartAtlasWithChecks();
-        assertTrue(canPerformTransaction());
-    }
-
-    @Test
     public void atlasInitializesSynchronouslyIfCassandraIsInGoodState() throws InterruptedException, IOException {
         startCassandraNodes(ALL_CASSANDRA_NODES);
+        verifyCassandraIsSettled();
+        restartAtlasWithChecks();
+        assertTrue(canPerformTransaction());
+
+        killCassandraNodes(ONE_CASSANDRA_NODE);
         restartAtlasWithChecks();
         assertTrue(canPerformTransaction());
     }
@@ -120,6 +114,12 @@ public class StartupIndependenceEteTest {
         startAtlasServerAndAssertSuccess();
     }
 
+    private static void verifyCassandraIsSettled() throws IOException, InterruptedException {
+        restartAtlasWithChecks();
+        assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
+        randomizeNamespace();
+    }
+
     private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
         EteSetup.execCliCommand("service/bin/init.sh stop");
         assertSatisfiedWithin(20, () -> !serverRunning());
@@ -132,15 +132,6 @@ public class StartupIndependenceEteTest {
 
     private static void assertSatisfiedWithin(long time, Callable<Boolean> condition) {
         Awaitility.waitAtMost(time, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(condition);
-    }
-
-    private static void assertNotSatisfiedWithin(long time, Callable<Boolean> condition) {
-        Assertions.assertThatThrownBy(
-                () -> Awaitility
-                        .waitAtMost(time, TimeUnit.SECONDS)
-                        .pollInterval(2, TimeUnit.SECONDS)
-                        .until(condition))
-                .isInstanceOf(ConditionTimeoutException.class);
     }
 
     private static boolean serverRunning() {

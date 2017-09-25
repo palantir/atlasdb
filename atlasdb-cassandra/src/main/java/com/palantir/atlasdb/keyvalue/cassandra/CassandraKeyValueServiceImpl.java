@@ -1566,9 +1566,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     }
                 }
                 CassandraKeyValueServices.waitForSchemaVersions(
+                        configManager.getConfig(),
                         client,
-                        "(all tables in a call to dropTables)",
-                        configManager.getConfig().schemaMutationTimeoutMillis());
+                        "(all tables in a call to dropTables)");
                 return null;
             });
         } catch (UnavailableException e) {
@@ -1721,9 +1721,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
 
             CassandraKeyValueServices.waitForSchemaVersions(
+                    configManager.getConfig(),
                     client,
-                    "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
-                    configManager.getConfig().schemaMutationTimeoutMillis(), true);
+                    "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")");
             return null;
         });
     }
@@ -1947,9 +1947,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     }
 
                     CassandraKeyValueServices.waitForSchemaVersions(
+                            configManager.getConfig(),
                             client,
-                            "(all tables in a call to putMetadataForTables)",
-                            configManager.getConfig().schemaMutationTimeoutMillis());
+                            "(all tables in a call to putMetadataForTables)");
                 }
                 // Done with actual schema mutation, push the metadata
                 put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
@@ -2293,9 +2293,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 String.valueOf(tombstoneThresholdRatio)));
                         client.system_update_column_family(cf);
                         CassandraKeyValueServices.waitForSchemaVersions(
+                                configManager.getConfig(),
                                 client,
-                                tableRef.getQualifiedName(),
-                                configManager.getConfig().schemaMutationTimeoutMillis());
+                                tableRef.getQualifiedName());
                         log.trace("gc_grace_seconds is set to {} for {}.{}",
                                 SafeArg.of("gcGraceSeconds", gcGraceSeconds), UnsafeArg.of("keyspace", keyspace),
                                 UnsafeArg.of("table", tableRef));

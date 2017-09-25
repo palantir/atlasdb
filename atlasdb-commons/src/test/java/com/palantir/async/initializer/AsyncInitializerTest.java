@@ -18,20 +18,27 @@ package com.palantir.async.initializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
-
-import com.jayway.awaitility.Awaitility;
+import org.mockito.Mockito;
 
 public class AsyncInitializerTest {
-
-    public static final int WAIT_TIME_MILLIS = 500;
-    public static final int ASYNC_INIT_DELAY = WAIT_TIME_MILLIS / 10;
+    private static final int ASYNC_INIT_DELAY = 10;
+    private static final int FIVE = 5;
 
     private class AlwaysFailingInitializer extends AsyncInitializer {
         volatile int initializationAttempts = 0;
+        DeterministicScheduler deterministicScheduler;
 
         @Override
         public void tryInitialize() {
@@ -48,38 +55,120 @@ public class AsyncInitializerTest {
         protected String getInitializingClassName() {
             return "AlwaysFailingInitializer";
         }
+
+        @Override
+        ScheduledExecutorService getExecutorService() {
+            deterministicScheduler = new DeterministicScheduler();
+            return deterministicScheduler;
+        }
     }
 
     @Test
     public void synchronousInitializationPropagatesExceptionsAndDoesNotRetry() throws InterruptedException {
-        AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
+        AsyncInitializer initializer = getMockedInitializer();
+
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Failed initializing");
-        Thread.sleep(WAIT_TIME_MILLIS);
-        assertThat(initializer.initializationAttempts).isEqualTo(1);
+        verify(initializer).tryInitialize();
+        verify(initializer, never()).scheduleInitialization();
     }
 
     @Test
     public void asyncInitializationCatchesExceptionAndRetries() {
-        AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
+        AsyncInitializer initializer = getMockedInitializer();
+
         initializer.initialize(true);
-        Awaitility.await().pollInterval(ASYNC_INIT_DELAY, TimeUnit.MILLISECONDS)
-                .atMost(WAIT_TIME_MILLIS, TimeUnit.MILLISECONDS)
-                .until(() -> initializer.initializationAttempts == 5);
+        verify(initializer).tryInitialize();
+        verify(initializer).scheduleInitialization();
     }
 
     @Test
-    public void initializationIsNoopIfAlreadyInitialized() {
-        AlwaysFailingInitializer initializer = new AlwaysFailingInitializer() {
+    public void initializationAlwaysFailsAfterTheFirstSynchronousTry() {
+        AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
+
+        assertThatThrownBy(() -> initializer.initialize(false))
+                .isInstanceOf(RuntimeException.class)
+                .withFailMessage("Failed initializing");
+        assertThatThrownBy(() -> initializer.initialize(false))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Multiple calls tried to initialize the same instance.");
+        tickSchedulerFiveTimes(initializer);
+        assertThat(initializer.initializationAttempts).isEqualTo(1);
+    }
+
+    @Test
+    public void initializationAlwaysFailsAfterTheFirstAsynchronousTry() {
+        AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
+
+        initializer.initialize(true);
+        assertThatThrownBy(() -> initializer.initialize(false))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Multiple calls tried to initialize the same instance.");
+        tickSchedulerFiveTimes(initializer);
+        assertThat(initializer.initializationAttempts).isEqualTo(1 + FIVE);
+    }
+
+    @Test
+    public void asyncInitializationKeepsRetryingAndEventuallySucceeds() throws InterruptedException {
+        AlwaysFailingInitializer eventuallySuccessfulInitializer = new AlwaysFailingInitializer() {
+            @Override
+            public void tryInitialize() {
+                if (initializationAttempts < FIVE) {
+                    super.tryInitialize();
+                }
+            }
+        };
+
+        eventuallySuccessfulInitializer.initialize(true);
+        assertFalse(eventuallySuccessfulInitializer.isInitialized());
+        tickSchedulerFiveTimes(eventuallySuccessfulInitializer);
+        assertThat(eventuallySuccessfulInitializer.isInitialized()).isTrue();
+    }
+
+    @Test
+    public void canCancelInitializationAndNoCleanupIfNotInitialized() throws InterruptedException {
+        AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
+        Runnable cleanupTask = mock(Runnable.class);
+        doNothing().when(cleanupTask).run();
+
+        initializeAsyncCancelAndVerifyCancelled(initializer, cleanupTask);
+        verify(cleanupTask, never()).run();
+    }
+
+    @Test
+    public void canCancelInitializationAndCleanupIfInitialized() throws InterruptedException {
+        AlwaysFailingInitializer successfulInitializer = new AlwaysFailingInitializer() {
             @Override
             public boolean isInitialized() {
                 return true;
             }
         };
+        Runnable cleanupTask = mock(Runnable.class);
+        doNothing().when(cleanupTask).run();
+
+        initializeAsyncCancelAndVerifyCancelled(successfulInitializer, cleanupTask);
+        verify(cleanupTask).run();
+    }
+
+    private AsyncInitializer getMockedInitializer() {
+        AsyncInitializer initializer = mock(AsyncInitializer.class, Mockito.CALLS_REAL_METHODS);
+        doNothing().when(initializer).assertNeverCalledInitialize();
+        doThrow(new RuntimeException("Failed initializing")).when(initializer).tryInitialize();
+        doNothing().when(initializer).scheduleInitialization();
+        return initializer;
+    }
+
+    private void initializeAsyncCancelAndVerifyCancelled(AlwaysFailingInitializer initializer,
+            Runnable cleanupTask) throws InterruptedException {
         initializer.initialize(true);
-        assertThat(initializer.initializationAttempts).isEqualTo(0);
-        initializer.initialize(false);
-        assertThat(initializer.initializationAttempts).isEqualTo(0);
+        initializer.cancelInitialization(cleanupTask);
+        int numberOfAttemptsWhenCancelled = initializer.initializationAttempts;
+        tickSchedulerFiveTimes(initializer);
+        assertThat(initializer.initializationAttempts).isEqualTo(numberOfAttemptsWhenCancelled);
+    }
+
+    private void tickSchedulerFiveTimes(AlwaysFailingInitializer initializer) {
+        initializer.deterministicScheduler.tick(ASYNC_INIT_DELAY * FIVE + 1, TimeUnit.MILLISECONDS);
     }
 }

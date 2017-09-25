@@ -26,7 +26,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
@@ -39,18 +38,14 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    private final ScheduledExecutorService singleThreadedExecutor = Executors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
+    private final ScheduledExecutorService singleThreadedExecutor = getExecutorService();
+
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
     private volatile boolean canceledInitialization = false;
 
     public final void initialize(boolean initializeAsync) {
-        if (!isInitializing.compareAndSet(false, true)) {
-            throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
-                    + "Each instance should have a single thread trying to initialize it.\n"
-                    + "Object being initialized multiple times: " + getInitializingClassName());
-        }
+        assertNeverCalledInitialize();
 
         if (!initializeAsync) {
             tryInitializeInternal();
@@ -67,7 +62,23 @@ public abstract class AsyncInitializer {
         }
     }
 
-    private void scheduleInitialization() {
+    // Not final for tests
+    ScheduledExecutorService getExecutorService() {
+        return Executors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
+    }
+
+    // Not final for tests.
+    void assertNeverCalledInitialize() {
+        if (!isInitializing.compareAndSet(false, true)) {
+            throw new IllegalStateException("Multiple calls tried to initialize the same instance.\n"
+                    + "Each instance should have a single thread trying to initialize it.\n"
+                    + "Object being initialized multiple times: " + getInitializingClassName());
+        }
+    }
+
+    // Not final for tests.
+    void scheduleInitialization() {
         singleThreadedExecutor.schedule(() -> {
             if (canceledInitialization) {
                 return;
@@ -85,8 +96,8 @@ public abstract class AsyncInitializer {
         }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
     }
 
-    @VisibleForTesting
-    protected int sleepIntervalInMillis() {
+    // Not final for tests.
+    int sleepIntervalInMillis() {
         return 10_000;
     }
 
@@ -116,7 +127,8 @@ public abstract class AsyncInitializer {
         initialized = true;
     }
 
-    public final boolean isInitialized() {
+    // Not final for tests.
+    public boolean isInitialized() {
         return initialized;
     }
 
