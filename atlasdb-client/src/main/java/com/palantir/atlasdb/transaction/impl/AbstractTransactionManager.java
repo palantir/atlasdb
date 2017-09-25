@@ -35,6 +35,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
@@ -75,6 +76,9 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 log.info("[{}] Retrying transaction after {} failure(s).",
                         SafeArg.of("runId", runId),
                         SafeArg.of("failureCount", failureCount), e);
+            } catch (NotInitializedException e) {
+                log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", e);
+                throw e;
             } catch (RuntimeException e) {
                 log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;
