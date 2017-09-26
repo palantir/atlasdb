@@ -9,7 +9,10 @@ cluster:
     - localhost:8421
 
 algorithm:
-  type: timestampBoundStore
+  type: paxos
+
+timestampBoundPersister:
+  type: database
   key-value-service:
     type: cassandra
     keyspace: atlasete
@@ -21,6 +24,7 @@ algorithm:
       password: cassandra
     ssl: false
     replicationFactor: 1
+
 server:
   applicationConnectors:
     - type: http

@@ -9,7 +9,10 @@ cluster:
     - localhost:8421
 
 algorithm:
-  type: timestampBoundStore
+  type: paxos
+
+timestampBoundPersister:
+  type: database
   key-value-service:
     type: relational
     ddl:
@@ -21,6 +24,7 @@ algorithm:
       dbName: atlas
       dbLogin: palantir
       dbPassword: palantir
+
 server:
   applicationConnectors:
     - type: http
