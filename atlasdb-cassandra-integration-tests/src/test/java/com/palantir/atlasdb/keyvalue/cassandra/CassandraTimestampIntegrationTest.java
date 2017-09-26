@@ -49,8 +49,7 @@ public class CassandraTimestampIntegrationTest {
 
     @Test
     public void testBounds() {
-        TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv,
-                AtlasDbConstants.TIMESTAMP_TABLE);
+        TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
         ts.storeUpperLimit(limit + 10);
         Assert.assertEquals(limit + 10, ts.getUpperLimit());
@@ -62,7 +61,7 @@ public class CassandraTimestampIntegrationTest {
 
     @Test
     public void resilientToMultipleStoreUpperLimitBeforeGet() {
-        TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv, AtlasDbConstants.TIMESTAMP_TABLE);
+        TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
         ts.storeUpperLimit(limit + 10);
         ts.storeUpperLimit(limit + 20);
@@ -71,8 +70,8 @@ public class CassandraTimestampIntegrationTest {
 
     @Test
     public void testMultipleThrows() {
-        TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv, AtlasDbConstants.TIMESTAMP_TABLE);
-        TimestampBoundStore ts2 = CassandraTimestampBoundStore.create(kv, AtlasDbConstants.TIMESTAMP_TABLE);
+        TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
+        TimestampBoundStore ts2 = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
         Assert.assertEquals(limit, ts2.getUpperLimit());
         ts.storeUpperLimit(limit + 10);
