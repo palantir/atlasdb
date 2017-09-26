@@ -33,7 +33,7 @@ import com.palantir.atlasdb.ete.TodoEteTest;
         CommandLineEteTest.class
         })
 public class PostgresTestSuite extends EteSetup {
-    private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+    private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
