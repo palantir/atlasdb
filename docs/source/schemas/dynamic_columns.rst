@@ -14,8 +14,8 @@ Overview
 
 AtlasDB offers support for *dynamic columns* - in tables where these are enabled, rows that can have an arbitrary number
 of columns, each with a (typed) column name. A table with dynamic columns may be reasoned about as a
-``Map<RowKey, SortedMap<Tuple<Col1, Col2... ColN>, Value>>``. For example, a simple schema using dynamic columns may be
-defined as follows:
+``Map<RowKey, SortedMap<Tuple<Col1, Col2... ColN>, Value>>``. It may also be thought of as a collection of key-value
+pairs within a row. For example, a simple schema using dynamic columns may be defined as follows:
 
 .. code:: java
 
@@ -31,6 +31,12 @@ defined as follows:
 Note that dynamic column components must be primitive ValueTypes which support partitioning and ordering.
 Also, key-value pairs in an individual row will be returned in *lexicographically* sorted order of the key.
 
+We call the person the *row key*, the (taskSize, monetaryCost) pair the *dynamic column key*, and the string (which is
+intended to be a description of the todo) the *value*.
+
+Query Capabilities
+------------------
+
 Dynamic Columns are useful for avoiding KVS-level range scans, especially in key-value services where range scans
 are expensive (like Cassandra - its caching optimisations are rendered ineffectual for range scans). For example,
 for the schema defined above:
@@ -42,21 +48,26 @@ for the schema defined above:
    processed with a natural stopping point, as in query 1, and we are iterating in the right order for this query.
    This can be achieved using the getRowsColumnRange API.
 3. "Find all of Tom's todos with size of 10 to 15, limit to N results" can be performed via a range
-   scan on the dynamic column *values*. This is also readily supported.
+   scan on the dynamic column key. This is also readily supported, and does not create a KVS-level range scan.
 4. "Find all of Tom's largest todos" is somewhat more difficult, as reverse range scans aren't supported by the
    dynamic columns API. If we were more interested in largest todos as opposed to smallest, we could set the
    ``ValueByteOrder`` of the ``taskSize`` column component to decreasing.
-5. "Find all of Tom's todos which cost less than 5" will not be efficient; we need to retrieve the entire row to do
-   this, because there is no sorting by sub-units.
+5. "Find all of Tom's todos which cost less than 5" will be less efficient. We need to retrieve the entire row to do
+   this, because the map is sorted by task size and then monetary cost. If queries on cost are more common than queries
+   on size, flipping the order of the column components could help.
 6. "Find all of Tom's todos which have size between 3 and 7, and cost between 5 and 10". This is achievable, though in
    addition to the values we want to see, we also need to scan through all values with size 4-6, and those with size
    3 and cost >10, or 7 and cost <5.
-7. "Find all of John's and Jeremy's smallest todos" is easy for a similar reason to 1. We provide an API that allows
+7. "Find all of Nathan's todos that begin with the letter N". Prefix / range scans are not supported on values, so this
+   requires us to scan through the entire row.
+8. "Find all of John's and Jeremy's smallest todos" is easy for a similar reason to 1. We provide an API that allows
    for this to be done seamlessly as well.
-8. "Find the highest priority todos for everyone whose name begins with J" is NOT easy. While this
+9. "Find the smallest todos for everyone whose name begins with J" is NOT easy. While this
    conceivably can be split into two parts (a prefix scan for J, and then the aforementioned getRowsColumnRange),
    the range scan for J is potentially costly, as it needs to iterate through every todo for people whose names
    do indeed begin with J.
+
+Notice, though, that all of the queries apart from 9 can be answered without a KVS-level range scan.
 
 Using Dynamic Columns
 ---------------------
@@ -72,11 +83,10 @@ One can use the standard ``put`` method. This can be used to add one or more col
 
     todoTable.put(
             TodoTable.TodoRow.of(person),
-            TodoTable.TodoColumnValue.of(
-                    TodoTable.TodoColumn.of(size1, cost1), description1),
-                    TodoTable.TodoColumn.of(size2, cost2), description2));
+            TodoTable.TodoColumnValue.of(TodoTable.TodoColumn.of(size1, cost1), description1),
+            TodoTable.TodoColumnValue.of(TodoTable.TodoColumn.of(size2, cost2), description2));
 
-Note that if the table already consists of a value for a given row-key and dynamic column values, then this put
+Note that if the table already consists of a value for a given row key and dynamic column key, then this put
 will overwrite the existing value.
 
 Retrieval
@@ -137,4 +147,5 @@ When Not To Use Dynamic Columns
 
 Dynamic columns create wide rows in Cassandra, because they generate many (Cassandra) dynamic columns.
 This may add limits to the scalability of the data, because all data for a single row key will be stored on a
-single machine in the cluster.
+single machine in the cluster. Generally, we recommend that row sizes are kept below 100 MB, and below one million
+dynamic column keys.
