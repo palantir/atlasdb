@@ -42,7 +42,6 @@ public class CheckAndSetSchema implements AtlasSchema {
                 rowComponent("id", ValueType.FIXED_LONG);
                 columns();
                 column(VALUES_COLUMN, "v", ValueType.FIXED_LONG);
-                enableV2Table();
             }
         });
 

@@ -1,9 +1,11 @@
 package com.palantir.atlasdb.table.description.generated;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -19,10 +21,10 @@ import java.lang.Iterable;
 import java.lang.Long;
 import java.lang.String;
 import java.lang.SuppressWarnings;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -70,24 +72,22 @@ public class SchemaApiTestV2Table {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
         ColumnSelection colSelection = 
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
         if (rowResult == null) {
-            return Optional.empty();
-        }
-        else {
-            return Optional.of(SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn1());
+             return Optional.empty();
+        } else {
+             return Optional.of(SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn1());
         }
     }
 
     /**
-     * Returns a mapping from row keys to value at column Column1. Ordering in the
-     * map is not guaranteed. As the values are all loaded in memory, do not use
-     * for large amounts of data. If the column does not exist for a key, the entry
-     * will be omitted from the map. */
+     * Returns a mapping from row keys to value at column Column1.
+     * As the values are all loaded in memory, do not use for large amounts of data.
+     * If the column does not exist for a key, the entry will be omitted from the map. */
     public Map<String, Long> getColumn1(Iterable<String> rowKeys) {
         ColumnSelection colSelection = 
-                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
+                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
         List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists
                 .newArrayList(rowKeys)
                 .stream()
@@ -104,32 +104,32 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from all the row keys to their value at column Column1 (if that column exists).
-     * Ordering in the map is not guaranteed. As the values are all loaded in memory, do not use
-     * for large amounts of data.  */
+     * Returns a mapping from all the row keys to their value at column Column1
+     * (if that column exists for the row-key). As the values are all loaded in memory,
+     * do not use for large amounts of data. */
     public Map<String, Long> getAllColumn1() {
         ColumnSelection colSelection = 
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
-        return getRowRangeColumn1(RangeRequest.all());
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
+        return getSmallRowRangeColumn1(RangeRequest.all());
     }
 
     /**
      * Returns a mapping from all the row keys in a rangeRequest to their value at column Column1
-     * (if that column exists). Ordering in the map is not guaranteed. As the values are all
-     * loaded in memory, do not use for large amounts of data.  */
-    public Map<String, Long> getRowRangeColumn1(RangeRequest rangeRequest) {
-        ColumnSelection colSelection = 
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
+     * (if that column exists). As the values are all loaded in memory, do not use for large amounts of data.  */
+    public Map<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest) {
+        ColumnSelection colSelection =
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column1.");
-        return BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
-                .immutableCopy()
-                .stream()
-                .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
-                .collect(Collectors.toMap(
-                     entry -> entry.getRowName().getComponent1(), 
-                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
+        Map<String, Long> resultsMap = new LinkedHashMap<>();
+        BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
+                .immutableCopy().forEach(entry -> {
+                     SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
+                          SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
+                     resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn1());
+                });
+        return resultsMap;
     }
 
     /**
@@ -138,24 +138,22 @@ public class SchemaApiTestV2Table {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
         ColumnSelection colSelection = 
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
         if (rowResult == null) {
-            return Optional.empty();
-        }
-        else {
-            return Optional.of(SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn2());
+             return Optional.empty();
+        } else {
+             return Optional.of(SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn2());
         }
     }
 
     /**
-     * Returns a mapping from row keys to value at column Column2. Ordering in the
-     * map is not guaranteed. As the values are all loaded in memory, do not use
-     * for large amounts of data. If the column does not exist for a key, the entry
-     * will be omitted from the map. */
+     * Returns a mapping from row keys to value at column Column2.
+     * As the values are all loaded in memory, do not use for large amounts of data.
+     * If the column does not exist for a key, the entry will be omitted from the map. */
     public Map<String, String> getColumn2(Iterable<String> rowKeys) {
         ColumnSelection colSelection = 
-                 ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
+                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists
                 .newArrayList(rowKeys)
                 .stream()
@@ -172,32 +170,32 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from all the row keys to their value at column Column2 (if that column exists).
-     * Ordering in the map is not guaranteed. As the values are all loaded in memory, do not use
-     * for large amounts of data.  */
+     * Returns a mapping from all the row keys to their value at column Column2
+     * (if that column exists for the row-key). As the values are all loaded in memory,
+     * do not use for large amounts of data. */
     public Map<String, String> getAllColumn2() {
         ColumnSelection colSelection = 
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
-        return getRowRangeColumn2(RangeRequest.all());
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
+        return getSmallRowRangeColumn2(RangeRequest.all());
     }
 
     /**
      * Returns a mapping from all the row keys in a rangeRequest to their value at column Column2
-     * (if that column exists). Ordering in the map is not guaranteed. As the values are all
-     * loaded in memory, do not use for large amounts of data.  */
-    public Map<String, String> getRowRangeColumn2(RangeRequest rangeRequest) {
-        ColumnSelection colSelection = 
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("d")));
+     * (if that column exists). As the values are all loaded in memory, do not use for large amounts of data.  */
+    public Map<String, String> getSmallRowRangeColumn2(RangeRequest rangeRequest) {
+        ColumnSelection colSelection =
+                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column2.");
-        return BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
-                .immutableCopy()
-                .stream()
-                .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
-                .collect(Collectors.toMap(
-                     entry -> entry.getRowName().getComponent1(), 
-                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
+        Map<String, String> resultsMap = new LinkedHashMap<>();
+        BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
+                .immutableCopy().forEach(entry -> {
+                     SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
+                          SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
+                     resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn2());
+                });
+        return resultsMap;
     }
 
     /**
@@ -205,7 +203,7 @@ public class SchemaApiTestV2Table {
     public void deleteRow(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] rowBytes = row.persistToBytes();
-        Set<Cell> cells = new HashSet<>();
+        Set<Cell> cells = Sets.newHashSetWithExpectedSize(2);
         cells.add(Cell.create(rowBytes, PtBytes.toCachedBytes("c")));
         cells.add(Cell.create(rowBytes, PtBytes.toCachedBytes("d")));
         t.delete(tableRef, cells);
@@ -244,7 +242,7 @@ public class SchemaApiTestV2Table {
         Optional<Long> result = getColumn1(component1);
         if (result.isPresent()) {
             Long newValue = processor.apply(result.get());
-            if (newValue != result.get()) {
+            if (Objects.equals(newValue, result.get()) == false) {
                 putColumn1(component1, processor.apply(result.get()));
             }
         }
@@ -265,7 +263,7 @@ public class SchemaApiTestV2Table {
         Optional<String> result = getColumn2(component1);
         if (result.isPresent()) {
             String newValue = processor.apply(result.get());
-            if (newValue != result.get()) {
+            if (Objects.equals(newValue, result.get()) == false) {
                 putColumn2(component1, processor.apply(result.get()));
             }
         }

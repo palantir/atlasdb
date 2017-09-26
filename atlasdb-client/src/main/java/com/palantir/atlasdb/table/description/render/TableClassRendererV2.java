@@ -24,10 +24,10 @@ import static com.palantir.atlasdb.table.description.render.Renderers.getArgumen
 import static com.palantir.atlasdb.table.description.render.Renderers.getColumnTypeClass;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -39,9 +39,11 @@ import javax.annotation.Generated;
 import javax.lang.model.element.Modifier;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -258,18 +260,17 @@ public class TableClassRendererV2 {
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("byte[] bytes = row.persistToBytes()")
                 .addStatement("$T colSelection = \n"
-                                + "$T.create($T.singletonList($T.toCachedBytes($S)))",
-                        ColumnSelection.class, ColumnSelection.class, Collections.class,
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
                 .addStatement("$T<byte[]> rowResult = t.getRows(tableRef, $T.of(bytes), colSelection).get(bytes)",
                         RowResult.class, ImmutableSet.class)
-                .beginControlFlow("if (rowResult == null)")
-                .addStatement("return $T.empty()", Optional.class)
-                .endControlFlow()
-                .beginControlFlow("else")
-                .addStatement("return $T.of($T.of(rowResult).get$L())",
-                        Optional.class, rowResultType, VarName(col))
-                .endControlFlow();
+                .addCode("if (rowResult == null) {\n"
+                        + "     return $T.empty();\n"
+                        + "} else {\n"
+                        + "     return $T.of($T.of(rowResult).get$L());\n"
+                        + "}\n",
+                        Optional.class, Optional.class, rowResultType, VarName(col));
 
         return getterBuilder.build();
     }
@@ -281,10 +282,10 @@ public class TableClassRendererV2 {
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from row keys to value at column $L. Ordering in the\n"
-                        + "map is not guaranteed. As the values are all loaded in memory, do not use\n"
-                        + "for large amounts of data. If the column does not exist for a key, the entry\n"
-                        + "will be omitted from the map.", VarName(col))
+                .addJavadoc("Returns a mapping from row keys to value at column $L.\n"
+                        + "As the values are all loaded in memory, do not use for large amounts of data.\n"
+                        + "If the column does not exist for a key, the entry will be omitted from the map.",
+                        VarName(col))
                 .addParameter(
                         ParameterizedTypeName.get(
                                 ClassName.get(Iterable.class),
@@ -298,8 +299,8 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
-                                + "$T.create($T.singletonList($T.toCachedBytes($S)))",
-                        ColumnSelection.class, ColumnSelection.class, Collections.class,
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
                 .addStatement("$T<$T> rows = $T\n"
                                 + ".newArrayList(rowKeys)\n"
@@ -326,10 +327,10 @@ public class TableClassRendererV2 {
     private MethodSpec renderNamedGetSeveralRowObjects(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from row objects to value at column $L. Ordering in the\n"
-                        + "map is not guaranteed. As the values are all loaded in memory, do not use\n"
-                        + "for large amounts of data. If the column does not exist for a key, the entry\n"
-                        + "will be omitted from the map.", VarName(col))
+                .addJavadoc("Returns a mapping from row objects to value at column $L.\n"
+                                + "As the values are all loaded in memory, do not use for large amounts of data.\n"
+                                + "If the column does not exist for a key, the entry will be omitted from the map.",
+                        VarName(col))
                 .addParameter(ParameterizedTypeName.get(ClassName.get(Iterable.class), rowType), "rowKeys");
 
         getterBuilder.returns(ParameterizedTypeName.get(
@@ -339,8 +340,8 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
-                                + "$T.create($T.singletonList($T.toCachedBytes($S)))",
-                        ColumnSelection.class, ColumnSelection.class, Collections.class,
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
                 .addStatement("$T<byte[], $T<byte[]>> results = "
                                 + "t.getRows(tableRef, $T.persistAll(rowKeys), colSelection)",
@@ -364,9 +365,9 @@ public class TableClassRendererV2 {
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from all the row keys to their value at column $L (if that column exists).\n"
-                        + "Ordering in the map is not guaranteed. As the values are all loaded in memory, do not use\n"
-                        + "for large amounts of data. ", VarName(col));
+                .addJavadoc("Returns a mapping from all the row keys to their value at column $L\n"
+                        + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
+                        + "do not use for large amounts of data.", VarName(col));
 
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class),
@@ -375,10 +376,10 @@ public class TableClassRendererV2 {
 
         getterBuilder
                 .addStatement("$T colSelection = \n"
-                                + "$T.create($T.singletonList($T.toCachedBytes($S)))",
-                        ColumnSelection.class, ColumnSelection.class, Collections.class,
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
-                .addStatement("return getRowRange$L($T.all())",
+                .addStatement("return getSmallRowRange$L($T.all())",
                         VarName(col), RangeRequest.class);
 
         return getterBuilder.build();
@@ -388,19 +389,19 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row objects to their value at column $L\n"
-                        + "(if that column exists). Ordering in the map is not guaranteed.\n"
-                        + "As the values are all loaded in memory, do not use for large amounts of data.",
-                        VarName(col));
+                        + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
+                        + "do not use for large amounts of data.", VarName(col));
+                        VarName(col);
 
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class), rowType, ClassName.get(getColumnTypeClass(col))));
 
         getterBuilder
                 .addStatement("$T colSelection = \n"
-                                + "$T.create($T.singletonList($T.toCachedBytes($S)))",
-                        ColumnSelection.class, ColumnSelection.class, Collections.class,
+                                + "$T.create($T.of($T.toCachedBytes($S)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
-                .addStatement("return getRowRange$L($T.all())",
+                .addStatement("return getSmallRowRange$L($T.all())",
                         VarName(col), RangeRequest.class);
 
         return getterBuilder.build();
@@ -410,11 +411,11 @@ public class TableClassRendererV2 {
         Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRowRange" + VarName(col))
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addJavadoc("Returns a mapping from all the row keys in a rangeRequest to their value at column $L\n"
-                        + "(if that column exists). Ordering in the map is not guaranteed. As the values are all\n"
-                        + "loaded in memory, do not use for large amounts of data. ", VarName(col))
+                        + "(if that column exists). As the values are all loaded in memory, "
+                        + "do not use for large amounts of data. ", VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(Map.class),
@@ -422,32 +423,34 @@ public class TableClassRendererV2 {
                         ClassName.get(getColumnTypeClass(col))));
 
         getterBuilder
-                .addStatement("$T colSelection = \n"
-                                + "$T.create($T.singletonList($T.toCachedBytes($L)))",
-                        ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
+                .addStatement("$T colSelection =\n"
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
                 .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
                         Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
-                .addStatement("return $T.of(t.getRange(tableRef, rangeRequest))\n"
-                                + ".immutableCopy()\n"
-                                + ".stream()\n"
-                                + ".map(entry -> $T.of(entry))\n"
-                                + ".collect($T.toMap(\n"
-                                + "     entry -> entry.getRowName().get$L(), \n"
-                                + "     $T::get$L))",
-                        BatchingVisitableView.class, rowResultType, Collectors.class,
-                        CamelCase(rowComponent.getComponentName()), rowResultType, VarName(col));
+                .addStatement("$T<$T, $T> resultsMap = new $T<>()",
+                        Map.class, rowComponent.getType().getTypeClass(), getColumnTypeClass(col), LinkedHashMap.class)
+                .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
+                                + ".immutableCopy().forEach(entry -> {\n"
+                                + "     $T resultEntry =\n "
+                                + "         $T.of(entry);\n"
+                                + "     resultsMap.put(resultEntry.getRowName().get$L(), resultEntry.get$L());\n"
+                                + "})",
+                        BatchingVisitableView.class, rowResultType, rowResultType,
+                        CamelCase(rowComponent.getComponentName()),  VarName(col))
+                .addStatement("return resultsMap");
 
         return getterBuilder.build();
     }
 
     private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col, boolean shouldBePublic) {
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getRowRange" + VarName(col))
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addJavadoc("Returns a mapping from all the row keys in a RangeRequest to their value at column $L\n"
-                        + "(if that column exists). Ordering in the map is not guaranteed. As the values are all\n"
-                        + "loaded in memory, do not use for large amounts of data. ", VarName(col))
+                        + "(if that column exists).  As the values are all loaded in memory, "
+                        + "do not use for large amounts of data. ", VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                             ClassName.get(Map.class),
@@ -455,21 +458,24 @@ public class TableClassRendererV2 {
                             ClassName.get(getColumnTypeClass(col))));
 
         getterBuilder
-                .addStatement("$T colSelection = \n"
-                                + "$T.create($T.singletonList($T.toCachedBytes($L)))",
-                        ColumnSelection.class, ColumnSelection.class, Collections.class, PtBytes.class,
+                .addStatement("$T colSelection =\n"
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
                         ColumnRenderers.short_name(col))
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
                 .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
                         Preconditions.class, "Must not request additional columns.")
-                .addStatement("return $T.of(t.getRange(tableRef, rangeRequest))\n"
-                                + ".immutableCopy()\n"
-                                + ".stream()\n"
-                                + ".map(entry -> $T.of(entry))\n"
-                                + ".collect($T.toMap(\n"
-                                + "     entry -> entry.getRowName(), \n"
-                                + "     $T::get$L))",
-                        BatchingVisitableView.class, rowResultType, Collectors.class, rowResultType, VarName(col));
+                .addStatement("$T<$T, $T> resultsMap = new $T<>()",
+                        Map.class, rowType, getColumnTypeClass(col), LinkedHashMap.class)
+                .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
+                                + ".immutableCopy().forEach(entry -> {\n"
+                                + "     $T resultEntry =\n "
+                                + "         $T.of(entry);\n"
+                                + "     resultsMap.put(resultEntry.getRowName(), resultEntry.get$L());\n"
+                                + "})",
+                        BatchingVisitableView.class, rowResultType, rowResultType, VarName(col))
+                .addStatement("return resultsMap");
+
 
         return getterBuilder.build();
     }
@@ -495,7 +501,8 @@ public class TableClassRendererV2 {
         deleteRowBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("byte[] rowBytes = row.persistToBytes()", Persistables.class)
-                .addStatement("$T<$T> cells = new $T<>()", Set.class, Cell.class, HashSet.class);
+                .addStatement("$T<$T> cells = $T.newHashSetWithExpectedSize($L)",
+                        Set.class, Cell.class, Sets.class, namedColumns.size());
 
         for (NamedColumnDescription col : namedColumns) {
             deleteRowBuilder.addStatement("cells.add($T.create(rowBytes, $T.toCachedBytes($L)))",
@@ -567,7 +574,7 @@ public class TableClassRendererV2 {
                         Optional.class, getColumnTypeClass(col), VarName(col), args)
                 .beginControlFlow("if (result.isPresent())")
                 .addStatement("$T newValue = processor.apply(result.get())", getColumnTypeClass(col))
-                .beginControlFlow("if (newValue != result.get())")
+                .beginControlFlow("if ($T.equals(newValue, result.get()) == false)", Objects.class)
                 .addStatement("put$L($L, processor.apply(result.get()))", VarName(col), args)
                 .endControlFlow()
                 .endControlFlow();

@@ -84,7 +84,7 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
                 .endRowExclusive(SchemaApiTestTable.SchemaApiTestRow.of(endRowKey).persistToBytes())
                 .build();
 
-        return table.getRowRangeColumn2(rangeRequest);
+        return table.getSmallRowRangeColumn2(rangeRequest);
     }
 
     @Override
