@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.config;
+
+package com.palantir.timelock.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -21,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
         property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos")})
-public interface TimeLockAlgorithmConfiguration {
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = PaxosTsBoundPersisterConfiguration.class, name = "paxos"),
+        @JsonSubTypes.Type(value = DatabaseTsBoundPersisterConfiguration.class, name = "database")})
+public interface TsBoundPersisterConfiguration {
 }

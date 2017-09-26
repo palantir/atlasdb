@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
 public class TimestampBoundStoreConfigDeserializationTest extends AbstractTimelockServerConfigDeserializationTest {
     @Override
@@ -27,12 +29,12 @@ public class TimestampBoundStoreConfigDeserializationTest extends AbstractTimelo
     }
 
     @Override
-    public void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {
-        assertThat(configuration).isInstanceOf(TimestampBoundStoreConfiguration.class);
+    public void assertTimestampBoundPersisterConfigurationCorrect(TsBoundPersisterConfiguration configuration) {
+        assertThat(configuration).isInstanceOf(DatabaseTsBoundPersisterConfiguration.class);
+        DatabaseTsBoundPersisterConfiguration databaseTsBoundPersisterConfiguration =
+                (DatabaseTsBoundPersisterConfiguration) configuration;
 
-        TimestampBoundStoreConfiguration timestampBoundStoreConfiguration =
-                (TimestampBoundStoreConfiguration) configuration;
-
-        assertThat(timestampBoundStoreConfiguration.kvsConfig()).isEqualTo(new InMemoryAtlasDbConfig());
+        assertThat(databaseTsBoundPersisterConfiguration.keyValueServiceConfig())
+                .isEqualTo(new InMemoryAtlasDbConfig());
     }
 }

@@ -1,5 +1,11 @@
 algorithm:
-  type: timestampBoundStore
+  type: paxos
+  paxosDataDir: var/data/paxos
+  sslConfiguration:
+    trustStorePath: var/security/trustStore.jks
+
+timestampBoundPersister:
+  type: database
   key-value-service:
     type: memory
 

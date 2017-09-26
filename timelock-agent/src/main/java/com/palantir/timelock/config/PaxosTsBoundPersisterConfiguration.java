@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.config;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+package com.palantir.timelock.config;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos")})
-public interface TimeLockAlgorithmConfiguration {
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonDeserialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)
+@JsonSerialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)
+@Value.Immutable
+public abstract class PaxosTsBoundPersisterConfiguration implements TsBoundPersisterConfiguration {
+
+    @Value.Default
+    public PaxosInstallConfiguration paxos() {
+        return ImmutablePaxosInstallConfiguration.builder().build();
+    }
 }

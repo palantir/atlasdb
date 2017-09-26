@@ -4,14 +4,10 @@
 
 package com.palantir.timelock.config;
 
-import java.util.Optional;
-
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 
@@ -24,10 +20,12 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 public interface TimeLockInstallConfiguration {
     PaxosInstallConfiguration paxos();
 
-    @JsonProperty("key-value-service")
-    Optional<KeyValueServiceConfig> optionalKvsConfig();
-
     ClusterConfiguration cluster();
+
+    @Value.Default
+    default TsBoundPersisterConfiguration timestampBoundPersistence() {
+        return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
+    }
 
     @Value.Default
     default AsyncLockConfiguration asyncLock() {

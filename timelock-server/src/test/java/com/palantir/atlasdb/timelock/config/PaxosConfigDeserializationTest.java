@@ -18,9 +18,9 @@ package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.file.Paths;
-
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
+import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
 public class PaxosConfigDeserializationTest extends AbstractTimelockServerConfigDeserializationTest {
     @Override
@@ -28,18 +28,14 @@ public class PaxosConfigDeserializationTest extends AbstractTimelockServerConfig
         return "/paxosTestConfig.yml";
     }
 
-    public void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {
-        assertThat(configuration).isInstanceOf(PaxosConfiguration.class);
+    @Override
+    public void assertTimestampBoundPersisterConfigurationCorrect(TsBoundPersisterConfiguration configuration) {
+        assertThat(configuration).isInstanceOf(PaxosTsBoundPersisterConfiguration.class);
+        PaxosTsBoundPersisterConfiguration paxosTsBoundPersisterConfiguration =
+                (PaxosTsBoundPersisterConfiguration) configuration;
 
-        PaxosConfiguration paxosConfiguration = (PaxosConfiguration) configuration;
-
-        assertSslConfigurationCorrect(paxosConfiguration.sslConfiguration().get());
-        assertThat(paxosConfiguration.paxosDataDir()).isEqualTo(Paths.get("var", "data", "paxos").toFile());
+        assertThat(paxosTsBoundPersisterConfiguration.paxos())
+                .isEqualTo(ImmutablePaxosInstallConfiguration.builder().build());
     }
 
-    private void assertSslConfigurationCorrect(SslConfiguration sslConfiguration) {
-        assertThat(sslConfiguration.trustStorePath()).isEqualTo(Paths.get("var", "security", "trustStore.jks"));
-        assertThat(sslConfiguration.keyStorePath().isPresent()).isFalse();
-        assertThat(sslConfiguration.keyStorePassword().isPresent()).isFalse();
-    }
 }

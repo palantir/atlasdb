@@ -29,10 +29,13 @@ import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.LockService;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
+import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
+import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 
 public class TimeLockAgent {
@@ -65,12 +68,24 @@ public class TimeLockAgent {
         this.paxosResource = PaxosResource.create(install.paxos().dataDirectory().toString());
         this.leadershipCreator = new PaxosLeadershipCreator(install, runtime, registrar);
         this.lockCreator = new LockCreator(runtime, deprecated);
-        this.timestampCreator = install.optionalKvsConfig().isPresent()
-                ? new DbBoundTimestampCreator(install.optionalKvsConfig().get())
-                : getPaxosTimestampCreator();
+        this.timestampCreator = getTimestampCreator();
         this.timelockCreator = install.asyncLock().useAsyncLockService()
                 ? new AsyncTimeLockServicesCreator(leadershipCreator, install.asyncLock())
                 : new LegacyTimeLockServicesCreator(leadershipCreator);
+    }
+
+    private TimestampCreator getTimestampCreator() {
+        TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
+        if (PaxosTsBoundPersisterConfiguration.class.isInstance(timestampBoundPersistence)) {
+            return getPaxosTimestampCreator();
+        } else if (DatabaseTsBoundPersisterConfiguration.class.isInstance(timestampBoundPersistence)) {
+            return new DbBoundTimestampCreator(
+                    ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
+                            .keyValueServiceConfig());
+        } else {
+            throw new RuntimeException(String.format("Unknown TsBoundPersisterConfiguration found %s",
+                    timestampBoundPersistence.getClass()));
+        }
     }
 
     private PaxosTimestampCreator getPaxosTimestampCreator() {
