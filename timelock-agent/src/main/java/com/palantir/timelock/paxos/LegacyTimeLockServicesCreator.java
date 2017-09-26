@@ -23,13 +23,13 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.timelock.TimeLockServices;
-import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.ManagedTimestampService;
 
 public class LegacyTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(LegacyTimeLockServicesCreator.class);
