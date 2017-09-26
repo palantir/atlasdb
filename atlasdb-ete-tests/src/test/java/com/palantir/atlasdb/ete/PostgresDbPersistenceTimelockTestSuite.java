@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.database.bound.timelock;
+package com.palantir.atlasdb.ete;
 
 import java.util.List;
 
@@ -23,23 +23,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.CassandraEnvironment;
-import com.palantir.atlasdb.ete.CommandLineEteTest;
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.atlasdb.ete.TodoEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
         CommandLineEteTest.class
         })
-public class CassandraTestSuite extends EteSetup {
+public class PostgresDbPersistenceTimelockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            CassandraTestSuite.class,
-            "docker-compose.timelock.database.bound.cassandra.yml",
-            CLIENTS,
-            CassandraEnvironment.get());
+            PostgresDbPersistenceTimelockTestSuite.class,
+            "docker-compose.timelock.database.bound.postgres.yml",
+            CLIENTS);
 }
