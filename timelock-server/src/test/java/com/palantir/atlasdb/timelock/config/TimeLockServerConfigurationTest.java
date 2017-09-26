@@ -36,8 +36,7 @@ public class TimeLockServerConfigurationTest {
     private static final TimeLockServerConfiguration CONFIGURATION_WITH_REQUEST_LIMIT =
             new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null, null, true);
     private static final TimeLockServerConfiguration CONFIGURATION_WITHOUT_REQUEST_LIMIT =
-            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null, null
-                    , false);
+            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null, null, false);
 
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {

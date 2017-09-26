@@ -51,7 +51,8 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "clients", required = true) Set<String> clients,
             @JsonProperty(value = "asyncLock", required = false) AsyncLockConfiguration asyncLockConfiguration,
             @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration,
-            @JsonProperty(value = "timestampBoundPersister", required = false) TsBoundPersisterConfiguration tsBoundPersisterConfiguration,
+            @JsonProperty(value = "timestampBoundPersister", required = false)
+                    TsBoundPersisterConfiguration tsBoundPersisterConfiguration,
             @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit) {
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
