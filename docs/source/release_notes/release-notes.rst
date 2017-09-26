@@ -83,10 +83,6 @@ v0.58.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
 
     *    - |fixed|
-         - Sweep log priority has been increased to INFO for logs of when a table is starting to be swept and when a table has just been completely swept.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
-
-    *    - |fixed|
          - Sweep log priority has been increased to INFO for logs of when a table 1. is starting to be swept, 2. will be swept with another batch, and 3. has just been completely swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2378>`__)
 
