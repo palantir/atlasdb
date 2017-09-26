@@ -44,6 +44,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.58.0
+=======
+
+22 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak| |improved|
          - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
            Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
@@ -52,6 +70,7 @@ develop
 
     *    - |fixed|
          - KVS migration no longer fails when the old ``_scrub`` table is present.
+           This unblocks KVS migrations for users who have data in ``_scrub`` but have not migrated from ``_scrub`` to ``_scrub2`` yet.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
 
     *    - |fixed|
