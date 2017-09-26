@@ -44,8 +44,12 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Timestamp batching has now been enabled by default.
+           Please see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           This should improve throughput and latency, especially if load is heavy and/or clients are communicating with a TimeLock cluster which is used by many services.
+           Note that there may be an increase in latency under light load (e.g. 2-4 threads).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
