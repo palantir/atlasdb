@@ -48,7 +48,16 @@ public class StreamStoreDefinitionBuilder {
         return hashFirstNRowComponents(1);
     }
 
-    public StreamStoreDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
+    /**
+     * We recommend that this flag is set in order to prevent hotspotting.
+     */
+    public StreamStoreDefinitionBuilder hashRowComponents() {
+        return hashFirstNRowComponents(2);
+    }
+
+    private StreamStoreDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
+        Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+                "Can't hash more than two row components for StreamStore.");
         streamTables.forEach((tableName, streamTableBuilder) ->
                 streamTableBuilder.hashFirstNRowComponents(numberOfComponentsHashed));
         return this;

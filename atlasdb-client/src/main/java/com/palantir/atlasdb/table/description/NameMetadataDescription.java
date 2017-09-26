@@ -37,7 +37,7 @@ import com.palantir.util.Pair;
 
 @Immutable
 public class NameMetadataDescription {
-    public static final String HASH_ROW_COMPONENT_NAME = "hashOfComponents";
+    public static final String HASH_ROW_COMPONENT_NAME = "hashOfRowComponents";
 
     private final List<NameComponentDescription> rowParts;
     private final int numberOfComponentsHashed;
@@ -63,6 +63,8 @@ public class NameMetadataDescription {
     }
 
     public static NameMetadataDescription create(List<NameComponentDescription> components, int numberOfComponentsHashed) {
+        Preconditions.checkArgument(numberOfComponentsHashed <= components.size(),
+                "Number of components hashed can't exceed number of row components.");
         if (numberOfComponentsHashed == 0) {
             return new NameMetadataDescription(components, numberOfComponentsHashed);
         } else {
@@ -73,6 +75,16 @@ public class NameMetadataDescription {
                     .build());
             withHashRowComponent.addAll(components);
             return new NameMetadataDescription(withHashRowComponent, numberOfComponentsHashed);
+        }
+    }
+
+    @Deprecated
+    public static NameMetadataDescription create(List<NameComponentDescription> components,
+            boolean hasFirstComponentHash) {
+        if (hasFirstComponentHash) {
+            return NameMetadataDescription.create(components, 1);
+        } else {
+            return NameMetadataDescription.create(components, 0);
         }
     }
 
@@ -214,32 +226,36 @@ public class NameMetadataDescription {
             list.add(NameComponentDescription.hydrateFromProto(part));
         }
 
-        int numberOfComponentsHashed = 0;
+        // Call constructor over factory because the list might already contain the hash row component
+        return new NameMetadataDescription(list, getNumberOfComponentsHashedFromProto(message));
+    }
+
+    private static int getNumberOfComponentsHashedFromProto(TableMetadataPersistence.NameMetadataDescription message) {
+        int numberOfComponentsHashed;
         if (message.getHasFirstComponentHash()) {
             numberOfComponentsHashed = 1;
         } else {
             numberOfComponentsHashed = message.getNumberOfComponentsHashed();
         }
-        // Call constructor over factory because the list might already contain the hash row component
-        return new NameMetadataDescription(list, numberOfComponentsHashed);
+        return numberOfComponentsHashed;
     }
 
     @Override
     public String toString() {
-        return "NameMetadataDescription [rowParts=" + rowParts + ", numberOfComponentsHashed=" + numberOfComponentsHashed
-                + "]";
+        return "NameMetadataDescription [rowParts=" + rowParts + ", numberOfComponentsHashed=" +
+                numberOfComponentsHashed + "]";
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
 
-        NameMetadataDescription that = (NameMetadataDescription) o;
+        NameMetadataDescription that = (NameMetadataDescription) obj;
 
         if (numberOfComponentsHashed != that.numberOfComponentsHashed) {
             return false;
@@ -249,8 +265,11 @@ public class NameMetadataDescription {
 
     @Override
     public int hashCode() {
-        int result = rowParts != null ? rowParts.hashCode() : 0;
-        result = 31 * result + numberOfComponentsHashed;
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (numberOfComponentsHashed == 1 ? 1231 : 1237);
+        result = prime * result + ((rowParts == null) ? 0 : rowParts.hashCode());
+        result = prime * result + numberOfComponentsHashed;
         return result;
     }
 }

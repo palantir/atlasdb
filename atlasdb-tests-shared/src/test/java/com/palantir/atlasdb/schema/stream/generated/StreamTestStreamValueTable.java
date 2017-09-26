@@ -138,20 +138,24 @@ public final class StreamTestStreamValueTable implements
     /**
      * <pre>
      * StreamTestStreamValueRow {
+     *   {@literal Long hashOfRowComponents};
      *   {@literal Long id};
      *   {@literal Long blockId};
      * }
      * </pre>
      */
     public static final class StreamTestStreamValueRow implements Persistable, Comparable<StreamTestStreamValueRow> {
+        private final long hashOfRowComponents;
         private final long id;
         private final long blockId;
 
         public static StreamTestStreamValueRow of(long id, long blockId) {
-            return new StreamTestStreamValueRow(id, blockId);
+            long hashOfRowComponents = computeHashFirstComponents(id, blockId);
+            return new StreamTestStreamValueRow(hashOfRowComponents, id, blockId);
         }
 
-        private StreamTestStreamValueRow(long id, long blockId) {
+        private StreamTestStreamValueRow(long hashOfRowComponents, long id, long blockId) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.id = id;
             this.blockId = blockId;
         }
@@ -184,26 +188,36 @@ public final class StreamTestStreamValueTable implements
 
         @Override
         public byte[] persistToBytes() {
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
             byte[] blockIdBytes = EncodingUtils.encodeUnsignedVarLong(blockId);
-            return EncodingUtils.add(idBytes, blockIdBytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, idBytes, blockIdBytes);
         }
 
         public static final Hydrator<StreamTestStreamValueRow> BYTES_HYDRATOR = new Hydrator<StreamTestStreamValueRow>() {
             @Override
             public StreamTestStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                __index += 8;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
-                return new StreamTestStreamValueRow(id, blockId);
+                return new StreamTestStreamValueRow(hashOfRowComponents, id, blockId);
             }
         };
+
+        public static long computeHashFirstComponents(long id, long blockId) {
+            byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
+            byte[] blockIdBytes = EncodingUtils.encodeUnsignedVarLong(blockId);
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(idBytes, blockIdBytes)).asLong();
+        }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("id", id)
                 .add("blockId", blockId)
                 .toString();
@@ -221,18 +235,19 @@ public final class StreamTestStreamValueTable implements
                 return false;
             }
             StreamTestStreamValueRow other = (StreamTestStreamValueRow) obj;
-            return Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
+            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ id, blockId });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id, blockId });
         }
 
         @Override
         public int compareTo(StreamTestStreamValueRow o) {
             return ComparisonChain.start()
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.id, o.id)
                 .compare(this.blockId, o.blockId)
                 .result();
@@ -699,5 +714,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gAOWPVuqI4dH7uXMbIPAyQ==";
+    static String __CLASS_HASH = "ykfuNossnKFRzu/F6R+zZw==";
 }

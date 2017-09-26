@@ -175,6 +175,10 @@ public class TableDefinition extends AbstractDefinition {
      * end of the row
      */
     public void hashFirstRowComponent() {
+        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
+                "Can only indicate hashFirstRowComponents() inside the rowName scope.");
+        Preconditions.checkState(rowNameComponents.isEmpty(),
+                "hashFirstRowComponent must be the first row component");
         hashFirstNRowComponents(1);
     }
 
@@ -185,7 +189,8 @@ public class TableDefinition extends AbstractDefinition {
     public void hashFirstNRowComponents(int numberOfComponents) {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME,
                 "Can only indicate hashFirstNRowComponents() inside the rowName scope.");
-        Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
+        Preconditions.checkState(rowNameComponents.isEmpty(),
+                "hashFirstNRowComponents must be the first row component");
         numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
     }

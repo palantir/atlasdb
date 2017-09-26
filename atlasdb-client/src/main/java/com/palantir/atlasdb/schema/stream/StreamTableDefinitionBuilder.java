@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import static java.lang.Math.min;
+
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -99,9 +101,7 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                    if (numberOfComponentsHashed > 0) {
-                        hashFirstNRowComponents(numberOfComponentsHashed);
-                    }
+                    hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
                     rowComponent("id",            idType);
                 dynamicColumns();
                     columnComponent("reference", ValueType.SIZED_BLOB);
@@ -120,9 +120,7 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                    if (numberOfComponentsHashed > 0) {
-                        hashFirstNRowComponents(numberOfComponentsHashed);
-                    }
+                    hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
                     rowComponent("id", idType);
                 columns();
                     column("metadata", "md", StreamPersistence.StreamMetadata.class);
@@ -141,9 +139,7 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                    if (numberOfComponentsHashed > 0) {
-                        hashFirstNRowComponents(numberOfComponentsHashed);
-                    }
+                    hashFirstNRowComponents(numberOfComponentsHashed);
                     rowComponent("id",              idType);
                     rowComponent("block_id",        ValueType.VAR_LONG);
                 columns();

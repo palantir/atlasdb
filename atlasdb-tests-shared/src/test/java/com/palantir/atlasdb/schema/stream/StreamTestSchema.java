@@ -51,6 +51,7 @@ public class StreamTestSchema implements AtlasSchema {
         // test defaults
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder("stream_test", "stream_test", ValueType.VAR_LONG)
+                        .hashRowComponents()
                         .build());
 
         // test all the things!

@@ -115,9 +115,13 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
         byte[] component2Bytes = EncodingUtils.encodeVarString(TEST_VALUE_STRING);
         long hashOfFirstTwoComponents =
                 Hashing.murmur3_128().hashBytes(EncodingUtils.add(component1Bytes, component2Bytes)).asLong();
+        // The hash of the components is persisted as a FIXED_LONG of 8 bytes
         byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfFirstTwoComponents);
 
-        assertThat(testRow.persistToBytes())
+        byte[] persistedRow = testRow.persistToBytes();
+        assertThat(persistedRow)
                 .isEqualTo(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
+        assertThat(HashComponentsTestTable.HashComponentsTestRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow))
+                .isEqualTo(testRow);
     }
 }

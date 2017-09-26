@@ -138,24 +138,24 @@ public final class HashComponentsTestTable implements
     /**
      * <pre>
      * HashComponentsTestRow {
-     *   {@literal Long hashOfComponents};
+     *   {@literal Long hashOfRowComponents};
      *   {@literal Long component1};
      *   {@literal String component2};
      * }
      * </pre>
      */
     public static final class HashComponentsTestRow implements Persistable, Comparable<HashComponentsTestRow> {
-        private final long hashOfComponents;
+        private final long hashOfRowComponents;
         private final long component1;
         private final String component2;
 
         public static HashComponentsTestRow of(long component1, String component2) {
-            long hashOfComponents = computeHashFirstComponents(component1, component2);
-            return new HashComponentsTestRow(hashOfComponents, component1, component2);
+            long hashOfRowComponents = computeHashFirstComponents(component1, component2);
+            return new HashComponentsTestRow(hashOfRowComponents, component1, component2);
         }
 
-        private HashComponentsTestRow(long hashOfComponents, long component1, String component2) {
-            this.hashOfComponents = hashOfComponents;
+        private HashComponentsTestRow(long hashOfRowComponents, long component1, String component2) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.component1 = component1;
             this.component2 = component2;
         }
@@ -188,23 +188,23 @@ public final class HashComponentsTestTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfComponents);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(component1);
             byte[] component2Bytes = EncodingUtils.encodeVarString(component2);
-            return EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, component1Bytes, component2Bytes);
         }
 
         public static final Hydrator<HashComponentsTestRow> BYTES_HYDRATOR = new Hydrator<HashComponentsTestRow>() {
             @Override
             public HashComponentsTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 Long component1 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(component1);
                 String component2 = EncodingUtils.decodeVarString(__input, __index);
                 __index += EncodingUtils.sizeOfVarString(component2);
-                return new HashComponentsTestRow(hashOfComponents, component1, component2);
+                return new HashComponentsTestRow(hashOfRowComponents, component1, component2);
             }
         };
 
@@ -215,25 +215,25 @@ public final class HashComponentsTestTable implements
         }
 
         public static RangeRequest.Builder createPrefixRangeUnsorted(long component1, String component2) {
-            long hashOfComponents = computeHashFirstComponents(component1, component2);
-            byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfComponents);
+            long hashOfRowComponents = computeHashFirstComponents(component1, component2);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(component1);
             byte[] component2Bytes = EncodingUtils.encodeVarString(component2);
-            return RangeRequest.builder().prefixRange(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
+            return RangeRequest.builder().prefixRange(EncodingUtils.add(hashOfRowComponentsBytes, component1Bytes, component2Bytes));
         }
 
         public static Prefix prefixUnsorted(long component1, String component2) {
-            long hashOfComponents = computeHashFirstComponents(component1, component2);
-            byte[] hashOfComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfComponents);
+            long hashOfRowComponents = computeHashFirstComponents(component1, component2);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] component1Bytes = EncodingUtils.encodeUnsignedVarLong(component1);
             byte[] component2Bytes = EncodingUtils.encodeVarString(component2);
-            return new Prefix(EncodingUtils.add(hashOfComponentsBytes, component1Bytes, component2Bytes));
+            return new Prefix(EncodingUtils.add(hashOfRowComponentsBytes, component1Bytes, component2Bytes));
         }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("hashOfComponents", hashOfComponents)
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("component1", component1)
                 .add("component2", component2)
                 .toString();
@@ -251,19 +251,19 @@ public final class HashComponentsTestTable implements
                 return false;
             }
             HashComponentsTestRow other = (HashComponentsTestRow) obj;
-            return Objects.equal(hashOfComponents, other.hashOfComponents) && Objects.equal(component1, other.component1) && Objects.equal(component2, other.component2);
+            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(component1, other.component1) && Objects.equal(component2, other.component2);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ hashOfComponents, component1, component2 });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, component1, component2 });
         }
 
         @Override
         public int compareTo(HashComponentsTestRow o) {
             return ComparisonChain.start()
-                .compare(this.hashOfComponents, o.hashOfComponents)
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.component1, o.component1)
                 .compare(this.component2, o.component2)
                 .result();
@@ -773,5 +773,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "wQEN83b9BknUNKl0EIOkLQ==";
+    static String __CLASS_HASH = "BLuA/sgNj9y8Q8N7EQdI2Q==";
 }
