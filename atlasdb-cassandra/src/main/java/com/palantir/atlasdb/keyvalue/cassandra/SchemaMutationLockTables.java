@@ -23,10 +23,15 @@ import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ColumnPath;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
 public class SchemaMutationLockTables {
     public static final String LOCK_TABLE_PREFIX = "_locks";
@@ -42,7 +47,7 @@ public class SchemaMutationLockTables {
     }
 
     public Set<TableReference> getAllLockTables() throws TException {
-        return clientPool.run(this::getAllLockTablesInternal);
+        return clientPool.runWithRetry(this::getAllLockTablesInternal);
     }
 
     private Set<TableReference> getAllLockTablesInternal(Cassandra.Client client) throws TException {
@@ -51,6 +56,26 @@ public class SchemaMutationLockTables {
                 .filter(IS_LOCK_TABLE)
                 .map(TableReference::createWithEmptyNamespace)
                 .collect(Collectors.toSet());
+    }
+
+    public boolean isLockTableEmpty(TableReference tableRef) {
+        ColumnPath columnPath = new ColumnPath(tableRef.getQualifiedName());
+        columnPath.setColumn(SchemaMutationLock.getGlobalDdlLockColumnName());
+        try {
+            clientPool.runWithRetry(client -> client.get(
+                    SchemaMutationLock.getGlobalDdlLockRowName(), columnPath, ConsistencyLevel.LOCAL_QUORUM));
+        } catch (NotFoundException e) {
+            return true;
+        } catch (TException e) {
+            return false;
+        }
+
+        return false;
+    }
+
+    public void dropLockTable(TableReference tableRef) throws TException {
+        clientPool.runWithRetry(client -> client.system_drop_column_family(
+                AbstractKeyValueService.internalTableName(tableRef)));
     }
 
     public TableReference createLockTable() throws TException {

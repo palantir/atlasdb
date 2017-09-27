@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -83,14 +84,29 @@ public class UniqueSchemaMutationLockTable {
     private TableReference getSingleTable() throws TException {
         Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
 
-        // if there's more than one table, and there are empty tables, drop them.
-
         if (lockTables.size() > 1) {
-            throw new IllegalStateException("Multiple schema mutation lock tables have been created.\n"
-                    + "This happens when multiple nodes have themselves as lockLeader in the configuration.\n"
-                    + "Please ensure the lockLeader is the same for each node, stop all Atlas clients using this "
-                    + "keyspace, restart your cassandra cluster and run the clean-cass-locks-state cli command.\n"
-                    + "The tables that clashed were: " + lockTables);
+            // Try to recover by checking if other lock tables are empty and dropping them.
+
+            Set<TableReference> emptyLockTables = lockTables.stream()
+                    .filter(schemaMutationLockTables::isLockTableEmpty)
+                    .collect(Collectors.toSet());
+
+            if (lockTables.size() - emptyLockTables.size() > 1) {
+                throw new IllegalStateException("Multiple schema mutation lock tables have been created.\n"
+                        + "This happens when multiple nodes have themselves as lockLeader in the configuration.\n"
+                        + "Please ensure the lockLeader is the same for each node, stop all Atlas clients using this "
+                        + "keyspace, restart your cassandra cluster and run the clean-cass-locks-state cli command.\n"
+                        + "The tables that clashed were: " + lockTables);
+            }
+
+            if (lockTables.size() == emptyLockTables.size()) {
+                emptyLockTables.remove(emptyLockTables.iterator().next());
+            }
+
+            for (TableReference emptyLockTable : emptyLockTables) {
+                schemaMutationLockTables.dropLockTable(emptyLockTable);
+            }
+            lockTables.removeAll(emptyLockTables);
         }
 
         return Iterables.getOnlyElement(lockTables);
