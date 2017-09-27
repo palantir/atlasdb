@@ -124,7 +124,7 @@ public final class CassandraKeyValueServices {
         int numberOfVisibleNodes = getNumberOfVisibleNodes(versions);
 
         if (allowQuorumAgreement) {
-            return numberOfVisibleNodes >= ((numberOfServers/2) + 1);
+            return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
         }
         return numberOfVisibleNodes == numberOfServers;
     }
