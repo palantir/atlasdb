@@ -24,7 +24,9 @@ public interface TimeLockInstallConfiguration {
 
     @Value.Default
     default TsBoundPersisterConfiguration timestampBoundPersistence() {
-        return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
+        return ImmutablePaxosTsBoundPersisterConfiguration.builder()
+                .paxos(paxos())
+                .build();
     }
 
     @Value.Default

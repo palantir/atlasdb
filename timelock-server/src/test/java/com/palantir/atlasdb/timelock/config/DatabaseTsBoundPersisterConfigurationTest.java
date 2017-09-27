@@ -20,12 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
 
-public class TimestampBoundStoreConfigurationTest {
+public class DatabaseTsBoundPersisterConfigurationTest {
     @Test
     public void canCreateWithInMemoryKvsConfig() {
-        ImmutableTimestampBoundStoreConfiguration config = ImmutableTimestampBoundStoreConfiguration.builder()
-                .kvsConfig(new InMemoryAtlasDbConfig())
+        DatabaseTsBoundPersisterConfiguration config = ImmutableDatabaseTsBoundPersisterConfiguration.builder()
+                .keyValueServiceConfig(new InMemoryAtlasDbConfig())
                 .build();
         assertThat(config).isNotNull();
     }

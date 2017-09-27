@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
@@ -68,14 +69,25 @@ public class TimeLockServerConfiguration extends Configuration {
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
-        this.tsBoundPersisterConfiguration = MoreObjects.firstNonNull(
-                tsBoundPersisterConfiguration,
-                ImmutablePaxosTsBoundPersisterConfiguration.builder().build());
+        this.tsBoundPersisterConfiguration = MoreObjects.firstNonNull(tsBoundPersisterConfiguration,
+                getPaxosTsBoundPersisterConfiguration());
 
         if (clients.isEmpty()) {
             log.warn("TimeLockServer initialised with an empty list of 'clients'."
                     + " When adding clients, you will need to amend the config and restart TimeLock.");
         }
+    }
+
+    private TsBoundPersisterConfiguration getPaxosTsBoundPersisterConfiguration() {
+        ImmutablePaxosTsBoundPersisterConfiguration.Builder tsBoundPersisterConfigBuilder =
+                ImmutablePaxosTsBoundPersisterConfiguration.builder();
+        if (PaxosConfiguration.class.isInstance(algorithm)) {
+            tsBoundPersisterConfigBuilder
+                    .paxos(ImmutablePaxosInstallConfiguration.builder()
+                            .dataDirectory(((PaxosConfiguration) algorithm).paxosDataDir())
+                            .build());
+        }
+        return tsBoundPersisterConfigBuilder.build();
     }
 
     private void checkClientNames(Set<String> clientNames) {

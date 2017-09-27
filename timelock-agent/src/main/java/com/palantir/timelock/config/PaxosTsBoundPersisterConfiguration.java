@@ -26,8 +26,5 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Immutable
 public abstract class PaxosTsBoundPersisterConfiguration implements TsBoundPersisterConfiguration {
 
-    @Value.Default
-    public PaxosInstallConfiguration paxos() {
-        return ImmutablePaxosInstallConfiguration.builder().build();
-    }
+    public abstract PaxosInstallConfiguration paxos();
 }
