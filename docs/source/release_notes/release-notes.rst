@@ -46,7 +46,7 @@ develop
 
     *    - |improved|
          - Allow passing a proxyConfiguration to allow setting custom proxy on the TimeLock clients.
-         (`Pull Request <https://github.com/palantir/atlasdb/pull/2393>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2393>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
