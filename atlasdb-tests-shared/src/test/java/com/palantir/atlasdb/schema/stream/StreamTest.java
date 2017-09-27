@@ -48,6 +48,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -76,11 +79,11 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMeta
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
 import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamHashAidxTable;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamMetadataTable;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow;
 import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow;
-import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow;
-import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -90,10 +93,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class StreamTest extends AtlasDbTestCase {
@@ -106,7 +105,7 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {{ true }, { false }});
+        return Arrays.asList(new Object[][] {{true}, {false}});
     }
 
     public StreamTest(boolean useStoreWithHashedComponents) {
