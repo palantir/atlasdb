@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
-import java.net.Proxy;
 import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;

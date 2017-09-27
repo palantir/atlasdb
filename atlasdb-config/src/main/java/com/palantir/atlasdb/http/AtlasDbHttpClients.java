@@ -26,6 +26,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.remoting.api.config.service.ProxyConfiguration;
 
 public final class AtlasDbHttpClients {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
@@ -80,6 +81,40 @@ public final class AtlasDbHttpClients {
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
      * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
      * present.
+     * <p>
+     * Failover will continue to cycle through the supplied endpoint list indefinitely.
+     */
+    @Deprecated
+    public static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type) {
+        return createProxyWithFailover(
+                sslSocketFactory,
+                Optional.empty(),
+                endpointUris,
+                type,
+                UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    @Deprecated
+    public static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type,
+            String userAgent) {
+        return createProxyWithFailover(
+                sslSocketFactory,
+                Optional.empty(),
+                endpointUris,
+                type,
+                userAgent);
+    }
+
+    /**
+     * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
+     * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
+     * present. Also use the supplied the proxy selector to set the proxy on the clients if present.
      * <p>
      * Failover will continue to cycle through the supplied endpoint list indefinitely.
      */
