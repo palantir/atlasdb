@@ -105,6 +105,7 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Parameters
     public static Collection<Object[]> data() {
+        // Used to specify if testing StreamStore with or without row component hashing.
         return Arrays.asList(new Object[][] {{true}, {false}});
     }
 
