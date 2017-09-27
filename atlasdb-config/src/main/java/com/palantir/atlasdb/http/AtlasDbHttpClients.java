@@ -26,7 +26,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
 
 public final class AtlasDbHttpClients {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
@@ -76,13 +75,8 @@ public final class AtlasDbHttpClients {
         return ret;
     }
 
-
     /**
-     * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
-     * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
-     * present.
-     * <p>
-     * Failover will continue to cycle through the supplied endpoint list indefinitely.
+     * @deprecated please use createProxyWithFailover, which requires you to specify the ProxySelector parameter.
      */
     @Deprecated
     public static <T> T createProxyWithFailover(
@@ -97,6 +91,9 @@ public final class AtlasDbHttpClients {
                 UserAgents.DEFAULT_USER_AGENT);
     }
 
+    /**
+     * @deprecated please use createProxyWithFailover, which requires you to specify the ProxySelector parameter.
+     */
     @Deprecated
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,

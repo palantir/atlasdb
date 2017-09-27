@@ -79,7 +79,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     }
 
     /**
-     * Note the code below is copied from http-remoting and should be removed when we switch the clients to use remoting
+     * The code below is copied from http-remoting and should be removed when we switch the clients to use remoting.
      */
     public static ProxySelector createProxySelector(ProxyConfiguration proxyConfig) {
         switch (proxyConfig.type()) {
