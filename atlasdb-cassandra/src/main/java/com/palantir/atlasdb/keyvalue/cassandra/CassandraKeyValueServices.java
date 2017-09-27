@@ -72,7 +72,7 @@ public final class CassandraKeyValueServices {
             CassandraKeyValueServiceConfig config,
             Cassandra.Client client,
             String tableName,
-            boolean allowUnresponsiveNode)
+            boolean allowQuorumAgreement)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -82,7 +82,7 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (versions.size() <= 1 && getNumberOfVisibleNodes(versions) == config.servers().size()) {
+            if (versions.size() <= 1 && checkNodesAgreement(allowQuorumAgreement, config, versions)) {
                 return;
             }
             try {
@@ -108,12 +108,25 @@ public final class CassandraKeyValueServices {
             }
         }
 
-        if (allowUnresponsiveNode
+        if (allowQuorumAgreement
                 && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
             log.error(messageTemplate, tableName, sb.toString());
         } else {
             throw new IllegalStateException(sb.toString());
         }
+    }
+
+    private static boolean checkNodesAgreement(
+            boolean allowQuorumAgreement,
+            CassandraKeyValueServiceConfig config,
+            Map<String, List<String>> versions) {
+        int numberOfServers = config.servers().size();
+        int numberOfVisibleNodes = getNumberOfVisibleNodes(versions);
+
+        if (allowQuorumAgreement) {
+            return numberOfVisibleNodes >= ((numberOfServers/2) + 1);
+        }
+        return numberOfVisibleNodes == numberOfServers;
     }
 
     private static int getNumberOfVisibleNodes(Map<String, List<String>> versions) {

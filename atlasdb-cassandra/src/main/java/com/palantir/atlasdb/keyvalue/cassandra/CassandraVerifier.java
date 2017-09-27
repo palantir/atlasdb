@@ -189,6 +189,11 @@ public final class CassandraVerifier {
         try {
             Client client = CassandraClientFactory.getClientInternal(host, config);
             client.describe_keyspace(config.getKeyspaceOrThrow());
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    config,
+                    client,
+                    "(adding the initial empty keyspace)",
+                    true);
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -211,7 +216,8 @@ public final class CassandraVerifier {
         CassandraKeyValueServices.waitForSchemaVersions(
                 config,
                 client,
-                "(adding the initial empty keyspace)");
+                "(adding the initial empty keyspace)",
+                true);
     }
 
     private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {
