@@ -18,7 +18,7 @@ package com.palantir.timelock.paxos;
 
 import java.util.function.Supplier;
 
-import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 
 public interface TimestampCreator {
     Supplier<ManagedTimestampService> createTimestampService(String client);
