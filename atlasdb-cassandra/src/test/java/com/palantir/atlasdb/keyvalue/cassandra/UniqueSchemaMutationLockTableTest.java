@@ -23,7 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -129,7 +129,7 @@ public class UniqueSchemaMutationLockTableTest {
 
     @Test
     public void shouldLeaveOneEmptyTableIfAllTablesAreEmpty() throws Exception {
-        HashSet<TableReference> tables = Sets.newHashSet(lockTable1, lockTable2);
+        Set<TableReference> tables = Sets.newHashSet(lockTable1, lockTable2);
         when(lockTables.getAllLockTables()).thenReturn(Sets.newHashSet(tables));
         when(lockTables.isLockTableEmpty(lockTable1)).thenReturn(true);
         when(lockTables.isLockTableEmpty(lockTable2)).thenReturn(true);
