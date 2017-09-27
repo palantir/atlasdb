@@ -62,9 +62,16 @@ public class NameMetadataDescription {
         return create(components, 0);
     }
 
+    @Deprecated
+    public static NameMetadataDescription create(List<NameComponentDescription> components,
+            boolean hasFirstComponentHash) {
+
+        return NameMetadataDescription.create(components, hasFirstComponentHash ? 1 : 0);
+    }
+
     public static NameMetadataDescription create(List<NameComponentDescription> components, int numberOfComponentsHashed) {
         Preconditions.checkArgument(numberOfComponentsHashed <= components.size(),
-                "Number of components hashed can't exceed number of row components.");
+                "Number of hashed components can't exceed total number of row components.");
         if (numberOfComponentsHashed == 0) {
             return new NameMetadataDescription(components, numberOfComponentsHashed);
         } else {
@@ -75,16 +82,6 @@ public class NameMetadataDescription {
                     .build());
             withHashRowComponent.addAll(components);
             return new NameMetadataDescription(withHashRowComponent, numberOfComponentsHashed);
-        }
-    }
-
-    @Deprecated
-    public static NameMetadataDescription create(List<NameComponentDescription> components,
-            boolean hasFirstComponentHash) {
-        if (hasFirstComponentHash) {
-            return NameMetadataDescription.create(components, 1);
-        } else {
-            return NameMetadataDescription.create(components, 0);
         }
     }
 
@@ -247,6 +244,18 @@ public class NameMetadataDescription {
     }
 
     @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (numberOfComponentsHashed == 1 ? 1231 : 1237);
+        result = prime * result + ((rowParts == null) ? 0 : rowParts.hashCode());
+        if (numberOfComponentsHashed > 1) {
+            result = prime * result + numberOfComponentsHashed;
+        }
+        return result;
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -261,15 +270,5 @@ public class NameMetadataDescription {
             return false;
         }
         return rowParts != null ? rowParts.equals(that.rowParts) : that.rowParts == null;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (numberOfComponentsHashed == 1 ? 1231 : 1237);
-        result = prime * result + ((rowParts == null) ? 0 : rowParts.hashCode());
-        result = prime * result + numberOfComponentsHashed;
-        return result;
     }
 }

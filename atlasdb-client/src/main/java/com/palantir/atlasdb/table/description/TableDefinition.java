@@ -175,10 +175,7 @@ public class TableDefinition extends AbstractDefinition {
      * end of the row
      */
     public void hashFirstRowComponent() {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
-                "Can only indicate hashFirstRowComponents() inside the rowName scope.");
-        Preconditions.checkState(rowNameComponents.isEmpty(),
-                "hashFirstRowComponent must be the first row component");
+        checkHashRowComponentsPreconditions("hashFirstRowComponent");
         hashFirstNRowComponents(1);
     }
 
@@ -187,10 +184,9 @@ public class TableDefinition extends AbstractDefinition {
      * If using prefix range requests, the components that are hashed must also be specified in the prefix.
      */
     public void hashFirstNRowComponents(int numberOfComponents) {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
-                "Can only indicate hashFirstNRowComponents() inside the rowName scope.");
-        Preconditions.checkState(rowNameComponents.isEmpty(),
-                "hashFirstNRowComponents must be the first row component");
+        Preconditions.checkState(numberOfComponents >= 0,
+                "Need to specify a non-negative number of components to hash.");
+        checkHashRowComponentsPreconditions("hashFirstNRowComponents");
         numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
     }
@@ -431,5 +427,12 @@ public class TableDefinition extends AbstractDefinition {
         } else {
             throw new IllegalArgumentException("Expected either protobuf or Persistable class.");
         }
+    }
+
+    private void checkHashRowComponentsPreconditions(String methodName) {
+        Preconditions.checkState(state == State.DEFINING_ROW_NAME,
+                "Can only indicate %s inside the rowName scope.", methodName);
+        Preconditions.checkState(rowNameComponents.isEmpty(),
+                "%s must be the first row component.", methodName);
     }
 }

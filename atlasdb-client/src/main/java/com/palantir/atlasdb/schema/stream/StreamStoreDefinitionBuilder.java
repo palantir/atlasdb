@@ -49,7 +49,9 @@ public class StreamStoreDefinitionBuilder {
     }
 
     /**
-     * We recommend that this flag is set in order to prevent hotspotting.
+     * We recommend that this flag is set in order to prevent hotspotting in the underlying table which stores
+     * the data blocks. The effect of this method is that row keys will be prefixed by the hashed
+     * concatenation of the stream id and block id.
      */
     public StreamStoreDefinitionBuilder hashRowComponents() {
         return hashFirstNRowComponents(2);
@@ -57,7 +59,8 @@ public class StreamStoreDefinitionBuilder {
 
     private StreamStoreDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
         Preconditions.checkArgument(numberOfComponentsHashed <= 2,
-                "Can't hash more than two row components for StreamStore.");
+                "The number of components specified must be less than two as "
+                        + "StreamStore internal tables use at most two row components.");
         streamTables.forEach((tableName, streamTableBuilder) ->
                 streamTableBuilder.hashFirstNRowComponents(numberOfComponentsHashed));
         return this;

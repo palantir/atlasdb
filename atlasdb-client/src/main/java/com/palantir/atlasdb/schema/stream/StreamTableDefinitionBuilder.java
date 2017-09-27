@@ -17,6 +17,7 @@ package com.palantir.atlasdb.schema.stream;
 
 import static java.lang.Math.min;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -61,6 +62,8 @@ public class StreamTableDefinitionBuilder {
     }
 
     public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
+        Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+                "Can hash at most two row components for any StreamStore table.");
         this.numberOfComponentsHashed = numberOfComponentsHashed;
         return this;
     }
@@ -101,6 +104,7 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
+                    // Can hash at most one component for this table.
                     hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
                     rowComponent("id",            idType);
                 dynamicColumns();
@@ -120,6 +124,7 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
+                    // Can hash at most one component for this table.
                     hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
                     rowComponent("id", idType);
                 columns();
