@@ -125,7 +125,7 @@ public abstract class NodesDownTestSetup {
 
     private static void waitUntilStartupChecksPass() {
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
+                .atMost(180, TimeUnit.SECONDS)
                 .until(NodesDownTestSetup::startupChecksPass);
     }
 
