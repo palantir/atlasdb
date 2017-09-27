@@ -82,7 +82,7 @@ public class AtlasDbHttpClientsTest {
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, bothUris, TestResource.class);
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, Optional.empty(), bothUris, TestResource.class);
         int response = client.getTestNumber();
 
         assertThat(response, equalTo(TEST_NUMBER));

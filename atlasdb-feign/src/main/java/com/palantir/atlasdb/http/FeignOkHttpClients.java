@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.http;
 
 import java.io.IOException;
+import java.net.Proxy;
+import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -89,17 +91,21 @@ public final class FeignOkHttpClients {
      */
     public static <T> Client newOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             String userAgent) {
-        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, userAgent));
+        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent));
     }
 
     @VisibleForTesting
-    static okhttp3.OkHttpClient newRawOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory,
+    static okhttp3.OkHttpClient newRawOkHttpClient(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             String userAgent) {
         // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
+                .proxySelector(proxySelector.orElse(ProxySelector.getDefault()))
                 .retryOnConnectionFailure(false);
         if (sslSocketFactory.isPresent()) {
             builder.sslSocketFactory(sslSocketFactory.get());

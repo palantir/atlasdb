@@ -373,7 +373,10 @@
             ]
         },
         "com.palantir.remoting-api:service-config": {
-            "locked": "1.2.1"
+            "locked": "1.2.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
         },
         "com.palantir.remoting-api:ssl-config": {
             "locked": "1.2.1",
@@ -991,7 +994,10 @@
             ]
         },
         "com.palantir.remoting-api:service-config": {
-            "locked": "1.2.1"
+            "locked": "1.2.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
         },
         "com.palantir.remoting-api:ssl-config": {
             "locked": "1.2.1",

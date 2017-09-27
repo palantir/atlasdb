@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -84,10 +85,12 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type) {
         return createProxyWithFailover(
                 sslSocketFactory,
+                proxySelector,
                 endpointUris,
                 type,
                 UserAgents.DEFAULT_USER_AGENT);
@@ -95,22 +98,26 @@ public final class AtlasDbHttpClients {
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 type,
-                AtlasDbFeignTargetFactory.createProxyWithFailover(sslSocketFactory, endpointUris, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxyWithFailover(
+                        sslSocketFactory, proxySelector, endpointUris, type, userAgent),
                 MetricRegistry.name(type));
     }
 
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
-            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector, Collection<String> endpointUris, Class<T> type) {
         return AtlasDbMetrics.instrument(
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
                         sslSocketFactory,
+                        proxySelector,
                         endpointUris,
                         QUICK_FEIGN_TIMEOUT_MILLIS,
                         QUICK_FEIGN_TIMEOUT_MILLIS,
