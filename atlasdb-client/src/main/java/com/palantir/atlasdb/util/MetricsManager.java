@@ -29,7 +29,6 @@ import com.codahale.metrics.MetricRegistry;
 public class MetricsManager {
 
     private static final Logger log = LoggerFactory.getLogger(MetricsManager.class);
-    private static final Set<String> globalMetricsRegistry = new HashSet<>();
 
     private final MetricRegistry metricRegistry;
     private final Set<String> registeredMetrics;
@@ -61,9 +60,8 @@ public class MetricsManager {
 
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
         try {
-            if (!globalMetricsRegistry.contains(fullyQualifiedMetricName)) {
+            if (!metricRegistry.getNames().contains(fullyQualifiedMetricName)) {
                 metricRegistry.register(fullyQualifiedMetricName, metric);
-                globalMetricsRegistry.add(fullyQualifiedMetricName);
             }
             registeredMetrics.add(fullyQualifiedMetricName);
         } catch (Exception e) {
@@ -79,7 +77,6 @@ public class MetricsManager {
     private synchronized Meter registerMeter(String fullyQualifiedMeterName) {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
-        globalMetricsRegistry.add(fullyQualifiedMeterName);
         return meter;
     }
 
