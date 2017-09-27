@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>AtlasDB Sweep Endpoints &mdash; OSS AtlasDB develop documentation</title>
+  <title>Background Sweep Inner Workings and Logs &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -41,8 +41,8 @@
         <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
         <link rel="up" title="AtlasDB Sweep Job" href="../sweep.html"/>
-        <link rel="next" title="AtlasDB Sweep CLI" href="sweep-cli.html"/>
-        <link rel="prev" title="Background Sweep" href="background-sweep.html"/> 
+        <link rel="next" title="Services" href="../../services/index.html"/>
+        <link rel="prev" title="AtlasDB Sweep CLI" href="sweep-cli.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -107,9 +107,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../dropwizard-bundle.html">Dropwizard bundle</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../sweep.html">AtlasDB Sweep Job</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="background-sweep.html">Background Sweep</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">AtlasDB Sweep Endpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sweep-endpoints.html">AtlasDB Sweep Endpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sweep-cli.html">AtlasDB Sweep CLI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sweep-logs.html">Background Sweep Inner Workings and Logs</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Background Sweep Inner Workings and Logs</a></li>
 </ul>
 </li>
 </ul>
@@ -167,14 +167,14 @@
         
           <li><a href="../sweep.html">AtlasDB Sweep Job</a> &raquo;</li>
         
-      <li>AtlasDB Sweep Endpoints</li>
+      <li>Background Sweep Inner Workings and Logs</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/sweep-endpoints.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/sweep-logs.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -188,49 +188,40 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="atlasdb-sweep-endpoints">
-<span id="id1"></span><h1>AtlasDB Sweep Endpoints<a class="headerlink" href="#atlasdb-sweep-endpoints" title="Permalink to this headline">¶</a></h1>
-<p>If you ever need to force a particular table to be swept immediately, you can run sweep by hitting any of the following endpoints from the service API.</p>
-<blockquote>
-<div><table border="1" class="docutils">
-<colgroup>
-<col width="22%" />
-<col width="26%" />
-<col width="52%" />
-</colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Endpoint</th>
-<th class="head">Query Parameters</th>
-<th class="head">Description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">/sweep/sweep-table</span></code></td>
-<td><code class="docutils literal"><span class="pre">tablename</span></code>: fully qualified table name</td>
-<td>Sweep a particular table from EMPTY startRow with default <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code>.</td>
-</tr>
-<tr class="row-odd"><td rowspan="2"><code class="docutils literal"><span class="pre">/sweep/sweep-table-from-row</span></code></td>
-<td><code class="docutils literal"><span class="pre">tablename</span></code>: fully qualified table name</td>
-<td rowspan="2">Sweep a particular table from specified startRow with default <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code>.</td>
-</tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">startRow</span></code>: base16 encoded start row</td>
-</tr>
-<tr class="row-odd"><td rowspan="5"><code class="docutils literal"><span class="pre">/sweep/sweep-table-from-row-with-batch</span></code></td>
-<td><code class="docutils literal"><span class="pre">tablename</span></code>: fully qualified table name</td>
-<td rowspan="5">Sweep a particular table from specified startRow with specified <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> parameters.</td>
-</tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">startRow</span></code>: base16 encoded start row</td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">maxCellTsPairsToExamine</span></code>: cells to examine</td>
-</tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">candidateBatchSize</span></code>: cells to read per batch</td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">deleteBatchSize</span></code>: cells to delete per batch</td>
-</tr>
-</tbody>
-</table>
-</div></blockquote>
-<p>Note that using the sweep endpoints to manually kick off sweep will <em>not</em> update the Background Sweeper’s sweep priority table.</p>
+  <div class="section" id="background-sweep-inner-workings-and-logs">
+<span id="sweep-logs"></span><h1>Background Sweep Inner Workings and Logs<a class="headerlink" href="#background-sweep-inner-workings-and-logs" title="Permalink to this headline">¶</a></h1>
+<p>At a high level, the background sweep thread works as follows:</p>
+<ol class="arabic simple">
+<li>Select a table to sweep;</li>
+<li>Read a batch of values from the table;</li>
+<li>Determine which values from the batch can be deleted;</li>
+<li>Delete the sweepable values from the table;</li>
+<li>If the table still has values, go to step 2.</li>
+<li>If the table has no new values, go to step 1.</li>
+</ol>
+<p>In order to know if sweep is working, or it’s current progress, look for the following:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Starting</span> <span class="pre">background</span> <span class="pre">sweeper.</span></code></li>
+</ul>
+<p>Logged when the service has started, to indicate that background sweeper thread is running.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Now</span> <span class="pre">starting</span> <span class="pre">to</span> <span class="pre">sweep</span> <span class="pre">next</span> <span class="pre">table:</span> <span class="pre">{table</span> <span class="pre">name}.</span></code></li>
+</ul>
+<p>Logged when a new table has been selected to be swept, after 1.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Sweeping</span> <span class="pre">another</span> <span class="pre">batch</span> <span class="pre">of</span> <span class="pre">table:</span> <span class="pre">{}.</span> <span class="pre">Batch</span> <span class="pre">starts</span> <span class="pre">on</span> <span class="pre">row</span> <span class="pre">{}</span></code></li>
+</ul>
+<p>Logged when a new batch of the same table is going to be swept, after 5.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Swept</span> <span class="pre">successfully.</span></code></li>
+</ul>
+<p>Logged when a batch of values has been successfully swept, after 4. Its parameters also contain the number of
+(cell + ts) pairs read and deleted on this batch.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Finished</span> <span class="pre">sweeping</span></code></li>
+</ul>
+<p>Logged when a table has been successfully swept, after 6. Its parameters also contain the number of (cell + ts) pairs
+read and deleted when sweeping this table.</p>
 </div>
 
 
@@ -243,10 +234,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="sweep-cli.html" class="btn btn-neutral float-right" title="AtlasDB Sweep CLI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../../services/index.html" class="btn btn-neutral float-right" title="Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="background-sweep.html" class="btn btn-neutral" title="Background Sweep" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="sweep-cli.html" class="btn btn-neutral" title="AtlasDB Sweep CLI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -196,6 +196,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-58-0">
+<h2>v0.58.0<a class="headerlink" href="#v0-58-0" title="Permalink to this headline">¶</a></h2>
+<p>22 September 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Upgraded all uses of <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
 Developers may need to check their dependencies, as well as update instantiation of their calls to <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> to use the remoting3 API.
@@ -204,6 +224,7 @@ Note that <em>users</em> of AtlasDB clients are not affected, in that the wire f
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>KVS migration no longer fails when the old <code class="docutils literal"><span class="pre">_scrub</span></code> table is present.
+This unblocks KVS migrations for users who have data in <code class="docutils literal"><span class="pre">_scrub</span></code> but have not migrated from <code class="docutils literal"><span class="pre">_scrub</span></code> to <code class="docutils literal"><span class="pre">_scrub2</span></code> yet.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2362">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -214,6 +235,10 @@ Several logging parameters in TimeLock (e.g. in <code class="docutils literal"><
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <code class="docutils literal"><span class="pre">LockServiceImpl</span></code> now, in addition to lock tokens and grants (which are unsafe for logging), also logs token and grant IDs (which are big-integer IDs) as safe.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2375">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Sweep log priority has been increased to INFO for logs of when a table 1. is starting to be swept, 2. will be swept with another batch, and 3. has just been completely swept.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2378">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

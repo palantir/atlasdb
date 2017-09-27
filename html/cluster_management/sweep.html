@@ -109,6 +109,7 @@
 <li class="toctree-l3"><a class="reference internal" href="sweep/background-sweep.html">Background Sweep</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sweep/sweep-endpoints.html">AtlasDB Sweep Endpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sweep/sweep-cli.html">AtlasDB Sweep CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sweep/sweep-logs.html">Background Sweep Inner Workings and Logs</a></li>
 </ul>
 </li>
 </ul>
@@ -238,6 +239,10 @@ You may trigger the sweep job on demand via an HTTP request. This could be usefu
 Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
 Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.</li>
 </ul>
+</div>
+<div class="section" id="tracking-if-sweep-progress">
+<h2>Tracking if Sweep Progress<a class="headerlink" href="#tracking-if-sweep-progress" title="Permalink to this headline">¶</a></h2>
+<p>In order to track sweep’s general workflow, and which log lines you should expect, see <a class="reference internal" href="sweep/sweep-logs.html#sweep-logs"><span class="std std-ref">Sweep Logs</span></a>.</p>
 </div>
 <div class="section" id="tunable-configuration-options">
 <span id="sweep-tunable-parameters"></span><h2>Tunable Configuration Options<a class="headerlink" href="#tunable-configuration-options" title="Permalink to this headline">¶</a></h2>
