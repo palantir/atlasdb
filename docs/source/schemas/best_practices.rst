@@ -1,15 +1,15 @@
-=======
+========================
 Cassandra Best Practices
-=======
+========================
 
 Overview
-===============
+========
 This section is intended to provide guidelines for maintaining good performance for atlasdb queries when using Cassandra as a backing store.
 
 The advice here is meant to serve as a safeguard against using atlas in ways that are known to cause performance issues, but it is not all encompassing. In general, you can feel safe if you follow the guidelines below; however, if you need to bend any of these rules, you should make sure that you understand why it's ok to do so.
 
 Range Scans
-===============
+===========
 
 **Range Scans vs Exact Key Lookups**
 
