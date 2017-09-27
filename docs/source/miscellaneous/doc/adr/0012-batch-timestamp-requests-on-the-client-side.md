@@ -19,7 +19,7 @@ already been used in production, in Palantir's large internal product.
 ## Decision
 
 - Use the `RequestBatchingTimestampService` to coalesce timestamp requests to TimeLock, and enable it by default.
-  This means that a TimeLock client will, at any time, have at most one request in flight to TimeLock.
+  This means that a TimeLock client will, at any time, have at most one timestamp request in flight to TimeLock.
   When a client makes a request, if there is no request in-flight, the request is submitted immediately.
   Otherwise, requests accumulate in a batch. Once the in-flight request completes, the batch request is sent as a
   `getFreshTimestamps` request for the relevant number of timestamps, and the `TimestampRange` returned is distributed
@@ -38,6 +38,9 @@ already been used in production, in Palantir's large internal product.
 
 ## Consequences
 
+- Generally, load on TimeLock servers should be reduced, as there will be fewer network calls made to request 
+  timestamps. Note that lock requests (both to the legacy and async lock services), as well as compound 
+  operations like `lockImmutableTimestamp` are not batched.
 - Clients may experience an increase in latency, especially if TimeLock was not previously heavily loaded.
   If so, they should consider disabling timestamp batching by setting the `enableTimestampBatching` parameter in the
   `timestampClient` block of the AtlasDB runtime configuration to false.
