@@ -90,6 +90,22 @@ public final class StreamTestTableFactory {
         return StreamTestWithHashStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
+    public TestHashComponentsStreamHashAidxTable getTestHashComponentsStreamHashAidxTable(Transaction t, TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxTrigger... triggers) {
+        return TestHashComponentsStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public TestHashComponentsStreamIdxTable getTestHashComponentsStreamIdxTable(Transaction t, TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxTrigger... triggers) {
+        return TestHashComponentsStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public TestHashComponentsStreamMetadataTable getTestHashComponentsStreamMetadataTable(Transaction t, TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataTrigger... triggers) {
+        return TestHashComponentsStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public TestHashComponentsStreamValueTable getTestHashComponentsStreamValueTable(Transaction t, TestHashComponentsStreamValueTable.TestHashComponentsStreamValueTrigger... triggers) {
+        return TestHashComponentsStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public interface SharedTriggers extends
             KeyValueTable.KeyValueTrigger,
             StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxTrigger,
@@ -103,7 +119,11 @@ public final class StreamTestTableFactory {
             StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxTrigger,
             StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxTrigger,
             StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataTrigger,
-            StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueTrigger {
+            StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueTrigger,
+            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxTrigger,
+            TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxTrigger,
+            TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataTrigger,
+            TestHashComponentsStreamValueTable.TestHashComponentsStreamValueTrigger {
         /* empty */
     }
 
@@ -170,6 +190,26 @@ public final class StreamTestTableFactory {
 
         @Override
         public void putStreamTestWithHashStreamValue(Multimap<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putTestHashComponentsStreamHashAidx(Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow, ? extends TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putTestHashComponentsStreamIdx(Multimap<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow, ? extends TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putTestHashComponentsStreamMetadata(Multimap<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, ? extends TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putTestHashComponentsStreamValue(Multimap<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow, ? extends TestHashComponentsStreamValueTable.TestHashComponentsStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

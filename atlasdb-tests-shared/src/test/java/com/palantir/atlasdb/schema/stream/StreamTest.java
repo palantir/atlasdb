@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
@@ -65,18 +66,21 @@ import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.KeyValueTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestMaxMemStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamHashAidxTable;
-import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamIdxTable.StreamTestStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamMetadataTable;
-import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamMetadataTable.StreamTestStreamMetadataRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamValueTable;
-import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamValueTable.StreamTestStreamValueRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamHashAidxTable;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamMetadataTable;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamStore;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow;
+import com.palantir.atlasdb.schema.stream.generated.TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -87,12 +91,27 @@ import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+@RunWith(Parameterized.class)
 public class StreamTest extends AtlasDbTestCase {
     public static final long TEST_ID = 5L;
     public static final long TEST_BLOCK_ID = 5L;
     private PersistentStreamStore defaultStore;
+    private boolean useStoreWithHashedComponents;
     private PersistentStreamStore compressedStore;
     private PersistentStreamStore maxMemStore;
+
+    @Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {{ true }, { false }});
+    }
+
+    public StreamTest(boolean useStoreWithHashedComponents) {
+        this.useStoreWithHashedComponents = useStoreWithHashedComponents;
+    }
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -102,7 +121,12 @@ public class StreamTest extends AtlasDbTestCase {
         Schemas.deleteTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
         Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
 
-        defaultStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+        if (!useStoreWithHashedComponents) {
+            defaultStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+        } else {
+            defaultStore = TestHashComponentsStreamStore.of(txManager, StreamTestTableFactory.of());
+        }
+
         compressedStore = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
         maxMemStore = StreamTestMaxMemStreamStore.of(txManager, StreamTestTableFactory.of());
     }
@@ -176,28 +200,28 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testHashRowComponentsValueTable() {
-        StreamTestStreamValueRow row = StreamTestStreamValueRow.of(TEST_ID, TEST_BLOCK_ID);
+        TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueRow.of(TEST_ID, TEST_BLOCK_ID);
         byte[] persistedRow = row.persistToBytes();
-        StreamTestStreamValueRow hydratedRow =
-                StreamTestStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
+        TestHashComponentsStreamValueRow hydratedRow =
+                TestHashComponentsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
         assertEquals(row, hydratedRow);
     }
 
     @Test
     public void testHashRowComponentsMetadataTable() {
-        StreamTestStreamMetadataRow row = StreamTestStreamMetadataRow.of(TEST_ID);
+        TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataRow.of(TEST_ID);
         byte[] persistedRow = row.persistToBytes();
-        StreamTestStreamMetadataRow hydratedRow =
-                StreamTestStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
+        TestHashComponentsStreamMetadataRow hydratedRow =
+                TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
         assertEquals(row, hydratedRow);
     }
 
     @Test
     public void testHashRowComponentsIdxTable() {
-        StreamTestStreamIdxRow row = StreamTestStreamIdxRow.of(TEST_ID);
+        TestHashComponentsStreamIdxRow row = TestHashComponentsStreamIdxRow.of(TEST_ID);
         byte[] persistedRow = row.persistToBytes();
-        StreamTestStreamIdxRow hydratedRow =
-                StreamTestStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
+        TestHashComponentsStreamIdxRow hydratedRow =
+                TestHashComponentsStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
         assertEquals(row, hydratedRow);
     }
 
@@ -442,9 +466,16 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     private void deleteStream(StreamTestTableFactory tableFactory, Transaction tx, Long streamId) {
-        StreamPersistence.StreamMetadata metadata = getMetadata(tableFactory, tx, streamId);
-        deleteStreamHashEntry(tableFactory, tx, streamId, metadata.getHash());
-        deleteStreamValues(tableFactory, tx, streamId, getNumberOfBlocks(metadata));
+        StreamPersistence.StreamMetadata metadata;
+        if (useStoreWithHashedComponents) {
+            metadata = getMetadataHashedComponentsStream(tableFactory, tx, streamId);
+            deleteStreamHashEntryHashedComponentsStream(tableFactory, tx, streamId, metadata.getHash());
+            deleteStreamValuesHashedComponentsStream(tableFactory, tx, streamId, getNumberOfBlocks(metadata));
+        } else {
+            metadata = getMetadata(tableFactory, tx, streamId);
+            deleteStreamHashEntry(tableFactory, tx, streamId, metadata.getHash());
+            deleteStreamValues(tableFactory, tx, streamId, getNumberOfBlocks(metadata));
+        }
     }
 
     private StreamPersistence.StreamMetadata getMetadata(StreamTestTableFactory tableFactory, Transaction tx,
@@ -455,6 +486,18 @@ public class StreamTest extends AtlasDbTestCase {
         smRows.add(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(streamId));
 
         Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
+                StreamPersistence.StreamMetadata> metadatas = table.getMetadatas(smRows);
+        return Iterables.getOnlyElement(metadatas.values());
+    }
+
+    private StreamPersistence.StreamMetadata getMetadataHashedComponentsStream(
+            StreamTestTableFactory tableFactory, Transaction tx, Long streamId) {
+        TestHashComponentsStreamMetadataTable table = tableFactory.getTestHashComponentsStreamMetadataTable(tx);
+
+        Set<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow> smRows = Sets.newHashSet();
+        smRows.add(TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow.of(streamId));
+
+        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow,
                 StreamPersistence.StreamMetadata> metadatas = table.getMetadatas(smRows);
         return Iterables.getOnlyElement(metadatas.values());
     }
@@ -474,6 +517,21 @@ public class StreamTest extends AtlasDbTestCase {
         tableFactory.getStreamTestStreamHashAidxTable(tx).delete(shToDelete);
     }
 
+    private void deleteStreamHashEntryHashedComponentsStream(
+            StreamTestTableFactory tableFactory, Transaction tx, Long streamId, ByteString streamHash) {
+        Sha256Hash hash = new Sha256Hash(streamHash.toByteArray());
+        TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow hashRow =
+                TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow.of(hash);
+        TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn column =
+                TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn.of(streamId);
+
+        Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow,
+                TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumn> shToDelete =
+                ImmutableMultimap.of(hashRow, column);
+
+        tableFactory.getTestHashComponentsStreamHashAidxTable(tx).delete(shToDelete);
+    }
+
     private int getNumberOfBlocks(StreamPersistence.StreamMetadata metadata) {
         return (int) ((metadata.getLength() + StreamTestStreamStore.BLOCK_SIZE_IN_BYTES - 1)
                 / StreamTestStreamStore.BLOCK_SIZE_IN_BYTES);
@@ -486,6 +544,16 @@ public class StreamTest extends AtlasDbTestCase {
         }
 
         tableFactory.getStreamTestStreamValueTable(tx).delete(streamValueToDelete);
+    }
+
+    private void deleteStreamValuesHashedComponentsStream(
+            StreamTestTableFactory tableFactory, Transaction tx, Long streamId, int numBlocks) {
+        Set<TestHashComponentsStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        for (long i = 0; i < numBlocks; i++) {
+            streamValueToDelete.add(TestHashComponentsStreamValueRow.of(streamId, i));
+        }
+
+        tableFactory.getTestHashComponentsStreamValueTable(tx).delete(streamValueToDelete);
     }
 
     @Test

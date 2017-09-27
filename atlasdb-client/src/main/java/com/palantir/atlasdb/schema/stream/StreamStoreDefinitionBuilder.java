@@ -44,6 +44,11 @@ public class StreamStoreDefinitionBuilder {
         this.compressStream = false;
     }
 
+    /**
+     * We recommend using hashRowComponents() instead as it has the additional benefit of preventing hotspotting
+     * within a stream. However, do not change this flag for an existing store schema as we currently do not support
+     * StreamStore migrations.
+     */
     public StreamStoreDefinitionBuilder hashFirstRowComponent() {
         return hashFirstNRowComponents(1);
     }
@@ -51,7 +56,8 @@ public class StreamStoreDefinitionBuilder {
     /**
      * We recommend that this flag is set in order to prevent hotspotting in the underlying table which stores
      * the data blocks. The effect of this method is that row keys will be prefixed by the hashed
-     * concatenation of the stream id and block id.
+     * concatenation of the stream id and block id. This flag is only supported for new StreamStores, as
+     * setting it on the schema of an existing StreamStore would require data migration.
      */
     public StreamStoreDefinitionBuilder hashRowComponents() {
         return hashFirstNRowComponents(2);
