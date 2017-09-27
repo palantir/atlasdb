@@ -1,14 +1,17 @@
 =======
-Best Practices
+Cassandra Best Practices
 =======
 
+Overview
+===============
+This section is intended to provide guidelines for maintaining good performance for atlasdb queries when using Cassandra as a backing store.
 
-
+The advice here is meant to serve as a safeguard against using atlas in ways that are known to cause performance issues, but it is not all encompassing. In general, you can feel safe if you follow the guidelines below; however, if you need to bend any of these rules, you should make sure that you understand why it's ok to do so.
 
 Range Scans
 ===============
 
-**Range Scans vs  Exact Key Lookups**
+**Range Scans vs Exact Key Lookups**
 
 - Prefer exact key lookups over range scans
    - The performance of exact key lookups do not degrade with frequent updates to the key
@@ -20,6 +23,7 @@ Range Scans
 - Prefer dynamic column range scans
    - Range scanning over dynamic columns within a row can be 2 or more times faster than range scanning across rows
    - Dynamic column scans are more efficient, and Cassandra is optimized for them
+- However, when used properly, row-based range scans can still provide acceptable performance.
 
 
 **Range Scan Caveats**
