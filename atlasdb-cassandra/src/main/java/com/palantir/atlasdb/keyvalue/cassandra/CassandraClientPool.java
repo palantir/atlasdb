@@ -72,6 +72,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.tracing.Tracers;
 
 /**
@@ -355,7 +356,7 @@ public class CassandraClientPool {
                     + " that caused us to distrust this host further. Exception message was: {} : {}",
                     SafeArg.of("host", host),
                     SafeArg.of("exceptionClass", e.getClass().getTypeName()),
-                    e.getMessage());
+                    UnsafeArg.of("exceptionMessage", e.getMessage()));
             return false;
         }
     }
@@ -594,7 +595,7 @@ public class CassandraClientPool {
                     int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
                     log.warn("Retrying with backoff ({}ms} a query, {}, intended for host {}.",
                             SafeArg.of("sleepDuration", sleepDuration),
-                            fn.toString(),
+                            UnsafeArg.of("queryString", fn.toString()),
                             SafeArg.of("hostName", hostPool.getHost()));
 
                     try {
@@ -680,7 +681,7 @@ public class CassandraClientPool {
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
-                            ex.getMessage());
+                            UnsafeArg.of("exceptionMessage", ex.getMessage()));
                 } else {
                     log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
                             SafeArg.of("numTries", numTries),
