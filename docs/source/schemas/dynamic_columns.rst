@@ -108,16 +108,13 @@ API. For example, the code below is an implementation of query 1 for an arbitrar
                     ImmutableList.of(TodoTable.TodoRow.of(person)),
                     BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
 
-    if (!results.isEmpty()) {
-        AtomicReference<Todo> element = new AtomicReference<>();
-        BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
-        visitable.batchAccept(1, item -> {
-            element.set(ImmutableTodo.of(item.get(0).getValue()));
-            return false; // Do not want any more, since we know our first batch contains the one.
-        });
-        return element.get();
-    }
-    return null;
+    AtomicReference<Todo> element = new AtomicReference<>();
+    BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
+    visitable.batchAccept(1, item -> {
+        element.set(ImmutableTodo.of(item.get(0).getValue()));
+        return false; // Do not want any more, since we know our first batch contains the one.
+    });
+    return element.get();
 
 
 Data Representation (Cassandra)
@@ -177,13 +174,11 @@ person (the person to run the query for) and limit (the maximum number of record
             todoTable.getRowsColumnRange(ImmutableList.of(TodoTable.TodoRow.of(person)), selection);
 
     List<Todo> result = Lists.newArrayList();
-    if (!results.isEmpty()) {
-        BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
-        visitable.batchAccept(limit, item -> {
-            item.forEach(columnValue -> result.add(ImmutableTodo.of(columnValue.getValue())));
-            return result.size() < limit;
-        });
-    }
+    BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
+    visitable.batchAccept(limit, item -> {
+        item.forEach(columnValue -> result.add(ImmutableTodo.of(columnValue.getValue())));
+        return result.size() < limit;
+    });
     return result.subList(0, limit); // The batch hint may not always be respected exactly.
 
 Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)
@@ -204,22 +199,63 @@ size and cost ranges respectively. We also assume the existence of person (the p
                             100));
 
     List<Todo> result = Lists.newArrayList();
-    if (!results.isEmpty()) {
-        BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
-        visitable.batchAccept(100, item -> {
-            item.forEach(columnValue -> {
-                // needed to ignore values with an intermediate size that are not in the cost range
-                if (columnValue.getColumnName().getCost() >= lowerCost &&
-                        columnValue.getColumnName().getCost() <= upperCost) {
-                    result.add(ImmutableTodo.of(columnValue.getValue()));
-                }
-            });
-            return true;
+    BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
+    visitable.batchAccept(100, item -> {
+        item.forEach(columnValue -> {
+            // needed to ignore values with an intermediate size that are not in the cost range
+            if (columnValue.getColumnName().getMonetaryCost() >= lowerCost &&
+                    columnValue.getColumnName().getMonetaryCost() <= upperCost) {
+                result.add(ImmutableTodo.of(columnValue.getValue()));
+            }
         });
-    }
+        return true;
+    });
     return result;
 
-Query 8 (Smallest for Multiple Values)
-======================================
+Query 8 (Smallest for Multiple Row Keys)
+========================================
 
-TODO
+Assume the existence of a Set of Strings, personSet, which correspond to person identifiers.
+
+.. code:: java
+
+    Map<String, List<Todo>> results = Maps.newConcurrentMap();
+    Map<String, Long> smallestSizes = Maps.newConcurrentMap();
+    TodoTable todoTable = TodoSchemaTableFactory.of().getTodoTable(tx);
+    Map<TodoTable.TodoRow, BatchingVisitable<TodoTable.TodoColumnValue>> visitables =
+            todoTable.getRowsColumnRange(
+                    personSet.stream()
+                            .map(TodoTable.TodoRow::of)
+                            .collect(Collectors.toList()),
+                    // This MUST be unbounded because each person could have a different size of smallest task
+                    BatchColumnRangeSelection.create(
+                            PtBytes.EMPTY_BYTE_ARRAY,
+                            PtBytes.EMPTY_BYTE_ARRAY,
+                            100)); // Magic number; it's hard to prescribe a one-size-fits-all value here.
+
+    visitables.entrySet().forEach(entry -> {
+        String person = entry.getKey().getPerson();
+        results.put(person, Lists.newArrayList());
+        entry.getValue().batchAccept(100, columnValues -> {
+            if (columnValues.isEmpty()) {
+                return false;
+            }
+
+            // Triggers on the first batch.
+            if (!smallestSize.containsKey(person)) {
+                // This suffices, even if the first batch has multiple task sizes, because dynamic columns are
+                // returned in sorted order.
+                smallestSize.put(person, columnValues.get(0).getColumnName().getPriority());
+            }
+
+            long smallestSize = smallestSizes.get(person);
+            columnValues.stream()
+                    .filter(columnValue -> columnValue.getColumnName().getTaskSize() == smallestSize)
+                    .forEach(columnValue -> results.get(person).add(ImmutableTodo.of(columnValue.getValue())));
+
+            // If the last entry doesn't have the smallest size, we must have covered all of the smallest todos
+            // in this batch. This works, because dynamic columns are returned in sorted order.
+            return columnValues.get(columnValues.size() - 1).getColumnName().getPriority() == smallest;
+        });
+    });
+    return results;
