@@ -199,6 +199,18 @@
 <tr class="row-even"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Can now specify <code class="docutils literal"><span class="pre">hashRowComponents()</span></code> in StreamStore definitions. This prevents hotspotting in Cassandra
+by prepending the hashed concatenation of the <code class="docutils literal"><span class="pre">streamId</span></code> and <code class="docutils literal"><span class="pre">blockId</span></code> to the row key.
+We do not support adding this to an existing StreamStore, as it would require data migration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2384">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Can now specify <code class="docutils literal"><span class="pre">hashFirstNRowComponents(n)</span></code> in Table and Index definitions.
+This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+When using with prefix range requests, the components that are hashed must also be specified in the prefix.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2384">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -374,6 +386,11 @@ This was necessary for compatibility with an internal log-ingestion tool.
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2301">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Cassandra range concurrency defaults lowered from 64x to 32x, to reflect default connection pool sizes
+that have shrank over time, and to be more appropriate for fairly common smaller 3-node clusters.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2386">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
