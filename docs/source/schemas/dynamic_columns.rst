@@ -149,3 +149,77 @@ Dynamic columns create wide rows in Cassandra, because they generate many (Cassa
 This may add limits to the scalability of the data, because all data for a single row key will be stored on a
 single machine in the cluster. Generally, we recommend that row sizes are kept below 100 MB, and below one million
 dynamic column keys.
+
+Appendix: Sample Query Implementations
+--------------------------------------
+
+We present possible implementations of some of the queries (or generalisations of them) described above.
+Note that an implementation of query 1 has been included in the "Retrieval" section.
+
+Query 3 (Size Lower to Upper, Limit N)
+======================================
+
+Assume the existence of variables lower and upper (inclusive bounds for the size range; 10 and 15 in the sample query),
+person (the person to run the query for) and limit (the maximum number of records we want to return).
+
+.. code:: java
+
+    TodoTable todoTable = TodoSchemaTableFactory.of().getTodoTable(tx);
+
+    // Note that a column range selection is a start-inclusive end-exclusive range, so (upper, Long.MAX_VALUE) is
+    // incorrect as it would exclude that specific dynamic column key!
+    BatchColumnRangeSelection selection = BatchColumnRangeSelection.create(
+            TodoTable.TodoColumn.of(lower, Long.MIN_VALUE).persistToBytes(),
+            TodoTable.TodoColumn.of(upper + 1, Long.MIN_VALUE).persistToBytes(),
+            limit)
+
+    Map<TodoTable.TodoRow, BatchingVisitable<TodoTable.TodoColumnValue>> results =
+            todoTable.getRowsColumnRange(ImmutableList.of(TodoTable.TodoRow.of(person)), selection);
+
+    List<Todo> result = Lists.newArrayList();
+    if (!results.isEmpty()) {
+        BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
+        visitable.batchAccept(limit, item -> {
+            item.forEach(columnValue -> result.add(ImmutableTodo.of(columnValue.getValue())));
+            return result.size() < limit;
+        });
+    }
+    return result.subList(0, limit); // The batch hint may not always be respected exactly.
+
+Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)
+==================================================================
+
+Assume the existence of variables lowerSize, upperSize, lowerCost and upperCost which are inclusive bounds for the
+size and cost ranges respectively. We also assume the existence of person (the person to run the query for).
+
+.. code:: java
+
+    TodoTable todoTable = TodoSchemaTableFactory.of().getTodoTable(tx);
+    Map<TodoTable.TodoRow, BatchingVisitable<TodoTable.TodoColumnValue>> results =
+            todoTable.getRowsColumnRange(
+                    ImmutableList.of(TodoTable.TodoRow.of(person)),
+                    BatchColumnRangeSelection.create(
+                            TodoTable.TodoColumn.of(lowerSize, lowerCost).persistToBytes(),
+                            TodoTable.TodoColumn.of(upperSize, upperCost + 1).persistToBytes(), // end is exclusive
+                            100));
+
+    List<Todo> result = Lists.newArrayList();
+    if (!results.isEmpty()) {
+        BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
+        visitable.batchAccept(100, item -> {
+            item.forEach(columnValue -> {
+                // needed to ignore values with an intermediate size that are not in the cost range
+                if (columnValue.getColumnName().getCost() >= lowerCost &&
+                        columnValue.getColumnName().getCost() <= upperCost) {
+                    result.add(ImmutableTodo.of(columnValue.getValue()));
+                }
+            });
+            return true;
+        });
+    }
+    return result;
+
+Query 8 (Smallest for Multiple Values)
+======================================
+
+TODO
