@@ -76,13 +76,13 @@ public class StartupIndependenceEteTest {
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
         startCassandraNodes(ALL_CASSANDRA_NODES);
-        assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
+        assertSatisfiedWithin(240, StartupIndependenceEteTest::canPerformTransaction);
 
         killCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
         startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
-        assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
+        assertSatisfiedWithin(240, StartupIndependenceEteTest::canPerformTransaction);
     }
 
     @Test
@@ -116,7 +116,7 @@ public class StartupIndependenceEteTest {
 
     private static void verifyCassandraIsSettled() throws IOException, InterruptedException {
         restartAtlasWithChecks();
-        assertSatisfiedWithin(180, StartupIndependenceEteTest::canPerformTransaction);
+        assertSatisfiedWithin(240, StartupIndependenceEteTest::canPerformTransaction);
         randomizeNamespace();
     }
 
@@ -127,7 +127,7 @@ public class StartupIndependenceEteTest {
 
     private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
         EteSetup.execCliCommand("service/bin/init.sh start");
-        assertSatisfiedWithin(180, StartupIndependenceEteTest::serverRunning);
+        assertSatisfiedWithin(240, StartupIndependenceEteTest::serverRunning);
     }
 
     private static void assertSatisfiedWithin(long time, Callable<Boolean> condition) {
