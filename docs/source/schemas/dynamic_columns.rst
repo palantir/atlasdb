@@ -163,8 +163,8 @@ person (the person to run the query for) and limit (the maximum number of record
 
     TodoTable todoTable = TodoSchemaTableFactory.of().getTodoTable(tx);
 
-    // Note that a column range selection is a start-inclusive end-exclusive range, so (upper, Long.MAX_VALUE) is
-    // incorrect as it would exclude that specific dynamic column key!
+    // Note that a column range selection is a start-inclusive end-exclusive range, so using (upper, Long.MAX_VALUE)
+    // as the end of the column selection is incorrect, because it excludes that specific dynamic column key.
     BatchColumnRangeSelection selection = BatchColumnRangeSelection.create(
             TodoTable.TodoColumn.of(lower, Long.MIN_VALUE).persistToBytes(),
             TodoTable.TodoColumn.of(upper + 1, Long.MIN_VALUE).persistToBytes(),
@@ -215,7 +215,7 @@ size and cost ranges respectively. We also assume the existence of person (the p
 Query 8 (Smallest for Multiple Row Keys)
 ========================================
 
-Assume the existence of a Set of Strings, personSet, which correspond to person identifiers.
+Assume the existence of a Set of Strings, personSet. This corresponds to person identifiers.
 
 .. code:: java
 
