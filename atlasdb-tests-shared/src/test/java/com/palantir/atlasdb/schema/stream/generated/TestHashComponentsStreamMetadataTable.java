@@ -88,32 +88,32 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings("all")
-public final class StreamTestWithHashStreamMetadataTable implements
-        AtlasDbMutablePersistentTable<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow,
-                                         StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>,
-                                         StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRowResult>,
-        AtlasDbNamedMutableTable<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow,
-                                    StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>,
-                                    StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRowResult> {
+public final class TestHashComponentsStreamMetadataTable implements
+        AtlasDbMutablePersistentTable<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow,
+                                         TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataNamedColumnValue<?>,
+                                         TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRowResult>,
+        AtlasDbNamedMutableTable<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow,
+                                    TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataNamedColumnValue<?>,
+                                    TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRowResult> {
     private final Transaction t;
-    private final List<StreamTestWithHashStreamMetadataTrigger> triggers;
-    private final static String rawTableName = "stream_test_with_hash_stream_metadata";
+    private final List<TestHashComponentsStreamMetadataTrigger> triggers;
+    private final static String rawTableName = "test_hash_components_stream_metadata";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(StreamTestWithHashStreamMetadataNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(TestHashComponentsStreamMetadataNamedColumn.values());
 
-    static StreamTestWithHashStreamMetadataTable of(Transaction t, Namespace namespace) {
-        return new StreamTestWithHashStreamMetadataTable(t, namespace, ImmutableList.<StreamTestWithHashStreamMetadataTrigger>of());
+    static TestHashComponentsStreamMetadataTable of(Transaction t, Namespace namespace) {
+        return new TestHashComponentsStreamMetadataTable(t, namespace, ImmutableList.<TestHashComponentsStreamMetadataTrigger>of());
     }
 
-    static StreamTestWithHashStreamMetadataTable of(Transaction t, Namespace namespace, StreamTestWithHashStreamMetadataTrigger trigger, StreamTestWithHashStreamMetadataTrigger... triggers) {
-        return new StreamTestWithHashStreamMetadataTable(t, namespace, ImmutableList.<StreamTestWithHashStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
+    static TestHashComponentsStreamMetadataTable of(Transaction t, Namespace namespace, TestHashComponentsStreamMetadataTrigger trigger, TestHashComponentsStreamMetadataTrigger... triggers) {
+        return new TestHashComponentsStreamMetadataTable(t, namespace, ImmutableList.<TestHashComponentsStreamMetadataTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTestWithHashStreamMetadataTable of(Transaction t, Namespace namespace, List<StreamTestWithHashStreamMetadataTrigger> triggers) {
-        return new StreamTestWithHashStreamMetadataTable(t, namespace, triggers);
+    static TestHashComponentsStreamMetadataTable of(Transaction t, Namespace namespace, List<TestHashComponentsStreamMetadataTrigger> triggers) {
+        return new TestHashComponentsStreamMetadataTable(t, namespace, triggers);
     }
 
-    private StreamTestWithHashStreamMetadataTable(Transaction t, Namespace namespace, List<StreamTestWithHashStreamMetadataTrigger> triggers) {
+    private TestHashComponentsStreamMetadataTable(Transaction t, Namespace namespace, List<TestHashComponentsStreamMetadataTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -137,22 +137,22 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     /**
      * <pre>
-     * StreamTestWithHashStreamMetadataRow {
+     * TestHashComponentsStreamMetadataRow {
      *   {@literal Long hashOfRowComponents};
      *   {@literal Long id};
      * }
      * </pre>
      */
-    public static final class StreamTestWithHashStreamMetadataRow implements Persistable, Comparable<StreamTestWithHashStreamMetadataRow> {
+    public static final class TestHashComponentsStreamMetadataRow implements Persistable, Comparable<TestHashComponentsStreamMetadataRow> {
         private final long hashOfRowComponents;
         private final long id;
 
-        public static StreamTestWithHashStreamMetadataRow of(long id) {
+        public static TestHashComponentsStreamMetadataRow of(long id) {
             long hashOfRowComponents = computeHashFirstComponents(id);
-            return new StreamTestWithHashStreamMetadataRow(hashOfRowComponents, id);
+            return new TestHashComponentsStreamMetadataRow(hashOfRowComponents, id);
         }
 
-        private StreamTestWithHashStreamMetadataRow(long hashOfRowComponents, long id) {
+        private TestHashComponentsStreamMetadataRow(long hashOfRowComponents, long id) {
             this.hashOfRowComponents = hashOfRowComponents;
             this.id = id;
         }
@@ -161,20 +161,20 @@ public final class StreamTestWithHashStreamMetadataTable implements
             return id;
         }
 
-        public static Function<StreamTestWithHashStreamMetadataRow, Long> getIdFun() {
-            return new Function<StreamTestWithHashStreamMetadataRow, Long>() {
+        public static Function<TestHashComponentsStreamMetadataRow, Long> getIdFun() {
+            return new Function<TestHashComponentsStreamMetadataRow, Long>() {
                 @Override
-                public Long apply(StreamTestWithHashStreamMetadataRow row) {
+                public Long apply(TestHashComponentsStreamMetadataRow row) {
                     return row.id;
                 }
             };
         }
 
-        public static Function<Long, StreamTestWithHashStreamMetadataRow> fromIdFun() {
-            return new Function<Long, StreamTestWithHashStreamMetadataRow>() {
+        public static Function<Long, TestHashComponentsStreamMetadataRow> fromIdFun() {
+            return new Function<Long, TestHashComponentsStreamMetadataRow>() {
                 @Override
-                public StreamTestWithHashStreamMetadataRow apply(Long row) {
-                    return StreamTestWithHashStreamMetadataRow.of(row);
+                public TestHashComponentsStreamMetadataRow apply(Long row) {
+                    return TestHashComponentsStreamMetadataRow.of(row);
                 }
             };
         }
@@ -186,15 +186,15 @@ public final class StreamTestWithHashStreamMetadataTable implements
             return EncodingUtils.add(hashOfRowComponentsBytes, idBytes);
         }
 
-        public static final Hydrator<StreamTestWithHashStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<StreamTestWithHashStreamMetadataRow>() {
+        public static final Hydrator<TestHashComponentsStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<TestHashComponentsStreamMetadataRow>() {
             @Override
-            public StreamTestWithHashStreamMetadataRow hydrateFromBytes(byte[] __input) {
+            public TestHashComponentsStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return new StreamTestWithHashStreamMetadataRow(hashOfRowComponents, id);
+                return new TestHashComponentsStreamMetadataRow(hashOfRowComponents, id);
             }
         };
 
@@ -222,7 +222,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            StreamTestWithHashStreamMetadataRow other = (StreamTestWithHashStreamMetadataRow) obj;
+            TestHashComponentsStreamMetadataRow other = (TestHashComponentsStreamMetadataRow) obj;
             return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id);
         }
 
@@ -233,7 +233,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         }
 
         @Override
-        public int compareTo(StreamTestWithHashStreamMetadataRow o) {
+        public int compareTo(TestHashComponentsStreamMetadataRow o) {
             return ComparisonChain.start()
                 .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.id, o.id)
@@ -241,7 +241,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         }
     }
 
-    public interface StreamTestWithHashStreamMetadataNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface TestHashComponentsStreamMetadataNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -270,7 +270,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * }
      * </pre>
      */
-    public static final class Metadata implements StreamTestWithHashStreamMetadataNamedColumnValue<com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> {
+    public static final class Metadata implements TestHashComponentsStreamMetadataNamedColumnValue<com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> {
         private final com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value;
 
         public static Metadata of(com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
@@ -327,40 +327,40 @@ public final class StreamTestWithHashStreamMetadataTable implements
         }
     }
 
-    public interface StreamTestWithHashStreamMetadataTrigger {
-        public void putStreamTestWithHashStreamMetadata(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> newRows);
+    public interface TestHashComponentsStreamMetadataTrigger {
+        public void putTestHashComponentsStreamMetadata(Multimap<TestHashComponentsStreamMetadataRow, ? extends TestHashComponentsStreamMetadataNamedColumnValue<?>> newRows);
     }
 
-    public static final class StreamTestWithHashStreamMetadataRowResult implements TypedRowResult {
+    public static final class TestHashComponentsStreamMetadataRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static StreamTestWithHashStreamMetadataRowResult of(RowResult<byte[]> row) {
-            return new StreamTestWithHashStreamMetadataRowResult(row);
+        public static TestHashComponentsStreamMetadataRowResult of(RowResult<byte[]> row) {
+            return new TestHashComponentsStreamMetadataRowResult(row);
         }
 
-        private StreamTestWithHashStreamMetadataRowResult(RowResult<byte[]> row) {
+        private TestHashComponentsStreamMetadataRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public StreamTestWithHashStreamMetadataRow getRowName() {
-            return StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public TestHashComponentsStreamMetadataRow getRowName() {
+            return TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<StreamTestWithHashStreamMetadataRowResult, StreamTestWithHashStreamMetadataRow> getRowNameFun() {
-            return new Function<StreamTestWithHashStreamMetadataRowResult, StreamTestWithHashStreamMetadataRow>() {
+        public static Function<TestHashComponentsStreamMetadataRowResult, TestHashComponentsStreamMetadataRow> getRowNameFun() {
+            return new Function<TestHashComponentsStreamMetadataRowResult, TestHashComponentsStreamMetadataRow>() {
                 @Override
-                public StreamTestWithHashStreamMetadataRow apply(StreamTestWithHashStreamMetadataRowResult rowResult) {
+                public TestHashComponentsStreamMetadataRow apply(TestHashComponentsStreamMetadataRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, StreamTestWithHashStreamMetadataRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, StreamTestWithHashStreamMetadataRowResult>() {
+        public static Function<RowResult<byte[]>, TestHashComponentsStreamMetadataRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, TestHashComponentsStreamMetadataRowResult>() {
                 @Override
-                public StreamTestWithHashStreamMetadataRowResult apply(RowResult<byte[]> rowResult) {
-                    return new StreamTestWithHashStreamMetadataRowResult(rowResult);
+                public TestHashComponentsStreamMetadataRowResult apply(RowResult<byte[]> rowResult) {
+                    return new TestHashComponentsStreamMetadataRowResult(rowResult);
                 }
             };
         }
@@ -378,10 +378,10 @@ public final class StreamTestWithHashStreamMetadataTable implements
             return value.getValue();
         }
 
-        public static Function<StreamTestWithHashStreamMetadataRowResult, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadataFun() {
-            return new Function<StreamTestWithHashStreamMetadataRowResult, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>() {
+        public static Function<TestHashComponentsStreamMetadataRowResult, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadataFun() {
+            return new Function<TestHashComponentsStreamMetadataRowResult, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata>() {
                 @Override
-                public com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata apply(StreamTestWithHashStreamMetadataRowResult rowResult) {
+                public com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata apply(TestHashComponentsStreamMetadataRowResult rowResult) {
                     return rowResult.getMetadata();
                 }
             };
@@ -396,7 +396,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
         }
     }
 
-    public enum StreamTestWithHashStreamMetadataNamedColumn {
+    public enum TestHashComponentsStreamMetadataNamedColumn {
         METADATA {
             @Override
             public byte[] getShortName() {
@@ -406,36 +406,36 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
         public abstract byte[] getShortName();
 
-        public static Function<StreamTestWithHashStreamMetadataNamedColumn, byte[]> toShortName() {
-            return new Function<StreamTestWithHashStreamMetadataNamedColumn, byte[]>() {
+        public static Function<TestHashComponentsStreamMetadataNamedColumn, byte[]> toShortName() {
+            return new Function<TestHashComponentsStreamMetadataNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(StreamTestWithHashStreamMetadataNamedColumn namedColumn) {
+                public byte[] apply(TestHashComponentsStreamMetadataNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<StreamTestWithHashStreamMetadataNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, StreamTestWithHashStreamMetadataNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<TestHashComponentsStreamMetadataNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, TestHashComponentsStreamMetadataNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(StreamTestWithHashStreamMetadataNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(TestHashComponentsStreamMetadataNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>>>builder()
+    private static final Map<String, Hydrator<? extends TestHashComponentsStreamMetadataNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends TestHashComponentsStreamMetadataNamedColumnValue<?>>>builder()
                 .put("md", Metadata.BYTES_HYDRATOR)
                 .build();
 
-    public Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadatas(Collection<StreamTestWithHashStreamMetadataRow> rows) {
-        Map<Cell, StreamTestWithHashStreamMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (StreamTestWithHashStreamMetadataRow row : rows) {
+    public Map<TestHashComponentsStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> getMetadatas(Collection<TestHashComponentsStreamMetadataRow> rows) {
+        Map<Cell, TestHashComponentsStreamMetadataRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (TestHashComponentsStreamMetadataRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("md")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TestHashComponentsStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata val = Metadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
@@ -443,46 +443,46 @@ public final class StreamTestWithHashStreamMetadataTable implements
         return ret;
     }
 
-    public void putMetadata(StreamTestWithHashStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
+    public void putMetadata(TestHashComponentsStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
         put(ImmutableMultimap.of(row, Metadata.of(value)));
     }
 
-    public void putMetadata(Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
-        Map<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
+    public void putMetadata(Map<TestHashComponentsStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
+        Map<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TestHashComponentsStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
             toPut.put(e.getKey(), Metadata.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putMetadataUnlessExists(StreamTestWithHashStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
+    public void putMetadataUnlessExists(TestHashComponentsStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
         putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
     }
 
-    public void putMetadataUnlessExists(Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
-        Map<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
+    public void putMetadataUnlessExists(Map<TestHashComponentsStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
+        Map<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TestHashComponentsStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
             toPut.put(e.getKey(), Metadata.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows) {
+    public void put(Multimap<TestHashComponentsStreamMetadataRow, ? extends TestHashComponentsStreamMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (StreamTestWithHashStreamMetadataTrigger trigger : triggers) {
-            trigger.putStreamTestWithHashStreamMetadata(rows);
+        for (TestHashComponentsStreamMetadataTrigger trigger : triggers) {
+            trigger.putTestHashComponentsStreamMetadata(rows);
         }
     }
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
-    public void putUnlessExists(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows) {
-        Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<TestHashComponentsStreamMetadataRow, ? extends TestHashComponentsStreamMetadataNamedColumnValue<?>> rows) {
+        Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<TestHashComponentsStreamMetadataRow, ? extends TestHashComponentsStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -490,71 +490,71 @@ public final class StreamTestWithHashStreamMetadataTable implements
         put(toPut);
     }
 
-    public void deleteMetadata(StreamTestWithHashStreamMetadataRow row) {
+    public void deleteMetadata(TestHashComponentsStreamMetadataRow row) {
         deleteMetadata(ImmutableSet.of(row));
     }
 
-    public void deleteMetadata(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
+    public void deleteMetadata(Iterable<TestHashComponentsStreamMetadataRow> rows) {
         byte[] col = PtBytes.toCachedBytes("md");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(StreamTestWithHashStreamMetadataRow row) {
+    public void delete(TestHashComponentsStreamMetadataRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
+    public void delete(Iterable<TestHashComponentsStreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("md")));
         t.delete(tableRef, cells);
     }
 
-    public Optional<StreamTestWithHashStreamMetadataRowResult> getRow(StreamTestWithHashStreamMetadataRow row) {
+    public Optional<TestHashComponentsStreamMetadataRowResult> getRow(TestHashComponentsStreamMetadataRow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<StreamTestWithHashStreamMetadataRowResult> getRow(StreamTestWithHashStreamMetadataRow row, ColumnSelection columns) {
+    public Optional<TestHashComponentsStreamMetadataRowResult> getRow(TestHashComponentsStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.empty();
         } else {
-            return Optional.of(StreamTestWithHashStreamMetadataRowResult.of(rowResult));
+            return Optional.of(TestHashComponentsStreamMetadataRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<StreamTestWithHashStreamMetadataRowResult> getRows(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
+    public List<TestHashComponentsStreamMetadataRowResult> getRows(Iterable<TestHashComponentsStreamMetadataRow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<StreamTestWithHashStreamMetadataRowResult> getRows(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
+    public List<TestHashComponentsStreamMetadataRowResult> getRows(Iterable<TestHashComponentsStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<StreamTestWithHashStreamMetadataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<TestHashComponentsStreamMetadataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(StreamTestWithHashStreamMetadataRowResult.of(row));
+            rowResults.add(TestHashComponentsStreamMetadataRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamMetadataRow row) {
+    public List<TestHashComponentsStreamMetadataNamedColumnValue<?>> getRowColumns(TestHashComponentsStreamMetadataRow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamMetadataRow row, ColumnSelection columns) {
+    public List<TestHashComponentsStreamMetadataNamedColumnValue<?>> getRowColumns(TestHashComponentsStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<StreamTestWithHashStreamMetadataNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<TestHashComponentsStreamMetadataNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -563,24 +563,24 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
+    public Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<TestHashComponentsStreamMetadataRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
+    public Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<TestHashComponentsStreamMetadataRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnSelection columns) {
+    private Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> getRowsMultimapInternal(Iterable<TestHashComponentsStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -589,12 +589,12 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     @Override
-    public Map<StreamTestWithHashStreamMetadataRow, BatchingVisitable<StreamTestWithHashStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestWithHashStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<TestHashComponentsStreamMetadataRow, BatchingVisitable<TestHashComponentsStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<TestHashComponentsStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestWithHashStreamMetadataRow, BatchingVisitable<StreamTestWithHashStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TestHashComponentsStreamMetadataRow, BatchingVisitable<TestHashComponentsStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestWithHashStreamMetadataNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<TestHashComponentsStreamMetadataNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -603,25 +603,25 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestWithHashStreamMetadataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<TestHashComponentsStreamMetadataRow, TestHashComponentsStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<TestHashComponentsStreamMetadataRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            StreamTestWithHashStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            TestHashComponentsStreamMetadataNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
-    public BatchingVisitableView<StreamTestWithHashStreamMetadataRowResult> getAllRowsUnordered() {
+    public BatchingVisitableView<TestHashComponentsStreamMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
-    public BatchingVisitableView<StreamTestWithHashStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
+    public BatchingVisitableView<TestHashComponentsStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, StreamTestWithHashStreamMetadataRowResult>() {
+                new Function<RowResult<byte[]>, TestHashComponentsStreamMetadataRowResult>() {
             @Override
-            public StreamTestWithHashStreamMetadataRowResult apply(RowResult<byte[]> input) {
-                return StreamTestWithHashStreamMetadataRowResult.of(input);
+            public TestHashComponentsStreamMetadataRowResult apply(RowResult<byte[]> input) {
+                return TestHashComponentsStreamMetadataRowResult.of(input);
             }
         });
     }
@@ -725,5 +725,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dKu8ah8b0CeaheJZb6bgdg==";
+    static String __CLASS_HASH = "DuL2a5B8YmGHzs9oDp7q/w==";
 }

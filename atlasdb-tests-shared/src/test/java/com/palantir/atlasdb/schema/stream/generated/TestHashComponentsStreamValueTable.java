@@ -88,32 +88,32 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings("all")
-public final class StreamTestWithHashStreamValueTable implements
-        AtlasDbMutablePersistentTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
-                                         StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
-                                         StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult>,
-        AtlasDbNamedMutableTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
-                                    StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
-                                    StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult> {
+public final class TestHashComponentsStreamValueTable implements
+        AtlasDbMutablePersistentTable<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow,
+                                         TestHashComponentsStreamValueTable.TestHashComponentsStreamValueNamedColumnValue<?>,
+                                         TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRowResult>,
+        AtlasDbNamedMutableTable<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow,
+                                    TestHashComponentsStreamValueTable.TestHashComponentsStreamValueNamedColumnValue<?>,
+                                    TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRowResult> {
     private final Transaction t;
-    private final List<StreamTestWithHashStreamValueTrigger> triggers;
-    private final static String rawTableName = "stream_test_with_hash_stream_value";
+    private final List<TestHashComponentsStreamValueTrigger> triggers;
+    private final static String rawTableName = "test_hash_components_stream_value";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(StreamTestWithHashStreamValueNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(TestHashComponentsStreamValueNamedColumn.values());
 
-    static StreamTestWithHashStreamValueTable of(Transaction t, Namespace namespace) {
-        return new StreamTestWithHashStreamValueTable(t, namespace, ImmutableList.<StreamTestWithHashStreamValueTrigger>of());
+    static TestHashComponentsStreamValueTable of(Transaction t, Namespace namespace) {
+        return new TestHashComponentsStreamValueTable(t, namespace, ImmutableList.<TestHashComponentsStreamValueTrigger>of());
     }
 
-    static StreamTestWithHashStreamValueTable of(Transaction t, Namespace namespace, StreamTestWithHashStreamValueTrigger trigger, StreamTestWithHashStreamValueTrigger... triggers) {
-        return new StreamTestWithHashStreamValueTable(t, namespace, ImmutableList.<StreamTestWithHashStreamValueTrigger>builder().add(trigger).add(triggers).build());
+    static TestHashComponentsStreamValueTable of(Transaction t, Namespace namespace, TestHashComponentsStreamValueTrigger trigger, TestHashComponentsStreamValueTrigger... triggers) {
+        return new TestHashComponentsStreamValueTable(t, namespace, ImmutableList.<TestHashComponentsStreamValueTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static StreamTestWithHashStreamValueTable of(Transaction t, Namespace namespace, List<StreamTestWithHashStreamValueTrigger> triggers) {
-        return new StreamTestWithHashStreamValueTable(t, namespace, triggers);
+    static TestHashComponentsStreamValueTable of(Transaction t, Namespace namespace, List<TestHashComponentsStreamValueTrigger> triggers) {
+        return new TestHashComponentsStreamValueTable(t, namespace, triggers);
     }
 
-    private StreamTestWithHashStreamValueTable(Transaction t, Namespace namespace, List<StreamTestWithHashStreamValueTrigger> triggers) {
+    private TestHashComponentsStreamValueTable(Transaction t, Namespace namespace, List<TestHashComponentsStreamValueTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -137,24 +137,24 @@ public final class StreamTestWithHashStreamValueTable implements
 
     /**
      * <pre>
-     * StreamTestWithHashStreamValueRow {
+     * TestHashComponentsStreamValueRow {
      *   {@literal Long hashOfRowComponents};
      *   {@literal Long id};
      *   {@literal Long blockId};
      * }
      * </pre>
      */
-    public static final class StreamTestWithHashStreamValueRow implements Persistable, Comparable<StreamTestWithHashStreamValueRow> {
+    public static final class TestHashComponentsStreamValueRow implements Persistable, Comparable<TestHashComponentsStreamValueRow> {
         private final long hashOfRowComponents;
         private final long id;
         private final long blockId;
 
-        public static StreamTestWithHashStreamValueRow of(long id, long blockId) {
-            long hashOfRowComponents = computeHashFirstComponents(id);
-            return new StreamTestWithHashStreamValueRow(hashOfRowComponents, id, blockId);
+        public static TestHashComponentsStreamValueRow of(long id, long blockId) {
+            long hashOfRowComponents = computeHashFirstComponents(id, blockId);
+            return new TestHashComponentsStreamValueRow(hashOfRowComponents, id, blockId);
         }
 
-        private StreamTestWithHashStreamValueRow(long hashOfRowComponents, long id, long blockId) {
+        private TestHashComponentsStreamValueRow(long hashOfRowComponents, long id, long blockId) {
             this.hashOfRowComponents = hashOfRowComponents;
             this.id = id;
             this.blockId = blockId;
@@ -168,19 +168,19 @@ public final class StreamTestWithHashStreamValueTable implements
             return blockId;
         }
 
-        public static Function<StreamTestWithHashStreamValueRow, Long> getIdFun() {
-            return new Function<StreamTestWithHashStreamValueRow, Long>() {
+        public static Function<TestHashComponentsStreamValueRow, Long> getIdFun() {
+            return new Function<TestHashComponentsStreamValueRow, Long>() {
                 @Override
-                public Long apply(StreamTestWithHashStreamValueRow row) {
+                public Long apply(TestHashComponentsStreamValueRow row) {
                     return row.id;
                 }
             };
         }
 
-        public static Function<StreamTestWithHashStreamValueRow, Long> getBlockIdFun() {
-            return new Function<StreamTestWithHashStreamValueRow, Long>() {
+        public static Function<TestHashComponentsStreamValueRow, Long> getBlockIdFun() {
+            return new Function<TestHashComponentsStreamValueRow, Long>() {
                 @Override
-                public Long apply(StreamTestWithHashStreamValueRow row) {
+                public Long apply(TestHashComponentsStreamValueRow row) {
                     return row.blockId;
                 }
             };
@@ -194,9 +194,9 @@ public final class StreamTestWithHashStreamValueTable implements
             return EncodingUtils.add(hashOfRowComponentsBytes, idBytes, blockIdBytes);
         }
 
-        public static final Hydrator<StreamTestWithHashStreamValueRow> BYTES_HYDRATOR = new Hydrator<StreamTestWithHashStreamValueRow>() {
+        public static final Hydrator<TestHashComponentsStreamValueRow> BYTES_HYDRATOR = new Hydrator<TestHashComponentsStreamValueRow>() {
             @Override
-            public StreamTestWithHashStreamValueRow hydrateFromBytes(byte[] __input) {
+            public TestHashComponentsStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
@@ -204,13 +204,14 @@ public final class StreamTestWithHashStreamValueTable implements
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
-                return new StreamTestWithHashStreamValueRow(hashOfRowComponents, id, blockId);
+                return new TestHashComponentsStreamValueRow(hashOfRowComponents, id, blockId);
             }
         };
 
-        public static long computeHashFirstComponents(long id) {
+        public static long computeHashFirstComponents(long id, long blockId) {
             byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
-            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(idBytes)).asLong();
+            byte[] blockIdBytes = EncodingUtils.encodeUnsignedVarLong(blockId);
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(idBytes, blockIdBytes)).asLong();
         }
 
         @Override
@@ -233,7 +234,7 @@ public final class StreamTestWithHashStreamValueTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            StreamTestWithHashStreamValueRow other = (StreamTestWithHashStreamValueRow) obj;
+            TestHashComponentsStreamValueRow other = (TestHashComponentsStreamValueRow) obj;
             return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
         }
 
@@ -244,7 +245,7 @@ public final class StreamTestWithHashStreamValueTable implements
         }
 
         @Override
-        public int compareTo(StreamTestWithHashStreamValueRow o) {
+        public int compareTo(TestHashComponentsStreamValueRow o) {
             return ComparisonChain.start()
                 .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.id, o.id)
@@ -253,7 +254,7 @@ public final class StreamTestWithHashStreamValueTable implements
         }
     }
 
-    public interface StreamTestWithHashStreamValueNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface TestHashComponentsStreamValueNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -262,7 +263,7 @@ public final class StreamTestWithHashStreamValueTable implements
      * }
      * </pre>
      */
-    public static final class Value implements StreamTestWithHashStreamValueNamedColumnValue<byte[]> {
+    public static final class Value implements TestHashComponentsStreamValueNamedColumnValue<byte[]> {
         private final byte[] value;
 
         public static Value of(byte[] value) {
@@ -315,40 +316,40 @@ public final class StreamTestWithHashStreamValueTable implements
         }
     }
 
-    public interface StreamTestWithHashStreamValueTrigger {
-        public void putStreamTestWithHashStreamValue(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> newRows);
+    public interface TestHashComponentsStreamValueTrigger {
+        public void putTestHashComponentsStreamValue(Multimap<TestHashComponentsStreamValueRow, ? extends TestHashComponentsStreamValueNamedColumnValue<?>> newRows);
     }
 
-    public static final class StreamTestWithHashStreamValueRowResult implements TypedRowResult {
+    public static final class TestHashComponentsStreamValueRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static StreamTestWithHashStreamValueRowResult of(RowResult<byte[]> row) {
-            return new StreamTestWithHashStreamValueRowResult(row);
+        public static TestHashComponentsStreamValueRowResult of(RowResult<byte[]> row) {
+            return new TestHashComponentsStreamValueRowResult(row);
         }
 
-        private StreamTestWithHashStreamValueRowResult(RowResult<byte[]> row) {
+        private TestHashComponentsStreamValueRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public StreamTestWithHashStreamValueRow getRowName() {
-            return StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public TestHashComponentsStreamValueRow getRowName() {
+            return TestHashComponentsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<StreamTestWithHashStreamValueRowResult, StreamTestWithHashStreamValueRow> getRowNameFun() {
-            return new Function<StreamTestWithHashStreamValueRowResult, StreamTestWithHashStreamValueRow>() {
+        public static Function<TestHashComponentsStreamValueRowResult, TestHashComponentsStreamValueRow> getRowNameFun() {
+            return new Function<TestHashComponentsStreamValueRowResult, TestHashComponentsStreamValueRow>() {
                 @Override
-                public StreamTestWithHashStreamValueRow apply(StreamTestWithHashStreamValueRowResult rowResult) {
+                public TestHashComponentsStreamValueRow apply(TestHashComponentsStreamValueRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, StreamTestWithHashStreamValueRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, StreamTestWithHashStreamValueRowResult>() {
+        public static Function<RowResult<byte[]>, TestHashComponentsStreamValueRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, TestHashComponentsStreamValueRowResult>() {
                 @Override
-                public StreamTestWithHashStreamValueRowResult apply(RowResult<byte[]> rowResult) {
-                    return new StreamTestWithHashStreamValueRowResult(rowResult);
+                public TestHashComponentsStreamValueRowResult apply(RowResult<byte[]> rowResult) {
+                    return new TestHashComponentsStreamValueRowResult(rowResult);
                 }
             };
         }
@@ -366,10 +367,10 @@ public final class StreamTestWithHashStreamValueTable implements
             return value.getValue();
         }
 
-        public static Function<StreamTestWithHashStreamValueRowResult, byte[]> getValueFun() {
-            return new Function<StreamTestWithHashStreamValueRowResult, byte[]>() {
+        public static Function<TestHashComponentsStreamValueRowResult, byte[]> getValueFun() {
+            return new Function<TestHashComponentsStreamValueRowResult, byte[]>() {
                 @Override
-                public byte[] apply(StreamTestWithHashStreamValueRowResult rowResult) {
+                public byte[] apply(TestHashComponentsStreamValueRowResult rowResult) {
                     return rowResult.getValue();
                 }
             };
@@ -384,7 +385,7 @@ public final class StreamTestWithHashStreamValueTable implements
         }
     }
 
-    public enum StreamTestWithHashStreamValueNamedColumn {
+    public enum TestHashComponentsStreamValueNamedColumn {
         VALUE {
             @Override
             public byte[] getShortName() {
@@ -394,36 +395,36 @@ public final class StreamTestWithHashStreamValueTable implements
 
         public abstract byte[] getShortName();
 
-        public static Function<StreamTestWithHashStreamValueNamedColumn, byte[]> toShortName() {
-            return new Function<StreamTestWithHashStreamValueNamedColumn, byte[]>() {
+        public static Function<TestHashComponentsStreamValueNamedColumn, byte[]> toShortName() {
+            return new Function<TestHashComponentsStreamValueNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(StreamTestWithHashStreamValueNamedColumn namedColumn) {
+                public byte[] apply(TestHashComponentsStreamValueNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<StreamTestWithHashStreamValueNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, StreamTestWithHashStreamValueNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<TestHashComponentsStreamValueNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, TestHashComponentsStreamValueNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(StreamTestWithHashStreamValueNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(TestHashComponentsStreamValueNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends StreamTestWithHashStreamValueNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends StreamTestWithHashStreamValueNamedColumnValue<?>>>builder()
+    private static final Map<String, Hydrator<? extends TestHashComponentsStreamValueNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends TestHashComponentsStreamValueNamedColumnValue<?>>>builder()
                 .put("v", Value.BYTES_HYDRATOR)
                 .build();
 
-    public Map<StreamTestWithHashStreamValueRow, byte[]> getValues(Collection<StreamTestWithHashStreamValueRow> rows) {
-        Map<Cell, StreamTestWithHashStreamValueRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (StreamTestWithHashStreamValueRow row : rows) {
+    public Map<TestHashComponentsStreamValueRow, byte[]> getValues(Collection<TestHashComponentsStreamValueRow> rows) {
+        Map<Cell, TestHashComponentsStreamValueRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (TestHashComponentsStreamValueRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<StreamTestWithHashStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TestHashComponentsStreamValueRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             byte[] val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
@@ -431,46 +432,46 @@ public final class StreamTestWithHashStreamValueTable implements
         return ret;
     }
 
-    public void putValue(StreamTestWithHashStreamValueRow row, byte[] value) {
+    public void putValue(TestHashComponentsStreamValueRow row, byte[] value) {
         put(ImmutableMultimap.of(row, Value.of(value)));
     }
 
-    public void putValue(Map<StreamTestWithHashStreamValueRow, byte[]> map) {
-        Map<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<StreamTestWithHashStreamValueRow, byte[]> e : map.entrySet()) {
+    public void putValue(Map<TestHashComponentsStreamValueRow, byte[]> map) {
+        Map<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TestHashComponentsStreamValueRow, byte[]> e : map.entrySet()) {
             toPut.put(e.getKey(), Value.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(StreamTestWithHashStreamValueRow row, byte[] value) {
+    public void putValueUnlessExists(TestHashComponentsStreamValueRow row, byte[] value) {
         putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
     }
 
-    public void putValueUnlessExists(Map<StreamTestWithHashStreamValueRow, byte[]> map) {
-        Map<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<StreamTestWithHashStreamValueRow, byte[]> e : map.entrySet()) {
+    public void putValueUnlessExists(Map<TestHashComponentsStreamValueRow, byte[]> map) {
+        Map<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<TestHashComponentsStreamValueRow, byte[]> e : map.entrySet()) {
             toPut.put(e.getKey(), Value.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows) {
+    public void put(Multimap<TestHashComponentsStreamValueRow, ? extends TestHashComponentsStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (StreamTestWithHashStreamValueTrigger trigger : triggers) {
-            trigger.putStreamTestWithHashStreamValue(rows);
+        for (TestHashComponentsStreamValueTrigger trigger : triggers) {
+            trigger.putTestHashComponentsStreamValue(rows);
         }
     }
 
     /** @deprecated Use separate read and write in a single transaction instead. */
     @Deprecated
     @Override
-    public void putUnlessExists(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows) {
-        Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> entry : rows.entries()) {
+    public void putUnlessExists(Multimap<TestHashComponentsStreamValueRow, ? extends TestHashComponentsStreamValueNamedColumnValue<?>> rows) {
+        Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
+        Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
+        for (Entry<TestHashComponentsStreamValueRow, ? extends TestHashComponentsStreamValueNamedColumnValue<?>> entry : rows.entries()) {
             if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
                 toPut.put(entry.getKey(), entry.getValue());
             }
@@ -478,71 +479,71 @@ public final class StreamTestWithHashStreamValueTable implements
         put(toPut);
     }
 
-    public void deleteValue(StreamTestWithHashStreamValueRow row) {
+    public void deleteValue(TestHashComponentsStreamValueRow row) {
         deleteValue(ImmutableSet.of(row));
     }
 
-    public void deleteValue(Iterable<StreamTestWithHashStreamValueRow> rows) {
+    public void deleteValue(Iterable<TestHashComponentsStreamValueRow> rows) {
         byte[] col = PtBytes.toCachedBytes("v");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(StreamTestWithHashStreamValueRow row) {
+    public void delete(TestHashComponentsStreamValueRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<StreamTestWithHashStreamValueRow> rows) {
+    public void delete(Iterable<TestHashComponentsStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
         t.delete(tableRef, cells);
     }
 
-    public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row) {
+    public Optional<TestHashComponentsStreamValueRowResult> getRow(TestHashComponentsStreamValueRow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row, ColumnSelection columns) {
+    public Optional<TestHashComponentsStreamValueRowResult> getRow(TestHashComponentsStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.empty();
         } else {
-            return Optional.of(StreamTestWithHashStreamValueRowResult.of(rowResult));
+            return Optional.of(TestHashComponentsStreamValueRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<StreamTestWithHashStreamValueRowResult> getRows(Iterable<StreamTestWithHashStreamValueRow> rows) {
+    public List<TestHashComponentsStreamValueRowResult> getRows(Iterable<TestHashComponentsStreamValueRow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<StreamTestWithHashStreamValueRowResult> getRows(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
+    public List<TestHashComponentsStreamValueRowResult> getRows(Iterable<TestHashComponentsStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<StreamTestWithHashStreamValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<TestHashComponentsStreamValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(StreamTestWithHashStreamValueRowResult.of(row));
+            rowResults.add(TestHashComponentsStreamValueRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<StreamTestWithHashStreamValueNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamValueRow row) {
+    public List<TestHashComponentsStreamValueNamedColumnValue<?>> getRowColumns(TestHashComponentsStreamValueRow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<StreamTestWithHashStreamValueNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamValueRow row, ColumnSelection columns) {
+    public List<TestHashComponentsStreamValueNamedColumnValue<?>> getRowColumns(TestHashComponentsStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<StreamTestWithHashStreamValueNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<TestHashComponentsStreamValueNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -551,24 +552,24 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamValueRow> rows) {
+    public Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<TestHashComponentsStreamValueRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
+    public Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<TestHashComponentsStreamValueRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
+    private Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> getRowsMultimapInternal(Iterable<TestHashComponentsStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -577,12 +578,12 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     @Override
-    public Map<StreamTestWithHashStreamValueRow, BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestWithHashStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<TestHashComponentsStreamValueRow, BatchingVisitable<TestHashComponentsStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<TestHashComponentsStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestWithHashStreamValueRow, BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<TestHashComponentsStreamValueRow, BatchingVisitable<TestHashComponentsStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<TestHashComponentsStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -591,25 +592,25 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<TestHashComponentsStreamValueRow, TestHashComponentsStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<TestHashComponentsStreamValueRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            StreamTestWithHashStreamValueNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            TestHashComponentsStreamValueNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
-    public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered() {
+    public BatchingVisitableView<TestHashComponentsStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
-    public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
+    public BatchingVisitableView<TestHashComponentsStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, StreamTestWithHashStreamValueRowResult>() {
+                new Function<RowResult<byte[]>, TestHashComponentsStreamValueRowResult>() {
             @Override
-            public StreamTestWithHashStreamValueRowResult apply(RowResult<byte[]> input) {
-                return StreamTestWithHashStreamValueRowResult.of(input);
+            public TestHashComponentsStreamValueRowResult apply(RowResult<byte[]> input) {
+                return TestHashComponentsStreamValueRowResult.of(input);
             }
         });
     }
@@ -713,5 +714,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ob5ahzk5qpKE0Ot/EJM7Pw==";
+    static String __CLASS_HASH = "1h8uGitJmzr9XVFk+6LDkw==";
 }

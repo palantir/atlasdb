@@ -47,6 +47,18 @@ develop
     *    -
          -
 
+    *    - |new|
+         - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
+           by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
+           We do not support adding this to an existing StreamStore, as it would require data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - Can now specify ``hashFirstNRowComponents(n)`` in Table and Index definitions.
+           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+           When using with prefix range requests, the components that are hashed must also be specified in the prefix.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

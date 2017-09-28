@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
@@ -141,14 +142,18 @@ public class SchemaTest {
         Schema schema = ApiTestSchema.getSchema();
         schema.renderTables(testFolder.getRoot());
 
-        String generatedTestTableName = "SchemaApiTestTable";
-        String generatedFilePath =
-                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
+        List<String> generatedTestTables = ApiTestSchema.getSchema().getAllTables().stream()
+                .map(entry -> entry.getTablename() + "Table")
+                .collect(Collectors.toList());
 
-        File expectedFile = new File("src/integrationInput/java", generatedFilePath);
-        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+        generatedTestTables.forEach(tableName -> {
+            String generatedFilePath =
+                    String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
 
-        assertThat(actualFile).hasSameContentAs(expectedFile);
+            File expectedFile = new File("src/integrationInput/java", generatedFilePath);
+            File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+            assertThat(actualFile).hasSameContentAs(expectedFile);
+        });
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {

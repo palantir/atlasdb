@@ -44,8 +44,31 @@ public class StreamStoreDefinitionBuilder {
         this.compressStream = false;
     }
 
+    /**
+     * We recommend using hashRowComponents() instead as it has the additional benefit of preventing hotspotting
+     * within a stream. However, do not change this flag for an existing store schema as we currently do not support
+     * StreamStore migrations.
+     */
     public StreamStoreDefinitionBuilder hashFirstRowComponent() {
-        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.hashFirstRowComponent());
+        return hashFirstNRowComponents(1);
+    }
+
+    /**
+     * We recommend that this flag is set in order to prevent hotspotting in the underlying table which stores
+     * the data blocks. The effect of this method is that row keys will be prefixed by the hashed
+     * concatenation of the stream id and block id. AtlasDB does not have support for StreamStore migrations,
+     * so if you are adding this flag for an existing StreamStore you will have to implement the migration as well.
+     */
+    public StreamStoreDefinitionBuilder hashRowComponents() {
+        return hashFirstNRowComponents(2);
+    }
+
+    private StreamStoreDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
+        Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+                "The number of components specified must be less than two as "
+                        + "StreamStore internal tables use at most two row components.");
+        streamTables.forEach((tableName, streamTableBuilder) ->
+                streamTableBuilder.hashFirstNRowComponents(numberOfComponentsHashed));
         return this;
     }
 

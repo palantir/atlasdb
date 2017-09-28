@@ -48,6 +48,20 @@ public class ApiTestSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
+        schema.addTableDefinition("HashComponentsTest", new TableDefinition() {{
+            javaTableName("HashComponentsTest");
+
+            rowName();
+            hashFirstNRowComponents(2);
+            rowComponent("component1", ValueType.VAR_LONG);
+            rowComponent("component2", ValueType.VAR_STRING);
+
+            columns();
+            column("column", "c", ValueType.STRING);
+
+            rangeScanAllowed();
+        }});
+
         return schema;
     }
 

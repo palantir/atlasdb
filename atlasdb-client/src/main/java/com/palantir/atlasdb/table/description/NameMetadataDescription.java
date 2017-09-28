@@ -37,17 +37,17 @@ import com.palantir.util.Pair;
 
 @Immutable
 public class NameMetadataDescription {
-    public static final String HASH_ROW_COMPONENT_NAME = "firstComponentHash";
+    public static final String HASH_ROW_COMPONENT_NAME = "hashOfRowComponents";
 
     private final List<NameComponentDescription> rowParts;
-    private final boolean hasFirstComponentHash;
+    private final int numberOfComponentsHashed;
 
     public NameMetadataDescription() {
         this(ImmutableList.of(
-                new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), false);
+                new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), 0);
     }
 
-    private NameMetadataDescription(List<NameComponentDescription> components, boolean hasFirstComponentHash) {
+    private NameMetadataDescription(List<NameComponentDescription> components, int numberOfComponentsHashed) {
         Preconditions.checkArgument(!components.isEmpty());
         this.rowParts = ImmutableList.copyOf(components);
         for (NameComponentDescription nameComponent : rowParts.subList(0, rowParts.size() - 1)) {
@@ -55,17 +55,25 @@ public class NameMetadataDescription {
                 throw new IllegalArgumentException("string or blob must be on end.  components were: " + components);
             }
         }
-        this.hasFirstComponentHash = hasFirstComponentHash;
+        this.numberOfComponentsHashed = numberOfComponentsHashed;
     }
 
     public static NameMetadataDescription create(List<NameComponentDescription> components) {
-        return create(components, false);
+        return create(components, 0);
     }
 
+    @Deprecated
     public static NameMetadataDescription create(List<NameComponentDescription> components,
-                                                 boolean hasFirstComponentHash) {
-        if (!hasFirstComponentHash) {
-            return new NameMetadataDescription(components, false);
+            boolean hasFirstComponentHash) {
+
+        return NameMetadataDescription.create(components, hasFirstComponentHash ? 1 : 0);
+    }
+
+    public static NameMetadataDescription create(List<NameComponentDescription> components, int numberOfComponentsHashed) {
+        Preconditions.checkArgument(numberOfComponentsHashed <= components.size(),
+                "Number of hashed components can't exceed total number of row components.");
+        if (numberOfComponentsHashed == 0) {
+            return new NameMetadataDescription(components, numberOfComponentsHashed);
         } else {
             List<NameComponentDescription> withHashRowComponent = Lists.newArrayListWithCapacity(components.size() + 1);
             withHashRowComponent.add(new NameComponentDescription.Builder()
@@ -73,7 +81,7 @@ public class NameMetadataDescription {
                     .type(ValueType.FIXED_LONG)
                     .build());
             withHashRowComponent.addAll(components);
-            return new NameMetadataDescription(withHashRowComponent, true);
+            return new NameMetadataDescription(withHashRowComponent, numberOfComponentsHashed);
         }
     }
 
@@ -81,8 +89,8 @@ public class NameMetadataDescription {
         return rowParts;
     }
 
-    public boolean hasFirstComponentHash() {
-        return hasFirstComponentHash;
+    public int numberOfComponentsHashed() {
+        return numberOfComponentsHashed;
     }
 
     public List<RowNamePartitioner> getPartitionersForRow() {
@@ -204,7 +212,8 @@ public class NameMetadataDescription {
         for (NameComponentDescription part : rowParts) {
             builder.addNameParts(part.persistToProto());
         }
-        builder.setHasFirstComponentHash(hasFirstComponentHash);
+        builder.setNumberOfComponentsHashed(numberOfComponentsHashed);
+
         return builder;
     }
 
@@ -213,22 +222,36 @@ public class NameMetadataDescription {
         for (TableMetadataPersistence.NameComponentDescription part : message.getNamePartsList()) {
             list.add(NameComponentDescription.hydrateFromProto(part));
         }
+
         // Call constructor over factory because the list might already contain the hash row component
-        return new NameMetadataDescription(list, message.getHasFirstComponentHash());
+        return new NameMetadataDescription(list, getNumberOfComponentsHashedFromProto(message));
+    }
+
+    private static int getNumberOfComponentsHashedFromProto(TableMetadataPersistence.NameMetadataDescription message) {
+        int numberOfComponentsHashed;
+        if (message.getHasFirstComponentHash()) {
+            numberOfComponentsHashed = 1;
+        } else {
+            numberOfComponentsHashed = message.getNumberOfComponentsHashed();
+        }
+        return numberOfComponentsHashed;
     }
 
     @Override
     public String toString() {
-        return "NameMetadataDescription [rowParts=" + rowParts + ", hasFirstComponentHash=" + hasFirstComponentHash
-                + "]";
+        return "NameMetadataDescription [rowParts=" + rowParts + ", numberOfComponentsHashed=" +
+                numberOfComponentsHashed + "]";
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + (hasFirstComponentHash ? 1231 : 1237);
+        result = prime * result + (numberOfComponentsHashed == 1 ? 1231 : 1237);
         result = prime * result + ((rowParts == null) ? 0 : rowParts.hashCode());
+        if (numberOfComponentsHashed > 1) {
+            result = prime * result + numberOfComponentsHashed;
+        }
         return result;
     }
 
@@ -237,23 +260,15 @@ public class NameMetadataDescription {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
+
+        NameMetadataDescription that = (NameMetadataDescription) obj;
+
+        if (numberOfComponentsHashed != that.numberOfComponentsHashed) {
             return false;
         }
-        NameMetadataDescription other = (NameMetadataDescription) obj;
-        if (hasFirstComponentHash != other.hasFirstComponentHash) {
-            return false;
-        }
-        if (rowParts == null) {
-            if (other.rowParts != null) {
-                return false;
-            }
-        } else if (!rowParts.equals(other.rowParts)) {
-            return false;
-        }
-        return true;
+        return rowParts != null ? rowParts.equals(that.rowParts) : that.rowParts == null;
     }
 }
