@@ -66,7 +66,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                 .map(tableReference -> InDbTimestampBoundStore.create(
                     dbkvs.getConnectionManager(),
                     tableReference
-                    /* Not using the table prefix here, as the tableRef provided should contain the prefix if required.*/
+                    /* Not using the table prefix here, as the tableRef should contain any necessary prefix.*/
                     ))
                 .orElseGet(() -> InDbTimestampBoundStore.create(
                         dbkvs.getConnectionManager(),

@@ -17,7 +17,6 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -149,7 +148,8 @@ public class TimeLockAgent {
                 .quorumSize(uris.size() / 2 + 1)
                 .build();
 
-        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator.createTimestampService(client, leaderConfig);
+        Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
+                .createTimestampService(client, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
 
         return timelockCreator.createTimeLockServices(client, rawTimestampServiceSupplier, rawLockServiceSupplier);
