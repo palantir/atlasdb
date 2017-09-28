@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
@@ -31,11 +30,5 @@ public class PaxosConfigDeserializationTest extends AbstractTimelockServerConfig
     @Override
     public void assertTimestampBoundPersisterConfigurationCorrect(TsBoundPersisterConfiguration configuration) {
         assertThat(configuration).isInstanceOf(PaxosTsBoundPersisterConfiguration.class);
-        PaxosTsBoundPersisterConfiguration paxosTsBoundPersisterConfiguration =
-                (PaxosTsBoundPersisterConfiguration) configuration;
-
-        assertThat(paxosTsBoundPersisterConfiguration.paxos())
-                .isEqualTo(ImmutablePaxosInstallConfiguration.builder().build());
     }
-
 }

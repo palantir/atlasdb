@@ -25,7 +25,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
@@ -79,15 +78,7 @@ public class TimeLockServerConfiguration extends Configuration {
     }
 
     private TsBoundPersisterConfiguration getPaxosTsBoundPersisterConfiguration() {
-        ImmutablePaxosTsBoundPersisterConfiguration.Builder tsBoundPersisterConfigBuilder =
-                ImmutablePaxosTsBoundPersisterConfiguration.builder();
-        if (PaxosConfiguration.class.isInstance(algorithm)) {
-            tsBoundPersisterConfigBuilder
-                    .paxos(ImmutablePaxosInstallConfiguration.builder()
-                            .dataDirectory(((PaxosConfiguration) algorithm).paxosDataDir())
-                            .build());
-        }
-        return tsBoundPersisterConfigBuilder.build();
+        return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
     }
 
     private void checkClientNames(Set<String> clientNames) {
