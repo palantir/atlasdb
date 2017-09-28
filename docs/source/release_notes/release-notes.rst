@@ -44,6 +44,13 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
+           We recommend this to be configured only for cases where you absolutely need to persist all state in the database, hopefully,
+           in very special cases where backups are simply database dumps and do not have any mechanism for storing timestamps.
+           This will help support large internal product's usage of the Timelock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
+
     *    - |devbreak| |improved|
          - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
            Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
