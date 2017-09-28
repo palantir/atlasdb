@@ -234,17 +234,15 @@ public class TableClassRendererV2 {
             getterResults.add(renderNamedGetColumn(col));
             if (tableMetadata.getRowMetadata().getRowParts().size() == 1) {
                 getterResults.add(renderNamedGetSeveralRows(col));
-                getterResults.add(renderNamedGetAllRows(col));
-                getterResults.add(renderNamedGetRangeColumn(col, tableMetadata.isRangeScanAllowed()));
                 if (tableMetadata.isRangeScanAllowed()) {
+                    getterResults.add(renderNamedGetRangeColumn(col));
                     getterResults.add(renderNamedGetRangeStartEnd(col));
                     getterResults.add(renderNamedGetRangeColumnLimit(col));
                 }
             } else {
                 getterResults.add(renderNamedGetSeveralRowObjects(col));
-                getterResults.add(renderNamedGetAllRowsObjects(col));
-                getterResults.add(renderNamedGetRangeColumnRowObjects(col, tableMetadata.isRangeScanAllowed()));
                 if (tableMetadata.isRangeScanAllowed()) {
+                    getterResults.add(renderNamedGetRangeColumnRowObjects(col));
                     getterResults.add(renderNamedGetRangeColumnRowObjectsLimit(col));
                 }
             }
@@ -352,7 +350,7 @@ public class TableClassRendererV2 {
                                 + "$T.create($T.of($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
-                .addCode("")
+                .addCode("\n")
                 .addStatement("$T<byte[], $T<byte[]>> results = "
                                 + "t.getRows(tableRef, $T.persistAll(rowKeys), colSelection)",
                         SortedMap.class, RowResult.class, Persistables.class)
@@ -368,54 +366,12 @@ public class TableClassRendererV2 {
         return getterBuilder.build();
     }
 
-
-    private MethodSpec renderNamedGetAllRows(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
-
-        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
-                .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from all the row keys to their value at column $L\n"
-                        + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
-                        + "do not use for large amounts of data. The order of results is preserved in the map.",
-                        VarName(col));
-
-        getterBuilder.returns(ParameterizedTypeName.get(
-                ClassName.get(LinkedHashMap.class),
-                ClassName.get(rowComponent.getType().getTypeClass()),
-                ClassName.get(getColumnTypeClass(col))));
-
-        getterBuilder
-                .addStatement("return getSmallRowRange$L($T.all())",
-                        VarName(col), RangeRequest.class);
-
-        return getterBuilder.build();
-    }
-
-    private MethodSpec renderNamedGetAllRowsObjects(NamedColumnDescription col) {
-        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getAll" + VarName(col))
-                .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from all the row objects to their value at column $L\n"
-                        + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
-                        + "do not use for large amounts of data. The order of results is preserved in the map.",
-                        VarName(col));
-
-        getterBuilder.returns(ParameterizedTypeName.get(
-                ClassName.get(LinkedHashMap.class), rowType, ClassName.get(getColumnTypeClass(col))));
-
-        getterBuilder
-                .addStatement("return getSmallRowRange$L($T.all())",
-                        VarName(col), RangeRequest.class);
-
-        return getterBuilder.build();
-    }
-
-    private MethodSpec renderNamedGetRangeColumn(NamedColumnDescription col, boolean shouldBePublic) {
+    private MethodSpec renderNamedGetRangeColumn(NamedColumnDescription col) {
         Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
 
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
-                .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
+                .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a rangeRequest to their value at column $L\n"
                         + "(if that column exists for the row-key). As the values are all loaded in memory, "
                         + "do not use for large amounts of data. \nThe order of results is preserved in the map.",
@@ -524,9 +480,9 @@ public class TableClassRendererV2 {
         return getterBuilder.build();
     }
 
-    private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col, boolean shouldBePublic) {
+    private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
-                .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
+                .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a RangeRequest to their value at column $L\n"
                             + "(if that column exists for the row).  As the values are all loaded in memory, "
                             + "do not use for large amounts of data. \nThe order of results is preserved in the map.",

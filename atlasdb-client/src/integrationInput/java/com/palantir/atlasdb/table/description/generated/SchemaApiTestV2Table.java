@@ -106,14 +106,6 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from all the row keys to their value at column Column1
-     * (if that column exists for the row-key). As the values are all loaded in memory,
-     * do not use for large amounts of data. The order of results is preserved in the map. */
-    public LinkedHashMap<String, Long> getAllColumn1() {
-        return getSmallRowRangeColumn1(RangeRequest.all());
-    }
-
-    /**
      * Returns a mapping from all the row keys in a rangeRequest to their value at column Column1
      * (if that column exists for the row-key). As the values are all loaded in memory, do not use for large amounts of data. 
      * The order of results is preserved in the map. */
@@ -209,14 +201,6 @@ public class SchemaApiTestV2Table {
                 .collect(Collectors.toMap(
                      entry -> entry.getRowName().getComponent1(), 
                      SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
-    }
-
-    /**
-     * Returns a mapping from all the row keys to their value at column Column2
-     * (if that column exists for the row-key). As the values are all loaded in memory,
-     * do not use for large amounts of data. The order of results is preserved in the map. */
-    public LinkedHashMap<String, String> getAllColumn2() {
-        return getSmallRowRangeColumn2(RangeRequest.all());
     }
 
     /**
