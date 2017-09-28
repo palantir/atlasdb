@@ -29,6 +29,7 @@ import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.Schem
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.BatchingVisitables;
 
 public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
@@ -82,6 +83,29 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
         BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
         return rangeRequestResult.immutableCopy()
+                .stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
+    }
+
+    @Override
+    protected Map<String,String> getRangeSecondColumnOnlyFirstTwoResults(
+            Transaction transaction, String startRowKey, String endRowKey) {
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
+
+        ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
+
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(SchemaApiTestRow.of(startRowKey).persistToBytes())
+                .endRowExclusive(SchemaApiTestRow.of(endRowKey).persistToBytes())
+                .retainColumns(secondColSelection)
+                .batchHint(2)
+                .build();
+
+        BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
+        return BatchingVisitables.take(rangeRequestResult, 2)
                 .stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getRowName().getComponent1(),

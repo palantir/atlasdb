@@ -236,10 +236,17 @@ public class TableClassRendererV2 {
                 getterResults.add(renderNamedGetSeveralRows(col));
                 getterResults.add(renderNamedGetAllRows(col));
                 getterResults.add(renderNamedGetRangeColumn(col, tableMetadata.isRangeScanAllowed()));
+                if (tableMetadata.isRangeScanAllowed()) {
+                    getterResults.add(renderNamedGetRangeStartEnd(col));
+                    getterResults.add(renderNamedGetRangeColumnLimit(col));
+                }
             } else {
                 getterResults.add(renderNamedGetSeveralRowObjects(col));
                 getterResults.add(renderNamedGetAllRowsObjects(col));
                 getterResults.add(renderNamedGetRangeColumnRowObjects(col, tableMetadata.isRangeScanAllowed()));
+                if (tableMetadata.isRangeScanAllowed()) {
+                    getterResults.add(renderNamedGetRangeColumnRowObjectsLimit(col));
+                }
             }
         }
 
@@ -263,6 +270,7 @@ public class TableClassRendererV2 {
                                 + "$T.create($T.of($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
+                .addCode("\n")
                 .addStatement("$T<byte[]> rowResult = t.getRows(tableRef, $T.of(bytes), colSelection).get(bytes)",
                         RowResult.class, ImmutableSet.class)
                 .addCode("if (rowResult == null) {\n"
@@ -308,6 +316,7 @@ public class TableClassRendererV2 {
                                 + ".map($T::of)\n"
                                 + ".collect($T.toList())",
                         List.class, rowType, Lists.class, rowType, Collectors.class)
+                .addCode("\n")
                 .addStatement("$T<byte[], $T<byte[]>> results = "
                                 + "t.getRows(tableRef, $T.persistAll(rows), colSelection)",
                         SortedMap.class, RowResult.class, Persistables.class)
@@ -343,6 +352,7 @@ public class TableClassRendererV2 {
                                 + "$T.create($T.of($T.toCachedBytes($S)))",
                         ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
                         PtBytes.class, col.getShortName())
+                .addCode("")
                 .addStatement("$T<byte[], $T<byte[]>> results = "
                                 + "t.getRows(tableRef, $T.persistAll(rowKeys), colSelection)",
                         SortedMap.class, RowResult.class, Persistables.class)
@@ -367,18 +377,15 @@ public class TableClassRendererV2 {
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys to their value at column $L\n"
                         + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
-                        + "do not use for large amounts of data.", VarName(col));
+                        + "do not use for large amounts of data. The order of results is preserved in the map.",
+                        VarName(col));
 
         getterBuilder.returns(ParameterizedTypeName.get(
-                ClassName.get(Map.class),
+                ClassName.get(LinkedHashMap.class),
                 ClassName.get(rowComponent.getType().getTypeClass()),
                 ClassName.get(getColumnTypeClass(col))));
 
         getterBuilder
-                .addStatement("$T colSelection = \n"
-                                + "$T.create($T.of($T.toCachedBytes($S)))",
-                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
-                        PtBytes.class, col.getShortName())
                 .addStatement("return getSmallRowRange$L($T.all())",
                         VarName(col), RangeRequest.class);
 
@@ -390,17 +397,13 @@ public class TableClassRendererV2 {
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row objects to their value at column $L\n"
                         + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
-                        + "do not use for large amounts of data.", VarName(col));
-                        VarName(col);
+                        + "do not use for large amounts of data. The order of results is preserved in the map.",
+                        VarName(col));
 
         getterBuilder.returns(ParameterizedTypeName.get(
-                ClassName.get(Map.class), rowType, ClassName.get(getColumnTypeClass(col))));
+                ClassName.get(LinkedHashMap.class), rowType, ClassName.get(getColumnTypeClass(col))));
 
         getterBuilder
-                .addStatement("$T colSelection = \n"
-                                + "$T.create($T.of($T.toCachedBytes($S)))",
-                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class,
-                        PtBytes.class, col.getShortName())
                 .addStatement("return getSmallRowRange$L($T.all())",
                         VarName(col), RangeRequest.class);
 
@@ -414,11 +417,12 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addJavadoc("Returns a mapping from all the row keys in a rangeRequest to their value at column $L\n"
-                        + "(if that column exists). As the values are all loaded in memory, "
-                        + "do not use for large amounts of data. ", VarName(col))
+                        + "(if that column exists for the row-key). As the values are all loaded in memory, "
+                        + "do not use for large amounts of data. \nThe order of results is preserved in the map.",
+                        VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
-                        ClassName.get(Map.class),
+                        ClassName.get(LinkedHashMap.class),
                         ClassName.get(rowComponent.getType().getTypeClass()),
                         ClassName.get(getColumnTypeClass(col))));
 
@@ -430,8 +434,10 @@ public class TableClassRendererV2 {
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
                 .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
                         Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
+                .addCode("\n")
                 .addStatement("$T<$T, $T> resultsMap = new $T<>()",
-                        Map.class, rowComponent.getType().getTypeClass(), getColumnTypeClass(col), LinkedHashMap.class)
+                        LinkedHashMap.class, rowComponent.getType().getTypeClass(),
+                        getColumnTypeClass(col), LinkedHashMap.class)
                 .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".immutableCopy().forEach(entry -> {\n"
                                 + "     $T resultEntry =\n "
@@ -445,15 +451,89 @@ public class TableClassRendererV2 {
         return getterBuilder.build();
     }
 
+    private MethodSpec renderNamedGetRangeStartEnd(NamedColumnDescription col) {
+        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+
+        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns a mapping from all the row keys in a range to their value at column $L\n"
+                        + "(if that column exists for the row-key). As the values are all loaded in memory, "
+                        + "do not use for large amounts of data. \nThe order of results is preserved in the map.",
+                        VarName(col))
+                .addParameter(rowComponent.getType().getTypeClass(), "startInclusive")
+                .addParameter(rowComponent.getType().getTypeClass(), "endExclusive")
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(LinkedHashMap.class),
+                        ClassName.get(rowComponent.getType().getTypeClass()),
+                        ClassName.get(getColumnTypeClass(col))));
+
+        getterBuilder
+                .addStatement("$T rangeRequest = $T.builder()\n"
+                        + ".startRowInclusive($T.of(startInclusive).persistToBytes())\n"
+                        + ".endRowExclusive($T.of(endExclusive).persistToBytes())\n"
+                        + ".build()", RangeRequest.class, RangeRequest.class, rowType, rowType)
+                .addStatement("return getSmallRowRange$L(rangeRequest)", VarName(col));
+
+        return getterBuilder.build();
+    }
+
+    private MethodSpec renderNamedGetRangeColumnLimit(NamedColumnDescription col) {
+        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+
+        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value\n"
+                            + "at column $L (if that column exists for the row-key). As the values are all loaded in memory,\n"
+                            + "do not use for large amounts of data. The order of results is preserved in the map.",
+                        VarName(col))
+                .addParameter(RangeRequest.class, "rangeRequest")
+                .addParameter(int.class, "sizeLimit")
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(LinkedHashMap.class),
+                        ClassName.get(rowComponent.getType().getTypeClass()),
+                        ClassName.get(getColumnTypeClass(col))));
+
+        getterBuilder
+                .addStatement("$T colSelection =\n"
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
+                        ColumnRenderers.short_name(col))
+                .addStatement("rangeRequest = rangeRequest.getBuilder()."
+                        + "retainColumns(colSelection).batchHint(sizeLimit).build()")
+                .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
+                        Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
+                .addCode("\n")
+                .addStatement("$T<$T, $T> resultsMap = new $T<>()",
+                        LinkedHashMap.class, rowComponent.getType().getTypeClass(),
+                        getColumnTypeClass(col), LinkedHashMap.class)
+                .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
+                                + ".batchAccept(sizeLimit, batch -> {\n"
+                                + "     batch.forEach(entry -> {\n"
+                                + "         $T resultEntry =\n "
+                                + "             $T.of(entry);\n"
+                                + "         resultsMap.put(resultEntry.getRowName().get$L(), resultEntry.get$L());\n"
+                                + "     });\n"
+                                + "     return false; // stops the traversal after the first batch\n"
+                                + "})",
+                        BatchingVisitableView.class, rowResultType, rowResultType,
+                        CamelCase(rowComponent.getComponentName()),  VarName(col))
+                .addStatement("return resultsMap");
+
+        return getterBuilder.build();
+    }
+
     private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col, boolean shouldBePublic) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(shouldBePublic ? Modifier.PUBLIC : Modifier.PRIVATE)
                 .addJavadoc("Returns a mapping from all the row keys in a RangeRequest to their value at column $L\n"
-                        + "(if that column exists).  As the values are all loaded in memory, "
-                        + "do not use for large amounts of data. ", VarName(col))
+                            + "(if that column exists for the row).  As the values are all loaded in memory, "
+                            + "do not use for large amounts of data. \nThe order of results is preserved in the map.",
+                        VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
-                            ClassName.get(Map.class),
+                            ClassName.get(LinkedHashMap.class),
                             rowType,
                             ClassName.get(getColumnTypeClass(col))));
 
@@ -465,8 +545,9 @@ public class TableClassRendererV2 {
                 .addStatement("rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build()")
                 .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
                         Preconditions.class, "Must not request additional columns.")
+                .addCode("\n")
                 .addStatement("$T<$T, $T> resultsMap = new $T<>()",
-                        Map.class, rowType, getColumnTypeClass(col), LinkedHashMap.class)
+                        LinkedHashMap.class, rowType, getColumnTypeClass(col), LinkedHashMap.class)
                 .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".immutableCopy().forEach(entry -> {\n"
                                 + "     $T resultEntry =\n "
@@ -476,6 +557,47 @@ public class TableClassRendererV2 {
                         BatchingVisitableView.class, rowResultType, rowResultType, VarName(col))
                 .addStatement("return resultsMap");
 
+
+        return getterBuilder.build();
+    }
+
+    private MethodSpec renderNamedGetRangeColumnRowObjectsLimit(NamedColumnDescription col) {
+        MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Returns a mapping from the first sizeLimit row objects in a rangeRequest to their value\n"
+                                + "at column $L (if that column exists). As the values are all loaded in memory,\n"
+                                + "do not use for large amounts of data. The order of results is preserved in the map.",
+                        VarName(col))
+                .addParameter(RangeRequest.class, "rangeRequest")
+                .addParameter(int.class, "sizeLimit")
+                .returns(ParameterizedTypeName.get(
+                        ClassName.get(LinkedHashMap.class),
+                        rowType,
+                        ClassName.get(getColumnTypeClass(col))));
+
+        getterBuilder
+                .addStatement("$T colSelection =\n"
+                                + "$T.create($T.of($T.toCachedBytes($L)))",
+                        ColumnSelection.class, ColumnSelection.class, ImmutableList.class, PtBytes.class,
+                        ColumnRenderers.short_name(col))
+                .addStatement("rangeRequest = rangeRequest.getBuilder()."
+                        + "retainColumns(colSelection).batchHint(sizeLimit).build()")
+                .addStatement("$T.checkArgument(rangeRequest.getColumnNames().size() <= 1,\n$S)",
+                        Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
+                .addCode("\n")
+                .addStatement("$T<$T, $T> resultsMap = new $T<>()",
+                        LinkedHashMap.class, rowType, getColumnTypeClass(col), LinkedHashMap.class)
+                .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
+                                + ".batchAccept(sizeLimit, batch -> {\n"
+                                + "     batch.forEach(entry -> {\n"
+                                + "         $T resultEntry =\n "
+                                + "             $T.of(entry);\n"
+                                + "         resultsMap.put(resultEntry.getRowName(), resultEntry.get$L());\n"
+                                + "     });\n"
+                                + "     return false; // stops the traversal after the first batch\n"
+                                + "})",
+                        BatchingVisitableView.class, rowResultType, rowResultType, VarName(col))
+                .addStatement("return resultsMap");
 
         return getterBuilder.build();
     }

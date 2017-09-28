@@ -57,11 +57,13 @@ public abstract class AbstractSchemaApiTest {
 
     protected static final String TEST_ROW_KEY = "testRowKey";
     protected static final String TEST_ROW_KEY2 = "testRowKey2";
+    protected static final String TEST_ROW_KEY3 = "testRowKey3";
     protected static final String RANGE_END_ROW_KEY = "testRowKeyEndRange";
     protected static final long TEST_VALUE_LONG = 2L;
     protected static final long TEST_VALUE_LONG2 = 3L;
     protected static final String TEST_VALUE_STRING = "value1";
     protected static final String TEST_VALUE_STRING2 = "value2";
+    protected static final String TEST_VALUE_STRING3 = "value3";
 
     protected static final String FIRST_COL_SHORT_NAME = "c";
     protected static final String SECOND_COL_SHORT_NAME = "d";
@@ -75,6 +77,8 @@ public abstract class AbstractSchemaApiTest {
     protected abstract Long getSingleRowFirstColumn(Transaction transaction, String rowKey);
     protected abstract Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKey);
     protected abstract Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey);
+    protected abstract Map<String,String> getRangeSecondColumnOnlyFirstTwoResults(Transaction transaction, String testRowKey,
+            String rangeEndRowKey);
     protected abstract void deleteWholeRow(Transaction transaction, String rowKey);
     protected abstract void deleteFirstColumn(Transaction transaction, String rowKey);
 
@@ -158,6 +162,34 @@ public abstract class AbstractSchemaApiTest {
         );
 
         Map<String, String> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
+
+        assertThat(result)
+                .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
+        verify(transaction, times(1)).getRange(tableRef, expectedRange);
+    }
+
+    @Test
+    public void testRowRangeSecondColumnFirstTwoResults() {
+        AbstractTransaction transaction = mock(AbstractTransaction.class);
+        Cell expectedCell = getCell(TEST_ROW_KEY, SECOND_COL_SHORT_NAME);
+        Cell anotherExpectedCell = getCell(TEST_ROW_KEY2, SECOND_COL_SHORT_NAME);
+        Cell cellToBeDroppedFromResults = getCell(TEST_ROW_KEY3, SECOND_COL_SHORT_NAME);
+        RangeRequest expectedRange = RangeRequest.builder()
+                .startRowInclusive(TEST_ROW_KEY.getBytes())
+                .endRowExclusive(RANGE_END_ROW_KEY.getBytes())
+                .retainColumns(SECOND_COLUMN_SELECTION)
+                .batchHint(2)
+                .build();
+        when(transaction.getRange(tableRef, expectedRange)).thenReturn(
+                BatchingVisitableFromIterable.create(Arrays.asList(
+                        RowResult.of(expectedCell, TEST_VALUE_STRING.getBytes()),
+                        RowResult.of(anotherExpectedCell, TEST_VALUE_STRING2.getBytes()),
+                        RowResult.of(cellToBeDroppedFromResults, TEST_VALUE_STRING3.getBytes())
+                ))
+        );
+
+        Map<String, String> result =
+                getRangeSecondColumnOnlyFirstTwoResults(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
 
         assertThat(result)
                 .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));

@@ -78,13 +78,20 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
     @Override
     protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
+        return table.getSmallRowRangeColumn2(startRowKey, endRowKey);
+    }
+
+    @Override
+    protected Map<String, String> getRangeSecondColumnOnlyFirstTwoResults(
+            Transaction transaction, String startRowKey, String endRowKey) {
+        SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
 
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(SchemaApiTestTable.SchemaApiTestRow.of(startRowKey).persistToBytes())
                 .endRowExclusive(SchemaApiTestTable.SchemaApiTestRow.of(endRowKey).persistToBytes())
                 .build();
 
-        return table.getSmallRowRangeColumn2(rangeRequest);
+        return table.getSmallRowRangeColumn2(rangeRequest, 2);
     }
 
     @Override
