@@ -90,7 +90,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs,
-            Optional<TableReference> timestampTable) {
+            Optional<TableReference> unused) {
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryTimestampService();
     }

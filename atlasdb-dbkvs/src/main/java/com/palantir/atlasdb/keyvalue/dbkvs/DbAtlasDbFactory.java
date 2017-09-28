@@ -64,9 +64,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             ConnectionManagerAwareDbKvs dbkvs) {
         return timestampTable
                 .map(tableReference -> InDbTimestampBoundStore.create(
-                        dbkvs.getConnectionManager(),
-                        tableReference,
-                        ""))
+                    dbkvs.getConnectionManager(),
+                    tableReference
+                    /* Not using the table prefix here, as the tableRef provided should contain the prefix if required.*/
+                    ))
                 .orElseGet(() -> InDbTimestampBoundStore.create(
                         dbkvs.getConnectionManager(),
                         AtlasDbConstants.TIMESTAMP_TABLE,

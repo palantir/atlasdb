@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.jdbc;
 import java.util.Optional;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -45,6 +46,12 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs,
             Optional<TableReference> timestampTable) {
+        Preconditions.checkArgument(!timestampTable.isPresent()
+                        || timestampTable.get().equals(JdbcTimestampBoundStore.TIMESTAMP_TABLE),
+                "Unexpected timestamp table found: %s. This can happen if you configure the timelock server with "
+                + "JDBC KVS for timestamp persistence, which is unsupported."
+                + "Please use the default paxos timestamp persistence or Cassandra/Oracle/Postgres"
+                + "if you absolutely need to persist the timestamp service state in the database.", timestampTable);
         AtlasDbVersion.ensureVersionReported();
         return PersistentTimestampService.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));
     }
