@@ -104,7 +104,7 @@ final class SchemaMutationLock {
         }
     }
 
-    void runWithLock(Action action) {
+    synchronized void runWithLock(Action action) {
         if (!supportsCas) {
             runWithLockWithoutCas(action);
             return;
@@ -177,16 +177,7 @@ final class SchemaMutationLock {
 
                 List<Column> expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
 
-                CASResult casResult;
-                try {
-                    casResult = writeDdlLockWithCas(client, expected, ourUpdate);
-                } catch (TimedOutException exception) {
-                    // We've seen cases where the client receives a TimedOutException but the CAS apparently succeeds
-                    // in cassandra.
-                    log.info("Cleaning up cassandra locks after a timed out exception");
-                    cleanLockState();
-                    throw exception;
-                }
+                CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
 
                 Column lastSeenColumn = null;
                 long lastSeenColumnUpdateTs = 0;
