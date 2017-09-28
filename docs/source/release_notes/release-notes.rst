@@ -59,6 +59,11 @@ develop
            When using with prefix range requests, the components that are hashed must also be specified in the prefix.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
 
+    *    - |devbreak| |fixed|
+         - Adjusted the remoting-api library version to match the version used by remoting3.
+           Developers may need to check your dependencies, but no other actions should be required.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
