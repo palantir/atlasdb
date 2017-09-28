@@ -106,42 +106,27 @@ public final class StreamTestTableFactory {
         return StreamTestWithHashStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TestHashComponentsStreamHashAidxTable getTestHashComponentsStreamHashAidxTable(Transaction t, TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxTrigger... triggers) {
+    public TestHashComponentsStreamHashAidxTable getTestHashComponentsStreamHashAidxTable(Transaction t,
+            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxTrigger... triggers) {
         return TestHashComponentsStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TestHashComponentsStreamIdxTable getTestHashComponentsStreamIdxTable(Transaction t, TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxTrigger... triggers) {
+    public TestHashComponentsStreamIdxTable getTestHashComponentsStreamIdxTable(Transaction t,
+            TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxTrigger... triggers) {
         return TestHashComponentsStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TestHashComponentsStreamMetadataTable getTestHashComponentsStreamMetadataTable(Transaction t, TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataTrigger... triggers) {
+    public TestHashComponentsStreamMetadataTable getTestHashComponentsStreamMetadataTable(Transaction t,
+            TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataTrigger... triggers) {
         return TestHashComponentsStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TestHashComponentsStreamValueTable getTestHashComponentsStreamValueTable(Transaction t, TestHashComponentsStreamValueTable.TestHashComponentsStreamValueTrigger... triggers) {
+    public TestHashComponentsStreamValueTable getTestHashComponentsStreamValueTable(Transaction t,
+            TestHashComponentsStreamValueTable.TestHashComponentsStreamValueTrigger... triggers) {
         return TestHashComponentsStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends
-            KeyValueTable.KeyValueTrigger,
-            StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxTrigger,
-            StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxTrigger,
-            StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataTrigger,
-            StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueTrigger,
-            StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger,
-            StreamTestStreamIdxTable.StreamTestStreamIdxTrigger,
-            StreamTestStreamMetadataTable.StreamTestStreamMetadataTrigger,
-            StreamTestStreamValueTable.StreamTestStreamValueTrigger,
-            StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxTrigger,
-            StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxTrigger,
-            StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataTrigger,
-            StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueTrigger,
-            TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxTrigger,
-            TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxTrigger,
-            TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataTrigger,
-            TestHashComponentsStreamValueTable.TestHashComponentsStreamValueTrigger {
-        /* empty */
-
+    public interface SharedTriggers extends KeyValueTable.KeyValueTrigger, StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxTrigger, StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxTrigger, StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataTrigger, StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueTrigger, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger, StreamTestStreamIdxTable.StreamTestStreamIdxTrigger, StreamTestStreamMetadataTable.StreamTestStreamMetadataTrigger, StreamTestStreamValueTable.StreamTestStreamValueTrigger, StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxTrigger, StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxTrigger, StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataTrigger, StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueTrigger, TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxTrigger, TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxTrigger, TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataTrigger, TestHashComponentsStreamValueTable.TestHashComponentsStreamValueTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {

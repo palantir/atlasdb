@@ -45,6 +45,7 @@ public class ApiTestSchema implements AtlasSchema {
             column("column1", "c", ValueType.VAR_LONG);
             column("column2", "d", ValueType.STRING);
 
+            enableV2Table();
             rangeScanAllowed();
         }});
 

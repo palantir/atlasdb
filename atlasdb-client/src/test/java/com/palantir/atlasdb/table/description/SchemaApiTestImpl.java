@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,7 @@ import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.Schem
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.BatchingVisitables;
 
 public class SchemaApiTestImpl extends AbstractSchemaApiTest {
 
@@ -55,32 +57,35 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     protected Long getSingleRowFirstColumn(Transaction transaction, String rowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
+        ColumnSelection firstColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
         Optional<SchemaApiTestRowResult> result = table.getRow(SchemaApiTestRow.of(rowKey), firstColSelection);
         return result.get().getColumn1();
     }
 
     @Override
-    protected List<Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
+    protected Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKeys) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection firstColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
+        ColumnSelection firstColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN1);
         List<SchemaApiTestRowResult> result =
                 table.getRows(
                         rowKeys.stream().map(SchemaApiTestRow::of).collect(Collectors.toList()),
-                        firstColSelection
-                );
-        return result.stream().map(SchemaApiTestRowResult::getColumn1).collect(Collectors.toList());
+                        firstColSelection);
+        return result
+                .stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
     }
 
     @Override
-    protected List<String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
-        ColumnSelection secondColSelection =
-                ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(SECOND_COL_SHORT_NAME)));
+        ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
 
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(SchemaApiTestRow.of(startRowKey).persistToBytes())
@@ -89,9 +94,34 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
                 .build();
 
         BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
-        ArrayList finalResult = new ArrayList<>();
-        rangeRequestResult.forEach(entry -> finalResult.add(entry.getColumn2()));
-        return finalResult;
+        return rangeRequestResult.immutableCopy()
+                .stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
+    }
+
+    @Override
+    protected Map<String,String> getRangeSecondColumnOnlyFirstTwoResults(
+            Transaction transaction, String startRowKey, String endRowKey) {
+        SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
+
+        ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
+                SchemaApiTestTable.SchemaApiTestNamedColumn.COLUMN2);
+
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(SchemaApiTestRow.of(startRowKey).persistToBytes())
+                .endRowExclusive(SchemaApiTestRow.of(endRowKey).persistToBytes())
+                .retainColumns(secondColSelection)
+                .batchHint(2)
+                .build();
+
+        BatchingVisitableView<SchemaApiTestRowResult> rangeRequestResult = table.getRange(rangeRequest);
+        return BatchingVisitables.take(rangeRequestResult, 2)
+                .stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
     }
 
     @Override
