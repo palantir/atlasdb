@@ -40,7 +40,7 @@ Additional options for the builder include:
          - Description
 
     *    - ``hashRowComponents``
-         - Hashes the concatenation of the ``id`` and ``blockId`` components of the table storing the data blocks and prepends it to the row key. If using Cassandra KVS, we recommend that this flag is set in order to prevent hotspots. We do not support adding this to an existing StreamStore, as it would require data migration.
+         - Hashes the concatenation of the ``id`` and ``blockId`` components of the table storing the data blocks and prepends it to the row key. If using Cassandra KVS, we recommend that this flag is set in order to prevent hotspotting. We do not support adding this to an existing StreamStore, as it would require data migration.
 
     *    - ``hashFirstRowComponent``
          - Hashes the ``id`` component of the table.

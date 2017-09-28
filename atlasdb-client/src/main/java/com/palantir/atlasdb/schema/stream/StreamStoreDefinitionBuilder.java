@@ -56,8 +56,8 @@ public class StreamStoreDefinitionBuilder {
     /**
      * We recommend that this flag is set in order to prevent hotspotting in the underlying table which stores
      * the data blocks. The effect of this method is that row keys will be prefixed by the hashed
-     * concatenation of the stream id and block id. This flag is only supported for new StreamStores, as
-     * setting it on the schema of an existing StreamStore would require data migration.
+     * concatenation of the stream id and block id. AtlasDB does not have support for StreamStore migrations,
+     * so if you are adding this flag for an existing StreamStore you will have to implement the migration as well.
      */
     public StreamStoreDefinitionBuilder hashRowComponents() {
         return hashFirstNRowComponents(2);

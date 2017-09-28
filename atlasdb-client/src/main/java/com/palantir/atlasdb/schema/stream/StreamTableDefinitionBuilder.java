@@ -63,7 +63,8 @@ public class StreamTableDefinitionBuilder {
 
     public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
         Preconditions.checkArgument(numberOfComponentsHashed <= 2,
-                "Can hash at most two row components for any StreamStore table.");
+                "The number of components specified must be less than two as " +
+                        "StreamStore internal tables use at most two row components.");
         this.numberOfComponentsHashed = numberOfComponentsHashed;
         return this;
     }
