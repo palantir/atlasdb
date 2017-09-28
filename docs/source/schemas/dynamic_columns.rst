@@ -245,7 +245,7 @@ Assume the existence of a Set of Strings, personSet, which correspond to person 
             if (!smallestSize.containsKey(person)) {
                 // This suffices, even if the first batch has multiple task sizes, because dynamic columns are
                 // returned in sorted order.
-                smallestSize.put(person, columnValues.get(0).getColumnName().getPriority());
+                smallestSize.put(person, columnValues.get(0).getColumnName().getTaskSize());
             }
 
             long smallestSize = smallestSizes.get(person);
@@ -255,7 +255,7 @@ Assume the existence of a Set of Strings, personSet, which correspond to person 
 
             // If the last entry doesn't have the smallest size, we must have covered all of the smallest todos
             // in this batch. This works, because dynamic columns are returned in sorted order.
-            return columnValues.get(columnValues.size() - 1).getColumnName().getPriority() == smallest;
+            return columnValues.get(columnValues.size() - 1).getColumnName().getTaskSize() == smallest;
         });
     });
     return results;
