@@ -15,7 +15,7 @@ Range Scans
 
 - Prefer exact key lookups over range scans
    - The performance of exact key lookups do not degrade with frequent updates to the key
-   - They will never fetch more data than you request
+   - Exact key lookups will never fetch more data than you expect
 
 
 **Row vs Dynamic Column Range Scans**
