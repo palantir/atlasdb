@@ -107,6 +107,7 @@ public final class CassandraKeyValueServices {
                 sb.append(String.format("%n\tNode: %s", node));
             }
         }
+        sb.append(String.format("\nThe current keyspaces are: %s", client.describe_keyspaces()));
 
         if (allowQuorumAgreement
                 && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
