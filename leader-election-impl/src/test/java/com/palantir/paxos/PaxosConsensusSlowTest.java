@@ -28,7 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
+import com.palantir.remoting3.tracing.Tracers;
 
 public class PaxosConsensusSlowTest {
 
