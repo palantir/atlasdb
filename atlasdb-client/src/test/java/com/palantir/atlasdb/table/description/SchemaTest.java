@@ -148,6 +148,24 @@ public class SchemaTest {
                 .map(entry -> entry.getTablename() + "Table")
                 .collect(Collectors.toList());
 
+        checkIfFilesAreTheSame(generatedTestTables);
+    }
+
+    @Test
+    public void checkAgainstAccidentalTableV2APIChanges() throws IOException {
+        Schema schema = ApiTestSchema.getSchema();
+        schema.renderTables(testFolder.getRoot());
+
+        List<String> generatedTestTables = ApiTestSchema.getSchema().getTableDefinitions().values()
+                .stream()
+                .filter(TableDefinition::hasV2TableEnabled)
+                .map(entry -> entry.getJavaTableName() + SCHEMA_V2_TABLE_NAME)
+                .collect(Collectors.toList());
+
+        checkIfFilesAreTheSame(generatedTestTables);
+    }
+
+    private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
         generatedTestTables.forEach(tableName -> {
             String generatedFilePath =
                     String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
@@ -156,21 +174,6 @@ public class SchemaTest {
             File actualFile = new File(testFolder.getRoot(), generatedFilePath);
             assertThat(actualFile).hasSameContentAs(expectedFile);
         });
-    }
-
-    @Test
-    public void checkAgainstAccidentalTableV2APIChanges() throws IOException {
-        Schema schema = ApiTestSchema.getSchema();
-        schema.renderTables(testFolder.getRoot());
-
-        String generatedTestTableName = "SchemaApiTest" + SCHEMA_V2_TABLE_NAME;
-        String generatedFilePath =
-                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
-
-        File expectedFile = new File("src/integrationInput/java", generatedFilePath);
-        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
-
-        assertThat(actualFile).hasSameContentAs(expectedFile);
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
