@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
+import java.util.HashSet;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -46,7 +49,11 @@ public class SchemaMutationLockTables {
     }
 
     public Set<TableReference> getAllLockTables() throws TException {
-        return clientPool.runWithRetry(this::getAllLockTablesInternal);
+        Set<TableReference> lockTables = new HashSet<>();
+        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
+            lockTables.addAll(clientPool.runWithRetryOnHost(host, this::getAllLockTablesInternal));
+        }
+        return lockTables;
     }
 
     private Set<TableReference> getAllLockTablesInternal(Cassandra.Client client) throws TException {

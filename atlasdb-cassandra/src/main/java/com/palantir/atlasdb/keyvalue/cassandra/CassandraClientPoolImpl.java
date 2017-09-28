@@ -39,6 +39,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
@@ -589,6 +590,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     if (numTries >= MAX_TRIES_SAME_HOST) {
                         shouldRetryOnDifferentHost = true;
                     }
+                } else if (isFastFailoverException(e)) {
+                    log.info("Retrying with fast failover a query intended for host {}.", hostPool.getHost(), e);
+                    shouldRetryOnDifferentHost = true;
                 }
             }
         }
@@ -646,7 +650,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     @SuppressWarnings("unchecked")
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception ex) throws K {
-        if (isRetriableException(ex) || isRetriableWithBackoffException(ex)) {
+        if (isRetriableException(ex) || isRetriableWithBackoffException(ex) || isFastFailoverException(ex)) {
             if (numTries >= MAX_TRIES_TOTAL) {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
@@ -756,6 +760,14 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 // tcp socket timeout, possibly indicating network flake, long GC, or restarting server
                 || isConnectionException(ex)
                 || isRetriableWithBackoffException(ex.getCause()));
+    }
+
+    @VisibleForTesting
+    static boolean isFastFailoverException(Throwable ex) {
+        return ex != null
+                // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
+                && (ex instanceof InvalidRequestException
+                || isFastFailoverException(ex.getCause()));
     }
 
     private final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
