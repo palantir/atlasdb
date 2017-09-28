@@ -1631,6 +1631,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
 
         if (!tablesToActuallyCreate.isEmpty()) {
+            log.info("Grabbing schema mutation lock to create tables {}", tablesToActuallyCreate);
             schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);

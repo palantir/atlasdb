@@ -29,6 +29,8 @@ import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -37,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 public class SchemaMutationLockTables {
     public static final String LOCK_TABLE_PREFIX = "_locks";
 
+    private static final Logger log = LoggerFactory.getLogger("SchemaMutationLockTables");
     private static final Predicate<String> IS_LOCK_TABLE = table -> table.startsWith(LOCK_TABLE_PREFIX);
 
     private final CassandraClientPool clientPool;
@@ -90,6 +93,7 @@ public class SchemaMutationLockTables {
     private TableReference createLockTable(Cassandra.Client client) throws TException {
         String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
+        log.info("Creating lock table {}", lockTable);
         createTableInternal(client, lockTable);
         return lockTable;
     }

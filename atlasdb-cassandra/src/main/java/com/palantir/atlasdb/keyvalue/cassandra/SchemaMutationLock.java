@@ -33,6 +33,7 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,7 +177,16 @@ final class SchemaMutationLock {
 
                 List<Column> expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
 
-                CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
+                CASResult casResult;
+                try {
+                    casResult = writeDdlLockWithCas(client, expected, ourUpdate);
+                } catch (TimedOutException exception) {
+                    // We've seen cases where the client receives a TimedOutException but the CAS apparently succeeds
+                    // in cassandra.
+                    log.info("Cleaning up cassandra locks after a timed out exception");
+                    cleanLockState();
+                    throw exception;
+                }
 
                 Column lastSeenColumn = null;
                 long lastSeenColumnUpdateTs = 0;
