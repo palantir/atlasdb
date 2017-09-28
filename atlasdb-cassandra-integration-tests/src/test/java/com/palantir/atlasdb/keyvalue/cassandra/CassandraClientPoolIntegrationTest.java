@@ -17,28 +17,22 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.NoSuchElementException;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.KsDef;
-import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
-import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -177,31 +171,6 @@ public class CassandraClientPoolIntegrationTest {
 
     private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing =
             client -> client.describe_ring("atlasdb");
-
-    @Test
-    public void testIsConnectionException() {
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TimedOutException()));
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isConnectionException(new TTransportException(
-                new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TimedOutException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException(new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableWithBackoffException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new NoSuchElementException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new UnavailableException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new SocketTimeoutException())));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new UnavailableException())));
-    }
 
     @Test
     public void testWeightedHostsWithUniformActivity() {
