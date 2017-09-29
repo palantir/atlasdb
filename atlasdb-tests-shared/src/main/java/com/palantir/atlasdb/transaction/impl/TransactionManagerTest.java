@@ -17,10 +17,13 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.UUID;
 
 import org.junit.Test;
 
@@ -28,11 +31,15 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.remoting2.tracing.Tracers;
 import com.palantir.timestamp.TimestampService;
 
@@ -99,6 +106,26 @@ public class TransactionManagerTest extends TransactionTestSetup {
         txnManagerWithMocks.runTaskReadOnly(txn -> null);
         verifyNoMoreInteractions(mockLockService);
         verifyNoMoreInteractions(mockTimestampService);
+    }
+
+    @Test
+    public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWrites() {
+        TimelockService timelock = mock(TimelockService.class);
+        LockService mockLockService = mock(LockService.class);
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(
+                getKeyValueService(),
+                timelock,
+                mockLockService, transactionService,
+                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
+                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE, false, 16);
+
+        when(timelock.getFreshTimestamp()).thenReturn(1L);
+        when(timelock.lockImmutableTimestamp(any())).thenReturn(
+                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+
+        assertThatThrownBy(() ->
+        txnManagerWithMocks.runTaskThrowOnConflict(txn -> { return null; })).isInstanceOf(
+                TransactionFailedRetriableException.class);
     }
 
     @Override
