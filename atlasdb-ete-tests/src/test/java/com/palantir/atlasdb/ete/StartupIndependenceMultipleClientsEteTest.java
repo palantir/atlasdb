@@ -97,7 +97,7 @@ public class StartupIndependenceMultipleClientsEteTest {
 
     private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
         EteSetup.execCliCommand("service/bin/init.sh stop");
-        assertSatisfiedWithin(20, () -> !serverRunning());
+        assertSatisfiedWithin(120, () -> !serverRunning());
     }
 
     private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
