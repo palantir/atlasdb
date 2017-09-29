@@ -88,10 +88,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<Client, V, K> fn)
             throws K {
         final String origName = Thread.currentThread().getName();
-        Thread.currentThread().setName(origName
-                + " calling cassandra host " + host
-                + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-                + " - " + count.getAndIncrement());
+        Thread.currentThread().setName(String.format(
+                "%s calling cassandra host %s started at %s - %d",
+                origName, host, DateTimeFormatter.ISO_INSTANT.format(Instant.now()), count.getAndIncrement()));
+
         try {
             openRequests.getAndIncrement();
             return runWithGoodResource(fn);
