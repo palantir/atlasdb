@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
+import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -146,6 +148,24 @@ public class SchemaTest {
                 .map(entry -> entry.getTablename() + "Table")
                 .collect(Collectors.toList());
 
+        checkIfFilesAreTheSame(generatedTestTables);
+    }
+
+    @Test
+    public void checkAgainstAccidentalTableV2APIChanges() throws IOException {
+        Schema schema = ApiTestSchema.getSchema();
+        schema.renderTables(testFolder.getRoot());
+
+        List<String> generatedTestTables = ApiTestSchema.getSchema().getTableDefinitions().values()
+                .stream()
+                .filter(TableDefinition::hasV2TableEnabled)
+                .map(entry -> entry.getJavaTableName() + SCHEMA_V2_TABLE_NAME)
+                .collect(Collectors.toList());
+
+        checkIfFilesAreTheSame(generatedTestTables);
+    }
+
+    private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
         generatedTestTables.forEach(tableName -> {
             String generatedFilePath =
                     String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);

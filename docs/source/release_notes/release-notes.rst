@@ -59,10 +59,17 @@ develop
            When using with prefix range requests, the components that are hashed must also be specified in the prefix.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
 
+    *    - |new|
+         - Can now use a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
+           This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
+           We only provide these methods for named columns, and don't currently support dynamic columns.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
+
     *    - |devbreak| |fixed|
          - Adjusted the remoting-api library version to match the version used by remoting3.
            Developers may need to check your dependencies, but no other actions should be required.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

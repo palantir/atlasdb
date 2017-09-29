@@ -35,32 +35,37 @@ public class ApiTestSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
 
-        schema.addTableDefinition("SchemaApiTest", new TableDefinition() {{
-            javaTableName("SchemaApiTest");
+        schema.addTableDefinition("SchemaApiTest", new TableDefinition() {
+            {
+                javaTableName("SchemaApiTest");
 
-            rowName();
-            rowComponent("component1", ValueType.STRING);
+                rowName();
+                rowComponent("component1", ValueType.STRING);
 
-            columns();
-            column("column1", "c", ValueType.VAR_LONG);
-            column("column2", "d", ValueType.STRING);
+                columns();
+                column("column1", "c", ValueType.VAR_LONG);
+                column("column2", "d", ValueType.STRING);
 
-            rangeScanAllowed();
-        }});
+                enableV2Table();
+                rangeScanAllowed();
+            }
+        });
 
-        schema.addTableDefinition("HashComponentsTest", new TableDefinition() {{
-            javaTableName("HashComponentsTest");
+        schema.addTableDefinition("HashComponentsTest", new TableDefinition() {
+            {
+                javaTableName("HashComponentsTest");
 
-            rowName();
-            hashFirstNRowComponents(2);
-            rowComponent("component1", ValueType.VAR_LONG);
-            rowComponent("component2", ValueType.VAR_STRING);
+                rowName();
+                hashFirstNRowComponents(2);
+                rowComponent("component1", ValueType.VAR_LONG);
+                rowComponent("component2", ValueType.VAR_STRING);
 
-            columns();
-            column("column", "c", ValueType.STRING);
+                columns();
+                column("column", "c", ValueType.STRING);
 
-            rangeScanAllowed();
-        }});
+                rangeScanAllowed();
+            }
+        });
 
         return schema;
     }
@@ -69,7 +74,7 @@ public class ApiTestSchema implements AtlasSchema {
         return GENERIC_TEST_SCHEMA;
     }
 
-    public static void main(String[]  args) throws Exception {
+    public static void main(String[] args) throws Exception {
         GENERIC_TEST_SCHEMA.renderTables(new File("src/integrationInput/java"));
     }
 

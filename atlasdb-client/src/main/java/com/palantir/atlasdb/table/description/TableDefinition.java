@@ -335,6 +335,14 @@ public class TableDefinition extends AbstractDefinition {
         return javaTableName;
     }
 
+    public boolean hasV2TableEnabled() {
+        return this.v2TableEnabled;
+    }
+
+    public void enableV2Table() {
+        this.v2TableEnabled = true;
+    }
+
     public void validate() {
         toTableMetadata();
         getConstraintMetadata();
@@ -369,6 +377,7 @@ public class TableDefinition extends AbstractDefinition {
     private boolean noColumns = false;
     private LogSafety tableNameSafety = LogSafety.UNSAFE;
     private LogSafety defaultNamedComponentLogSafety = LogSafety.UNSAFE;
+    private boolean v2TableEnabled = false;
 
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
