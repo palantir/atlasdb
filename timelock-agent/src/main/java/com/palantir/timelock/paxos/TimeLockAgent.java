@@ -144,7 +144,7 @@ public class TimeLockAgent {
                 .addLeaders(uris.toArray(new String[uris.size()]))
                 .localServer(install.cluster().localServer())
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
-                .quorumSize(uris.size() / 2 + 1)
+                .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
                 .build();
 
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier = timestampCreator
