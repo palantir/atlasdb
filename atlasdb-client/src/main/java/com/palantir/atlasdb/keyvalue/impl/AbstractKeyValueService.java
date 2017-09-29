@@ -258,7 +258,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                 SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
                                 SafeArg.of("maximumPutSize", maximumBytesPerPartition),
                                 LoggingArgs.tableRef("table",
-                                        TableReference.createFromFullyQualifiedName(tableName)));
+                                        TableReference.fromString(tableName)));
                     }
                 }
 
