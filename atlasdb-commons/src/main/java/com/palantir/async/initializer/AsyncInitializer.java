@@ -43,24 +43,48 @@ public abstract class AsyncInitializer {
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
     private volatile boolean canceledInitialization = false;
+    private int numberOfInitializationAttempts = 1;
+    private Long initializationStartTime;
 
     public final void initialize(boolean initializeAsync) {
         assertNeverCalledInitialize();
+
+        initializationStartTime = System.currentTimeMillis();
 
         if (!initializeAsync) {
             tryInitializeInternal();
             return;
         }
 
+        tryInitializationLoop();
+    }
+
+    private void tryInitializationLoop() {
         try {
             tryInitializeInternal();
-            log.info("Initialized {} synchronously.", SafeArg.of("className", getInitializingClassName()));
+            log.info("Initialized {} on the {} attempt in {} milliseconds",
+                    SafeArg.of("className", getInitializingClassName()),
+                    SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
+                    SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime));
         } catch (Throwable throwable) {
-            log.info("Failed to initialize {} in the first attempt, will initialize asynchronously.",
-                    SafeArg.of("className", getInitializingClassName()), throwable);
+            log.info("Failed to initialize {} on the {} attempt",
+                    SafeArg.of("className", getInitializingClassName()),
+                    SafeArg.of("numberOfAttempts", numberOfInitializationAttempts++),
+                    throwable);
             cleanUpOnInitFailure();
             scheduleInitialization();
         }
+    }
+
+    // Not final for tests.
+    void scheduleInitialization() {
+        singleThreadedExecutor.schedule(() -> {
+            if (canceledInitialization) {
+                return;
+            }
+
+            tryInitializationLoop();
+        }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests
@@ -76,25 +100,6 @@ public abstract class AsyncInitializer {
                     + "Each instance should have a single thread trying to initialize it.\n"
                     + "Object being initialized multiple times: " + getInitializingClassName());
         }
-    }
-
-    // Not final for tests.
-    void scheduleInitialization() {
-        singleThreadedExecutor.schedule(() -> {
-            if (canceledInitialization) {
-                return;
-            }
-
-            try {
-                tryInitializeInternal();
-                log.info("Initialized {} asynchronously.", SafeArg.of("className", getInitializingClassName()));
-            } catch (Throwable throwable) {
-                log.info("Failed to initialize {} asynchronously.",
-                        SafeArg.of("className", getInitializingClassName()), throwable);
-                cleanUpOnInitFailure();
-                scheduleInitialization();
-            }
-        }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests.
