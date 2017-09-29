@@ -33,8 +33,8 @@ public final class MetricNameUtils {
     private static final String EQUALS = "=";
 
     public static String getMetricName(String metricName, Map<String, String> tags) {
-        Preconditions.checkState(tags.size() <= MAX_ALLOWED_TAGS, "Too many tags set on the metric %d. "
-                + "Maximum allowed number of tags is %d, found %s", metricName, MAX_ALLOWED_TAGS, tags.size());
+        Preconditions.checkArgument(tags.size() <= MAX_ALLOWED_TAGS, "Too many tags set on the metric %s. "
+                + "Maximum allowed number of tags is %s, found %s.", metricName, MAX_ALLOWED_TAGS, tags.size());
 
         validateMetricComponentName(metricName, "metric");
         validateMetricTagNames(tags);

@@ -20,6 +20,10 @@ package com.palantir.atlasdb.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -106,5 +110,27 @@ public class MetricNameUtilsTest {
                 ImmutableMap.of("tag;1", TAG_VALUE_1, TAG_KEY_2, "tagVal=2")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("The metric name: metric;Name contains the forbidden character: ;");
+    }
+
+
+    @Test
+    public void shouldReturnANameIfTryingToRegisterMetricWithExactlyTenTags() throws Exception {
+        Map<String, String> tags = IntStream.range(0, 10)
+                .boxed()
+                .collect(Collectors.toMap(i -> "tag" + i, i -> "tagVal" + i));
+        assertThat(tags.size()).isEqualTo(10);
+        MetricNameUtils.getMetricName(METRIC_NAME, tags);
+    }
+
+    @Test
+    public void shouldThrowIfTryingToRegisterMetricWithMoreThanTenTags() throws Exception {
+        Map<String, String> tags = IntStream.range(0, 11)
+                .boxed()
+                .collect(Collectors.toMap(i -> "tag" + i, i -> "tagVal" + i));
+        assertThat(tags.size()).isEqualTo(11);
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName(METRIC_NAME, tags))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Too many tags set on the metric metricName. "
+                        + "Maximum allowed number of tags is 10, found 11.");
     }
 }
