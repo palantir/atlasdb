@@ -23,21 +23,43 @@ import com.google.common.base.Preconditions;
 
 public final class MetricNameUtils {
 
-    private static final int MAX_ALLOWED_TAGS = 100;
+    private static final int MAX_ALLOWED_TAGS = 10;
 
     private MetricNameUtils() {
         //utility class
     }
 
-    public static final String DELIMITER = ";";
-    public static final String EQUALS = "=";
+    private static final String DELIMITER = ";";
+    private static final String EQUALS = "=";
 
     public static String getMetricName(String metricName, Map<String, String> tags) {
-        Preconditions.checkState(tags.size() < MAX_ALLOWED_TAGS, "Too many tags set on the metric %s. "
+        Preconditions.checkState(tags.size() <= MAX_ALLOWED_TAGS, "Too many tags set on the metric %d. "
                 + "Maximum allowed number of tags is %d, found %s", metricName, MAX_ALLOWED_TAGS, tags.size());
+
+        validateMetricComponentName(metricName, "metric");
+        validateMetricTagNames(tags);
 
         return tags.entrySet().stream()
                 .map(e -> e.getKey() + EQUALS + e.getValue())
                 .collect(Collectors.joining(DELIMITER, metricName + DELIMITER, ""));
+    }
+
+
+    private static void validateMetricTagNames(Map<String, String> tags) {
+      tags.forEach((key, value) -> {
+          validateMetricComponentName(key, "tag key");
+          validateMetricComponentName(value, "tag value");
+      });
+    }
+
+    private static void validateMetricComponentName(String metricName, String type) {
+         if (metricName.contains(DELIMITER)) {
+             throw new IllegalArgumentException(
+                     String.format("The %s name: %s contains the forbidden character: %s", type, metricName, DELIMITER));
+         } else if (metricName.contains(EQUALS)){
+             throw new IllegalArgumentException(
+                     String.format("The %s name: %s contains the forbidden character: %s", type, metricName, EQUALS));
+
+         }
     }
 }

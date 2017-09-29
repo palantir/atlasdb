@@ -25,22 +25,86 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 
 public class MetricNameUtilsTest {
+    private static final String TAG_KEY_1 = "tag1";
+    private static final String TAG_VALUE_1 = "tagVal1";
+    private static final String METRIC_NAME = "metricName";
+    private static final String TAG_VALUE_2 = "tagVal2";
+    private static final String TAG_KEY_2 = "tag2";
 
     @Test
     public void shouldReturnNameWithSingleTag() throws Exception {
-        String metricName = MetricNameUtils.getMetricName("metricName", ImmutableMap.of("tag1", "tagVal1"));
+        String metricName = MetricNameUtils.getMetricName(METRIC_NAME, ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1));
         assertThat(metricName).isEqualTo("metricName;tag1=tagVal1");
     }
 
     @Test
     public void shouldReturnNameWithMultipleTags() throws Exception {
-        String metricName = MetricNameUtils.getMetricName("metricName", ImmutableMap.of("tag1", "tagVal1", "tag2", "tagVal2"));
+        String metricName = MetricNameUtils.getMetricName(METRIC_NAME,
+                ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2));
         assertThat(metricName).isEqualTo("metricName;tag1=tagVal1;tag2=tagVal2");
     }
 
     @Test
-    public void shouldThrowIfSameTagIsAddedMultipleTimes() throws Exception {
-        assertThatThrownBy(() -> MetricNameUtils.getMetricName("metricName", ImmutableMap.of("tag1", "tagVal1", "tag1", "tagVal2")))
-                .isInstanceOf(IllegalArgumentException.class);
+    public void shouldThrowIfMetricNameContainsSemiColon() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName("metric;Name",
+                ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The metric name: metric;Name contains the forbidden character: ;");
+    }
+
+    @Test
+    public void shouldThrowIfMetricNameContainsEqualSign() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName("metric=Name",
+                ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The metric name: metric=Name contains the forbidden character: =");
+    }
+
+    @Test
+    public void shouldThrowIfFirstMetricTagKeyContainsSemiColon() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName(METRIC_NAME,
+                ImmutableMap.of("tag;1", TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The tag key name: tag;1 contains the forbidden character: ;");
+    }
+
+    @Test
+    public void shouldThrowIfFirstMetricTagValueContainsSemiColon() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName(METRIC_NAME,
+                ImmutableMap.of(TAG_KEY_1, "tag;Val1", TAG_KEY_2, TAG_VALUE_2)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The tag value name: tag;Val1 contains the forbidden character: ;");
+    }
+
+    @Test
+    public void shouldThrowIfFirstMetricTagKeyContainsEquals() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName(METRIC_NAME,
+                ImmutableMap.of("tag=1", TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The tag key name: tag=1 contains the forbidden character: =");
+    }
+
+    @Test
+    public void shouldThrowIfFirstMetricTagValueContainsEquals() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName(METRIC_NAME,
+                ImmutableMap.of(TAG_KEY_1, "tag=Val1", TAG_KEY_2, TAG_VALUE_2)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The tag value name: tag=Val1 contains the forbidden character: =");
+    }
+
+    @Test
+    public void shouldThrowIfSecondMetricTagValueContainsEquals() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName(METRIC_NAME,
+                ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, "tagVal=2")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The tag value name: tagVal=2 contains the forbidden character: =");
+    }
+
+    @Test
+    public void shouldThrowForFirstEncounteredErrorMultipleMetricArgsContainInvalidCharacters() throws Exception {
+        assertThatThrownBy(() -> MetricNameUtils.getMetricName("metric;Name",
+                ImmutableMap.of("tag;1", TAG_VALUE_1, TAG_KEY_2, "tagVal=2")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("The metric name: metric;Name contains the forbidden character: ;");
     }
 }
