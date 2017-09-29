@@ -142,10 +142,12 @@ encoded in the ``value``.
 When Not To Use Dynamic Columns
 -------------------------------
 
-Dynamic columns create wide rows in Cassandra, because they generate many (Cassandra) dynamic columns.
-This may add limits to the scalability of the data, because all data for a single row key will be stored on a
-single machine in the cluster. Generally, we recommend that row sizes are kept below 100 MB, and below one million
-dynamic column keys.
+Using (Atlas) dynamic columns creates wide rows in Cassandra, because every dynamic column key and value are stored
+with the same row key. This may add limits to the scalability of the data, because all data for a single row key will
+be stored on a single machine in the cluster.
+
+Generally, we recommend that row sizes are kept in the tens of MBs at most, and also below one million dynamic column
+keys.
 
 Appendix: Sample Query Implementations
 --------------------------------------
