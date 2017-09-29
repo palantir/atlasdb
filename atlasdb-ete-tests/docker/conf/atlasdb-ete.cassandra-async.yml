@@ -13,19 +13,27 @@ atlasdb:
   keyValueService:
     type: cassandra
     servers:
-      - cassandra1:9160
-      - cassandra2:9160
-      - cassandra3:9160
+      - cassandra:9160
+    poolSize: 20
+    credentials:
+      username: cassandra
+      password: cassandra
     ssl: false
-    replicationFactor: 3
+    replicationFactor: 1
+    mutationBatchCount: 10000
+    mutationBatchSizeBytes: 10000000
+    fetchBatchCount: 1000
+    autoRefreshNodes: false
 
   initializeAsync: true
   namespace: atlasete
 
   leader:
-    quorumSize: 1
+    quorumSize: 2
     learnerLogDir: var/data/paxosLog/learner1
     acceptorLogDir: var/data/paxosLog/acceptor1
     localServer: http://${ME}:3828
     leaders:
       - http://ete1:3828
+      - http://ete2:3828
+      - http://ete3:3828

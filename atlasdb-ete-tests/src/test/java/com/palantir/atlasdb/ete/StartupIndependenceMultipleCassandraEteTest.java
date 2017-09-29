@@ -44,7 +44,7 @@ import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 
-public class StartupIndependenceEteTest {
+public class StartupIndependenceMultipleCassandraEteTest {
 
     private static final List<String> ALL_CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2", "cassandra3");
     private static final List<String> QUORUM_OF_CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2");
@@ -54,7 +54,7 @@ public class StartupIndependenceEteTest {
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupWithoutWaiting(
-            StartupIndependenceEteTest.class,
+            StartupIndependenceMultipleCassandraEteTest.class,
             "docker-compose.startup-independence.cassandra.yml",
             CLIENTS,
             CassandraEnvironment.get());
@@ -66,23 +66,32 @@ public class StartupIndependenceEteTest {
     }
 
     public static void randomizeNamespace() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("sed -i 's/keyspace: .*/keyspace: " + UUID.randomUUID().toString().replace("-", "_")
-                + "/' var/conf/atlasdb-ete.yml");
+        EteSetup.execCliCommand("sed -i 's/namespace: .*/namespace: " + UUID.randomUUID().toString().replace("-", "_")
+                + "/' var/conf/atlasdb-ete.yml", CLIENTS);
     }
 
     @Test
-    public void atlasStartsWithCassandraDownAndOnlyNeedsQuorumAfterTheFirstTime()
+    public void atlasStartsWithCassandraDownAndInitializesWithAllNodes()
             throws IOException, InterruptedException {
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
         startCassandraNodes(ALL_CASSANDRA_NODES);
-        assertSatisfiedWithin(240, StartupIndependenceEteTest::canPerformTransaction);
+        assertSatisfiedWithin(240, StartupIndependenceMultipleCassandraEteTest::canPerformTransaction);
 
         killCassandraNodes(ALL_CASSANDRA_NODES);
         restartAtlasWithChecks();
         assertNotInitializedExceptionIsThrownAndMappedCorrectly();
         startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
-        assertSatisfiedWithin(240, StartupIndependenceEteTest::canPerformTransaction);
+        assertSatisfiedWithin(240, StartupIndependenceMultipleCassandraEteTest::canPerformTransaction);
+    }
+
+    @Test
+    public void atlasStartsWithCassandraDownAndInitializesWithQuorum()
+            throws IOException, InterruptedException {
+        restartAtlasWithChecks();
+        assertNotInitializedExceptionIsThrownAndMappedCorrectly();
+        startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
+        assertSatisfiedWithin(240, StartupIndependenceMultipleCassandraEteTest::canPerformTransaction);
     }
 
     @Test
@@ -98,7 +107,7 @@ public class StartupIndependenceEteTest {
     }
 
     private static void killCassandraNodes(List<String> nodeNames) throws InterruptedException {
-        runOnCassandraNodes(nodeNames, StartupIndependenceEteTest::killCassandraContainer);
+        runOnCassandraNodes(nodeNames, StartupIndependenceMultipleCassandraEteTest::killCassandraContainer);
         nodeNames.forEach(node -> {
             DockerPort containerPort = new DockerPort(node, CASSANDRA_PORT, CASSANDRA_PORT);
             assertSatisfiedWithin(10, () -> !containerPort.isListeningNow());
@@ -106,7 +115,7 @@ public class StartupIndependenceEteTest {
     }
 
     private static void startCassandraNodes(List<String> allCassandraNodes) throws InterruptedException {
-        runOnCassandraNodes(allCassandraNodes, StartupIndependenceEteTest::startCassandraContainer);
+        runOnCassandraNodes(allCassandraNodes, StartupIndependenceMultipleCassandraEteTest::startCassandraContainer);
     }
 
     private static void restartAtlasWithChecks() throws InterruptedException, IOException {
@@ -116,18 +125,18 @@ public class StartupIndependenceEteTest {
 
     private static void verifyCassandraIsSettled() throws IOException, InterruptedException {
         restartAtlasWithChecks();
-        assertSatisfiedWithin(240, StartupIndependenceEteTest::canPerformTransaction);
+        assertSatisfiedWithin(240, StartupIndependenceMultipleCassandraEteTest::canPerformTransaction);
         randomizeNamespace();
     }
 
     private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh stop");
+        EteSetup.execCliCommand("service/bin/init.sh stop", CLIENTS);
         assertSatisfiedWithin(20, () -> !serverRunning());
     }
 
     private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh start");
-        assertSatisfiedWithin(240, StartupIndependenceEteTest::serverRunning);
+        EteSetup.execCliCommand("service/bin/init.sh start", CLIENTS);
+        assertSatisfiedWithin(240, StartupIndependenceMultipleCassandraEteTest::serverRunning);
     }
 
     private static void assertSatisfiedWithin(long time, Callable<Boolean> condition) {

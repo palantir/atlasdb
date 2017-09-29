@@ -138,11 +138,13 @@ public abstract class EteSetup {
                 DockerComposeRunArgument.arguments("bash", "-c", command));
     }
 
-    static String execCliCommand(String command) throws IOException, InterruptedException {
-        return docker.exec(
-                DockerComposeExecOption.options("-T"),
-                "ete1",
-                DockerComposeExecArgument.arguments("bash", "-c", command));
+    static void execCliCommand(String command, List<String> clients) throws IOException, InterruptedException {
+        for (String client: clients) {
+            docker.exec(
+                    DockerComposeExecOption.options("-T"),
+                    client,
+                    DockerComposeExecArgument.arguments("bash", "-c", command));
+        }
     }
 
     static <T> T createClientToSingleNode(Class<T> clazz) {

@@ -53,7 +53,7 @@ task timeLockTest(type: Test) {
 
 task startupIndependenceTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/StartupIndependenceEteTest.class'
+    include '**/StartupIndependence*.class'
 }
 
 test {
