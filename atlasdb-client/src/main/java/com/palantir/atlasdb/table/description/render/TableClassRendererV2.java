@@ -288,9 +288,9 @@ public class TableClassRendererV2 {
         NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from row keys to value at column $L.\n"
-                        + "As the values are all loaded in memory, do not use for large amounts of data.\n"
-                        + "If the column does not exist for a key, the entry will be omitted from the map.",
+                .addJavadoc("Returns a mapping from the specified row keys to their value at column $L.\n"
+                            + "As the values are all loaded in memory, do not use for large amounts of data.\n"
+                            + "If the column does not exist for a key, the entry will be omitted from the map.",
                         VarName(col))
                 .addParameter(
                         ParameterizedTypeName.get(
@@ -334,9 +334,9 @@ public class TableClassRendererV2 {
     private MethodSpec renderNamedGetSeveralRowObjects(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from row objects to value at column $L.\n"
-                                + "As the values are all loaded in memory, do not use for large amounts of data.\n"
-                                + "If the column does not exist for a key, the entry will be omitted from the map.",
+                .addJavadoc("Returns a mapping from the specified row objects to their value at column $L.\n"
+                            + "As the values are all loaded in memory, do not use for large amounts of data.\n"
+                            + "If the column does not exist for a key, the entry will be omitted from the map.",
                         VarName(col))
                 .addParameter(ParameterizedTypeName.get(ClassName.get(Iterable.class), rowType), "rowKeys");
 
@@ -373,8 +373,8 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a rangeRequest to their value at column $L\n"
-                        + "(if that column exists for the row-key). As the values are all loaded in memory, "
-                        + "do not use for large amounts of data. \nThe order of results is preserved in the map.",
+                            + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
+                            + "do not use for large amounts of data. The order of results is preserved in the map.",
                         VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
@@ -414,8 +414,8 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a range to their value at column $L\n"
-                        + "(if that column exists for the row-key). As the values are all loaded in memory, "
-                        + "do not use for large amounts of data. \nThe order of results is preserved in the map.",
+                            + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
+                            + "do not use for large amounts of data. The order of results is preserved in the map.",
                         VarName(col))
                 .addParameter(rowComponent.getType().getTypeClass(), "startInclusive")
                 .addParameter(rowComponent.getType().getTypeClass(), "endExclusive")
@@ -441,8 +441,8 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value\n"
-                            + "at column $L (if that column exists for the row-key). As the values are all loaded in memory,\n"
-                            + "do not use for large amounts of data. The order of results is preserved in the map.",
+                            + "at column $L (if that column exists). As the entries are all loaded in memory,\n"
+                            + "do not use for large values of sizeLimit. The order of results is preserved in the map.",
                         VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .addParameter(int.class, "sizeLimit")
@@ -483,9 +483,9 @@ public class TableClassRendererV2 {
     private MethodSpec renderNamedGetRangeColumnRowObjects(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from all the row keys in a RangeRequest to their value at column $L\n"
-                            + "(if that column exists for the row).  As the values are all loaded in memory, "
-                            + "do not use for large amounts of data. \nThe order of results is preserved in the map.",
+                .addJavadoc("Returns a mapping from all the rows in a RangeRequest to their value at column $L\n"
+                            + "(if that column exists for the row). As the values are all loaded in memory, \n"
+                            + "do not use for large amounts of data. The order of results is preserved in the map.",
                         VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
@@ -520,9 +520,9 @@ public class TableClassRendererV2 {
     private MethodSpec renderNamedGetRangeColumnRowObjectsLimit(NamedColumnDescription col) {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
-                .addJavadoc("Returns a mapping from the first sizeLimit row objects in a rangeRequest to their value\n"
-                                + "at column $L (if that column exists). As the values are all loaded in memory,\n"
-                                + "do not use for large amounts of data. The order of results is preserved in the map.",
+                .addJavadoc("Returns a mapping from the first sizeLimit rows in a rangeRequest to their value\n"
+                            + "at column $L (if that column exists). As the entries are all loaded in memory,\n"
+                            + "do not use for large values of sizeLimit. The order of results is preserved in the map.",
                         VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .addParameter(int.class, "sizeLimit")
