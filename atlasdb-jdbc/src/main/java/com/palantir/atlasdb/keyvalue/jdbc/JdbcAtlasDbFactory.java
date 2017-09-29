@@ -50,8 +50,10 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
                         || timestampTable.get().equals(JdbcTimestampBoundStore.TIMESTAMP_TABLE),
                 "Unexpected timestamp table found: %s. This can happen if you configure the timelock server with "
                 + "JDBC KVS for timestamp persistence, which is unsupported."
-                + "Please use the default paxos timestamp persistence or Cassandra/Oracle/Postgres"
-                + "if you absolutely need to persist the timestamp service state in the database.", timestampTable);
+                + "We recommend using the default paxos timestamp persistence. However, if you need to persist "
+                + "the timestamp service state in the database, specify a valid Cassandra/Oracle/Postgres KVS config"
+                + "in the timestampBoundPersister block.",
+                timestampTable);
         AtlasDbVersion.ensureVersionReported();
         return PersistentTimestampService.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));
     }
