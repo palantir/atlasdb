@@ -65,6 +65,12 @@ develop
            We only provide these methods for named columns, and don't currently support dynamic columns.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
 
+    *    - |devbreak| |fixed|
+         - Adjusted the remoting-api library version to match the version used by remoting3.
+           Developers may need to check your dependencies, but no other actions should be required.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
