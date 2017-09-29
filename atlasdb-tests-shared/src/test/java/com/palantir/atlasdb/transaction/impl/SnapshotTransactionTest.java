@@ -798,9 +798,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 LockCollections.of(builder.build()),
                 lockTimeout,
                 versionId,
-                "Dummy thread");
+                "Dummy thread",
+                null);
     }
-
 
     /**
      * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at

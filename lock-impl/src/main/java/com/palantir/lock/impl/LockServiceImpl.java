@@ -267,7 +267,7 @@ public final class LockServiceImpl
             BigInteger tokenId = new BigInteger(RANDOM_BIT_COUNT, randomPool.getSecureRandom());
             long expirationDateMs = currentTimeMillis() + lockTimeout.toMillis();
             HeldLocksToken token = new HeldLocksToken(tokenId, client, currentTimeMillis(),
-                    expirationDateMs, lockDescriptorMap, lockTimeout, versionId, requestThread);
+                    expirationDateMs, lockDescriptorMap, lockTimeout, versionId, requestThread, null);
             HeldLocks<HeldLocksToken> heldLocks = HeldLocks.of(token, heldLocksMap);
             if (heldLocksTokenMap.putIfAbsent(token, heldLocks) == null) {
                 lockTokenReaperQueue.add(token);
@@ -567,7 +567,8 @@ public final class LockServiceImpl
                 fakeLockSet,
                 maxAllowedLockTimeout,
                 0L,
-                "UnknownThread-unlockSimple"));
+                "UnknownThread-unlockSimple",
+                null));
     }
 
     @Override
@@ -691,7 +692,8 @@ public final class LockServiceImpl
                     fakeLockSet,
                     maxAllowedLockTimeout,
                     0L,
-                    "UnknownThread-refreshLockRefreshTokens"));
+                    "UnknownThread-refreshLockRefreshTokens",
+                    token.getRefreshingThread()));
         }
         return ImmutableSet.copyOf(Iterables.transform(refreshTokens(fakeTokens), HeldLocksTokens.getRefreshTokenFun()));
     }
@@ -702,12 +704,14 @@ public final class LockServiceImpl
         if ((heldLocks == null) || isFrozen(heldLocks.locks.getKeys())) {
             return null;
         }
+
         long now = currentTimeMillis();
         long expirationDateMs = now
                 + heldLocks.realToken.getLockTimeout().toMillis();
         heldLocksTokenMap.replace(token, heldLocks, new HeldLocks<HeldLocksToken>(
-                heldLocks.realToken.refresh(expirationDateMs), heldLocks.locks));
+                heldLocks.realToken.refresh(expirationDateMs, token.getRefreshingThread()), heldLocks.locks));
         heldLocks = heldLocksTokenMap.get(token);
+
         if (heldLocks == null) {
             return null;
         }
@@ -1022,7 +1026,6 @@ public final class LockServiceImpl
         logString.append("heldLocksGrantMap.size = ").append(heldLocksGrantMap.size()).append("\n");
         logString.append("lockTokenReaperQueue.size = ").append(lockTokenReaperQueue.size()).append("\n");
         logString.append("lockGrantReaperQueue.size = ").append(lockGrantReaperQueue.size()).append("\n");
-        logString.append("lockClientMultimap.size = ").append(lockClientMultimap.size()).append("\n");
         logString.append("lockClientMultimap.size = ").append(lockClientMultimap.size()).append("\n");
 
         return logString;

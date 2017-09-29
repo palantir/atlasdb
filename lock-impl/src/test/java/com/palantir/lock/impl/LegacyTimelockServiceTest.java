@@ -192,7 +192,7 @@ public class LegacyTimelockServiceTest {
         LockDescriptor descriptor = AtlasTimestampLockDescriptor.of(FRESH_TIMESTAMP);
         com.palantir.lock.LockRequest expectedRequest = com.palantir.lock.LockRequest.builder(ImmutableSortedMap.of(descriptor, LockMode.READ))
                 .withLockedInVersionId(FRESH_TIMESTAMP).build();
-        LockRefreshToken expectedToken = new LockRefreshToken(BigInteger.ONE, 123L);
+        LockRefreshToken expectedToken = new LockRefreshToken(BigInteger.ONE, 123L, null);
         when(lockService.lock(LOCK_CLIENT.getClientId(), expectedRequest)).thenReturn(expectedToken);
         return expectedToken;
     }

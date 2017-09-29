@@ -242,6 +242,7 @@ import com.google.common.collect.Iterables;
         @Nullable private TimeDuration blockingDuration;
         @Nullable private Long versionId;
         @Nullable private String creatingThreadName;
+        @Nullable private String refreshingThreadName;
 
         private Builder(SortedMap<LockDescriptor, LockMode> lockMap) {
             this(LockCollections.of(lockMap));
@@ -361,6 +362,12 @@ import com.google.common.collect.Iterables;
             return this;
         }
 
+        public Builder withRefreshingThreadName(String refreshingThreadName) {
+            this.refreshingThreadName = refreshingThreadName;
+            return this;
+        }
+
+
         /**
          * Builds a {@link LockRequest} instance. After calling this method, the
          * builder object is invalidated.
@@ -410,13 +417,13 @@ import com.google.common.collect.Iterables;
         private final String creatingThreadName;
 
         SerializationProxy(LockRequest lockRequest) {
-            lockMap = lockRequest.lockMap;
-            lockTimeout = lockRequest.lockTimeout;
-            lockGroupBehavior = lockRequest.lockGroupBehavior;
-            blockingMode = lockRequest.blockingMode;
-            blockingDuration = lockRequest.blockingDuration;
-            versionId = lockRequest.versionId;
-            creatingThreadName = lockRequest.creatingThreadName;
+            this.lockMap = lockRequest.lockMap;
+            this.lockTimeout = lockRequest.lockTimeout;
+            this.lockGroupBehavior = lockRequest.lockGroupBehavior;
+            this.blockingMode = lockRequest.blockingMode;
+            this.blockingDuration = lockRequest.blockingDuration;
+            this.versionId = lockRequest.versionId;
+            this.creatingThreadName = lockRequest.creatingThreadName;
         }
 
         @JsonCreator
@@ -461,6 +468,7 @@ import com.google.common.collect.Iterables;
                 builder.withLockedInVersionId(versionId);
             }
             builder.withCreatingThreadName(creatingThreadName);
+
             return builder.build();
         }
     }

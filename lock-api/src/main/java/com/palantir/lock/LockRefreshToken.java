@@ -18,6 +18,7 @@ package com.palantir.lock;
 import java.io.Serializable;
 import java.math.BigInteger;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -30,12 +31,15 @@ public final class LockRefreshToken implements Serializable {
 
     private final BigInteger tokenId;
     private final long expirationDateMs;
+    @Nullable private final String refreshingThread;
 
     @JsonCreator
     public LockRefreshToken(@JsonProperty("tokenId") BigInteger tokenId,
-                            @JsonProperty("expirationDateMs") long expirationDateMs) {
+                            @JsonProperty("expirationDateMs") long expirationDateMs,
+                            @Nullable @JsonProperty("refreshingThread") String refreshingThread) {
         this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.expirationDateMs = expirationDateMs;
+        this.refreshingThread = refreshingThread;
     }
 
     public BigInteger getTokenId() {
@@ -46,9 +50,13 @@ public final class LockRefreshToken implements Serializable {
         return expirationDateMs;
     }
 
+    public String getRefreshingThread() {
+        return refreshingThread;
+    }
+
     public HeldLocksToken refreshTokenWithExpriationDate(HeldLocksToken token) {
         Preconditions.checkArgument(token.getTokenId().equals(tokenId), "token ids must match");
-        return token.refresh(expirationDateMs);
+        return token.refresh(expirationDateMs, refreshingThread);
     }
 
     @Override

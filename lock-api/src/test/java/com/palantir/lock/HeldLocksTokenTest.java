@@ -43,7 +43,7 @@ public final class HeldLocksTokenTest {
                 LockCollections.of(lockMap),
                 SimpleTimeDuration.of(1, TimeUnit.SECONDS),
                 0L,
-                "Dummy Thread");
+                "Dummy Thread", "Dummy refresher thread");
 
         HeldLocksToken deserializedHeldLocksToken =
                 mapper.readValue(mapper.writeValueAsString(heldLocksToken), HeldLocksToken.class);

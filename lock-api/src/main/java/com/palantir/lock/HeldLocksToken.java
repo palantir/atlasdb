@@ -60,13 +60,15 @@ import com.google.common.collect.Iterables;
     private final SimpleTimeDuration lockTimeout;
     @Nullable private final Long versionId;
     private final String requestingThread;
+    @Nullable private final String refreshingThread;
 
     /**
      * This should only be created by the Lock Service.
      */
     public HeldLocksToken(BigInteger tokenId, LockClient client, long creationDateMs,
             long expirationDateMs, SortedLockCollection<LockDescriptor> lockMap,
-            TimeDuration lockTimeout, @Nullable Long versionId, String requestingThread) {
+            TimeDuration lockTimeout, @Nullable Long versionId, String requestingThread,
+            @Nullable String refreshingThread) {
         this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.client = Preconditions.checkNotNull(client, "client should not be null");
         this.creationDateMs = creationDateMs;
@@ -76,6 +78,7 @@ import com.google.common.collect.Iterables;
         this.versionId = versionId;
         this.requestingThread = requestingThread;
         Preconditions.checkArgument(!this.lockMap.isEmpty());
+        this.refreshingThread = refreshingThread;
     }
 
     /**
@@ -87,7 +90,7 @@ import com.google.common.collect.Iterables;
 
     @JsonIgnore
     public LockRefreshToken getLockRefreshToken() {
-        return new LockRefreshToken(tokenId, expirationDateMs);
+        return new LockRefreshToken(tokenId, expirationDateMs, refreshingThread);
     }
 
     /** Returns the client who holds these locks. */
@@ -116,6 +119,11 @@ import com.google.common.collect.Iterables;
     @Override
     public long getExpirationDateMs() {
         return expirationDateMs;
+    }
+
+
+    public String getRefreshingThread() {
+        return refreshingThread;
     }
 
     /**
@@ -179,15 +187,16 @@ import com.google.common.collect.Iterables;
                 .add("firstLock", lockMap.entries().iterator().next())
                 .add("versionId", versionId)
                 .add("requestingThread", requestingThread)
+                .add("refreshingThread", refreshingThread)
                 .toString();
     }
 
     /**
      * This should only be created by the lock service.  This call will not actually refresh the token.
      */
-    public HeldLocksToken refresh(long newExpirationDateMs) {
+    public HeldLocksToken refresh(long newExpirationDateMs, @Nullable String refreshingThread) {
         return new HeldLocksToken(tokenId, client, creationDateMs, newExpirationDateMs, lockMap, lockTimeout,
-                versionId, requestingThread);
+                versionId, requestingThread, refreshingThread);
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
@@ -210,6 +219,7 @@ import com.google.common.collect.Iterables;
         private final SimpleTimeDuration lockTimeout;
         @Nullable private final Long versionId;
         private final String requestingThread;
+        private final String refreshingThread;
 
         SerializationProxy(HeldLocksToken heldLocksToken) {
             tokenId = heldLocksToken.tokenId;
@@ -220,6 +230,7 @@ import com.google.common.collect.Iterables;
             lockTimeout = heldLocksToken.lockTimeout;
             versionId = heldLocksToken.versionId;
             requestingThread = heldLocksToken.requestingThread;
+            refreshingThread = heldLocksToken.refreshingThread;
         }
 
         @JsonCreator
@@ -230,7 +241,8 @@ import com.google.common.collect.Iterables;
                 @JsonProperty("locks") List<LockWithMode> locks,
                 @JsonProperty("lockTimeout") TimeDuration lockTimeout,
                 @JsonProperty("versionId") Long versionId,
-                @JsonProperty("requestingThread") String requestingThread) {
+                @JsonProperty("requestingThread") String requestingThread,
+                @JsonProperty("refreshingThread") String refreshingThread) {
             ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder =
                     ImmutableSortedMap.naturalOrder();
             for (LockWithMode lock : locks) {
@@ -244,6 +256,7 @@ import com.google.common.collect.Iterables;
             this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
             this.versionId = versionId;
             this.requestingThread = requestingThread;
+            this.refreshingThread = refreshingThread;
             Preconditions.checkArgument(!this.lockMap.isEmpty());
         }
 
@@ -253,7 +266,7 @@ import com.google.common.collect.Iterables;
 
         Object readResolve() {
             return new HeldLocksToken(tokenId, client, creationDateMs, expirationDateMs, lockMap, lockTimeout,
-                    versionId, requestingThread);
+                    versionId, requestingThread, refreshingThread);
         }
     }
 }
