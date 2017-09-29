@@ -60,10 +60,12 @@ public class MetricsManager {
 
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
         try {
-            metricRegistry.register(fullyQualifiedMetricName, metric);
+            if (!metricRegistry.getNames().contains(fullyQualifiedMetricName)) {
+                metricRegistry.register(fullyQualifiedMetricName, metric);
+            }
             registeredMetrics.add(fullyQualifiedMetricName);
         } catch (Exception e) {
-            // Primarily to handle integration tests that instantiate this class multiple times in a row
+            // Do not bubble up exceptions when registering metrics.
             log.error("Unable to register metric {}", fullyQualifiedMetricName, e);
         }
     }
