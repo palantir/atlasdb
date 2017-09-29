@@ -44,8 +44,8 @@ public class MetricNameUtilsTest {
     @Test
     public void shouldReturnNameWithMultipleTags() throws Exception {
         String metricName = MetricNameUtils.getMetricName(METRIC_NAME,
-                ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2));
-        assertThat(metricName).isEqualTo("metricName;tag1=tagVal1;tag2=tagVal2");
+                ImmutableMap.of(TAG_KEY_2, TAG_VALUE_2, TAG_KEY_1, TAG_VALUE_1));
+        assertThat(metricName).isIn("metricName;tag1=tagVal1;tag2=tagVal2", "metricName;tag2=tagVal2;tag1=tagVal1");
     }
 
     @Test
@@ -119,7 +119,7 @@ public class MetricNameUtilsTest {
                 .boxed()
                 .collect(Collectors.toMap(i -> "tag" + i, i -> "tagVal" + i));
         assertThat(tags.size()).isEqualTo(10);
-        MetricNameUtils.getMetricName(METRIC_NAME, tags);
+        assertThat(MetricNameUtils.getMetricName(METRIC_NAME, tags)).contains(METRIC_NAME);
     }
 
     @Test
