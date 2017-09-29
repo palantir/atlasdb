@@ -74,6 +74,7 @@ final class SchemaMutationLock {
     private final int deadHeartbeatTimeoutThreshold;
 
     SchemaMutationLock(
+            // TODO(ssouza): get rid of non-cas, since we've dropped support for Cassandra 1.2.
             boolean supportsCas,
             CassandraKeyValueServiceConfigManager configManager,
             CassandraClientPool clientPool,
