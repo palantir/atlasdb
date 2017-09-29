@@ -65,7 +65,7 @@ public class StartupIndependenceMultipleClientsEteTest {
 
     public static void randomizeNamespace() throws IOException, InterruptedException {
         EteSetup.execCliCommand("sed -i 's/namespace: .*/namespace: " + UUID.randomUUID().toString().replace("-", "_")
-                + "/' var/conf/atlasdb-ete.yml", CLIENTS);
+                + "/' var/conf/atlasdb-ete.yml");
     }
 
     @Test
@@ -96,12 +96,12 @@ public class StartupIndependenceMultipleClientsEteTest {
 
 
     private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh stop", CLIENTS);
+        EteSetup.execCliCommand("service/bin/init.sh stop");
         assertSatisfiedWithin(20, () -> !serverRunning());
     }
 
     private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh start", CLIENTS);
+        EteSetup.execCliCommand("service/bin/init.sh start");
         assertSatisfiedWithin(240, StartupIndependenceMultipleClientsEteTest::serverRunning);
     }
 
@@ -150,7 +150,7 @@ public class StartupIndependenceMultipleClientsEteTest {
     }
 
     private static void addTodo() {
-        TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
+        TodoResource todos = EteSetup.createClientToAllNodes(TodoResource.class);
         Todo todo = getUniqueTodo();
 
         todos.addTodo(todo);

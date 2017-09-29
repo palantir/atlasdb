@@ -67,7 +67,7 @@ public class StartupIndependenceMultipleCassandraEteTest {
 
     public static void randomizeNamespace() throws IOException, InterruptedException {
         EteSetup.execCliCommand("sed -i 's/namespace: .*/namespace: " + UUID.randomUUID().toString().replace("-", "_")
-                + "/' var/conf/atlasdb-ete.yml", CLIENTS);
+                + "/' var/conf/atlasdb-ete.yml");
     }
 
     @Test
@@ -130,12 +130,12 @@ public class StartupIndependenceMultipleCassandraEteTest {
     }
 
     private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh stop", CLIENTS);
+        EteSetup.execCliCommand("service/bin/init.sh stop");
         assertSatisfiedWithin(20, () -> !serverRunning());
     }
 
     private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh start", CLIENTS);
+        EteSetup.execCliCommand("service/bin/init.sh start");
         assertSatisfiedWithin(240, StartupIndependenceMultipleCassandraEteTest::serverRunning);
     }
 
