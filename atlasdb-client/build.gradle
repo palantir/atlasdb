@@ -71,7 +71,6 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
   testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'com.squareup', name:'javapoet'
 
   integrationInputCompile project(":atlasdb-client")
 }

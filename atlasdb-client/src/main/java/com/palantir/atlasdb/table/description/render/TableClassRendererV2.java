@@ -289,9 +289,9 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from the specified row keys to their value at column $L.\n"
-                            + "As the values are all loaded in memory, do not use for large amounts of data.\n"
+                            + "As the $L values are all loaded in memory, do not use for large amounts of data.\n"
                             + "If the column does not exist for a key, the entry will be omitted from the map.",
-                        VarName(col))
+                        VarName(col), VarName(col))
                 .addParameter(
                         ParameterizedTypeName.get(
                                 ClassName.get(Iterable.class),
@@ -335,9 +335,9 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from the specified row objects to their value at column $L.\n"
-                            + "As the values are all loaded in memory, do not use for large amounts of data.\n"
+                            + "As the $L values are all loaded in memory, do not use for large amounts of data.\n"
                             + "If the column does not exist for a key, the entry will be omitted from the map.",
-                        VarName(col))
+                        VarName(col), VarName(col))
                 .addParameter(ParameterizedTypeName.get(ClassName.get(Iterable.class), rowType), "rowKeys");
 
         getterBuilder.returns(ParameterizedTypeName.get(
@@ -373,9 +373,9 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a rangeRequest to their value at column $L\n"
-                            + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
+                            + "(if that column exists for the row-key). As the $L values are all loaded in memory,\n"
                             + "do not use for large amounts of data. The order of results is preserved in the map.",
-                        VarName(col))
+                        VarName(col), VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(LinkedHashMap.class),
@@ -414,9 +414,9 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a range to their value at column $L\n"
-                            + "(if that column exists for the row-key). As the values are all loaded in memory,\n"
+                            + "(if that column exists for the row-key). As the $L values are all loaded in memory,\n"
                             + "do not use for large amounts of data. The order of results is preserved in the map.",
-                        VarName(col))
+                        VarName(col), VarName(col))
                 .addParameter(rowComponent.getType().getTypeClass(), "startInclusive")
                 .addParameter(rowComponent.getType().getTypeClass(), "endExclusive")
                 .returns(ParameterizedTypeName.get(
@@ -441,9 +441,9 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value\n"
-                            + "at column $L (if that column exists). As the entries are all loaded in memory,\n"
+                            + "at column $L (if that column exists). As the $L entries are all loaded in memory,\n"
                             + "do not use for large values of sizeLimit. The order of results is preserved in the map.",
-                        VarName(col))
+                        VarName(col), VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .addParameter(int.class, "sizeLimit")
                 .returns(ParameterizedTypeName.get(
@@ -484,9 +484,9 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the rows in a RangeRequest to their value at column $L\n"
-                            + "(if that column exists for the row). As the values are all loaded in memory, \n"
+                            + "(if that column exists for the row). As the $L values are all loaded in memory, \n"
                             + "do not use for large amounts of data. The order of results is preserved in the map.",
-                        VarName(col))
+                        VarName(col), VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                             ClassName.get(LinkedHashMap.class),
@@ -521,9 +521,9 @@ public class TableClassRendererV2 {
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from the first sizeLimit rows in a rangeRequest to their value\n"
-                            + "at column $L (if that column exists). As the entries are all loaded in memory,\n"
+                            + "at column $L (if that column exists). As the $L entries are all loaded in memory,\n"
                             + "do not use for large values of sizeLimit. The order of results is preserved in the map.",
-                        VarName(col))
+                        VarName(col), VarName(col))
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .addParameter(int.class, "sizeLimit")
                 .returns(ParameterizedTypeName.get(

@@ -84,7 +84,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from the specified row keys to their value at column Column1.
-     * As the values are all loaded in memory, do not use for large amounts of data.
+     * As the Column1 values are all loaded in memory, do not use for large amounts of data.
      * If the column does not exist for a key, the entry will be omitted from the map. */
     public Map<String, Long> getColumn1(Iterable<String> rowKeys) {
         ColumnSelection colSelection = 
@@ -107,7 +107,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from all the row keys in a rangeRequest to their value at column Column1
-     * (if that column exists for the row-key). As the values are all loaded in memory,
+     * (if that column exists for the row-key). As the Column1 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map. */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest) {
         ColumnSelection colSelection =
@@ -128,7 +128,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from all the row keys in a range to their value at column Column1
-     * (if that column exists for the row-key). As the values are all loaded in memory,
+     * (if that column exists for the row-key). As the Column1 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map. */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(String startInclusive,
             String endExclusive) {
@@ -141,7 +141,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value
-     * at column Column1 (if that column exists). As the entries are all loaded in memory,
+     * at column Column1 (if that column exists). As the Column1 entries are all loaded in memory,
      * do not use for large values of sizeLimit. The order of results is preserved in the map. */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest,
             int sizeLimit) {
@@ -182,7 +182,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from the specified row keys to their value at column Column2.
-     * As the values are all loaded in memory, do not use for large amounts of data.
+     * As the Column2 values are all loaded in memory, do not use for large amounts of data.
      * If the column does not exist for a key, the entry will be omitted from the map. */
     public Map<String, String> getColumn2(Iterable<String> rowKeys) {
         ColumnSelection colSelection = 
@@ -205,7 +205,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from all the row keys in a rangeRequest to their value at column Column2
-     * (if that column exists for the row-key). As the values are all loaded in memory,
+     * (if that column exists for the row-key). As the Column2 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map. */
     public LinkedHashMap<String, String> getSmallRowRangeColumn2(RangeRequest rangeRequest) {
         ColumnSelection colSelection =
@@ -226,7 +226,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from all the row keys in a range to their value at column Column2
-     * (if that column exists for the row-key). As the values are all loaded in memory,
+     * (if that column exists for the row-key). As the Column2 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map. */
     public LinkedHashMap<String, String> getSmallRowRangeColumn2(String startInclusive,
             String endExclusive) {
@@ -239,7 +239,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value
-     * at column Column2 (if that column exists). As the entries are all loaded in memory,
+     * at column Column2 (if that column exists). As the Column2 entries are all loaded in memory,
      * do not use for large values of sizeLimit. The order of results is preserved in the map. */
     public LinkedHashMap<String, String> getSmallRowRangeColumn2(RangeRequest rangeRequest,
             int sizeLimit) {
