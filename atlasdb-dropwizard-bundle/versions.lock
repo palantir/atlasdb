@@ -494,19 +494,19 @@
             ]
         },
         "com.palantir.remoting-api:errors": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:error-handling"
             ]
         },
         "com.palantir.remoting-api:service-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra",
@@ -515,7 +515,7 @@
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -637,6 +637,12 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "commons-cli:commons-cli": {
@@ -1784,19 +1790,19 @@
             ]
         },
         "com.palantir.remoting-api:errors": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:error-handling"
             ]
         },
         "com.palantir.remoting-api:service-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra",
@@ -1805,7 +1811,7 @@
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -1927,6 +1933,12 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "commons-cli:commons-cli": {

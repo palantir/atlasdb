@@ -221,7 +221,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int rangesConcurrency() {
-        return 64;
+        return 32;
     }
 
     @Value.Default
