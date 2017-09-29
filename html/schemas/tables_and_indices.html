@@ -352,6 +352,10 @@ but not both.</li>
 the dynamic columns of the table. The section is begun with a
 <code class="docutils literal"><span class="pre">dynamicColumns()</span></code> call. A table can have a named column section or
 a dynamic column section, but not both.</li>
+<li><strong>Enabling the V2 Table API</strong> by setting the <code class="docutils literal"><span class="pre">enableV2Table()</span></code> flag.
+This would generate an additional table class with some easy to use functions such as
+<code class="docutils literal"><span class="pre">putColumn(key,</span> <span class="pre">value)</span></code>, <code class="docutils literal"><span class="pre">getColumn(key)</span></code>, <code class="docutils literal"><span class="pre">deleteColumn(key)</span></code>.
+We only provide these methods for named columns, and don’t currently support dynamic columns.</li>
 <li><strong>Constraint Definitions</strong> such as <code class="docutils literal"><span class="pre">tableConstraint()</span></code> define
 constraints on the table (such as foreign key relations). The section
 is begun with a <code class="docutils literal"><span class="pre">constraints()</span></code> call. This section is optional.</li>
