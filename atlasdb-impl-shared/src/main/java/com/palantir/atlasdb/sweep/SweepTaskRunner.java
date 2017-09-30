@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -140,6 +141,10 @@ public class SweepTaskRunner {
                                byte[] startRow,
                                RunType runType,
                                Sweeper sweeper) {
+        log.info("Beginning iteration of sweep for table {} starting at row {}",
+                LoggingArgs.tableRef(tableRef),
+                UnsafeArg.of("startRow", startRow));
+
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions

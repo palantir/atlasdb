@@ -45,7 +45,7 @@ public class SweeperTestSetup {
     protected SweepProgressStore progressStore = Mockito.mock(SweepProgressStore.class);
     protected SweepPriorityStore priorityStore = Mockito.mock(SweepPriorityStore.class);
     private NextTableToSweepProvider nextTableToSweepProvider = Mockito.mock(NextTableToSweepProvider.class);
-    private SweepTaskRunner sweepTaskRunner = Mockito.mock(SweepTaskRunner.class);
+    protected SweepTaskRunner sweepTaskRunner = Mockito.mock(SweepTaskRunner.class);
     private boolean sweepEnabled = true;
     protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
     protected long currentTimeMillis = 1000200300L;

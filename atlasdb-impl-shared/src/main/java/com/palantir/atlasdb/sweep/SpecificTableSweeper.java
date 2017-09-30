@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -123,14 +122,23 @@ public class SpecificTableSweeper {
         return sweepMetrics;
     }
 
-    void runOnceForTable(TableToSweep tableToSweep,
-            Optional<SweepBatchConfig> newSweepBatchConfig,
-            boolean saveSweepResults) {
-        Stopwatch watch = Stopwatch.createStarted();
+    void runOnceAndSaveResults(TableToSweep tableToSweep) {
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
-        SweepBatchConfig batchConfig = newSweepBatchConfig.orElse(getAdjustedBatchConfig());
+        SweepBatchConfig batchConfig = getAdjustedBatchConfig();
+
+        SweepResults results = runOneIteration(tableRef, startRow, batchConfig);
+        saveSweepResults(tableToSweep, results);
+    }
+
+    SweepResults runOneIteration(
+            TableReference tableRef,
+            byte[] startRow,
+            SweepBatchConfig batchConfig) {
+
+        Stopwatch watch = Stopwatch.createStarted();
         try {
+            log.info("Beginning");
             SweepResults results = sweepRunner.run(
                     tableRef,
                     batchConfig,
@@ -149,9 +157,7 @@ public class SpecificTableSweeper {
                             .tableName(tableRef.getQualifiedName())
                             .elapsedMillis(elapsedMillis)
                             .build());
-            if (saveSweepResults) {
-                saveSweepResults(tableToSweep, results);
-            }
+            return results;
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
             log.info("Failed to sweep.",
@@ -162,14 +168,9 @@ public class SpecificTableSweeper {
         }
     }
 
-    private SweepBatchConfig getAdjustedBatchConfig() {
+    public SweepBatchConfig getAdjustedBatchConfig() {
         SweepBatchConfig baseConfig = sweepBatchConfig.get();
-        return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(
-                        BackgroundSweeperImpl.adjustBatchParameter(baseConfig.maxCellTsPairsToExamine()))
-                .candidateBatchSize(BackgroundSweeperImpl.adjustBatchParameter(baseConfig.candidateBatchSize()))
-                .deleteBatchSize(BackgroundSweeperImpl.adjustBatchParameter(baseConfig.deleteBatchSize()))
-                .build();
+        return baseConfig.adjust(BackgroundSweeperImpl.batchSizeMultiplier);
     }
 
     private static String startRowToHex(@Nullable byte[] row) {

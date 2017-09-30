@@ -147,7 +147,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             if (checkAndRepairTableDrop()) {
                 log.info("The table being swept by the background sweeper was dropped, moving on...");
             } else {
-                SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
+                SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
                 log.warn("The background sweep job failed unexpectedly with batch config {}."
                                 + " Attempting to continue with a lower batch size...",
                         SafeArg.of("cell batch size", lastBatchConfig),
@@ -177,22 +177,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
         } else {
-            specificTableSweeper.runOnceForTable(tableToSweep.get(), Optional.empty(), true);
+            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get());
             return true;
         }
-    }
-
-    private SweepBatchConfig getAdjustedBatchConfig() {
-        SweepBatchConfig baseConfig = specificTableSweeper.getSweepBatchConfig().get();
-        return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(adjustBatchParameter(baseConfig.maxCellTsPairsToExamine()))
-                .candidateBatchSize(adjustBatchParameter(baseConfig.candidateBatchSize()))
-                .deleteBatchSize(adjustBatchParameter(baseConfig.deleteBatchSize()))
-                .build();
-    }
-
-    static int adjustBatchParameter(int parameterValue) {
-        return Math.max(1, (int) (batchSizeMultiplier * parameterValue));
     }
 
     // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made
@@ -208,7 +195,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             log.info("Sweeping another batch of table: {}. Batch starts on row {}",
                                     LoggingArgs.tableRef("table name", progress.get().tableRef()),
                                     UnsafeArg.of("startRow", progress.get().startRow()));
-                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
+                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
                             Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
                                     tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());

@@ -44,4 +44,16 @@ public interface SweepBatchConfig {
         Preconditions.checkState(candidateBatchSize() > 0, "Candidate batch size must be greater than zero");
         Preconditions.checkState(deleteBatchSize() > 0, "Delete batch size must be greater than zero");
     }
+
+    default SweepBatchConfig adjust(double multiplier) {
+        return ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(adjust(maxCellTsPairsToExamine(), multiplier))
+                .candidateBatchSize(adjust(candidateBatchSize(), multiplier))
+                .deleteBatchSize(adjust(deleteBatchSize(), multiplier))
+                .build();
+    }
+
+    default int adjust(int parameterValue, double multiplier) {
+        return Math.max(1, (int) (multiplier * parameterValue));
+    }
 }
