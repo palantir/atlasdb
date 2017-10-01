@@ -23,8 +23,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Set;
-
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -32,7 +30,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
@@ -86,10 +83,8 @@ public class UniqueSchemaMutationLockTableTest {
     }
 
     @Test
-    public void shouldThrowExceptionIfMultipleTablesNonEmptyExist() throws Exception {
+    public void shouldThrowExceptionIfMultipleTablesExist() throws Exception {
         when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(lockTable1, lockTable2));
-        when(lockTables.isLockTableEmpty(lockTable1)).thenReturn(false);
-        when(lockTables.isLockTableEmpty(lockTable2)).thenReturn(false);
 
         exception.expect(IllegalStateException.class);
         exception.expectMessage("Multiple schema mutation lock tables have been created.\n");
@@ -104,8 +99,6 @@ public class UniqueSchemaMutationLockTableTest {
     @Test
     public void shouldThrowExceptionIfMultipleTablesExistSuddenlyDueToConcurrency() throws Exception {
         when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(), ImmutableSet.of(lockTable1, lockTable2));
-        when(lockTables.isLockTableEmpty(lockTable1)).thenReturn(false);
-        when(lockTables.isLockTableEmpty(lockTable2)).thenReturn(false);
 
         exception.expect(IllegalStateException.class);
         exception.expectMessage("Multiple schema mutation lock tables have been created.\n");
@@ -115,28 +108,6 @@ public class UniqueSchemaMutationLockTableTest {
         } finally {
             verify(lockTables).createLockTable();
         }
-    }
-
-    @Test
-    public void shouldClearEmptyTablesIfMultipleTablesExist() throws Exception {
-        when(lockTables.getAllLockTables()).thenReturn(Sets.newHashSet(lockTable1, lockTable2));
-        when(lockTables.isLockTableEmpty(lockTable1)).thenReturn(true);
-        when(lockTables.isLockTableEmpty(lockTable2)).thenReturn(false);
-
-        assertThat(uniqueLockTable.getOnlyTable(), is(lockTable2));
-        verify(lockTables).dropLockTable(lockTable1);
-    }
-
-    @Test
-    public void shouldLeaveOneEmptyTableIfAllTablesAreEmpty() throws Exception {
-        Set<TableReference> tables = Sets.newHashSet(lockTable1, lockTable2);
-        when(lockTables.getAllLockTables()).thenReturn(Sets.newHashSet(tables));
-        when(lockTables.isLockTableEmpty(lockTable1)).thenReturn(true);
-        when(lockTables.isLockTableEmpty(lockTable2)).thenReturn(true);
-
-        TableReference returnedLockTable = uniqueLockTable.getOnlyTable();
-        tables.remove(returnedLockTable);
-        verify(lockTables).dropLockTable(tables.iterator().next());
     }
 
     @Test
