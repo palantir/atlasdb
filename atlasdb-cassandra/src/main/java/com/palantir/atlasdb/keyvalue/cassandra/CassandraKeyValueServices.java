@@ -47,9 +47,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public final class CassandraKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
@@ -82,7 +79,8 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (versions.size() <= 1 && checkNodesAgreement(allowQuorumAgreement, config, versions)) {
+            if (requiredNumberNodesAgreeOnSchemaVersion(allowQuorumAgreement, config, versions)
+                    || exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(allowQuorumAgreement, versions)) {
                 return;
             }
             try {
@@ -93,34 +91,39 @@ public final class CassandraKeyValueServices {
             sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
         } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
 
-        StringBuilder sb = new StringBuilder();
-        final String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
-                + " after attempting to modify table {}. {}"
-                + " \nFind the nodes above that diverge from the majority schema"
-                + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
-                + " and examine their logs to determine the issue."
-                + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                + " You can quick-check this with 'nodetool describecluster'.";
+        StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
-            sb.append(String.format("%nAt schema version %s:", version.getKey()));
+            schemaVersions.append(String.format("%nAt schema version %s:", version.getKey()));
             for (String node : version.getValue()) {
-                sb.append(String.format("%n\tNode: %s", node));
+                schemaVersions.append(String.format("%n\tNode: %s", node));
             }
         }
-        sb.append(String.format("\nThe current keyspaces are: %s", client.describe_keyspaces()));
-
-        if (allowQuorumAgreement
-                && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
-            log.error(messageTemplate, tableName, sb.toString());
-        } else {
-            throw new IllegalStateException(sb.toString());
-        }
+        String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions,"
+                        + " after attempting to modify table %s. %s"
+                        + " \nFind the nodes above that diverge from the majority schema"
+                        + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
+                        + " and examine their logs to determine the issue."
+                        + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
+                        + " You can quick-check this with 'nodetool describecluster'."
+                        + " For this node, the current keyspaces are: %s",
+                tableName,
+                schemaVersions.toString(),
+                client.describe_keyspaces());
+        throw new IllegalStateException(errorMessage);
     }
 
-    private static boolean checkNodesAgreement(
+    /**
+     * @param allowQuorumAgreement if true, requires only a quorum of nodes to be in agreement. If false, all nodes
+     * need to have the same schema version.
+     */
+    private static boolean requiredNumberNodesAgreeOnSchemaVersion(
             boolean allowQuorumAgreement,
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
+        if (versions.size() > 1) {
+            return false;
+        }
+
         int numberOfServers = config.servers().size();
         int numberOfVisibleNodes = getNumberOfVisibleNodes(versions);
 
@@ -134,8 +137,10 @@ public final class CassandraKeyValueServices {
         return versions.values().stream().mapToInt(List::size).sum();
     }
 
-    private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(Map<String, List<String>> versions) {
-        return versions.entrySet().size() == 2
+    private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(boolean allowQuorumAgreement,
+            Map<String, List<String>> versions) {
+        return allowQuorumAgreement
+                && versions.entrySet().size() == 2
                 && versions.keySet().contains("UNREACHABLE")
                 && versions.get("UNREACHABLE").size() == 1;
     }
