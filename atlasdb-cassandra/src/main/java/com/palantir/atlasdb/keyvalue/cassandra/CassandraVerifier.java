@@ -192,7 +192,7 @@ public final class CassandraVerifier {
             CassandraKeyValueServices.waitForSchemaVersions(
                     config,
                     client,
-                    "(adding the initial empty keyspace)",
+                    "(checking if schemas diverged on startup)",
                     true);
             return true;
         } catch (NotFoundException e) {
