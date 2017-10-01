@@ -418,7 +418,7 @@ final class SchemaMutationLock {
         return Long.parseLong(columnStringMatcher.group("heartbeatCount"));
     }
 
-    static byte[] getGlobalDdlLockColumnName() {
+    private static byte[] getGlobalDdlLockColumnName() {
         return CassandraKeyValueServices.makeCompositeBuffer(
                 CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
                 AtlasDbConstants.TRANSACTION_TS).array();
