@@ -23,23 +23,28 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.thrift.TException;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
+@RunWith(Parameterized.class)
 public class CassandraKeyValueServicesTest {
     private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
     private static CassandraKeyValueServiceConfig waitingConfig = mock(CassandraKeyValueServiceConfig.class);
-
     private static Cassandra.Client client = mock(Cassandra.Client.class);
 
     private static final Set<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
@@ -56,6 +61,20 @@ public class CassandraKeyValueServicesTest {
     private static final List<String> REST_OF_NODES = ImmutableList.of("4", "5");
     private static final List<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");
 
+    @SuppressWarnings("WeakerAccess") // test parameter
+    @Parameterized.Parameter
+    public boolean requiresQuorum;
+    @SuppressWarnings("WeakerAccess") // test parameter
+    @Parameterized.Parameter(value = 1)
+    public int expectedAttempts;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> parameters() {
+        return Arrays.asList(new Object[][] {
+                { true, 3 },
+                { false, 4 }});
+    }
+
     @BeforeClass
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
@@ -65,91 +84,86 @@ public class CassandraKeyValueServicesTest {
     }
 
     @Test
-    public void waitForSchemaVersionsAllSucceedsForSameSchemaVersion() throws TException {
+    public void waitSucceedsForSameSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, ALL_NODES));
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE);
+        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum);
     }
 
     @Test
-    public void waitForSchemaVersionsQuorumFailsForAllUnknownSchemaVersion() throws TException {
+    public void waitThrowsForAllUnknownSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, true))
-                .isInstanceOf(IllegalStateException.class);
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
-    public void waitForSchemaVersionsQuorumFailsForAllUnreachableSchemaVersion() throws TException {
+    public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, true))
-                .isInstanceOf(IllegalStateException.class);
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
-    public void waitForSchemaVersionsAllFailsForUnknownSchemaVersion() throws TException {
+    public void waitThrowsForFewerThanQuorumOnSameVersion() throws TException {
+        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
+        assertWaitForSchemaVersionsThrows();
+    }
+
+    @Test
+    public void waitThrowsForQuorumOfUnreachableNodes() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
+        assertWaitForSchemaVersionsThrows();
+    }
+
+    @Test
+    public void waitSucceedsForQuorumOnlyWithUnknownSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
-                .isInstanceOf(IllegalStateException.class);
+        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
     }
 
     @Test
-    public void waitForSchemaVersionsQuorumSucceedsForUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, true);
-    }
-
-    @Test
-    public void waitForSchemaVersionsAllFailsForUnreachableSchemaVersion() throws TException {
+    public void waitSucceedsForQuorumOnlyWithUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
-                .isInstanceOf(IllegalStateException.class);
+        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
     }
 
     @Test
-    public void waitForSchemaVersionsQuorumSucceedsForUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, true);
-    }
-
-    @Test
-    public void waitForSchemaVersionsQuorumFailsForDifferentSchemaVersion() throws TException {
+    public void waitThrowsForDifferentSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, true))
+        assertWaitForSchemaVersionsThrows();
+    }
+
+    @Test
+    public void waitSucceedsForQuorumOnlyWithUnknownAndUnreachableSchemaVersion() throws TException {
+        when(client.describe_schema_versions()).thenReturn(
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
+        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
+    }
+
+    @Test
+    public void waitWaitsForSchemaVersions() throws TException {
+        Cassandra.Client waitingClient = mock(Cassandra.Client.class);
+        when(waitingClient.describe_schema_versions()).thenReturn(
+                ImmutableMap.of(),
+                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, ALL_NODES));
+
+        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE, requiresQuorum);
+        verify(waitingClient, times(expectedAttempts)).describe_schema_versions();
+    }
+
+    private void assertWaitForSchemaVersionsThrows() {
+        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum))
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test
-    public void waitForSchemaVersionsQuorumSucceedsForUnknownAndUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, true);
-    }
-
-    @Test
-    public void waitForSchemaVersionsAllWaitsForSchemaVersions() throws TException {
-        Cassandra.Client waitingClient = mock(Cassandra.Client.class);
-        when(waitingClient.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(),
-                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, ALL_NODES));
-
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
-        verify(waitingClient, times(4)).describe_schema_versions();
-    }
-
-    @Test
-    public void waitForSchemaVersionsQuorumWaitsForSchemaVersions() throws TException {
-        Cassandra.Client waitingClient = mock(Cassandra.Client.class);
-        when(waitingClient.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(),
-                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, ALL_NODES));
-
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE, true);
-        verify(waitingClient, times(3)).describe_schema_versions();
+    private void assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll() throws TException {
+        try {
+            CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum);
+        } catch (IllegalStateException e) {
+            Assert.assertFalse(requiresQuorum);
+        }
     }
 }
