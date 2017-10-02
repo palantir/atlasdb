@@ -51,6 +51,12 @@ develop
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
+    *    - |fixed|
+         - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
+           However, it has seen timeouts for large amounts of data. We are turning this off by default, until we have a better retry mechanism for
+           shrink failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
     *    - |new|
          - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
            by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
