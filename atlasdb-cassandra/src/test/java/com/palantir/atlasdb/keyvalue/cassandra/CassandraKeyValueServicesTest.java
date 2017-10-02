@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
@@ -25,7 +27,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
-
 import org.apache.thrift.TException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,10 +36,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
-
 public class CassandraKeyValueServicesTest {
     private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
+    private static CassandraKeyValueServiceConfig waitingConfig = mock(CassandraKeyValueServiceConfig.class);
+
     private static Cassandra.Client client = mock(Cassandra.Client.class);
+
     private static final Set<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
             new InetSocketAddress("1", 0),
             new InetSocketAddress("2", 0),
@@ -46,7 +49,6 @@ public class CassandraKeyValueServicesTest {
             new InetSocketAddress("4", 0),
             new InetSocketAddress("5", 0));
     private static final String TABLE = "table";
-
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
     private static final String VERSION_UNREACHABLE = CassandraKeyValueServices.VERSION_UNREACHABLE;
@@ -58,6 +60,8 @@ public class CassandraKeyValueServicesTest {
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
         when(config.servers()).thenReturn(FIVE_SERVERS);
+        when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
+        when(waitingConfig.servers()).thenReturn(FIVE_SERVERS);
     }
 
     @Test
@@ -121,5 +125,31 @@ public class CassandraKeyValueServicesTest {
         when(client.describe_schema_versions()).thenReturn(
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
         CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, true);
+    }
+
+    @Test
+    public void waitForSchemaVersionsAllWaitsForSchemaVersions() throws TException {
+        Cassandra.Client waitingClient = mock(Cassandra.Client.class);
+        when(waitingClient.describe_schema_versions()).thenReturn(
+                ImmutableMap.of(),
+                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, ALL_NODES));
+
+        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
+        verify(waitingClient, times(4)).describe_schema_versions();
+    }
+
+    @Test
+    public void waitForSchemaVersionsQuorumWaitsForSchemaVersions() throws TException {
+        Cassandra.Client waitingClient = mock(Cassandra.Client.class);
+        when(waitingClient.describe_schema_versions()).thenReturn(
+                ImmutableMap.of(),
+                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, ALL_NODES));
+
+        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE, true);
+        verify(waitingClient, times(3)).describe_schema_versions();
     }
 }
