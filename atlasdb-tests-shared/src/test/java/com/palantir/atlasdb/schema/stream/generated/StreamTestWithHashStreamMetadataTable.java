@@ -138,22 +138,22 @@ public final class StreamTestWithHashStreamMetadataTable implements
     /**
      * <pre>
      * StreamTestWithHashStreamMetadataRow {
-     *   {@literal Long firstComponentHash};
+     *   {@literal Long hashOfRowComponents};
      *   {@literal Long id};
      * }
      * </pre>
      */
     public static final class StreamTestWithHashStreamMetadataRow implements Persistable, Comparable<StreamTestWithHashStreamMetadataRow> {
-        private final long firstComponentHash;
+        private final long hashOfRowComponents;
         private final long id;
 
         public static StreamTestWithHashStreamMetadataRow of(long id) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_LONG.convertFromJava(id)).asLong();
-            return new StreamTestWithHashStreamMetadataRow(firstComponentHash, id);
+            long hashOfRowComponents = computeHashFirstComponents(id);
+            return new StreamTestWithHashStreamMetadataRow(hashOfRowComponents, id);
         }
 
-        private StreamTestWithHashStreamMetadataRow(long firstComponentHash, long id) {
-            this.firstComponentHash = firstComponentHash;
+        private StreamTestWithHashStreamMetadataRow(long hashOfRowComponents, long id) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.id = id;
         }
 
@@ -181,27 +181,32 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
-            return EncodingUtils.add(firstComponentHashBytes, idBytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, idBytes);
         }
 
         public static final Hydrator<StreamTestWithHashStreamMetadataRow> BYTES_HYDRATOR = new Hydrator<StreamTestWithHashStreamMetadataRow>() {
             @Override
             public StreamTestWithHashStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long firstComponentHash = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                return new StreamTestWithHashStreamMetadataRow(firstComponentHash, id);
+                return new StreamTestWithHashStreamMetadataRow(hashOfRowComponents, id);
             }
         };
+
+        public static long computeHashFirstComponents(long id) {
+            byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(idBytes)).asLong();
+        }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("firstComponentHash", firstComponentHash)
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("id", id)
                 .toString();
         }
@@ -218,19 +223,19 @@ public final class StreamTestWithHashStreamMetadataTable implements
                 return false;
             }
             StreamTestWithHashStreamMetadataRow other = (StreamTestWithHashStreamMetadataRow) obj;
-            return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(id, other.id);
+            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ firstComponentHash, id });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id });
         }
 
         @Override
         public int compareTo(StreamTestWithHashStreamMetadataRow o) {
             return ComparisonChain.start()
-                .compare(this.firstComponentHash, o.firstComponentHash)
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.id, o.id)
                 .result();
         }
@@ -720,5 +725,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5aDOl5ErnCag90WKYttmHA==";
+    static String __CLASS_HASH = "dKu8ah8b0CeaheJZb6bgdg==";
 }
