@@ -48,6 +48,23 @@ develop
          - Allow passing a proxyConfiguration to allow setting custom proxy on the TimeLock clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2393>`__)
 
+         - Timestamp batching has now been enabled by default.
+           Please see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           This should improve throughput and latency, especially if load is heavy and/or clients are communicating with a TimeLock cluster which is used by many services.
+           Note that there may be an increase in latency under light load (e.g. 2-4 threads).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2392>`__)
+
+    *    - |fixed|
+         - The ``lock/log-current-state`` endpoint now correctly logs the number of outstanding lock requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2396>`__)
+
+    *    - |fixed|
+         - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
+           However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
+           shrink failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+>>>>>>> origin/develop
+
     *    - |new|
          - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
            by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
@@ -70,7 +87,6 @@ develop
          - Adjusted the remoting-api library version to match the version used by remoting3.
            Developers may need to check your dependencies, but no other actions should be required.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -140,12 +156,12 @@ v0.57.0
 
     *    - |devbreak| |fixed|
          - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)
 
     *    - |devbreak| |fixed|
          - The ``ConcurrentStreams`` class has been deleted and replaced with calls to ``MoreStreams.blockingStreamWithParallelism``, from `streams <https://github.com/palantir/streams>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2361/files>`__)
-         
+
     *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
            This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
