@@ -58,13 +58,13 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.tracing.Tracers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -219,10 +219,13 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 tableRef.getQualifiedName(), sizingFunction);
     }
 
+    // FIXME: The tableNameForLoggingPurposesOnly is *not* always a valid tableName
+    // This string should *not* be used or treated as a real tableName, even though sometimes it is.
+    // For example, CassandraKVS multiPuts can cause this string to include *multiple* tableNames
     protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
                                                              final int maximumCountPerPartition,
                                                              final long maximumBytesPerPartition,
-                                                             final String tableName,
+                                                             final String tableNameForLoggingPurposesOnly,
                                                              final Function<T, Long> sizingFunction) {
         return () -> new UnmodifiableIterator<List<T>>() {
             PeekingIterator<T> pi = Iterators.peekingIterator(iterable.iterator());
@@ -248,17 +251,17 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
 
                     if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
-                            TableReference.createWithEmptyNamespace(tableName))) {
+                            TableReference.createWithEmptyNamespace(tableNameForLoggingPurposesOnly))) {
                         log.warn(ENTRY_TOO_BIG_MESSAGE, sizingFunction.apply(firstEntry),
-                                maximumBytesPerPartition, tableName);
+                                maximumBytesPerPartition, tableNameForLoggingPurposesOnly);
                     } else {
                         final String longerMessage = ENTRY_TOO_BIG_MESSAGE
                                 + " This can potentially cause out-of-memory errors.";
                         log.warn(longerMessage,
                                 SafeArg.of("approximatePutSize", sizingFunction.apply(firstEntry)),
                                 SafeArg.of("maximumPutSize", maximumBytesPerPartition),
-                                LoggingArgs.tableRef("table",
-                                        TableReference.createFromFullyQualifiedName(tableName)));
+                                // FIXME: This must be an unsafe arg because it is not necessarily a real tableName
+                                UnsafeArg.of("tableName", tableNameForLoggingPurposesOnly));
                     }
                 }
 
