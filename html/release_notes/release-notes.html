@@ -196,8 +196,11 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
+However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
+shrink failures.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/ABCD">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Can now specify <code class="docutils literal"><span class="pre">hashRowComponents()</span></code> in StreamStore definitions. This prevents hotspotting in Cassandra

@@ -44,8 +44,11 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
+           However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
+           shrink failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
 
     *    - |new|
          - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
