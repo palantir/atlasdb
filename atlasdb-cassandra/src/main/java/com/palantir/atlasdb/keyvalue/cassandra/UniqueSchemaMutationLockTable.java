@@ -83,8 +83,6 @@ public class UniqueSchemaMutationLockTable {
     private TableReference getSingleTable() throws TException {
         Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
 
-        // if there's more than one table, and there are empty tables, drop them.
-
         if (lockTables.size() > 1) {
             throw new IllegalStateException("Multiple schema mutation lock tables have been created.\n"
                     + "This happens when multiple nodes have themselves as lockLeader in the configuration.\n"

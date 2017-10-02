@@ -62,12 +62,12 @@ public abstract class AsyncInitializer {
     private void tryInitializationLoop() {
         try {
             tryInitializeInternal();
-            log.info("Initialized {} on the {} attempt in {} milliseconds",
+            log.info("Initialized {} on the attempt {} in {} milliseconds",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
                     SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime));
         } catch (Throwable throwable) {
-            log.info("Failed to initialize {} on the {} attempt",
+            log.info("Failed to initialize {} on the attempt {}",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts++),
                     throwable);
