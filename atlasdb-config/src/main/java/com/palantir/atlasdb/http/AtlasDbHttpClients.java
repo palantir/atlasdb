@@ -76,7 +76,8 @@ public final class AtlasDbHttpClients {
     }
 
     /**
-     * @deprecated please use createProxyWithFailover, which requires you to specify the ProxySelector parameter.
+     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class)}, which requires
+     * you to specify the ProxySelector parameter.
      */
     @Deprecated
     public static <T> T createProxyWithFailover(
@@ -92,7 +93,8 @@ public final class AtlasDbHttpClients {
     }
 
     /**
-     * @deprecated please use createProxyWithFailover, which requires you to specify the ProxySelector parameter.
+     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class, String)}, which
+     * requires you to specify the ProxySelector parameter.
      */
     @Deprecated
     public static <T> T createProxyWithFailover(
