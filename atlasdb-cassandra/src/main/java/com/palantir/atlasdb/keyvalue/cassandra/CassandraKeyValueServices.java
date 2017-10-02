@@ -68,7 +68,7 @@ public final class CassandraKeyValueServices {
 
     /**
      * Attempt to wait until nodes' schema versions match.
-     * 
+     *
      * @param config the KVS configuration.
      * @param client Cassandra client.
      * @param tableName table being modified.

@@ -155,6 +155,13 @@ public abstract class EteSetup {
         return createClientToMultipleNodes(clazz, availableClients, SERVER_PORT);
     }
 
+    static <T> T createClient(Class<T> clazz) {
+        if (availableClients.size() == 1) {
+            return createClientToSingleNode(clazz);
+        }
+        return createClientToAllNodes(clazz);
+    }
+
     public static Container getContainer(String containerName) {
         return docker.containers().container(containerName);
     }

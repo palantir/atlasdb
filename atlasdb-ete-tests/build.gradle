@@ -53,13 +53,12 @@ task timeLockTest(type: Test) {
 
 task startupIndependenceTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/StartupIndependence*.class'
+    include '**/StartupIndependence*Test.class'
 }
 
 test {
     dependsOn longTest, prepareForEteTests, timeLockTest, startupIndependenceTest
     exclude '**/MultiCassandraTestSuite.class'
-    exclude '**/StartupIndependenceEteTest.class'
     exclude '**/*TimeLock*.class'
     exclude '**/*EteTest.class'
 }
