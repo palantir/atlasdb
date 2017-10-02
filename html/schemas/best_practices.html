@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Schema Migrations &mdash; OSS AtlasDB develop documentation</title>
+  <title>Cassandra Best Practices &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -41,8 +41,8 @@
         <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Schemas" href="index.html"/>
-        <link rel="next" title="Oracle Table Mapping" href="oracle_table_mapping.html"/>
-        <link rel="prev" title="Physical Cleanup" href="physical_cleanup.html"/> 
+        <link rel="next" title="Streams" href="streams.html"/>
+        <link rel="prev" title="Tables and Indices" href="tables_and_indices.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -100,11 +100,11 @@
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Schemas</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tables_and_indices.html">Tables and Indices</a></li>
-<li class="toctree-l2"><a class="reference internal" href="best_practices.html">Cassandra Best Practices</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Cassandra Best Practices</a></li>
 <li class="toctree-l2"><a class="reference internal" href="streams.html">Streams</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleanup_tasks.html">Cleanup Tasks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="physical_cleanup.html">Physical Cleanup</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Schema Migrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrating_schemas.html">Schema Migrations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="oracle_table_mapping.html">Oracle Table Mapping</a></li>
 </ul>
 </li>
@@ -162,14 +162,14 @@
         
           <li><a href="index.html">Schemas</a> &raquo;</li>
         
-      <li>Schema Migrations</li>
+      <li>Cassandra Best Practices</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/schemas/migrating_schemas.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/schemas/best_practices.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -183,24 +183,76 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="schema-migrations">
-<span id="migrating-schemas"></span><h1>Schema Migrations<a class="headerlink" href="#schema-migrations" title="Permalink to this headline">¶</a></h1>
-<p>AtlasDB does not provide any mechanism or tooling specific to performing schema migrations.
-Products using AtlasDB need to validate the existing schema, create the proper tables, and migrate data as necessary and should not rely on AtlasDB to natively perform these operations.</p>
-<div class="section" id="schema-mutation-lock-cassandra-only">
-<span id="schema-mutation-lock"></span><h2>Schema Mutation Lock (Cassandra only)<a class="headerlink" href="#schema-mutation-lock-cassandra-only" title="Permalink to this headline">¶</a></h2>
-<p>Cassandra 2.1 introduced a race condition that allows clients to create two versions of a table with the same create table command.
-Upon restarting your Cassandra cluster, one table will be chosen arbitrarily and the other one will be deleted, corrupting your database.
-This is a known issue with Cassandra and is being tracked on <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">CASSANDRA-10699</a>.
-To get around this in the meantime, we do two things:</p>
-<ol class="arabic simple">
-<li>All <cite>schema mutations</cite> - creating, altering, or dropping tables - are protected by a non-expiring lock called the <cite>schema mutation lock</cite>, and the state of this lock lives in the <code class="docutils literal"><span class="pre">_locks</span></code> table in Cassandra.
-A lock holder will free the lock after finishing the schema mutation.
-A free lock will be denoted by <code class="docutils literal"><span class="pre">0x393232333337323033363835343737353830375f30</span></code>, or a <code class="docutils literal"><span class="pre">Long.MAX_0</span></code> in hex. A held lock will be anything other than the cleared value.</li>
-<li>We designate a lockCreator in the <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-kvs-config"><span class="std std-ref">Cassandra KVS config</span></a> to ensure we do not hit the race condition while creating the <code class="docutils literal"><span class="pre">_locks</span></code> table.</li>
-</ol>
-<p>Occasionally we will lose an AtlasDB client while performing a schema mutation, and since the schema mutation lock does not expire, you will need to manually clear the lock.
-See <a class="reference internal" href="../troubleshooting/index.html#clearing-schema-mutation-lock"><span class="std std-ref">Clearing the schema mutation lock</span></a> for steps on how to manually clear the lock.</p>
+  <div class="section" id="cassandra-best-practices">
+<h1>Cassandra Best Practices<a class="headerlink" href="#cassandra-best-practices" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>This section is intended to provide guidelines for maintaining good performance for atlasdb queries when using Cassandra as a backing store.</p>
+<p>The advice here is meant to serve as a safeguard against using atlas in ways that are known to cause performance issues, but it is not all encompassing. In general, you can feel safe if you follow the guidelines below; however, if you need to bend any of these rules, you should make sure that you understand why it’s ok to do so.</p>
+</div>
+<div class="section" id="range-scans">
+<h2>Range Scans<a class="headerlink" href="#range-scans" title="Permalink to this headline">¶</a></h2>
+<p><strong>Range Scans vs Exact Key Lookups</strong></p>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>Prefer exact key lookups over range scans</dt>
+<dd><ul class="first last">
+<li>The performance of exact key lookups do not degrade with frequent updates to the key</li>
+<li>Exact key lookups will never fetch more data than you expect</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p><strong>Row vs Dynamic Column Range Scans</strong></p>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>Prefer dynamic column range scans</dt>
+<dd><ul class="first last">
+<li>Range scanning over dynamic columns within a row can be 2 or more times faster than range scanning across rows</li>
+<li>Dynamic column scans are more efficient, and Cassandra is optimized for them</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>However, when used properly, row-based range scans can still provide acceptable performance.</li>
+</ul>
+<p><strong>Range Scan Caveats</strong></p>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>Avoid range scanning across rows or dynamic columns where data is updated / overwritten / deleted</dt>
+<dd><ul class="first last">
+<li>Range scans will fetch all historical versions of every cell. This means that range scan performance degrades linearly with the number of updates to cells in the range</li>
+<li>The impact of overwrites can be alleviated over time by background sweep, but in general, you should design your schema in such a way that your queries do not rely on sweep to maintain good performance</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Do not attempt to “filter” row keys by selecting only one column in your range scan</dt>
+<dd><ul class="first last">
+<li>Atlas will retrieve all column values for every row returned in a range scan, even if only one column is requested.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Consider the impact on data distribution when designing a table for range scans</dt>
+<dd><ul class="first last">
+<li>Range scans inherently lead to hotspotting, because keys that are close to one another in a range will end up on the same Cassandra node.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>When using dynamic columns for range scans, do not allow the total size of your row to grow above ~100MB.</dt>
+<dd><ul class="first last">
+<li>Large rows reduce performance of compactions and create heap pressure in Cassandra</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
 </div>
 </div>
 
@@ -214,10 +266,10 @@ See <a class="reference internal" href="../troubleshooting/index.html#clearing-s
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="oracle_table_mapping.html" class="btn btn-neutral float-right" title="Oracle Table Mapping" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="streams.html" class="btn btn-neutral float-right" title="Streams" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="physical_cleanup.html" class="btn btn-neutral" title="Physical Cleanup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tables_and_indices.html" class="btn btn-neutral" title="Tables and Indices" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
