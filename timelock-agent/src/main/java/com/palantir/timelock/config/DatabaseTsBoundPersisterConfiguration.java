@@ -33,12 +33,13 @@ public abstract class DatabaseTsBoundPersisterConfiguration implements TsBoundPe
     public abstract KeyValueServiceConfig keyValueServiceConfig();
 
     /*
-     * "cassandra" is hard-coded from CassandraKeyValueServiceConfig.java
-     * to avoid taking a compile time dependency on atlasdb-cassandra
+     * "relational" is hard-coded from DbKeyValueServiceConfig
+     * to avoid taking a compile time dependency on atlasdb-dbkvs
      */
     @Value.Check
     public void check() {
-        Preconditions.checkArgument(!keyValueServiceConfig().type().equals("cassandra"),
-                "Cassandra is not a supported KeyValueService for TimeLock's database persister");
+        String kvsType = keyValueServiceConfig().type();
+        Preconditions.checkArgument(kvsType.equals("relational") || kvsType.equals("memory"),
+                "Only InMemory/Dbkvs is a supported for TimeLock's database persister. Found %s.", kvsType);
     }
 }

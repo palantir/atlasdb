@@ -157,16 +157,14 @@ public class TimeLockServerConfigurationTest {
                 .isInstanceOf(ImmutableDatabaseTsBoundPersisterConfiguration.class);
     }
 
-    //Ideally it shouldn't allow as this is unsupported, but it does as we cannot add a config level check
-    //without a Dbkvs dependency here.
     @Test
-    public void shouldAllowCassandraTimestampPeristerToBeSpecified() {
-        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null,
+    public void shouldNotAllowCassandraTimestampPeristerToBeSpecified() {
+        assertThatThrownBy(() ->
                 ImmutableDatabaseTsBoundPersisterConfiguration.builder()
-                        .keyValueServiceConfig(CASSANDRA_KVS_CONFIG)
-                        .build(), null);
-        assertThat(configuration.getTsBoundPersisterConfiguration())
-                .isInstanceOf(ImmutableDatabaseTsBoundPersisterConfiguration.class);
+                        .keyValueServiceConfig(CASSANDRA_KVS_CONFIG).build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "Only InMemory/Dbkvs is a supported for TimeLock's database persister. Found cassandra.");
     }
 
     private static TimeLockServerConfiguration createSimpleConfig(ClusterConfiguration cluster, Set<String> clients) {
