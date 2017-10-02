@@ -48,6 +48,35 @@ develop
          - The ``lock/log-current-state`` endpoint now correctly logs the number of outstanding lock requests.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2396>`__)
 
+    *    - |fixed|
+         - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
+           However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
+           shrink failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
+    *    - |new|
+         - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
+           by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
+           We do not support adding this to an existing StreamStore, as it would require data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - Can now specify ``hashFirstNRowComponents(n)`` in Table and Index definitions.
+           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+           When using with prefix range requests, the components that are hashed must also be specified in the prefix.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - Can now use a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
+           This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
+           We only provide these methods for named columns, and don't currently support dynamic columns.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
+
+    *    - |devbreak| |fixed|
+         - Adjusted the remoting-api library version to match the version used by remoting3.
+           Developers may need to check your dependencies, but no other actions should be required.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

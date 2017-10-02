@@ -22,12 +22,15 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
+import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
@@ -141,14 +144,36 @@ public class SchemaTest {
         Schema schema = ApiTestSchema.getSchema();
         schema.renderTables(testFolder.getRoot());
 
-        String generatedTestTableName = "SchemaApiTestTable";
-        String generatedFilePath =
-                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedTestTableName);
+        List<String> generatedTestTables = ApiTestSchema.getSchema().getAllTables().stream()
+                .map(entry -> entry.getTablename() + "Table")
+                .collect(Collectors.toList());
 
-        File expectedFile = new File("src/integrationInput/java", generatedFilePath);
-        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+        checkIfFilesAreTheSame(generatedTestTables);
+    }
 
-        assertThat(actualFile).hasSameContentAs(expectedFile);
+    @Test
+    public void checkAgainstAccidentalTableV2APIChanges() throws IOException {
+        Schema schema = ApiTestSchema.getSchema();
+        schema.renderTables(testFolder.getRoot());
+
+        List<String> generatedTestTables = ApiTestSchema.getSchema().getTableDefinitions().values()
+                .stream()
+                .filter(TableDefinition::hasV2TableEnabled)
+                .map(entry -> entry.getJavaTableName() + SCHEMA_V2_TABLE_NAME)
+                .collect(Collectors.toList());
+
+        checkIfFilesAreTheSame(generatedTestTables);
+    }
+
+    private void checkIfFilesAreTheSame(List<String> generatedTestTables) {
+        generatedTestTables.forEach(tableName -> {
+            String generatedFilePath =
+                    String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
+
+            File expectedFile = new File("src/integrationInput/java", generatedFilePath);
+            File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+            assertThat(actualFile).hasSameContentAs(expectedFile);
+        });
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
