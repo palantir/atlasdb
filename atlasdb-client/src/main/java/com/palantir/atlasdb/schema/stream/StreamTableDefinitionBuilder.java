@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import static java.lang.Math.min;
+
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -34,6 +37,7 @@ public class StreamTableDefinitionBuilder {
     private boolean hashFirstRowComponent = false;
     private boolean appendHeavyAndReadLight = false;
     private boolean dbSideCompressionForBlocks = false;
+    private int numberOfComponentsHashed = 0;
 
     public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType) {
         this.streamTableType = type;
@@ -57,8 +61,11 @@ public class StreamTableDefinitionBuilder {
         return this;
     }
 
-    public StreamTableDefinitionBuilder hashFirstRowComponent() {
-        hashFirstRowComponent = true;
+    public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
+        Preconditions.checkArgument(numberOfComponentsHashed <= 2,
+                "The number of components specified must be less than two as " +
+                        "StreamStore internal tables use at most two row components.");
+        this.numberOfComponentsHashed = numberOfComponentsHashed;
         return this;
     }
 
@@ -98,13 +105,12 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                if (hashFirstRowComponent) {
-                    hashFirstRowComponent();
-                }
-                rowComponent("id",            idType);
+                    // Can hash at most one component for this table.
+                    hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
+                    rowComponent("id",            idType);
                 dynamicColumns();
-                columnComponent("reference", ValueType.SIZED_BLOB);
-                value(ValueType.VAR_LONG);
+                    columnComponent("reference", ValueType.SIZED_BLOB);
+                    value(ValueType.VAR_LONG);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(1);
                 explicitCompressionRequested();
@@ -119,9 +125,8 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                    if (hashFirstRowComponent) {
-                        hashFirstRowComponent();
-                    }
+                    // Can hash at most one component for this table.
+                    hashFirstNRowComponents(min(numberOfComponentsHashed, 1));
                     rowComponent("id", idType);
                 columns();
                     column("metadata", "md", StreamPersistence.StreamMetadata.class);
@@ -140,9 +145,7 @@ public class StreamTableDefinitionBuilder {
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
                 rowName();
-                    if (hashFirstRowComponent) {
-                        hashFirstRowComponent();
-                    }
+                    hashFirstNRowComponents(numberOfComponentsHashed);
                     rowComponent("id",              idType);
                     rowComponent("block_id",        ValueType.VAR_LONG);
                 columns();

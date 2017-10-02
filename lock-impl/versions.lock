@@ -115,7 +115,7 @@
             "requested": "3.0.3-p5"
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -288,7 +288,7 @@
             "requested": "3.0.3-p5"
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]

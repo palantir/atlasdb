@@ -460,13 +460,13 @@
             ]
         },
         "com.palantir.remoting-api:service-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:timelock-agent"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:timelock-server",
@@ -600,6 +600,12 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "commons-io:commons-io": {

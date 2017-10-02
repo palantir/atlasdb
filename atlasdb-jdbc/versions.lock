@@ -178,13 +178,13 @@
             "project": true
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -243,6 +243,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "commons-lang:commons-lang": {
@@ -500,13 +506,13 @@
             "project": true
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -565,6 +571,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "commons-lang:commons-lang": {
