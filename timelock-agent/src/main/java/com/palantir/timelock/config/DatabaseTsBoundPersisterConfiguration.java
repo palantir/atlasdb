@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableDatabaseTsBoundPersisterConfiguration.class)
@@ -31,4 +32,13 @@ public abstract class DatabaseTsBoundPersisterConfiguration implements TsBoundPe
     @JsonProperty("key-value-service")
     public abstract KeyValueServiceConfig keyValueServiceConfig();
 
+    /*
+     * "cassandra" is hard-coded from CassandraKeyValueServiceConfig.java
+     * to avoid taking a compile time dependency on atlasdb-cassandra
+     */
+    @Value.Check
+    public void check() {
+        Preconditions.checkArgument(!keyValueServiceConfig().type().equals("cassandra"),
+                "Cassandra is not a supported KeyValueService for TimeLock's database persister");
+    }
 }
