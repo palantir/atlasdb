@@ -138,24 +138,24 @@ public final class StreamTestWithHashStreamValueTable implements
     /**
      * <pre>
      * StreamTestWithHashStreamValueRow {
-     *   {@literal Long firstComponentHash};
+     *   {@literal Long hashOfRowComponents};
      *   {@literal Long id};
      *   {@literal Long blockId};
      * }
      * </pre>
      */
     public static final class StreamTestWithHashStreamValueRow implements Persistable, Comparable<StreamTestWithHashStreamValueRow> {
-        private final long firstComponentHash;
+        private final long hashOfRowComponents;
         private final long id;
         private final long blockId;
 
         public static StreamTestWithHashStreamValueRow of(long id, long blockId) {
-            long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.VAR_LONG.convertFromJava(id)).asLong();
-            return new StreamTestWithHashStreamValueRow(firstComponentHash, id, blockId);
+            long hashOfRowComponents = computeHashFirstComponents(id);
+            return new StreamTestWithHashStreamValueRow(hashOfRowComponents, id, blockId);
         }
 
-        private StreamTestWithHashStreamValueRow(long firstComponentHash, long id, long blockId) {
-            this.firstComponentHash = firstComponentHash;
+        private StreamTestWithHashStreamValueRow(long hashOfRowComponents, long id, long blockId) {
+            this.hashOfRowComponents = hashOfRowComponents;
             this.id = id;
             this.blockId = blockId;
         }
@@ -188,30 +188,35 @@ public final class StreamTestWithHashStreamValueTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
+            byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
             byte[] blockIdBytes = EncodingUtils.encodeUnsignedVarLong(blockId);
-            return EncodingUtils.add(firstComponentHashBytes, idBytes, blockIdBytes);
+            return EncodingUtils.add(hashOfRowComponentsBytes, idBytes, blockIdBytes);
         }
 
         public static final Hydrator<StreamTestWithHashStreamValueRow> BYTES_HYDRATOR = new Hydrator<StreamTestWithHashStreamValueRow>() {
             @Override
             public StreamTestWithHashStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long firstComponentHash = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
                 Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
-                return new StreamTestWithHashStreamValueRow(firstComponentHash, id, blockId);
+                return new StreamTestWithHashStreamValueRow(hashOfRowComponents, id, blockId);
             }
         };
+
+        public static long computeHashFirstComponents(long id) {
+            byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(idBytes)).asLong();
+        }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("firstComponentHash", firstComponentHash)
+                .add("hashOfRowComponents", hashOfRowComponents)
                 .add("id", id)
                 .add("blockId", blockId)
                 .toString();
@@ -229,19 +234,19 @@ public final class StreamTestWithHashStreamValueTable implements
                 return false;
             }
             StreamTestWithHashStreamValueRow other = (StreamTestWithHashStreamValueRow) obj;
-            return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
+            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(id, other.id) && Objects.equal(blockId, other.blockId);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ firstComponentHash, id, blockId });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id, blockId });
         }
 
         @Override
         public int compareTo(StreamTestWithHashStreamValueRow o) {
             return ComparisonChain.start()
-                .compare(this.firstComponentHash, o.firstComponentHash)
+                .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.id, o.id)
                 .compare(this.blockId, o.blockId)
                 .result();
@@ -708,5 +713,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rjkbPRGg2A5EM3En+XGIsw==";
+    static String __CLASS_HASH = "ob5ahzk5qpKE0Ot/EJM7Pw==";
 }

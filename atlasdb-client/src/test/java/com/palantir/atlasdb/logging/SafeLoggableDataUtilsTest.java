@@ -50,7 +50,7 @@ public class SafeLoggableDataUtilsTest {
                             .uniformRowNamePartitioner(new UniformRowNamePartitioner(ValueType.VAR_LONG))
                             .logSafety(LogSafety.SAFE)
                             .build()),
-            false);
+            0);
     private static final ColumnMetadataDescription COLUMN_METADATA_DESCRIPTION =
             new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription("bar", COLUMN_LONG_NAME,
                     ColumnValueDescription.forType(ValueType.VAR_LONG), LogSafety.SAFE)));
@@ -59,7 +59,7 @@ public class SafeLoggableDataUtilsTest {
             NameMetadataDescription.create(
                     ImmutableList.of(new NameComponentDescription.Builder()
                             .componentName(ROW_COMPONENT_NAME).type(ValueType.VAR_LONG).build()),
-                    false),
+                    0),
             new ColumnMetadataDescription(
                     ImmutableList.of(new NamedColumnDescription("bar", "barrrr",
                             ColumnValueDescription.forType(ValueType.VAR_LONG)))),

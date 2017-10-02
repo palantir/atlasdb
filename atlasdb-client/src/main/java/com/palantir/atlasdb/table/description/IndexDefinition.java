@@ -117,9 +117,19 @@ public class IndexDefinition extends AbstractDefinition {
      * end of the row
      */
     public void hashFirstRowComponent() {
-        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
-        Preconditions.checkState(rowComponents.isEmpty(), "hashRowComponent must be the first row component");
-        hashFirstRowComponent = true;
+        checkHashRowComponentsPreconditions("hashFirstRowComponent");
+        hashFirstNRowComponents(1);
+    }
+
+    /**
+     * Prefix the row with a hash of the first N row components.
+     * If using prefix range requests, the components that are hashed must also be specified in the prefix.
+     */
+    public void hashFirstNRowComponents(int numberOfComponents) {
+        Preconditions.checkState(numberOfComponents >= 0,
+                "Need to specify a non-negative number of components to hash.");
+        checkHashRowComponentsPreconditions("hashFirstNRowComponents");
+        numberOfComponentsHashed = numberOfComponents;
         ignoreHotspottingChecks = true;
     }
 
@@ -227,8 +237,16 @@ public class IndexDefinition extends AbstractDefinition {
         validateFirstRowComp(rowComponents.get(0).getRowKeyDescription());
     }
 
+    private void checkHashRowComponentsPreconditions(String methodName) {
+        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS,
+                "Can only indicate %s inside the rowName scope.", methodName);
+        Preconditions.checkState(rowComponents.isEmpty(),
+                "%s must be the first row component.", methodName);
+    }
+
     private State state = State.NONE;
     private boolean hashFirstRowComponent = false;
+    private int numberOfComponentsHashed = 0;
     private String sourceTableName = null;
     private String javaIndexTableName = null;
     private List<IndexComponent> rowComponents = Lists.newArrayList();
@@ -279,7 +297,7 @@ public class IndexDefinition extends AbstractDefinition {
                     sweepStrategy,
                     expirationStrategy,
                     appendHeavyAndReadLight,
-                    hashFirstRowComponent);
+                    numberOfComponentsHashed);
         } else {
             return IndexMetadata.createDynamicIndex(
                     indexTableName,
@@ -297,7 +315,7 @@ public class IndexDefinition extends AbstractDefinition {
                     sweepStrategy,
                     expirationStrategy,
                     appendHeavyAndReadLight,
-                    hashFirstRowComponent);
+                    numberOfComponentsHashed);
         }
     }
 }
