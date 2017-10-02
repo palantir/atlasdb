@@ -36,6 +36,17 @@ public interface AtlasDbFactory {
         return createRawKeyValueService(config, leaderConfig, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);
     }
 
+    /**
+     * Creates a KeyValueService instance of the requested type.
+     *
+     * @param config Configuration file.
+     * @param leaderConfig If the implementation supports it, the optional leader configuration.
+     * @param namespace If the implementation supports it, this is the namespace to use when the namespace in config is
+     * absent. If both are present, they must match.
+     * @param initializeAsync If the implementations supports it, and initializeAsync is true, the KVS will initialize
+     * asynchronously when synchronous initialization fails.
+     * @return The requested KeyValueService instance.
+     */
     KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,

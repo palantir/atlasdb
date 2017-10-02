@@ -42,7 +42,15 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         return TYPE;
     }
 
-    // async initialization not implemented/propagated
+    /**
+     * Creates a ConnectionManagerAwareDbKvs.
+     *
+     * @param config Configuration file.
+     * @param leaderConfig unused.
+     * @param namespace unused.
+     * @param initializeAsync unused.
+     * @return The requested KeyValueService instance.
+     */
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,

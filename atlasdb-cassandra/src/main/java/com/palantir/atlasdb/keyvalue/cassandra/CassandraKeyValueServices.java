@@ -66,6 +66,15 @@ public final class CassandraKeyValueServices {
         waitForSchemaVersions(config, client, tableName, false);
     }
 
+    /**
+     * Attempt to wait until nodes' schema versions match.
+     * 
+     * @param config the KVS configuration.
+     * @param client Cassandra client.
+     * @param tableName table being modified.
+     * @param allowQuorumAgreement if true, only a quorum of nodes must agree if the rest of the nodes are unreachable.
+     * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
+     */
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             Cassandra.Client client,

@@ -82,7 +82,15 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return "memory";
     }
 
-    // async initialization not implemented/propagated
+    /**
+     * Creates an InMemoryKeyValueService.
+     *
+     * @param config Configuration file.
+     * @param leaderConfig unused.
+     * @param unused unused.
+     * @param initializeAsync unused.
+     * @return The requested KeyValueService instance.
+     */
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,

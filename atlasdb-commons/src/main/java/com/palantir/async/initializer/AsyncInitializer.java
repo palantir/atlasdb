@@ -46,6 +46,11 @@ public abstract class AsyncInitializer {
     private int numberOfInitializationAttempts = 1;
     private Long initializationStartTime;
 
+    /**
+     * Initialization method that must be called to initialize the object before it is used.
+     * @param initializeAsync If true, the object will be initialized asynchronously when synchronous initialization
+     * fails.
+     */
     public final void initialize(boolean initializeAsync) {
         assertNeverCalledInitialize();
 

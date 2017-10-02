@@ -38,7 +38,15 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
         return JdbcKeyValueConfiguration.TYPE;
     }
 
-    // async initialization not implemented/propagated
+    /**
+     * Creates a JdbcKeyValueService.
+     *
+     * @param config Configuration file.
+     * @param leaderConfig unused.
+     * @param unused unused.
+     * @param initializeAsync unused.
+     * @return The requested KeyValueService instance.
+     */
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
