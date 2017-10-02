@@ -44,6 +44,13 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Timestamp batching has now been enabled by default.
+           Please see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           This should improve throughput and latency, especially if load is heavy and/or clients are communicating with a TimeLock cluster which is used by many services.
+           Note that there may be an increase in latency under light load (e.g. 2-4 threads).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2392>`__)
+
     *    - |fixed|
          - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
            However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
@@ -72,7 +79,6 @@ develop
          - Adjusted the remoting-api library version to match the version used by remoting3.
            Developers may need to check your dependencies, but no other actions should be required.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
