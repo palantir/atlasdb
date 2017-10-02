@@ -34,6 +34,7 @@ import java.util.TreeMap;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -54,20 +55,30 @@ public abstract class AbstractSchemaApiTest {
     private static final TableReference tableRef =
             TableReference.create(Namespace.DEFAULT_NAMESPACE, "SchemaApiTest");
 
-    private static final String TEST_ROW_KEY = "testRowKey";
-    private static final String TEST_ROW_KEY2 = "testRowKey2";
-    private static final long TEST_VALUE = 2L;
-    private static final long ANOTHER_TEST_VALUE = 3L;
-    private static final ColumnSelection FIRST_COLUMN_SELECTION =
-            ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes("c")));
+    protected static final String TEST_ROW_KEY = "testRowKey";
+    protected static final String TEST_ROW_KEY2 = "testRowKey2";
+    protected static final String TEST_ROW_KEY3 = "testRowKey3";
+    protected static final String RANGE_END_ROW_KEY = "testRowKeyEndRange";
+    protected static final long TEST_VALUE_LONG = 2L;
+    protected static final long TEST_VALUE_LONG2 = 3L;
+    protected static final String TEST_VALUE_STRING = "value1";
+    protected static final String TEST_VALUE_STRING2 = "value2";
+    protected static final String TEST_VALUE_STRING3 = "value3";
 
     protected static final String FIRST_COL_SHORT_NAME = "c";
     protected static final String SECOND_COL_SHORT_NAME = "d";
 
+    protected static final ColumnSelection FIRST_COLUMN_SELECTION =
+            ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(FIRST_COL_SHORT_NAME)));
+    protected static final ColumnSelection SECOND_COLUMN_SELECTION =
+            ColumnSelection.create(Collections.singletonList(PtBytes.toCachedBytes(SECOND_COL_SHORT_NAME)));
+
     protected abstract void putSingleRowFirstColumn(Transaction transaction, String roWKey, long value);
     protected abstract Long getSingleRowFirstColumn(Transaction transaction, String rowKey);
-    protected abstract List<Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKey);
-    protected abstract List<String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey);
+    protected abstract Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKey);
+    protected abstract Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey);
+    protected abstract Map<String,String> getRangeSecondColumnOnlyFirstTwoResults(Transaction transaction, String testRowKey,
+            String rangeEndRowKey);
     protected abstract void deleteWholeRow(Transaction transaction, String rowKey);
     protected abstract void deleteFirstColumn(Transaction transaction, String rowKey);
 
@@ -75,37 +86,34 @@ public abstract class AbstractSchemaApiTest {
     public void testPutSingleRowFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
 
-        putSingleRowFirstColumn(transaction, TEST_ROW_KEY, TEST_VALUE);
+        putSingleRowFirstColumn(transaction, TEST_ROW_KEY, TEST_VALUE_LONG);
 
         ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
         verify(transaction, times(1)).put(eq(tableRef), argument.capture());
 
         Map<Cell, byte[]> foundMap = argument.getValue();
-        Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
+        Cell expectedCell = getCell(TEST_ROW_KEY, FIRST_COL_SHORT_NAME);
         assertThat(Iterables.getOnlyElement(foundMap.keySet())).isEqualTo(expectedCell);
         assertThat(Iterables.getOnlyElement(foundMap.values()))
                 .usingComparator(UnsignedBytes.lexicographicalComparator())
-                .isEqualTo(EncodingUtils.encodeUnsignedVarLong(TEST_VALUE));
+                .isEqualTo(encodeLong(TEST_VALUE_LONG));
     }
 
     @Test
     public void testGetSingleRowFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        Cell resultCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
-        SortedMap<byte[], RowResult<byte[]>> expectedResults = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
-        expectedResults.put(
-                TEST_ROW_KEY.getBytes(),
-                RowResult.of(resultCell, EncodingUtils.encodeUnsignedVarLong(TEST_VALUE)));
-        when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(expectedResults);
+        SortedMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        addToResultsMap(resultsMap, TEST_ROW_KEY, FIRST_COL_SHORT_NAME, encodeLong(TEST_VALUE_LONG));
+        when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);
 
         long value = getSingleRowFirstColumn(transaction, TEST_ROW_KEY);
 
-        assertThat(value).isEqualTo(TEST_VALUE);
+        assertThat(value).isEqualTo(TEST_VALUE_LONG);
         ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
         verify(transaction, times(1))
                 .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
-        List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
+        Iterable<byte[]> argumentRows = argument.getValue();
         assertThat(Iterables.getOnlyElement(argumentRows))
                 .usingComparator(UnsignedBytes.lexicographicalComparator())
                 .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));
@@ -114,21 +122,14 @@ public abstract class AbstractSchemaApiTest {
     @Test
     public void testGetMultipleRowsFirstColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
-        Cell anotherExpectedCell =
-                Cell.create(PtBytes.toBytes(TEST_ROW_KEY2), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
         SortedMap<byte[], RowResult<byte[]>> resultsMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
-        resultsMap.put(
-                TEST_ROW_KEY.getBytes(),
-                RowResult.of(expectedCell, EncodingUtils.encodeUnsignedVarLong(TEST_VALUE)));
-        resultsMap.put(
-                TEST_ROW_KEY2.getBytes(),
-                RowResult.of(anotherExpectedCell, EncodingUtils.encodeUnsignedVarLong(ANOTHER_TEST_VALUE)));
+        addToResultsMap(resultsMap, TEST_ROW_KEY, FIRST_COL_SHORT_NAME, encodeLong(TEST_VALUE_LONG));
+        addToResultsMap(resultsMap, TEST_ROW_KEY2, FIRST_COL_SHORT_NAME, encodeLong(TEST_VALUE_LONG2));
         when(transaction.getRows(eq(tableRef), any(), eq(FIRST_COLUMN_SELECTION))).thenReturn(resultsMap);
 
-        List<Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
+        Map<String, Long> result = getMultipleRowsFirstColumn(transaction, Arrays.asList(TEST_ROW_KEY, TEST_ROW_KEY2));
 
-        assertThat(result).isEqualTo(Arrays.asList(TEST_VALUE, ANOTHER_TEST_VALUE));
+        assertThat(result).isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_LONG, TEST_ROW_KEY2, TEST_VALUE_LONG2));
         ArgumentCaptor<Iterable> argument = ArgumentCaptor.forClass(Iterable.class);
         verify(transaction, times(1))
                 .getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
@@ -144,39 +145,55 @@ public abstract class AbstractSchemaApiTest {
     }
 
     @Test
-    public void testRowRange() {
-        final String endRowKey = "testRowKey3";
-        final String testStringValue = "value1";
-        final String anotherTestStringValue = "value2";
-
+    public void testRowRangeSecondColumn() {
         AbstractTransaction transaction = mock(AbstractTransaction.class);
-        Cell expectedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(SECOND_COL_SHORT_NAME));
-        Cell anotherExpectedCell =
-                Cell.create(PtBytes.toBytes(TEST_ROW_KEY2), PtBytes.toBytes(SECOND_COL_SHORT_NAME));
-        when(transaction.getRange(eq(tableRef), any())).thenReturn(
+        Cell expectedCell = getCell(TEST_ROW_KEY, SECOND_COL_SHORT_NAME);
+        Cell anotherExpectedCell = getCell(TEST_ROW_KEY2, SECOND_COL_SHORT_NAME);
+        RangeRequest expectedRange = RangeRequest.builder()
+                .startRowInclusive(TEST_ROW_KEY.getBytes())
+                .endRowExclusive(RANGE_END_ROW_KEY.getBytes())
+                .retainColumns(SECOND_COLUMN_SELECTION)
+                .build();
+        when(transaction.getRange(tableRef, expectedRange)).thenReturn(
                 BatchingVisitableFromIterable.create(Arrays.asList(
-                        RowResult.of(expectedCell, testStringValue.getBytes()),
-                        RowResult.of(anotherExpectedCell, anotherTestStringValue.getBytes())
+                        RowResult.of(expectedCell, TEST_VALUE_STRING.getBytes()),
+                        RowResult.of(anotherExpectedCell, TEST_VALUE_STRING2.getBytes())
                 ))
         );
 
-        List<String> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, endRowKey);
+        Map<String, String> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
 
-        assertThat(result).isEqualTo(Arrays.asList(testStringValue, anotherTestStringValue));
-        ArgumentCaptor<RangeRequest> argument = ArgumentCaptor.forClass(RangeRequest.class);
-        verify(transaction, times(1))
-                .getRange(eq(tableRef), argument.capture());
+        assertThat(result)
+                .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
+        verify(transaction, times(1)).getRange(tableRef, expectedRange);
+    }
 
-        RangeRequest rangeRequestFound = argument.getValue();
-        assertThat(rangeRequestFound.getStartInclusive())
-                .usingComparator(UnsignedBytes.lexicographicalComparator())
-                .isEqualTo(PtBytes.toBytes(TEST_ROW_KEY));
-        assertThat(rangeRequestFound.getEndExclusive())
-                .usingComparator(UnsignedBytes.lexicographicalComparator())
-                .isEqualTo(PtBytes.toBytes(endRowKey));
-        assertThat(Iterables.getOnlyElement(rangeRequestFound.getColumnNames()))
-                .usingComparator(UnsignedBytes.lexicographicalComparator())
-                .isEqualTo(PtBytes.toBytes(SECOND_COL_SHORT_NAME));
+    @Test
+    public void testRowRangeSecondColumnFirstTwoResults() {
+        AbstractTransaction transaction = mock(AbstractTransaction.class);
+        Cell expectedCell = getCell(TEST_ROW_KEY, SECOND_COL_SHORT_NAME);
+        Cell anotherExpectedCell = getCell(TEST_ROW_KEY2, SECOND_COL_SHORT_NAME);
+        Cell cellToBeDroppedFromResults = getCell(TEST_ROW_KEY3, SECOND_COL_SHORT_NAME);
+        RangeRequest expectedRange = RangeRequest.builder()
+                .startRowInclusive(TEST_ROW_KEY.getBytes())
+                .endRowExclusive(RANGE_END_ROW_KEY.getBytes())
+                .retainColumns(SECOND_COLUMN_SELECTION)
+                .batchHint(2)
+                .build();
+        when(transaction.getRange(tableRef, expectedRange)).thenReturn(
+                BatchingVisitableFromIterable.create(Arrays.asList(
+                        RowResult.of(expectedCell, TEST_VALUE_STRING.getBytes()),
+                        RowResult.of(anotherExpectedCell, TEST_VALUE_STRING2.getBytes()),
+                        RowResult.of(cellToBeDroppedFromResults, TEST_VALUE_STRING3.getBytes())
+                ))
+        );
+
+        Map<String, String> result =
+                getRangeSecondColumnOnlyFirstTwoResults(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
+
+        assertThat(result)
+                .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
+        verify(transaction, times(1)).getRange(tableRef, expectedRange);
     }
 
     @Test
@@ -185,10 +202,8 @@ public abstract class AbstractSchemaApiTest {
 
         deleteWholeRow(transaction, TEST_ROW_KEY);
 
-        Cell expectedDeletedFirstCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY),
-                PtBytes.toBytes(FIRST_COL_SHORT_NAME));
-        Cell expectedDeletedSecondCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY),
-                PtBytes.toBytes(SECOND_COL_SHORT_NAME));
+        Cell expectedDeletedFirstCell = getCell(TEST_ROW_KEY, FIRST_COL_SHORT_NAME);
+        Cell expectedDeletedSecondCell = getCell(TEST_ROW_KEY, SECOND_COL_SHORT_NAME);
         verify(transaction, times(1)).delete(tableRef,
                 ImmutableSet.of(expectedDeletedFirstCell, expectedDeletedSecondCell));
     }
@@ -199,8 +214,23 @@ public abstract class AbstractSchemaApiTest {
 
         deleteFirstColumn(transaction, TEST_ROW_KEY);
 
-        Cell expectedDeletedCell = Cell.create(PtBytes.toBytes(TEST_ROW_KEY), PtBytes.toBytes(FIRST_COL_SHORT_NAME));
+        Cell expectedDeletedCell = getCell(TEST_ROW_KEY, FIRST_COL_SHORT_NAME);
         verify(transaction, times(1)).delete(tableRef,
                 ImmutableSet.of(expectedDeletedCell));
+    }
+
+
+    protected void addToResultsMap(SortedMap<byte[], RowResult<byte[]>> map,
+            String rowKey, String colShortName, byte[] value) {
+        Cell resultCell = getCell(rowKey, colShortName);
+        map.put(rowKey.getBytes(), RowResult.of(resultCell, value));
+    }
+
+    protected Cell getCell(String rowKey, String colShortName) {
+        return Cell.create(PtBytes.toBytes(rowKey), PtBytes.toBytes(colShortName));
+    }
+
+    protected byte[] encodeLong(Long value) {
+        return EncodingUtils.encodeUnsignedVarLong(value);
     }
 }

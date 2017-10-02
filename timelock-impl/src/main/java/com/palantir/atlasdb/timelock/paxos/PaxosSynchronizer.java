@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
@@ -46,10 +47,12 @@ public final class PaxosSynchronizer {
         if (mostRecentValue.isPresent()) {
             PaxosValue paxosValue = mostRecentValue.get();
             if (paxosValue.equals(learnerToSynchronize.getGreatestLearnedValue())) {
-                log.info("Started up and found that our value {} is already the most recent.", paxosValue);
+                log.info("Started up and found that our value {} is already the most recent.",
+                        SafeArg.of("value", paxosValue));
             } else {
                 learnerToSynchronize.learn(paxosValue.getRound(), paxosValue);
-                log.info("Started up and learned the most recent value: {}.", paxosValue);
+                log.info("Started up and learned the most recent value: {}.",
+                        SafeArg.of("value", paxosValue));
             }
         } else {
             log.info("Started up, and no one I talked to knows anything yet.");

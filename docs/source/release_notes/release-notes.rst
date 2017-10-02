@@ -51,6 +51,44 @@ develop
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
+    *    - |new|
+         - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
+           by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
+           We do not support adding this to an existing StreamStore, as it would require data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - Can now specify ``hashFirstNRowComponents(n)`` in Table and Index definitions.
+           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+           When using with prefix range requests, the components that are hashed must also be specified in the prefix.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - Can now use a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
+           This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
+           We only provide these methods for named columns, and don't currently support dynamic columns.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
+
+    *    - |devbreak| |fixed|
+         - Adjusted the remoting-api library version to match the version used by remoting3.
+           Developers may need to check your dependencies, but no other actions should be required.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.58.0
+=======
+
+22 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak| |improved|
          - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
            Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
@@ -59,12 +97,26 @@ develop
 
     *    - |fixed|
          - KVS migration no longer fails when the old ``_scrub`` table is present.
+           This unblocks KVS migrations for users who have data in ``_scrub`` but have not migrated from ``_scrub`` to ``_scrub2`` yet.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
+
+    *    - |fixed|
+         - Path and query parameters for TimeLock endpoints have now been marked as safe.
+           Several logging parameters in TimeLock (e.g. in ``PaxosTimestampBoundStore`` and ``PaxosSynchronizer``) have also been marked as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
+    *    - |improved|
+         - The ``LockServiceImpl`` now, in addition to lock tokens and grants (which are unsafe for logging), also logs token and grant IDs (which are big-integer IDs) as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
+    *    - |fixed|
+         - Sweep log priority has been increased to INFO for logs of when a table 1. is starting to be swept, 2. will be swept with another batch, and 3. has just been completely swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2378>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-0.57.0
+v0.57.0
 =======
 
 19 September 2017
@@ -189,6 +241,11 @@ v0.56.0
     *    - |new|
          - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
+
+    *    - |improved|
+         - Cassandra range concurrency defaults lowered from 64x to 32x, to reflect default connection pool sizes
+           that have shrank over time, and to be more appropriate for fairly common smaller 3-node clusters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2386>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
