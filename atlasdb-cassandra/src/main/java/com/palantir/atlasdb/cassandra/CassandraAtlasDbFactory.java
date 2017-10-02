@@ -71,13 +71,23 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs,
             Optional<TableReference> timestampTable) {
+        Preconditions.checkArgument(!timestampTable.isPresent()
+                        || timestampTable.get().equals(AtlasDbConstants.TIMESTAMP_TABLE),
+                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table found: %s."
+                        + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"
+                        + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
+                        + " persistence. However, if you are need to persist the timestamp service state in the"
+                        + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
+                        + "\nNote that if the service has already been running, you will have to migrate the timestamp"
+                        + " table to Postgres/Oracle and rename it to %s.",
+                timestampTable.get(),
+                AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE);
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
                 + " CassandraKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(
-                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs,
-                        timestampTable.orElse(AtlasDbConstants.TIMESTAMP_TABLE)));
+                CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
     }
 
     @Override

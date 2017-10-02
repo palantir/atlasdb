@@ -17,13 +17,17 @@ timestampBoundPersister:
     type: cassandra
     keyspace: atlasete
     servers:
-      - cassandra:9160
+      - 127.0.0.1:9160
     poolSize: 20
     credentials:
       username: cassandra
       password: cassandra
     ssl: false
     replicationFactor: 1
+    ignoreInconsistentRingChecks: true
+    ignoreDatacenterConfigurationChecks: true
+    ignoreNodeTopologyChecks: true
+    ignorePartitionerChecks: true
 
 server:
   applicationConnectors:

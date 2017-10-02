@@ -34,7 +34,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -73,24 +72,17 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private long currentLimit = -1;
 
     private final CassandraClientPool clientPool;
-    private final TableReference timestampTable;
 
-    public static CassandraTimestampBoundStore create(CassandraKeyValueService kvs) {
-        return CassandraTimestampBoundStore.create(kvs, AtlasDbConstants.TIMESTAMP_TABLE);
+    public static TimestampBoundStore create(CassandraKeyValueService kvs) {
+        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        return new CassandraTimestampBoundStore(kvs.getClientPool());
     }
 
-    public static CassandraTimestampBoundStore create(CassandraKeyValueService kvs, TableReference timestampTable) {
-        kvs.createTable(timestampTable, TIMESTAMP_TABLE_METADATA.persistToBytes());
-        return new CassandraTimestampBoundStore(kvs.getClientPool(), timestampTable);
-    }
-
-    private CassandraTimestampBoundStore(CassandraClientPool clientPool,
-            TableReference timestampTable) {
+    private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
         DebugLogger.logger.info(
                 "Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
                 Thread.currentThread().getName());
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
-        this.timestampTable = timestampTable;
     }
 
     @Override
@@ -101,7 +93,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             @Override
             public Long apply(Client client) {
                 ByteBuffer rowName = getRowName();
-                ColumnPath columnPath = new ColumnPath(timestampTable.getQualifiedName());
+                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
                 columnPath.setColumn(getColumnName());
                 ColumnOrSuperColumn result;
                 try {
@@ -162,7 +154,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             DebugLogger.logger.info("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
             result = client.cas(
                     getRowName(),
-                    timestampTable.getQualifiedName(),
+                    AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
                     oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
                     ImmutableList.of(makeColumn(newVal)),
                     ConsistencyLevel.SERIAL,
