@@ -52,6 +52,7 @@ public final class CassandraKeyValueServices {
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
+    public static final String VERSION_UNREACHABLE = "UNREACHABLE";
 
     private CassandraKeyValueServices() {
         // Utility class
@@ -79,8 +80,7 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (requiredNumberNodesAgreeOnSchemaVersion(allowQuorumAgreement, config, versions)
-                    || exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(allowQuorumAgreement, versions)) {
+            if (requiredNumberNodesAgreeOnSchemaVersion(allowQuorumAgreement, config, versions)) {
                 return;
             }
             try {
@@ -120,12 +120,12 @@ public final class CassandraKeyValueServices {
             boolean allowQuorumAgreement,
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
-        if (versions.size() > 1) {
+        if (getNumberOfReachableSchemas(versions) > 1) {
             return false;
         }
 
         int numberOfServers = config.servers().size();
-        int numberOfVisibleNodes = getNumberOfVisibleNodes(versions);
+        int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
         if (allowQuorumAgreement) {
             return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
@@ -133,16 +133,13 @@ public final class CassandraKeyValueServices {
         return numberOfVisibleNodes == numberOfServers;
     }
 
-    private static int getNumberOfVisibleNodes(Map<String, List<String>> versions) {
-        return versions.values().stream().mapToInt(List::size).sum();
+    private static long getNumberOfReachableSchemas(Map<String, List<String>> versions) {
+        return versions.keySet().stream().filter(schema -> !schema.equals(VERSION_UNREACHABLE)).count();
     }
 
-    private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(boolean allowQuorumAgreement,
-            Map<String, List<String>> versions) {
-        return allowQuorumAgreement
-                && versions.entrySet().size() == 2
-                && versions.keySet().contains("UNREACHABLE")
-                && versions.get("UNREACHABLE").size() == 1;
+    private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
+        return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
+                .map(Entry::getValue).mapToInt(List::size).sum();
     }
 
     /**
