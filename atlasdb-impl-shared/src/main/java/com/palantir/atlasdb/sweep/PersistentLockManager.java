@@ -104,6 +104,7 @@ public class PersistentLockManager {
             log.error("Failed to release persistent lock {}. "
                     + "Either the lock was already released, or communications with the database failed.",
                     SafeArg.of("lock id", lockId), e);
+            lockId = null;
         }
     }
 

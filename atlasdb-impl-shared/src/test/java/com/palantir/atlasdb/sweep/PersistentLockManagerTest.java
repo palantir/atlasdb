@@ -108,6 +108,33 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    public void canAcquireAfterReleaseFailureDueToLockClearedFromUnderUs() {
+        doThrow(CheckAndSetException.class).when(mockPls).releaseBackupLock(any());
+
+        manager.acquirePersistentLockWithRetry();
+        manager.releasePersistentLock();
+
+        // The assumption in this test is that the first lock was released from under us.
+        // In this case, we should be able to try and acquire a second lock.
+        manager.acquirePersistentLockWithRetry();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void cannotAcquireAfterReleaseFailureDueToDatabaseError() {
+        doThrow(RuntimeException.class).when(mockPls).releaseBackupLock(any());
+
+        manager.acquirePersistentLockWithRetry();
+
+        try {
+            manager.releasePersistentLock();
+        } catch (RuntimeException e) {
+            // Expected
+        }
+
+        manager.acquirePersistentLockWithRetry();
+    }
+
+    @Test
     public void cannotAcquireAfterShutdown() {
         manager.shutdown();
         assertThatThrownBy(() -> manager.acquirePersistentLockWithRetry())

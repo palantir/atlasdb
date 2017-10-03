@@ -61,6 +61,11 @@ develop
            shrink failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
 
+    *    - |fixed|
+         - ``PersistentLockManager`` can now reacquire the persistent lock if another process unilaterally clears the lock.
+           Previously in this case, sweep would not run again until the service restarts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
     *    - |new|
          - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
            by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
