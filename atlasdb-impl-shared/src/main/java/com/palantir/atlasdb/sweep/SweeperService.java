@@ -25,6 +25,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.logsafe.Safe;
+
 /**
  * Provides endpoints for sweeping a specific table.
  */
@@ -58,8 +60,8 @@ public interface SweeperService {
     SweepTableResponse sweepTable(
             @QueryParam("tablename") String tableName,
             @QueryParam("startRow") Optional<String> startRow,
-            @QueryParam("fullSweep") @DefaultValue("true") Optional<Boolean> fullSweep,
-            @QueryParam("maxCellTsPairsToExamine") Optional<Integer> maxCellTsPairsToExamine,
-            @QueryParam("candidateBatchSize") Optional<Integer> candidateBatchSize,
-            @QueryParam("deleteBatchSize") Optional<Integer> deleteBatchSize);
+            @Safe @QueryParam("fullSweep") @DefaultValue("true") Optional<Boolean> fullSweep,
+            @Safe @QueryParam("maxCellTsPairsToExamine") Optional<Integer> maxCellTsPairsToExamine,
+            @Safe @QueryParam("candidateBatchSize") Optional<Integer> candidateBatchSize,
+            @Safe @QueryParam("deleteBatchSize") Optional<Integer> deleteBatchSize);
 }
