@@ -24,6 +24,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
+import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.Set;
 
@@ -42,6 +43,8 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.factory.ServiceCreator;
+import com.palantir.remoting.api.config.service.ProxyConfiguration;
 
 public class AtlasDbHttpClientsTest {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
@@ -99,6 +102,21 @@ public class AtlasDbHttpClientsTest {
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
         availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
                 .withHeader(FeignOkHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
+    }
+
+    @Test
+    public void proxyIsConfigurableOnClientRequests() {
+        Optional<ProxySelector> proxySelector = Optional.of(
+                ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
+
+        unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
+
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
+                proxySelector, bothUris, TestResource.class);
+        int response = client.getTestNumber();
+
+        assertThat(response, equalTo(TEST_NUMBER));
+        unavailableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT)));
     }
 
     private static String getUriForPort(int port) {
