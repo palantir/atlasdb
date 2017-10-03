@@ -54,6 +54,7 @@ public class AtlasDbHttpClientsTest {
 
     private int availablePort;
     private int unavailablePort;
+    private int proxyPort;
     private Set<String> bothUris;
 
     @Rule
@@ -61,6 +62,9 @@ public class AtlasDbHttpClientsTest {
 
     @Rule
     public WireMockRule unavailableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+
+    @Rule
+    public WireMockRule proxyServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     public interface TestResource {
         @GET
@@ -76,6 +80,8 @@ public class AtlasDbHttpClientsTest {
 
         availablePort = availableServer.port();
         unavailablePort = unavailableServer.port();
+        proxyPort = proxyServer.port();
+
         bothUris = ImmutableSet.of(
                 getUriForPort(unavailablePort),
                 getUriForPort(availablePort));
@@ -105,18 +111,30 @@ public class AtlasDbHttpClientsTest {
     }
 
     @Test
-    public void proxyIsConfigurableOnClientRequests() {
-        Optional<ProxySelector> proxySelector = Optional.of(
+    public void DirectProxyIsConfigurableOnClientRequests() {
+        Optional<ProxySelector> directProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
+        TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
+                directProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
+        clientWithDirectCall.getTestNumber();
+        String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
-        unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
+        availableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
+                .withHeader(FeignOkHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
+    }
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
-                proxySelector, bothUris, TestResource.class);
-        int response = client.getTestNumber();
+    @Test
+    public void HttpProxyIsConfigurableOnClientRequests() {
+        Optional<ProxySelector> httpProxySelector = Optional.of(
+                ServiceCreator.createProxySelector(ProxyConfiguration.of(getUriForPort(proxyPort))));
+        TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
+                httpProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
+        clientWithHttpProxy.getTestNumber();
+        String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
-        assertThat(response, equalTo(TEST_NUMBER));
-        unavailableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT)));
+        proxyServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
+                .withHeader(FeignOkHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
+        availableServer.verify(0, getRequestedFor(urlMatching(TEST_ENDPOINT)));
     }
 
     private static String getUriForPort(int port) {
