@@ -63,7 +63,6 @@ develop
            However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
            shrink failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
->>>>>>> origin/develop
 
     *    - |new|
          - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
