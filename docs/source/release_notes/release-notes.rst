@@ -88,6 +88,9 @@ develop
            Developers may need to check your dependencies, but no other actions should be required.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
 
+    *    - |changed|
+         - Increase the default timeout of when waiting for Cassandra schemas to settle from 1 minute to 2 minutes, to address a flake in our integration tests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
