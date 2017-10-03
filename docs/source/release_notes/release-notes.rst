@@ -56,6 +56,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2396>`__)
 
     *    - |fixed|
+         - Fixed migration from JDBC KeyValueService by adding a missing dependency to the CLI distribution.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2397>`__)
+
+    *    - |fixed|
          - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
            However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
            shrink failures.
