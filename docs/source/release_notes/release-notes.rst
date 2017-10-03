@@ -59,12 +59,12 @@ develop
          - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
            However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
            shrink failures.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2405>`__)
 
     *    - |fixed|
          - ``PersistentLockManager`` can now reacquire the persistent lock if another process unilaterally clears the lock.
            Previously in this case, sweep would not run again until the service restarts.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2419>`__)
 
     *    - |new|
          - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
