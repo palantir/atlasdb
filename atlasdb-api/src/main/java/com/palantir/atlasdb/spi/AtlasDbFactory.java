@@ -45,7 +45,7 @@ public interface AtlasDbFactory {
      * absent. If both are present, they must match.
      * @param initializeAsync If the implementations supports it, and initializeAsync is true, the KVS will initialize
      * asynchronously when synchronous initialization fails.
-     * @return The requested KeyValueService instance.
+     * @return The requested KeyValueService instance
      */
     KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,

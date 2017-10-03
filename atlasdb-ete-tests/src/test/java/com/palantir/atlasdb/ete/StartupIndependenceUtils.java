@@ -35,8 +35,12 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.connection.DockerPort;
 
-public class StartupIndependenceUtils {
+public final class StartupIndependenceUtils {
     private static final int CASSANDRA_PORT = 9160;
+
+    private StartupIndependenceUtils() {
+        // utility
+    }
 
     public static void randomizeNamespace() throws IOException, InterruptedException {
         EteSetup.execCliCommand("sed -i 's/namespace: .*/namespace: " + UUID.randomUUID().toString().replace("-", "_")

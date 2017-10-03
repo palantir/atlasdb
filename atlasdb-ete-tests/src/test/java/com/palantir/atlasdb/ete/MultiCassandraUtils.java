@@ -24,8 +24,12 @@ import com.jayway.awaitility.Awaitility;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 
-public class MultiCassandraUtils {
+public final class MultiCassandraUtils {
     private static final int CASSANDRA_PORT = 9160;
+
+    private MultiCassandraUtils() {
+        // utility
+    }
 
     public static void killCassandraContainer(String containerName) {
         Container container = EteSetup.getContainer(containerName);

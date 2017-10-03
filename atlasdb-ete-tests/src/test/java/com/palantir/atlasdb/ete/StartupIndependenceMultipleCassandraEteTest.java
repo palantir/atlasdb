@@ -18,13 +18,6 @@ package com.palantir.atlasdb.ete;
 
 import static org.junit.Assert.assertTrue;
 
-import static com.palantir.atlasdb.ete.StartupIndependenceUtils.assertNotInitializedExceptionIsThrownAndMappedCorrectly;
-import static com.palantir.atlasdb.ete.StartupIndependenceUtils.assertSatisfiedWithin;
-import static com.palantir.atlasdb.ete.StartupIndependenceUtils.killCassandraNodes;
-import static com.palantir.atlasdb.ete.StartupIndependenceUtils.randomizeNamespace;
-import static com.palantir.atlasdb.ete.StartupIndependenceUtils.restartAtlasWithChecks;
-import static com.palantir.atlasdb.ete.StartupIndependenceUtils.startCassandraNodes;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -51,43 +44,43 @@ public class StartupIndependenceMultipleCassandraEteTest {
 
     @Before
     public void setUp() throws IOException, InterruptedException {
-        randomizeNamespace();
-        killCassandraNodes(ALL_CASSANDRA_NODES);
+        StartupIndependenceUtils.randomizeNamespace();
+        StartupIndependenceUtils.killCassandraNodes(ALL_CASSANDRA_NODES);
     }
 
     @Test
     public void atlasStartsWithCassandraDownAndInitializesWithAllNodes()
             throws IOException, InterruptedException {
-        restartAtlasWithChecks();
-        assertNotInitializedExceptionIsThrownAndMappedCorrectly();
-        startCassandraNodes(ALL_CASSANDRA_NODES);
-        assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
+        StartupIndependenceUtils.restartAtlasWithChecks();
+        StartupIndependenceUtils.assertNotInitializedExceptionIsThrownAndMappedCorrectly();
+        StartupIndependenceUtils.startCassandraNodes(ALL_CASSANDRA_NODES);
+        StartupIndependenceUtils.assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
     }
 
     @Test
     public void atlasStartsWithCassandraDownAndInitializesWithQuorum()
             throws IOException, InterruptedException {
-        restartAtlasWithChecks();
-        assertNotInitializedExceptionIsThrownAndMappedCorrectly();
-        startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
-        assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
+        StartupIndependenceUtils.restartAtlasWithChecks();
+        StartupIndependenceUtils.assertNotInitializedExceptionIsThrownAndMappedCorrectly();
+        StartupIndependenceUtils.startCassandraNodes(QUORUM_OF_CASSANDRA_NODES);
+        StartupIndependenceUtils.assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
     }
 
     @Test
     public void atlasInitializesSynchronouslyIfCassandraIsInGoodState() throws InterruptedException, IOException {
-        startCassandraNodes(ALL_CASSANDRA_NODES);
+        StartupIndependenceUtils.startCassandraNodes(ALL_CASSANDRA_NODES);
         verifyCassandraIsSettled();
-        restartAtlasWithChecks();
+        StartupIndependenceUtils.restartAtlasWithChecks();
         assertTrue(StartupIndependenceUtils.canPerformTransaction());
 
-        killCassandraNodes(ONE_CASSANDRA_NODE);
-        restartAtlasWithChecks();
+        StartupIndependenceUtils.killCassandraNodes(ONE_CASSANDRA_NODE);
+        StartupIndependenceUtils.restartAtlasWithChecks();
         assertTrue(StartupIndependenceUtils.canPerformTransaction());
     }
 
     private static void verifyCassandraIsSettled() throws IOException, InterruptedException {
-        restartAtlasWithChecks();
-        assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
-        randomizeNamespace();
+        StartupIndependenceUtils.restartAtlasWithChecks();
+        StartupIndependenceUtils.assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
+        StartupIndependenceUtils.randomizeNamespace();
     }
 }
