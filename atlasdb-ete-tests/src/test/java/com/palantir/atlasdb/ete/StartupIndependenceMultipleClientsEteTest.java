@@ -16,6 +16,13 @@
 
 package com.palantir.atlasdb.ete;
 
+import static com.palantir.atlasdb.ete.StartupIndependenceUtils.assertNotInitializedExceptionIsThrownAndMappedCorrectly;
+import static com.palantir.atlasdb.ete.StartupIndependenceUtils.assertSatisfiedWithin;
+import static com.palantir.atlasdb.ete.StartupIndependenceUtils.killCassandraNodes;
+import static com.palantir.atlasdb.ete.StartupIndependenceUtils.randomizeNamespace;
+import static com.palantir.atlasdb.ete.StartupIndependenceUtils.restartAtlasWithChecks;
+import static com.palantir.atlasdb.ete.StartupIndependenceUtils.startCassandraNodes;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -40,16 +47,16 @@ public class StartupIndependenceMultipleClientsEteTest {
 
     @Before
     public void setUp() throws IOException, InterruptedException {
-        StartupIndependenceUtils.randomizeNamespace();
-        StartupIndependenceUtils.killCassandraNodes(ALL_CASSANDRA_NODES);
+        randomizeNamespace();
+        killCassandraNodes(ALL_CASSANDRA_NODES);
     }
 
     @Test
     public void atlasStartsWithCassandraDownAndInitializesAsynchronously()
             throws IOException, InterruptedException {
-        StartupIndependenceUtils.restartAtlasWithChecks();
-        StartupIndependenceUtils.assertNotInitializedExceptionIsThrownAndMappedCorrectly();
-        StartupIndependenceUtils.startCassandraNodes(ALL_CASSANDRA_NODES);
-        StartupIndependenceUtils.assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
+        restartAtlasWithChecks();
+        assertNotInitializedExceptionIsThrownAndMappedCorrectly();
+        startCassandraNodes(ALL_CASSANDRA_NODES);
+        assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
     }
 }
