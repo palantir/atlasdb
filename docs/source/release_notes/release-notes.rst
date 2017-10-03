@@ -45,7 +45,7 @@ develop
          - Change
 
     *    - |improved|
-         - Allow passing a proxyConfiguration to allow setting custom proxy on the TimeLock clients.
+         - Allow passing a `ProxyConfiguration <https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__ to allow setting custom proxy on the TimeLock clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2393>`__)
 
          - Timestamp batching has now been enabled by default.
