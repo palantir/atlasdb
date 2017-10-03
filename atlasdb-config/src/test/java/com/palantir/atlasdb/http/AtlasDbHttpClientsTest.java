@@ -111,7 +111,7 @@ public class AtlasDbHttpClientsTest {
     }
 
     @Test
-    public void DirectProxyIsConfigurableOnClientRequests() {
+    public void directProxyIsConfigurableOnClientRequests() {
         Optional<ProxySelector> directProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
@@ -124,7 +124,7 @@ public class AtlasDbHttpClientsTest {
     }
 
     @Test
-    public void HttpProxyIsConfigurableOnClientRequests() {
+    public void httpProxyIsConfigurableOnClientRequests() {
         Optional<ProxySelector> httpProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.of(getUriForPort(proxyPort))));
         TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
