@@ -144,5 +144,4 @@ public class AtlasDbHttpClientsTest {
     private static String getHostAndPort(int port) {
         return String.format("%s:%s", WireMockConfiguration.DEFAULT_BIND_ADDRESS, port);
     }
-
 }
