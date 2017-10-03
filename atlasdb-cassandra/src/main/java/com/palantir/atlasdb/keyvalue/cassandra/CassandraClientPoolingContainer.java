@@ -220,7 +220,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      *
-     * @param poolNumber
+     * @param poolNumber number of the pool for metric registration.
      */
     private GenericObjectPool<Client> createClientPool(int poolNumber) {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(host, config);

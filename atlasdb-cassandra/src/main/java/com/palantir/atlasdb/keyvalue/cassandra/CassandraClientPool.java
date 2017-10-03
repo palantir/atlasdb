@@ -288,7 +288,8 @@ public class CassandraClientPool {
         debugLogStateOfPool();
     }
 
-    private void addPool(InetSocketAddress server) {
+    @VisibleForTesting
+    void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
         addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
     }
@@ -298,7 +299,8 @@ public class CassandraClientPool {
         currentPools.put(server, container);
     }
 
-    private void removePool(InetSocketAddress removedServerAddress) {
+    @VisibleForTesting
+    void removePool(InetSocketAddress removedServerAddress) {
         blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
