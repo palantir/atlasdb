@@ -196,6 +196,17 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Timestamp batching has now been enabled by default.
+Please see <a class="reference internal" href="../configuration/timestamp_client.html#timestamp-client-config"><span class="std std-ref">Timestamp Client Options</span></a> for details.
+This should improve throughput and latency, especially if load is heavy and/or clients are communicating with a TimeLock cluster which is used by many services.
+Note that there may be an increase in latency under light load (e.g. 2-4 threads).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2392">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The <code class="docutils literal"><span class="pre">lock/log-current-state</span></code> endpoint now correctly logs the number of outstanding lock requests.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2396">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
 However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
