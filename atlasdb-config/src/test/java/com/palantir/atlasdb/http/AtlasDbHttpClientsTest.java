@@ -126,7 +126,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void httpProxyIsConfigurableOnClientRequests() {
         Optional<ProxySelector> httpProxySelector = Optional.of(
-                ServiceCreator.createProxySelector(ProxyConfiguration.of(getUriForPort(proxyPort))));
+                ServiceCreator.createProxySelector(ProxyConfiguration.of(getHostAndPort(proxyPort))));
         TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(NO_SSL,
                 httpProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
         clientWithHttpProxy.getTestNumber();
@@ -140,4 +140,9 @@ public class AtlasDbHttpClientsTest {
     private static String getUriForPort(int port) {
         return String.format("http://%s:%s", WireMockConfiguration.DEFAULT_BIND_ADDRESS, port);
     }
+
+    private static String getHostAndPort(int port) {
+        return String.format("%s:%s", WireMockConfiguration.DEFAULT_BIND_ADDRESS, port);
+    }
+
 }
