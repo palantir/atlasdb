@@ -281,7 +281,8 @@ public class CassandraClientPool {
     }
 
     private void addPool(InetSocketAddress server) {
-        addPool(server, new CassandraClientPoolingContainer(server, config));
+        int currentPoolNumber = currentPools.size() + 1;
+        addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
     }
 
     @VisibleForTesting
