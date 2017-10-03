@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -27,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 @JsonDeserialize(as=ImmutableSweepTableResponse.class)
 public interface SweepTableResponse {
 
-    //Optional<String> nextStartRow();
+    Optional<String> nextStartRow();
 
     long numCellTsPairsExamined();
 
@@ -37,7 +39,7 @@ public interface SweepTableResponse {
         return ImmutableSweepTableResponse.builder()
                 .numCellTsPairsExamined(results.getCellTsPairsExamined())
                 .staleValuesDeleted(results.getStaleValuesDeleted())
-               // .nextStartRow(results.getNextStartRow().map(BaseEncoding.base16()::encode))
+                .nextStartRow(results.getNextStartRow().map(SweeperServiceEncoding::encodeRowName))
                 .build();
     }
 

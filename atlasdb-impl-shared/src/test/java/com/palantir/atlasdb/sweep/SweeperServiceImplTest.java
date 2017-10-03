@@ -34,19 +34,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
+import com.palantir.atlasdb.util.DropwizardClientRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.remoting.api.errors.RemoteException;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
-
-import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class SweeperServiceImplTest extends SweeperTestSetup {
 
@@ -60,8 +57,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
             new SweeperServiceImpl(getSpecificTableSweeperService()),
             new CheckAndSetExceptionMapper(),
-            HttpRemotingJerseyFeature.INSTANCE,
-            new JacksonJsonProvider(ObjectMappers.newServerObjectMapper()));
+            HttpRemotingJerseyFeature.INSTANCE);
 
     // This method overrides the SweeperTestSetup method. Not sure if this is the intention, but leaving
     // as such for now.

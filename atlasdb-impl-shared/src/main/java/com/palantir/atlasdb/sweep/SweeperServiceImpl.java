@@ -18,8 +18,6 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.BaseEncoding;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.remoting3.servers.jersey.WebPreconditions;
@@ -42,17 +40,19 @@ public final class SweeperServiceImpl implements SweeperService {
         TableReference tableRef = getTableRef(tableName);
         checkTableExists(tableName, tableRef);
 
+        byte[] decodedStartRow = SweeperServiceEncoding.decodeRowName(startRow);
+
         SweepBatchConfig config = buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize,
                 deleteBatchSize);
 
         SweepResults sweepResults = fullSweep.orElse(true)
                 ? runFullSweepWithoutSavingResults(
                         tableRef,
-                        decodeStartRow(startRow),
+                        decodedStartRow,
                         config)
                 : runOneBatchWithoutSavingResults(
                         tableRef,
-                        decodeStartRow(startRow),
+                        decodedStartRow,
                         config);
 
         return SweepTableResponse.from(sweepResults);
@@ -81,13 +81,6 @@ public final class SweeperServiceImpl implements SweeperService {
     private void checkTableExists(String tableName, TableReference tableRef) {
         Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
                 String.format("Table requested to sweep %s does not exist", tableName));
-    }
-
-    private byte[] decodeStartRow(Optional<String> startRow) {
-        if (!startRow.isPresent()) {
-            return PtBytes.EMPTY_BYTE_ARRAY;
-        }
-        return BaseEncoding.base16().decode(startRow.get());
     }
 
     private SweepResults runFullSweepWithoutSavingResults(
