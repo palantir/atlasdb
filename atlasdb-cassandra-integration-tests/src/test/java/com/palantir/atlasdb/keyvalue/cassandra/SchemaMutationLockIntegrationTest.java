@@ -118,20 +118,6 @@ public class SchemaMutationLockIntegrationTest {
         lockTestTools = new SchemaMutationLockTestTools(clientPool, lockTable);
     }
 
-    private SchemaMutationLock getSchemaMutationLock(boolean supportsCas,
-            CassandraKeyValueServiceConfigManager simpleManager, TracingQueryRunner queryRunner,
-            int defaultDeadHeartbeatTimeoutThresholdMillis) {
-        return new SchemaMutationLock(
-                supportsCas,
-                simpleManager,
-                clientPool,
-                queryRunner,
-                writeConsistency,
-                lockTable,
-                heartbeatService,
-                defaultDeadHeartbeatTimeoutThresholdMillis);
-    }
-
     @Test
     public void testLockAndUnlockWithoutContention() {
         schemaMutationLock.runWithLock(DO_NOTHING);
@@ -151,18 +137,6 @@ public class SchemaMutationLockIntegrationTest {
 
         CassandraTestTools.assertThatFutureDidNotSucceedYet(getLockAgain);
         blockingLock.release();
-    }
-
-    private Semaphore blockSchemaMutationLock() throws InterruptedException {
-        Semaphore blockingLock = new Semaphore(0);
-        Semaphore outerLock = new Semaphore(0);
-        executorService.submit(() -> schemaMutationLock.runWithLock(() -> {
-            outerLock.release();
-            blockingLock.acquire();
-        }));
-
-        outerLock.acquire();
-        return blockingLock;
     }
 
     @Test(timeout = 10 * 1000)
@@ -208,23 +182,6 @@ public class SchemaMutationLockIntegrationTest {
         }
     }
 
-    private Semaphore blockSchemaMutationLockAndKillHeartbeat() throws InterruptedException {
-        Semaphore blockingLock = new Semaphore(0);
-        Semaphore outerLock = new Semaphore(0);
-
-        executorService.submit(() -> schemaMutationLock.runWithLock(() -> {
-            Thread.sleep(HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS * 2);
-            heartbeatService.stopBeating();
-
-            outerLock.release();
-            blockingLock.acquire();
-        }));
-
-        outerLock.acquire();
-
-        return blockingLock;
-    }
-
     @Test
     public void runWithLockShouldTimeoutIfLockIsTaken() throws InterruptedException, ExecutionException,
             TimeoutException {
@@ -261,10 +218,53 @@ public class SchemaMutationLockIntegrationTest {
         schemaMutationLock.runWithLock(DO_NOTHING);
     }
 
+    private Semaphore blockSchemaMutationLock() throws InterruptedException {
+        Semaphore blockingLock = new Semaphore(0);
+        Semaphore outerLock = new Semaphore(0);
+        executorService.submit(() -> schemaMutationLock.runWithLock(() -> {
+            outerLock.release();
+            blockingLock.acquire();
+        }));
+
+        outerLock.acquire();
+        return blockingLock;
+    }
+
+    private Semaphore blockSchemaMutationLockAndKillHeartbeat() throws InterruptedException {
+        Semaphore blockingLock = new Semaphore(0);
+        Semaphore outerLock = new Semaphore(0);
+
+        executorService.submit(() -> schemaMutationLock.runWithLock(() -> {
+            Thread.sleep(HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS * 2);
+            heartbeatService.stopBeating();
+
+            outerLock.release();
+            blockingLock.acquire();
+        }));
+
+        outerLock.acquire();
+
+        return blockingLock;
+    }
+
     private SchemaMutationLock createQuickHeartbeatTimeoutLock() {
         CassandraKeyValueServiceConfigManager configManager =
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         return getSchemaMutationLock(true, configManager, queryRunner, 2000);
+    }
+
+    private SchemaMutationLock getSchemaMutationLock(boolean supportsCas,
+            CassandraKeyValueServiceConfigManager simpleManager, TracingQueryRunner queryRunner,
+            int defaultDeadHeartbeatTimeoutThresholdMillis) {
+        return new SchemaMutationLock(
+                supportsCas,
+                simpleManager,
+                clientPool,
+                queryRunner,
+                writeConsistency,
+                lockTable,
+                heartbeatService,
+                defaultDeadHeartbeatTimeoutThresholdMillis);
     }
 }

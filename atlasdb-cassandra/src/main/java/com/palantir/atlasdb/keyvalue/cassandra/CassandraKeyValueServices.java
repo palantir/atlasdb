@@ -52,7 +52,7 @@ public final class CassandraKeyValueServices {
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
-    public static final String VERSION_UNREACHABLE = "UNREACHABLE";
+    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
 
     private CassandraKeyValueServices() {
         // Utility class
