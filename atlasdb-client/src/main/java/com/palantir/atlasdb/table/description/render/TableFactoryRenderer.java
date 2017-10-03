@@ -313,8 +313,7 @@ public final class TableFactoryRenderer {
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC);
 
         if (defaultNamespaceName.isEmpty()) {
-            namespaceFieldBuilder.initializer("$T.create($S, $T.EMPTY_NAMESPACE)",
-                    Namespace.class, "default", Namespace.class);
+            namespaceFieldBuilder.initializer("$T.EMPTY_NAMESPACE", Namespace.class);
         } else {
             namespaceFieldBuilder.initializer("$T.create($S, $T.UNCHECKED_NAME)",
                     Namespace.class, defaultNamespaceName, Namespace.class);
