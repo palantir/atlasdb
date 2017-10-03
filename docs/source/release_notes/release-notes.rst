@@ -53,6 +53,11 @@ develop
 
            The default value for the config  is ``false`` in order to preserve previous behaviour.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
+           
+    *    - |improved|
+         - The ``SweeperService`` endpoint registered on all clients will now sweeps the full table by default, rather than a single batch.
+           It also now returns information about how much data was swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
     *    - |devbreak| |improved|
          - In order to limit the access to inner methods, and to make the implementation of the above feasible, we've extracted interfaces and renamed the following classes:
