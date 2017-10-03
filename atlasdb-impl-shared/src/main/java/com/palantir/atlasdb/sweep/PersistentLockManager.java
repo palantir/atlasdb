@@ -101,8 +101,9 @@ public class PersistentLockManager {
             persistentLockService.releaseBackupLock(lockId);
             lockId = null;
         } catch (CheckAndSetException e) {
-            log.error("Failed to release persistent lock {}. "
-                    + "Either the lock was already released, or communications with the database failed.",
+            log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
+                            + "If you didn't release it manually, this warrants investigation, but future sweeps "
+                            + "should correctly be able to re-acquire the lock.",
                     SafeArg.of("lock id", lockId), e);
             lockId = null;
         }
