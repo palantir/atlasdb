@@ -17,7 +17,8 @@ message TableMetadata {
 
 message NameMetadataDescription {
     repeated NameComponentDescription nameParts = 1;
-    optional bool hasFirstComponentHash = 2;
+    optional bool hasFirstComponentHash = 2 [deprecated = true, default = false];
+    optional int32 numberOfComponentsHashed = 3 [default = 0];
 }
 
 message NameComponentDescription {

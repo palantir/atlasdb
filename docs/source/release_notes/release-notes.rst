@@ -44,11 +44,108 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Timestamp batching has now been enabled by default.
+           Please see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           This should improve throughput and latency, especially if load is heavy and/or clients are communicating with a TimeLock cluster which is used by many services.
+           Note that there may be an increase in latency under light load (e.g. 2-4 threads).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2392>`__)
+
+    *    - |fixed|
+         - The ``lock/log-current-state`` endpoint now correctly logs the number of outstanding lock requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2396>`__)
+
+    *    - |fixed|
+         - Fixed migration from JDBC KeyValueService by adding a missing dependency to the CLI distribution.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2397>`__)
+
+    *    - |fixed|
+         - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
+           However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
+           shrink failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
+    *    - |new|
+         - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
+           by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
+           We do not support adding this to an existing StreamStore, as it would require data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - Can now specify ``hashFirstNRowComponents(n)`` in Table and Index definitions.
+           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+           When using with prefix range requests, the components that are hashed must also be specified in the prefix.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - Can now use a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
+           This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
+           We only provide these methods for named columns, and don't currently support dynamic columns.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
+
+    *    - |devbreak| |fixed|
+         - Adjusted the remoting-api library version to match the version used by remoting3.
+           Developers may need to check your dependencies, but no other actions should be required.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
+
+    *    - |userbreak| |improved|
+         - Thread can be added to Lock refreshing request. Lock service state logging will include refreshing thread as well.
+           Negative expiration times in logging should be fixed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2422>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.58.0
+=======
+
+22 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak| |improved|
-         - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
-           This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
-           To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48>`__.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2339>`__)
+         - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
+           Developers may need to check their dependencies, as well as update instantiation of their calls to ``TransactionManagers.create()`` to use the remoting3 API.
+           Note that *users* of AtlasDB clients are not affected, in that the wire format of configuration files has not changed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2348>`__)
+
+    *    - |fixed|
+         - KVS migration no longer fails when the old ``_scrub`` table is present.
+           This unblocks KVS migrations for users who have data in ``_scrub`` but have not migrated from ``_scrub`` to ``_scrub2`` yet.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2362>`__)
+
+    *    - |fixed|
+         - Path and query parameters for TimeLock endpoints have now been marked as safe.
+           Several logging parameters in TimeLock (e.g. in ``PaxosTimestampBoundStore`` and ``PaxosSynchronizer``) have also been marked as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
+    *    - |improved|
+         - The ``LockServiceImpl`` now, in addition to lock tokens and grants (which are unsafe for logging), also logs token and grant IDs (which are big-integer IDs) as safe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2375>`__)
+
+    *    - |fixed|
+         - Sweep log priority has been increased to INFO for logs of when a table 1. is starting to be swept, 2. will be swept with another batch, and 3. has just been completely swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2378>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.57.0
+=======
+
+19 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |userbreak| |fixed|
          - AtlasDB no longer embeds Cassandra host names in its metrics.
@@ -61,12 +158,55 @@ develop
            Sweep aggregate metrics continue to be reported.
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
-
-    *    - |userbreak| |improved|
-         - Thread can be added to Lock refreshing request. Lock service state logging will include refreshing thread as well.
-           Negative expiration times in logging should be fixed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2422>`__)
            
+=======
+
+    *    - |devbreak| |fixed|
+         - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)
+
+    *    - |devbreak| |fixed|
+         - The ``ConcurrentStreams`` class has been deleted and replaced with calls to ``MoreStreams.blockingStreamWithParallelism``, from `streams <https://github.com/palantir/streams>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2361/files>`__)
+
+    *    - |devbreak| |improved|
+         - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
+           This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
+           To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method `blockingMostRecent` as implemented `here <https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2339>`__)
+
+    *    - |improved|
+         - ``BatchingVisitableView`` methods ``immutableCopy``, ``immutableSetCopy``, and ``copyInto`` use the default batch hint of 1000, instead of a batch hint of 100,000.
+           We previously defaulted to the higher value because the result set was assumed to be small; however, in practice this has turned out not to be the case, leading to timeouts and OOMs in the field.
+           To use a custom batch hint, set the ``batchHint`` property for your ``RangeRequest``.
+           Alternatively, call ``BatchingVisitableView.hintBatchSize(int)`` before making a copy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2347>`__)
+
+    *    - |improved|
+         - AtlasDB table definitions now support specifying log safety without having to also specify value byte order for row components.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2349>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.56.1
+=======
+
+14 September 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The new concurrent version of `Transaction#getRanges` did not correctly guarantee ordering of the results returned in its stream.
+           We now make sure the resulting ordering matches that of the input RangeRequests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
+
+>>>>>>> develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -123,6 +263,11 @@ v0.56.0
     *    - |new|
          - Oracle will now validate connections by running the test query when getting a new connection from the HikariPool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2301>`__)
+
+    *    - |improved|
+         - Cassandra range concurrency defaults lowered from 64x to 32x, to reflect default connection pool sizes
+           that have shrank over time, and to be more appropriate for fairly common smaller 3-node clusters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2386>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

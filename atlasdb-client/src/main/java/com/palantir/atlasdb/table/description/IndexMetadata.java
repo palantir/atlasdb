@@ -49,7 +49,7 @@ public class IndexMetadata {
     final SweepStrategy sweepStrategy;
     private final ExpirationStrategy expirationStrategy;
     private boolean appendHeavyAndReadLight;
-    private final boolean hashFirstRowComponent;
+    private final int numberOfComponentsHashed;
 
     public static IndexMetadata createIndex(String name,
                                             String javaName,
@@ -65,7 +65,7 @@ public class IndexMetadata {
                                             SweepStrategy sweepStrategy,
                                             ExpirationStrategy expirationStrategy,
                                             boolean appendHeavyAndReadLight,
-                                            boolean hashFirstRowComponent) {
+                                            int numberOfComponentsHashed) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Iterable<IndexComponent> colComponents = ImmutableList.<IndexComponent>of();
         return new IndexMetadata(
@@ -85,7 +85,7 @@ public class IndexMetadata {
                 sweepStrategy,
                 expirationStrategy,
                 appendHeavyAndReadLight,
-                hashFirstRowComponent);
+                numberOfComponentsHashed);
     }
 
     public static IndexMetadata createDynamicIndex(String name,
@@ -103,7 +103,7 @@ public class IndexMetadata {
                                                    SweepStrategy sweepStrategy,
                                                    ExpirationStrategy expirationStrategy,
                                                    boolean appendHeavyAndReadLight,
-                                                   boolean hashFirstRowComponent) {
+                                                   int numberOfComponentsHashed) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Validate.isTrue(!Iterables.isEmpty(colComponents));
         return new IndexMetadata(
@@ -123,7 +123,7 @@ public class IndexMetadata {
                 sweepStrategy,
                 expirationStrategy,
                 appendHeavyAndReadLight,
-                hashFirstRowComponent);
+                numberOfComponentsHashed);
     }
 
     private IndexMetadata(String name,
@@ -142,7 +142,7 @@ public class IndexMetadata {
                           SweepStrategy sweepStrategy,
                           ExpirationStrategy expirationStrategy,
                           boolean appendHeavyAndReadLight,
-                          boolean hashFirstRowComponent) {
+                          int numberOfComponentsHashed) {
         this.name = name;
         this.javaName = javaName;
         this.rowComponents = ImmutableList.copyOf(rowComponents);
@@ -159,7 +159,7 @@ public class IndexMetadata {
         this.sweepStrategy = sweepStrategy;
         this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
-        this.hashFirstRowComponent = hashFirstRowComponent;
+        this.numberOfComponentsHashed = numberOfComponentsHashed;
     }
 
     private static String getColNameToAccessFrom(Iterable<IndexComponent> rowComponents,
@@ -220,7 +220,7 @@ public class IndexMetadata {
             throw new IllegalArgumentException("Unknown index type " + indexType);
         }
         return new TableMetadata(
-                NameMetadataDescription.create(rowDescList, hashFirstRowComponent),
+                NameMetadataDescription.create(rowDescList, numberOfComponentsHashed),
                 column,
                 conflictHandler,
                 cachePriority,

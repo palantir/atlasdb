@@ -28,11 +28,11 @@ import com.google.common.collect.ImmutableList;
 @RunWith(Parameterized.class)
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
-    protected static final String LOCALHOST = "http://localhost";
+    protected static final String LOCALHOST = "https://localhost";
     protected static final String CLIENT = "test";
 
     protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC = new TestableTimelockCluster(
-            "http://localhost",
+            LOCALHOST,
             CLIENT,
             "paxosSingleServerWithAsyncLock.yml");
     protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC_CHECK_DISABLED = new TestableTimelockCluster(
@@ -40,7 +40,7 @@ public abstract class AbstractAsyncTimelockServiceIntegrationTest {
             CLIENT,
             "paxosSingleServerWithAsyncLockCheckDisabled.yml");
     protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER = new TestableTimelockCluster(
-            "http://localhost",
+            LOCALHOST,
             CLIENT,
             "paxosSingleServerWithSyncLockAdapter.yml");
 

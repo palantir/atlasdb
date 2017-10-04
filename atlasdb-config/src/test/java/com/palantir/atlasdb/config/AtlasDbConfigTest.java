@@ -30,7 +30,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.remoting2.config.ssl.SslConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class AtlasDbConfigTest {
     private static final KeyValueServiceConfig KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);

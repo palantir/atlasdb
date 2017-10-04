@@ -2581,13 +2581,22 @@ public final class TableMetadataPersistence {
         int index);
 
     /**
-     * <code>optional bool hasFirstComponentHash = 2;</code>
+     * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
      */
-    boolean hasHasFirstComponentHash();
+    @java.lang.Deprecated boolean hasHasFirstComponentHash();
     /**
-     * <code>optional bool hasFirstComponentHash = 2;</code>
+     * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
      */
-    boolean getHasFirstComponentHash();
+    @java.lang.Deprecated boolean getHasFirstComponentHash();
+
+    /**
+     * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+     */
+    boolean hasNumberOfComponentsHashed();
+    /**
+     * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+     */
+    int getNumberOfComponentsHashed();
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.NameMetadataDescription}
@@ -2652,6 +2661,11 @@ public final class TableMetadataPersistence {
             case 16: {
               bitField0_ |= 0x00000001;
               hasFirstComponentHash_ = input.readBool();
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000002;
+              numberOfComponentsHashed_ = input.readInt32();
               break;
             }
           }
@@ -2735,21 +2749,37 @@ public final class TableMetadataPersistence {
     public static final int HASFIRSTCOMPONENTHASH_FIELD_NUMBER = 2;
     private boolean hasFirstComponentHash_;
     /**
-     * <code>optional bool hasFirstComponentHash = 2;</code>
+     * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
      */
-    public boolean hasHasFirstComponentHash() {
+    @java.lang.Deprecated public boolean hasHasFirstComponentHash() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>optional bool hasFirstComponentHash = 2;</code>
+     * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
      */
-    public boolean getHasFirstComponentHash() {
+    @java.lang.Deprecated public boolean getHasFirstComponentHash() {
       return hasFirstComponentHash_;
+    }
+
+    public static final int NUMBEROFCOMPONENTSHASHED_FIELD_NUMBER = 3;
+    private int numberOfComponentsHashed_;
+    /**
+     * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+     */
+    public boolean hasNumberOfComponentsHashed() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+     */
+    public int getNumberOfComponentsHashed() {
+      return numberOfComponentsHashed_;
     }
 
     private void initFields() {
       nameParts_ = java.util.Collections.emptyList();
       hasFirstComponentHash_ = false;
+      numberOfComponentsHashed_ = 0;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -2776,6 +2806,9 @@ public final class TableMetadataPersistence {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBool(2, hasFirstComponentHash_);
       }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeInt32(3, numberOfComponentsHashed_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -2792,6 +2825,10 @@ public final class TableMetadataPersistence {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(2, hasFirstComponentHash_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(3, numberOfComponentsHashed_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -2919,6 +2956,8 @@ public final class TableMetadataPersistence {
         }
         hasFirstComponentHash_ = false;
         bitField0_ = (bitField0_ & ~0x00000002);
+        numberOfComponentsHashed_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -2960,6 +2999,10 @@ public final class TableMetadataPersistence {
           to_bitField0_ |= 0x00000001;
         }
         result.hasFirstComponentHash_ = hasFirstComponentHash_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.numberOfComponentsHashed_ = numberOfComponentsHashed_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3004,6 +3047,9 @@ public final class TableMetadataPersistence {
         }
         if (other.hasHasFirstComponentHash()) {
           setHasFirstComponentHash(other.getHasFirstComponentHash());
+        }
+        if (other.hasNumberOfComponentsHashed()) {
+          setNumberOfComponentsHashed(other.getNumberOfComponentsHashed());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -3280,32 +3326,64 @@ public final class TableMetadataPersistence {
 
       private boolean hasFirstComponentHash_ ;
       /**
-       * <code>optional bool hasFirstComponentHash = 2;</code>
+       * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
        */
-      public boolean hasHasFirstComponentHash() {
+      @java.lang.Deprecated public boolean hasHasFirstComponentHash() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>optional bool hasFirstComponentHash = 2;</code>
+       * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
        */
-      public boolean getHasFirstComponentHash() {
+      @java.lang.Deprecated public boolean getHasFirstComponentHash() {
         return hasFirstComponentHash_;
       }
       /**
-       * <code>optional bool hasFirstComponentHash = 2;</code>
+       * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
        */
-      public Builder setHasFirstComponentHash(boolean value) {
+      @java.lang.Deprecated public Builder setHasFirstComponentHash(boolean value) {
         bitField0_ |= 0x00000002;
         hasFirstComponentHash_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>optional bool hasFirstComponentHash = 2;</code>
+       * <code>optional bool hasFirstComponentHash = 2 [default = false, deprecated = true];</code>
        */
-      public Builder clearHasFirstComponentHash() {
+      @java.lang.Deprecated public Builder clearHasFirstComponentHash() {
         bitField0_ = (bitField0_ & ~0x00000002);
         hasFirstComponentHash_ = false;
+        onChanged();
+        return this;
+      }
+
+      private int numberOfComponentsHashed_ ;
+      /**
+       * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+       */
+      public boolean hasNumberOfComponentsHashed() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+       */
+      public int getNumberOfComponentsHashed() {
+        return numberOfComponentsHashed_;
+      }
+      /**
+       * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+       */
+      public Builder setNumberOfComponentsHashed(int value) {
+        bitField0_ |= 0x00000004;
+        numberOfComponentsHashed_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 numberOfComponentsHashed = 3 [default = 0];</code>
+       */
+      public Builder clearNumberOfComponentsHashed() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        numberOfComponentsHashed_ = 0;
         onChanged();
         return this;
       }
@@ -9176,68 +9254,70 @@ public final class TableMetadataPersistence {
       "sionBlockSizeKiloBytes\030\n \001(\005\022\037\n\027appendHe" +
       "avyAndReadLight\030\013 \001(\010\022O\n\rnameLogSafety\030\014",
       " \001(\01620.com.palantir.atlasdb.protos.gener" +
-      "ated.LogSafety:\006UNSAFE\"\214\001\n\027NameMetadataD" +
+      "ated.LogSafety:\006UNSAFE\"\274\001\n\027NameMetadataD" +
       "escription\022R\n\tnameParts\030\001 \003(\0132?.com.pala" +
       "ntir.atlasdb.protos.generated.NameCompon" +
-      "entDescription\022\035\n\025hasFirstComponentHash\030" +
-      "\002 \001(\010\"\277\002\n\030NameComponentDescription\022\025\n\rco" +
-      "mponentName\030\001 \002(\t\022>\n\004type\030\002 \002(\01620.com.pa" +
-      "lantir.atlasdb.protos.generated.ValueTyp" +
-      "e\022D\n\005order\030\003 \002(\01625.com.palantir.atlasdb." +
-      "protos.generated.ValueByteOrder\022\035\n\025hasUn",
-      "iformPartitioner\030\004 \001(\010\022\032\n\022explicitPartit" +
-      "ions\030\005 \003(\t\022K\n\tlogSafety\030\006 \001(\01620.com.pala" +
-      "ntir.atlasdb.protos.generated.LogSafety:" +
-      "\006UNSAFE\"\310\001\n\031ColumnMetadataDescription\022S\n" +
-      "\014namedColumns\030\001 \003(\0132=.com.palantir.atlas" +
-      "db.protos.generated.NamedColumnDescripti" +
-      "on\022V\n\rdynamicColumn\030\002 \001(\0132?.com.palantir" +
-      ".atlasdb.protos.generated.DynamicColumnD" +
-      "escription\"\300\001\n\030DynamicColumnDescription\022" +
-      "V\n\016columnNameDesc\030\001 \002(\0132>.com.palantir.a",
-      "tlasdb.protos.generated.NameMetadataDesc" +
-      "ription\022L\n\005value\030\002 \002(\0132=.com.palantir.at" +
-      "lasdb.protos.generated.ColumnValueDescri" +
-      "ption\"\330\001\n\026NamedColumnDescription\022\021\n\tshor" +
-      "tName\030\001 \002(\t\022\020\n\010longName\030\002 \002(\t\022L\n\005value\030\003" +
-      " \002(\0132=.com.palantir.atlasdb.protos.gener" +
-      "ated.ColumnValueDescription\022K\n\tlogSafety" +
-      "\030\004 \001(\01620.com.palantir.atlasdb.protos.gen" +
-      "erated.LogSafety:\006UNSAFE\"\274\003\n\026ColumnValue" +
-      "Description\022>\n\004type\030\001 \002(\01620.com.palantir",
-      ".atlasdb.protos.generated.ValueType\022\021\n\tc" +
-      "lassName\030\002 \001(\t\022M\n\013compression\030\003 \001(\01622.co" +
-      "m.palantir.atlasdb.protos.generated.Comp" +
-      "ression:\004NONE\022H\n\006format\030\004 \001(\01628.com.pala" +
-      "ntir.atlasdb.protos.generated.ColumnValu" +
-      "eFormat\022\032\n\022canonicalClassName\030\005 \001(\t\022\037\n\023p" +
-      "rotoFileDescriptor\030\006 \001(\014B\002\030\001\022\030\n\020protoMes" +
-      "sageName\030\007 \001(\t\022_\n\027protoFileDescriptorTre" +
-      "e\030\010 \001(\0132>.com.palantir.atlasdb.protos.ge" +
-      "nerated.FileDescriptorTreeProto\"\214\001\n\027File",
-      "DescriptorTreeProto\022\033\n\023protoFileDescript" +
-      "or\030\001 \002(\014\022T\n\014dependencies\030\002 \003(\0132>.com.pal" +
-      "antir.atlasdb.protos.generated.FileDescr" +
-      "iptorTreeProto*\305\001\n\tValueType\022\014\n\010VAR_LONG" +
-      "\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING\020\003\022\010\n\004BLOB\020\004" +
-      "\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIXED_LONG_LITT" +
-      "LE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022\016\n\nVAR_STRIN" +
-      "G\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t\022\016\n\nSIZED_BL" +
-      "OB\020\n\022\010\n\004UUID\020\013*#\n\013Compression\022\010\n\004NONE\020\001\022" +
-      "\n\n\006SNAPPY\020\002*N\n\021ColumnValueFormat\022\t\n\005PROT",
-      "O\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALUE_TYPE\020\003\022\r\n\t" +
-      "PERSISTER\020\004*/\n\016ValueByteOrder\022\r\n\tASCENDI" +
-      "NG\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024TableConflictHa" +
-      "ndler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETRY_ON_WRITE_" +
-      "WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHANGED\020\003\022\020\n\014S" +
-      "ERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRITE_WRITE_CE" +
-      "LL\020\005*F\n\rCachePriority\022\013\n\007COLDEST\020\000\022\010\n\004CO" +
-      "LD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOTTEST\020\177**\n\021" +
-      "PartitionStrategy\022\013\n\007ORDERED\020\000\022\010\n\004HASH\020\001" +
-      "*<\n\rSweepStrategy\022\013\n\007NOTHING\020\000\022\020\n\014CONSER",
-      "VATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022ExpirationStra" +
-      "tegy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUALLY_SPECIFIE" +
-      "D\020\001*!\n\tLogSafety\022\010\n\004SAFE\020\000\022\n\n\006UNSAFE\020\001"
+      "entDescription\022(\n\025hasFirstComponentHash\030" +
+      "\002 \001(\010:\005falseB\002\030\001\022#\n\030numberOfComponentsHa" +
+      "shed\030\003 \001(\005:\0010\"\277\002\n\030NameComponentDescripti" +
+      "on\022\025\n\rcomponentName\030\001 \002(\t\022>\n\004type\030\002 \002(\0162" +
+      "0.com.palantir.atlasdb.protos.generated." +
+      "ValueType\022D\n\005order\030\003 \002(\01625.com.palantir.",
+      "atlasdb.protos.generated.ValueByteOrder\022" +
+      "\035\n\025hasUniformPartitioner\030\004 \001(\010\022\032\n\022explic" +
+      "itPartitions\030\005 \003(\t\022K\n\tlogSafety\030\006 \001(\01620." +
+      "com.palantir.atlasdb.protos.generated.Lo" +
+      "gSafety:\006UNSAFE\"\310\001\n\031ColumnMetadataDescri" +
+      "ption\022S\n\014namedColumns\030\001 \003(\0132=.com.palant" +
+      "ir.atlasdb.protos.generated.NamedColumnD" +
+      "escription\022V\n\rdynamicColumn\030\002 \001(\0132?.com." +
+      "palantir.atlasdb.protos.generated.Dynami" +
+      "cColumnDescription\"\300\001\n\030DynamicColumnDesc",
+      "ription\022V\n\016columnNameDesc\030\001 \002(\0132>.com.pa" +
+      "lantir.atlasdb.protos.generated.NameMeta" +
+      "dataDescription\022L\n\005value\030\002 \002(\0132=.com.pal" +
+      "antir.atlasdb.protos.generated.ColumnVal" +
+      "ueDescription\"\330\001\n\026NamedColumnDescription" +
+      "\022\021\n\tshortName\030\001 \002(\t\022\020\n\010longName\030\002 \002(\t\022L\n" +
+      "\005value\030\003 \002(\0132=.com.palantir.atlasdb.prot" +
+      "os.generated.ColumnValueDescription\022K\n\tl" +
+      "ogSafety\030\004 \001(\01620.com.palantir.atlasdb.pr" +
+      "otos.generated.LogSafety:\006UNSAFE\"\274\003\n\026Col",
+      "umnValueDescription\022>\n\004type\030\001 \002(\01620.com." +
+      "palantir.atlasdb.protos.generated.ValueT" +
+      "ype\022\021\n\tclassName\030\002 \001(\t\022M\n\013compression\030\003 " +
+      "\001(\01622.com.palantir.atlasdb.protos.genera" +
+      "ted.Compression:\004NONE\022H\n\006format\030\004 \001(\01628." +
+      "com.palantir.atlasdb.protos.generated.Co" +
+      "lumnValueFormat\022\032\n\022canonicalClassName\030\005 " +
+      "\001(\t\022\037\n\023protoFileDescriptor\030\006 \001(\014B\002\030\001\022\030\n\020" +
+      "protoMessageName\030\007 \001(\t\022_\n\027protoFileDescr" +
+      "iptorTree\030\010 \001(\0132>.com.palantir.atlasdb.p",
+      "rotos.generated.FileDescriptorTreeProto\"" +
+      "\214\001\n\027FileDescriptorTreeProto\022\033\n\023protoFile" +
+      "Descriptor\030\001 \002(\014\022T\n\014dependencies\030\002 \003(\0132>" +
+      ".com.palantir.atlasdb.protos.generated.F" +
+      "ileDescriptorTreeProto*\305\001\n\tValueType\022\014\n\010" +
+      "VAR_LONG\020\001\022\016\n\nFIXED_LONG\020\002\022\n\n\006STRING\020\003\022\010" +
+      "\n\004BLOB\020\004\022\023\n\017VAR_SIGNED_LONG\020\005\022\034\n\030FIXED_L" +
+      "ONG_LITTLE_ENDIAN\020\006\022\016\n\nSHA256HASH\020\007\022\016\n\nV" +
+      "AR_STRING\020\010\022\027\n\023NULLABLE_FIXED_LONG\020\t\022\016\n\n" +
+      "SIZED_BLOB\020\n\022\010\n\004UUID\020\013*#\n\013Compression\022\010\n",
+      "\004NONE\020\001\022\n\n\006SNAPPY\020\002*N\n\021ColumnValueFormat" +
+      "\022\t\n\005PROTO\020\001\022\017\n\013PERSISTABLE\020\002\022\016\n\nVALUE_TY" +
+      "PE\020\003\022\r\n\tPERSISTER\020\004*/\n\016ValueByteOrder\022\r\n" +
+      "\tASCENDING\020\001\022\016\n\nDESCENDING\020\002*\215\001\n\024TableCo" +
+      "nflictHandler\022\016\n\nIGNORE_ALL\020\001\022\030\n\024RETRY_O" +
+      "N_WRITE_WRITE\020\002\022\032\n\026RETRY_ON_VALUE_CHANGE" +
+      "D\020\003\022\020\n\014SERIALIZABLE\020\004\022\035\n\031RETRY_ON_WRITE_" +
+      "WRITE_CELL\020\005*F\n\rCachePriority\022\013\n\007COLDEST" +
+      "\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOTTE" +
+      "ST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED\020\000\022\010",
+      "\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING\020\000\022\020" +
+      "\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022Expira" +
+      "tionStrategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUALLY_" +
+      "SPECIFIED\020\001*!\n\tLogSafety\022\010\n\004SAFE\020\000\022\n\n\006UN" +
+      "SAFE\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -9262,7 +9342,7 @@ public final class TableMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_NameMetadataDescription_descriptor,
-        new java.lang.String[] { "NameParts", "HasFirstComponentHash", });
+        new java.lang.String[] { "NameParts", "HasFirstComponentHash", "NumberOfComponentsHashed", });
     internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_com_palantir_atlasdb_protos_generated_NameComponentDescription_fieldAccessorTable = new

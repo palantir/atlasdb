@@ -40,6 +40,11 @@ Ways to Sweep
   Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
   Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.
 
+Tracking if Sweep Progress
+--------------------------
+
+In order to track sweep's general workflow, and which log lines you should expect, see :ref:`Sweep Logs<sweep-logs>`.
+
 .. _sweep_tunable_parameters:
 
 Tunable Configuration Options
@@ -96,3 +101,4 @@ The other batch parameters are still respected, but their values are unlikely to
     sweep/background-sweep
     sweep/sweep-endpoints
     sweep/sweep-cli
+    sweep/sweep-logs
