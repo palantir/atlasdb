@@ -25,6 +25,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -118,7 +119,7 @@ public class CassandraGetCandidateCellsForSweepingImpl {
                 currentCell = cell;
             }
             long ts = colNameAndTs.getRhSide();
-            if (ts < request.sweepTimestamp()) {
+            if (ts < request.sweepTimestamp() && Longs.indexOf(request.timestampsToIgnore(), ts) < 0) {
                 if (currentTimestamps.isEmpty()) {
                     // Timestamps are in the decreasing order, so we pick the first timestamp below sweepTimestamp
                     // to check the value for emptiness
