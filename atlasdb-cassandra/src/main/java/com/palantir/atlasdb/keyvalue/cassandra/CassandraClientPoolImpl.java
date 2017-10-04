@@ -21,6 +21,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -153,6 +154,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
+    private List<InetSocketAddress> cassandraHosts;
     private ScheduledFuture<?> refreshPoolFuture;
 
     @VisibleForTesting
@@ -188,7 +190,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void tryInitialize() {
-        config.servers().forEach(CassandraClientPoolImpl.this::addPool);
+        cassandraHosts = config.servers().stream()
+                .sorted(Comparator.comparing(InetSocketAddress::toString))
+                .collect(Collectors.toList());
+        cassandraHosts.forEach(this::addPool);
+
         refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(() -> {
             try {
                 refreshPool();
@@ -274,8 +280,10 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         debugLogStateOfPool();
     }
 
-    private void addPool(InetSocketAddress server) {
-        addPool(server, new CassandraClientPoolingContainer(server, config));
+    @VisibleForTesting
+    void addPool(InetSocketAddress server) {
+        int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
+        addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
     }
 
     @VisibleForTesting
@@ -283,7 +291,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         currentPools.put(server, container);
     }
 
-    private void removePool(InetSocketAddress removedServerAddress) {
+    @VisibleForTesting
+    void removePool(InetSocketAddress removedServerAddress) {
         blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
