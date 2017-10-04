@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,31 +15,78 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.stream.Collectors;
 
+import javax.annotation.Generated;
+import javax.lang.model.element.Modifier;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.generation.Triggers;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ArrayTypeName;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.WildcardTypeName;
 
-public class TableFactoryRenderer {
+public final class TableFactoryRenderer {
     private final String schemaName;
     private final String packageName;
-    private final String defaultNamespace;
+    private final String defaultNamespaceName;
     private final SortedMap<String, TableDefinition> definitions;
+    private final ClassName tableFactoryType;
+    private final ClassName sharedTriggersType;
 
-    public TableFactoryRenderer(String schemaName,
-                                String packageName,
-                                Namespace defaultNamespace,
-                                Map<String, TableDefinition> definitions) {
+    private TableFactoryRenderer(String schemaName,
+            String packageName,
+            String defaultNamespaceName,
+            SortedMap<String, TableDefinition> definitions,
+            ClassName tableFactoryType,
+            ClassName sharedTriggersType) {
         this.schemaName = schemaName;
         this.packageName = packageName;
-        this.definitions = Maps.newTreeMap();
-        this.defaultNamespace = defaultNamespace.getName();
+        this.definitions = definitions;
+        this.defaultNamespaceName = defaultNamespaceName;
+        this.tableFactoryType = tableFactoryType;
+        this.sharedTriggersType = sharedTriggersType;
+    }
+
+    public static TableFactoryRenderer of(
+            String schemaName,
+            String packageName,
+            Namespace defaultNamespace,
+            Map<String, TableDefinition> definitions) {
+
+        SortedMap<String, TableDefinition> sortedDefinitions = Maps.newTreeMap();
         for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
-            this.definitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
+            sortedDefinitions.put(Renderers.getClassTableName(entry.getKey(), entry.getValue()), entry.getValue());
         }
+        ClassName tableFactoryType = ClassName.get(packageName, schemaName + "TableFactory");
+        ClassName sharedTriggersType = tableFactoryType.nestedClass("SharedTriggers");
+        return new TableFactoryRenderer(
+                schemaName,
+                packageName,
+                defaultNamespace.getName(),
+                sortedDefinitions,
+                tableFactoryType,
+                sharedTriggersType);
     }
 
     public String getPackageName() {
@@ -51,114 +98,226 @@ public class TableFactoryRenderer {
     }
 
     public String render() {
-        final String TableFactory = getClassName();
+        TypeSpec.Builder tableFactory = TypeSpec.classBuilder(getClassName())
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addAnnotation(AnnotationSpec.builder(Generated.class)
+                        .addMember("value", "$S", TableFactoryRenderer.class.getName())
+                        .build());
 
-        return new Renderer() {
-            @Override
-            protected void run() {
-                packageAndImports();
-                line();
-                line("@Generated(\"",  TableFactoryRenderer.class.getName(), "\")");
-                line("public final class ", TableFactory, " {"); {
-                    if (defaultNamespace.isEmpty()) {
-                        line("private final static Namespace defaultNamespace = Namespace.EMPTY_NAMESPACE;");
-                    } else {
-                        line("private final static Namespace defaultNamespace = Namespace.create(\"" + defaultNamespace + "\", Namespace.UNCHECKED_NAME);");
-                    }
-                    line("private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;");
-                    line("private final Namespace namespace;");
-                    line();
-                    constructors();
-                    line();
-                    for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
-                        getTable(entry.getKey(), entry.getValue());
-                        line();
-                    }
-                    sharedTriggers();
-                    line();
-                    nullSharedTriggers();
-                } line("}");
-            }
+        getFields().forEach(tableFactory::addField);
+        getSubTypes().forEach(tableFactory::addType);
+        getConstructors().forEach(tableFactory::addMethod);
+        getMethods().forEach(tableFactory::addMethod);
 
-            private void packageAndImports() {
-                line("package ", packageName, ";");
-                line();
-                line("import java.util.List;");
-                line();
-                line("import javax.annotation.Generated;");
-                line();
-                line("import com.google.common.base.Function;");
-                line("import com.google.common.collect.ImmutableList;");
-                line("import com.google.common.collect.Multimap;");
-                line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
-                line("import com.palantir.atlasdb.table.generation.Triggers;");
-                line("import com.palantir.atlasdb.transaction.api.Transaction;");
-            }
+        JavaFile javaFile = JavaFile.builder(packageName, tableFactory.build())
+                .indent("    ")
+                .build();
 
-            private void constructors() {
-                line("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {"); {
-                    line("return new ", TableFactory, "(sharedTriggers, namespace);");
-                } line("}");
-                line();
-                line("public static ", TableFactory, " of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {"); {
-                    line("return new ", TableFactory, "(sharedTriggers, defaultNamespace);");
-                } line("}");
-                line();
-                line("private ", TableFactory, "(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {"); {
-                    line("this.sharedTriggers = sharedTriggers;");
-                    line("this.namespace = namespace;");
-                } line("}");
-                line();
-                line("public static ", TableFactory, " of(Namespace namespace) {"); {
-                    line("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);");
-                } line("}");
-                line();
-                line("public static ", TableFactory, " of() {"); {
-                    line("return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);");
-                } line("}");
-            }
+        return javaFile.toString();
+    }
 
-            private void getTable(String name, TableDefinition table) {
-                String Table = name + "Table";
-                String Trigger = Table + "." + name + "Trigger";
-                if (table.getGenericTableName() != null) {
-                    line("public ", Table, " get", Table, "(Transaction t, String name, ", Trigger, "... triggers) {"); {
-                        line("return ", Table, ".of(t, namespace, name, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
-                    } line("}");
-                } else {
-                    line("public ", Table, " get", Table, "(Transaction t, ", Trigger, "... triggers) {"); {
-                        line("return ", Table, ".of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));");
-                    } line("}");
-                }
-            }
+    private List<FieldSpec> getFields() {
+        List<FieldSpec> results = new ArrayList<>();
 
-            private void sharedTriggers() {
-                line("public interface SharedTriggers extends");
-                for (String name : definitions.keySet()) {
-                    line("        ", name, "Table.", name, "Trigger,");
-                }
-                replace(",", " {"); {
-                    line("/* empty */");
-                } line("}");
-            }
+        TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
+                ClassName.get(Function.class),
+                WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
 
-            private void nullSharedTriggers() {
-                line("public abstract static class NullSharedTriggers implements SharedTriggers {"); {
-                    for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
-                        String name = entry.getKey();
-                        TableDefinition table = entry.getValue();
-                        String Table = name + "Table";
-                        String Row = Table + "." + name + "Row";
-                        String ColumnValue = Table + "." + name + (table.toTableMetadata().getColumns().hasDynamicColumns() ? "ColumnValue" : "NamedColumnValue<?>");
-                        line("@Override");
-                        line("public void put", name, "(Multimap<", Row, ", ? extends ", ColumnValue, "> newRows) {"); {
-                            line("// do nothing");
-                        } line("}");
-                        line();
-                    }
-                    strip("\n");
-                } line("}");
+        results.add(getDefaultNamespaceField());
+        results.add(FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(List.class), functionOfTransactionAndTriggersType), "sharedTriggers")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .build());
+        results.add(FieldSpec.builder(Namespace.class, "namespace")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .build());
+
+        return results;
+    }
+
+    private List<TypeSpec> getSubTypes() {
+        List<TypeSpec> results = new ArrayList<>();
+        results.add(getSharedTriggers());
+        results.add(getNullSharedTriggers(sharedTriggersType));
+
+        return results;
+    }
+
+    private List<MethodSpec> getConstructors() {
+        List<MethodSpec> results = new ArrayList<>();
+
+        TypeName functionOfTransactionAndTriggersType = ParameterizedTypeName.get(
+                ClassName.get(Function.class),
+                WildcardTypeName.supertypeOf(Transaction.class), sharedTriggersType);
+        TypeName sharedTriggersListType = ParameterizedTypeName.get(
+                ClassName.get(List.class), functionOfTransactionAndTriggersType);
+
+        results.add(factoryBaseBuilder()
+                .addParameter(ParameterizedTypeName.get(
+                        ClassName.get(List.class), functionOfTransactionAndTriggersType), "sharedTriggers")
+                .addParameter(Namespace.class, "namespace")
+                .addStatement("return new $T($L, $L)", tableFactoryType, "sharedTriggers", "namespace")
+                .build());
+
+        results.add(factoryBaseBuilder()
+                .addParameter(sharedTriggersListType, "sharedTriggers")
+                .addStatement("return new $T($L, $L)", tableFactoryType, "sharedTriggers", "defaultNamespace")
+                .build());
+
+        results.add(factoryBaseBuilder()
+                .addParameter(Namespace.class, "namespace")
+                .addStatement("return of($T.<$T>of(), $L)",
+                        ImmutableList.class,
+                        functionOfTransactionAndTriggersType,
+                        "namespace")
+                .build());
+
+        results.add(factoryBaseBuilder()
+                .addStatement("return of($T.<$T>of(), $L)",
+                        ImmutableList.class,
+                        functionOfTransactionAndTriggersType,
+                        "defaultNamespace")
+                .build());
+
+        results.add(MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PRIVATE)
+                .addParameter(sharedTriggersListType, "sharedTriggers")
+                .addParameter(Namespace.class, "namespace")
+                .addStatement("this.$L = $L", "sharedTriggers", "sharedTriggers")
+                .addStatement("this.$L = $L", "namespace", "namespace")
+                .build());
+
+        return results;
+    }
+
+    private List<MethodSpec> getMethods() {
+        List<MethodSpec> results = new ArrayList<>();
+        results.addAll(definitions.entrySet()
+                .stream()
+                .map(entry -> getTableMethod(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList()));
+
+        results.addAll(definitions.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().hasV2TableEnabled())
+                .map(entry -> getV2TableMethod(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList()));
+        return results;
+    }
+
+    private MethodSpec.Builder factoryBaseBuilder() {
+        return MethodSpec.methodBuilder("of")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(tableFactoryType);
+    }
+
+    private MethodSpec getTableMethod(String name, TableDefinition tableDefinition) {
+        String tableName = getTableName(name);
+        String triggerName = tableName + "." + name + "Trigger";
+        TypeName tableType = ClassName.get(packageName, tableName);
+        TypeName triggerType = ClassName.get(packageName, triggerName);
+        MethodSpec.Builder tableGetterMethodBuilder = MethodSpec.methodBuilder("get" + tableName)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(Transaction.class, "t")
+                .returns(tableType);
+        if (tableDefinition.getGenericTableName() != null) {
+            tableGetterMethodBuilder
+                    .addParameter(String.class, "name")
+                    .addParameter(ArrayTypeName.of(triggerType), "triggers")
+                    .varargs()
+                    .addStatement("return $T.of(t, namespace, name, $T.getAllTriggers(t, sharedTriggers, triggers))",
+                            tableType,
+                            Triggers.class);
+        } else {
+            tableGetterMethodBuilder
+                    .addParameter(ArrayTypeName.of(triggerType), "triggers")
+                    .varargs()
+                    .addStatement("return $T.of(t, namespace, $T.getAllTriggers(t, sharedTriggers, triggers))",
+                            tableType,
+                            Triggers.class);
+        }
+        return tableGetterMethodBuilder.build();
+    }
+
+    private MethodSpec getV2TableMethod(String name, TableDefinition tableDefinition) {
+        String tableName = getV2TableName(name);
+        TypeName tableType = ClassName.get(packageName, tableName);
+        MethodSpec.Builder tableGetterMethodBuilder = MethodSpec.methodBuilder("get" + tableName)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(Transaction.class, "t")
+                .returns(tableType)
+                .addStatement("return $T.of(t, namespace)", tableType);
+
+        return tableGetterMethodBuilder.build();
+    }
+
+    private TypeSpec getSharedTriggers() {
+        TypeSpec.Builder sharedTriggersInterfaceBuilder = TypeSpec.interfaceBuilder("SharedTriggers")
+                .addModifiers(Modifier.PUBLIC);
+
+        for (String name : definitions.keySet()) {
+            String tableName = getTableName(name);
+            String triggerName = tableName + "." + name + "Trigger";
+            TypeName triggerType = ClassName.get(packageName, triggerName);
+            sharedTriggersInterfaceBuilder.addSuperinterface(triggerType);
+        }
+
+        return sharedTriggersInterfaceBuilder.build();
+    }
+
+    private TypeSpec getNullSharedTriggers(TypeName sharedTriggersInterfaceType) {
+        TypeSpec.Builder nullSharedTriggersClassBuilder = TypeSpec.classBuilder("NullSharedTriggers")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT, Modifier.STATIC)
+                .addSuperinterface(sharedTriggersInterfaceType);
+
+        for (Entry<String, TableDefinition> entry : definitions.entrySet()) {
+            String name = entry.getKey();
+            TableDefinition tableDefinition = entry.getValue();
+            String tableName = getTableName(name);
+            ClassName tableType = ClassName.get(packageName, tableName);
+            TypeName rowType = tableType.nestedClass(name + "Row");
+            TypeName columnType = tableType.nestedClass(name + "ColumnValue");
+            if (!tableDefinition.toTableMetadata().getColumns().hasDynamicColumns()) {
+                columnType = ParameterizedTypeName.get(
+                        ClassName.get(packageName, tableName + "." + name + "NamedColumnValue"),
+                        WildcardTypeName.subtypeOf(Object.class));
             }
-        }.render();
+            MethodSpec putMethod = MethodSpec.methodBuilder("put" + name)
+                    .addAnnotation(Override.class)
+                    .addModifiers(Modifier.PUBLIC)
+                    .addParameter(
+                            ParameterizedTypeName.get(
+                                    ClassName.get(Multimap.class),
+                                    rowType,
+                                    WildcardTypeName.subtypeOf(columnType)
+                            ), "newRows")
+                    .addComment("do nothing")
+                    .build();
+            nullSharedTriggersClassBuilder
+                    .addMethod(putMethod);
+        }
+
+        return nullSharedTriggersClassBuilder.build();
+    }
+
+    private String getTableName(String name) {
+        return name + "Table";
+    }
+
+    private String getV2TableName(String name) {
+        return name + SCHEMA_V2_TABLE_NAME;
+    }
+
+    private FieldSpec getDefaultNamespaceField() {
+        FieldSpec.Builder namespaceFieldBuilder = FieldSpec.builder(Namespace.class, "defaultNamespace")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC);
+
+        if (defaultNamespaceName.isEmpty()) {
+            namespaceFieldBuilder.initializer("$T.EMPTY_NAMESPACE", Namespace.class);
+        } else {
+            namespaceFieldBuilder.initializer("$T.create($S, $T.UNCHECKED_NAME)",
+                    Namespace.class, defaultNamespaceName, Namespace.class);
+        }
+        return namespaceFieldBuilder.build();
     }
 }

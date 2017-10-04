@@ -1,0 +1,38 @@
+version: '2'
+
+services:
+  timelock:
+    image: palantirtechnologies/timelock-server-distribution
+    command: [bash, -c, 'cp var/conf/timelock-postgres.yml var/conf/timelock.yml && service/bin/init.sh console']
+    depends_on:
+      - postgres
+    ports:
+      - "8421"
+      - "8422"
+
+  postgres:
+    image: kiasaki/alpine-postgres:9.5
+    environment:
+       POSTGRES_PASSWORD: palantir
+       POSTGRES_USER: palantir
+       POSTGRES_DB: atlas
+    ports:
+      - "5432"
+
+  ete1:
+    build: .
+    command: [bash, -c, 'cp var/conf/atlasdb-ete.timelock.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh console']
+    ports:
+      - "3828"
+    environment:
+      - ME=ete1
+    depends_on:
+      - postgres
+      - timelock
+
+  ete-cli:
+    build: .
+    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.timelock.dbkvs.yml var/conf/atlasdb-ete.yml && "$$@"', --]
+    command: exit
+    depends_on:
+      - ete1

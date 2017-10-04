@@ -21,6 +21,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,10 +108,12 @@ public class CassandraClientPool {
     static final int MAX_TRIES_TOTAL = 6;
 
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
     final ScheduledExecutorService refreshDaemon;
+    private final List<InetSocketAddress> cassandraHosts;
 
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
@@ -204,7 +207,12 @@ public class CassandraClientPool {
 
     private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
-        config.servers().forEach(this::addPool);
+
+        this.cassandraHosts = config.servers().stream()
+                .sorted(Comparator.comparing(InetSocketAddress::toString))
+                .collect(Collectors.toList());
+        cassandraHosts.forEach(this::addPool);
+
         refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
@@ -280,8 +288,10 @@ public class CassandraClientPool {
         debugLogStateOfPool();
     }
 
-    private void addPool(InetSocketAddress server) {
-        addPool(server, new CassandraClientPoolingContainer(server, config));
+    @VisibleForTesting
+    void addPool(InetSocketAddress server) {
+        int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
+        addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
     }
 
     @VisibleForTesting
@@ -289,7 +299,8 @@ public class CassandraClientPool {
         currentPools.put(server, container);
     }
 
-    private void removePool(InetSocketAddress removedServerAddress) {
+    @VisibleForTesting
+    void removePool(InetSocketAddress removedServerAddress) {
         blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
