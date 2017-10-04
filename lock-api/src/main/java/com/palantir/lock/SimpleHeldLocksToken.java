@@ -41,7 +41,7 @@ public class SimpleHeldLocksToken implements Serializable {
     }
 
     public LockRefreshToken asLockRefreshToken() {
-        return new LockRefreshToken(tokenId, 0L, "Simple-locks-refresh-thread");
+        return new LockRefreshToken(tokenId, 0L, null);
     }
 
     public BigInteger getTokenId() {

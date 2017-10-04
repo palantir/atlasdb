@@ -69,11 +69,11 @@ public class LockServiceStateLoggerTest {
         outstandingLockRequestMultimap.put(clientA, request2);
 
         HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
-                "Fake thread",
+                null,
                 new BigInteger("1"), "held-lock-1",
                 "logger-lock");
         HeldLocksToken token2 = LockServiceTestUtils.getFakeHeldLocksToken("client B", "Fake thread 2",
-                "Fake thread",
+                null,
                 new BigInteger("2"), "held-lock-2",
                 "held-lock-3");
 
