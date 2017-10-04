@@ -44,10 +44,28 @@ develop
     *    - Type
          - Change
 
+    *    -
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.59.1
+=======
+
+04 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new|
          - Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
-           We recommend this to be configured only for cases where you absolutely need to persist all state in the database, for example,
-           in special cases where backups are simply database dumps and do not have any mechanism for storing timestamps.
+           We recommend this to be configured only for cases where you absolutely need to persist all state in the database.
+           For example, in special cases where backups are simply database dumps and do not have any mechanism for storing timestamps.
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
