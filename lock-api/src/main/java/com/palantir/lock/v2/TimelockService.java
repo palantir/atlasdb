@@ -25,6 +25,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
@@ -38,7 +39,7 @@ public interface TimelockService {
 
     @POST
     @Path("fresh-timestamps")
-    TimestampRange getFreshTimestamps(@QueryParam("number") int numTimestampsRequested);
+    TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
     @POST
     @Path("lock-immutable-timestamp")

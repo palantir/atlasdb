@@ -33,6 +33,7 @@ public final class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
 
@@ -118,4 +119,6 @@ public final class AtlasDbConstants {
 
     public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
     public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
+
+    public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
 }

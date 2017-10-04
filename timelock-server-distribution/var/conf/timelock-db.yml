@@ -1,0 +1,25 @@
+clients:
+  - test
+  - test2
+  - atlasete
+
+cluster:
+  localServer: localhost:8421
+  servers:
+    - localhost:8421
+
+algorithm:
+  type: paxos
+
+timestampBoundPersister:
+  type: database
+  key-value-service:
+      type: memory
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8421
+  adminConnectors:
+    - type: http
+      port: 8422

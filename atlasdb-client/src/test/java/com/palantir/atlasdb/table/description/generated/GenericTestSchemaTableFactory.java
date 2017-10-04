@@ -13,21 +13,25 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class GenericTestSchemaTableFactory {
-    private final static Namespace defaultNamespace = Namespace.create("default", Namespace.UNCHECKED_NAME);
+    private static final Namespace defaultNamespace = Namespace.EMPTY_NAMESPACE;
+
     private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
+
     private final Namespace namespace;
 
-    public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
+    private GenericTestSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+            Namespace namespace) {
+        this.sharedTriggers = sharedTriggers;
+        this.namespace = namespace;
+    }
+
+    public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+            Namespace namespace) {
         return new GenericTestSchemaTableFactory(sharedTriggers, namespace);
     }
 
     public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new GenericTestSchemaTableFactory(sharedTriggers, defaultNamespace);
-    }
-
-    private GenericTestSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
-        this.sharedTriggers = sharedTriggers;
-        this.namespace = namespace;
     }
 
     public static GenericTestSchemaTableFactory of(Namespace namespace) {
@@ -38,18 +42,17 @@ public final class GenericTestSchemaTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public GenericRangeScanTestTable getGenericRangeScanTestTable(Transaction t, GenericRangeScanTestTable.GenericRangeScanTestTrigger... triggers) {
+    public GenericRangeScanTestTable getGenericRangeScanTestTable(Transaction t,
+            GenericRangeScanTestTable.GenericRangeScanTestTrigger... triggers) {
         return GenericRangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public RangeScanTestTable getRangeScanTestTable(Transaction t, RangeScanTestTable.RangeScanTestTrigger... triggers) {
+    public RangeScanTestTable getRangeScanTestTable(Transaction t,
+            RangeScanTestTable.RangeScanTestTrigger... triggers) {
         return RangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends
-            GenericRangeScanTestTable.GenericRangeScanTestTrigger,
-            RangeScanTestTable.RangeScanTestTrigger {
-        /* empty */
+    public interface SharedTriggers extends GenericRangeScanTestTable.GenericRangeScanTestTrigger, RangeScanTestTable.RangeScanTestTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
