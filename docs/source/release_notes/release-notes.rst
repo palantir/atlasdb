@@ -69,6 +69,26 @@ v0.59.0
            Note that there may be an increase in latency under light load (e.g. 2-4 threads).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2392>`__)
 
+    *    - |new|
+         - AtlasDB now offers a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
+           This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
+           We only provide these methods for named columns, and don't currently support dynamic columns.
+           You can add this to your current Schema, and use the new simplified APIs by using the V2 generated table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
+
+    *    - |new|
+         - AtlasDB now offers specifying ``hashFirstNRowComponents(n)`` in Table and Index definitions.
+           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+           When using with prefix range requests, the hashed components must also be specified in the prefix.
+           Adding this to an existing Schema is not supported, as that would require a data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - AtlasDB now offers specifying ``hashRowComponents()`` in StreamStore definitions.
+           This prevents hotspotting in Cassandra by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
+           Adding this to an existing StreamStore is not supported, as that would require a data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
     *    - |fixed|
          - The ``lock/log-current-state`` endpoint now correctly logs the number of outstanding lock requests.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2396>`__)
@@ -83,34 +103,16 @@ v0.59.0
            We decided to turn it off by default since we have observed timeouts for large amounts of data, until we find a better retry mechanism for shrink failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2405>`__)
 
-    *    - |new|
-         - AtlasDB now offers specifying ``hashRowComponents()`` in StreamStore definitions.
-           This prevents hotspotting in Cassandra by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
-           We do not support adding this to an existing StreamStore, as that would require a data migration.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
-
-    *    - |new|
-         - AtlasDB now offers specifying ``hashFirstNRowComponents(n)`` in Table and Index definitions.
-           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
-           When using with prefix range requests, the hashed components must also be specified in the prefix.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
-
-    *    - |new|
-         - AtlasDB now offers a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
-           This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
-           We only provide these methods for named columns, and don't currently support dynamic columns.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
-
-    *    - |devbreak| |fixed|
-         - Adjusted the remoting-api library version to match the version used by remoting3.
-           Developers may need to check your dependencies, but no other actions should be required.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
-
     *    - |userbreak| |fixed|
          - AtlasDB no longer tries to register Cassandra metrics for each pool with the same names.
            We now add `poolN` to the metric name in CassandraClientPoolingContainer, where N is the pool number.
            This will prevent spurious stacktraces in logs due to failure in registering metrics with the same name.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2415>`__)
+
+    *    - |devbreak| |fixed|
+         - Adjusted the remoting-api library version to match the version used by remoting3.
+           Developers may need to check your dependencies, but no other actions should be required.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
