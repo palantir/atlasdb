@@ -61,6 +61,11 @@ develop
            Sweep aggregate metrics continue to be reported.
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
+
+    *    - |userbreak| |improved|
+         - Thread can be added to Lock refreshing request. Lock service state logging will include refreshing thread as well.
+           Negative expiration times in logging should be fixed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2422>`__)
            
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
