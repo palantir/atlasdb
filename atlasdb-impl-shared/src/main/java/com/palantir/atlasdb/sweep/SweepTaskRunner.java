@@ -156,8 +156,6 @@ public class SweepTaskRunner {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .batchSizeHint(batchConfig.candidateBatchSize())
-                 // TODO(sberler): change once we figure out transaction table sweep
-                .minUncommittedStartTimestamp(Long.MIN_VALUE)
                 .sweepTimestamp(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(sweeper.shouldSweepLastCommitted())
                 .timestampsToIgnore(sweeper.getTimestampsToIgnore())

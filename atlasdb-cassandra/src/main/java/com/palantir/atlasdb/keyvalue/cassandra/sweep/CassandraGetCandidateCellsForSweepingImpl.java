@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRawCellValue;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
@@ -45,8 +44,6 @@ import gnu.trove.list.array.TLongArrayList;
  * Simply use the CellPager to iterate over raw cells in a table and group the returned entries by the cell key.
  */
 public class CassandraGetCandidateCellsForSweepingImpl {
-
-    private static final long[] EMPTY_LONG_ARRAY = new long[0];
 
     private final CellPager cellPager;
 
@@ -133,8 +130,8 @@ public class CassandraGetCandidateCellsForSweepingImpl {
         }
 
         private CandidateCellForSweeping createCandidate() {
-            boolean isCandidate = isCandidate();
-            long[] sortedTimestamps = isCandidate ? sortTimestamps() : EMPTY_LONG_ARRAY;
+            currentTimestamps.reverse();
+            long[] sortedTimestamps = currentTimestamps.toArray();
             currentTimestamps.clear();
             return ImmutableCandidateCellForSweeping.builder()
                     .cell(currentCell)
@@ -142,21 +139,6 @@ public class CassandraGetCandidateCellsForSweepingImpl {
                     .isLatestValueEmpty(currentLatestValEmpty)
                     .numCellsTsPairsExamined(numCellTsPairsExamined)
                     .build();
-        }
-
-        private long[] sortTimestamps() {
-            currentTimestamps.reverse();
-            return currentTimestamps.toArray();
-        }
-
-        private boolean isCandidate() {
-            return currentTimestamps.size() > 1
-                    || currentLatestValEmpty
-                    || (currentTimestamps.size() == 1 && timestampIsPotentiallySweepable(currentTimestamps.get(0)));
-        }
-
-        private boolean timestampIsPotentiallySweepable(long ts) {
-            return ts == Value.INVALID_VALUE_TIMESTAMP || ts >= request.minUncommittedStartTimestamp();
         }
     }
 

@@ -20,12 +20,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.IntToLongFunction;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -33,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
@@ -48,79 +44,17 @@ import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import gnu.trove.list.TLongList;
 import gnu.trove.list.array.TLongArrayList;
 
-// Two considerations that influenced the implementation:
-//
-//   1. Window functions (OVER) on Postgres seem to be significantly slower than equivalent aggregates (GROUP BY).
-//
-//   2. Limiting an outer query doesn't seem to work well, e.g.:
-//          SELECT ... FROM (
-//              SELECT ... FROM my_table
-//              ...
-//              ORDER BY row_name, col_name, ts
-//              ...
-//          ) sub
-//          WHERE ...
-//          ORDER BY row_name, col_name, ts
-//          LIMIT 1000
-//      Postgres will often choose a full table scan for the inner SELECT query, even when an index
-//      range scan is sufficient (because of the limit on the outer query). Postgres also doesn't
-//      have hints like Oracle, so one can't force it to use a certain plan. A trick with specifying
-//      a very large limit for the inner query seems to work, hinting the optimizer that only
-//      the first few rows matter:
-//          SELECT ... FROM (
-//              SELECT ... FROM my_table
-//              ...
-//              ORDER BY row_name, col_name, ts
-//              ...
-//              LIMIT 100000000000000000000 -- a very large number that is guaranteed to exceed the table size
-//          ) sub
-//          WHERE ...
-//          ORDER BY row_name, col_name, ts
-//          LIMIT 1000
-//      However, this looks very hacky and fragile, so instead we resort to simply limiting the inner query
-//      (i.e., limiting the number of examined cells rather than the number of returned candidates).
-//
-// So, our SQL query does the following:
-//
-//   1. Grab a page of SQL rows, starting at some (row_name, col_name, ts).
-//   2. Number the rows, starting with 1.
-//   3. Group the rows by cell key, i.e. (row_name, col_name), and compute a few aggregates:
-//          - Minimum and maximum row number
-//          - Minimum and maximum timestamp
-//          - An array of all timestamps (using ARRAY_AGG)
-//   4. If the THOROUGH strategy is being used, do a self-join to check if the values are empty.
-//   5. Filter out cells that don't satisfy the definition of a candidate, but keep the first
-//      and last SQL row in each page (except for the last page).
-//
-//
 public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCellsForSweeping {
 
     private final PostgresPrefixedTableNames prefixedTableNames;
     private final SqlConnectionSupplier connectionPool;
-    private final IntToLongFunction sqlRowLimitProvider;
 
-    private final long[] emptyLongArray = new long[] {};
     private static final int DEFAULT_BATCH_SIZE = 1000;
 
-    public static PostgresGetCandidateCellsForSweeping create(
-            PostgresPrefixedTableNames prefixedTableNames,
-            SqlConnectionSupplier connectionPool) {
-        return new PostgresGetCandidateCellsForSweeping(
-                prefixedTableNames,
-                connectionPool,
-                // Since in our SQL query we limit the number of examined cells rather than the number of
-                // returned candidates, we set the limit higher than the requested batch size.
-                batchHint -> 4 * batchHint);
-    }
-
-    @VisibleForTesting
-    /* package */ PostgresGetCandidateCellsForSweeping(
-            PostgresPrefixedTableNames prefixedTableNames,
-            SqlConnectionSupplier connectionPool,
-            IntToLongFunction sqlRowLimitProvider) {
+    public PostgresGetCandidateCellsForSweeping(PostgresPrefixedTableNames prefixedTableNames,
+                                                SqlConnectionSupplier connectionPool) {
         this.prefixedTableNames = prefixedTableNames;
         this.connectionPool = connectionPool;
-        this.sqlRowLimitProvider = sqlRowLimitProvider;
     }
 
     @Override
@@ -131,7 +65,7 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
         String tableName = DbKvs.internalTableName(tableRef);
         PageIterator rawIterator = new PageIterator(
                 request,
-                (int) sqlRowLimitProvider.applyAsLong(request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE)),
+                request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE),
                 tableName,
                 prefixedTableNames.get(tableRef),
                 request.startRowInclusive());
@@ -150,7 +84,7 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
         private byte[] currentRowName;
         private byte[] currentColName = PtBytes.EMPTY_BYTE_ARRAY;
         private Long firstCellStartTimestampInclusive = null;
-        private boolean endOfResults = false;
+        private boolean reachedEnd = false;
         private final TLongList currentCellTimestamps = new TLongArrayList();
         private boolean currentIsLatestValueEmpty = false;
         private long cellTsPairsExaminedTotal = 0;
@@ -168,7 +102,7 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
         @Override
         @SuppressWarnings("deprecation")
         protected List<CandidateCellForSweeping> computeNext() {
-            if (endOfResults) {
+            if (reachedEnd) {
                 return endOfData();
             } else {
                 try (ConnectionSupplier conns = new ConnectionSupplier(connectionPool);
@@ -187,18 +121,23 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
                             currentRowName = rowName;
                             currentColName = colName;
                         }
-                        Object[] timestamps = (Object[]) sqlRow.getArray("timestamps");
-                        for (Object ts : timestamps) {
-                            currentCellTimestamps.add((Long) ts);
-                        }
-                        cellTsPairsExaminedCurrentBatch = sqlRow.getLong("max_row_number");
                         if (request.shouldCheckIfLatestValueIsEmpty()) {
+                            // We group timestamps in an array when we check the latest values
+                            Object[] timestamps = (Object[]) sqlRow.getArray("timestamps");
+                            cellTsPairsExaminedCurrentBatch += timestamps.length;
+                            for (Object ts : timestamps) {
+                                currentCellTimestamps.add((Long) ts);
+                            }
                             currentIsLatestValueEmpty = sqlRow.getBoolean("latest_val_empty");
+                        } else {
+                            // Otherwise, we return one row per (cell, ts) pair
+                            cellTsPairsExaminedCurrentBatch += 1;
+                            currentCellTimestamps.add(sqlRow.getLong("ts"));
                         }
                     }
                     if (noResults || cellTsPairsExaminedCurrentBatch < sqlRowLimit) {
                         getCurrentCandidate().ifPresent(results::add);
-                        endOfResults = true;
+                        reachedEnd = true;
                     } else {
                         computeNextStartPosition();
                     }
@@ -235,21 +174,9 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
         }
 
         private long[] getSortedTimestamps() {
-            if (isCandidate()) {
-                long[] sortedTimestamps = currentCellTimestamps.toArray();
-                Arrays.sort(sortedTimestamps);
-                return sortedTimestamps;
-            } else {
-                return emptyLongArray;
-            }
-        }
-
-        private boolean isCandidate() {
-            return currentCellTimestamps.size() > 1
-                    || currentCellTimestamps.get(currentCellTimestamps.size() - 1)
-                            >= request.minUncommittedStartTimestamp()
-                    || currentCellTimestamps.contains(Value.INVALID_VALUE_TIMESTAMP)
-                    || currentIsLatestValueEmpty;
+            long[] sortedTimestamps = currentCellTimestamps.toArray();
+            Arrays.sort(sortedTimestamps);
+            return sortedTimestamps;
         }
 
         private ClosableIterator<AgnosticLightResultRow> selectNextPage(ConnectionSupplier conns) {
@@ -263,59 +190,42 @@ public class PostgresGetCandidateCellsForSweeping implements DbKvsGetCandidateCe
             RangeBoundPredicates bounds = RangeBoundPredicates.builder(false)
                     .startCellTsInclusive(currentRowName, currentColName, firstCellStartTimestampInclusive)
                     .build();
-            boolean ignoreSentinels = areSentinelsIgnored();
-            String query = "/* GET_CANDIDATE_CELLS_FOR_SWEEPING(" + tableName + ") */"
-                    + "  SELECT cells.row_name, cells.col_name, cells.timestamps, cells.max_rn AS max_row_number"
-                    +    (request.shouldCheckIfLatestValueIsEmpty() ? ", length(v.val) = 0 AS latest_val_empty" : "")
-                    + "  FROM ("
-                    + "    SELECT"
-                    + "      row_name,"
-                    + "      col_name,"
-                    + "      MIN(rn) AS min_rn,"
-                    + "      MAX(rn) AS max_rn,"
-                    + "      MIN(ts) AS min_ts,"
-                    + "      MAX(ts) AS max_ts,"
-                    +        (ignoreSentinels
-                                ? ""
-                                : " MAX((ts=" + Value.INVALID_VALUE_TIMESTAMP + ")::int) AS have_sentinel,")
-                    + "      ARRAY_AGG(ts) AS timestamps"
-                    + "    FROM ("
-                    + "      SELECT row_name, col_name, ts, ROW_NUMBER() OVER (ORDER BY row_name, col_name, ts) AS rn"
-                    + "      FROM " + prefixedTableName
-                    + "      WHERE ts < ? " + bounds.predicates + getIgnoredTimestampPredicate()
-                    + "      ORDER BY row_name, col_name, ts"
-                    + "      LIMIT " + sqlRowLimit
-                    + "    ) sub"
-                    + "    GROUP BY row_name, col_name"
-                    + "    ORDER BY row_name, col_name"
-                    + "  ) cells"
-                    +    (request.shouldCheckIfLatestValueIsEmpty()
-                            ? "  JOIN " + prefixedTableName + " v"
-                              + "  ON cells.row_name = v.row_name"
-                              + "  AND cells.col_name = v.col_name"
-                              + "  AND cells.max_ts = v.ts"
-                            : "")
-                    + "  WHERE"
-                      // See KVS.getCandidateCellsForSweeping() docs for the definition of a candidate cell:
-                      // (1) The set T has more than one element
-                    + "    min_ts <> max_ts"
-                      // (2) The set T contains an element that is greater than or equal to Tu
-                    + "    OR max_ts >= ?"
-                      // (3) The set T contains Value.INVALID_VALUE_TIMESTAMP
-                    +      (ignoreSentinels ? "" : " OR have_sentinel = 1")
-                      // (4) V is true and the cell value corresponding to the maximum element of T is empty
-                    +      (request.shouldCheckIfLatestValueIsEmpty() ? " OR length(v.val) = 0" : "")
-                      // Also, always get the first cell, as well as the last one if the limit was reached
-                    + "    OR min_rn = 1 OR max_rn = " + sqlRowLimit
-                    + "  ORDER BY cells.row_name, cells.col_name";
-            return new FullQuery(query)
-                    .withArg(request.sweepTimestamp()) // "WHERE ts < ?"
-                    .withArgs(bounds.args)
-                    .withArg(request.minUncommittedStartTimestamp()); // "OR max_ts >= ?"
-        }
-
-        private boolean areSentinelsIgnored() {
-            return Longs.contains(request.timestampsToIgnore(), Value.INVALID_VALUE_TIMESTAMP);
+            if (request.shouldCheckIfLatestValueIsEmpty()) {
+                String query = "/* GET_CANDIDATE_CELLS_FOR_SWEEPING_THOROUGH(" + tableName + ") */"
+                        + "  SELECT cells.row_name, cells.col_name, cells.timestamps, "
+                        + "         length(v.val) = 0 AS latest_val_empty"
+                        + "  FROM ("
+                        + "    SELECT"
+                        + "      row_name, col_name, MAX(ts) AS max_ts, ARRAY_AGG(ts) AS timestamps"
+                        + "    FROM ("
+                        + "      SELECT row_name, col_name, ts"
+                        + "      FROM " + prefixedTableName
+                        + "      WHERE ts < ? " + bounds.predicates + getIgnoredTimestampPredicate()
+                        + "      ORDER BY row_name, col_name, ts"
+                        + "      LIMIT " + sqlRowLimit
+                        + "    ) sub"
+                        + "    GROUP BY row_name, col_name"
+                        + "    ORDER BY row_name, col_name"
+                        + "  ) cells"
+                        + "  JOIN " + prefixedTableName + " v"
+                        + "  ON cells.row_name = v.row_name"
+                        + "  AND cells.col_name = v.col_name"
+                        + "  AND cells.max_ts = v.ts"
+                        + "  ORDER BY cells.row_name, cells.col_name";
+                return new FullQuery(query)
+                        .withArg(request.sweepTimestamp()) // "WHERE ts < ?"
+                        .withArgs(bounds.args);
+            } else {
+                String query = "/* GET_CANDIDATE_CELLS_FOR_SWEEPING_CONSERVATIVE(" + tableName + ") */"
+                        + "  SELECT row_name, col_name, ts"
+                        + "  FROM " + prefixedTableName
+                        + "  WHERE ts < ? " + bounds.predicates + getIgnoredTimestampPredicate()
+                        + "  ORDER BY row_name, col_name, ts"
+                        + "  LIMIT " + sqlRowLimit;
+                return new FullQuery(query)
+                        .withArg(request.sweepTimestamp()) // "WHERE ts < ?"
+                        .withArgs(bounds.args);
+            }
         }
 
         private String getIgnoredTimestampPredicate() {

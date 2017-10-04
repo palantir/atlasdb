@@ -68,50 +68,45 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     }
 
     @Test
-    public void returnCandidateIfPossiblyUncommittedTimestamp() {
-        new TestDataBuilder().put(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 5L)))
-                .containsExactly(ImmutableCandidateCellForSweeping.builder()
+    public void singleCellSpanningSeveralPages() {
+        new TestDataBuilder()
+                .put(10, 1, 1000)
+                .put(10, 1, 1001)
+                .put(10, 1, 1002)
+                .put(10, 1, 1003)
+                .put(10, 1, 1004)
+                .store();
+        List<CandidateCellForSweeping> cells = getAllCandidates(
+                conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 2000L, 2));
+        assertEquals(ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
+                .cell(cell(10, 1))
+                .isLatestValueEmpty(false)
+                .numCellsTsPairsExamined(5)
+                .sortedTimestamps(1000L, 1001L, 1002L, 1003L, 1004L)
+                .build()), cells);
+    }
+
+    @Test
+    public void reportLatestEmptyValue() {
+        new TestDataBuilder()
+                .putEmpty(1, 1, 10L)
+                .put(1, 1, 5L)
+                .put(2, 2, 9L)
+                .putEmpty(2, 2, 4L)
+                .store();
+        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L)))
+                .containsExactly(
+                    ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L })
-                        .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(1)
-                        .build());
-    }
-
-    @Test
-    public void doNotReturnCandidateIfOnlyCommittedTimestamp() {
-        new TestDataBuilder().put(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L))).isEmpty();
-    }
-
-    @Test
-    public void returnCandidateIfTwoCommittedTimestamps() {
-        new TestDataBuilder().put(1, 1, 10L).put(1, 1, 20L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L)))
-                .containsExactly(ImmutableCandidateCellForSweeping.builder()
-                        .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L, 20L })
-                        .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(2)
-                        .build());
-    }
-
-    @Test
-    public void doNotReturnCandidateWithCommitedEmptyValueIfConservative() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L))).isEmpty();
-    }
-
-    @Test
-    public void returnCandidateWithCommitedEmptyValueIfThorough() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30L)))
-                .containsExactly(ImmutableCandidateCellForSweeping.builder()
-                        .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L })
+                        .sortedTimestamps(5L, 10L)
                         .isLatestValueEmpty(true)
-                        .numCellsTsPairsExamined(1)
+                        .numCellsTsPairsExamined(2)
+                        .build(),
+                    ImmutableCandidateCellForSweeping.builder()
+                        .cell(cell(2, 2))
+                        .sortedTimestamps(4L, 9L)
+                        .isLatestValueEmpty(false)
+                        .numCellsTsPairsExamined(4)
                         .build());
     }
 
@@ -125,7 +120,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .putEmpty(3, 2, 10L)
                 .putEmpty(3, 3, 10L)
                 .store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 30L, 5L))
+        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 30L, 100))
                     .stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
                 .containsExactly(cell(1, 1), cell(1, 2), cell(2, 2), cell(3, 1), cell(3, 2), cell(3, 3));
     }
@@ -140,13 +135,22 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .putEmpty(3, 1, 10L)
                 .putEmpty(3, 2, 10L)
                 .store();
-        assertThat(getAllCandidates(conservativeRequest(cell(2, 2).getRowName(), 30L, 5L))
+        assertThat(getAllCandidates(conservativeRequest(cell(2, 2).getRowName(), 30L, 100))
                 .stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
                 .containsExactly(cell(2, 1), cell(2, 2), cell(3, 1), cell(3, 2));
     }
 
     @Test
-    public void largerTableWithSmallBatchSizeReturnsCorrectResults() {
+    public void largerTableWithSmallBatchSizeReturnsCorrectResultsConservative() {
+        doTestLargerTable(false);
+    }
+
+    @Test
+    public void largerTableWithSmallBatchSizeReturnsCorrectResultsThorough() {
+        doTestLargerTable(true);
+    }
+
+    private void doTestLargerTable(boolean checkIfLatestValueIsEmpty) {
         TestDataBuilder builder = new TestDataBuilder();
         List<Cell> expectedCells = Lists.newArrayList();
         for (int rowNum = 1; rowNum <= 50; ++rowNum) {
@@ -161,13 +165,12 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         builder.store();
         List<CandidateCellForSweeping> candidates = getAllCandidates(
                 ImmutableCandidateCellForSweepingRequest.builder()
-                    .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
-                    .sweepTimestamp(40L)
-                    .minUncommittedStartTimestamp(1L)
-                    .shouldCheckIfLatestValueIsEmpty(false)
-                    .timestampsToIgnore(Value.INVALID_VALUE_TIMESTAMP)
-                    .batchSizeHint(1)
-                    .build());
+                        .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
+                        .sweepTimestamp(40L)
+                        .shouldCheckIfLatestValueIsEmpty(checkIfLatestValueIsEmpty)
+                        .timestampsToIgnore(Value.INVALID_VALUE_TIMESTAMP)
+                        .batchSizeHint(1)
+                        .build());
         assertEquals(expectedCells,
                 candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()));
     }
@@ -184,23 +187,20 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
 
     protected static CandidateCellForSweepingRequest conservativeRequest(byte[] startRow,
                                                                          long sweepTs,
-                                                                         long minUncommittedTs) {
+                                                                         int batchSizeHint) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .sweepTimestamp(sweepTs)
-                .minUncommittedStartTimestamp(minUncommittedTs)
                 .shouldCheckIfLatestValueIsEmpty(false)
                 .timestampsToIgnore(Value.INVALID_VALUE_TIMESTAMP)
+                .batchSizeHint(batchSizeHint)
                 .build();
     }
 
-    protected static CandidateCellForSweepingRequest thoroughRequest(byte[] startRow,
-                                                                     long sweepTs,
-                                                                     long minUncommittedTs) {
+    protected static CandidateCellForSweepingRequest thoroughRequest(byte[] startRow, long sweepTs) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .sweepTimestamp(sweepTs)
-                .minUncommittedStartTimestamp(minUncommittedTs)
                 .shouldCheckIfLatestValueIsEmpty(true)
                 .timestampsToIgnore()
                 .build();
