@@ -44,6 +44,12 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer tries to register Cassandra metrics for each pool with the same names.
+           We now add `poolN` to the metric name in CassandraClientPoolingContainer, where N is the pool number.
+           This will prevent spurious stacktraces in logs due to failure in registering metrics with the same name.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2415>`__)
+
     *    - |improved|
          - Timestamp batching has now been enabled by default.
            Please see :ref:`Timestamp Client Options <timestamp-client-config>` for details.

@@ -53,6 +53,7 @@ public class CassandraClientPoolTest {
     private static final String HOSTNAME_3 = "3.0.0.0";
     private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
     private MetricRegistry metricRegistry;
 
     @Before
@@ -123,12 +124,48 @@ public class CassandraClientPoolTest {
     @Test
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
-
         cassandraClientPool.blacklistedHosts.put(HOST_1, System.currentTimeMillis());
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertThat(container.isPresent(), is(true));
         assertThat(container.get().getHost(), equalTo(HOST_1));
+    }
+
+    @Test
+    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForTwoPools() {
+        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
+
+        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
+
+        cassandraClientPool.removePool(HOST_1);
+        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool1")), is(false));
+        assertThatMetricsArePresent(ImmutableSet.of("pool2"));
+
+        cassandraClientPool.addPool(HOST_1);
+        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
+    }
+
+    @Test
+    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForThreePools() {
+        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+
+        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
+
+        cassandraClientPool.removePool(HOST_2);
+        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool3"));
+        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool2")), is(false));
+
+        cassandraClientPool.addPool(HOST_2);
+        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
+    }
+
+    private void assertThatMetricsArePresent(ImmutableSet<String> poolNames) {
+        poolNames.forEach(poolName ->
+                assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName(poolName)), is(true)));
+    }
+
+    private String getPoolMetricName(String poolName) {
+        return MetricRegistry.name(CassandraClientPoolingContainer.class, poolName + ".proportionDestroyedByBorrower");
     }
 
     @Test
