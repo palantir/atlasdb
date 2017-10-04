@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -26,7 +27,6 @@ import org.junit.runners.Suite;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;

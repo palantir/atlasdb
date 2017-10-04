@@ -25,14 +25,14 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;

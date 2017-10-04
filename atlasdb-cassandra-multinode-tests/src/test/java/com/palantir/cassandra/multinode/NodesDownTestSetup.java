@@ -19,12 +19,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.ClassRule;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
