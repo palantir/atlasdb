@@ -46,7 +46,8 @@ public class SweepLocksTest {
 
     @Test
     public void lockStoredInToken() throws InterruptedException {
-        when(mockLockService.lock(anyString(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L, null));
+        when(mockLockService.lock(anyString(), any()))
+                .thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L, null));
         sweepLocks.lockOrRefresh();
 
         assertTrue(sweepLocks.haveLocks());
@@ -54,7 +55,8 @@ public class SweepLocksTest {
 
     @Test
     public void lockClearedWhenRefreshReturnsEmpty() throws InterruptedException {
-        when(mockLockService.lock(anyString(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L, null));
+        when(mockLockService.lock(anyString(), any()))
+                .thenReturn(new LockRefreshToken(BigInteger.ONE, 10000000000L, null));
         sweepLocks.lockOrRefresh();
 
         when(mockLockService.refreshLockRefreshTokens(any())).thenReturn(ImmutableSet.of());
