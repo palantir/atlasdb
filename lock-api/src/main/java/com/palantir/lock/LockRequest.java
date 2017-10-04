@@ -242,7 +242,6 @@ import com.google.common.collect.Iterables;
         @Nullable private TimeDuration blockingDuration;
         @Nullable private Long versionId;
         @Nullable private String creatingThreadName;
-        @Nullable private String refreshingThreadName;
 
         private Builder(SortedMap<LockDescriptor, LockMode> lockMap) {
             this(LockCollections.of(lockMap));
@@ -359,11 +358,6 @@ import com.google.common.collect.Iterables;
 
         public Builder withCreatingThreadName(String threadName) {
             this.creatingThreadName = threadName;
-            return this;
-        }
-
-        public Builder withRefreshingThreadName(String refreshingThreadName) {
-            this.refreshingThreadName = refreshingThreadName;
             return this;
         }
 

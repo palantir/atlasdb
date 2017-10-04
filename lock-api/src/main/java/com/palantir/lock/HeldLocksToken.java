@@ -194,9 +194,9 @@ import com.google.common.collect.Iterables;
     /**
      * This should only be created by the lock service.  This call will not actually refresh the token.
      */
-    public HeldLocksToken refresh(long newExpirationDateMs, @Nullable String refreshingThread) {
+    public HeldLocksToken refresh(long newExpirationDateMs, @Nullable String newRefreshingThread) {
         return new HeldLocksToken(tokenId, client, creationDateMs, newExpirationDateMs, lockMap, lockTimeout,
-                versionId, requestingThread, refreshingThread);
+                versionId, requestingThread, newRefreshingThread);
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
