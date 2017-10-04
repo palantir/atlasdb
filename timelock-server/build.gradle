@@ -30,10 +30,26 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value'
 
+    runtime project(":atlasdb-jdbc")
+    runtime project(":atlasdb-hikari")
+    runtime (project(":atlasdb-cassandra")) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+    }
+    runtime project(":atlasdb-dbkvs")
+    // TODO:   runtime "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
+    // TODO:   add runtime depencency on the dbkvs-oracle-driver internally
+
     testCompile (project(":atlasdb-tests-shared")) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
 
+    testCompile project(":atlasdb-tests-shared")
+    testCompile project(":atlasdb-dbkvs")
+    testCompile (project(":atlasdb-cassandra")) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+    }
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
         exclude group: 'org.hamcrest'

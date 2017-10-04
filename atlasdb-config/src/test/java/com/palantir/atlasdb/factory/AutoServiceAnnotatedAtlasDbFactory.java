@@ -27,6 +27,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
@@ -59,7 +60,8 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
+    public TimestampService createTimestampService(KeyValueService rawKvs, Optional<TableReference> timestampTable,
+            boolean initializeAsync) {
         return nextTimestampServices.remove(0);
     }
 

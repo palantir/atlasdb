@@ -166,4 +166,9 @@ public class LockRefreshingLockService extends ForwardingLockService {
         super.close();
         dispose();
     }
+
+    // visible for debugging clients at runtime
+    public Set<LockRefreshToken> getAllRefreshingTokens() {
+        return ImmutableSet.copyOf(toRefresh);
+    }
 }

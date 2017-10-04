@@ -66,22 +66,77 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
 
     *    - |new|
-         - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
-           by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
-           We do not support adding this to an existing StreamStore, as it would require data migration.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+         - Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
+           We recommend this to be configured only for cases where you absolutely need to persist all state in the database, for example,
+           in special cases where backups are simply database dumps and do not have any mechanism for storing timestamps.
+           This will help support large internal product's usage of the Timelock server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.59.0
+=======
+
+04 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Allow passing a `ProxyConfiguration <https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__ to allow setting custom proxy on the TimeLock clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2393>`__)
+
+    *    - |improved|
+         - Timestamp batching has now been enabled by default.
+           Please see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
+           This should improve throughput and latency, especially if load is heavy and/or clients are communicating with a TimeLock cluster which is used by many services.
+           Note that there may be an increase in latency under light load (e.g. 2-4 threads).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2392>`__)
 
     *    - |new|
-         - Can now specify ``hashFirstNRowComponents(n)`` in Table and Index definitions.
-           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
-           When using with prefix range requests, the components that are hashed must also be specified in the prefix.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
-
-    *    - |new|
-         - Can now use a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
+         - AtlasDB now offers a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
            This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
            We only provide these methods for named columns, and don't currently support dynamic columns.
+           You can add this to your current Schema, and use the new simplified APIs by using the V2 generated table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
+
+    *    - |new|
+         - AtlasDB now offers specifying ``hashFirstNRowComponents(n)`` in Table and Index definitions.
+           This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+           When using with prefix range requests, the hashed components must also be specified in the prefix.
+           Adding this to an existing Schema is not supported, as that would require a data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |new|
+         - AtlasDB now offers specifying ``hashRowComponents()`` in StreamStore definitions.
+           This prevents hotspotting in Cassandra by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
+           Adding this to an existing StreamStore is not supported, as that would require a data migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
+
+    *    - |fixed|
+         - The ``lock/log-current-state`` endpoint now correctly logs the number of outstanding lock requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2396>`__)
+
+    *    - |fixed|
+         - Fixed migration from JDBC KeyValueService by adding a missing dependency to the CLI distribution.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2397>`__)
+
+    *    - |fixed|
+         - Oracle auto-shrink is now disabled by default.
+           This is an experimental feature allowing Oracle non-EE users to compact automatically.
+           We decided to turn it off by default since we have observed timeouts for large amounts of data, until we find a better retry mechanism for shrink failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2405>`__)
+
+    *    - |userbreak| |fixed|
+         - AtlasDB no longer tries to register Cassandra metrics for each pool with the same names.
+           We now add `poolN` to the metric name in CassandraClientPoolingContainer, where N is the pool number.
+           This will prevent spurious stacktraces in logs due to failure in registering metrics with the same name.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2415>`__)
 
     *    - |devbreak| |fixed|
          - Adjusted the remoting-api library version to match the version used by remoting3.
@@ -156,12 +211,12 @@ v0.57.0
 
     *    - |devbreak| |fixed|
          - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)
 
     *    - |devbreak| |fixed|
          - The ``ConcurrentStreams`` class has been deleted and replaced with calls to ``MoreStreams.blockingStreamWithParallelism``, from `streams <https://github.com/palantir/streams>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2361/files>`__)
-         
+
     *    - |devbreak| |improved|
          - TimeLockAgent's constructor now accepts a Supplier instead of an RxJava Observable.
            This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.

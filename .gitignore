@@ -32,6 +32,7 @@ generated_testSrc/
 out/
 atlasdb-cli/var/data/
 *.hprof
+var/
 
 # Common text-editor temp files
 # emacs

@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -54,10 +55,13 @@ public interface AtlasDbFactory {
             boolean initializeAsync);
 
     default TimestampService createTimestampService(KeyValueService rawKvs) {
-        return createTimestampService(rawKvs, DEFAULT_INITIALIZE_ASYNC);
+        return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);
     }
 
-    TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync);
+    TimestampService createTimestampService(
+            KeyValueService rawKvs,
+            Optional<TableReference> timestampTable,
+            boolean initializeAsync);
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {

@@ -36,6 +36,7 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
@@ -62,6 +63,23 @@ public class ServiceDiscoveringAtlasSupplier {
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
+            Optional<TableReference> timestampTable) {
+        this(config, leaderConfig, namespace, timestampTable, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public ServiceDiscoveringAtlasSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            boolean initializeAsync) {
+        this(config, leaderConfig, namespace, Optional.empty(), initializeAsync);
+    }
+
+    public ServiceDiscoveringAtlasSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<String> namespace,
+            Optional<TableReference> timestampTable,
             boolean initializeAsync) {
         this.config = config;
         this.leaderConfig = leaderConfig;
@@ -75,7 +93,8 @@ public class ServiceDiscoveringAtlasSupplier {
                 ));
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(config, leaderConfig, namespace, initializeAsync));
-        timestampService = () -> atlasFactory.createTimestampService(getKeyValueService(), initializeAsync);
+        timestampService = () ->
+                atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 

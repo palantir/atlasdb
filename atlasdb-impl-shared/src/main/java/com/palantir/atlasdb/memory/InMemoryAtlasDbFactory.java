@@ -33,6 +33,7 @@ import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
@@ -106,10 +107,14 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
+    public TimestampService createTimestampService(
+            KeyValueService rawKvs,
+            Optional<TableReference> unused,
+            boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }
+
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryTimestampService();
     }

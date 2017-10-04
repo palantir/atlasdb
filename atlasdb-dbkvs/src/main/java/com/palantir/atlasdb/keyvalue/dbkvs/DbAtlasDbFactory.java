@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -68,7 +69,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs, boolean initializeAsync) {
+    public TimestampService createTimestampService(
+            KeyValueService rawKvs,
+            Optional<TableReference> timestampTable,
+            boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }
@@ -77,7 +81,18 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
-        return PersistentTimestampServiceImpl.create(InDbTimestampBoundStore.create(
+        return PersistentTimestampServiceImpl.create(createTimestampBoundStore(timestampTable, dbkvs));
+    }
+
+    private InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,
+            ConnectionManagerAwareDbKvs dbkvs) {
+        return timestampTable
+                .map(tableReference -> InDbTimestampBoundStore.create(
+                    dbkvs.getConnectionManager(),
+                    tableReference
+                    /* Not using the table prefix here, as the tableRef should contain any necessary prefix.*/
+                    ))
+                .orElseGet(() -> InDbTimestampBoundStore.create(
                         dbkvs.getConnectionManager(),
                         AtlasDbConstants.TIMESTAMP_TABLE,
                         dbkvs.getTablePrefix()));
