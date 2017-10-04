@@ -48,14 +48,14 @@ develop
          - AtlasDB now supports asynchronous initialization, where ``TransactionManagers.create()`` creates a SnapshotTransactionManager even when initialization fails, for instance because the KVS is not up yet.
 
            To enable asynchronous initialization, a new config option ``initializeAsync`` was added to AtlasDbConfig.
-           If this option is set to true, `TransactionManagers.create()` first attempts to create a SnapshotTransactionManager synchronously, i.e., consistent with current behaviour.
-           If this fails, it returns a SnapshotTransactionManager for which the necessary initialization is scheduled in the background and which throws a NotInitializedException on any method call until the initialization completes - this is, until the backing store becomes available.
+           If this option is set to true, ``TransactionManagers.create()`` first attempts to create a SnapshotTransactionManager synchronously, i.e., consistent with current behaviour.
+           If this fails, it returns a SnapshotTransactionManager for which the necessary initialization is scheduled in the background and which throws a ``NotInitializedException`` on any method call until the initialization completes - this is, until the backing store becomes available.
 
-           The default value for the config  is `false` in order to preserve previous behaviour.
+           The default value for the config  is ``false`` in order to preserve previous behaviour.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
 
     *    - |devbreak| |improved|
-         - In order to limit the access to inner methods, and to make startup independence feasible, we've extracted interfaces and renamed the following classes:
+         - In order to limit the access to inner methods, and to make the implementation of the above feasible, we've extracted interfaces and renamed the following classes:
 
               - ``CassandraClientPool``
               - ``CassandraKeyValueService``
@@ -87,10 +87,6 @@ develop
          - Adjusted the remoting-api library version to match the version used by remoting3.
            Developers may need to check your dependencies, but no other actions should be required.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
-
-    *    - |changed|
-         - Increase the default timeout of when waiting for Cassandra schemas to settle from 1 minute to 2 minutes, to address a flake in our integration tests.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

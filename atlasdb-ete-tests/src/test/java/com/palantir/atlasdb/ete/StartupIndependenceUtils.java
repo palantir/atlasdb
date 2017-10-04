@@ -55,6 +55,12 @@ public final class StartupIndependenceUtils {
         });
     }
 
+    public static void verifyCassandraIsSettled() throws IOException, InterruptedException {
+        StartupIndependenceUtils.restartAtlasWithChecks();
+        StartupIndependenceUtils.assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
+        StartupIndependenceUtils.randomizeNamespace();
+    }
+
     public static void startCassandraNodes(List<String> nodes) throws InterruptedException {
         runOnCassandraNodes(nodes, MultiCassandraUtils::startCassandraContainer);
     }
@@ -64,31 +70,8 @@ public final class StartupIndependenceUtils {
         startAtlasServerAndAssertSuccess();
     }
 
-
-    private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh stop");
-        assertSatisfiedWithin(120, () -> !serverRunning());
-    }
-
-    private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommand("service/bin/init.sh start");
-        assertSatisfiedWithin(240, StartupIndependenceUtils::serverRunning);
-    }
-
     public static void assertSatisfiedWithin(long time, Callable<Boolean> condition) {
         Awaitility.waitAtMost(time, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(condition);
-    }
-
-    private static boolean serverRunning() {
-        try {
-            canPerformTransaction();
-            return true;
-        } catch (Exception e) {
-            if (exceptionIsRetryableAndContainsMessage(e, "Connection refused")) {
-                return false;
-            }
-            throw e;
-        }
     }
 
     public static boolean canPerformTransaction() {
@@ -111,6 +94,28 @@ public final class StartupIndependenceUtils {
             fail("Expected to throw an exception");
         } catch (Exception e) {
             assertTrue(exceptionIsRetryableAndContainsMessage(e, "CassandraKeyValueService is not initialized yet"));
+        }
+    }
+
+    private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
+        EteSetup.execCliCommand("service/bin/init.sh stop");
+        assertSatisfiedWithin(120, () -> !serverRunning());
+    }
+
+    private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
+        EteSetup.execCliCommand("service/bin/init.sh start");
+        assertSatisfiedWithin(240, StartupIndependenceUtils::serverRunning);
+    }
+
+    private static boolean serverRunning() {
+        try {
+            canPerformTransaction();
+            return true;
+        } catch (Exception e) {
+            if (exceptionIsRetryableAndContainsMessage(e, "Connection refused")) {
+                return false;
+            }
+            throw e;
         }
     }
 

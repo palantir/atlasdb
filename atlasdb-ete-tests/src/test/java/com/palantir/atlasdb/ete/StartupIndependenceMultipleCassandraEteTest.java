@@ -69,18 +69,12 @@ public class StartupIndependenceMultipleCassandraEteTest {
     @Test
     public void atlasInitializesSynchronouslyIfCassandraIsInGoodState() throws InterruptedException, IOException {
         StartupIndependenceUtils.startCassandraNodes(ALL_CASSANDRA_NODES);
-        verifyCassandraIsSettled();
+        StartupIndependenceUtils.verifyCassandraIsSettled();
         StartupIndependenceUtils.restartAtlasWithChecks();
         assertTrue(StartupIndependenceUtils.canPerformTransaction());
 
         StartupIndependenceUtils.killCassandraNodes(ONE_CASSANDRA_NODE);
         StartupIndependenceUtils.restartAtlasWithChecks();
         assertTrue(StartupIndependenceUtils.canPerformTransaction());
-    }
-
-    private static void verifyCassandraIsSettled() throws IOException, InterruptedException {
-        StartupIndependenceUtils.restartAtlasWithChecks();
-        StartupIndependenceUtils.assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
-        StartupIndependenceUtils.randomizeNamespace();
     }
 }

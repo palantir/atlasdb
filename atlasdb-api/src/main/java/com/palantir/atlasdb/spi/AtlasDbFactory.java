@@ -37,7 +37,7 @@ public interface AtlasDbFactory {
     }
 
     /**
-     * Creates a KeyValueService instance of the requested type.
+     * Creates a KeyValueService instance of type according to the config parameter.
      *
      * @param config Configuration file.
      * @param leaderConfig If the implementation supports it, the optional leader configuration.
