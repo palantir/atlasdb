@@ -567,10 +567,13 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
-                log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
+                InetSocketAddress previousHostPool = hostPool == null ? specifiedHost : hostPool.getHost();
                 Optional<CassandraClientPoolingContainer> hostPoolCandidate
                         = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
                 hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
+                log.warn("Randomly redirected a query intended for host {} to {}.",
+                        previousHostPool,
+                        hostPool.getHost());
             }
 
             try {
