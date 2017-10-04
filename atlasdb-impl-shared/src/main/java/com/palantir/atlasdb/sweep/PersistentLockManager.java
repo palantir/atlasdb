@@ -102,8 +102,7 @@ public class PersistentLockManager {
             lockId = null;
         } catch (CheckAndSetException e) {
             log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
-                            + "If you didn't release it manually, this warrants investigation, but future sweeps "
-                            + "should correctly be able to re-acquire the lock.",
+                            + "Future sweeps should correctly be able to re-acquire the lock.",
                     SafeArg.of("lock id", lockId), e);
             lockId = null;
         }
