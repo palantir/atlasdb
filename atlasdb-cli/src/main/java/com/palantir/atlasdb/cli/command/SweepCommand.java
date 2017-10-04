@@ -37,6 +37,7 @@ import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -112,6 +113,10 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Force thorough sweep")
     Boolean forceThoroughSweep;
 
+    @Option(name = {"--force-batch-deletes"},
+            description = "Force batch deletes")
+    Boolean forceBatchDeletes;
+
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
                     + " (throttles long-running sweep jobs, default: 0)")
@@ -174,8 +179,12 @@ public class SweepCommand extends SingleBackendCommand {
         if (forceThoroughSweep != null) {
             SweepTaskRunner.forceThoroughSweep = forceThoroughSweep;
         }
+        if (forceBatchDeletes != null) {
+            CassandraKeyValueService.forceBatchDeletes = forceBatchDeletes;
+        }
         printer.info("using getColumnsByRowParallelism = {}", CqlColumnGetter.getColumnsByRowParallelism);
         printer.info("using forceThoroughSweep = {}", SweepTaskRunner.forceThoroughSweep);
+        printer.info("using forceBatchDeletes = {}", CassandraKeyValueService.forceBatchDeletes);
 
         SweepBatchConfig batchConfig = getSweepBatchConfig();
 

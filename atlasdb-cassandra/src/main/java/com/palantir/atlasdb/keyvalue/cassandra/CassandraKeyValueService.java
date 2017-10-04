@@ -146,6 +146,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Logger log;
 
+    public static volatile boolean forceBatchDeletes = false;
+
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
@@ -1292,7 +1294,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 rowPuts.put(internalTableName(tableRef), Lists.<Mutation>newArrayList());
                             }
                             rowPuts.get(internalTableName(tableRef)).add(mutation);
-                            //mapIndex++;
+                            if (!forceBatchDeletes) {
+                                mapIndex++;
+                            }
                             numVersions += cellVersions.getValue().size();
                         }
                     }

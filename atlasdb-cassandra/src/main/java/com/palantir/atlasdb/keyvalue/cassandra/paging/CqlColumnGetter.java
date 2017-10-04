@@ -38,7 +38,7 @@ import com.palantir.util.paging.PageDrainer;
 public class CqlColumnGetter implements ColumnGetter {
 
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
-    public static volatile int getColumnsByRowParallelism = 16;
+    public static volatile int getColumnsByRowParallelism = 1;
 
     private final TableReference tableRef;
     private final int columnBatchSize;
