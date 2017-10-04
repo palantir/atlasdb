@@ -384,13 +384,13 @@ public abstract class AbstractSweepTaskRunnerTest {
     @Test
     public void testSweepBatchesDownToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
-        SweepTaskRunner sweepRunner =
+        SweepTaskRunner spiedSweepRunner =
                 new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
 
         putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
 
         int deleteBatchSize = 1;
-        List<List<Cell>> sweptCells = runSweep(cellsSweeper, sweepRunner,
+        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
                 8, 8, deleteBatchSize);
         assertThat(sweptCells).allMatch(list -> list.size() <= 2 * deleteBatchSize);
         assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(SMALL_LIST_OF_CELLS);
