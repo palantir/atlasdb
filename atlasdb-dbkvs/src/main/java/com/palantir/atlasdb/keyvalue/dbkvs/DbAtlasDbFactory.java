@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -50,12 +51,24 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs) {
+    public TimestampService createTimestampService(KeyValueService rawKvs,
+            Optional<TableReference> timestampTable) {
         Preconditions.checkArgument(rawKvs instanceof ConnectionManagerAwareDbKvs,
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
-        return PersistentTimestampService.create(InDbTimestampBoundStore.create(
+        return PersistentTimestampService.create(createTimestampBoundStore(timestampTable, dbkvs));
+    }
+
+    private InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,
+            ConnectionManagerAwareDbKvs dbkvs) {
+        return timestampTable
+                .map(tableReference -> InDbTimestampBoundStore.create(
+                    dbkvs.getConnectionManager(),
+                    tableReference
+                    /* Not using the table prefix here, as the tableRef should contain any necessary prefix.*/
+                    ))
+                .orElseGet(() -> InDbTimestampBoundStore.create(
                         dbkvs.getConnectionManager(),
                         AtlasDbConstants.TIMESTAMP_TABLE,
                         dbkvs.getTablePrefix()));

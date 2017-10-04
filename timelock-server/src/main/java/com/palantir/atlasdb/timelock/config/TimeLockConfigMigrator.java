@@ -31,6 +31,7 @@ public final class TimeLockConfigMigrator {
         PaxosConfiguration paxos = (PaxosConfiguration) config.algorithm();
 
         TimeLockInstallConfiguration install = ImmutableTimeLockInstallConfiguration.builder()
+                .timestampBoundPersistence(config.getTsBoundPersisterConfiguration())
                 .paxos(ImmutablePaxosInstallConfiguration.builder()
                         .dataDirectory(paxos.paxosDataDir())
                         .build())

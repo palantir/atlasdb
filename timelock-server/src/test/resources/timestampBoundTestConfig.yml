@@ -1,0 +1,34 @@
+algorithm:
+  type: paxos
+  paxosDataDir: var/data/paxos
+  sslConfiguration:
+    trustStorePath: var/security/trustStore.jks
+
+timestampBoundPersister:
+  type: database
+  key-value-service:
+    type: memory
+
+cluster:
+  localServer: localhost:8080
+  servers:
+    - localhost:8080
+    - localhost:8081
+    - localhost:8082
+
+clients:
+  - test
+  - test2
+  - test3
+  - learner
+  - acceptor
+
+useClientRequestLimit: true
+
+timeLimiter:
+  enableTimeLimiting: true
+  blockingTimeoutErrorMargin: 0.03
+
+asyncLock:
+  useAsyncLockService: true
+  disableLegacySafetyChecksWarningPotentialDataCorruption: false

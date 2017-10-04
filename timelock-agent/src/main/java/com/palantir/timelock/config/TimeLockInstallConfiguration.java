@@ -23,6 +23,11 @@ public interface TimeLockInstallConfiguration {
     ClusterConfiguration cluster();
 
     @Value.Default
+    default TsBoundPersisterConfiguration timestampBoundPersistence() {
+        return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
+    }
+
+    @Value.Default
     default AsyncLockConfiguration asyncLock() {
         return ImmutableAsyncLockConfiguration.builder().build();
     }
