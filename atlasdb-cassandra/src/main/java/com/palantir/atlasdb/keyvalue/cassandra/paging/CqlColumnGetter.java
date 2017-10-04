@@ -19,20 +19,27 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.KeySlice;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.AllCellsPerRowPager;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.streams.MoreStreams;
 import com.palantir.util.paging.PageDrainer;
 
 public class CqlColumnGetter implements ColumnGetter {
+
+    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+    public static volatile int getColumnsByRowParallelism = 1;
+
     private final TableReference tableRef;
     private final int columnBatchSize;
     private final CqlExecutor cqlExecutor;
@@ -54,9 +61,14 @@ public class CqlColumnGetter implements ColumnGetter {
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(Set<ByteBuffer> rows) throws TException {
-        return rows.stream().collect(Collectors.toMap(
-                Function.identity(),
-                this::getColumns));
+        return MoreStreams.blockingStreamWithParallelism(
+                rows.stream(),
+                row -> Pair.of(row, getColumns(row)),
+                EXECUTOR,
+                getColumnsByRowParallelism)
+                .collect(Collectors.toMap(
+                        Pair::getKey,
+                        Pair::getValue));
     }
 
     private List<ColumnOrSuperColumn> getColumns(ByteBuffer row) {

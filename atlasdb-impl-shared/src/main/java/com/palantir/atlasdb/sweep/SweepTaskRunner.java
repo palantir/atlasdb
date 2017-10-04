@@ -52,6 +52,8 @@ import gnu.trove.TDecorators;
 public class SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunner.class);
 
+    public static volatile boolean forceThoroughSweep = false;
+
     private final KeyValueService keyValueService;
     private final LongSupplier unreadableTimestampSupplier;
     private final LongSupplier immutableTimestampSupplier;
@@ -128,6 +130,9 @@ public class SweepTaskRunner {
             return SweepResults.createEmptySweepResult();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
+        if (forceThoroughSweep) {
+            sweepStrategy = SweepStrategy.THOROUGH;
+        }
         Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResult();
