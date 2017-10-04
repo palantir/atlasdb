@@ -77,6 +77,7 @@ public class AtlasDbHttpClientsTest {
     public void setup() {
         String testNumberAsString = Integer.toString(TEST_NUMBER);
         availableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
+        proxyServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
 
         availablePort = availableServer.port();
         unavailablePort = unavailableServer.port();
