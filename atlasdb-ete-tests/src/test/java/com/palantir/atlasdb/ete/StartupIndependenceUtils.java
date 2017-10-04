@@ -56,9 +56,9 @@ public final class StartupIndependenceUtils {
     }
 
     public static void verifyCassandraIsSettled() throws IOException, InterruptedException {
-        StartupIndependenceUtils.restartAtlasWithChecks();
-        StartupIndependenceUtils.assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
-        StartupIndependenceUtils.randomizeNamespace();
+        restartAtlasWithChecks();
+        assertSatisfiedWithin(240, StartupIndependenceUtils::canPerformTransaction);
+        randomizeNamespace();
     }
 
     public static void startCassandraNodes(List<String> nodes) throws InterruptedException {
