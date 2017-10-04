@@ -54,6 +54,25 @@ develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.59.1
+=======
+
+04 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Allow passing a `ProxyConfiguration <https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__ to allow setting custom proxy on the TimeLock clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2393>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.59.0
 =======
 
