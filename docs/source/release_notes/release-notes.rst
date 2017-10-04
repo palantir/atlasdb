@@ -44,6 +44,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.59.0
+=======
+
+04 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - Timestamp batching has now been enabled by default.
            Please see :ref:`Timestamp Client Options <timestamp-client-config>` for details.
@@ -60,25 +78,25 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2397>`__)
 
     *    - |fixed|
-         - Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
-           However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
-           shrink failures.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+         - Oracle auto-shrink is now disabled by default.
+           This is an experimental feature allowing Oracle non-EE users to compact automatically.
+           We decided to turn it off by default since we have observed timeouts for large amounts of data, until we find a better retry mechanism for shrink failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2405>`__)
 
     *    - |new|
-         - Can now specify ``hashRowComponents()`` in StreamStore definitions. This prevents hotspotting in Cassandra
-           by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
-           We do not support adding this to an existing StreamStore, as it would require data migration.
+         - AtlasDB now offers specifying ``hashRowComponents()`` in StreamStore definitions.
+           This prevents hotspotting in Cassandra by prepending the hashed concatenation of the ``streamId`` and ``blockId`` to the row key.
+           We do not support adding this to an existing StreamStore, as that would require a data migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
 
     *    - |new|
-         - Can now specify ``hashFirstNRowComponents(n)`` in Table and Index definitions.
+         - AtlasDB now offers specifying ``hashFirstNRowComponents(n)`` in Table and Index definitions.
            This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
-           When using with prefix range requests, the components that are hashed must also be specified in the prefix.
+           When using with prefix range requests, the hashed components must also be specified in the prefix.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2384>`__)
 
     *    - |new|
-         - Can now use a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
+         - AtlasDB now offers a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
            This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
            We only provide these methods for named columns, and don't currently support dynamic columns.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2401>`__)
