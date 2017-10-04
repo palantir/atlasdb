@@ -38,8 +38,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.docker.compose.connection.DockerPort;
 
 public abstract class NodesDownTestSetup {
+
+    private static final int CASSANDRA_THRIFT_PORT = 9160;
 
     static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
     static final TableReference TEST_TABLE_TO_DROP = TableReference.createWithEmptyNamespace("test_table_to_drop");
@@ -117,11 +120,12 @@ public abstract class NodesDownTestSetup {
         }
     }
 
-
     private static void killCassandraContainer(String containerName) throws IOException, InterruptedException {
         CONTAINERS.getContainer(containerName).kill();
+        DockerPort containerPort = new DockerPort(containerName, CASSANDRA_THRIFT_PORT, CASSANDRA_THRIFT_PORT);
+        Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(
+                () -> !containerPort.isListeningNow());
     }
-
 
     private static void waitUntilStartupChecksPass() {
         Awaitility.await()
