@@ -204,7 +204,6 @@ v0.56.1
            We now make sure the resulting ordering matches that of the input RangeRequests.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2337>`__)
 
->>>>>>> develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
