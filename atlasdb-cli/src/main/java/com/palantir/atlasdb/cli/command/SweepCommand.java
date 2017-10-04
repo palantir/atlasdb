@@ -108,6 +108,10 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Number of parallel range requests")
     Integer getColsParallelism;
 
+    @Option(name = {"--force-thorough-sweep"},
+            description = "Force thorough sweep")
+    Boolean forceThoroughSweep;
+
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
                     + " (throttles long-running sweep jobs, default: 0)")
@@ -167,7 +171,11 @@ public class SweepCommand extends SingleBackendCommand {
         if (getColsParallelism != null) {
             CqlColumnGetter.getColumnsByRowParallelism = getColsParallelism;
         }
+        if (forceThoroughSweep != null) {
+            SweepTaskRunner.forceThoroughSweep = forceThoroughSweep;
+        }
         printer.info("using getColumnsByRowParallelism = {}", CqlColumnGetter.getColumnsByRowParallelism);
+        printer.info("using forceThoroughSweep = {}", SweepTaskRunner.forceThoroughSweep);
 
         SweepBatchConfig batchConfig = getSweepBatchConfig();
 
