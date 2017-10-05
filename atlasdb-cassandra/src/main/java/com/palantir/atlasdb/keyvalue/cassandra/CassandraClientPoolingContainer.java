@@ -54,10 +54,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<Client> clientPool;
 
-    public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
+    public CassandraClientPoolingContainer(
+            InetSocketAddress host,
+            CassandraKeyValueServiceConfig config,
+            int poolNumber) {
         this.host = host;
         this.config = config;
-        this.clientPool = createClientPool();
+        this.clientPool = createClientPool(poolNumber);
     }
 
     public InetSocketAddress getHost() {
@@ -217,8 +220,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      *
+     * @param poolNumber number of the pool for metric registration.
      */
-    private GenericObjectPool<Client> createClientPool() {
+    private GenericObjectPool<Client> createClientPool(int poolNumber) {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
@@ -246,21 +250,25 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
         poolConfig.setJmxNamePrefix(host.getHostString());
         GenericObjectPool<Client> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
-        registerMetrics(pool);
+        registerMetrics(pool, poolNumber);
         return pool;
     }
 
-    private void registerMetrics(GenericObjectPool<Client> pool) {
-        registerMetric("meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
-        registerMetric("meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
-        registerMetric("meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
-        registerMetric("numIdle", pool::getNumIdle);
-        registerMetric("numActive", pool::getNumActive);
-        registerMetric("approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
-        registerMetric("proportionDestroyedByEvictor",
+    private void registerMetrics(GenericObjectPool<Client> pool, int poolNumber) {
+        registerMetric(getMetricName("meanActiveTimeMillis", poolNumber), pool::getMeanActiveTimeMillis);
+        registerMetric(getMetricName("meanIdleTimeMillis", poolNumber), pool::getMeanIdleTimeMillis);
+        registerMetric(getMetricName("meanBorrowWaitTimeMillis", poolNumber), pool::getMeanBorrowWaitTimeMillis);
+        registerMetric(getMetricName("numIdle", poolNumber), pool::getNumIdle);
+        registerMetric(getMetricName("numActive", poolNumber), pool::getNumActive);
+        registerMetric(getMetricName("approximatePoolSize", poolNumber), () -> pool.getNumIdle() + pool.getNumActive());
+        registerMetric(getMetricName("proportionDestroyedByEvictor", poolNumber),
                 () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
-        registerMetric("proportionDestroyedByBorrower",
+        registerMetric(getMetricName("proportionDestroyedByBorrower", poolNumber),
                 () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
+    }
+
+    private String getMetricName(String metric, int poolNumber) {
+        return "pool" + poolNumber + "." + metric;
     }
 
     private void registerMetric(String metricName, Gauge gauge) {

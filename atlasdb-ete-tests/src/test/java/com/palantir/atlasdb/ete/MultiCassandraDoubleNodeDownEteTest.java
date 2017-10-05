@@ -32,12 +32,12 @@ public class MultiCassandraDoubleNodeDownEteTest {
 
     @BeforeClass
     public static void shutdownCassandraNode() {
-        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraTestSuite::killCassandraContainer);
+        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraUtils::killCassandraContainer);
     }
 
     @AfterClass
     public static void startupCassandraNode() {
-        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraTestSuite::startCassandraContainer);
+        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraUtils::startCassandraContainer);
     }
 
     @Test(expected = RuntimeException.class)

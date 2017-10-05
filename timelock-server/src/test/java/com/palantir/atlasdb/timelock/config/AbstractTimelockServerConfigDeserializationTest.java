@@ -31,12 +31,11 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
-public class TimeLockServerConfigurationDeserializationTest {
-    private static final File TEST_CONFIG_FILE = new File(
-            TimeLockServerConfigurationDeserializationTest.class.getResource("/paxosTestConfig.yml").getPath());
+public abstract class AbstractTimelockServerConfigDeserializationTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
@@ -48,10 +47,18 @@ public class TimeLockServerConfigurationDeserializationTest {
         OBJECT_MAPPER.registerModule(new Jdk8Module());
     }
 
+    protected AbstractTimelockServerConfigDeserializationTest() {}
+
+    public abstract String getConfigFileName();
+
+    public abstract void assertTimestampBoundPersisterConfigurationCorrect(TsBoundPersisterConfiguration configuration);
+
     @Test
     public void canDeserializeTimeLockServerConfiguration() throws IOException {
+        File testConfigFile = new File(
+                AbstractTimelockServerConfigDeserializationTest.class.getResource(getConfigFileName()).getPath());
         TimeLockServerConfiguration configuration =
-                OBJECT_MAPPER.readValue(TEST_CONFIG_FILE, TimeLockServerConfiguration.class);
+                OBJECT_MAPPER.readValue(testConfigFile, TimeLockServerConfiguration.class);
 
         assertThat(configuration.cluster().localServer()).isEqualTo("localhost:8080");
         assertThat(configuration.cluster().servers()).containsExactlyInAnyOrder(
@@ -60,6 +67,8 @@ public class TimeLockServerConfigurationDeserializationTest {
         assertThat(configuration.clients()).containsExactlyInAnyOrder("test", "test2", "test3", "acceptor", "learner");
 
         assertAlgorithmConfigurationCorrect(configuration.algorithm());
+
+        assertTimestampBoundPersisterConfigurationCorrect(configuration.getTsBoundPersisterConfiguration());
 
         assertThat(configuration.useClientRequestLimit()).isTrue();
 
@@ -71,7 +80,7 @@ public class TimeLockServerConfigurationDeserializationTest {
                 .isFalse();
     }
 
-    private void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {
+    public void assertAlgorithmConfigurationCorrect(TimeLockAlgorithmConfiguration configuration) {
         assertThat(configuration).isInstanceOf(PaxosConfiguration.class);
 
         PaxosConfiguration paxosConfiguration = (PaxosConfiguration) configuration;
