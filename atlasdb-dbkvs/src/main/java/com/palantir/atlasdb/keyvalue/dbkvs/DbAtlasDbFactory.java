@@ -17,6 +17,9 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -27,11 +30,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
+    private static final Logger log = LoggerFactory.getLogger(DbAtlasDbFactory.class);
     public static final String TYPE = "relational";
 
     @Override
@@ -39,11 +43,25 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         return TYPE;
     }
 
+    /**
+     * Creates a ConnectionManagerAwareDbKvs.
+     *
+     * @param config Configuration file.
+     * @param leaderConfig unused.
+     * @param namespace unused.
+     * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
+     * @return The requested KeyValueService instance
+     */
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace) {
+            Optional<String> namespace,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
+
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());
@@ -51,13 +69,19 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs,
-            Optional<TableReference> timestampTable) {
+    public TimestampService createTimestampService(
+            KeyValueService rawKvs,
+            Optional<TableReference> timestampTable,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
+
         Preconditions.checkArgument(rawKvs instanceof ConnectionManagerAwareDbKvs,
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
-        return PersistentTimestampService.create(createTimestampBoundStore(timestampTable, dbkvs));
+        return PersistentTimestampServiceImpl.create(createTimestampBoundStore(timestampTable, dbkvs));
     }
 
     private InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,

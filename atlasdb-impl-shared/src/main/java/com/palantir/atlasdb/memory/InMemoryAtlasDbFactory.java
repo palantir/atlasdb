@@ -19,6 +19,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -67,6 +70,7 @@ import com.palantir.timestamp.TimestampService;
  */
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
+    private static final Logger log = LoggerFactory.getLogger(InMemoryAtlasDbFactory.class);
 
     /**
      * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
@@ -79,18 +83,38 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return "memory";
     }
 
+    /**
+     * Creates an InMemoryKeyValueService.
+     *
+     * @param config Configuration file.
+     * @param leaderConfig unused.
+     * @param unused unused.
+     * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
+     * @return The requested KeyValueService instance
+     */
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
-            Optional<String> unused) {
+            Optional<String> unused,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
+
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }
 
     @Override
-    public TimestampService createTimestampService(KeyValueService rawKvs,
-            Optional<TableReference> unused) {
+    public TimestampService createTimestampService(
+            KeyValueService rawKvs,
+            Optional<TableReference> unused,
+            boolean initializeAsync) {
+        if (initializeAsync) {
+            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+        }
+
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryTimestampService();
     }

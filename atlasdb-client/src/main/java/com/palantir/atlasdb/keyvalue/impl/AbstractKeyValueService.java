@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -210,23 +211,34 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         }
     }
 
-    protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
+    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
                                                              final int maximumCountPerPartition,
                                                              final long maximumBytesPerPartition,
                                                              final TableReference tableRef,
                                                              final Function<T, Long> sizingFunction) {
         return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition,
-                tableRef.getQualifiedName(), sizingFunction);
+                tableRef.getQualifiedName(), sizingFunction, log);
+    }
+
+    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
+            final int maximumCountPerPartition,
+            final long maximumBytesPerPartition,
+            final String tableNameForLoggingPurposesOnly,
+            final Function<T, Long> sizingFunction) {
+        return partitionByCountAndBytes(iterable, maximumCountPerPartition, maximumBytesPerPartition,
+                tableNameForLoggingPurposesOnly, sizingFunction, log);
     }
 
     // FIXME: The tableNameForLoggingPurposesOnly is *not* always a valid tableName
     // This string should *not* be used or treated as a real tableName, even though sometimes it is.
     // For example, CassandraKVS multiPuts can cause this string to include *multiple* tableNames
-    protected <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
+    @VisibleForTesting
+    protected static <T> Iterable<List<T>> partitionByCountAndBytes(final Iterable<T> iterable,
                                                              final int maximumCountPerPartition,
                                                              final long maximumBytesPerPartition,
                                                              final String tableNameForLoggingPurposesOnly,
-                                                             final Function<T, Long> sizingFunction) {
+                                                             final Function<T, Long> sizingFunction,
+                                                             final Logger log) {
         return () -> new UnmodifiableIterator<List<T>>() {
             PeekingIterator<T> pi = Iterators.peekingIterator(iterable.iterator());
             private int remainingEntries = Iterables.size(iterable);

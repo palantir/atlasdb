@@ -93,7 +93,7 @@ public final class LoggingArgs {
     }
 
     public static Arg<Integer> rowCount(int rowCount) {
-        return getArg("tableCount", rowCount, true);
+        return getArg("rowCount", rowCount, true);
     }
 
     public static Arg<Long> sizeInBytes(long sizeInBytes) {

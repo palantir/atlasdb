@@ -33,7 +33,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
 
@@ -55,7 +55,7 @@ public class RowRangeLoader {
     }
 
     public List<KeySlice> getRows(KeyRange keyRange, ColumnFetchMode fetchMode) {
-        ColumnParent colFam = new ColumnParent(CassandraKeyValueService.internalTableName(tableRef));
+        ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
