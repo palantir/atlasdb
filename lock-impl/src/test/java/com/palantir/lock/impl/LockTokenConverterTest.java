@@ -37,7 +37,7 @@ public class LockTokenConverterTest {
         int bitLength = LockServiceImpl.RANDOM_BIT_COUNT;
         for (int i = 0; i < iterations; i++) {
             BigInteger randomBigInteger = new BigInteger(bitLength, RANDOM);
-            LockRefreshToken lockRefreshToken = new LockRefreshToken(randomBigInteger, Long.MIN_VALUE);
+            LockRefreshToken lockRefreshToken = new LockRefreshToken(randomBigInteger, Long.MIN_VALUE, null);
             assertConversionFromAndToLegacyPreservesId(lockRefreshToken);
         }
     }
@@ -48,7 +48,7 @@ public class LockTokenConverterTest {
         int bitLength = LockServiceImpl.RANDOM_BIT_COUNT;
         for (int i = 0; i < iterations; i++) {
             BigInteger randomBigInteger = new BigInteger(bitLength, RANDOM).negate();
-            LockRefreshToken lockRefreshToken = new LockRefreshToken(randomBigInteger, Long.MIN_VALUE);
+            LockRefreshToken lockRefreshToken = new LockRefreshToken(randomBigInteger, Long.MIN_VALUE, null);
             assertConversionFromAndToLegacyPreservesId(lockRefreshToken);
         }
     }
@@ -57,7 +57,7 @@ public class LockTokenConverterTest {
     public void throwsIfBigIntegerHasMoreThan127Bits() {
         BigInteger bigInt = BigInteger.valueOf(2).pow(127);
 
-        LockRefreshToken token = new LockRefreshToken(bigInt, 0L);
+        LockRefreshToken token = new LockRefreshToken(bigInt, 0L, null);
 
         assertThatThrownBy(() -> LockTokenConverter.toTokenV2(token))
                 .isInstanceOf(IllegalArgumentException.class)

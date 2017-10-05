@@ -29,7 +29,7 @@ class LockTokenConverter {
     private LockTokenConverter() { }
 
     static LockRefreshToken toLegacyToken(LockToken tokenV2) {
-        return new LockRefreshToken(toBigInteger(tokenV2.getRequestId()), Long.MIN_VALUE);
+        return new LockRefreshToken(toBigInteger(tokenV2.getRequestId()), Long.MIN_VALUE, null);
     }
 
     static LockToken toTokenV2(LockRefreshToken legacyToken) {

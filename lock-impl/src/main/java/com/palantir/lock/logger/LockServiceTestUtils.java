@@ -43,15 +43,18 @@ public class LockServiceTestUtils {
         rootDir.delete();
     }
 
-    public static HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId,
-            String... descriptors) {
+    public static HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread,
+            String refreshingThread, BigInteger tokenId, String... descriptors) {
         ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode =
                 getLockDescriptorLockMode(Arrays.asList(descriptors));
 
         return new HeldLocksToken(tokenId, LockClient.of(clientName),
                 System.currentTimeMillis(), System.currentTimeMillis(),
                 LockCollections.of(lockDescriptorLockMode),
-                LockRequest.getDefaultLockTimeout(), 0L, requestingThread);
+                LockRequest.getDefaultLockTimeout(),
+                0L,
+                requestingThread,
+                refreshingThread);
     }
 
     public static ImmutableSortedMap<LockDescriptor, LockMode> getLockDescriptorLockMode(List<String> descriptors) {

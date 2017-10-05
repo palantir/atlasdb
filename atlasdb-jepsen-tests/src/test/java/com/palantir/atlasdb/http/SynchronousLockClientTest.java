@@ -44,8 +44,8 @@ import com.palantir.lock.LockService;
 public class SynchronousLockClientTest {
     private static final LockService LOCK_SERVICE = mock(LockService.class);
     private static final SynchronousLockClient LOCK_CLIENT = new SynchronousLockClient(LOCK_SERVICE);
-    private static final LockRefreshToken TOKEN_1 = new LockRefreshToken(BigInteger.ONE, 1L);
-    private static final LockRefreshToken TOKEN_2 = new LockRefreshToken(BigInteger.TEN, 10L);
+    private static final LockRefreshToken TOKEN_1 = new LockRefreshToken(BigInteger.ONE, 1L, null);
+    private static final LockRefreshToken TOKEN_2 = new LockRefreshToken(BigInteger.TEN, 10L, null);
 
     private static final String CLIENT = "client";
     private static final String LOCK_NAME = "lock";

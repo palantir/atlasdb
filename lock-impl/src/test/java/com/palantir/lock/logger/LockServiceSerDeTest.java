@@ -43,7 +43,7 @@ public class LockServiceSerDeTest {
     @Test
     public void testSerialisationAndDeserialisationOfLockResponse() throws Exception {
         HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
-                new BigInteger("1"), "held-lock-1",
+                null, new BigInteger("1"), "held-lock-1",
                 "logger-lock");
         LockResponse response = new LockResponse(token);
         ObjectMapper mapper = new ObjectMapper();
@@ -55,7 +55,7 @@ public class LockServiceSerDeTest {
     @Test
     public void testSerialisationAndDeserialisationOfLockResponseWithLockHolders() throws Exception {
         HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
-                new BigInteger("1"), "held-lock-1",
+                null, new BigInteger("1"), "held-lock-1",
                 "logger-lock");
         Map<LockDescriptor, LockClient> lockHolders = ImmutableMap.of(StringLockDescriptor.of("lock_id"),
                 LockClient.ANONYMOUS, StringLockDescriptor.of("lock_id2"), LockClient.of("client"));
