@@ -41,7 +41,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.util.Pair;
@@ -61,7 +61,7 @@ public class SingleRowColumnPager {
                                                                     int pageSize,
                                                                     @Nullable Column startColumnExclusive,
                                                                     ConsistencyLevel consistencyLevel) {
-        ColumnParent columnParent = new ColumnParent(CassandraKeyValueService.internalTableName(tableRef));
+        ColumnParent columnParent = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         return new PageIterator(
                 tableRef, columnParent, ByteBuffer.wrap(rowKey), pageSize, consistencyLevel, startColumnExclusive);
     }

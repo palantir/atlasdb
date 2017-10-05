@@ -58,7 +58,7 @@ public class CellPagerIntegrationTest {
 
     @BeforeClass
     public static void setUpKvs() {
-        kvs = CassandraKeyValueService.create(
+        kvs = CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
                 CassandraContainer.LEADER_CONFIG,
                 Mockito.mock(Logger.class));
@@ -71,8 +71,8 @@ public class CellPagerIntegrationTest {
         TracingQueryRunner queryRunner = new TracingQueryRunner(
                 Mockito.mock(Logger.class),
                 new TracingPrefsConfig());
-        SingleRowColumnPager singleRowPager = new SingleRowColumnPager(kvs.clientPool, queryRunner);
-        cellPager = new CellPager(singleRowPager, kvs.clientPool, queryRunner, pageSizingStrategy);
+        SingleRowColumnPager singleRowPager = new SingleRowColumnPager(kvs.getClientPool(), queryRunner);
+        cellPager = new CellPager(singleRowPager, kvs.getClientPool(), queryRunner, pageSizingStrategy);
     }
 
     @Test
