@@ -213,6 +213,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -259,6 +260,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.common:streams",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
@@ -346,7 +348,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
@@ -411,6 +414,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:atlasdb-service": {
@@ -634,6 +643,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
@@ -702,7 +712,8 @@
         "com.squareup:javapoet": {
             "locked": "1.9.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "com.zaxxer:HikariCP": {
@@ -1241,6 +1252,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -1287,6 +1299,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.common:streams",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
@@ -1374,7 +1387,8 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:timestamp-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
@@ -1439,6 +1453,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.atlasdb:atlasdb-service": {
@@ -1662,6 +1682,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
@@ -1730,7 +1751,8 @@
         "com.squareup:javapoet": {
             "locked": "1.9.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "com.zaxxer:HikariCP": {

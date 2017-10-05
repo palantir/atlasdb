@@ -31,24 +31,20 @@ public class OneNodeDownTableManipulationTest {
     private static final TableReference NEW_TABLE2 = TableReference.createWithEmptyNamespace("new_table2");
 
     @Test
-    public void createTableThrows() {
+    public void canCreateTable() {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE);
-        assertThatThrownBy(
-                () -> OneNodeDownTestSuite.kvs.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA))
-                .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("At schema version UNREACHABLE");
+        OneNodeDownTestSuite.kvs.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
         // This documents and verifies the current behaviour, creating the table in spite of the exception
         // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE);
     }
 
     @Test
-    public void createTablesThrows() {
+    public void canCreateTables() {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE2);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.createTables(
-                ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA)))
-                .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("At schema version UNREACHABLE");
+        OneNodeDownTestSuite.kvs.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
+
         // This documents and verifies the current behaviour, creating the table in spite of the exception
         // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE2);
