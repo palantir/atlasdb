@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-public final class ColumnFetchMode {
-    private final int columnsToFetch;
+import org.apache.cassandra.thrift.Column;
+import org.immutables.value.Value;
 
-    private ColumnFetchMode(int columnsToFetch) {
-        this.columnsToFetch = columnsToFetch;
-    }
+@Value.Immutable
+public interface CassandraRawCellValue {
 
-    public static ColumnFetchMode fetchAll() {
-        return new ColumnFetchMode(Integer.MAX_VALUE);
-    }
+    byte[] getRowKey();
 
-    public static ColumnFetchMode fetchAtMost(int numColumnsToFetch) {
-        return new ColumnFetchMode(numColumnsToFetch);
-    }
+    Column getColumn();
 
-    public int getColumnsToFetch() {
-        return columnsToFetch;
-    }
 }

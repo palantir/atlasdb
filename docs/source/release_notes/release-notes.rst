@@ -475,6 +475,11 @@ v0.53.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
+    *    - |improved|
+         - New efficient and OOM-proof implementation of sweep for Cassandra KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2231>`__)
+
+
 =======
 v0.52.0
 =======

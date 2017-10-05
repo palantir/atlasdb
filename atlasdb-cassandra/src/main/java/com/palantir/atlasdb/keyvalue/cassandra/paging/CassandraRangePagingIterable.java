@@ -26,7 +26,6 @@ import org.apache.cassandra.thrift.KeySlice;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.cassandra.ResultsExtractor;
 import com.palantir.util.paging.AbstractPagingIterable;
@@ -42,15 +41,18 @@ public class CassandraRangePagingIterable<T>
 
     private final int batchHint;
     private final ColumnSelection selection;
-    private final RowGetter rowGetter;
+    private final RowRangeLoader rowRangeLoader;
+    private final ColumnFetchMode fetchMode;
 
     public CassandraRangePagingIterable(
-            RowGetter rowGetter,
+            RowRangeLoader rowRangeLoader,
+            ColumnFetchMode fetchMode,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
             long timestamp) {
-        this.rowGetter = rowGetter;
+        this.rowRangeLoader = rowRangeLoader;
+        this.fetchMode = fetchMode;
         this.columnGetter = columnGetter;
         this.rangeRequest = rangeRequest;
         this.resultsExtractor = resultsExtractor;
@@ -86,8 +88,8 @@ public class CassandraRangePagingIterable<T>
     }
 
     private List<KeySlice> getRows(byte[] startKey) throws Exception {
-        KeyRange keyRange = getKeyRange(startKey, rangeRequest.getEndExclusive());
-        return rowGetter.getRows(keyRange);
+        KeyRange keyRange = KeyRanges.createKeyRange(startKey, rangeRequest.getEndExclusive(), batchHint);
+        return rowRangeLoader.getRows(keyRange, fetchMode);
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumns(List<KeySlice> firstPage) {
@@ -111,15 +113,4 @@ public class CassandraRangePagingIterable<T>
         return SimpleTokenBackedResultsPage.create(rangeRequest.getEndExclusive(), page.getResults(), false);
     }
 
-    private KeyRange getKeyRange(byte[] startKey, byte[] endExclusive) {
-        KeyRange keyRange = new KeyRange(batchHint);
-        keyRange.setStart_key(startKey);
-        if (endExclusive.length == 0) {
-            keyRange.setEnd_key(endExclusive);
-        } else {
-            // We need the previous name because this is inclusive, not exclusive
-            keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
-        }
-        return keyRange;
-    }
 }

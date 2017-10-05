@@ -382,7 +382,6 @@ public abstract class AbstractSweepTaskRunnerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testSweepBatchesDownToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner =
@@ -393,9 +392,8 @@ public abstract class AbstractSweepTaskRunnerTest {
         int deleteBatchSize = 1;
         List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
                 8, 8, deleteBatchSize);
-
-        List<List<Cell>> expectedCells = groupCells(SMALL_LIST_OF_CELLS, 2 * deleteBatchSize);
-        assertEquals(expectedCells, sweptCells);
+        assertThat(sweptCells).allMatch(list -> list.size() <= 2 * deleteBatchSize);
+        assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(SMALL_LIST_OF_CELLS);
     }
 
     @Test
@@ -465,17 +463,6 @@ public abstract class AbstractSweepTaskRunnerTest {
                 .build(), PtBytes.EMPTY_BYTE_ARRAY);
 
         return sweptCells;
-    }
-
-    private List<List<Cell>> groupCells(List<Cell> cells, int sizeOfEachGroup) {
-        List<List<Cell>> groupedCells = Lists.newArrayList();
-
-        for (int i = 0; i < cells.size(); i += sizeOfEachGroup) {
-            int groupMax = Math.min(i + sizeOfEachGroup, cells.size());
-            groupedCells.add(cells.subList(i, groupMax));
-        }
-
-        return groupedCells;
     }
 
     private void testSweepManyRows(SweepStrategy strategy) {
