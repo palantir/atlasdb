@@ -48,6 +48,7 @@ public class PartitionByCountAndBytesLoggingTest {
         this.tableName = tableName;
     }
 
+    @SuppressWarnings("Slf4jConstantLogMessage")
     @Test
     public void testWithLogging() {
         Logger mockLogger = Mockito.mock(Logger.class);
