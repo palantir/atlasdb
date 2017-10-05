@@ -54,16 +54,17 @@ public class CellsSweeper {
     public CellsSweeper(
             TransactionManager txManager,
             KeyValueService keyValueService,
-            Collection<Follower> followers) {
+            Collection<Follower> followers,
+            boolean initializeAsync) {
         this(txManager, keyValueService,
-                new PersistentLockManager(getPersistentLockService(keyValueService),
+                new PersistentLockManager(getPersistentLockService(keyValueService, initializeAsync),
                         AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS),
                 followers);
     }
 
-    private static PersistentLockService getPersistentLockService(KeyValueService kvs) {
+    private static PersistentLockService getPersistentLockService(KeyValueService kvs, boolean initializeAsync) {
         if (kvs.supportsCheckAndSet()) {
-            return KvsBackedPersistentLockService.create(kvs);
+            return KvsBackedPersistentLockService.create(kvs, initializeAsync);
         } else {
             log.warn("CellsSweeper is being set up without a persistent lock service. "
                     + "It will not be safe to run backups while sweep is running.");

@@ -189,6 +189,11 @@ public final class CassandraVerifier {
         try {
             Client client = CassandraClientFactory.getClientInternal(host, config);
             client.describe_keyspace(config.getKeyspaceOrThrow());
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    config,
+                    client,
+                    "(checking if schemas diverged on startup)",
+                    true);
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -209,9 +214,10 @@ public final class CassandraVerifier {
         client.system_add_keyspace(ks);
         log.info("Created keyspace: {}", config.getKeyspaceOrThrow());
         CassandraKeyValueServices.waitForSchemaVersions(
+                config,
                 client,
                 "(adding the initial empty keyspace)",
-                config.schemaMutationTimeoutMillis());
+                true);
     }
 
     private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {
@@ -244,9 +250,9 @@ public final class CassandraVerifier {
                 modifiedKsDef.setCf_defs(ImmutableList.of());
                 client.system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
+                        config,
                         client,
-                        "(updating the existing keyspace)",
-                        config.schemaMutationTimeoutMillis());
+                        "(updating the existing keyspace)");
             }
 
             return null;

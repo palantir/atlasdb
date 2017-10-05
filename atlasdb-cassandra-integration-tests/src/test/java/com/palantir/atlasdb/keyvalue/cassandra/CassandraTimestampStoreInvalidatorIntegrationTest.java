@@ -42,7 +42,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     private static final long ONE_MILLION = 1_000_000;
 
-    private final CassandraKeyValueService kv = CassandraKeyValueService.create(
+    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
             CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
             CassandraContainer.LEADER_CONFIG);
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);

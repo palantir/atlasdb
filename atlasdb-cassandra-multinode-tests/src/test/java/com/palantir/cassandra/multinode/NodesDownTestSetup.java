@@ -35,10 +35,14 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.docker.compose.connection.DockerPort;
 
 public abstract class NodesDownTestSetup {
+
+    private static final int CASSANDRA_THRIFT_PORT = 9160;
 
     static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
     static final TableReference TEST_TABLE_TO_DROP = TableReference.createWithEmptyNamespace("test_table_to_drop");
@@ -95,7 +99,7 @@ public abstract class NodesDownTestSetup {
         CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
                 .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(3_000);
-        return CassandraKeyValueService.create(
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
@@ -116,15 +120,16 @@ public abstract class NodesDownTestSetup {
         }
     }
 
-
     private static void killCassandraContainer(String containerName) throws IOException, InterruptedException {
         CONTAINERS.getContainer(containerName).kill();
+        DockerPort containerPort = new DockerPort(containerName, CASSANDRA_THRIFT_PORT, CASSANDRA_THRIFT_PORT);
+        Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(
+                () -> !containerPort.isListeningNow());
     }
-
 
     private static void waitUntilStartupChecksPass() {
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
+                .atMost(180, TimeUnit.SECONDS)
                 .until(NodesDownTestSetup::startupChecksPass);
     }
 
@@ -133,7 +138,7 @@ public abstract class NodesDownTestSetup {
                 ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            new CassandraClientPool(manager.getConfig());
+            CassandraClientPoolImpl.create(manager.getConfig());
             return true;
         } catch (Exception e) {
             return false;

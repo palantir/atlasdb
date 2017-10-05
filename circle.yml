@@ -34,7 +34,7 @@ test:
   override:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
-        timeout: 300
+        timeout: 600
   post:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
     - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:

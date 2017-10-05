@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.http;
 
+import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.Optional;
 
@@ -61,7 +62,7 @@ public final class AtlasDbFeignTargetFactory {
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
-                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, userAgent))
+                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
                 .target(type, uri);
     }
 
@@ -75,17 +76,19 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, userAgent))
+                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(),  userAgent))
                 .target(type, uri);
     }
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
+                proxySelector,
                 endpointUris,
                 DEFAULT_FEIGN_OPTIONS,
                 FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
@@ -95,6 +98,7 @@ public final class AtlasDbFeignTargetFactory {
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             int feignConnectTimeout,
             int feignReadTimeout,
@@ -103,6 +107,7 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent) {
         return createProxyWithFailover(
                 sslSocketFactory,
+                proxySelector,
                 endpointUris,
                 new Request.Options(feignConnectTimeout, feignReadTimeout),
                 maxBackoffMillis,
@@ -112,6 +117,7 @@ public final class AtlasDbFeignTargetFactory {
 
     private static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Request.Options feignOptions,
             int maxBackoffMillis,
@@ -119,7 +125,7 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, userAgent));
+                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
