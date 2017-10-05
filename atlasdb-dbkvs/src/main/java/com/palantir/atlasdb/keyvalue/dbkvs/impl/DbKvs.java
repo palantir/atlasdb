@@ -209,7 +209,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
                 getRange,
-                new OracleGetCandidateCellsForSweeping());
+                OracleGetCandidateCellsForSweeping.create(prefixedTableNames, connections));
     }
 
     private DbKvs(ExecutorService executor,

@@ -109,5 +109,23 @@ public final class RangeBoundPredicates {
         public RangeBoundPredicates build() {
             return new RangeBoundPredicates(predicates.toString(), args);
         }
+
+        public Builder startCellTsInclusiveOracle(byte[] startRowInclusive, byte[] startColumnInclusive,
+                Long startTsInclusive) {
+            if (startTsInclusive != null) {
+                Preconditions.checkArgument(startRowInclusive.length > 0);
+                Preconditions.checkArgument(startColumnInclusive.length > 0);
+                // Warning: this syntax is not supported by Oracle
+                predicates.append(reverse
+                        ? " AND row_name <= ? AND col_name <= ? AND ts <= ? "
+                        : " AND row_name >= ? AND col_name >= ? AND ts >= ? ");
+                args.add(startRowInclusive);
+                args.add(startColumnInclusive);
+                args.add(startTsInclusive);
+            } else {
+                startCellInclusive(startRowInclusive, startColumnInclusive);
+            }
+            return this;
+        }
     }
 }
