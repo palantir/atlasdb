@@ -34,8 +34,9 @@ import com.palantir.logsafe.UnsafeArg;
 public class PartitionByCountAndBytesLoggingTest {
 
     // approx put size is intentionally larger than the max (this triggers logging)
-    private static final long approximatePutSize = 20L;
-    private static final long maximumPutSize = 10L;
+    private static final long LARGE_PUT_SIZE = 20L;
+    private static final long MAXIMUM_PUT_SIZE = 10L;
+    private static final long SMALL_PUT_SIZE = 6L;
 
     private final String tableName;
 
@@ -54,14 +55,14 @@ public class PartitionByCountAndBytesLoggingTest {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);
 
-        simplePartition(mockLogger);
+        simplePartition(mockLogger, LARGE_PUT_SIZE);
 
         // verify the correct log messages were sent
         Mockito.verify(mockLogger, Mockito.times(3)).isWarnEnabled();
         Mockito.verify(mockLogger, Mockito.times(3)).warn(
                 Mockito.anyString(),
-                Mockito.eq(SafeArg.of("approximatePutSize", approximatePutSize)),
-                Mockito.eq(SafeArg.of("maximumPutSize", maximumPutSize)),
+                Mockito.eq(SafeArg.of("approximatePutSize", LARGE_PUT_SIZE)),
+                Mockito.eq(SafeArg.of("maximumPutSize", MAXIMUM_PUT_SIZE)),
                 Mockito.eq(UnsafeArg.of("tableName", tableName)));
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
@@ -71,20 +72,31 @@ public class PartitionByCountAndBytesLoggingTest {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(false);
 
-        simplePartition(mockLogger);
+        simplePartition(mockLogger, LARGE_PUT_SIZE);
 
         // warn isn't enabled, so it should check 3 times but not log anything
         Mockito.verify(mockLogger, Mockito.times(3)).isWarnEnabled();
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
-    private void simplePartition(Logger mockLogger) {
+    @Test
+    public void smallPutsDoNotLog() {
+        Logger mockLogger = Mockito.mock(Logger.class);
+        Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);
+
+        simplePartition(mockLogger, SMALL_PUT_SIZE);
+
+        // verify the log messages were not sent
+        Mockito.verifyNoMoreInteractions(mockLogger);
+    }
+
+    private void simplePartition(Logger mockLogger, long approximatePutSize) {
         Iterable<List<Integer>> partitions = AbstractKeyValueService.partitionByCountAndBytes(
                 Lists.newArrayList(1, 2, 3),
                 2,
-                maximumPutSize,
+                MAXIMUM_PUT_SIZE,
                 tableName,
-                (x) -> approximatePutSize,
+                (foo) -> approximatePutSize,
                 mockLogger
         );
         int i = 1;
