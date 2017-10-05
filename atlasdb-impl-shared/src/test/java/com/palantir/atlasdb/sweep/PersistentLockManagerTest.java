@@ -165,7 +165,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
-    public void cannotAcquireAfterReleaseFailsButSecretlySucceedsAndThenSomeoneElseTakesTheLock() {
+    public void cannotAcquireAfterReleaseSeemsToFailButSecretlySucceedsAndThenSomeoneElseTakesTheLock() {
         doThrow(RuntimeException.class).when(mockPls).releaseBackupLock(any());
 
         manager.acquirePersistentLockWithRetry();
