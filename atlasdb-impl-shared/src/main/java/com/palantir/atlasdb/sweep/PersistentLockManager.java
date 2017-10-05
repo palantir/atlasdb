@@ -84,7 +84,7 @@ public class PersistentLockManager {
 
         try {
             lockId = persistentLockService.acquireBackupLock("Sweep");
-            log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
+            log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lockId", lockId));
             return true;
         } catch (CheckAndSetException e) {
             List<byte[]> actualValues = e.getActualValues();
@@ -113,14 +113,14 @@ public class PersistentLockManager {
             return;
         }
 
-        log.info("Releasing persistent lock {}", lockId);
+        log.info("Releasing persistent lock {}", SafeArg.of("lockId", lockId));
         try {
             persistentLockService.releaseBackupLock(lockId);
             lockId = null;
         } catch (CheckAndSetException e) {
             log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
                             + "Future sweeps should correctly be able to re-acquire the lock.",
-                    SafeArg.of("lock id", lockId), e);
+                    SafeArg.of("lockId", lockId), e);
             lockId = null;
         }
     }
