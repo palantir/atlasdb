@@ -130,7 +130,8 @@ public class LockStore {
         return results.stream().map(LockEntry::fromRowResult).collect(Collectors.toSet());
     }
 
-    private LockEntry generateUniqueBackupLockEntry(String reason) {
+    // *Especially* visible for testing
+    public static LockEntry generateUniqueBackupLockEntry(String reason) {
         UUID randomLockId = UUID.randomUUID();
         return ImmutableLockEntry.builder()
                 .lockName(BACKUP_LOCK_NAME)

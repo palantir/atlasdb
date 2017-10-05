@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.List;
+
 import javax.annotation.concurrent.GuardedBy;
 
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -74,16 +77,30 @@ public class PersistentLockManager {
         }
     }
 
-    private synchronized boolean tryAcquirePersistentLock() {
+    @VisibleForTesting
+    synchronized boolean tryAcquirePersistentLock() {
         Preconditions.checkState(!isShutDown,
                 "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
-        Preconditions.checkState(lockId == null, "Acquiring a lock is unsupported when we've already acquired a lock");
 
         try {
             lockId = persistentLockService.acquireBackupLock("Sweep");
             log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lock id", lockId));
             return true;
         } catch (CheckAndSetException e) {
+            List<byte[]> actualValues = e.getActualValues();
+            if (!actualValues.isEmpty()) {
+                // This should be the only element, otherwise something really odd happened.
+                LockEntry actualEntry = LockEntry.fromStoredValue(actualValues.get(0));
+                if (actualEntry.instanceId().equals(lockId.value())) {
+                    // We tried to acquire while already holding the lock. Bad!
+                    throw new IllegalStateException(
+                            "Acquiring a lock is unsupported when we've already acquired a lock");
+                } else {
+                    // In this case, some other process holds the lock. Therefore, we don't hold the lock.
+                    lockId = null;
+                }
+            }
+
             lockFailureMeter.mark();
             log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
             return false;
