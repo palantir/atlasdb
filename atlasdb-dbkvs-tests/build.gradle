@@ -3,9 +3,27 @@ apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven {
+        url 'https://artifactory.palantir.build/artifactory/all-jar'
+    }
+    maven {
+        url 'https://artifactory.palantir.build/artifactory/internal-jar-snapshot'
+    }
+    maven {
+        url 'https://plugins.gradle.org/m2/'
+    }
+}
+
 dependencies {
   compile project(":atlasdb-dbkvs")
   compile project(":atlasdb-tests-shared")
+  compile (group: 'com.palantir.atlasdb', name: 'dbkvs-oracle-driver', version: '0.3.0-110-g80a53e7') {
+      exclude module:'commons-db'
+  }
+  compile group: 'com.oracle', name: 'ojdbc7', version: '12.1.0.2'
 
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
