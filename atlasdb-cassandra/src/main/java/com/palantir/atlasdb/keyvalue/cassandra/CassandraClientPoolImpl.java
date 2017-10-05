@@ -591,7 +591,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
                 log.warn("Randomly redirected a query intended for host {} to {}.",
                         SafeArg.of("previousHost", previousHostPool),
-                        SafeArg.of("newHost", hostPool.getHost()));
+                        SafeArg.of("randomHost", hostPool.getHost()));
             }
 
             try {
