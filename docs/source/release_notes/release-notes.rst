@@ -65,6 +65,11 @@ develop
            Now the factory methods for the above classes return the interfaces. The actual implementation of such classes was moved to their corresponding \*Impl files.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
 
+    *    - |fixed|
+         - ``PersistentLockManager`` can now reacquire the persistent lock if another process unilaterally clears the lock.
+           Previously in this case, sweep would continually fail to acquire the lock until the service restarts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2419>`__)
+
     *    - |new|
          - Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
            We recommend this to be configured only for cases where you absolutely need to persist all state in the database, for example,
@@ -113,11 +118,6 @@ v0.59.0
            Note that there may be an increase in latency under light load (e.g. 2-4 threads).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2392>`__)
 
-
-    *    - |fixed|
-         - ``PersistentLockManager`` can now reacquire the persistent lock if another process unilaterally clears the lock.
-           Previously in this case, sweep would not run again until the service restarts.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2419>`__)
     *    - |new|
          - AtlasDB now offers a simplified version of the schema API by setting the ``enableV2Table()`` flag in your TableDefinition.
            This would generate an additional table class with some easy to use functions such as ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
