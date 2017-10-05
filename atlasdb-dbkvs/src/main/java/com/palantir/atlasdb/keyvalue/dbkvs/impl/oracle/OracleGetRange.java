@@ -247,11 +247,18 @@ public class OracleGetRange implements DbKvsGetRange {
                     .build();
             String direction = reverse ? "DESC" : "ASC";
             String shortTableName = getInternalShortTableName(conns);
+            String pkIndex = PrimaryKeyConstraintNames.get(shortTableName);
             String query = "/* GET_RANGE(" + shortTableName + ") */"
-                    + "  SELECT /*+ USE_NL(sub v) LEADING(sub) */ sub.row_name, sub.col_name, sub.ts"
+                    + "  SELECT /*+ USE_NL(sub v)"
+                    + "             LEADING(sub) "
+                    + "             INDEX(v " + pkIndex + ")"
+                    + "             NO_INDEX_SS(v " + pkIndex + ")"
+                    + "             NO_INDEX_FFS(v " + pkIndex + ") */"
+                    + "  sub.row_name, sub.col_name, sub.ts"
                     +     OracleQueryHelpers.getValueSubselect(haveOverflowValues, "v", true) + " FROM ("
-                    + "  SELECT /*+ INDEX_" + direction + "(m " + PrimaryKeyConstraintNames.get(shortTableName) + ")"
-                    + "             NO_INDEX_SS(m) */"
+                    + "  SELECT /*+ INDEX_" + direction + "(m " + pkIndex + ")"
+                    + "             NO_INDEX_SS(m " + pkIndex + ")"
+                    + "             NO_INDEX_FFS(m " + pkIndex + ") */"
                     + "      m.row_name, m.col_name, MAX(m.ts) AS ts,"
                     + "        DENSE_RANK() OVER (ORDER BY m.row_name " + direction + ") AS rn"
                     + "    FROM " + shortTableName + " m "

@@ -158,6 +158,11 @@ v0.59.0
            Developers may need to check your dependencies, but no other actions should be required.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2399>`__)
 
+    *    - |fixed|
+         - Adjusted optimizer hints for getRange() to prevent Oracle from picking a bad query plan.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2421>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
