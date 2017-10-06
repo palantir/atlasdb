@@ -17,6 +17,8 @@ package com.palantir.atlasdb.encoding;
 
 import java.nio.charset.StandardCharsets;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.cache.Cache;
@@ -120,7 +122,7 @@ public final class PtBytes {
         return new String(arr, off, len, StandardCharsets.UTF_8);
     }
 
-    public static String encodeHexString(byte[] name) {
+    public static String encodeHexString(@Nullable byte[] name) {
         if (name == null) {
             return "";
         }

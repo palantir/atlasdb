@@ -202,7 +202,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                             if (nextTable.isPresent()) {
                                 log.info("Now starting to sweep next table: {}.",
                                         LoggingArgs.tableRef("table name", nextTable.get()));
-                                return Optional.of(new TableToSweep(nextTable.get(), null));
+                                return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
                             } else {
                                 return Optional.empty();
                             }

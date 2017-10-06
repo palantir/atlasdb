@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import javax.ws.rs.core.Response;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,6 +72,11 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
         setupTaskRunner(RESULTS_WITH_NO_MORE_TO_SWEEP);
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+    }
+
+    @After
+    public void after() {
+        verifyNoSweepResultsSaved();
     }
 
     @Test
@@ -141,6 +147,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         sweeperService.sweepTable(TABLE_REF.getQualifiedName());
 
         startRows.forEach(row -> verify(sweepTaskRunner).run(any(), any(), eq(row)));
+        verifyNoSweepResultsSaved();
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
@@ -158,6 +165,11 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     private String encodeStartRow(byte[] rowBytes) {
         return BaseEncoding.base16().encode(rowBytes);
+    }
+
+    private void verifyNoSweepResultsSaved() {
+        verify(progressStore, never()).saveProgress(any(), any());
+        verify(priorityStore, never()).update(any(), any(), any());
     }
 
 }

@@ -30,6 +30,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -143,7 +144,7 @@ public class SweepTaskRunner {
                                Sweeper sweeper) {
         log.info("Beginning iteration of sweep for table {} starting at row {}",
                 LoggingArgs.tableRef(tableRef),
-                UnsafeArg.of("startRow", startRow));
+                UnsafeArg.of("startRow", PtBytes.encodeHexString(startRow)));
 
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
