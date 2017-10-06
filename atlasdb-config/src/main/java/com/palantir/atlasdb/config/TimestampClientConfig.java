@@ -28,7 +28,7 @@ public abstract class TimestampClientConfig {
     @Value.Parameter
     @Value.Default
     public boolean enableTimestampBatching() {
-        return false;
+        return true;
     }
 
     // TODO (jkong): Make timestamp wait intervals configurable.

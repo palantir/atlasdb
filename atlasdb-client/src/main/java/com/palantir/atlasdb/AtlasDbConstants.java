@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -33,6 +34,7 @@ public final class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
 
@@ -101,6 +103,8 @@ public final class AtlasDbConstants {
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
     public static final char OLD_SCRUB_TABLE_SEPARATOR_CHAR = '\0';
 
+    public static final boolean DEFAULT_INITIALIZE_ASYNC = AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC;
+
     public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
@@ -118,4 +122,6 @@ public final class AtlasDbConstants {
 
     public static final int CASSANDRA_TABLE_NAME_CHAR_LIMIT = 48;
     public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
+
+    public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
 }

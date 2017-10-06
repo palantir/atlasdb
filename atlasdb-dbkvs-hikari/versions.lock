@@ -137,6 +137,12 @@
                 "com.palantir.atlasdb:commons-db"
             ]
         },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "com.zaxxer:HikariCP": {
             "locked": "2.4.7",
             "transitive": [
@@ -344,6 +350,12 @@
             "locked": "2.3.0",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "com.palantir.safe-logging:safe-logging": {
+            "locked": "0.1.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.zaxxer:HikariCP": {

@@ -32,12 +32,12 @@ public class MultiCassandraSingleNodeDownEteTest {
 
     @BeforeClass
     public static void shutdownCassandraNode() {
-        MultiCassandraTestSuite.killCassandraContainer(CASSANDRA_NODE_TO_KILL);
+        MultiCassandraUtils.killCassandraContainer(CASSANDRA_NODE_TO_KILL);
     }
 
     @AfterClass
     public static void startupCassandraNode() {
-        MultiCassandraTestSuite.startCassandraContainer(CASSANDRA_NODE_TO_KILL);
+        MultiCassandraUtils.startCassandraContainer(CASSANDRA_NODE_TO_KILL);
     }
 
     @Test

@@ -1,0 +1,37 @@
+version: '2'
+
+services:
+  cassandra1:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
+      - LOCAL_JMX=no
+
+  cassandra2:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
+      - LOCAL_JMX=no
+
+  cassandra3:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
+      - LOCAL_JMX=no
+
+  ete1:
+    build: .
+    command: bash -c 'cp var/conf/atlasdb-ete.multiple-cassandra-async.yml var/conf/atlasdb-ete.yml && tail -F var/log/atlasdb-ete-startup.log'
+    environment:
+      - ME=ete1
+    ports:
+      - "3828"

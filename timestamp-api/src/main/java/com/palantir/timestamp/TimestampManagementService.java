@@ -25,6 +25,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.logsafe.Safe;
+
 @Path("/timestamp-management")
 public interface TimestampManagementService {
     long SENTINEL_TIMESTAMP = Long.MIN_VALUE;
@@ -48,7 +50,7 @@ public interface TimestampManagementService {
     @Path("fast-forward")
     @Produces(MediaType.APPLICATION_JSON)
     void fastForwardTimestamp(
-            @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp);
+            @Safe @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING) long currentTimestamp);
 
     @GET
     @Path("ping")

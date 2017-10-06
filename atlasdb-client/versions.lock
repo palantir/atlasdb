@@ -139,13 +139,13 @@
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -160,7 +160,11 @@
             "locked": "3.2.1"
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.3"
+            "locked": "0.1.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
+            ]
         },
         "com.palantir.tritium:tritium-api": {
             "locked": "0.6.0",
@@ -193,6 +197,10 @@
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "requested": "1.9.0"
         },
         "commons-lang:commons-lang": {
             "locked": "2.6",
@@ -402,13 +410,13 @@
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.2.1",
+            "locked": "1.1.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -423,7 +431,11 @@
             "locked": "3.2.1"
         },
         "com.palantir.safe-logging:safe-logging": {
-            "locked": "0.1.3"
+            "locked": "0.1.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:timestamp-api"
+            ]
         },
         "com.palantir.tritium:tritium-api": {
             "locked": "0.6.0",
@@ -456,6 +468,10 @@
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
+        },
+        "com.squareup:javapoet": {
+            "locked": "1.9.0",
+            "requested": "1.9.0"
         },
         "commons-lang:commons-lang": {
             "locked": "2.6",

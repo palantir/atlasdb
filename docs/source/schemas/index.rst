@@ -7,6 +7,7 @@ Schemas
 
    overview
    tables_and_indices
+   best_practices
    dynamic_columns
    streams
    cleanup_tasks

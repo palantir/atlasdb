@@ -15,21 +15,15 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
-import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.connection.DockerPort;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -41,7 +35,6 @@ import com.palantir.docker.compose.connection.DockerPort;
         })
 public class MultiCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
-    private static final int CASSANDRA_PORT = 9160;
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
@@ -49,30 +42,4 @@ public class MultiCassandraTestSuite extends EteSetup {
             "docker-compose.multiple-cassandra.yml",
             CLIENTS,
             CassandraEnvironment.get());
-
-    public static void killCassandraContainer(String containerName) {
-        Container container = EteSetup.getContainer(containerName);
-        try {
-            container.kill();
-        } catch (IOException | InterruptedException e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    public static void startCassandraContainer(String containerName) {
-        Container container = EteSetup.getContainer(containerName);
-        try {
-            container.start();
-        } catch (IOException | InterruptedException e) {
-            throw Throwables.propagate(e);
-        }
-        waitForCassandraContainer(container);
-    }
-
-    private static void waitForCassandraContainer(Container container) {
-        DockerPort containerPort = new DockerPort(container.getContainerName(), CASSANDRA_PORT, CASSANDRA_PORT);
-        Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .until(containerPort::isListeningNow);
-    }
 }

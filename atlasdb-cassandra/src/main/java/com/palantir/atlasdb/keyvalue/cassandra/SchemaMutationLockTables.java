@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public class SchemaMutationLockTables {
     public static final String LOCK_TABLE_PREFIX = "_locks";
 
+    private static final Logger log = LoggerFactory.getLogger("SchemaMutationLockTables");
     private static final Predicate<String> IS_LOCK_TABLE = table -> table.startsWith(LOCK_TABLE_PREFIX);
 
     private final CassandraClientPool clientPool;
@@ -42,7 +47,11 @@ public class SchemaMutationLockTables {
     }
 
     public Set<TableReference> getAllLockTables() throws TException {
-        return clientPool.run(this::getAllLockTablesInternal);
+        Set<TableReference> lockTables = new HashSet<>();
+        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
+            lockTables.addAll(clientPool.runWithRetryOnHost(host, this::getAllLockTablesInternal));
+        }
+        return lockTables;
     }
 
     private Set<TableReference> getAllLockTablesInternal(Cassandra.Client client) throws TException {
@@ -60,6 +69,7 @@ public class SchemaMutationLockTables {
     private TableReference createLockTable(Cassandra.Client client) throws TException {
         String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
+        log.info("Creating lock table {}", lockTable);
         createTableInternal(client, lockTable);
         return lockTable;
     }
@@ -72,11 +82,12 @@ public class SchemaMutationLockTables {
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
         CfDef cf = ColumnFamilyDefinitions.getStandardCfDef(
                 config.getKeyspaceOrThrow(),
-                CassandraKeyValueService.internalTableName(tableRef));
+                CassandraKeyValueServiceImpl.internalTableName(tableRef));
         client.system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(
+                config,
                 client,
                 tableRef.getQualifiedName(),
-                config.schemaMutationTimeoutMillis());
+                true);
     }
 }

@@ -216,12 +216,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int schemaMutationTimeoutMillis() {
-        return 60 * 1000;
+        return 120 * 1000;
     }
 
     @Value.Default
     public int rangesConcurrency() {
-        return 64;
+        return 32;
     }
 
     @Value.Default

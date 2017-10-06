@@ -38,7 +38,7 @@ public class JdbcTimestampBoundStore implements TimestampBoundStore {
     private final Table<Record> TABLE;
     private static final Field<Integer> DUMMY_COLUMN = DSL.field("dummy_column", Integer.class);
     private static final Field<Long> LATEST_TIMESTAMP = DSL.field("latest_timestamp", Long.class);
-    private static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
 
     private JdbcTimestampBoundStore(JdbcKeyValueService kvs) {
         this.kvs = kvs;

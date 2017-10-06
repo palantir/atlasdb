@@ -194,6 +194,10 @@ definitions are broken down into the following sections:
    the dynamic columns of the table. The section is begun with a
    ``dynamicColumns()`` call. A table can have a named column section or
    a dynamic column section, but not both.
+-  **Enabling the V2 Table API** by setting the ``enableV2Table()`` flag.
+   This would generate an additional table class with some easy to use functions such as
+   ``putColumn(key, value)``, ``getColumn(key)``, ``deleteColumn(key)``.
+   We only provide these methods for named columns, and don't currently support dynamic columns.
 -  **Constraint Definitions** such as ``tableConstraint()`` define
    constraints on the table (such as foreign key relations). The section
    is begun with a ``constraints()`` call. This section is optional.
