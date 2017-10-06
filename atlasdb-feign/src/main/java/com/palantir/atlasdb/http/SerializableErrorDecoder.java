@@ -48,7 +48,9 @@ public class SerializableErrorDecoder implements ErrorDecoder {
 
     private static InputStream getBody(Response response) {
         try {
-            return response.body().asInputStream();
+            if (response.body() != null) {
+                return response.body().asInputStream();
+            }
         } catch (IOException e) {
             log.warn("Unable to read message body from response {}", response, e);
             return null;
