@@ -92,7 +92,10 @@ public class PersistentLockManager {
             if (!actualValues.isEmpty()) {
                 // This should be the only element, otherwise something really odd happened.
                 LockEntry actualEntry = LockEntry.fromStoredValue(actualValues.get(0));
-                if (actualEntry.instanceId().equals(lockId.value())) {
+                log.debug("CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
+                        SafeArg.of("lockId", lockId),
+                        SafeArg.of("actualEntry", actualEntry));
+                if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
                     // We tried to acquire while already holding the lock. Welp - but we still have the lock.
                     log.info("Attempted to acquire the a new lock when we already held a lock."
                             + " The acquire failed, but our lock is still valid, so we still hold the lock.");
