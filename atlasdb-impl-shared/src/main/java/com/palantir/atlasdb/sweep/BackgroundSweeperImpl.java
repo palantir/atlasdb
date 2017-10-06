@@ -150,7 +150,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
                 log.warn("The background sweep job failed unexpectedly with batch config {}."
                                 + " Attempting to continue with a lower batch size...",
-                        SafeArg.of("cell batch size", lastBatchConfig),
+                        SafeArg.of("candidateBatchSize", lastBatchConfig.candidateBatchSize()),
+                        SafeArg.of("deleteBatchSize", lastBatchConfig.deleteBatchSize()),
+                        SafeArg.of("maxCellTsPairsToExamine", lastBatchConfig.maxCellTsPairsToExamine()),
                         e);
                 // Cut batch size in half, always sweep at least one row (we round down).
                 batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
