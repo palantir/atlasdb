@@ -37,9 +37,41 @@ intended to be a description of the todo) the *value*.
 Query Capabilities
 ------------------
 
-Dynamic Columns are useful for avoiding KVS-level range scans, especially in key-value services where range scans
-are expensive (like Cassandra - its caching optimisations are rendered ineffectual for range scans). For example,
-for the schema defined above:
+Dynamic Columns are useful for avoiding KVS-level row range scans, especially in key-value services where these
+are expensive (like Cassandra - its caching optimisations are rendered ineffectual for row range scans). Furthermore,
+when considering whether a query without row range scans will be performant, it is worth considering how each row is
+laid out in the database. Generally, queries for column ranges that are contiguous are more efficient, though there are
+exceptions to this rule (such as query 4).
+
+.. list-table::
+    :header-rows: 1
+
+    * - Dynamic Column Key
+      - Dynamic Column Value
+    * - (1, 3000)
+      - "Buy a bitcoin"
+    * - (2, 0)
+      - "Review pull request"
+    * - (2, 1)
+      - "Get coffee"
+    * - (3, 0)
+      - "Write docs for dynamic columns"
+    * - (3, 6)
+      - "Get lunch"
+    * - (5, -1)
+      - "Complete online survey"
+    * - (5, 0)
+      - "Resolve merge conflicts"
+    * - (6, 10)
+      - "Take a train out of the city"
+    * - (7, 2)
+      - "Do laundry"
+    * - (7, 7)
+      - "Visit the supermarket"
+    * - (7, 42)
+      - "Watch a musical"
+
+For example, for the schema defined above:
 
 1. "Find John's smallest and cheapest todo" can be answered very efficiently.
    Elements are stored in sorted order, so the very first key-value pair retrieved from the database is actually the
@@ -55,15 +87,18 @@ for the schema defined above:
 5. "Find all of Tom's todos which cost less than 5" will be less efficient. We need to retrieve the entire row to do
    this, because the map is sorted by task size and then monetary cost. If queries on cost are more common than queries
    on size, flipping the order of the column components could help.
-6. "Find all of Tom's todos which have size between 3 and 7, and cost between 5 and 10". This is achievable, though in
-   addition to the values we want to see, we also need to scan through all values with size 4-6, and those with size
-   3 and cost >10, or 7 and cost <5.
+6. "Find all of Tom's todos which have size between 3 and 7, and cost between 5 and 10". We have to visit column ranges
+   in contiguous order, so if we write a single query we need to scan from (3, 5) to (7, 10 + 1). However, this range
+   also includes values we are not interested in (any values with size 4-6 that don't fit in the cost range, and also
+   costly size 3 tasks and cheap size 7 tasks). We can postfilter them out, but we still need to scan through them.
 7. "Find all of Nathan's todos that begin with the letter N". Prefix / range scans are not supported on values, so this
    requires us to scan through the entire row.
-8. "Find all of John's and Jeremy's smallest todos" is easy for a similar reason to 1. We provide an API that allows
-   for this to be done seamlessly as well.
+8. "Find all of John's and Jeremy's smallest todos" is easy - this is doing the query "find a person's smallest todos"
+   twice. To answer that query, we can scan through the person's tasks until we find one with a larger size than the
+   others we have seen so far. At that point, we know we have seen all the smallest tasks (because it is in sorted
+   order).
 9. "Find the smallest todos for everyone whose name begins with J" is NOT easy. While this
-   conceivably can be split into two parts (a prefix scan for J, and then the aforementioned getRowsColumnRange),
+   conceivably can be split into two parts (a row prefix scan for J, and then the aforementioned getRowsColumnRange),
    the range scan for J is potentially costly, as it needs to iterate through every todo for people whose names
    do indeed begin with J.
 
@@ -87,18 +122,15 @@ One can use the standard ``put`` method. This can be used to add one or more col
             TodoTable.TodoColumnValue.of(TodoTable.TodoColumn.of(size2, cost2), description2));
 
 Note that if the table already consists of a value for a given row key and dynamic column key, then this put
-will overwrite the existing value.
+will logically overwrite the existing value.
 
 Retrieval
 =========
 
-One can use the standard ``getRowsMultimap`` method to retrieve a multimap of rows to column values. However, note
-that this method will call the underlying transaction's ``getRows`` method, which eagerly loads the entire row into
-memory!
-
-Alternatively, one can use ``getRowsColumnRange``. This takes a collection of rows and key ranges, and returns a map of
-row-keys to BatchingVisitables of column values. These may in turn be traversed using the BatchingVisitable
-API. For example, the code below is an implementation of query 1 for an arbitrary String ``person``:
+Typically, one should use ``getRowsColumnRange``. This takes a collection of rows and column key ranges, and returns a
+map of row-keys to ``BatchingVisitables`` of column values. These may in turn be traversed using the
+``BatchingVisitable`` API. For example, the code below is an implementation of query 1 for an arbitrary String
+``person``:
 
 .. code:: java
 
@@ -106,15 +138,26 @@ API. For example, the code below is an implementation of query 1 for an arbitrar
     Map<TodoTable.TodoRow, BatchingVisitable<TodoTable.TodoColumnValue>> results =
             todoTable.getRowsColumnRange(
                     ImmutableList.of(TodoTable.TodoRow.of(person)),
-                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                    BatchColumnRangeSelection.create(
+                            PtBytes.EMPTY_BYTE_ARRAY, // Empty byte arrays mean unbounded.
+                            PtBytes.EMPTY_BYTE_ARRAY,
+                            1)); // The batch hint is 1, because we are only interested in the first result.
 
     AtomicReference<Todo> element = new AtomicReference<>();
     BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
-    visitable.batchAccept(1, item -> {
-        element.set(ImmutableTodo.of(item.get(0).getValue()));
-        return false; // Do not want any more, since we know our first batch contains the one.
-    });
+    visitable.batchAccept(
+            1, // We can consider batches of 1 element at a time, because we are only interested in the first element.
+            item -> {
+                element.set(ImmutableTodo.of(item.get(0).getValue()));
+                return false; // Do not want any more, since we know our first batch contains the one.
+            });
     return element.get();
+
+.. note::
+
+    One can also use the ``getRowsMultimap`` method to retrieve a multimap of rows to column values. However, note
+    that this method will call the underlying transaction's ``getRows`` method, which eagerly loads the entire row into
+    memory!
 
 
 Data Representation (Cassandra)
