@@ -18,6 +18,8 @@ package com.palantir.atlasdb.cli.output;
 import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.palantir.logsafe.Arg;
+
 public class OutputPrinter {
     // TODO(ssouza): remove this class in a separate PR. It's not compliant with internal logging guidelines.
     private Logger logger;
@@ -26,21 +28,21 @@ public class OutputPrinter {
         this.logger = logger;
     }
 
-    public void info(String message, Object... args) {
+    public void info(String message, Arg... args) {
         String infoMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-        logger.info("{}", infoMessage);
+        logger.info(message, args);
         System.out.println(infoMessage);
     }
 
-    public void warn(String message, Object... args) {
+    public void warn(String message, Arg... args) {
         String warnMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-        logger.warn("{}", warnMessage);
+        logger.warn(message, args);
         System.err.println(warnMessage);
     }
 
-    public void error(final String message, Object... args) {
+    public void error(final String message, Arg... args) {
         String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
-        logger.error("{}", errorMessage);
+        logger.error(message, args);
         System.err.println(errorMessage);
     }
 }
