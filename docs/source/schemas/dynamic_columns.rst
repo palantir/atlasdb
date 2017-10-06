@@ -37,7 +37,7 @@ intended to be a description of the todo) the *value*.
 Query Capabilities
 ------------------
 
-Dynamic Columns are useful for avoiding KVS-level row range scans, especially in key-value services where these
+Dynamic Columns are useful for avoiding row range scans, especially in key-value services where these
 are expensive (like Cassandra - its caching optimisations are rendered ineffectual for row range scans). Furthermore,
 when considering whether a query without row range scans will be performant, it is worth considering how each row is
 laid out in the database. Generally, queries for column ranges that are contiguous are more efficient, though there are
@@ -78,9 +78,9 @@ For example, for the schema defined above:
    correct answer to this query.
 2. "Find all of Tom's todos with size up to M, limited to N results" is easy, as this can be
    processed with a natural stopping point, as in query 1, and we are iterating in the right order for this query.
-   This can be achieved using the getRowsColumnRange API.
+   This can be achieved using the ``getRowsColumnRange`` API.
 3. "Find all of Tom's todos with size of 10 to 15, limit to N results" can be performed via a range
-   scan on the dynamic column key. This is also readily supported, and does not create a KVS-level range scan.
+   scan on the dynamic column key. This is also readily supported, and does not require a row range scan.
 4. "Find all of Tom's largest todos" is somewhat more difficult, as reverse range scans aren't supported by the
    dynamic columns API. If we were more interested in largest todos as opposed to smallest, we could set the
    ``ValueByteOrder`` of the ``taskSize`` column component to decreasing.
@@ -98,11 +98,12 @@ For example, for the schema defined above:
    others we have seen so far. At that point, we know we have seen all the smallest tasks (because it is in sorted
    order).
 9. "Find the smallest todos for everyone whose name begins with J" is NOT easy. While this
-   conceivably can be split into two parts (a row prefix scan for J, and then the aforementioned getRowsColumnRange),
+   conceivably can be split into two parts (a row prefix scan for J, and then the aforementioned
+   ``getRowsColumnRange``),
    the range scan for J is potentially costly, as it needs to iterate through every todo for people whose names
    do indeed begin with J.
 
-Notice, though, that all of the queries apart from 9 can be answered without a KVS-level range scan.
+Notice, though, that all of the queries apart from 9 can be answered without a row range scan.
 
 Using Dynamic Columns
 ---------------------
@@ -201,8 +202,9 @@ Note that an implementation of query 1 has been included in the "Retrieval" sect
 Query 3 (Size Lower to Upper, Limit N)
 ======================================
 
-Assume the existence of variables lower and upper (inclusive bounds for the size range; 10 and 15 in the sample query),
-person (the person to run the query for) and limit (the maximum number of records we want to return).
+Assume the existence of variables ``lower`` and ``upper`` (inclusive bounds for the size range; 10 and 15 in the
+sample query), ``person`` (the person to run the query for) and ``limit`` (the maximum number of records we want to
+return).
 
 .. code:: java
 
@@ -229,8 +231,8 @@ person (the person to run the query for) and limit (the maximum number of record
 Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)
 ==================================================================
 
-Assume the existence of variables lowerSize, upperSize, lowerCost and upperCost which are inclusive bounds for the
-size and cost ranges respectively. We also assume the existence of person (the person to run the query for).
+Assume the existence of variables ``lowerSize``, ``upperSize``, ``lowerCost`` and ``upperCost`` which are inclusive bounds for the
+size and cost ranges respectively. We also assume the existence of ``person`` (the person to run the query for).
 
 .. code:: java
 
@@ -260,7 +262,7 @@ size and cost ranges respectively. We also assume the existence of person (the p
 Query 8 (Smallest for Multiple Row Keys)
 ========================================
 
-Assume the existence of a Set of Strings, personSet. This corresponds to person identifiers.
+Assume the existence of a Set of Strings, ``personSet``. This corresponds to person identifiers.
 
 .. code:: java
 
