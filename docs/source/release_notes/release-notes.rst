@@ -72,6 +72,12 @@ develop
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
+    *    - |fixed|
+         - ``CassandraClientPool`` no longer logs stack traces twice for every failed attempt to connect to Cassandra.
+           Instead, the exception is logged once only, when we run out of retries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
