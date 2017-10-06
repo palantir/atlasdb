@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Optional;
 
 import com.google.common.base.Supplier;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -39,6 +40,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
         private SerializableTransactionManager manager;
         private volatile boolean isInitialized = false;
+        private volatile NotInitializedException initializationException;
+
+        private final RateLimiter tryInitializeLimiter = RateLimiter.create(0.2); // limit 1 per 5 sec
 
         public InitializeCheckingWrapper(SerializableTransactionManager manager) {
             this.manager = manager;
@@ -46,17 +50,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         @Override
         public SerializableTransactionManager delegate() {
-            if (!isInitialized) {
-                try {
-                    // SerializableTransactionManager should throw until the underlying KVS is initialized.
-                    // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
-                    manager.getKeyValueService().getClusterAvailabilityStatus();
-                } catch (NotInitializedException e) {
-                    log.info("The KeyValueService is not initialized yet!");
-                    throw e;
-                }
-                isInitialized = true;
+            if (!isInitialized()) {
+                throw initializationException;
             }
+
             return manager;
         }
 
@@ -68,6 +65,31 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         @Override
         public void registerClosingCallback(Runnable closingCallback) {
             manager.registerClosingCallback(closingCallback);
+        }
+
+        @Override
+        public boolean isInitialized() {
+            if (!isInitialized) {
+                tryInitialize();
+            }
+
+            return isInitialized;
+        }
+
+        private synchronized void tryInitialize() {
+            if (isInitialized || !tryInitializeLimiter.tryAcquire()) {
+                return;
+            }
+
+            try {
+                // SerializableTransactionManager should throw until the underlying KVS is initialized.
+                // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
+                manager.getKeyValueService().getClusterAvailabilityStatus();
+                isInitialized = true;
+            } catch (NotInitializedException e) {
+                log.info("The KeyValueService is not initialized yet!");
+                initializationException = e;
+            }
         }
     }
 
@@ -227,6 +249,17 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor);
+    }
+
+    /**
+     * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
+     * and is ready to service transactions.
+     *
+     * If an attempt is made to execute a transaction when this method returns {@code false}, a
+     * {@link NotInitializedException} will be thrown.
+     */
+    public boolean isInitialized() {
+        return true;
     }
 
 }
