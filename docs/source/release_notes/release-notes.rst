@@ -72,6 +72,12 @@ develop
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
+    *    - |fixed|
+         - Sweep candidate batches are now logged correctly.
+           Previously, we would log a ``SafeArg`` for these batches that had no content.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2444>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
