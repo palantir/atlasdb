@@ -367,10 +367,10 @@ public class CassandraClientPoolTest {
         }
     }
 
-    private FunctionCheckedException<Cassandra.Client, Object, RuntimeException> noOp() {
-        return new FunctionCheckedException<Cassandra.Client, Object, RuntimeException>() {
+    private FunctionCheckedException<Cassandra.Client, Void, RuntimeException> noOp() {
+        return new FunctionCheckedException<Cassandra.Client, Void, RuntimeException>() {
             @Override
-            public Object apply(Cassandra.Client input) throws RuntimeException {
+            public Void apply(Cassandra.Client input) throws RuntimeException {
                 return null;
             }
 

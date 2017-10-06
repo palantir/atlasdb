@@ -359,7 +359,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             log.warn("We tried to add {} back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
                     SafeArg.of("host", host),
-                    SafeArg.of("exceptionClass", e.getClass().getTypeName()),
+                    SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()));
             return false;
         }
@@ -603,9 +603,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 if (isRetriableWithBackoffException(e)) {
                     // And value between -500 and +500ms to backoff to better spread load on failover
                     int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
-                    log.warn("Retrying with backoff ({}ms} a query, {}, intended for host {}.",
-                            SafeArg.of("sleepDuration", sleepDuration),
+                    log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                             UnsafeArg.of("queryString", fn.toString()),
+                            SafeArg.of("sleepDuration", sleepDuration),
                             SafeArg.of("hostName", hostPool.getHost()));
 
                     try {
@@ -691,7 +691,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 }
             } else {
                 // Only log the actual exception the first time
-                if (numTries == 1) {
+                if (numTries > 1) {
                     log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
