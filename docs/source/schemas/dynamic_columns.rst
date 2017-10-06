@@ -25,7 +25,7 @@ pairs within a row. For example, a simple schema using dynamic columns may be de
                 dynamicColumns();
                     columnComponent("taskSize", ValueType.VAR_LONG);
                     columnComponent("monetaryCost", ValueType.VAR_LONG);
-                    value(ValueType.STRING); // taskName
+                    value(ValueType.STRING);
             }});
 
 Note that dynamic column components must be primitive ValueTypes which support partitioning and ordering.
@@ -46,8 +46,8 @@ exceptions to this rule (such as query 4).
 .. list-table::
     :header-rows: 1
 
-    * - Dynamic Column Key (taskSize, monetaryCost)
-      - Dynamic Column Value (taskName)
+    * - Dynamic Column Key
+      - Dynamic Column Value
     * - (1, 3000)
       - "Buy a bitcoin"
     * - (2, 0)
