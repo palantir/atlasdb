@@ -123,8 +123,7 @@ public class CassandraClientPoolTest {
         for (int i = 0; i < numTrials; i++) {
             Optional<CassandraClientPoolingContainer> container
                     = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
-            assertThat(container.isPresent(), is(true));
-            assertThat(container.get().getHost(), equalTo(HOST_1));
+            assertContainerHasHostOne(container);
         }
     }
 
@@ -135,6 +134,11 @@ public class CassandraClientPoolTest {
         cassandraClientPool.blacklistedHosts.put(HOST_1, System.currentTimeMillis());
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
+        assertContainerHasHostOne(container);
+    }
+
+    @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
+    private void assertContainerHasHostOne(Optional<CassandraClientPoolingContainer> container) {
         assertThat(container.isPresent(), is(true));
         assertThat(container.get().getHost(), equalTo(HOST_1));
     }
@@ -303,6 +307,7 @@ public class CassandraClientPoolTest {
         return clientPoolWith(ImmutableSet.of(), servers, Optional.of(exception));
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
     private CassandraClientPoolImpl clientPoolWith(
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool,
@@ -321,13 +326,12 @@ public class CassandraClientPoolTest {
         return cassandraClientPool;
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
     private CassandraClientPoolingContainer getMockPoolingContainerForHost(InetSocketAddress address,
             Optional<Exception> maybeFailureMode) {
         CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
         when(poolingContainer.getHost()).thenReturn(address);
-        if (maybeFailureMode.isPresent()) {
-            setFailureModeForHost(poolingContainer, maybeFailureMode.get());
-        }
+        maybeFailureMode.ifPresent(e -> setFailureModeForHost(poolingContainer, e));
         return poolingContainer;
     }
 
