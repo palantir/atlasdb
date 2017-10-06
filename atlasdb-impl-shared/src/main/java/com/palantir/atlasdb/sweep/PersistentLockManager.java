@@ -93,9 +93,10 @@ public class PersistentLockManager {
                 // This should be the only element, otherwise something really odd happened.
                 LockEntry actualEntry = LockEntry.fromStoredValue(actualValues.get(0));
                 if (actualEntry.instanceId().equals(lockId.value())) {
-                    // We tried to acquire while already holding the lock. Bad!
-                    throw new IllegalStateException(
-                            "Acquiring a lock is unsupported when we've already acquired a lock");
+                    // We tried to acquire while already holding the lock. Welp - but we still have the lock.
+                    log.info("Attempted to acquire the a new lock when we already held a lock."
+                            + " The acquire failed, but our lock is still valid, so we still hold the lock.");
+                    return true;
                 } else {
                     // In this case, some other process holds the lock. Therefore, we don't hold the lock.
                     lockId = null;

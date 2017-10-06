@@ -51,6 +51,8 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import net.jcip.annotations.GuardedBy;
 
 public class PersistentLockManagerTest {
+    private static final PersistentLockId FIRST_LOCK_ID = PersistentLockId.fromString("2-4-6-0-1");
+
     private PersistentLockService mockPls = mock(PersistentLockService.class);
     private PersistentLockId mockLockId = mock(PersistentLockId.class);
     private ExecutorService executor = Executors.newCachedThreadPool();
@@ -84,12 +86,15 @@ public class PersistentLockManagerTest {
         verify(mockPls, times(2)).acquireBackupLock("Sweep");
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void callingAcquireTwiceFails() {
+    @Test
+    public void callingAcquireTwiceGivesUsTheSameLock() {
         whenWeGetTheLockFirstTimeAndThenHoldItForever();
 
         manager.acquirePersistentLockWithRetry();
+        assertThat(manager.lockId, is(FIRST_LOCK_ID));
+
         manager.acquirePersistentLockWithRetry();
+        assertThat(manager.lockId, is(FIRST_LOCK_ID)); // same lockId - we didn't get a new one
     }
 
     @Test
@@ -129,12 +134,13 @@ public class PersistentLockManagerTest {
         manager.acquirePersistentLockWithRetry();
     }
 
-    @Test(expected = IllegalStateException.class, timeout = 5_000)
-    public void cannotAcquireAfterReleaseFailureDueToDatabaseError() {
+    @Test
+    public void acquireAfterReleaseFailureDueToDatabaseErrorGivesUsTheSameLock() {
         doThrow(RuntimeException.class).when(mockPls).releaseBackupLock(any());
         whenWeGetTheLockFirstTimeAndThenHoldItForever();
 
         manager.acquirePersistentLockWithRetry();
+        assertThat(manager.lockId, is(FIRST_LOCK_ID));
 
         try {
             manager.releasePersistentLock();
@@ -143,6 +149,7 @@ public class PersistentLockManagerTest {
         }
 
         manager.acquirePersistentLockWithRetry();
+        assertThat(manager.lockId, is(FIRST_LOCK_ID));
     }
 
     @Test
@@ -239,10 +246,9 @@ public class PersistentLockManagerTest {
     }
 
     private void whenWeGetTheLockFirstTimeAndThenHoldItForever() {
-        PersistentLockId oldId = PersistentLockId.fromString("2-4-6-0-1");
         LockEntry oldEntry = ImmutableLockEntry.builder()
                 .lockName("BackupLock")
-                .instanceId(oldId.value())
+                .instanceId(FIRST_LOCK_ID.value())
                 .reason("Sweep")
                 .build();
         CheckAndSetException casException =
@@ -252,7 +258,7 @@ public class PersistentLockManagerTest {
                         ImmutableList.of(oldEntry.value())
                 );
         when(mockPls.acquireBackupLock(anyString()))
-                .thenReturn(oldId)
+                .thenReturn(FIRST_LOCK_ID)
                 .thenThrow(casException);
     }
 }
