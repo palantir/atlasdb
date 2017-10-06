@@ -87,6 +87,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void callingAcquireTwiceGivesUsTheSameLock() {
         whenWeGetTheLockFirstTimeAndThenHoldItForever();
 
@@ -135,6 +136,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void acquireAfterReleaseFailureDueToDatabaseErrorGivesUsTheSameLock() {
         doThrow(RuntimeException.class).when(mockPls).releaseBackupLock(any());
         whenWeGetTheLockFirstTimeAndThenHoldItForever();
@@ -172,6 +174,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test
+    @GuardedBy("manager")
     public void cannotAcquireAfterReleaseSeemsToFailButSecretlySucceedsAndThenSomeoneElseTakesTheLock() {
         doThrow(RuntimeException.class).when(mockPls).releaseBackupLock(any());
 
@@ -232,6 +235,7 @@ public class PersistentLockManagerTest {
     }
 
     @Test(timeout = 10_000)
+    @SuppressWarnings("FutureReturnValueIgnored") // for acquirePersistentLockWithRetry
     public void doesNotDeadlockOnShutdownIfLockCannotBeAcquired() throws InterruptedException {
         CountDownLatch acquireStarted = new CountDownLatch(1);
         when(mockPls.acquireBackupLock(any())).then(inv -> {
