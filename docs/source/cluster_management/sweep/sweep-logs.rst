@@ -18,13 +18,9 @@ In order to know if sweep is working, or it's current progress, look for the fol
 
 Logged when the service has started, to indicate that background sweeper thread is running.
 
-- ``Now starting to sweep next table: {table name}.``
+- ``Beginning iteration of sweep for table {} starting at row {}``
 
-Logged when a new table has been selected to be swept, after 1.
-
-- ``Sweeping another batch of table: {}. Batch starts on row {}``
-
-Logged when a new batch of the same table is going to be swept, after 5.
+Logged before we begin an iteration of sweep, after 1. (note that this could be triggered by background sweep, the sweep CLI, or the ``SweeperService`` endpoints)
 
 - ``Swept successfully.``
 
