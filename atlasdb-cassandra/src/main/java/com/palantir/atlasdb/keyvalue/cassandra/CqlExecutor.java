@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
@@ -32,6 +33,7 @@ import org.apache.thrift.TException;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 public class CqlExecutor {
@@ -114,17 +116,32 @@ public class CqlExecutor {
     }
 
     private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
-        ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-        return executeQueryOnHost(queryBytes, host);
+        return executeCqlFunctionOnHost(getCqlFunction(query), host);
     }
 
-    private CqlResult executeQueryOnHost(ByteBuffer queryBytes, InetSocketAddress host) {
+    private CqlResult executeCqlFunctionOnHost(FunctionCheckedException<Cassandra.Client, CqlResult, TException> fn,
+            InetSocketAddress host) {
         try {
-            return clientPool.runWithRetryOnHost(host, client ->
-                    client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
+            return clientPool.runWithRetryOnHost(host, fn);
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private FunctionCheckedException<Cassandra.Client, CqlResult, TException> getCqlFunction(String query) {
+        ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
+
+        return new FunctionCheckedException<Cassandra.Client, CqlResult, TException>() {
+            @Override
+            public CqlResult apply(Cassandra.Client client) throws TException {
+                return client.execute_cql3_query(queryBytes, Compression.NONE, consistency);
+            }
+
+            @Override
+            public String toString() {
+                return query;
+            }
+        };
     }
 
     private String getQuotedTableName(TableReference tableRef) {
