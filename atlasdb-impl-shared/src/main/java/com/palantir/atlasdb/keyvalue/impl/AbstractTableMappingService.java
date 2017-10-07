@@ -81,16 +81,6 @@ public abstract class AbstractTableMappingService implements TableMappingService
         }
     }
 
-    @Override
-    public <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> toMap)
-            throws TableMappingNotFoundException {
-        Map<TableReference, T> newMap = Maps.newHashMap();
-        for (Entry<TableReference, T> e : toMap.entrySet()) {
-            newMap.put(getMappedTableName(e.getKey()), e.getValue());
-        }
-        return newMap;
-    }
-
     private final ConcurrentHashMap<TableReference, Boolean> unmappedTables = new ConcurrentHashMap<>();
 
     @Override

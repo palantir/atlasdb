@@ -31,13 +31,9 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
-import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -140,7 +136,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
         TimestampService ts = new InMemoryTimestampService();
-        KeyValueService keyValueService = createTableMappingKv();
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
 
         schemas.forEach(s -> Schemas.createTablesAndIndexes(s, keyValueService));
         TransactionTables.createTables(keyValueService);
@@ -173,15 +169,5 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 DEFAULT_MAX_CONCURRENT_RANGES);
         cleaner.start(ret);
         return ret;
-    }
-
-    private static KeyValueService createTableMappingKv() {
-        KeyValueService kv = new InMemoryKeyValueService(false);
-        TableMappingService mapper = getMapper(kv);
-        return NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kv, mapper));
-    }
-
-    private static TableMappingService getMapper(KeyValueService kv) {
-        return StaticTableMappingService.create(kv);
     }
 }
