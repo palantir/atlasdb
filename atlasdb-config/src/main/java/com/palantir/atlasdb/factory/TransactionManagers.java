@@ -213,10 +213,6 @@ public final class TransactionManagers {
             String userAgent) {
         checkInstallConfig(config);
 
-        if (config.initializeAsync()) {
-            env.register(new NotInitializedExceptionMapper());
-        }
-
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
