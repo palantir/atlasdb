@@ -25,5 +25,7 @@ public interface TableMappingService {
     TableReference addTable(TableReference tableRef);
     void removeTable(TableReference tableRef);
     TableReference getMappedTableName(TableReference tableRef) throws TableMappingNotFoundException;
+    <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap)
+            throws TableMappingNotFoundException;
     Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableNames);
 }
