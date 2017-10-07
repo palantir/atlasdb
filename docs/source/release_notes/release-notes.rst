@@ -72,6 +72,16 @@ develop
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
+    *    - |devbreak|
+         - Removed the following unnecessary classes related to wrapping KVSes:
+
+           - ``NamespacedKeyValueService``
+           - ``NamespaceMappingKeyValueService``
+           - ``NamespacedKeyValueServices``
+           - ``StaticTableMappingService``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2448>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
