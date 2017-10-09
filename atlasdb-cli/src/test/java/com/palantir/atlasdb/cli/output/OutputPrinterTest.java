@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cli.runner.StandardStreamUtilities;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class OutputPrinterTest {
     private static final OutputPrinter print = new OutputPrinter(LoggerFactory.getLogger(OutputPrinter.class));
@@ -36,7 +37,7 @@ public class OutputPrinterTest {
     @Test
     public void testWarnPrintingWorksWithSingleReplacement() {
         String systemOut = StandardStreamUtilities.wrapSystemErr(
-                () -> print.warn("Test this gets {}", SafeArg.of("replaced", "replaced")));
+                () -> print.warn("Test this gets {}", UnsafeArg.of("replaced", "replaced")));
         assertThat(systemOut).contains("Test this gets replaced ");
     }
 

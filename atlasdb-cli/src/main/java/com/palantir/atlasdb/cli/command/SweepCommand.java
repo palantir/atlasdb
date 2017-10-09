@@ -179,12 +179,12 @@ public class SweepCommand extends SingleBackendCommand {
                         : sweepRunner.run(tableToSweep, batchConfig, startRow.get());
                 printer.info(
                         "{} Swept from {} to {} in table {} in {} ms, examined {} cell values,"
-                                + " deleted {} stale versions of those cells.",
+                                + (dryRun ? " would have" : "") + " deleted {} stale versions of those cells.",
                         SafeArg.of("isDryRun", dryRun ? "[DRY RUN]" : ""),
                         UnsafeArg.of("startRow", encodeStartRow(startRow)),
                         UnsafeArg.of("exclusiveEndRow", encodeEndRow(results.getNextStartRow())),
                         LoggingArgs.tableRef(tableToSweep),
-                        SafeArg.of("time taken", watch.elapsed(TimeUnit.MILLISECONDS)),
+                        SafeArg.of("time taken millis", watch.elapsed(TimeUnit.MILLISECONDS)),
                         SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
                         SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()));
                 startRow = results.getNextStartRow();
