@@ -33,7 +33,7 @@ import com.palantir.timestamp.TimestampRange;
 
 // TODO(nziebart): probably should make it more obvious that this class should always be used;
 // maybe call this a TimelockClient and require that everywhere? Could also be used for async unlocking..
-public class LockRefreshingTimelockService implements TimelockService {
+public class LockRefreshingTimelockService implements AutoCloseable, TimelockService {
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
@@ -104,5 +104,10 @@ public class LockRefreshingTimelockService implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
+    }
+
+    @Override
+    public void close() throws Exception {
+        lockRefresher.close();
     }
 }
