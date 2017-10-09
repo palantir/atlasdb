@@ -112,7 +112,8 @@ public class SweepCommand extends SingleBackendCommand {
     long sleepTimeInMs = 0;
 
     @Option(name = {"--dry-run"},
-            description = "Run sweep in dry run mode to get how much would have been deleted and check safety.")
+            description = "Run sweep in dry run mode to get how much would have been deleted and check safety."
+                    + " This will not delete any data.")
     boolean dryRun = false;
 
     @Override
@@ -179,7 +180,7 @@ public class SweepCommand extends SingleBackendCommand {
                         : sweepRunner.run(tableToSweep, batchConfig, startRow.get());
                 printer.info(
                         "{} Swept from {} to {} in table {} in {} ms, examined {} cell values,"
-                                + (dryRun ? " would have" : "") + " deleted {} stale versions of those cells.",
+                                + " deleted {} stale versions of those cells.",
                         SafeArg.of("isDryRun", dryRun ? "[DRY RUN]" : ""),
                         UnsafeArg.of("startRow", encodeStartRow(startRow)),
                         UnsafeArg.of("exclusiveEndRow", encodeEndRow(results.getNextStartRow())),
