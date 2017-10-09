@@ -13,27 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.performance.benchmarks.table;
 
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 
-@State(Scope.Benchmark)
-public class VeryWideRowTable extends WideRowTable {
-    @Override
-    public TableReference getTableRef() {
-        return TableReference.createFromFullyQualifiedName("performance.persistent_very_wide");
+public final class SweepQueryHelpers {
+    private SweepQueryHelpers() {}
+
+    public static String getIgnoredTimestampPredicate(CandidateCellForSweepingRequest request) {
+        StringBuilder ret = new StringBuilder();
+        for (long ts : request.timestampsToIgnore()) {
+            // In practice this will always be -1, so we don't bother with binds
+            ret.append(" AND ts <> ").append(ts);
+        }
+        return ret.toString();
     }
 
-    @Override
-    public int getNumCols() {
-        return 1_000_000;
-    }
-
-    @Override
-    public boolean isPersistent() {
-        return true;
-    }
 }

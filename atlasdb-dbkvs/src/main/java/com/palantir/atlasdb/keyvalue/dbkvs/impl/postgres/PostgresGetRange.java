@@ -45,6 +45,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
@@ -273,7 +274,7 @@ public class PostgresGetRange implements DbKvsGetRange {
         }
 
         private FullQuery getRangeQuery() {
-            RangeBoundPredicates bounds = RangeBoundPredicates.builder(reverse)
+            RangeBoundPredicates bounds = RangeBoundPredicates.builder(DBType.POSTGRESQL, reverse)
                     .startCellInclusive(currentRowName, firstRowStartColumnInclusive)
                     .endRowExclusive(endExclusive)
                     .columnSelection(columnSelection)

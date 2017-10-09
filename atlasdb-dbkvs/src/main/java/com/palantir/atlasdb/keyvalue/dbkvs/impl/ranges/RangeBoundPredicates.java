@@ -24,6 +24,8 @@ import javax.annotation.Nullable;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
+import com.palantir.nexus.db.DBType;
 
 public final class RangeBoundPredicates {
     public final String predicates;
@@ -34,16 +36,22 @@ public final class RangeBoundPredicates {
         this.args = args;
     }
 
-    public static Builder builder(boolean reverseRange) {
-        return new Builder(reverseRange);
+    public static Builder builder(DBType dbType, boolean reverseRange) {
+        return new Builder(dbType, reverseRange);
+    }
+
+    public FullQuery asFullQuery() {
+        return new FullQuery(predicates).withArgs(args);
     }
 
     public static class Builder {
         private final StringBuilder predicates = new StringBuilder(100);
         private final List<Object> args = new ArrayList<>(10);
+        private final DBType dbType;
         private final boolean reverse;
 
-        public Builder(boolean reverse) {
+        public Builder(DBType dbType, boolean reverse) {
+            this.dbType = dbType;
             this.reverse = reverse;
         }
 
@@ -58,12 +66,20 @@ public final class RangeBoundPredicates {
         public Builder startCellInclusive(byte[] startRowInclusive, byte[] startColumnInclusive) {
             if (startColumnInclusive.length > 0) {
                 Preconditions.checkArgument(startRowInclusive.length > 0);
-                // Warning: this syntax is not supported by Oracle
-                predicates.append(reverse
-                        ? " AND (row_name, col_name) <= (?, ?) "
-                        : " AND (row_name, col_name) >= (?, ?) ");
-                args.add(startRowInclusive);
-                args.add(startColumnInclusive);
+                if (dbType == DBType.ORACLE) {
+                    predicates.append(reverse
+                            ? "AND row_name <= ? AND (row_name < ? OR col_name <= ?)"
+                            : "AND row_name >= ? AND (row_name > ? OR col_name >= ?)");
+                    args.add(startRowInclusive);
+                    args.add(startRowInclusive);
+                    args.add(startColumnInclusive);
+                } else {
+                    predicates.append(reverse
+                            ? " AND (row_name, col_name) <= (?, ?) "
+                            : " AND (row_name, col_name) >= (?, ?) ");
+                    args.add(startRowInclusive);
+                    args.add(startColumnInclusive);
+                }
             } else {
                 startRowInclusive(startRowInclusive);
             }
@@ -76,13 +92,23 @@ public final class RangeBoundPredicates {
             if (startTsInclusive != null) {
                 Preconditions.checkArgument(startRowInclusive.length > 0);
                 Preconditions.checkArgument(startColumnInclusive.length > 0);
-                // Warning: this syntax is not supported by Oracle
-                predicates.append(reverse
-                        ? " AND (row_name, col_name, ts) <= (?, ?, ?) "
-                        : " AND (row_name, col_name, ts) >= (?, ?, ?) ");
-                args.add(startRowInclusive);
-                args.add(startColumnInclusive);
-                args.add(startTsInclusive);
+                if (dbType == DBType.ORACLE) {
+                    predicates.append(reverse
+                            ? " AND row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?))"
+                            : " AND row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?))");
+                    args.add(startRowInclusive);
+                    args.add(startRowInclusive);
+                    args.add(startColumnInclusive);
+                    args.add(startColumnInclusive);
+                    args.add(startTsInclusive);
+                } else {
+                    predicates.append(reverse
+                            ? " AND (row_name, col_name, ts) <= (?, ?, ?) "
+                            : " AND (row_name, col_name, ts) >= (?, ?, ?) ");
+                    args.add(startRowInclusive);
+                    args.add(startColumnInclusive);
+                    args.add(startTsInclusive);
+                }
             } else {
                 startCellInclusive(startRowInclusive, startColumnInclusive);
             }

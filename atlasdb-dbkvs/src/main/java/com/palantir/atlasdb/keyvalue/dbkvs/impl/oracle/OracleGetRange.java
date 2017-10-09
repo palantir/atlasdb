@@ -50,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
@@ -240,7 +241,7 @@ public class OracleGetRange implements DbKvsGetRange {
         }
 
         private FullQuery getRangeQuery(ConnectionSupplier conns) {
-            RangeBoundPredicates bounds = RangeBoundPredicates.builder(reverse)
+            RangeBoundPredicates bounds = RangeBoundPredicates.builder(DBType.ORACLE, reverse)
                     .startRowInclusive(startInclusive)
                     .endRowExclusive(endExclusive)
                     .columnSelection(columnSelection)

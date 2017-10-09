@@ -201,6 +201,8 @@ public final class DbKvs extends AbstractKeyValueService {
         OverflowValueLoader overflowValueLoader = new OracleOverflowValueLoader(oracleDdlConfig, tableNameGetter);
         DbKvsGetRange getRange = new OracleGetRange(
                 connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
+        OracleGetCandidateCellsForSweeping getCandidateCellsForSweeping = new OracleGetCandidateCellsForSweeping(
+                connections, tableNameGetter, valueStyleCache, oracleDdlConfig);
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
@@ -209,7 +211,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
                 getRange,
-                new OracleGetCandidateCellsForSweeping());
+                getCandidateCellsForSweeping);
     }
 
     private DbKvs(ExecutorService executor,
@@ -633,7 +635,7 @@ public final class DbKvs extends AbstractKeyValueService {
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return getCandidateCellsForSweepingStrategy.getCandidateCellsForSweeping(tableRef, request, this);
+        return getCandidateCellsForSweepingStrategy.getCandidateCellsForSweeping(tableRef, request);
     }
 
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getTimestampsPage(

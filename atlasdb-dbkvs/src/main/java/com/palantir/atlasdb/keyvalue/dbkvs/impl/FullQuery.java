@@ -58,4 +58,8 @@ public class FullQuery {
     public Object[] getArgs() {
         return args.toArray();
     }
+
+    public List<Object> getArgList() {
+        return args;
+    }
 }

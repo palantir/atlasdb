@@ -20,16 +20,13 @@ import java.util.List;
 
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.ClosableIterator;
 
 public interface DbKvsGetCandidateCellsForSweeping {
 
-    // TODO(gbonik): change return value to Iterator and remove the kvs paramter once we have a real Oracle impl
     ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef,
-            CandidateCellForSweepingRequest request,
-            KeyValueService kvs);
+            CandidateCellForSweepingRequest request);
 
 }
