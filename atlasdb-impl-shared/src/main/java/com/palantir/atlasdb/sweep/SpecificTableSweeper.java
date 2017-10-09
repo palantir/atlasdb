@@ -157,9 +157,7 @@ public class SpecificTableSweeper {
             log.info("Failed to sweep.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("candidateBatchSize", batchConfig.candidateBatchSize()),
-                    SafeArg.of("deleteBatchSize", batchConfig.deleteBatchSize()),
-                    SafeArg.of("maxCellTsPairsToExamine", batchConfig.maxCellTsPairsToExamine()));
+                    SafeArg.of("sweepBatchConfig", batchConfig.toString()));
             throw e;
         }
     }
