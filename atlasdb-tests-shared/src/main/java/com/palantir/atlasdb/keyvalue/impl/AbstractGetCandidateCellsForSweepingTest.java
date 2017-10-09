@@ -70,11 +70,11 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     @Test
     public void singleCellSpanningSeveralPages() {
         new TestDataBuilder()
-                .put(10, 1, 1000)
-                .put(10, 1, 1001)
-                .put(10, 1, 1002)
-                .put(10, 1, 1003)
-                .put(10, 1, 1004)
+                .put(10, 1, 1000L)
+                .put(10, 1, 1001L)
+                .put(10, 1, 1002L)
+                .put(10, 1, 1003L)
+                .put(10, 1, 1004L)
                 .store();
         List<CandidateCellForSweeping> cells = getAllCandidates(
                 conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 2000L, 2));
