@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.impl;
+package com.palantir.lock.client;
 
 import java.util.Set;
 import java.util.concurrent.Executors;
