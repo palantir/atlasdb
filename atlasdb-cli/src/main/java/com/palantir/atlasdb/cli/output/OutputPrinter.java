@@ -20,8 +20,8 @@ import org.slf4j.helpers.MessageFormatter;
 
 import com.palantir.logsafe.Arg;
 
+@SuppressWarnings("Slf4jConstantLogMessage")
 public class OutputPrinter {
-    // TODO(ssouza): remove this class in a separate PR. It's not compliant with internal logging guidelines.
     private Logger logger;
 
     public OutputPrinter(Logger logger) {
