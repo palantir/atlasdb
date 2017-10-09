@@ -28,7 +28,6 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -123,11 +122,10 @@ public class TableMigratorTest extends AtlasDbTestCase {
         }
         checkpointer.deleteCheckpoints();
 
-        final KeyValueService verifyKvs = kvs2;
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
-        final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(verifyKvs);
+        final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(kvs2);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
-                verifyKvs,
+                kvs2,
                 timestampService,
                 lockClient,
                 lockService,

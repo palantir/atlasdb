@@ -49,8 +49,7 @@ public class KeyValueServiceModule {
     public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs,
                                                          TimestampService tss,
                                                          ServicesConfig config) {
-        KeyValueService kvs = rawKvs;
-        kvs = ProfilingKeyValueService.create(kvs,
+        KeyValueService kvs = ProfilingKeyValueService.create(rawKvs,
                 config.atlasDbConfig().getKvsSlowLogThresholdMillis());
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs);

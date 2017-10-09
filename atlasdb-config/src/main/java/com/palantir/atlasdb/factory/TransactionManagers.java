@@ -235,8 +235,7 @@ public final class TransactionManagers {
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent);
-        KeyValueService kvs = rawKvs;
-        kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
+        KeyValueService kvs = ProfilingKeyValueService.create(rawKvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs,
                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
         kvs = TracingKeyValueService.create(kvs);
