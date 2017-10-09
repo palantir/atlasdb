@@ -77,6 +77,11 @@ develop
            Instead, the exception is logged once only, when we run out of retries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
 
+    *   - |devbreak| |improved|
+        - ``LockRefreshingTimelockService`` has been moved to the ``lock-api`` project under the package name ``com.palantir.lock.client``, and now implements
+          ``AutoCloseable``, shutting down its internal executor service.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
