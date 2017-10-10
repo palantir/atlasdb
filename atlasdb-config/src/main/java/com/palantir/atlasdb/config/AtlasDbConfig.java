@@ -147,8 +147,9 @@ public abstract class AtlasDbConfig {
      * asynchronous initialization.
      * <p>
      * If true, initialization will be attempted synchronously, but on failure we keep retrying asynchronously to start
-     * AtlasDB. If a method is invoked on an not-yet-initialized {@link com.palantir.atlasdb.transaction.api.TransactionManager}
-     * or other object, a {@link com.palantir.exception.NotInitializedException} will be thrown. Clients can register a
+     * AtlasDB. If a method is invoked on an not-yet-initialized
+     * {@link com.palantir.atlasdb.transaction.api.TransactionManager} or other object, a
+     * {@link com.palantir.exception.NotInitializedException} will be thrown. Clients can register a
      * {@link com.palantir.atlasdb.http.NotInitializedExceptionMapper} if they wish to map this exception to a 503
      * status code.
      */
