@@ -38,7 +38,8 @@ import io.dropwizard.testing.junit.DropwizardClientRule;
 
 public class SweeperServiceImplTest extends SweeperTestSetup {
 
-    private static final String VALID_START_ROW = "010203";
+    private static final String VALID_START_ROW = "0102030A";
+    private static final String LOWERCASE_BUT_VALID_START_ROW = "abadcafe";
     private static final String INVALID_START_ROW = "xyz";
     SweeperService sweeperService;
 
@@ -90,6 +91,15 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
 
         sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), VALID_START_ROW);
+    }
+
+    @Test
+    public void sweepTableFromStartRowShouldAcceptLowercaseBase16Encodings() {
+        setupTaskRunner(Mockito.mock(SweepResults.class));
+
+        when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
+
+        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), LOWERCASE_BUT_VALID_START_ROW);
     }
 
     @Test
