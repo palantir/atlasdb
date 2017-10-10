@@ -80,31 +80,43 @@ public final class ClockSkewMonitor {
     }
 
     private void runOnce() {
-        try {
-            runInternal();
-        } catch (Throwable t) {
-            events.exception(t);
-        }
+        Map<String, RequestTime> newRequests = getRemoteRequestTimes();
+        checkAndUpdatePreviousRequestTimes(newRequests);
     }
 
-    private void runInternal() {
-        clocksByServer.forEach((server, remoteClockService) -> {
-            long localTimeAtStart = localClockService.getSystemTimeInNanos();
-            long remoteSystemTime = remoteClockService.getSystemTimeInNanos();
-            long localTimeAtEnd = localClockService.getSystemTimeInNanos();
+    private Map<String, RequestTime> getRemoteRequestTimes() {
+        Map<String, RequestTime> newRequestTimes = Maps.newHashMap();
 
-            RequestTime previousRequest = previousRequestsByServer.get(server);
-            RequestTime newRequest = RequestTime.builder()
-                    .localTimeAtStart(localTimeAtStart)
-                    .localTimeAtEnd(localTimeAtEnd)
-                    .remoteSystemTime(remoteSystemTime)
-                    .build();
-
-            if (previousRequest != null) {
-                new ClockSkewComparer(server, events, previousRequest, newRequest).compare();
+        clocksByServer.forEach((host, clockService) -> {
+            try {
+                RequestTime requestTime = getNewRequestTime(clockService);
+                newRequestTimes.put(host, requestTime);
+            } catch (Throwable t) {
+                events.exception(t);
             }
+        });
+        return newRequestTimes;
+    }
 
-            previousRequestsByServer.put(server, newRequest);
+    private RequestTime getNewRequestTime(ReversalDetectingClockService remoteClockService) {
+        long localTimeAtStart = localClockService.getSystemTimeInNanos();
+        long remoteSystemTime = remoteClockService.getSystemTimeInNanos();
+        long localTimeAtEnd = localClockService.getSystemTimeInNanos();
+
+        return RequestTime.builder()
+                .localTimeAtStart(localTimeAtStart)
+                .localTimeAtEnd(localTimeAtEnd)
+                .remoteSystemTime(remoteSystemTime)
+                .build();
+    }
+
+    private void checkAndUpdatePreviousRequestTimes(Map<String, RequestTime> newRequests) {
+        newRequests.forEach((remoteHost, newRequest) -> {
+            RequestTime previousRequest = previousRequestsByServer.get(remoteHost);
+            if (previousRequest != null) {
+                new ClockSkewComparer(remoteHost, events, previousRequest, newRequest).compare();
+            }
+            previousRequestsByServer.put(remoteHost, newRequest);
         });
     }
 }

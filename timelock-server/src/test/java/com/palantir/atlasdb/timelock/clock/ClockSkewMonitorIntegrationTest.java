@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.clock;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -102,8 +101,6 @@ public class ClockSkewMonitorIntegrationTest {
 
         verify(mockedEvents, times(1))
                 .clockWentBackwards("local", 5);
-
-        verify(mockedEvents, times(1)).exception(any());
     }
 
     @Test
@@ -115,8 +112,6 @@ public class ClockSkewMonitorIntegrationTest {
 
         verify(mockedEvents, times(1))
                 .clockWentBackwards(server, 5);
-
-        verify(mockedEvents, times(1)).exception(any());
     }
 
     private void tickOneIteration() {
