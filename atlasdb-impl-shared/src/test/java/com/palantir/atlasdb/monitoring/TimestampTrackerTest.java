@@ -18,6 +18,8 @@ package com.palantir.atlasdb.monitoring;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.Test;
@@ -41,40 +43,42 @@ public class TimestampTrackerTest {
 
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
-        TimestampTracker tracker = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner);
-
-        assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
-                .contains(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME))
-                .contains(buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME))
-                .contains(buildFullyQualifiedMetricName(UNREADABLE_TIMESTAMP_NAME));
-
-        tracker.close();
+        try (TimestampTracker ignored = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner)) {
+            assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
+                    .contains(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME))
+                    .contains(buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME))
+                    .contains(buildFullyQualifiedMetricName(UNREADABLE_TIMESTAMP_NAME));
+        }
     }
 
     @Test
     public void defaultTrackersDelegateToRelevantComponents() {
-        when(timelockService.getImmutableTimestamp()).thenReturn(ONE);
-        when(timelockService.getFreshTimestamp()).thenReturn(TEN);
-        when(cleaner.getUnreadableTimestamp()).thenReturn(FORTY_TWO);
+        try (TimestampTracker ignored = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner)) {
+            when(timelockService.getImmutableTimestamp()).thenReturn(ONE);
+            when(timelockService.getFreshTimestamp()).thenReturn(TEN);
+            when(cleaner.getUnreadableTimestamp()).thenReturn(FORTY_TWO);
 
-        TimestampTracker tracker = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner);
+            assertThat(getGauge(IMMUTABLE_TIMESTAMP_NAME).getValue()).isEqualTo(ONE);
+            assertThat(getGauge(FRESH_TIMESTAMP_NAME).getValue()).isEqualTo(TEN);
+            assertThat(getGauge(UNREADABLE_TIMESTAMP_NAME).getValue()).isEqualTo(FORTY_TWO);
 
-        Gauge<Long> immutableTimestampGauge = getGauge(IMMUTABLE_TIMESTAMP_NAME);
-        assertThat(immutableTimestampGauge.getValue()).isEqualTo(ONE);
-
-        tracker.close();
+            verify(timelockService).getImmutableTimestamp();
+            verify(timelockService).getFreshTimestamp();
+            verify(cleaner).getUnreadableTimestamp();
+            verifyNoMoreInteractions(timelockService, cleaner);
+        }
     }
 
     @Test
     public void metricsAreDeregisteredUponClose() {
         String shortName = "one";
 
-        TimestampTracker tracker = new TimestampTracker();
-        tracker.registerTimestampForTracking(shortName, () -> 1L);
-        assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
-                .contains(buildFullyQualifiedMetricName(shortName));
+        try (TimestampTracker tracker = new TimestampTracker()) {
+            tracker.registerTimestampForTracking(shortName, () -> 1L);
+            assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
+                    .contains(buildFullyQualifiedMetricName(shortName));
+        }
 
-        tracker.close();
         assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
                 .doesNotContain(buildFullyQualifiedMetricName(shortName));
     }
