@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.monitoring;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -48,6 +49,15 @@ public class TimestampTrackerTest {
     private final Cleaner cleaner = mock(Cleaner.class);
 
     private final Clock mockClock = mock(Clock.class);
+
+    @Test
+    public void throwsIfAddingMetricsMultipleTimes() {
+        try (TimestampTracker tracker = new TimestampTracker(Clock.defaultClock())) {
+            tracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
+            assertThatThrownBy(() -> tracker.registerTimestampForTracking(FAKE_METRIC, () -> 2L))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
 
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
@@ -101,7 +111,7 @@ public class TimestampTrackerTest {
     }
 
     @Test
-    public void doesNotAcquire() {
+    public void doesNotCallSupplierOnRequestsWithinRetriggerInterval() {
         try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
             when(mockClock.getTick()).thenReturn(0L, 1L, 2L);
             AtomicLong timestampValue = new AtomicLong(0L);
@@ -116,13 +126,13 @@ public class TimestampTrackerTest {
     @Test
     public void callsSupplierAgainAfterTimeElapses() {
         try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, CACHE_RETRIGGER_NANOS, 2 * CACHE_RETRIGGER_NANOS);
+            when(mockClock.getTick()).thenReturn(0L, CACHE_RETRIGGER_NANOS / 2, CACHE_RETRIGGER_NANOS);
             AtomicLong timestampValue = new AtomicLong(0L);
             tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
 
             assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
             assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
-            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(3L);
         }
     }
 
