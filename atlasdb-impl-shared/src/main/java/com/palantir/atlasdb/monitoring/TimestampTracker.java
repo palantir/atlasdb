@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
@@ -37,16 +38,20 @@ public class TimestampTracker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TimestampTracker.class);
 
     // We cache underlying calls, in case a hyper-aggressive metrics client repeatedly queries the values.
-    private static final Duration CACHE_INTERVAL = Duration.ofSeconds(10L);
+    @VisibleForTesting
+    static final Duration CACHE_INTERVAL = Duration.ofSeconds(10L);
 
     private final MetricsManager metricsManager = new MetricsManager();
     private final Set<String> registeredMetricShortNames = Sets.newConcurrentHashSet();
 
-    public TimestampTracker() {
+    private final Clock clock;
+
+    public TimestampTracker(Clock clock) {
+        this.clock = clock;
     }
 
     public static TimestampTracker createWithDefaultTrackers(TimelockService timeLockService, Cleaner cleaner) {
-        TimestampTracker tracker = new TimestampTracker();
+        TimestampTracker tracker = new TimestampTracker(Clock.defaultClock());
         tracker.registerTimestampForTracking("timestamp.fresh", timeLockService::getFreshTimestamp);
         tracker.registerTimestampForTracking("timestamp.immutable", timeLockService::getImmutableTimestamp);
         tracker.registerTimestampForTracking("timestamp.unreadable", cleaner::getUnreadableTimestamp);
@@ -74,7 +79,7 @@ public class TimestampTracker implements AutoCloseable {
     }
 
     private <T> Gauge<T> createCachingGauge(Supplier<T> supplier) {
-        return new CachedGauge<T>(CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
+        return new CachedGauge<T>(clock, CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
             @Override
             protected T loadValue() {
                 return supplier.get();

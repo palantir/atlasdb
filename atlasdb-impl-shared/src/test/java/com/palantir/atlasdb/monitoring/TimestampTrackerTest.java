@@ -22,17 +22,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.junit.Test;
 
+import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.v2.TimelockService;
 
 public class TimestampTrackerTest {
-    private final TimelockService timelockService = mock(TimelockService.class);
-    private final Cleaner cleaner = mock(Cleaner.class);
-
     private static final long ONE = 1L;
     private static final long TEN = 10L;
     private static final long FORTY_TWO = 42L;
@@ -40,6 +40,14 @@ public class TimestampTrackerTest {
     private static final String IMMUTABLE_TIMESTAMP_NAME = "timestamp.immutable";
     private static final String FRESH_TIMESTAMP_NAME = "timestamp.fresh";
     private static final String UNREADABLE_TIMESTAMP_NAME = "timestamp.unreadable";
+    private static final String FAKE_METRIC = "metric.fake";
+
+    private static final long CACHE_RETRIGGER_NANOS = TimestampTracker.CACHE_INTERVAL.toNanos() + 1L;
+
+    private final TimelockService timelockService = mock(TimelockService.class);
+    private final Cleaner cleaner = mock(Cleaner.class);
+
+    private final Clock mockClock = mock(Clock.class);
 
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
@@ -71,29 +79,51 @@ public class TimestampTrackerTest {
 
     @Test
     public void metricsAreDeregisteredUponClose() {
-        String shortName = "one";
-
-        try (TimestampTracker tracker = new TimestampTracker()) {
-            tracker.registerTimestampForTracking(shortName, () -> 1L);
+        try (TimestampTracker tracker = new TimestampTracker(Clock.defaultClock())) {
+            tracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
             assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
-                    .contains(buildFullyQualifiedMetricName(shortName));
+                    .contains(buildFullyQualifiedMetricName(FAKE_METRIC));
         }
 
         assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
-                .doesNotContain(buildFullyQualifiedMetricName(shortName));
+                .doesNotContain(buildFullyQualifiedMetricName(FAKE_METRIC));
     }
 
     @Test
     public void canCloseMultipleTimes() {
-        String shortName = "one";
-
-        TimestampTracker tracker = new TimestampTracker();
-        tracker.registerTimestampForTracking(shortName, () -> 1L);
+        TimestampTracker tracker = new TimestampTracker(Clock.defaultClock());
+        tracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
 
         tracker.close();
         tracker.close();
         assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
-                .doesNotContain(buildFullyQualifiedMetricName(shortName));
+                .doesNotContain(buildFullyQualifiedMetricName(FAKE_METRIC));
+    }
+
+    @Test
+    public void doesNotAcquire() {
+        try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
+            when(mockClock.getTick()).thenReturn(0L, 1L, 2L);
+            AtomicLong timestampValue = new AtomicLong(0L);
+            tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
+
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+        }
+    }
+
+    @Test
+    public void callsSupplierAgainAfterTimeElapses() {
+        try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
+            when(mockClock.getTick()).thenReturn(0L, CACHE_RETRIGGER_NANOS, 2 * CACHE_RETRIGGER_NANOS);
+            AtomicLong timestampValue = new AtomicLong(0L);
+            tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
+
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(3L);
+        }
     }
 
     private static String buildFullyQualifiedMetricName(String shortName) {
