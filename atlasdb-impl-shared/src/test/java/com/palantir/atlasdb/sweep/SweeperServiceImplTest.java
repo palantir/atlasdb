@@ -147,7 +147,6 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         sweeperService.sweepTable(TABLE_REF.getQualifiedName());
 
         startRows.forEach(row -> verify(sweepTaskRunner).run(any(), any(), eq(row)));
-        verifyNoSweepResultsSaved();
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
