@@ -50,7 +50,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 try {
                     // SerializableTransactionManager should throw until the underlying KVS is initialized.
                     // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
+                    // Perform smoke tests on KVS and TimestampService
                     manager.getKeyValueService().getClusterAvailabilityStatus();
+                    manager.getTimestampService().getFreshTimestamp();
                 } catch (NotInitializedException e) {
                     log.info("The KeyValueService is not initialized yet!");
                     throw e;
