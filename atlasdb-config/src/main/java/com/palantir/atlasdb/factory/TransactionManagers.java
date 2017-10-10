@@ -171,8 +171,7 @@ public final class TransactionManagers {
         kvs = SweepStatsKeyValueService.create(kvs,
                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
         kvs = TracingKeyValueService.create(kvs);
-        kvs = AtlasDbMetrics.instrument(
-                KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class, options.derivedUserAgent()));
+        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
