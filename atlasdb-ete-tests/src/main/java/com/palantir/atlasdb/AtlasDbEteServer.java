@@ -29,7 +29,6 @@ import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
-import com.palantir.atlasdb.factory.TransactionManagerOptions;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.table.description.Schema;
@@ -99,12 +98,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     private TransactionManager createTransactionManager(AtlasDbConfig config, Environment environment) {
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
+        return TransactionManagers.builder()
                 .config(config)
                 .schemas(ETE_SCHEMAS)
                 .env(environment.jersey()::register)
-                .build();
-        return TransactionManagers.create(options);
+                .buildSerializable();
     }
 
     private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {

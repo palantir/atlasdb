@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -93,6 +95,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
@@ -104,7 +107,55 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 
-public final class TransactionManagers {
+@Value.Immutable
+public abstract class TransactionManagers {
+    abstract AtlasDbConfig config();
+
+    @Value.Default
+    Supplier<Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier() {
+        return Optional::empty;
+    }
+
+    abstract Set<Schema> schemas();
+
+    @Value.Default
+    Consumer<Object> env() {
+        return resource -> { };
+    }
+
+    @Value.Default
+    LockServerOptions lockServerOptions() {
+        return LockServerOptions.DEFAULT;
+    }
+
+    @Value.Default
+    boolean allowHiddenTableAccess() {
+        return false;
+    }
+
+    abstract Optional<Class<?>> callingClass();
+
+    abstract Optional<String> userAgent();
+
+    // directly specified -> inferred from caller -> default
+    @Value.Derived
+    String derivedUserAgent() {
+        return userAgent().orElse(callingClass().map(UserAgents::fromClass).orElse(UserAgents.DEFAULT_USER_AGENT));
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder extends ImmutableTransactionManagers.Builder {
+        public SerializableTransactionManager buildSerializable() {
+            return build().serializable();
+        }
+    }
+
+    // ==========================================================================================
+    // ==========================================================================================
+    // ==========================================================================================
 
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -116,10 +167,6 @@ public final class TransactionManagers {
         thread.setDaemon(true);
         thread.start();
     };
-
-    private TransactionManagers() {
-        // Utility class
-    }
 
     /**
      * Accepts a single {@link Schema}.
@@ -134,21 +181,20 @@ public final class TransactionManagers {
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
-    public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
+    static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        return create(TransactionManagerOptions.builder()
-                .config(config)
-                .schemas(schemas)
-                .build());
+        return builder().config(config).schemas(schemas).buildSerializable();
     }
 
-    public static SerializableTransactionManager create(TransactionManagerOptions options) {
-        final AtlasDbConfig config = options.config();
+    @JsonIgnore
+    @Value.Derived
+    SerializableTransactionManager serializable() {
+        final AtlasDbConfig config = config();
         checkInstallConfig(config);
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
-                () -> options.runtimeConfigSupplier().get().orElse(defaultRuntime);
+                () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader(), config.namespace(),
@@ -160,11 +206,11 @@ public final class TransactionManagers {
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 () -> runtimeConfigSupplier.get().timestampClient(),
-                options.env(),
-                () -> LockServiceImpl.create(options.lockServerOptions()),
+                env(),
+                () -> LockServiceImpl.create(lockServerOptions()),
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
-                options.derivedUserAgent());
+                derivedUserAgent());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
@@ -176,18 +222,18 @@ public final class TransactionManagers {
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 kvs,
-                options.schemas(),
+                schemas(),
                 config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 kvs,
-                options.env(),
+                env(),
                 config.initializeAsync());
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
-        CleanupFollower follower = CleanupFollower.create(options.schemas());
+        CleanupFollower follower = CleanupFollower.create(schemas());
 
         Cleaner cleaner = new DefaultCleanerBuilder(
                 kvs,
@@ -213,7 +259,7 @@ public final class TransactionManagers {
                 sweepStrategyManager,
                 cleaner,
                 initializer,
-                options.allowHiddenTableAccess(),
+                allowHiddenTableAccess(),
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.initializeAsync());
@@ -222,7 +268,7 @@ public final class TransactionManagers {
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
         initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
-                options.env(),
+                env(),
                 kvs,
                 transactionService,
                 sweepStrategyManager,

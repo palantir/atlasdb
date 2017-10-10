@@ -259,11 +259,10 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
+        TransactionManagers.builder()
                 .config(realConfig)
                 .env(environment)
-                .build();
-        TransactionManagers.create(options);
+                .buildSerializable();
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
 
@@ -299,14 +298,13 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds(120)
                 .build();
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
-                .config(realConfig)
-                .env(environment)
-                .build();
 
         Runnable callback = mock(Runnable.class);
 
-        SerializableTransactionManager manager = TransactionManagers.create(options);
+        SerializableTransactionManager manager = TransactionManagers.builder()
+                .config(realConfig)
+                .env(environment)
+                .buildSerializable();
         manager.registerClosingCallback(callback);
         manager.close();
         verify(callback, times(1)).run();
@@ -318,11 +316,10 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .build();
 
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
+        TransactionManagers.builder()
                 .config(realConfig)
                 .env(environment)
-                .build();
-        TransactionManagers.create(options);
+                .buildSerializable();
         assertThat(metricsRule.metrics().getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
     }
