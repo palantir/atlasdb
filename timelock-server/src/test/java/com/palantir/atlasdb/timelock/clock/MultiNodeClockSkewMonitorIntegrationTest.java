@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.clock;
 
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,11 +33,13 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InOrder;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class MultiNodeClockSkewMonitorIntegrationTest {
+    private static final int NUM_REMOTE_HOSTS = 2;
     private static final String REMOTE_HOST_1 = "host1";
     private static final String REMOTE_HOST_2 = "host2";
 
@@ -75,13 +78,9 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
     }
 
     @Test
-    public void registersMultipleClockWentBackwardsEventsIfMultipleRemoteServersWentBackwards() {
-        when(remoteClock1.getSystemTimeInNanos())
-                .thenReturn(2L)
-                .thenReturn(1L);
-        when(remoteClock2.getSystemTimeInNanos())
-                .thenReturn(4L)
-                .thenReturn(3L);
+    public void registersMultipleClockWentBackwardsEvents() {
+        when(remoteClock1.getSystemTimeInNanos()).thenReturn(2L, 1L);
+        when(remoteClock2.getSystemTimeInNanos()).thenReturn(4L, 3L);
 
         tickOneIteration();
         tickOneIteration();
@@ -92,9 +91,7 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
 
     @Test
     public void registersCombinationsOfFailuresCorrectly() {
-        when(remoteClock1.getSystemTimeInNanos())
-                .thenReturn(2L)
-                .thenReturn(1L);
+        when(remoteClock1.getSystemTimeInNanos()).thenReturn(2L, 1L);
 
         Exception badRequest = new BadRequestException("bar");
         when(remoteClock2.getSystemTimeInNanos()).thenThrow(badRequest);
@@ -104,6 +101,46 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
 
         verify(events).clockWentBackwards(REMOTE_HOST_1, 1L);
         verify(events, times(2)).exception(eq(badRequest));
+    }
+
+    @Test
+    public void registersClockSkewFromMultipleNodes() {
+        when(localClock.getSystemTimeInNanos()).thenReturn(100L, 110L, 120L, 130L);
+        when(remoteClock1.getSystemTimeInNanos()).thenReturn(105L);
+        when(remoteClock2.getSystemTimeInNanos()).thenReturn(125L);
+        tickOneIteration();
+
+        when(localClock.getSystemTimeInNanos()).thenReturn(140L, 150L, 160L, 170L);
+        when(remoteClock1.getSystemTimeInNanos()).thenReturn(1105L + 50L);
+        when(remoteClock2.getSystemTimeInNanos()).thenReturn(5125L + 50L);
+        tickOneIteration();
+
+        // Don't really like this, but didn't find an easy way of verifying subsequences of events.
+        InOrder inOrder = inOrder(events);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 0L);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 0L);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 1000L);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 5000L);
+    }
+
+    @Test
+    public void registersBothFailuresAndClockSkew() {
+        Exception serviceNotAvailable = new ServiceNotAvailableException("foo");
+        when(remoteClock1.getSystemTimeInNanos()).thenThrow(serviceNotAvailable);
+
+        // The first value is a peculiarity of the implementation. We get the local time and THEN query the remote
+        // server.
+        when(localClock.getSystemTimeInNanos()).thenReturn(100L, 110L, 120L);
+        when(remoteClock2.getSystemTimeInNanos()).thenReturn(115L);
+        tickOneIteration();
+
+        when(localClock.getSystemTimeInNanos()).thenReturn(200L, 210L, 220L);
+        when(remoteClock2.getSystemTimeInNanos()).thenReturn(515L + 110L);
+        tickOneIteration();
+
+        verify(events).clockSkew(REMOTE_HOST_2, 0L);
+        verify(events).clockSkew(REMOTE_HOST_2, 400L);
+        verify(events, times(2)).exception(serviceNotAvailable);
     }
 
     private void tickOneIteration() {
