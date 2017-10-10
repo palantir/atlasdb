@@ -94,7 +94,6 @@ public class TimestampTrackerTest {
         tracker.close();
         assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
                 .doesNotContain(buildFullyQualifiedMetricName(shortName));
-
     }
 
     private static String buildFullyQualifiedMetricName(String shortName) {

@@ -17,24 +17,30 @@
 package com.palantir.atlasdb.monitoring;
 
 import java.time.Duration;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Gauge;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 
 public class TimestampTracker implements AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(TimestampTracker.class);
+
     // We cache underlying calls, in case a hyper-aggressive metrics client repeatedly queries the values.
     private static final Duration CACHE_INTERVAL = Duration.ofSeconds(10L);
 
     private final MetricsManager metricsManager = new MetricsManager();
-    private final Map<String, Gauge<Long>> shortNameToGauge = Maps.newConcurrentMap();
+    private final Set<String> registeredMetricShortNames = Sets.newConcurrentHashSet();
 
     public TimestampTracker() {
     }
@@ -47,13 +53,24 @@ public class TimestampTracker implements AutoCloseable {
         return tracker;
     }
 
-    public void registerTimestampForTracking(String shortName, Supplier<Long> supplier) {
-        Preconditions.checkState(!shortNameToGauge.containsKey(shortName),
-                "A metric with the name %s has already been registered in the timestamp tracker", shortName);
-
-        Gauge<Long> gauge = createCachingGauge(supplier);
-        shortNameToGauge.put(shortName, gauge);
+    @VisibleForTesting
+    void registerTimestampForTracking(String shortName, Supplier<Long> supplier) {
+        if (!putMetricIfAbsent(shortName)) {
+            log.warn("A metric with the name {} has already been registered in the timestamp tracker",
+                    SafeArg.of("metricName", shortName));
+            throw new IllegalStateException("A metric with the name " + shortName + " has already been registered!");
+        }
         metricsManager.registerMetric(TimestampTracker.class, shortName, createCachingGauge(supplier));
+    }
+
+    private boolean putMetricIfAbsent(String shortName) {
+        synchronized (registeredMetricShortNames) {
+            if (registeredMetricShortNames.contains(shortName)) {
+                return false;
+            }
+            registeredMetricShortNames.add(shortName);
+            return true;
+        }
     }
 
     private <T> Gauge<T> createCachingGauge(Supplier<T> supplier) {
