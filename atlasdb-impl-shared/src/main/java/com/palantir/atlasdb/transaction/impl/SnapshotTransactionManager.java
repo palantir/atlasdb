@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -69,6 +70,7 @@ import com.palantir.timestamp.TimestampService;
     final boolean allowHiddenTableAccess;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
+    final TimestampTracker timestampTracker;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -98,6 +100,7 @@ import com.palantir.timestamp.TimestampService;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
+        this.timestampTracker = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner);
     }
 
     @Override
@@ -236,6 +239,7 @@ import com.palantir.timestamp.TimestampService;
     public void close() {
         if (isClosed.compareAndSet(false, true)) {
             super.close();
+            timestampTracker.close();
             cleaner.close();
             keyValueService.close();
             closeLockServiceIfPossible();
@@ -274,7 +278,7 @@ import com.palantir.timestamp.TimestampService;
     }
 
     /**
-     * This will always return a valid ImmutableTimestmap, but it may be slightly out of date.
+     * This will always return a valid ImmutableTimestamp, but it may be slightly out of date.
      * <p>
      * This method is used to optimize the perf of read only transactions because getting a new immutableTs requires
      * 2 extra remote calls which we can skip.
