@@ -37,6 +37,7 @@ import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -45,6 +46,8 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -109,7 +112,8 @@ public class SweepCommand extends SingleBackendCommand {
     long sleepTimeInMs = 0;
 
     @Option(name = {"--dry-run"},
-            description = "Run sweep in dry run mode to get how much would have been deleted and check safety.")
+            description = "Run sweep in dry run mode to get how much would have been deleted and check safety."
+                    + " This will not delete any data.")
     boolean dryRun = false;
 
     @Override
@@ -136,7 +140,7 @@ public class SweepCommand extends SingleBackendCommand {
         if (table != null) {
             TableReference tableToSweep = TableReference.createUnsafe(table);
             if (!services.getKeyValueService().getAllTableNames().contains(tableToSweep)) {
-                printer.info("The table {} passed in to sweep does not exist", tableToSweep);
+                printer.info("The table {} passed in to sweep does not exist", LoggingArgs.tableRef(tableToSweep));
                 return 1;
             }
             byte[] startRow = PtBytes.EMPTY_BYTE_ARRAY;
@@ -175,15 +179,15 @@ public class SweepCommand extends SingleBackendCommand {
                         ? sweepRunner.dryRun(tableToSweep, batchConfig, startRow.get())
                         : sweepRunner.run(tableToSweep, batchConfig, startRow.get());
                 printer.info(
-                        "Swept from {} to {} in table {} in {} ms, examined {} cell values,"
-                                + " {}deleted {} stale versions of those cells.",
-                        encodeStartRow(startRow),
-                        encodeEndRow(results.getNextStartRow()),
-                        tableToSweep,
-                        watch.elapsed(TimeUnit.MILLISECONDS),
-                        results.getCellTsPairsExamined(),
-                        dryRun ? "would have " : "",
-                        results.getStaleValuesDeleted());
+                        "{} Swept from {} to {} in table {} in {} ms, examined {} cell values,"
+                                + " deleted {} stale versions of those cells.",
+                        SafeArg.of("isDryRun", dryRun ? "[DRY RUN]" : ""),
+                        UnsafeArg.of("startRow", encodeStartRow(startRow)),
+                        UnsafeArg.of("exclusiveEndRow", encodeEndRow(results.getNextStartRow())),
+                        LoggingArgs.tableRef(tableToSweep),
+                        SafeArg.of("time taken millis", watch.elapsed(TimeUnit.MILLISECONDS)),
+                        SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
+                        SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()));
                 startRow = results.getNextStartRow();
                 cellsDeleted.addAndGet(results.getStaleValuesDeleted());
                 cellsExamined.addAndGet(results.getCellTsPairsExamined());
@@ -204,17 +208,18 @@ public class SweepCommand extends SingleBackendCommand {
             }
 
             printer.info(
-                    "Finished sweeping {}, examined {} cell values, {}deleted {} stale versions of those cells.",
-                    tableToSweep,
-                    cellsExamined.get(),
-                    dryRun ? "would have " : "",
-                    cellsDeleted.get());
+                    "{} Finished sweeping {}, examined {} cell values, deleted {} stale versions of those cells.",
+                    SafeArg.of("isDryRun", dryRun ? "[DRY RUN]" : ""),
+                    LoggingArgs.tableRef(tableToSweep),
+                    SafeArg.of("cellTs pairs examined", cellsExamined.get()),
+                    SafeArg.of("cellTs pairs deleted", cellsDeleted.get()));
 
             if (!dryRun && cellsDeleted.get() > 0) {
                 Stopwatch watch = Stopwatch.createStarted();
                 services.getKeyValueService().compactInternally(tableToSweep);
                 printer.info("Finished performing compactInternally on {} in {} ms.",
-                        tableToSweep, watch.elapsed(TimeUnit.MILLISECONDS));
+                        LoggingArgs.tableRef(tableToSweep),
+                        SafeArg.of("time taken", watch.elapsed(TimeUnit.MILLISECONDS)));
             }
         }
         return 0;

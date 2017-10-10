@@ -21,35 +21,39 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cli.runner.StandardStreamUtilities;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class OutputPrinterTest {
-    private static final OutputPrinter print = new OutputPrinter(LoggerFactory.getLogger(OutputPrinterTest.class));
+    private static final OutputPrinter print = new OutputPrinter(LoggerFactory.getLogger(OutputPrinter.class));
 
     @Test
     public void testInfoPrintingWorksWithSingleReplacement() {
         String systemOut = StandardStreamUtilities.wrapSystemOut(
-                () -> print.info("Test this gets {}", "replaced"));
+                () -> print.info("Test this gets {}", SafeArg.of("replaced", "replaced")));
         assertThat(systemOut).contains("Test this gets replaced ");
     }
 
     @Test
     public void testWarnPrintingWorksWithSingleReplacement() {
         String systemOut = StandardStreamUtilities.wrapSystemErr(
-                () -> print.warn("Test this gets {}", "replaced"));
+                () -> print.warn("Test this gets {}", UnsafeArg.of("replaced", "replaced")));
         assertThat(systemOut).contains("Test this gets replaced ");
     }
 
     @Test
     public void testInfoPrintingWorksWithMultipleReplacement() {
         String systemOut = StandardStreamUtilities.wrapSystemOut(
-                () -> print.info("Replace {} of {} {}.", "all", "these", "fields"));
+                () -> print.info("Replace {} of {} {}.", SafeArg.of("all", "all"), SafeArg.of("these", "these"),
+                        SafeArg.of("fields", "fields")));
         assertThat(systemOut).contains("Replace all of these fields. ");
     }
 
     @Test
     public void testErrorPrintingWorksWithMultipleReplacement() {
         String systemErr = StandardStreamUtilities.wrapSystemErr(
-                () -> print.error("Replace {} of {} {}.", "all", "these", "fields"));
+                () -> print.error("Replace {} of {} {}.",  SafeArg.of("all", "all"), SafeArg.of("these", "these"),
+                        SafeArg.of("fields", "fields")));
         assertThat(systemErr).contains("Replace all of these fields. ");
     }
 }
