@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.http;
+package com.palantir.paxos;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
+import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
-import com.palantir.exception.NotInitializedException;
+public enum PaxosQuorumStatus {
+    QUORUM_AGREED,
+    SOME_DISAGREED,
+    NO_QUORUM;
 
-/**
- * Maps a {@link NotInitializedException} to a 503 status code.
- */
-public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitializedException> {
-
-    @Override
-    public Response toResponse(NotInitializedException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+    public StillLeadingStatus toStillLeadingStatus() {
+        switch (this) {
+            case QUORUM_AGREED:
+                return StillLeadingStatus.LEADING;
+            case SOME_DISAGREED:
+                return StillLeadingStatus.NOT_LEADING;
+            case NO_QUORUM:
+                return StillLeadingStatus.NO_QUORUM;
+            default:
+                throw new IllegalStateException("unknown status: " + this);
+        }
     }
 }

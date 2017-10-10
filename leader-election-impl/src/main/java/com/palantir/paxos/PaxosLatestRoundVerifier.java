@@ -14,20 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.http;
+package com.palantir.paxos;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
+public interface PaxosLatestRoundVerifier {
 
-import com.palantir.exception.NotInitializedException;
+    PaxosQuorumStatus isLatestRound(long round);
 
-/**
- * Maps a {@link NotInitializedException} to a 503 status code.
- */
-public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitializedException> {
-
-    @Override
-    public Response toResponse(NotInitializedException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
-    }
 }

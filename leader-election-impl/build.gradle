@@ -11,6 +11,10 @@ dependencies {
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'com.palantir.remoting3', name: 'tracing'
 
+  testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+    exclude group: 'org.hamcrest'
+    exclude group: 'org.ow2.asm'
+  }
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
 }
