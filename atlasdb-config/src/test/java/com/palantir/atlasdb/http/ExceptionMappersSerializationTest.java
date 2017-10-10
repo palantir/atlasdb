@@ -26,14 +26,16 @@ import javax.ws.rs.core.Response;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.remoting2.errors.SerializableError;
 
-import io.dropwizard.jackson.Jackson;
-
 public class ExceptionMappersSerializationTest {
-    private static final ObjectMapper MAPPER = Jackson.newObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final StackTraceElement[] TRACES = { new StackTraceElement("class", "method", null, 1) };
     private static final ServiceNotAvailableException SERVICE_NOT_AVAILABLE_EXCEPTION =
@@ -45,7 +47,11 @@ public class ExceptionMappersSerializationTest {
             ExceptionMappersSerializationTest.class.getResource(JSON_RESOURCE_PATH).getPath());
 
     static {
+        MAPPER.registerModule(new GuavaModule());
+        MAPPER.registerModule(new AfterburnerModule());
+        MAPPER.registerModule(new Jdk7Module());
         MAPPER.registerModule(new Jdk8Module());
+        MAPPER.setSubtypeResolver(new StdSubtypeResolver());
         SERVICE_NOT_AVAILABLE_EXCEPTION.setStackTrace(TRACES);
     }
 

@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
@@ -37,8 +38,6 @@ import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
 import com.palantir.config.crypto.jackson.JsonNodeVisitors;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
-import io.dropwizard.jackson.DiscoverableSubtypeResolver;
-
 public final class AtlasDbConfigs {
     public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";
 
@@ -47,7 +46,7 @@ public final class AtlasDbConfigs {
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
 
     static {
-        OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
+        OBJECT_MAPPER.setSubtypeResolver(new StdSubtypeResolver());
         OBJECT_MAPPER.registerModule(new GuavaModule());
         OBJECT_MAPPER.registerModule(new Jdk7Module());
         OBJECT_MAPPER.registerModule(new Jdk8Module());
