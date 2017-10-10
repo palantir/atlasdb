@@ -44,7 +44,6 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
-import com.palantir.atlasdb.factory.TransactionManagerOptions;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -87,7 +86,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
                                 .build())
                         .build())
                 .build();
-        txnManager = TransactionManagers.create(TransactionManagerOptions.builder().config(config).build());
+        txnManager = TransactionManagers.builder().config(config).buildSerializable();
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 

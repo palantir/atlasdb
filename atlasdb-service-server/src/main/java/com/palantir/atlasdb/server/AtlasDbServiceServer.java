@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.server;
 
-import com.palantir.atlasdb.factory.TransactionManagerOptions;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
@@ -44,11 +43,10 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
         AtlasDbMetrics.setMetricRegistry(environment.metrics());
 
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
+        SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config.getConfig())
                 .env(environment.jersey()::register)
-                .build();
-        SerializableTransactionManager tm = TransactionManagers.create(options);
+                .buildSerializable();
 
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
 

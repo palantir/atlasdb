@@ -27,7 +27,6 @@ import com.palantir.atlasdb.console.AtlasConsoleServiceImpl
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
 import com.palantir.atlasdb.console.exceptions.InvalidTableException
 import com.palantir.atlasdb.factory.TransactionManagers
-import com.palantir.atlasdb.factory.TransactionManagerOptions
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
@@ -215,11 +214,10 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     private setupConnection(AtlasDbConfig config) {
-        TransactionManagerOptions options = TransactionManagerOptions.builder()
+        SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config)
                 .allowHiddenTableAccess(true)
-                .build();
-        SerializableTransactionManager tm = TransactionManagers.create(options);
+                .buildSerializable();
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService())
         AtlasDbService service = new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache)
         ObjectMapper serviceMapper = new ObjectMapper()
