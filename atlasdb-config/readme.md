@@ -13,12 +13,10 @@ Creating a `TransactionManager`:
 ```java
 AtlasDbConfig atlasConfig = ...
 Schema atlasSchema = ...
-TransactionManagerOptions options = TransactionManagerOptions.builder()
+SerializableTransactionManager tm = TransactionManagers.builder()
     .config(atlasConfig)
     .schemas(ImmutableSet.of(atlasSchema))
-    .build();
-
-SerializableTransactionManager tm = TransactionManagers.create(options);
+    .buildSerializable();
 ```
 
 The last item is a consumer of resources meant to be exposed to as web
@@ -47,12 +45,10 @@ And initialization code to your run method:
 
 ```java
 public void run(AtlasDbServerConfiguration config, Environment env) throws Exception {
-    TransactionManagerOptions options = TransactionManagerOptions.builder()
+    TransactionManager transactionManager = TransactionManagers.builder()
         .config(config.getAtlas())
         .env(env.jersey()::register)
-        .build();
-
-    TransactionManager transactionManager = TransactionManagers.create(options);
+        .buildSerializable();
     ...
 ```
 
