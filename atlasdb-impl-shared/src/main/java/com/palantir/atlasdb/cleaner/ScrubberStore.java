@@ -30,7 +30,9 @@ import com.palantir.common.base.BatchingVisitable;
  * @author ejin
  */
 public interface ScrubberStore {
-    boolean isInitialized();
+    default boolean isInitialized() {
+        return true;
+    }
 
     void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp, int batchSize);
 

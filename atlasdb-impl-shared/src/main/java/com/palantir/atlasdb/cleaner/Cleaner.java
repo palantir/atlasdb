@@ -34,7 +34,9 @@ public interface Cleaner extends Closeable {
     /**
      * @return true if and only if the Cleaner has been fully initialized.
      */
-    boolean isInitialized();
+    default boolean isInitialized() {
+        return true;
+    }
 
     /**
      * @param cellToTableRefs Cells that were touched as part of the hard delete transaction

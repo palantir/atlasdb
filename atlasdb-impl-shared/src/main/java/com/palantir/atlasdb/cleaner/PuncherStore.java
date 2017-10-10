@@ -25,7 +25,9 @@ public interface PuncherStore {
     /**
      * @return true if and only if the PuncherStore has been initialized.
      */
-    boolean isInitialized();
+    default boolean isInitialized() {
+        return true;
+    }
 
     /**
      * Declare that timestamp was acquired at time timeMillis.  Note

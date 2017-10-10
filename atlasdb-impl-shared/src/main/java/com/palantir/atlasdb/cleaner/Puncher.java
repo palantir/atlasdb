@@ -22,7 +22,9 @@ public interface Puncher {
     /**
      * @return true if and only if the Puncher has been initialized.
      */
-    boolean isInitialized();
+    default boolean isInitialized() {
+        return true;
+    }
 
     /**
      * Indicate the given timestamp has just been created.
