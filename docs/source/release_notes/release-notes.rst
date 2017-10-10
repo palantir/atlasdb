@@ -98,9 +98,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
 
     *    - |devbreak|
-         - ``TransactionManagers.create()`` now takes in an immutable ``TransactionManagerOptions`` class instead of a long list of individual arguments.
+         - ``SerializableTransactionManager`` is now created via an immutable builder instead of a long list of individual arguments. Use ``TransactionManagers.builder()``
+            to get the builder and once completely configured, build the transaction manager via the builder's ``.buildSerializable()`` method.
            The ``TransactionManagers.Environment`` class has been removed in favor of Java 8's built in ``Consumer<Object>``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2459>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
