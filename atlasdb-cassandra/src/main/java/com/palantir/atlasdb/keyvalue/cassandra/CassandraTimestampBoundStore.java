@@ -105,7 +105,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs, boolean initializeAsync) {
         CassandraTimestampBoundStore store = new CassandraTimestampBoundStore(kvs.getClientPool(), kvs);
-        TransactionManagerState.register(store.wrapper);
+        if (initializeAsync) {
+            TransactionManagerState.register(store.wrapper);
+        }
         store.wrapper.initialize(initializeAsync);
         return store.wrapper.isInitialized() ? store : store.wrapper;
     }

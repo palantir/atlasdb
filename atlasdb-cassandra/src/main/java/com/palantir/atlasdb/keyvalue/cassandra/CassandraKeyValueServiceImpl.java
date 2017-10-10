@@ -241,7 +241,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl keyValueService =
                 new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
-        TransactionManagerState.register(keyValueService.wrapper);
+        if (initializeAsync) {
+            TransactionManagerState.register(keyValueService.wrapper);
+        }
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }

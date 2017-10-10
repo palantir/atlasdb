@@ -36,6 +36,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.impl.TransactionManagerState;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.processors.AutoDelegate;
 
@@ -75,6 +76,10 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
 
     public static PuncherStore create(KeyValueService keyValueService, boolean initializeAsync) {
         KeyValueServicePuncherStore puncherStore = new KeyValueServicePuncherStore(keyValueService);
+        if (initializeAsync) {
+            TransactionManagerState.register(puncherStore.wrapper);
+        }
+
         puncherStore.wrapper.initialize(initializeAsync);
         return puncherStore.wrapper.isInitialized() ? puncherStore : puncherStore.wrapper;
     }
