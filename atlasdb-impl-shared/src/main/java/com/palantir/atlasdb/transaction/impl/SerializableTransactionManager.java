@@ -47,17 +47,14 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         @Override
         public SerializableTransactionManager delegate() {
             if (!isInitialized) {
-                try {
-                    // Verify that the various dependent services have been initialized
-                    if (manager.getKeyValueService().isInitialized()
-                            && manager.getTimelockService().isInitialized()
-                            && manager.getTimestampService().isInitialized()
-                            && manager.getCleaner().isInitialized()) {
-                        isInitialized = true;
-                    }
-                } catch (NotInitializedException e) {
-                    log.info("The KeyValueService is not initialized yet!");
-                    throw e;
+                // Verify that the various dependent services have been initialized
+                if (manager.getKeyValueService().isInitialized()
+                        && manager.getTimelockService().isInitialized()
+                        && manager.getTimestampService().isInitialized()
+                        && manager.getCleaner().isInitialized()) {
+                    isInitialized = true;
+                } else {
+                    throw new NotInitializedException("TransactionManager");
                 }
             }
             return manager;
