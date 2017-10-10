@@ -118,6 +118,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.transaction.impl.TransactionManagerState;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.annotation.Idempotent;
@@ -240,6 +241,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl keyValueService =
                 new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
+        TransactionManagerState.register(keyValueService.wrapper);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }

@@ -43,6 +43,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.impl.TransactionManagerState;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.processors.AutoDelegate;
@@ -104,6 +105,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs, boolean initializeAsync) {
         CassandraTimestampBoundStore store = new CassandraTimestampBoundStore(kvs.getClientPool(), kvs);
+        TransactionManagerState.register(store.wrapper);
         store.wrapper.initialize(initializeAsync);
         return store.wrapper.isInitialized() ? store : store.wrapper;
     }
