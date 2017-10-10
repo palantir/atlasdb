@@ -75,7 +75,6 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                     .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
                     .batchSizeHint(1000)
-                    .minUncommittedStartTimestamp(Long.MIN_VALUE)
                     .sweepTimestamp(Long.MAX_VALUE)
                     .shouldCheckIfLatestValueIsEmpty(thorough)
                     .timestampsToIgnore(thorough ? new long[] {} : new long[] { Value.INVALID_VALUE_TIMESTAMP })

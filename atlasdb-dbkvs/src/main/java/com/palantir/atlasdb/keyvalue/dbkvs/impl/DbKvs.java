@@ -189,7 +189,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 new ParallelTaskRunner(newFixedThreadPool(config.poolSize()), config.fetchBatchSize()),
                 (conns, tbl, ids) -> Collections.emptyMap(), // no overflow on postgres
                 new PostgresGetRange(prefixedTableNames, connections, tableMetadataCache),
-                PostgresGetCandidateCellsForSweeping.create(prefixedTableNames, connections));
+                new PostgresGetCandidateCellsForSweeping(prefixedTableNames, connections));
     }
 
     private static DbKvs createOracle(ExecutorService executor,
