@@ -265,6 +265,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, configManager);
     }
 
+    @Override
     public boolean isInitialized() {
         return wrapper.isInitialized();
     }

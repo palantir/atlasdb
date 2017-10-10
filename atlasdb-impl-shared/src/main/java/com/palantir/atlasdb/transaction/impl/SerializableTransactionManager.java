@@ -48,12 +48,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         public SerializableTransactionManager delegate() {
             if (!isInitialized) {
                 try {
-                    // SerializableTransactionManager should throw until the underlying KVS is initialized.
-                    // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
-                    manager.getKeyValueService().getClusterAvailabilityStatus();
-
                     // Verify that the various dependent services have been initialized
-                    if (manager.getTimelockService().isInitialized()
+                    if (manager.getKeyValueService().isInitialized()
+                            && manager.getTimelockService().isInitialized()
                             && manager.getTimestampService().isInitialized()
                             && manager.getCleaner().isInitialized()) {
                         isInitialized = true;

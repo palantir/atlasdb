@@ -460,6 +460,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return maybeLog(delegate::isInitialized,
+                logTime("isInitialized"));
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows,
