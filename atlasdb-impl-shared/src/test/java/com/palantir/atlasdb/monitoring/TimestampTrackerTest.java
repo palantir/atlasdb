@@ -136,6 +136,18 @@ public class TimestampTrackerTest {
         }
     }
 
+    @Test
+    public void doesNotCallSupplierUnlessGaugeIsQueried() {
+        try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
+            when(mockClock.getTick()).thenReturn(0L, CACHE_RETRIGGER_NANOS * 50000);
+            AtomicLong timestampValue = new AtomicLong(0L);
+            tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
+
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
+        }
+    }
+
     private static String buildFullyQualifiedMetricName(String shortName) {
         return "com.palantir.atlasdb.monitoring.TimestampTracker." + shortName;
     }
