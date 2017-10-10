@@ -21,6 +21,9 @@ import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.exception.NotInitializedException;
 
+/**
+ * Maps a {@link NotInitializedException} to a 503 status code.
+ */
 public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitializedException> {
 
     @Override
