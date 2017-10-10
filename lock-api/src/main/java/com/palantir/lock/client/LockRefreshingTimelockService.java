@@ -16,10 +16,12 @@
 
 package com.palantir.lock.client;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -39,19 +41,47 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
+    private final Optional<ScheduledExecutorService> managedExecutor;
 
+    /**
+     * @deprecated Use {@link #create(TimelockService, ScheduledExecutorService)} instead.
+     *
+     * @param timelockService The {@link TimelockService} to wrap
+     * @return A {@link TimelockService} that automatically refreshes locks
+     */
+    @Deprecated
     public static LockRefreshingTimelockService createDefault(TimelockService timelockService) {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                 .setNameFormat(LockRefreshingTimelockService.class.getSimpleName() + "-%d")
                 .setDaemon(true)
                 .build());
         LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
-        return new LockRefreshingTimelockService(timelockService, lockRefresher);
+        return new LockRefreshingTimelockService(timelockService, lockRefresher, executor);
     }
 
-    public LockRefreshingTimelockService(TimelockService delegate, LockRefresher lockRefresher) {
+    /**
+     * Creates a {@link TimelockService} that uses the specified executor to regularly refresh
+     * locks that have been taken out.
+     *
+     * @param timelockService The {@link TimelockService} proxy to wrap
+     * @param executor An executor service whose lifecycle is managed by the consumer of this method
+     * @return The {@link TimelockService} that automatically refreshes locks
+     */
+    public static LockRefreshingTimelockService create(
+            TimelockService timelockService,
+            ScheduledExecutorService executor) {
+        LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
+        return new LockRefreshingTimelockService(timelockService, lockRefresher, null);
+    }
+
+    @VisibleForTesting
+    LockRefreshingTimelockService(
+            TimelockService delegate,
+            LockRefresher lockRefresher,
+            ScheduledExecutorService executor) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
+        this.managedExecutor = Optional.ofNullable(executor);
     }
 
     @Override
@@ -108,6 +138,6 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
 
     @Override
     public void close() throws Exception {
-        lockRefresher.close();
+        managedExecutor.ifPresent(ScheduledExecutorService::shutdown);
     }
 }
