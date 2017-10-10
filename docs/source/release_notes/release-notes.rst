@@ -65,6 +65,11 @@ develop
            Now the factory methods for the above classes return the interfaces. The actual implementation of such classes was moved to their corresponding \*Impl files.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
 
+    *    - |fixed|
+         - ``PersistentLockManager`` can now reacquire the persistent lock if another process unilaterally clears the lock.
+           Previously in this case, sweep would continually fail to acquire the lock until the service restarts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2419>`__)
+
     *    - |new|
          - Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
            We recommend this to be configured only for cases where you absolutely need to persist all state in the database, for example,
@@ -83,6 +88,11 @@ develop
            Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
            Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
+
+    *   - |devbreak| |improved|
+        - ``LockRefreshingTimelockService`` has been moved to the ``lock-api`` project under the package name ``com.palantir.lock.client``, and now implements
+          ``AutoCloseable``, shutting down its internal executor service.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

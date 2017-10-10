@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.impl;
+package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;

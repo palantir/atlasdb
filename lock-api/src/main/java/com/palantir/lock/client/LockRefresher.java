@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.impl;
+package com.palantir.lock.client;
 
 import java.util.Collection;
 import java.util.Set;
@@ -29,7 +29,7 @@ import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
-public class LockRefresher {
+public class LockRefresher implements AutoCloseable {
 
     private final Logger log = LoggerFactory.getLogger(LockRefresher.class);
 
@@ -37,7 +37,10 @@ public class LockRefresher {
     private final TimelockService timelockService;
     private final Set<LockToken> tokensToRefresh = Sets.newConcurrentHashSet();
 
-    public LockRefresher(ScheduledExecutorService executor, TimelockService timelockService, long refreshIntervalMillis) {
+    public LockRefresher(
+            ScheduledExecutorService executor,
+            TimelockService timelockService,
+            long refreshIntervalMillis) {
         this.executor = executor;
         this.timelockService = timelockService;
 
@@ -45,7 +48,11 @@ public class LockRefresher {
     }
 
     private void scheduleRefresh(long refreshIntervalMillis) {
-        executor.scheduleAtFixedRate(this::refreshLocks, refreshIntervalMillis, refreshIntervalMillis, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(
+                this::refreshLocks,
+                refreshIntervalMillis,
+                refreshIntervalMillis,
+                TimeUnit.MILLISECONDS);
     }
 
     private void refreshLocks() {
@@ -68,5 +75,10 @@ public class LockRefresher {
 
     public void unregisterLocks(Collection<LockToken> tokens) {
         tokensToRefresh.removeAll(tokens);
+    }
+
+    @Override
+    public void close() throws Exception {
+        executor.shutdown();
     }
 }

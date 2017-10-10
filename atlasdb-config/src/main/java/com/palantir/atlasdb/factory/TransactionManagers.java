@@ -52,7 +52,6 @@ import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
-import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -98,8 +97,8 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.impl.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
@@ -212,10 +211,6 @@ public final class TransactionManagers {
             boolean allowHiddenTableAccess,
             String userAgent) {
         checkInstallConfig(config);
-
-        if (config.initializeAsync()) {
-            env.register(new NotInitializedExceptionMapper());
-        }
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
