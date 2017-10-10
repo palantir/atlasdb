@@ -16,13 +16,10 @@
 
 package com.palantir.lock.client;
 
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -35,29 +32,12 @@ import com.palantir.timestamp.TimestampRange;
 
 // TODO(nziebart): probably should make it more obvious that this class should always be used;
 // maybe call this a TimelockClient and require that everywhere? Could also be used for async unlocking..
-public class LockRefreshingTimelockService implements AutoCloseable, TimelockService {
+public class LockRefreshingTimelockService implements TimelockService {
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
-    private final Optional<ScheduledExecutorService> managedExecutor;
-
-    /**
-     * @deprecated Use {@link #create(TimelockService, ScheduledExecutorService)} instead.
-     *
-     * @param timelockService The {@link TimelockService} to wrap
-     * @return A {@link TimelockService} that automatically refreshes locks
-     */
-    @Deprecated
-    public static LockRefreshingTimelockService createDefault(TimelockService timelockService) {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                .setNameFormat(LockRefreshingTimelockService.class.getSimpleName() + "-%d")
-                .setDaemon(true)
-                .build());
-        LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
-        return new LockRefreshingTimelockService(timelockService, lockRefresher, executor);
-    }
 
     /**
      * Creates a {@link TimelockService} that uses the specified executor to regularly refresh
@@ -71,17 +51,15 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
             TimelockService timelockService,
             ScheduledExecutorService executor) {
         LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
-        return new LockRefreshingTimelockService(timelockService, lockRefresher, null);
+        return new LockRefreshingTimelockService(timelockService, lockRefresher);
     }
 
     @VisibleForTesting
     LockRefreshingTimelockService(
             TimelockService delegate,
-            LockRefresher lockRefresher,
-            ScheduledExecutorService executor) {
+            LockRefresher lockRefresher) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
-        this.managedExecutor = Optional.ofNullable(executor);
     }
 
     @Override
@@ -134,10 +112,5 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
     @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
-    }
-
-    @Override
-    public void close() throws Exception {
-        managedExecutor.ifPresent(ScheduledExecutorService::shutdown);
     }
 }

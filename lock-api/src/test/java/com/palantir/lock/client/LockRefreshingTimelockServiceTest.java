@@ -52,7 +52,7 @@ public class LockRefreshingTimelockServiceTest {
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);
-    private final TimelockService timelock = new LockRefreshingTimelockService(delegate, refresher, null);
+    private final TimelockService timelock = new LockRefreshingTimelockService(delegate, refresher);
 
     private static final long TIMEOUT = 10_000;
 
