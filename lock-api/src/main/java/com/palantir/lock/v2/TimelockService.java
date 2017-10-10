@@ -32,6 +32,12 @@ import com.palantir.timestamp.TimestampRange;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public interface TimelockService {
+    /**
+     * @return true iff the TimelockService has been fully initialized and is ready to use.
+     */
+    default boolean isInitialized() {
+        return true;
+    }
 
     @POST
     @Path("fresh-timestamp")

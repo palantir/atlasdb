@@ -55,6 +55,11 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return delegate.getFreshTimestamp();
     }

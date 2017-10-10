@@ -50,11 +50,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 try {
                     // SerializableTransactionManager should throw until the underlying KVS is initialized.
                     // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
-                    // Perform smoke tests on KVS and TimestampService
                     manager.getKeyValueService().getClusterAvailabilityStatus();
-                    manager.getTimestampService().getFreshTimestamp();
-                    // Verify that the cleaner is initialised
-                    if (manager.getCleaner().isInitialized()) {
+
+                    // Verify that the various dependent services have been initialized
+                    if (manager.getTimelockService().isInitialized()
+                            && manager.getTimestampService().isInitialized()
+                            && manager.getCleaner().isInitialized()) {
                         isInitialized = true;
                     }
                 } catch (NotInitializedException e) {
