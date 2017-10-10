@@ -25,7 +25,7 @@ public class ClockSkewExceptionLogLimiterImpl implements ClockSkewExceptionLogLi
     private final RateLimiter exceptionLoggingRateLimiter = RateLimiter.create(EXCEPTION_PERMIT_RATE);
 
     ClockSkewExceptionLogLimiterImpl() {
-        // use the factory
+        // use ClockSkewExceptionLogLimiter.create()
     }
 
     @Override
