@@ -23,6 +23,11 @@ package com.palantir.atlasdb.cleaner;
  */
 public interface PuncherStore {
     /**
+     * @return true if and only if the PuncherStore has been initialized.
+     */
+    boolean isInitialized();
+
+    /**
      * Declare that timestamp was acquired at time timeMillis.  Note
      * that timestamp corresponds to "start timestamps" in the AtlasDB
      * transaction protocol.

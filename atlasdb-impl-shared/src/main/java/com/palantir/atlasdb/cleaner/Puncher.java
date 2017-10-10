@@ -18,6 +18,12 @@ package com.palantir.atlasdb.cleaner;
 import com.google.common.base.Supplier;
 
 public interface Puncher {
+
+    /**
+     * @return true if and only if the Puncher has been initialized.
+     */
+    boolean isInitialized();
+
     /**
      * Indicate the given timestamp has just been created.
      */

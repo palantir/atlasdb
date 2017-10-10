@@ -97,6 +97,11 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
     }
 
     @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
+    }
+
+    @Override
     public void put(long timestamp, long timeMillis) {
         byte[] row = EncodingUtils.encodeUnsignedVarLong(timeMillis);
         EncodingUtils.flipAllBitsInPlace(row);

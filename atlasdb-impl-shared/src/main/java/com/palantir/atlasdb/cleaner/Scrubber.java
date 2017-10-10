@@ -72,6 +72,7 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.remoting3.tracing.Tracers;
 
 /**
@@ -174,6 +175,16 @@ public final class Scrubber {
         NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
         this.readerExec = Tracers.wrap(PTExecutors.newFixedThreadPool(readThreadCount, threadFactory));
         this.exec = Tracers.wrap(PTExecutors.newFixedThreadPool(threadCount, threadFactory));
+    }
+
+    public boolean isInitialized() {
+        try {
+            // We don't care about the return value here - just that we can do this without encountering NotInitializedException
+            keyValueService.getClusterAvailabilityStatus();
+            return scrubberStore.isInitialized();
+        } catch (NotInitializedException ex) {
+            return false;
+        }
     }
 
     /**

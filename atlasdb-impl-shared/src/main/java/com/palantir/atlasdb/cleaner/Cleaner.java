@@ -30,6 +30,12 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  * @author jweel
  */
 public interface Cleaner extends Closeable {
+
+    /**
+     * @return true if and only if the Cleaner has been fully initialized.
+     */
+    boolean isInitialized();
+
     /**
      * @param cellToTableRefs Cells that were touched as part of the hard delete transaction
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose

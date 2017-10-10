@@ -53,11 +53,14 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     // Perform smoke tests on KVS and TimestampService
                     manager.getKeyValueService().getClusterAvailabilityStatus();
                     manager.getTimestampService().getFreshTimestamp();
+                    // Verify that the cleaner is initialised
+                    if (manager.getCleaner().isInitialized()) {
+                        isInitialized = true;
+                    }
                 } catch (NotInitializedException e) {
                     log.info("The KeyValueService is not initialized yet!");
                     throw e;
                 }
-                isInitialized = true;
             }
             return manager;
         }
