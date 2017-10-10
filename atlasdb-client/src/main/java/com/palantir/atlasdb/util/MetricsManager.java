@@ -17,6 +17,7 @@ package com.palantir.atlasdb.util;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,8 +91,9 @@ public class MetricsManager {
 
     public void deregisterMetricsWithPrefix(Class clazz, String prefix) {
         String fqnPrefix = MetricRegistry.name(clazz, prefix);
-        registeredMetrics.stream()
+        Set<String> relevantMetrics = registeredMetrics.stream()
                 .filter(metricName -> metricName.startsWith(fqnPrefix))
-                .forEach(this::deregisterMetric);
+                .collect(Collectors.toSet());
+        relevantMetrics.forEach(this::deregisterMetric);
     }
 }
