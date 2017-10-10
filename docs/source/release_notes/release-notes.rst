@@ -89,6 +89,16 @@ develop
            Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
 
+    *    - |devbreak|
+         - Removed the following unnecessary classes related to wrapping KVSes:
+
+           - ``NamespacedKeyValueService``
+           - ``NamespaceMappingKeyValueService``
+           - ``NamespacedKeyValueServices``
+           - ``StaticTableMappingService``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2448>`__)
+
     *   - |devbreak| |improved|
         - ``LockRefreshingTimelockService`` has been moved to the ``lock-api`` project under the package name ``com.palantir.lock.client``, and now implements
           ``AutoCloseable``, shutting down its internal executor service.

@@ -20,7 +20,6 @@ import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -50,9 +49,7 @@ public class KeyValueServiceModule {
     public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs,
                                                          TimestampService tss,
                                                          ServicesConfig config) {
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs,
-                config.atlasDbConfig().initializeAsync());
-        kvs = ProfilingKeyValueService.create(kvs,
+        KeyValueService kvs = ProfilingKeyValueService.create(rawKvs,
                 config.atlasDbConfig().getKvsSlowLogThresholdMillis());
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs);
