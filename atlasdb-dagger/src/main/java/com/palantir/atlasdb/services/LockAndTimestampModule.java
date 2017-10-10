@@ -36,7 +36,8 @@ public class LockAndTimestampModule {
                 config.atlasDbConfig(),
                 resource -> { },
                 LockServiceImpl::create,
-                () -> config.atlasDbSupplier().getTimestampService());
+                () -> config.atlasDbSupplier().getTimestampService(),
+                null); //TODO
     }
 
     @Provides

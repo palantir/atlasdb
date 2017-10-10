@@ -38,6 +38,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -57,6 +59,7 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -121,6 +124,12 @@ public class TransactionManagersTest {
     private static final String TIMELOCK_FF_PATH
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
+
+    private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder()
+                    .setNameFormat(TransactionManagersTest.class.getSimpleName() + "-%d")
+                    .setDaemon(true)
+                    .build());
 
     private int availablePort;
     private TimeLockClientConfig mockClientConfig;
@@ -406,7 +415,8 @@ public class TransactionManagersTest {
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
                 invalidator,
-                USER_AGENT);
+                USER_AGENT,
+                EXECUTOR);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -431,7 +441,8 @@ public class TransactionManagersTest {
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
                         invalidator,
-                        USER_AGENT);
+                        USER_AGENT,
+                        EXECUTOR);
         lockAndTimestampServices.timelock().getFreshTimestamp();
         lockAndTimestampServices.timelock().currentTimeMillis();
 
@@ -463,6 +474,7 @@ public class TransactionManagersTest {
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
                 invalidator,
-                USER_AGENT);
+                USER_AGENT,
+                EXECUTOR);
     }
 }
