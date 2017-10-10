@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -142,6 +143,8 @@ public abstract class TransactionManagers {
         return userAgent().orElse(callingClass().map(UserAgents::fromClass).orElse(UserAgents.DEFAULT_USER_AGENT));
     }
 
+    abstract ScheduledExecutorService executor();
+
     public static Builder builder() {
         return new Builder();
     }
@@ -209,7 +212,8 @@ public abstract class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions()),
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
-                derivedUserAgent());
+                derivedUserAgent(),
+                executor());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs, config.getKvsSlowLogThresholdMillis());
         kvs = SweepStatsKeyValueService.create(kvs,
                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
@@ -378,7 +382,8 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             Consumer<Object> env,
             Supplier<LockService> lock,
-            Supplier<TimestampService> time) {
+            Supplier<TimestampService> time,
+            ScheduledExecutorService executor) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config,
                         env,
@@ -389,7 +394,7 @@ public abstract class TransactionManagers {
                             return AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
                         },
                         UserAgents.DEFAULT_USER_AGENT);
-        return withRefreshingLockService(lockAndTimestampServices);
+        return withRefreshingLockService(lockAndTimestampServices, executor);
     }
 
     @VisibleForTesting
@@ -400,19 +405,21 @@ public abstract class TransactionManagers {
             Supplier<LockService> lock,
             Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            String userAgent,
+            ScheduledExecutorService executor) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config, env, lock, time, invalidator, userAgent);
         return withRequestBatchingTimestampService(
                 runtimeConfigSupplier,
-                withRefreshingLockService(lockAndTimestampServices));
+                withRefreshingLockService(lockAndTimestampServices, executor));
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
-            LockAndTimestampServices lockAndTimestampServices) {
+            LockAndTimestampServices lockAndTimestampServices,
+            ScheduledExecutorService executor) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
+                .timelock(LockRefreshingTimelockService.create(lockAndTimestampServices.timelock(), executor))
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .build();
     }

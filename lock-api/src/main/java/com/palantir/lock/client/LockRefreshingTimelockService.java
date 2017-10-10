@@ -17,10 +17,9 @@
 package com.palantir.lock.client;
 
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -33,23 +32,32 @@ import com.palantir.timestamp.TimestampRange;
 
 // TODO(nziebart): probably should make it more obvious that this class should always be used;
 // maybe call this a TimelockClient and require that everywhere? Could also be used for async unlocking..
-public class LockRefreshingTimelockService implements AutoCloseable, TimelockService {
+public class LockRefreshingTimelockService implements TimelockService {
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
 
-    public static LockRefreshingTimelockService createDefault(TimelockService timelockService) {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                .setNameFormat(LockRefreshingTimelockService.class.getSimpleName() + "-%d")
-                .setDaemon(true)
-                .build());
+    /**
+     * Creates a {@link TimelockService} that uses the specified executor to regularly refresh
+     * locks that have been taken out.
+     *
+     * @param timelockService The {@link TimelockService} proxy to wrap
+     * @param executor An executor service whose lifecycle is managed by the consumer of this method
+     * @return The {@link TimelockService} that automatically refreshes locks
+     */
+    public static LockRefreshingTimelockService create(
+            TimelockService timelockService,
+            ScheduledExecutorService executor) {
         LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
         return new LockRefreshingTimelockService(timelockService, lockRefresher);
     }
 
-    public LockRefreshingTimelockService(TimelockService delegate, LockRefresher lockRefresher) {
+    @VisibleForTesting
+    LockRefreshingTimelockService(
+            TimelockService delegate,
+            LockRefresher lockRefresher) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
     }
@@ -104,10 +112,5 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
     @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
-    }
-
-    @Override
-    public void close() throws Exception {
-        lockRefresher.close();
     }
 }

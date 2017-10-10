@@ -29,7 +29,7 @@ import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
-public class LockRefresher implements AutoCloseable {
+public class LockRefresher {
 
     private final Logger log = LoggerFactory.getLogger(LockRefresher.class);
 
@@ -75,10 +75,5 @@ public class LockRefresher implements AutoCloseable {
 
     public void unregisterLocks(Collection<LockToken> tokens) {
         tokensToRefresh.removeAll(tokens);
-    }
-
-    @Override
-    public void close() throws Exception {
-        executor.shutdown();
     }
 }
