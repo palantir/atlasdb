@@ -35,13 +35,15 @@ public class ClockSkewEvents {
     private final Counter exception;
     private final Counter clockWentBackwards;
 
-    public ClockSkewEvents(MetricRegistry metricRegistry) {
+    private final ClockSkewExceptionLogLimiter exceptionLogLimiter;
 
+    public ClockSkewEvents(MetricRegistry metricRegistry) {
         this.metricRegistry = metricRegistry;
 
         this.clockSkew = metricRegistry.histogram("clock.skew");
         this.clockWentBackwards = metricRegistry.counter("clock.went-backwards");
         this.exception = metricRegistry.counter("clock.monitor-exception");
+        this.exceptionLogLimiter = ClockSkewExceptionLogLimiter.createDefault();
     }
 
     public void tooMuchTimeSincePreviousRequest(long remoteElapsedTime) {
@@ -77,8 +79,9 @@ public class ClockSkewEvents {
     }
 
     public void exception(Throwable throwable) {
-        log.warn("ClockSkewMonitor threw an exception", throwable);
-
+        if (exceptionLogLimiter.shouldLogException()) {
+            log.warn("ClockSkewMonitor threw an exception", throwable);
+        }
         exception.inc();
     }
 }
