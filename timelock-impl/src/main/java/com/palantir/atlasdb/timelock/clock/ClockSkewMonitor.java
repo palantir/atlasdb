@@ -115,13 +115,7 @@ public final class ClockSkewMonitor {
         newRequests.forEach((remoteHost, newRequest) -> {
             RequestTime previousRequest = previousRequestsByServer.get(remoteHost);
             if (previousRequest != null) {
-                try {
-                    new ClockSkewComparer(remoteHost, events, previousRequest, newRequest).compare();
-                } catch (IllegalArgumentException exception) {
-                    // This means that the clock has gone backwards.
-                    // In this case we discard the results of this comparison.
-                    // We still want to compare the other clocks, though.
-                }
+                new ClockSkewComparer(remoteHost, events, previousRequest, newRequest).compare();
             }
             previousRequestsByServer.put(remoteHost, newRequest);
         });
