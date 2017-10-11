@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.ws.rs.ClientErrorException;
 
@@ -31,7 +32,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -102,12 +102,18 @@ import com.palantir.lock.client.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
 public abstract class TransactionManagers {
+    private static final int LOGGING_INTERVAL = 60;
+    private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
+
+    public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+
     abstract AtlasDbConfig config();
 
     @Value.Default
@@ -152,14 +158,6 @@ public abstract class TransactionManagers {
         }
     }
 
-    // ==========================================================================================
-    // ==========================================================================================
-    // ==========================================================================================
-
-    private static final int LOGGING_INTERVAL = 60;
-    private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-    public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
-
     @VisibleForTesting
     static Consumer<Runnable> runAsync = task -> {
         Thread thread = new Thread(task);
@@ -184,6 +182,95 @@ public abstract class TransactionManagers {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder().config(config).schemas(schemas).buildSerializable();
     }
+
+    // Begin deprecated creation methods
+
+    /**
+     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
+     * generate a {@link SerializableTransactionManager} from it.
+     */
+    @Deprecated
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
+            Schema schema,
+            Environment env,
+            boolean allowHiddenTableAccess) {
+        return create(config, runtimeConfigSupplier, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+    }
+
+    /**
+     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
+     * generate a {@link SerializableTransactionManager} from it.
+     */
+    @Deprecated
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
+            Set<Schema> schemas,
+            Environment env,
+            boolean allowHiddenTableAccess) {
+        log.info("Called TransactionManagers.create. This should only happen once.",
+                UnsafeArg.of("thread name", Thread.currentThread().getName()));
+        return create(config, runtimeConfigSupplier, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+    }
+
+    /**
+     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
+     * generate a {@link SerializableTransactionManager} from it.
+     */
+    @Deprecated
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess) {
+        return builder()
+                .config(config)
+                .runtimeConfigSupplier(runtimeConfigSupplier)
+                .schemas(schemas)
+                .env(env::register)
+                .lockServerOptions(lockServerOptions)
+                .allowHiddenTableAccess(allowHiddenTableAccess)
+                .buildSerializable();
+    }
+
+    /**
+     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
+     * generate a {@link SerializableTransactionManager} from it.
+     */
+    @Deprecated
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess,
+            Class<?> callingClass) {
+        return builder()
+                .config(config)
+                .runtimeConfigSupplier(runtimeConfigSupplier)
+                .schemas(schemas)
+                .env(env::register)
+                .lockServerOptions(lockServerOptions)
+                .allowHiddenTableAccess(allowHiddenTableAccess)
+                .callingClass(callingClass)
+                .buildSerializable();
+    }
+
+    /**
+     * @deprecated This interface is deprecated and is not meant for use publicly. When creating a
+     * {@link SerializableTransactionManager} via the {@link Builder}, specify a `{@link Consumer<Object>}.
+     */
+    @Deprecated
+    public interface Environment {
+        void register(Object resource);
+    }
+
+    // End deprecated creation methods
 
     @JsonIgnore
     @Value.Derived
@@ -282,7 +369,7 @@ public abstract class TransactionManagers {
     }
 
     private static void initializeSweepEndpointAndBackgroundProcess(
-            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             KeyValueService kvs,
             TransactionService transactionService,
@@ -303,7 +390,7 @@ public abstract class TransactionManagers {
                 sweepStrategyManager,
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        Supplier<SweepBatchConfig> sweepBatchConfig = () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
+        com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig = () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
         SweepMetrics sweepMetrics = new SweepMetrics();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
@@ -331,7 +418,7 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            Supplier<SweepBatchConfig> sweepBatchConfig,
+            com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepMetrics sweepMetrics) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
@@ -377,8 +464,8 @@ public abstract class TransactionManagers {
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
             Consumer<Object> env,
-            Supplier<LockService> lock,
-            Supplier<TimestampService> time) {
+            com.google.common.base.Supplier<LockService> lock,
+            com.google.common.base.Supplier<TimestampService> time) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config,
                         env,
@@ -397,8 +484,8 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
             Consumer<Object> env,
-            Supplier<LockService> lock,
-            Supplier<TimestampService> time,
+            com.google.common.base.Supplier<LockService> lock,
+            com.google.common.base.Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
@@ -436,8 +523,8 @@ public abstract class TransactionManagers {
     static LockAndTimestampServices createRawInstrumentedServices(
             AtlasDbConfig config,
             Consumer<Object> env,
-            Supplier<LockService> lock,
-            Supplier<TimestampService> time,
+            com.google.common.base.Supplier<LockService> lock,
+            com.google.common.base.Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         if (config.leader().isPresent()) {
@@ -490,8 +577,8 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices createRawLeaderServices(
             LeaderConfig leaderConfig,
             Consumer<Object> env,
-            Supplier<LockService> lock,
-            Supplier<TimestampService> time,
+            com.google.common.base.Supplier<LockService> lock,
+            com.google.common.base.Supplier<TimestampService> time,
             String userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
@@ -588,8 +675,8 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices createRawEmbeddedServices(
             Consumer<Object> env,
-            Supplier<LockService> lock,
-            Supplier<TimestampService> time) {
+            com.google.common.base.Supplier<LockService> lock,
+            com.google.common.base.Supplier<TimestampService> time) {
         LockService lockService = ServiceCreator.createInstrumentedService(lock.get(), LockService.class);
         TimestampService timeService = ServiceCreator.createInstrumentedService(time.get(), TimestampService.class);
 
