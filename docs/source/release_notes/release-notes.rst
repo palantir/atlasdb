@@ -97,6 +97,10 @@ develop
           ``AutoCloseable``, shutting down its internal executor service.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
 
+    *    - |fixed|
+         - Lock state logging will dump ``expiresIn`` of refreshed token, instead of original, which was negative after refreshing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2469>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
