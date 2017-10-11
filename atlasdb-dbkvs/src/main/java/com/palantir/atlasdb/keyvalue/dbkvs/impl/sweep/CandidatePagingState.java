@@ -33,13 +33,14 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import gnu.trove.list.TLongList;
 import gnu.trove.list.array.TLongArrayList;
 
-public class CandidatePagingState {
+public final class CandidatePagingState {
     private byte[] currentRowName;
     private byte[] currentColName = PtBytes.EMPTY_BYTE_ARRAY;
     private Long maxSeenTimestampForCurrentCell = null;
     private final TLongList currentCellTimestamps = new TLongArrayList();
     private boolean currentIsLatestValueEmpty = false;
-    private long cellTsPairsExamined = 0;
+    private long cellTsPairsExamined = 0L;
+    private long cellTsPairsExaminedInCurrentRow = 0L;
     private boolean reachedEnd = false;
 
     private CandidatePagingState(byte[] currentRowName) {
@@ -62,23 +63,13 @@ public class CandidatePagingState {
         }
     }
 
-    public static class BatchResult {
-        public final List<CandidateCellForSweeping> candidates;
-        public final boolean reachedEnd;
-
-        private BatchResult(List<CandidateCellForSweeping> candidates, boolean reachedEnd) {
-            this.candidates = candidates;
-            this.reachedEnd = reachedEnd;
-        }
-    }
-
-    public static class KvsEntryInfo {
+    public static class CellTsPairInfo {
         public final byte[] rowName;
         public final byte[] colName;
         public final long ts;
         public final boolean isEmptyValue;
 
-        public KvsEntryInfo(byte[] rowName, byte[] colName, long ts, boolean isEmptyValue) {
+        public CellTsPairInfo(byte[] rowName, byte[] colName, long ts, boolean isEmptyValue) {
             this.rowName = rowName;
             this.colName = colName;
             this.ts = ts;
@@ -86,10 +77,12 @@ public class CandidatePagingState {
         }
     }
 
-    public BatchResult processBatch(List<KvsEntryInfo> cellTsPairs, int maxCellTsPairsExpected) {
-        Preconditions.checkArgument(maxCellTsPairsExpected > 0, "maxCellTsPairsExpected must be strictly positive");
+    /** The caller is expected to feed (cell, ts) pairs in strict lexicographically increasing order,
+     *  even across several batches.
+     **/
+    public List<CandidateCellForSweeping> processBatch(List<CellTsPairInfo> cellTsPairs, boolean reachedEndOfResults) {
         List<CandidateCellForSweeping> candidates = new ArrayList<>();
-        for (KvsEntryInfo cellTs : cellTsPairs) {
+        for (CellTsPairInfo cellTs : cellTsPairs) {
             checkCurrentCellAndUpdateIfNecessary(cellTs).ifPresent(candidates::add);
             if (maxSeenTimestampForCurrentCell != null) {
                 // We expect the timestamps in ascending order. This check costs us a few CPU cycles
@@ -102,12 +95,13 @@ public class CandidatePagingState {
             currentIsLatestValueEmpty = cellTs.isEmptyValue;
             currentCellTimestamps.add(cellTs.ts);
             cellTsPairsExamined += 1;
+            cellTsPairsExaminedInCurrentRow += 1;
         }
-        if (cellTsPairs.size() < maxCellTsPairsExpected) {
+        if (reachedEndOfResults) {
             getCurrentCandidate().ifPresent(candidates::add);
             reachedEnd = true;
         }
-        return new BatchResult(candidates, reachedEnd);
+        return candidates;
     }
 
     public Optional<StartingPosition> getNextStartingPosition() {
@@ -116,6 +110,10 @@ public class CandidatePagingState {
         } else {
             return Optional.of(new StartingPosition(currentRowName, currentColName, getNextStartTimestamp()));
         }
+    }
+
+    public long getCellTsPairsExaminedInCurrentRow() {
+        return cellTsPairsExaminedInCurrentRow;
     }
 
     public void restartFromNextRow() {
@@ -128,6 +126,7 @@ public class CandidatePagingState {
             maxSeenTimestampForCurrentCell = null;
             currentCellTimestamps.clear();
             currentIsLatestValueEmpty = false;
+            cellTsPairsExaminedInCurrentRow = 0L;
             reachedEnd = false;
         }
     }
@@ -159,8 +158,13 @@ public class CandidatePagingState {
         }
     }
 
-    private Optional<CandidateCellForSweeping> checkCurrentCellAndUpdateIfNecessary(KvsEntryInfo cellTs) {
-        if (!isCurrentCell(cellTs.rowName, cellTs.colName)) {
+    private Optional<CandidateCellForSweeping> checkCurrentCellAndUpdateIfNecessary(CellTsPairInfo cellTs) {
+        boolean sameRow = Arrays.equals(currentRowName, cellTs.rowName);
+        boolean sameCol = Arrays.equals(currentColName, cellTs.colName);
+        if (!sameRow) {
+            cellTsPairsExaminedInCurrentRow = 0L;
+        }
+        if (!sameRow || !sameCol) {
             Optional<CandidateCellForSweeping> candidate = getCurrentCandidate();
             currentCellTimestamps.clear();
             maxSeenTimestampForCurrentCell = null;
@@ -171,10 +175,6 @@ public class CandidatePagingState {
         } else {
             return Optional.empty();
         }
-    }
-
-    private boolean isCurrentCell(byte[] rowName, byte[] colName) {
-        return Arrays.equals(currentRowName, rowName) && Arrays.equals(currentColName, colName);
     }
 
 }

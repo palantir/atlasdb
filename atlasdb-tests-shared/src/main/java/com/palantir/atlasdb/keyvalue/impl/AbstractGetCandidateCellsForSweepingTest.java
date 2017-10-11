@@ -94,7 +94,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .put(2, 2, 9L)
                 .putEmpty(2, 2, 4L)
                 .store();
-        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L)))
+        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 100)))
                 .containsExactly(
                     ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
@@ -136,6 +136,9 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .putEmpty(3, 2, 10L)
                 .store();
         assertThat(getAllCandidates(conservativeRequest(cell(2, 2).getRowName(), 30L, 100))
+                .stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
+                .containsExactly(cell(2, 1), cell(2, 2), cell(3, 1), cell(3, 2));
+        assertThat(getAllCandidates(thoroughRequest(cell(2, 2).getRowName(), 30L, 100))
                 .stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
                 .containsExactly(cell(2, 1), cell(2, 2), cell(3, 1), cell(3, 2));
     }
@@ -197,12 +200,13 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .build();
     }
 
-    protected static CandidateCellForSweepingRequest thoroughRequest(byte[] startRow, long sweepTs) {
+    protected static CandidateCellForSweepingRequest thoroughRequest(byte[] startRow, long sweepTs, int batchSizeHint) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .sweepTimestamp(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(true)
                 .timestampsToIgnore()
+                .batchSizeHint(batchSizeHint)
                 .build();
     }
 

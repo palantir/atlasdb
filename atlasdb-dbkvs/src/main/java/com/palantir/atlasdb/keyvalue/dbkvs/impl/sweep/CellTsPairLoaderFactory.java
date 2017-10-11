@@ -17,17 +17,10 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public final class SweepQueryHelpers {
-    private SweepQueryHelpers() {}
+public interface CellTsPairLoaderFactory {
 
-    public static void appendIgnoredTimestampPredicate(CandidateCellForSweepingRequest request,
-                                                       FullQuery.Builder builder) {
-        for (long ts : request.timestampsToIgnore()) {
-            // In practice this will always be -1, so we don't bother with binds
-            builder.append(" AND ts <> ").append(String.valueOf(ts));
-        }
-    }
+    CellTsPairLoader createCellTsLoader(TableReference tableRef, CandidateCellForSweepingRequest request);
 
 }

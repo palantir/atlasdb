@@ -83,6 +83,8 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     }
 
     private int fullTableScan(ConsecutiveNarrowTable table, boolean thorough) {
+        // TODO(gsheasby): consider extracting a common interface for WideRowTable and ConsecutiveNarrowTable
+        // to avoid unpacking here
         return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumRows(), thorough);
     }
 

@@ -16,17 +16,62 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
+import com.google.common.collect.AbstractIterator;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.common.base.ClosableIterator;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CandidatePagingState.StartingPosition;
 
-public interface DbKvsGetCandidateCellsForSweeping {
+public class DbKvsGetCandidateCellsForSweeping {
 
-    ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
+    private final CellTsPairLoaderFactory cellTsPairLoaderFactory;
+
+    public DbKvsGetCandidateCellsForSweeping(CellTsPairLoaderFactory cellTsPairLoaderFactory) {
+        this.cellTsPairLoaderFactory = cellTsPairLoaderFactory;
+    }
+
+    public Iterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef,
-            CandidateCellForSweepingRequest request);
+            CandidateCellForSweepingRequest request) {
+        CellTsPairLoader loader = cellTsPairLoaderFactory.createCellTsLoader(tableRef, request);
+        CandidatePagingState state = CandidatePagingState.create(request.startRowInclusive());
+        return new PageIterator(loader, state);
+    }
 
+    private class PageIterator extends AbstractIterator<List<CandidateCellForSweeping>> {
+        private final CellTsPairLoader pageLoader;
+        private final CandidatePagingState state;
+
+        PageIterator(CellTsPairLoader pageLoader, CandidatePagingState state) {
+            this.pageLoader = pageLoader;
+            this.state = state;
+        }
+
+        @Override
+        protected List<CandidateCellForSweeping> computeNext() {
+            Optional<StartingPosition> startingPosition = state.getNextStartingPosition();
+            if (startingPosition.isPresent()) {
+                return loadNextPage(startingPosition.get());
+            } else {
+                return endOfData();
+            }
+        }
+
+        private List<CandidateCellForSweeping> loadNextPage(StartingPosition startingPosition) {
+            CellTsPairLoader.Page page = pageLoader.loadNextPage(
+                    startingPosition, state.getCellTsPairsExaminedInCurrentRow());
+            List<CandidateCellForSweeping> candidates = state.processBatch(
+                    page.entries, page.reachedEnd);
+            if (page.reachedEnd && page.scannedSingleRow) {
+                // If we reached the end of results in the single-row mode, it doesn't mean that we reached
+                // the end of the table. We need to restart from the next row in the normal mode.
+                state.restartFromNextRow();
+            }
+            return candidates;
+        }
+    }
 }
