@@ -22,11 +22,15 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 
 public class ClockSkewEvents {
     private static final long WARN_SKEW_THRESHOLD_NANOS = 10_000_000; // 10 ms
     private static final long ERROR_SKEW_THRESHOLD_NANOS = 50_000_000; // 50 ms
+
+    private static final double SECONDS_BETWEEN_EXCEPTION_LOGS = 600; // 10 minutes
+    private static final double EXCEPTION_PERMIT_RATE = 1.0 / SECONDS_BETWEEN_EXCEPTION_LOGS;
 
     private final Logger log = LoggerFactory.getLogger(ClockSkewEvents.class);
     private final MetricRegistry metricRegistry;
@@ -35,7 +39,7 @@ public class ClockSkewEvents {
     private final Counter exception;
     private final Counter clockWentBackwards;
 
-    private final ClockSkewExceptionLogLimiter exceptionLogLimiter;
+    private final RateLimiter exceptionLoggingRateLimiter = RateLimiter.create(EXCEPTION_PERMIT_RATE);
 
     public ClockSkewEvents(MetricRegistry metricRegistry) {
         this.metricRegistry = metricRegistry;
@@ -43,7 +47,6 @@ public class ClockSkewEvents {
         this.clockSkew = metricRegistry.histogram("clock.skew");
         this.clockWentBackwards = metricRegistry.counter("clock.went-backwards");
         this.exception = metricRegistry.counter("clock.monitor-exception");
-        this.exceptionLogLimiter = ClockSkewExceptionLogLimiter.createDefault();
     }
 
     public void tooMuchTimeSincePreviousRequest(long remoteElapsedTime) {
@@ -79,7 +82,7 @@ public class ClockSkewEvents {
     }
 
     public void exception(Throwable throwable) {
-        if (exceptionLogLimiter.shouldLogException()) {
+        if (exceptionLoggingRateLimiter.tryAcquire()) {
             log.warn("ClockSkewMonitor threw an exception", throwable);
         }
         exception.inc();
