@@ -47,7 +47,7 @@ And initialization code to your run method:
 public void run(AtlasDbServerConfiguration config, Environment env) throws Exception {
     TransactionManager transactionManager = TransactionManagers.builder()
         .config(config.getAtlas())
-        .env(env.jersey()::register)
+        .registrar(env.jersey()::register)
         .buildSerializable();
     ...
 ```
