@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Optional;
 
 import com.google.common.base.Supplier;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -37,11 +38,15 @@ import com.palantir.timestamp.TimestampService;
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
-        private SerializableTransactionManager manager;
+        private final SerializableTransactionManager manager;
+        private final AsyncInitializer prerequisite;
+
         private volatile boolean isInitialized = false;
 
-        public InitializeCheckingWrapper(SerializableTransactionManager manager) {
+        public InitializeCheckingWrapper(SerializableTransactionManager manager,
+                AsyncInitializer prerequisite) {
             this.manager = manager;
+            this.prerequisite = prerequisite;
         }
 
         @Override
@@ -51,7 +56,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 if (manager.getKeyValueService().isInitialized()
                         && manager.getTimelockService().isInitialized()
                         && manager.getTimestampService().isInitialized()
-                        && manager.getCleaner().isInitialized()) {
+                        && manager.getCleaner().isInitialized()
+                        && prerequisite.isInitialized()) {
                     isInitialized = true;
                 } else {
                     throw new NotInitializedException("TransactionManager");
@@ -87,6 +93,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
+            AsyncInitializer initializer,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
@@ -104,7 +111,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize);
 
-        return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager)
+        return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager, initializer)
                 : serializableTransactionManager;
     }
 
