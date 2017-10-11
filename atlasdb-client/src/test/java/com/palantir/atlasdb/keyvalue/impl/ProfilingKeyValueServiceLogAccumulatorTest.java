@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -31,9 +30,6 @@ import com.palantir.logsafe.SafeArg;
 public class ProfilingKeyValueServiceLogAccumulatorTest {
     private static final String LOG_TEMPLATE_1 = "The method {} was called.";
     private static final String LOG_TEMPLATE_2 = "Exception occurred: {}. {}.";
-
-    private static final String LOG_TEMPLATE_WITH_ENDING_CURLY = "The user's stacktrace was {";
-    private static final String LOG_TEMPLATE_WITH_STARTING_CURLY = "} character found at position {}";
 
     private static final Arg<String> ARG_1 = SafeArg.of("foo", "bar");
     private static final Arg<String> ARG_2 = SafeArg.of("baz", "quux");
@@ -57,14 +53,6 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
         accumulator.log(LOG_TEMPLATE_2, ARG_2, ARG_3);
         accumulator.flush();
         verify(logSink).log(eq(LOG_TEMPLATE_1 + LOG_TEMPLATE_2), eq(ARG_1), eq(ARG_2), eq(ARG_3));
-    }
-
-    @Test
-    public void throwsOnLogTemplatesPossiblyCausingErrors() {
-        assertThatThrownBy(() -> accumulator.log(LOG_TEMPLATE_WITH_ENDING_CURLY))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> accumulator.log(LOG_TEMPLATE_WITH_STARTING_CURLY))
-                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @After

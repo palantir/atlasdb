@@ -102,6 +102,17 @@ develop
           We now throw the actual cause for the invocation exception.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
+    *   - |improved|
+        - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
+          This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+    *   - |fixed|
+        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -92,8 +91,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     // Accumulates logs in a single string.
-    // This class does not currently support log lines ending with '{' or starting with '}', and also exhibits
-    // undefined behaviour where the number of args does not match the string format.
+    // Warning to users of this class: We do not guarantee that SLF4J special characters work properly across log lines.
     @VisibleForTesting
     static class LogAccumulator implements FlushableLoggingFunction {
         private final StringBuilder combinedFormat = new StringBuilder();
@@ -111,8 +109,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
         @Override
         public synchronized void log(String fmt, Object... args) {
-            Preconditions.checkArgument(!fmt.endsWith("{"), "Log lines should not end with the '{' character.");
-            Preconditions.checkArgument(!fmt.startsWith("}"), "Log lines should not begin with the '}' character.");
             combinedFormat.append(fmt);
             Collections.addAll(argList, args);
         }
