@@ -91,7 +91,8 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     // Accumulates logs in a single string.
-    // Warning to users of this class: We do not guarantee that SLF4J special characters work properly across log lines.
+    // Warning to users of this class: We do not guarantee that SLF4J special characters work properly across log lines,
+    // nor do we guarantee behaviour when the number of arguments does not match the number of placeholders.
     @VisibleForTesting
     static class LogAccumulator implements FlushableLoggingFunction {
         private final StringBuilder combinedFormat = new StringBuilder();
