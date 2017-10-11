@@ -288,7 +288,7 @@ public abstract class TransactionManagers {
 
     /**
      * @deprecated This interface is deprecated and is not meant for use publicly. When creating a
-     * {@link SerializableTransactionManager} via the {@link Builder}, specify a `{@link Consumer<Object>}.
+     * {@link SerializableTransactionManager} via the {@link Builder}, specify a {@link Consumer}.
      */
     @Deprecated
     public interface Environment {
@@ -423,7 +423,8 @@ public abstract class TransactionManagers {
                 sweepStrategyManager,
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig = () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
+        com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig = () ->
+                getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
         SweepMetrics sweepMetrics = new SweepMetrics();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
