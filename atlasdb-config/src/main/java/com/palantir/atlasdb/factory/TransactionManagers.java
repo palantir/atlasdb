@@ -124,7 +124,7 @@ public abstract class TransactionManagers {
     abstract Set<Schema> schemas();
 
     @Value.Default
-    Consumer<Object> env() {
+    Consumer<Object> registrar() {
         return resource -> { };
     }
 
@@ -231,7 +231,7 @@ public abstract class TransactionManagers {
                 .config(config)
                 .runtimeConfigSupplier(runtimeConfigSupplier)
                 .schemas(schemas)
-                .env(env::register)
+                .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
                 .buildSerializable();
@@ -254,7 +254,7 @@ public abstract class TransactionManagers {
                 .config(config)
                 .runtimeConfigSupplier(runtimeConfigSupplier)
                 .schemas(schemas)
-                .env(env::register)
+                .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
                 .callingClass(callingClass)
@@ -278,7 +278,7 @@ public abstract class TransactionManagers {
                 .config(config)
                 .runtimeConfigSupplier(optionalRuntimeConfigSupplier)
                 .schemas(schemas)
-                .env(env::register)
+                .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
                 .userAgent(userAgent)
@@ -316,7 +316,7 @@ public abstract class TransactionManagers {
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
                 () -> runtimeConfigSupplier.get().timestampClient(),
-                env(),
+                registrar(),
                 () -> LockServiceImpl.create(lockServerOptions()),
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
@@ -329,7 +329,7 @@ public abstract class TransactionManagers {
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
         TransactionManagersInitializer.createInitialTables(kvs, schemas(), config.initializeAsync());
-        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env(),
+        PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, registrar(),
                 config.initializeAsync());
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
@@ -370,7 +370,7 @@ public abstract class TransactionManagers {
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
         initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
-                env(),
+                registrar(),
                 kvs,
                 transactionService,
                 sweepStrategyManager,

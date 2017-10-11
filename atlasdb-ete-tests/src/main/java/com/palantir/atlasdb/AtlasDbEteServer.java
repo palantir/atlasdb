@@ -101,7 +101,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         return TransactionManagers.builder()
                 .config(config)
                 .schemas(ETE_SCHEMAS)
-                .env(environment.jersey()::register)
+                .registrar(environment.jersey()::register)
                 .buildSerializable();
     }
 
