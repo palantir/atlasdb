@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.clock;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -42,27 +41,25 @@ public class ClockSkewComparerTest {
     }
 
     @Test
-    public void throwsIfElapsedTimeIsNegative() {
+    public void handlesNegativeRemoteElapsedTimes() {
         // Make remote clock go back in time. Since time just goes forward, this would only happen when time
         // overflows.
         RequestTime nextRequest = originalRequest
                 .progressLocalClock(1L)
                 .progressRemoteClock(-1L);
 
-        assertThatThrownBy(() -> compare(originalRequest, nextRequest))
-                .isInstanceOf(IllegalArgumentException.class);
+        compare(originalRequest, nextRequest);
     }
 
     @Test
-    public void throwsOnLocalOverflow() {
+    public void handlesNegativeLocalElapsedTimes() {
         // Make local clock go back in time. Since time just goes forward, this would only happen when time
         // overflows.
         RequestTime nextRequest = originalRequest
                 .progressLocalClock(-1L)
                 .progressRemoteClock(1L);
 
-        assertThatThrownBy(() -> compare(originalRequest, nextRequest))
-                .isInstanceOf(IllegalArgumentException.class);
+        compare(originalRequest, nextRequest);
     }
 
     @Test
