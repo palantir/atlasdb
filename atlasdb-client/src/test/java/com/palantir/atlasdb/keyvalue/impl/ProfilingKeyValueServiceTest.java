@@ -19,7 +19,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -193,7 +192,7 @@ public class ProfilingKeyValueServiceTest {
         doAnswer(waitASecondAndAHalfAndReturn).when(delegate).get(TABLE_REF, timestampByCell);
         kvs.get(TABLE_REF, timestampByCell);
 
-        verify(mockAppender, times(2)).doAppend(slowLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
     }
 
     @Test
@@ -202,7 +201,7 @@ public class ProfilingKeyValueServiceTest {
 
         kvs.get(TABLE_REF, timestampByCell);
 
-        verify(mockAppender, times(2)).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(traceLogMatcher.get());
     }
 
     @Test
@@ -212,8 +211,8 @@ public class ProfilingKeyValueServiceTest {
         doAnswer(waitASecondAndAHalfAndReturn).when(delegate).get(TABLE_REF, timestampByCell);
         kvs.get(TABLE_REF, timestampByCell);
 
-        verify(mockAppender, times(2)).doAppend(traceLogMatcher.get());
-        verify(mockAppender, times(2)).doAppend(slowLogMatcher.get());
+        verify(mockAppender).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
     }
 
     @Test

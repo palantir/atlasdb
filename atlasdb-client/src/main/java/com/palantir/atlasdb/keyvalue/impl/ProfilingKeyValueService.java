@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,6 +34,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -84,6 +86,31 @@ public final class ProfilingKeyValueService implements KeyValueService {
         void log(String fmt, Object... args);
     }
 
+    interface FlushableLoggingFunction extends LoggingFunction {
+        void flush();
+    }
+
+    @VisibleForTesting
+    static class LogAccumulator implements FlushableLoggingFunction {
+        private final StringBuilder template = new StringBuilder();
+        private final List<Object> argList = Lists.newArrayList();
+        private final LoggingFunction sink;
+
+        LogAccumulator(LoggingFunction sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        public void flush() {
+            sink.log(template.toString(), argList.toArray(new Object[argList.size()]));
+        }
+
+        @Override
+        public synchronized void log(String fmt, Object... args) {
+            template.append(fmt);
+            Collections.addAll(argList, args);
+        }
+    }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logCellsAndSize(String method,
             TableReference tableRef,
@@ -189,20 +216,21 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
         void log() {
             stopwatch.stop();
-            Consumer<LoggingFunction> logger = (loggingMethod) -> {
+            Consumer<FlushableLoggingFunction> logger = (loggingMethod) -> {
                 primaryLogger.accept(loggingMethod, stopwatch);
                 if (result != null) {
                     additionalLoggerWithAccessToResult.accept(loggingMethod, result);
                 } else if (exception != null) {
                     loggingMethod.log("This operation has thrown an exception {}", exception);
                 }
+                loggingMethod.flush();
             };
 
             if (log.isTraceEnabled()) {
-                logger.accept(log::trace);
+                logger.accept(new LogAccumulator(log::trace));
             }
             if (slowlogger.isWarnEnabled() && slowLogPredicate.test(stopwatch)) {
-                logger.accept(slowlogger::warn);
+                logger.accept(new LogAccumulator(slowlogger::warn));
             }
         }
     }
