@@ -115,7 +115,7 @@ public class LockServiceStateLogger {
 
     private Map<String, Object> generateHeldLocks(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
         Map<String, Object> mappedLocksToToken = Maps.newHashMap();
-        heldLocksTokenMap.forEach((token, locks) -> mappedLocksToToken.putAll(getDescriptorToTokenMap(token, locks)));
+        heldLocksTokenMap.values().forEach(locks -> mappedLocksToToken.putAll(getDescriptorToTokenMap(locks.getRealToken())));
 
         return nameObjectForYamlConvertion(HELD_LOCKS_TITLE, mappedLocksToToken);
     }
@@ -134,14 +134,13 @@ public class LockServiceStateLogger {
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken heldLocksToken,
-            LockServiceImpl.HeldLocks<HeldLocksToken> heldLocks) {
+    private Map<String, Object> getDescriptorToTokenMap(HeldLocksToken realToken) {
         Map<String, Object> lockToLockInfo = Maps.newHashMap();
 
-        heldLocks.getRealToken().getLocks().forEach(
+        realToken.getLocks().forEach(
                 lock -> lockToLockInfo.put(
                             this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
-                            SimpleTokenInfo.of(heldLocksToken, lock.getLockMode()))
+                            SimpleTokenInfo.of(realToken, lock.getLockMode()))
         );
         return lockToLockInfo;
     }
