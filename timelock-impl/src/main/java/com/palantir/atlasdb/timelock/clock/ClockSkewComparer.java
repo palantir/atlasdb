@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 public class ClockSkewComparer {
     @VisibleForTesting
@@ -46,12 +45,11 @@ public class ClockSkewComparer {
     }
 
     public void compare() {
-        Preconditions.checkArgument(maxElapsedTime > 0,
-                "A positive maxElapsedTime is expected");
-        Preconditions.checkArgument(minElapsedTime > 0,
-                "A positive minElapsedTime is expected");
-        Preconditions.checkArgument(remoteElapsedTime > 0,
-                "A positive remoteElapsedTime is expected");
+        if (clockHasNotMovedForwards()) {
+            // The clock not moving forwards is already tracked by the ReversalDetectingClockService, so it is fine
+            // to no op here. We don't want to use these values.
+            return;
+        }
 
         if (hasTooMuchTimeElapsedSincePreviousRequest()) {
             events.tooMuchTimeSincePreviousRequest(minElapsedTime);
@@ -77,6 +75,10 @@ public class ClockSkewComparer {
         }
 
         return skew;
+    }
+
+    private boolean clockHasNotMovedForwards() {
+        return minElapsedTime <= 0 || maxElapsedTime <= 0 || remoteElapsedTime <= 0;
     }
 
     private boolean requestsTookTooLongToComplete() {

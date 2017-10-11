@@ -76,7 +76,8 @@ public final class ClockSkewMonitor {
     }
 
     public void runInBackground() {
-        executorService.scheduleAtFixedRate(this::runOnce, 0, PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
+        executorService.scheduleWithFixedDelay(
+                this::runOnce, 0, PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
     }
 
     private void runOnce() {
