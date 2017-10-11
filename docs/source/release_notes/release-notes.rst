@@ -82,6 +82,11 @@ develop
            Instead, the exception is logged once only, when we run out of retries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
 
+    *    - |fixed|
+         - The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
+           Previously, giving a start row with hex characters in lower case e.g. ``deadbeef`` would result in an ``IllegalArgumentException`` being thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2468>`__)
+
     *    - |devbreak|
          - Removed the following unnecessary classes related to wrapping KVSes:
 

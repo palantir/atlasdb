@@ -285,6 +285,6 @@ public class SweepCommand extends SingleBackendCommand {
     }
 
     private byte[] decodeStartRow(String rowString) {
-        return BaseEncoding.base16().decode(rowString);
+        return BaseEncoding.base16().decode(rowString.toUpperCase());
     }
 }
