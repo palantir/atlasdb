@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -53,6 +55,12 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
         accumulator.log(LOG_TEMPLATE_2, ARG_2, ARG_3);
         accumulator.flush();
         verify(logSink).log(eq(LOG_TEMPLATE_1 + LOG_TEMPLATE_2), eq(ARG_1), eq(ARG_2), eq(ARG_3));
+    }
+
+    @Test
+    public void doesNotLogAnythingIfNotFlushed() {
+        accumulator.log(LOG_TEMPLATE_1, ARG_1);
+        verify(logSink, never()).log(any(), any());
     }
 
     @After
