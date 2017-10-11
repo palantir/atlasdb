@@ -178,7 +178,7 @@ public abstract class TransactionManagers {
      * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
      * purposes only.
      */
-    static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
+    public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
         return builder().config(config).schemas(schemas).buildSerializable();
     }
@@ -258,6 +258,30 @@ public abstract class TransactionManagers {
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
                 .callingClass(callingClass)
+                .buildSerializable();
+    }
+
+    /**
+     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
+     * generate a {@link SerializableTransactionManager} from it.
+     */
+    @Deprecated
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess,
+            String userAgent) {
+        return builder()
+                .config(config)
+                .runtimeConfigSupplier(optionalRuntimeConfigSupplier)
+                .schemas(schemas)
+                .env(env::register)
+                .lockServerOptions(lockServerOptions)
+                .allowHiddenTableAccess(allowHiddenTableAccess)
+                .userAgent(userAgent)
                 .buildSerializable();
     }
 
