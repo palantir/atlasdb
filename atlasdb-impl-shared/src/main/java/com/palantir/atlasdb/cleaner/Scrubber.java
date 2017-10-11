@@ -179,7 +179,8 @@ public final class Scrubber {
 
     public boolean isInitialized() {
         try {
-            // We don't care about the return value here - just that we can do this without encountering NotInitializedException
+            // We don't care about the return value here;
+            // just that we can do this without encountering NotInitializedException
             keyValueService.getClusterAvailabilityStatus();
             return scrubberStore.isInitialized();
         } catch (NotInitializedException ex) {

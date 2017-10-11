@@ -32,7 +32,11 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public interface Cleaner extends Closeable {
 
     /**
-     * @return true if and only if the Cleaner has been fully initialized.
+     * Used for Cleaners that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other Cleaners can keep the default implementation,
+     * and return true (they're trivially fully initialized).
+     *
+     * @return true if and only if the Cleaner has been fully initialized
      */
     default boolean isInitialized() {
         return true;

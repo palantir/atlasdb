@@ -20,7 +20,11 @@ import com.google.common.base.Supplier;
 public interface Puncher {
 
     /**
-     * @return true if and only if the Puncher has been initialized.
+     * Used for Punchers that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other Punchers can keep the default implementation,
+     * and return true (they're trivially fully initialized).
+     *
+     * @return true if and only if the Puncher has been initialized
      */
     default boolean isInitialized() {
         return true;

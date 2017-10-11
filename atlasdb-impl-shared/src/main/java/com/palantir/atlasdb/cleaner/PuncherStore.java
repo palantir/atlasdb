@@ -23,7 +23,11 @@ package com.palantir.atlasdb.cleaner;
  */
 public interface PuncherStore {
     /**
-     * @return true if and only if the PuncherStore has been initialized.
+     * Used for PuncherStores that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other PuncherStores can keep the default implementation,
+     * and return true (they're trivially fully initialized).
+
+     * @return true if and only if the PuncherStore has been initialized
      */
     default boolean isInitialized() {
         return true;

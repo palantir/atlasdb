@@ -33,7 +33,11 @@ import com.palantir.timestamp.TimestampRange;
 @Consumes(MediaType.APPLICATION_JSON)
 public interface TimelockService {
     /**
-     * @return true iff the TimelockService has been fully initialized and is ready to use.
+     * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
+     * implementation, and return true (they're trivially fully initialized).
+     *
+     * @return true iff the TimelockService has been fully initialized and is ready to use
      */
     default boolean isInitialized() {
         return true;
