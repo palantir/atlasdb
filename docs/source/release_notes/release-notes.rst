@@ -102,7 +102,7 @@ develop
           We now throw the actual cause for the invocation exception.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
-    *   - |improved|
+    *   - |improved| |userbreak|
         - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
           This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
