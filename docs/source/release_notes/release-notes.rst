@@ -107,6 +107,11 @@ develop
           We now throw the actual cause for the invocation exception.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
+    *    - |fixed|
+         - Sweep candidate batches are now logged correctly.
+           Previously, we would log a ``SafeArg`` for these batches that had no content.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -161,10 +161,14 @@ public class SpecificTableSweeper {
             // This error may be logged on some paths above, but I prefer to log defensively.
             log.info("Failed to sweep table {}"
                             + " at row {}"
-                            + " with batch config {}.",
+                            + " with candidate batch size {},"
+                            + " delete batch size {},"
+                            + " and {} cell+timestamp pairs to examine.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("batchConfig", batchConfig),
+                    SafeArg.of("candidateBatchSize", batchConfig.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", batchConfig.deleteBatchSize()),
+                    SafeArg.of("maxCellTsPairsToExamine", batchConfig.maxCellTsPairsToExamine()),
                     e);
             throw e;
         }
