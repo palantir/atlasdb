@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -90,9 +91,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
         void flush();
     }
 
+    // Accumulates logs in a single string.
+    // This class does not currently support log lines ending with '{' or starting with '}', and also exhibits
+    // undefined behaviour where the number of args does not match the string format.
     @VisibleForTesting
     static class LogAccumulator implements FlushableLoggingFunction {
-        private final StringBuilder template = new StringBuilder();
+        private final StringBuilder combinedFormat = new StringBuilder();
         private final List<Object> argList = Lists.newArrayList();
         private final LoggingFunction sink;
 
@@ -101,13 +105,15 @@ public final class ProfilingKeyValueService implements KeyValueService {
         }
 
         @Override
-        public void flush() {
-            sink.log(template.toString(), argList.toArray(new Object[argList.size()]));
+        public synchronized void flush() {
+            sink.log(combinedFormat.toString(), argList.toArray(new Object[argList.size()]));
         }
 
         @Override
         public synchronized void log(String fmt, Object... args) {
-            template.append(fmt);
+            Preconditions.checkArgument(!fmt.endsWith("{"), "Log lines should not end with the '{' character.");
+            Preconditions.checkArgument(!fmt.startsWith("}"), "Log lines should not begin with the '}' character.");
+            combinedFormat.append(fmt);
             Collections.addAll(argList, args);
         }
     }
@@ -150,6 +156,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
                         LoggingArgs.method(method),
+                        LoggingArgs.tableRef(tableRef),
                         LoggingArgs.range(tableRef, range),
                         LoggingArgs.durationMillis(stopwatch));
     }
