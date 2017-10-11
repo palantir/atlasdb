@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.remoting3.servers.jersey.WebPreconditions;
@@ -40,8 +41,7 @@ public final class SweeperServiceImpl implements SweeperService {
         TableReference tableRef = getTableRef(tableName);
         checkTableExists(tableName, tableRef);
 
-        byte[] decodedStartRow = SweeperServiceEncoding.decodeRowName(startRow);
-
+        byte[] decodedStartRow = startRow.map(PtBytes::decodeHexString).orElse(PtBytes.EMPTY_BYTE_ARRAY);
         SweepBatchConfig config = buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize,
                 deleteBatchSize);
 

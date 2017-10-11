@@ -35,7 +35,7 @@ import com.palantir.logsafe.Safe;
 @Consumes(MediaType.APPLICATION_JSON)
 public interface SweeperService {
 
-    default SweepTableResponse sweepTable(String tableName) {
+    default SweepTableResponse sweepTableFully(String tableName) {
         return sweepTable(tableName, Optional.empty(), Optional.empty(),
                 Optional.empty(), Optional.empty(), Optional.empty());
     }
@@ -46,7 +46,7 @@ public interface SweeperService {
     }
 
     /**
-     * Sweeps a particular table
+     * Sweeps a particular table.
      *
      * @param tableName the table to sweep
      * @param startRow (Optional) the row to start from

@@ -82,14 +82,14 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void sweepingNonFullyTableShouldNotBeSuccessful() {
         assertThatExceptionOfType(RemoteException.class)
-                .isThrownBy(() -> sweeperService.sweepTable("non_fully_qualified_name"))
+                .isThrownBy(() -> sweeperService.sweepTableFully("non_fully_qualified_name"))
                 .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test
     public void sweepingNonExistingTableShouldNotBeSuccessful() {
         assertThatExceptionOfType(RemoteException.class)
-                .isThrownBy(() -> sweeperService.sweepTable("ns.non_existing_table"))
+                .isThrownBy(() -> sweeperService.sweepTableFully("ns.non_existing_table"))
                 .matches(ex -> ex.getStatus() == Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
     }
 
@@ -108,13 +108,13 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Test
     public void sweepTableFromStartRowWithBatchConfigWithNullStartRowShouldBeSuccessful() {
-        sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.empty(), Optional.of(1000),
+        sweeperService.sweepTableFully(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.empty(), Optional.of(1000),
                 Optional.of(1000), Optional.of(500));
     }
 
     @Test
     public void sweepTableFromStartRowWithBatchConfigWithExactlyOneNonNullBatchConfigShouldBeSuccessful() {
-        sweeperService.sweepTable(TABLE_REF.getQualifiedName(),
+        sweeperService.sweepTableFully(TABLE_REF.getQualifiedName(),
                 Optional.of(encodeStartRow(new byte[] {1, 2, 3})), Optional.empty(), Optional.of(10), Optional.empty(),
                 Optional.empty());
     }
@@ -144,7 +144,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
             when(sweepTaskRunner.run(any(), any(), eq(currentRow))).thenReturn(results);
         }
 
-        sweeperService.sweepTable(TABLE_REF.getQualifiedName());
+        sweeperService.sweepTableFully(TABLE_REF.getQualifiedName());
 
         startRows.forEach(row -> verify(sweepTaskRunner).run(any(), any(), eq(row)));
         verifyNoMoreInteractions(sweepTaskRunner);
@@ -155,7 +155,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         SweepResults resultsWithMoreToSweep = SweepResults.createEmptySweepResult(Optional.of(new byte[] {0x55}));
         setupTaskRunner(resultsWithMoreToSweep);
 
-        sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
+        sweeperService.sweepTableFully(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
                 Optional.empty(), Optional.empty(), Optional.empty());
 
         verify(sweepTaskRunner, times(1)).run(any(), any(), any());

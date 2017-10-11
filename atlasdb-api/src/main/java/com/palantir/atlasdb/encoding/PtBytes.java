@@ -129,6 +129,13 @@ public final class PtBytes {
         return BaseEncoding.base16().lowerCase().encode(name);
     }
 
+    public static byte[] decodeHexString(@Nullable String hexString) {
+        if (hexString == null) {
+            return PtBytes.EMPTY_BYTE_ARRAY;
+        }
+        return BaseEncoding.base16().lowerCase().decode(hexString.toLowerCase());
+    }
+
     public static final Function<byte[], String> BYTES_TO_HEX_STRING = PtBytes::encodeHexString;
 
     public static void addIfNotEmpty(MoreObjects.ToStringHelper helper, String name, byte[] bytes) {

@@ -22,11 +22,12 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 
 @Value.Immutable
-@JsonSerialize(as=ImmutableSweepTableResponse.class)
-@JsonDeserialize(as=ImmutableSweepTableResponse.class)
+@JsonSerialize(as = ImmutableSweepTableResponse.class)
+@JsonDeserialize(as = ImmutableSweepTableResponse.class)
 public interface SweepTableResponse {
 
     Optional<String> nextStartRow();
@@ -39,7 +40,7 @@ public interface SweepTableResponse {
         return ImmutableSweepTableResponse.builder()
                 .numCellTsPairsExamined(results.getCellTsPairsExamined())
                 .staleValuesDeleted(results.getStaleValuesDeleted())
-                .nextStartRow(results.getNextStartRow().map(SweeperServiceEncoding::encodeRowName))
+                .nextStartRow(results.getNextStartRow().map(PtBytes::encodeHexString))
                 .build();
     }
 
