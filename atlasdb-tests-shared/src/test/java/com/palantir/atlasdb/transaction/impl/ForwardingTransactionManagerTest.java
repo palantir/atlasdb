@@ -40,5 +40,4 @@ public class ForwardingTransactionManagerTest {
 
         verify(mockTransactionMgr, times(2)).isInitialized();
     }
-
 }
