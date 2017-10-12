@@ -107,6 +107,10 @@ develop
           We now throw the actual cause for the invocation exception.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
+    *   - |improvement|
+        - Exposes another version of getRanges that uses a configurable concurrency level, defaulting to 8.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
