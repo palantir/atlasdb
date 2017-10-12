@@ -89,4 +89,31 @@ public class SerializableTransactionManagerTest {
         when(mockInitializer.isInitialized()).thenReturn(false);
         assertFalse(manager.isInitialized());
     }
+
+    // Edge case: if for some reason we create a SerializableTransactionManager with initializeAsync set to false, we
+    // should initialise it synchronously, even if some of its component parts are initialised asynchronously.
+    // If we somehow manage to survive doing this with no exception, even though the KVS (for example) is not
+    // initialised, then isInitialized should return true.
+    //
+    // BLAB: Synchronously initialised objects don't care if their constituent parts are initialised asynchronously.
+    @Test
+    public void synchronouslyInitializedManagerIsInitializedEvenIfKvsIsNot() {
+        SerializableTransactionManager theManager = SerializableTransactionManager.create(
+                mockKvs,
+                mockTimelockService,
+                null, // lockService
+                null, // transactionService
+                () -> null, // constraintMode
+                null, // conflictDetectionManager
+                null, // sweepStrategyManager
+                mockCleaner,
+                mockInitializer,
+                false, // allowHiddenTableAccess
+                () -> 1L, // lockAcquireTimeoutMs
+                1, // concurrentGetRangesThreadPoolSize
+                false); // initializeAsync
+
+        when(mockKvs.isInitialized()).thenReturn(false);
+        assertTrue(theManager.isInitialized());
+    }
 }
