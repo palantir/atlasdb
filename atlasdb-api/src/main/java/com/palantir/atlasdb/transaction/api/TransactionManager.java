@@ -17,6 +17,17 @@ package com.palantir.atlasdb.transaction.api;
 
 public interface TransactionManager extends AutoCloseable {
     /**
+     * Used for TransactionManagers that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default
+     * implementation, and return true (they're trivially fully initialized).
+     *
+     * @return true if and only if the TransactionManager has been fully initialized
+     */
+    default boolean isInitialized() {
+        return true;
+    }
+
+    /**
      * Runs the given {@link TransactionTask}. If the task completes successfully
      * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
      * {@link Transaction#commit()} is called automatically.
