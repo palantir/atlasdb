@@ -82,6 +82,11 @@ develop
            Instead, the exception is logged once only, when we run out of retries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
 
+    *    - |fixed|
+         - The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
+           Previously, giving a start row with hex characters in lower case e.g. ``deadbeef`` would result in an ``IllegalArgumentException`` being thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2468>`__)
+
     *    - |devbreak|
          - Removed the following unnecessary classes related to wrapping KVSes:
 
@@ -101,6 +106,10 @@ develop
          - Lock state logging will dump ``expiresIn`` of refreshed token, instead of original, which was negative after refreshing.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2469>`__)
 
+    *   - |fixed|
+        - When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
+          We now throw the actual cause for the invocation exception.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

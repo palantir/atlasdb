@@ -422,6 +422,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         return value.getLeaderUUID().equals(proposer.getUuid());
     }
 
+    // This is used by an internal product CLI.
+    public ImmutableList<PaxosAcceptor> getAcceptors() {
+        return acceptors;
+    }
+
     /**
      * Queries all other learners for unknown learned values
      *
