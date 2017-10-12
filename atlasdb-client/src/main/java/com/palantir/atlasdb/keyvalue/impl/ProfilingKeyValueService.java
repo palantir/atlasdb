@@ -86,8 +86,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
         void log(String fmt, Object... args);
     }
 
-    interface FlushableLoggingFunction extends LoggingFunction {
+    interface FlushableLoggingFunction extends LoggingFunction, AutoCloseable {
         void flush();
+
+        @Override
+        void close();
     }
 
     // Accumulates logs in a single string.
@@ -95,7 +98,9 @@ public final class ProfilingKeyValueService implements KeyValueService {
     // nor do we guarantee behaviour when the number of arguments does not match the number of placeholders.
     @VisibleForTesting
     static class LogAccumulator implements FlushableLoggingFunction {
-        private final StringBuilder combinedFormat = new StringBuilder();
+        private static final String DELIMITER = "\n";
+
+        private final List<String> formatElements = Lists.newArrayList();
         private final List<Object> argList = Lists.newArrayList();
         private final LoggingFunction sink;
 
@@ -105,13 +110,18 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
         @Override
         public synchronized void flush() {
-            sink.log(combinedFormat.toString(), argList.toArray(new Object[argList.size()]));
+            sink.log(String.join(DELIMITER, formatElements), argList.toArray(new Object[argList.size()]));
         }
 
         @Override
         public synchronized void log(String fmt, Object... args) {
-            combinedFormat.append(fmt);
+            formatElements.add(fmt);
             Collections.addAll(argList, args);
+        }
+
+        @Override
+        public void close() {
+            flush();
         }
     }
 
@@ -220,21 +230,22 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
         void log() {
             stopwatch.stop();
-            Consumer<FlushableLoggingFunction> logger = (loggingMethod) -> {
-                primaryLogger.accept(loggingMethod, stopwatch);
-                if (result != null) {
-                    additionalLoggerWithAccessToResult.accept(loggingMethod, result);
-                } else if (exception != null) {
-                    loggingMethod.log("This operation has thrown an exception {}", exception);
+            Consumer<LoggingFunction> logger = (loggingMethod) -> {
+                try (FlushableLoggingFunction wrappingLogger = new LogAccumulator(loggingMethod)) {
+                    primaryLogger.accept(wrappingLogger, stopwatch);
+                    if (result != null) {
+                        additionalLoggerWithAccessToResult.accept(wrappingLogger, result);
+                    } else if (exception != null) {
+                        wrappingLogger.log("This operation has thrown an exception {}", exception);
+                    }
                 }
-                loggingMethod.flush();
             };
 
             if (log.isTraceEnabled()) {
-                logger.accept(new LogAccumulator(log::trace));
+                logger.accept(log::trace);
             }
             if (slowlogger.isWarnEnabled() && slowLogPredicate.test(stopwatch)) {
-                logger.accept(new LogAccumulator(slowlogger::warn));
+                logger.accept(slowlogger::warn);
             }
         }
     }

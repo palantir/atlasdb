@@ -39,26 +39,29 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
 
     private final ProfilingKeyValueService.LoggingFunction logSink =
             mock(ProfilingKeyValueService.LoggingFunction.class);
-    private final ProfilingKeyValueService.LogAccumulator accumulator =
-            new ProfilingKeyValueService.LogAccumulator(logSink);
 
     @Test
     public void canAcceptLogs() {
-        accumulator.log(LOG_TEMPLATE_1, ARG_1);
-        accumulator.flush();
+        try (ProfilingKeyValueService.LogAccumulator accumulator =
+                new ProfilingKeyValueService.LogAccumulator(logSink)) {
+            accumulator.log(LOG_TEMPLATE_1, ARG_1);
+        }
         verify(logSink).log(LOG_TEMPLATE_1, ARG_1);
     }
 
     @Test
-    public void concatenatesLogsIfLoggingMultipleTimesBeforeFlush() {
-        accumulator.log(LOG_TEMPLATE_1, ARG_1);
-        accumulator.log(LOG_TEMPLATE_2, ARG_2, ARG_3);
-        accumulator.flush();
-        verify(logSink).log(eq(LOG_TEMPLATE_1 + LOG_TEMPLATE_2), eq(ARG_1), eq(ARG_2), eq(ARG_3));
+    public void concatenatesLogsWithNewlinesInBetweenIfLoggingMultipleTimesBeforeFlush() {
+        try (ProfilingKeyValueService.LogAccumulator accumulator =
+                new ProfilingKeyValueService.LogAccumulator(logSink)) {
+            accumulator.log(LOG_TEMPLATE_1, ARG_1);
+            accumulator.log(LOG_TEMPLATE_2, ARG_2, ARG_3);
+        }
+        verify(logSink).log(eq(LOG_TEMPLATE_1 + "\n" + LOG_TEMPLATE_2), eq(ARG_1), eq(ARG_2), eq(ARG_3));
     }
 
     @Test
     public void doesNotLogAnythingIfNotFlushed() {
+        ProfilingKeyValueService.LogAccumulator accumulator = new ProfilingKeyValueService.LogAccumulator(logSink);
         accumulator.log(LOG_TEMPLATE_1, ARG_1);
         verify(logSink, never()).log(any(), any());
     }
