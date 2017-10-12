@@ -20,8 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.ListIterator;
-import java.util.UUID;
-import java.util.stream.IntStream;
 
 import org.junit.After;
 import org.junit.Test;
@@ -99,12 +97,10 @@ public class MetricsManagerTest {
     }
 
     @Test
-    public void deregistersAllMetricsForClassWithSpecificPrefix() {
-        int randomMetricsToInsert = 10;
-        IntStream.range(0, randomMetricsToInsert)
-                .forEach(unused -> metricsManager.registerMetric(LIST_CLASS, UUID.randomUUID().toString(), GAUGE));
-
-        assertThat(registry.getNames()).hasSize(randomMetricsToInsert);
+    public void deregistersAllMetricsForClassIfDeregisteringWithEmptyPrefix() {
+        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
+        metricsManager.registerMetric(LIST_CLASS, ERROR_OOM, GAUGE);
+        metricsManager.registerMetric(LIST_CLASS, RUNTIME, GAUGE);
 
         metricsManager.deregisterMetricsWithPrefix(LIST_CLASS, "");
         assertThat(registry.getNames()).isEmpty();
@@ -120,7 +116,7 @@ public class MetricsManagerTest {
     }
 
     @Test
-    public void doesNotDeregisterMetricsThatWereRegisteredExternallyIfDeregisteringByPrefix() {
+    public void doesNotDeregisterMetricsThatWereRegisteredExternallyIfDeregisteringWithPrefix() {
         metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
         registry.register(MetricRegistry.name(LIST_CLASS, ERROR_OOM), GAUGE);
 

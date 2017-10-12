@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.v2.TimelockService;
@@ -43,11 +44,10 @@ public class TimestampTrackerTest {
     private static final String UNREADABLE_TIMESTAMP_NAME = "timestamp.unreadable";
     private static final String FAKE_METRIC = "metric.fake";
 
-    private static final long CACHE_RETRIGGER_NANOS = TimestampTracker.CACHE_INTERVAL.toNanos() + 1L;
+    private static final long CACHE_INTERVAL_NANOS = TimestampTracker.CACHE_INTERVAL.toNanos();
 
     private final TimelockService timelockService = mock(TimelockService.class);
     private final Cleaner cleaner = mock(Cleaner.class);
-
     private final Clock mockClock = mock(Clock.class);
 
     @Test
@@ -63,25 +63,43 @@ public class TimestampTrackerTest {
     public void defaultTrackerGeneratesTimestampMetrics() {
         try (TimestampTracker ignored = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner)) {
             assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
-                    .contains(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME))
-                    .contains(buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME))
-                    .contains(buildFullyQualifiedMetricName(UNREADABLE_TIMESTAMP_NAME));
+                    .containsExactlyInAnyOrder(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME),
+                            buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME),
+                            buildFullyQualifiedMetricName(UNREADABLE_TIMESTAMP_NAME));
         }
     }
 
     @Test
-    public void defaultTrackersDelegateToRelevantComponents() {
+    public void immutableTimestampTrackerDelegatesToTimeLock() {
         try (TimestampTracker ignored = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner)) {
             when(timelockService.getImmutableTimestamp()).thenReturn(ONE);
-            when(timelockService.getFreshTimestamp()).thenReturn(TEN);
-            when(cleaner.getUnreadableTimestamp()).thenReturn(FORTY_TWO);
 
             assertThat(getGauge(IMMUTABLE_TIMESTAMP_NAME).getValue()).isEqualTo(ONE);
-            assertThat(getGauge(FRESH_TIMESTAMP_NAME).getValue()).isEqualTo(TEN);
-            assertThat(getGauge(UNREADABLE_TIMESTAMP_NAME).getValue()).isEqualTo(FORTY_TWO);
 
             verify(timelockService).getImmutableTimestamp();
+            verifyNoMoreInteractions(timelockService, cleaner);
+        }
+    }
+
+    @Test
+    public void freshTimestampTrackerDelegatesToTimeLock() {
+        try (TimestampTracker ignored = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner)) {
+            when(timelockService.getFreshTimestamp()).thenReturn(TEN);
+
+            assertThat(getGauge(FRESH_TIMESTAMP_NAME).getValue()).isEqualTo(TEN);
+
             verify(timelockService).getFreshTimestamp();
+            verifyNoMoreInteractions(timelockService, cleaner);
+        }
+    }
+
+    @Test
+    public void unreadableTimestampTrackerDelegatesToCleaner() {
+        try (TimestampTracker ignored = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner)) {
+            when(cleaner.getUnreadableTimestamp()).thenReturn(FORTY_TWO);
+
+            assertThat(getGauge(UNREADABLE_TIMESTAMP_NAME).getValue()).isEqualTo(FORTY_TWO);
+
             verify(cleaner).getUnreadableTimestamp();
             verifyNoMoreInteractions(timelockService, cleaner);
         }
@@ -126,7 +144,7 @@ public class TimestampTrackerTest {
     @Test
     public void callsSupplierAgainAfterTimeElapses() {
         try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, CACHE_RETRIGGER_NANOS / 2, CACHE_RETRIGGER_NANOS);
+            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS - 1, CACHE_INTERVAL_NANOS + 1);
             AtomicLong timestampValue = new AtomicLong(0L);
             tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
 
@@ -139,7 +157,7 @@ public class TimestampTrackerTest {
     @Test
     public void doesNotCallSupplierUnlessGaugeIsQueried() {
         try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
-            when(mockClock.getTick()).thenReturn(0L, CACHE_RETRIGGER_NANOS * 50000);
+            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS * 50000);
             AtomicLong timestampValue = new AtomicLong(0L);
             tracker.registerTimestampForTracking(FAKE_METRIC, timestampValue::incrementAndGet);
 
@@ -149,7 +167,7 @@ public class TimestampTrackerTest {
     }
 
     private static String buildFullyQualifiedMetricName(String shortName) {
-        return "com.palantir.atlasdb.monitoring.TimestampTracker." + shortName;
+        return MetricRegistry.name(TimestampTracker.class, shortName);
     }
 
     @SuppressWarnings("unchecked") // We know the gauges we are registering produce Longs

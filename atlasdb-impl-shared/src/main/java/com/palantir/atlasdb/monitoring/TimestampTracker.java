@@ -42,8 +42,7 @@ public class TimestampTracker implements AutoCloseable {
     static final Duration CACHE_INTERVAL = Duration.ofSeconds(10L);
 
     private final MetricsManager metricsManager = new MetricsManager();
-    private final Set<String> registeredMetricShortNames = Sets.newConcurrentHashSet();
-
+    private final Set<String> registeredShortMetricNames = Sets.newConcurrentHashSet();
     private final Clock clock;
 
     public TimestampTracker(Clock clock) {
@@ -60,22 +59,12 @@ public class TimestampTracker implements AutoCloseable {
 
     @VisibleForTesting
     void registerTimestampForTracking(String shortName, Supplier<Long> supplier) {
-        if (!putMetricIfAbsent(shortName)) {
+        if (!registeredShortMetricNames.add(shortName)) {
             log.warn("A metric with the name {} has already been registered in the timestamp tracker",
                     SafeArg.of("metricName", shortName));
             throw new IllegalStateException("A metric with the name " + shortName + " has already been registered!");
         }
         metricsManager.registerMetric(TimestampTracker.class, shortName, createCachingGauge(supplier));
-    }
-
-    private boolean putMetricIfAbsent(String shortName) {
-        synchronized (registeredMetricShortNames) {
-            if (registeredMetricShortNames.contains(shortName)) {
-                return false;
-            }
-            registeredMetricShortNames.add(shortName);
-            return true;
-        }
     }
 
     private <T> Gauge<T> createCachingGauge(Supplier<T> supplier) {
