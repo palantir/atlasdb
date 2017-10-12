@@ -41,8 +41,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final SerializableTransactionManager manager;
         private final AsyncInitializer prerequisite;
 
-        private volatile boolean isInitialized = false;
-
         public InitializeCheckingWrapper(SerializableTransactionManager manager,
                 AsyncInitializer prerequisite) {
             this.manager = manager;
@@ -51,14 +49,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         @Override
         public SerializableTransactionManager delegate() {
-            if (!isInitialized) {
-                // Verify that the various dependent services have been initialized
-                if (isInitialized()) {
-                    isInitialized = true;
-                } else {
-                    throw new NotInitializedException("TransactionManager");
-                }
+            if (!isInitialized()) {
+                throw new NotInitializedException("TransactionManager");
             }
+
             return manager;
         }
 
