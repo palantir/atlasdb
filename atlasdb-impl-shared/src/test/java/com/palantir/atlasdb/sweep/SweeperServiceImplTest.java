@@ -55,6 +55,8 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     SweeperService sweeperService;
 
     private static final SweepResults RESULTS_WITH_NO_MORE_TO_SWEEP = SweepResults.createEmptySweepResult();
+    private static final SweepResults RESULTS_WITH_MORE_TO_SWEEP = SweepResults.createEmptySweepResult(
+            Optional.of(new byte[] {0x55}));
 
     @Rule
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
@@ -102,20 +104,16 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Test
     public void sweepTableFromStartRowShouldAcceptLowercaseBase16Encodings() {
-        setupTaskRunner(Mockito.mock(SweepResults.class));
-
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
 
-        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), LOWERCASE_BUT_VALID_START_ROW);
+        sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), LOWERCASE_BUT_VALID_START_ROW);
     }
 
     @Test
     public void sweepTableFromStartRowShouldAcceptMixedCaseBase16Encodings() {
-        setupTaskRunner(Mockito.mock(SweepResults.class));
-
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
 
-        sweeperService.sweepTableFromStartRow(TABLE_REF.getQualifiedName(), MIXED_CASE_START_ROW);
+        sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), MIXED_CASE_START_ROW);
     }
 
     @Test
@@ -154,9 +152,9 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
         for (int i = 0; i < startRows.size(); i++) {
             byte[] currentRow = startRows.get(i);
-            Optional<byte[]> nextRow = (i+1) == startRows.size()
+            Optional<byte[]> nextRow = (i + 1) == startRows.size()
                     ? Optional.empty()
-                    : Optional.of(startRows.get(i+1));
+                    : Optional.of(startRows.get(i + 1));
 
             SweepResults results = SweepResults.createEmptySweepResult(nextRow);
             when(sweepTaskRunner.run(any(), any(), eq(currentRow))).thenReturn(results);
@@ -170,8 +168,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Test
     public void runsOneIterationIfRequested() {
-        SweepResults resultsWithMoreToSweep = SweepResults.createEmptySweepResult(Optional.of(new byte[] {0x55}));
-        setupTaskRunner(resultsWithMoreToSweep);
+        setupTaskRunner(RESULTS_WITH_MORE_TO_SWEEP);
 
         sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
                 Optional.empty(), Optional.empty(), Optional.empty());
