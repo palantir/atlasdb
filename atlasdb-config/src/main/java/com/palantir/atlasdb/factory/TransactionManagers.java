@@ -273,6 +273,7 @@ public final class TransactionManagers {
                 allowHiddenTableAccess,
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
+                config.defaultGetRangesConcurrency(),
                 config.initializeAsync());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(

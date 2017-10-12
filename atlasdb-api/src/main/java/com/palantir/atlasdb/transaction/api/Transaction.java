@@ -101,6 +101,16 @@ public interface Transaction {
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
 
     /**
+     * Same as {@link #getRanges(TableReference, Iterable, int, BiFunction)} but uses the default concurrency
+     * value specified by AtlasDbConfig#defaultGetRangesConcurrency.
+     */
+    @Idempotent
+    <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+
+    /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
      * visitibles will incur database reads on first access.
      */

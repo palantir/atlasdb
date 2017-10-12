@@ -92,8 +92,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return true;
     }
 
-    protected static final int GET_RANGES_CONCURRENCY = 16;
-    protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(GET_RANGES_CONCURRENCY);
+    protected static final int GET_RANGES_THREAD_POOL_SIZE = 16;
+    protected static final ExecutorService GET_RANGES_EXECUTOR =
+            Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
+    protected static final int DEFAULT_GET_RANGES_CONCURRENCY = 4;
 
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
@@ -110,7 +112,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
-                GET_RANGES_EXECUTOR);
+                GET_RANGES_EXECUTOR,
+                DEFAULT_GET_RANGES_CONCURRENCY);
     }
 
     @Test

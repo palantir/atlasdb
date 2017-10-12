@@ -73,7 +73,7 @@ public class TableTasksTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false, 4);
+                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false, 8, 2);
         txManager = transactionManager;
     }
 
