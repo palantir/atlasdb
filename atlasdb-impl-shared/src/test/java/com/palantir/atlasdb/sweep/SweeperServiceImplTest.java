@@ -128,13 +128,13 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Test
     public void sweepTableFromStartRowWithBatchConfigWithNullStartRowShouldBeSuccessful() {
-        sweeperService.sweepTableFully(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.empty(), Optional.of(1000),
+        sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.empty(), Optional.of(1000),
                 Optional.of(1000), Optional.of(500));
     }
 
     @Test
     public void sweepTableFromStartRowWithBatchConfigWithExactlyOneNonNullBatchConfigShouldBeSuccessful() {
-        sweeperService.sweepTableFully(TABLE_REF.getQualifiedName(),
+        sweeperService.sweepTable(TABLE_REF.getQualifiedName(),
                 Optional.of(encodeStartRow(new byte[] {1, 2, 3})), Optional.empty(), Optional.of(10), Optional.empty(),
                 Optional.empty());
     }
@@ -142,8 +142,6 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void testWriteProgressOrPriorityOrMetricsNotUpdatedAfterSweepRunsSuccessfully() {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
-        verify(priorityStore, never()).update(any(), any(), any());
-        verify(progressStore, never()).saveProgress(any(), any());
         Mockito.verifyZeroInteractions(sweepMetrics);
     }
 
@@ -175,7 +173,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         SweepResults resultsWithMoreToSweep = SweepResults.createEmptySweepResult(Optional.of(new byte[] {0x55}));
         setupTaskRunner(resultsWithMoreToSweep);
 
-        sweeperService.sweepTableFully(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
+        sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
                 Optional.empty(), Optional.empty(), Optional.empty());
 
         verify(sweepTaskRunner, times(1)).run(any(), any(), any());
