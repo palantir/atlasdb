@@ -70,12 +70,47 @@ develop
            Now the factory methods for the above classes return the interfaces. The actual implementation of such classes was moved to their corresponding \*Impl files.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
 
+    *    - |fixed|
+         - ``PersistentLockManager`` can now reacquire the persistent lock if another process unilaterally clears the lock.
+           Previously in this case, sweep would continually fail to acquire the lock until the service restarts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2419>`__)
+
     *    - |new|
          - Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
            We recommend this to be configured only for cases where you absolutely need to persist all state in the database, for example,
            in special cases where backups are simply database dumps and do not have any mechanism for storing timestamps.
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
+
+    *    - |fixed|
+         - ``CassandraClientPool`` no longer logs stack traces twice for every failed attempt to connect to Cassandra.
+           Instead, the exception is logged once only, when we run out of retries.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
+
+    *    - |fixed|
+         - The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
+           Previously, giving a start row with hex characters in lower case e.g. ``deadbeef`` would result in an ``IllegalArgumentException`` being thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2468>`__)
+
+    *    - |devbreak|
+         - Removed the following unnecessary classes related to wrapping KVSes:
+
+           - ``NamespacedKeyValueService``
+           - ``NamespaceMappingKeyValueService``
+           - ``NamespacedKeyValueServices``
+           - ``StaticTableMappingService``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2448>`__)
+
+    *   - |devbreak| |improved|
+        - ``LockRefreshingTimelockService`` has been moved to the ``lock-api`` project under the package name ``com.palantir.lock.client``, and now implements
+          ``AutoCloseable``, shutting down its internal executor service.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
+
+    *   - |fixed|
+        - When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
+          We now throw the actual cause for the invocation exception.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

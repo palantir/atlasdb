@@ -104,7 +104,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
         timestamp.increaseTo(newTimestamp);
     }
 
-    @SuppressWarnings("unused") // used by product
+    @Override
     public long getUpperLimitTimestampToHandOutInclusive() {
         return timestamp.getUpperLimitTimestampToHandOutInclusive();
     }

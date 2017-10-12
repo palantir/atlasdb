@@ -159,11 +159,12 @@ public class SpecificTableSweeper {
                             .build());
             return results;
         } catch (RuntimeException e) {
-            // Error logged at a higher log level above.
+            // This error may be logged on some paths above, but I prefer to log defensively.
             log.info("Failed to sweep.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("batchConfig", batchConfig));
+                    SafeArg.of("batchConfig", batchConfig),
+                    e);
             throw e;
         }
     }

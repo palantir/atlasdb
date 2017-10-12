@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.timestamp;
+package com.palantir.paxos;
 
-public interface PersistentTimestampService extends TimestampService, TimestampManagementService {
-    @SuppressWarnings("unused") // used by product
-    long getUpperLimitTimestampToHandOutInclusive();
+public interface PaxosLatestRoundVerifier {
+
+    PaxosQuorumStatus isLatestRound(long round);
+
 }

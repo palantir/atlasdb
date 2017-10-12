@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import org.junit.Test;
 
 public class CommandLineEteTest {
-    private static final Pattern TIMESTAMP_REGEX = Pattern.compile("The Fresh timestamp is: (\\d+)");
+    private static final Pattern TIMESTAMP_REGEX = Pattern.compile("The fresh timestamp is: (\\d+)");
 
     @Test
     public void multipleTimestampFetchesAreDifferent() throws IOException, InterruptedException {

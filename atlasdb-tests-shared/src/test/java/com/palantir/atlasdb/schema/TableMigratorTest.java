@@ -27,18 +27,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
-import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -81,9 +76,6 @@ public class TableMigratorTest extends AtlasDbTestCase {
         keyValueService.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
         keyValueService.putMetadataForTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
-        TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
-        final TableReference shortTableRef = tableMap.getMappedTableName(namespacedTableRef);
-
         final Cell theCell = Cell.create(PtBytes.toBytes("r1"), PtBytes.toBytes("c"));
         final byte[] theValue = PtBytes.toBytes("v1");
         txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
@@ -95,7 +87,6 @@ public class TableMigratorTest extends AtlasDbTestCase {
             return null;
         });
 
-        // migration doesn't use namespace mapping
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
         final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative(kvs2);
@@ -108,12 +99,12 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 cdm2,
                 ssm2);
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
-        kvs2.createTable(shortTableRef, definition.toTableMetadata().persistToBytes());
+        kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
         TableReference checkpointTable = TableReference.create(Namespace.DEFAULT_NAMESPACE, "checkpoint");
         GeneralTaskCheckpointer checkpointer = new GeneralTaskCheckpointer(checkpointTable, kvs2, txManager2);
-        // The namespaced table is migrated under the short name.
-        for (final TableReference name : Lists.newArrayList(tableRef, shortTableRef)) {
+
+        for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             TransactionRangeMigrator rangeMigrator = new TransactionRangeMigratorBuilder()
                     .srcTable(name)
                     .readTxManager(txManager)
@@ -131,12 +122,10 @@ public class TableMigratorTest extends AtlasDbTestCase {
         }
         checkpointer.deleteCheckpoints();
 
-        final KeyValueService verifyKvs = NamespaceMappingKeyValueService.create(
-                TableRemappingKeyValueService.create(kvs2, tableMap));
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
-        final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(verifyKvs);
+        final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(kvs2);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
-                verifyKvs,
+                kvs2,
                 timestampService,
                 lockClient,
                 lockService,

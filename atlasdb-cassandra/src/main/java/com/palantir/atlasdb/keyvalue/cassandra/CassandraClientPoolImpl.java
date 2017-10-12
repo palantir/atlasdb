@@ -76,6 +76,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting3.tracing.Tracers;
 
@@ -276,7 +278,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             }
         }
 
-        log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.", serversToAdd, serversToRemove);
+        log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
+                SafeArg.of("serversToAdd", serversToAdd),
+                SafeArg.of("serversToRemove", serversToRemove));
         debugLogStateOfPool();
     }
 
@@ -298,7 +302,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             currentPools.get(removedServerAddress).shutdownPooling();
         } catch (Exception e) {
             log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
-                    removedServerAddress, e);
+                    SafeArg.of("removedServerAddress", removedServerAddress),
+                    e);
         }
         currentPools.remove(removedServerAddress);
     }
@@ -331,16 +336,17 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 InetSocketAddress host = blacklistedEntry.getKey();
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
-                    log.error("Added host {} back into the pool after a waiting period and successful health check.",
-                            host);
+                    log.info("Added host {} back into the pool after a waiting period and successful health check.",
+                            SafeArg.of("host", host));
                 }
             }
         }
     }
 
+    // TODO (gsheasby): Why did we blacklist this host?
     private void addToBlacklist(InetSocketAddress badHost) {
         blacklistedHosts.put(badHost, System.currentTimeMillis());
-        log.info("Blacklisted host '{}'", badHost);
+        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", badHost));
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
@@ -350,8 +356,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             testingContainer.runWithPooledResource(validatePartitioner);
             return true;
         } catch (Exception e) {
-            log.error("We tried to add {} back into the pool, but got an exception"
-                    + " that caused us to distrust this host further.", host, e);
+            log.warn("We tried to add {} back into the pool, but got an exception"
+                            + " that caused us to distrust this host further. Exception message was: {} : {}",
+                    SafeArg.of("host", host),
+                    SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
+                    UnsafeArg.of("exceptionMessage", e.getMessage()));
             return false;
         }
     }
@@ -571,7 +580,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         Set<InetSocketAddress> triedHosts = Sets.newHashSet();
         while (true) {
             if (log.isTraceEnabled()) {
-                log.trace("Running function on host {}.", specifiedHost.getHostString());
+                log.trace("Running function on host {}.", SafeArg.of("specifiedHost", specifiedHost.getHostString()));
             }
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
@@ -581,8 +590,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                         = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
                 hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
                 log.warn("Randomly redirected a query intended for host {} to {}.",
-                        previousHostPool,
-                        hostPool.getHost());
+                        SafeArg.of("previousHost", previousHostPool),
+                        SafeArg.of("randomHost", hostPool.getHost()));
             }
 
             try {
@@ -592,10 +601,15 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
-                    log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
+                    // And value between -500 and +500ms to backoff to better spread load on failover
+                    int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
+                    log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
+                            UnsafeArg.of("queryString", fn.toString()),
+                            SafeArg.of("sleepDuration", sleepDuration),
+                            SafeArg.of("hostName", hostPool.getHost()));
+
                     try {
-                        // And value between -500 and +500ms to backoff to better spread load on failover
-                        Thread.sleep(numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500));
+                        Thread.sleep(sleepDuration);
                     } catch (InterruptedException i) {
                         throw new RuntimeException(i);
                     }
@@ -603,7 +617,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                         shouldRetryOnDifferentHost = true;
                     }
                 } else if (isFastFailoverException(e)) {
-                    log.info("Retrying with fast failover a query intended for host {}.", hostPool.getHost(), e);
+                    log.info("Retrying with fast failover a query intended for host {}.",
+                            SafeArg.of("hostName", hostPool.getHost()));
                     shouldRetryOnDifferentHost = true;
                 }
             }
@@ -671,11 +686,23 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numTries).getMessage();
                     throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
                 } else {
-                    log.error("Tried to connect to cassandra {} times.", numTries, ex);
+                    log.error("Tried to connect to cassandra {} times.", SafeArg.of("numTries", numTries), ex);
                     throw (K) ex;
                 }
             } else {
-                log.warn("Error occurred talking to cassandra. Attempt {} of {}.", numTries, MAX_TRIES_TOTAL, ex);
+                // Only log the actual exception the first time
+                if (numTries > 1) {
+                    log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+                            SafeArg.of("numTries", numTries),
+                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
+                            SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
+                            UnsafeArg.of("exceptionMessage", ex.getMessage()));
+                } else {
+                    log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
+                            SafeArg.of("numTries", numTries),
+                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
+                            ex);
+                }
                 if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
                     addToBlacklist(host);
                 }
