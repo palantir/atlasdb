@@ -92,6 +92,11 @@ develop
            Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
+    *    - |fixed|
+         - The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
+           Previously, giving a start row with hex characters in lower case e.g. ``deadbeef`` would result in an ``IllegalArgumentException`` being thrown.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2468>`__)
+
     *    - |devbreak|
          - Removed the following unnecessary classes related to wrapping KVSes:
 
@@ -107,6 +112,10 @@ develop
           ``AutoCloseable``, shutting down its internal executor service.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
 
+    *   - |fixed|
+        - When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
+          We now throw the actual cause for the invocation exception.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
