@@ -90,7 +90,9 @@ public class MetricsManager {
     }
 
     public void deregisterMetricsWithPrefix(Class clazz, String prefix) {
-        String fqnPrefix = MetricRegistry.name(clazz, prefix);
+        // isEmpty() check required because MetricRegistry.name elides missing components.
+        // See MetricsManagerTest#doesNotDeregisterMetricsFromOtherClassesEvenIfStringPrefixesMatch.
+        String fqnPrefix = prefix.isEmpty() ? clazz.getName() + "." : MetricRegistry.name(clazz, prefix);
         Set<String> relevantMetrics = registeredMetrics.stream()
                 .filter(metricName -> metricName.startsWith(fqnPrefix))
                 .collect(Collectors.toSet());
