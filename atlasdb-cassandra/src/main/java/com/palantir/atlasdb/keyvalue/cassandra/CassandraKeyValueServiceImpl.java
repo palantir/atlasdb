@@ -1462,7 +1462,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int columnBatchSize,
             long timestamp,
             ConsistencyLevel consistency) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ONE);
+        SlicePredicate predicate = new SlicePredicate();
+        SliceRange slice = new SliceRange(
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                false,
+                1);
+        predicate.setSlice_range(slice);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, predicate);
 
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
@@ -1476,7 +1483,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long timestamp,
             ConsistencyLevel consistency,
             Supplier<ResultsExtractor<T>> resultsExtractor) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
+        SlicePredicate predicate = new SlicePredicate();
+        if (rangeRequest.getColumnNames().size() == 1) {
+            byte[] col = rangeRequest.getColumnNames().iterator().next();
+            ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, timestamp - 1);
+            ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
+            SliceRange slice = new SliceRange(start, end, false, 1);
+            predicate.setSlice_range(slice);
+        } else {
+            SliceRange slice = new SliceRange(
+                    ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                    ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                    false,
+                    Integer.MAX_VALUE);
+            predicate.setSlice_range(slice);
+        }
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, predicate);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
