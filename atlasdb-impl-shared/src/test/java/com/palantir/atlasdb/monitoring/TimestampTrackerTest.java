@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.monitoring;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -49,15 +48,6 @@ public class TimestampTrackerTest {
     private final TimelockService timelockService = mock(TimelockService.class);
     private final Cleaner cleaner = mock(Cleaner.class);
     private final Clock mockClock = mock(Clock.class);
-
-    @Test
-    public void throwsIfAddingMetricsMultipleTimes() {
-        try (TimestampTracker tracker = new TimestampTracker(Clock.defaultClock())) {
-            tracker.registerTimestampForTracking(FAKE_METRIC, () -> 1L);
-            assertThatThrownBy(() -> tracker.registerTimestampForTracking(FAKE_METRIC, () -> 2L))
-                    .isInstanceOf(IllegalStateException.class);
-        }
-    }
 
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {

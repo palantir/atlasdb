@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.monitoring;
 
 import java.time.Duration;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -28,11 +27,9 @@ import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.SafeArg;
 
 public class TimestampTracker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TimestampTracker.class);
@@ -42,7 +39,6 @@ public class TimestampTracker implements AutoCloseable {
     static final Duration CACHE_INTERVAL = Duration.ofSeconds(10L);
 
     private final MetricsManager metricsManager = new MetricsManager();
-    private final Set<String> registeredShortMetricNames = Sets.newConcurrentHashSet();
     private final Clock clock;
 
     public TimestampTracker(Clock clock) {
@@ -59,11 +55,6 @@ public class TimestampTracker implements AutoCloseable {
 
     @VisibleForTesting
     void registerTimestampForTracking(String shortName, Supplier<Long> supplier) {
-        if (!registeredShortMetricNames.add(shortName)) {
-            log.warn("A metric with the name {} has already been registered in the timestamp tracker",
-                    SafeArg.of("metricName", shortName));
-            throw new IllegalStateException("A metric with the name " + shortName + " has already been registered!");
-        }
         metricsManager.registerMetric(TimestampTracker.class, shortName, createCachingGauge(supplier));
     }
 
