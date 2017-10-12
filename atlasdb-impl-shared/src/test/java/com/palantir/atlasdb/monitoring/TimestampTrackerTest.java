@@ -23,12 +23,14 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.junit.Test;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.lock.v2.TimelockService;
@@ -153,6 +155,37 @@ public class TimestampTrackerTest {
 
             assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(1L);
             assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(2L);
+        }
+    }
+
+    @Test
+    public void timestampTrackersDoNotThrowEvenIfUnderlyingSupplierThrows() {
+        try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
+            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS);
+            tracker.registerTimestampForTracking(FAKE_METRIC, () -> {
+                throw new IllegalArgumentException("illegal argument");
+            });
+
+            getGauge(FAKE_METRIC).getValue();
+        }
+    }
+
+    @Test
+    public void timestampTrackersReturnTheLastKnownValueIfUnderlyingSupplierThrows() {
+        try (TimestampTracker tracker = new TimestampTracker(mockClock)) {
+            when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS + 1);
+            tracker.registerTimestampForTracking(FAKE_METRIC, new Supplier<Long>() {
+                private boolean allowRequest = true;
+                @Override
+                public Long get() {
+                    Preconditions.checkArgument(allowRequest, "not allowed");
+                    allowRequest = false;
+                    return FORTY_TWO;
+                }
+            });
+
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(FORTY_TWO);
+            assertThat(getGauge(FAKE_METRIC).getValue()).isEqualTo(FORTY_TWO);
         }
     }
 
