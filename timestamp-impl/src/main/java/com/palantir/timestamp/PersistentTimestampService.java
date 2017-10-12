@@ -17,4 +17,6 @@
 package com.palantir.timestamp;
 
 public interface PersistentTimestampService extends TimestampService, TimestampManagementService {
+    @SuppressWarnings("unused") // used by product
+    long getUpperLimitTimestampToHandOutInclusive();
 }
