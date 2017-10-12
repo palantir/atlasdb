@@ -85,6 +85,8 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
         tickOneIteration();
         tickOneIteration();
 
+        verify(events).clockSkew(REMOTE_HOST_1, 2L, 0L, 0L);
+        verify(events).clockSkew(REMOTE_HOST_2, 4L, 0L, 0L);
         verify(events).clockWentBackwards(REMOTE_HOST_1, 1L);
         verify(events).clockWentBackwards(REMOTE_HOST_2, 1L);
     }
@@ -99,6 +101,7 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
         tickOneIteration();
         tickOneIteration();
 
+        verify(events).clockSkew(REMOTE_HOST_1, 2L, 0L, 0L);
         verify(events).clockWentBackwards(REMOTE_HOST_1, 1L);
         verify(events, times(2)).exception(eq(badRequest));
     }
@@ -117,10 +120,10 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
 
         // Don't really like this, but didn't find an easy way of verifying subsequences of events.
         InOrder inOrder = inOrder(events);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 0L);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 0L);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 1000L);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 5000L);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 0L, 100L, 10L);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 0L, 120L, 10L);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 1000L, 30L, 10L);
+        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 5000L, 30L, 10L);
     }
 
     @Test
@@ -138,8 +141,8 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
         when(remoteClock2.getSystemTimeInNanos()).thenReturn(515L + 110L);
         tickOneIteration();
 
-        verify(events).clockSkew(REMOTE_HOST_2, 0L);
-        verify(events).clockSkew(REMOTE_HOST_2, 400L);
+        verify(events).clockSkew(REMOTE_HOST_2, 0L, 110L, 10L);
+        verify(events).clockSkew(REMOTE_HOST_2, 400L, 90L, 10L);
         verify(events, times(2)).exception(serviceNotAvailable);
     }
 

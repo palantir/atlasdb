@@ -69,7 +69,7 @@ public class ClockSkewMonitorIntegrationTest {
         tickOneIteration();
 
         verify(mockedEvents, times(1))
-                .clockSkew(server, 0L);
+                .clockSkew(server, 0L, 100L, 0L);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class ClockSkewMonitorIntegrationTest {
         tickOneIteration();
 
         verify(mockedEvents, times(1))
-                .clockSkew(server, 100L);
+                .clockSkew(server, 100L, 100L, 0L);
     }
 
     @Test
