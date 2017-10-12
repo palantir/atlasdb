@@ -48,7 +48,6 @@ import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -117,6 +116,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.RowRangeLoader;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.SingleRowColumnPager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CassandraGetCandidateCellsForSweepingImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -454,13 +456,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             @Override
                             public Map<Cell, Value> apply(Client client) throws Exception {
                                 // We want to get all the columns in the row so set start and end to empty.
-                                SliceRange slice = new SliceRange(
-                                        ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                                        ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                                        false,
-                                        Integer.MAX_VALUE);
-                                SlicePredicate pred = new SlicePredicate();
-                                pred.setSlice_range(slice);
+                                SlicePredicate pred = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
 
                                 List<ByteBuffer> rowNames = wrap(batch);
 
@@ -641,11 +637,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         new FunctionCheckedException<Client, Void, Exception>() {
                             @Override
                             public Void apply(Client client) throws Exception {
-                                ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
-                                ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
-                                SliceRange slice = new SliceRange(start, end, false, loadAllTs ? Integer.MAX_VALUE : 1);
-                                SlicePredicate predicate = new SlicePredicate();
-                                predicate.setSlice_range(slice);
+                                Range range = Range.singleColumn(col, startTs);
+                                Limit limit = loadAllTs ? Limit.NO_LIMIT : Limit.ONE;
+                                SlicePredicate predicate = SlicePredicates.create(range, limit);
 
                                 List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
                                 for (Cell c : partition) {
@@ -798,21 +792,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
                         @Override
                         public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
-                            ByteBuffer start = batchColumnRangeSelection.getStartCol().length == 0
-                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                    : CassandraKeyValueServices.makeCompositeBuffer(
-                                            batchColumnRangeSelection.getStartCol(),
-                                            startTs - 1);
-                            ByteBuffer end = batchColumnRangeSelection.getEndCol().length == 0
-                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                    : CassandraKeyValueServices.makeCompositeBuffer(
-                                            RangeRequests
-                                                    .previousLexicographicName(batchColumnRangeSelection.getEndCol()),
-                                            -1);
-                            SliceRange slice =
-                                    new SliceRange(start, end, false, batchColumnRangeSelection.getBatchHint());
-                            SlicePredicate pred = new SlicePredicate();
-                            pred.setSlice_range(slice);
+                            Range range = createColumnRange(
+                                    batchColumnRangeSelection.getStartCol(),
+                                    batchColumnRangeSelection.getEndCol(), startTs);
+                            Limit limit = Limit.of(batchColumnRangeSelection.getBatchHint());
+                            SlicePredicate pred = SlicePredicates.create(range, limit);
 
                             ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
@@ -865,17 +849,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     @Override
                     public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(Client client)
                             throws Exception {
-                        ByteBuffer start = startCol.length == 0
-                                ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                : CassandraKeyValueServices.makeCompositeBuffer(startCol, startTs - 1);
-                        ByteBuffer end = batchColumnRangeSelection.getEndCol().length == 0
-                                ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                : CassandraKeyValueServices.makeCompositeBuffer(
-                                        RangeRequests.previousLexicographicName(batchColumnRangeSelection.getEndCol()),
-                                        -1);
-                        SliceRange slice = new SliceRange(start, end, false, batchColumnRangeSelection.getBatchHint());
-                        SlicePredicate pred = new SlicePredicate();
-                        pred.setSlice_range(slice);
+                        Range range = createColumnRange(startCol, batchColumnRangeSelection.getEndCol(), startTs);
+                        Limit limit = Limit.of(batchColumnRangeSelection.getBatchHint());
+                        SlicePredicate pred = SlicePredicates.create(range, limit);
 
                         ByteBuffer rowByteBuffer = ByteBuffer.wrap(row);
 
@@ -930,6 +906,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } else {
             return RangeRequests.nextLexicographicName(lastCol);
         }
+    }
+
+    private Range createColumnRange(byte[] startColOrEmpty, byte[] endColOrEmpty, long startTs) {
+        ByteBuffer start = startColOrEmpty.length == 0
+                ? Range.UNBOUND_START
+                : Range.latestVersionForColumn(startColOrEmpty, startTs);
+        ByteBuffer end = startColOrEmpty.length == 0
+                ? Range.UNBOUND_END
+                : Range.oldestVersionForColumn(startColOrEmpty);
+        return Range.of(start, end);
     }
 
     /**
@@ -1374,7 +1360,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         }
                     }
                     for (Map<ByteBuffer, Map<String, List<Mutation>>> map : maps.values()) {
-                        // NOTE: we run with ConsistencyLevel.ALL here instead of ConsistencyLevel.QUORUM
+                        // NOTE: we run with ConsistencyLevel.NO_LIMIT here instead of ConsistencyLevel.QUORUM
                         // because we want to remove all copies of this data
                         batchMutateInternal(client, tableRef, map, deleteConsistency);
                     }
@@ -1476,7 +1462,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int columnBatchSize,
             long timestamp,
             ConsistencyLevel consistency) {
-        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
+        SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
+
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef, predicate);
 
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
@@ -1493,14 +1481,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
-            long timestamp,
+            long startTs,
             ConsistencyLevel consistency,
             Supplier<ResultsExtractor<T>> resultsExtractor) {
-        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
+        SlicePredicate predicate;
+        if (rangeRequest.getColumnNames().size() == 1) {
+            byte[] colName = rangeRequest.getColumnNames().iterator().next();
+            predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
+        } else {
+            // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
+            // each column. note that if no columns are specified, it's a special case that means all columns
+            predicate = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
+        }
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef, predicate);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
-        return getRangeWithPageCreator(
-                rowRangeLoader, ColumnFetchMode.fetchAll(), columnGetter, rangeRequest, resultsExtractor, timestamp);
+        return getRangeWithPageCreator(rowRangeLoader, columnGetter, rangeRequest, resultsExtractor, startTs);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
