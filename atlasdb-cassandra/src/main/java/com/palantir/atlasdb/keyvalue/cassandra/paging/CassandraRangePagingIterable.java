@@ -22,6 +22,7 @@ import java.util.Map;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.SlicePredicate;
 
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -42,17 +43,17 @@ public class CassandraRangePagingIterable<T>
     private final int batchHint;
     private final ColumnSelection selection;
     private final RowRangeLoader rowRangeLoader;
-    private final ColumnFetchMode fetchMode;
+    private final SlicePredicate slicePredicate;
 
     public CassandraRangePagingIterable(
             RowRangeLoader rowRangeLoader,
-            ColumnFetchMode fetchMode,
+            SlicePredicate slicePredicate,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
             long timestamp) {
         this.rowRangeLoader = rowRangeLoader;
-        this.fetchMode = fetchMode;
+        this.slicePredicate = slicePredicate;
         this.columnGetter = columnGetter;
         this.rangeRequest = rangeRequest;
         this.resultsExtractor = resultsExtractor;
@@ -89,7 +90,7 @@ public class CassandraRangePagingIterable<T>
 
     private List<KeySlice> getRows(byte[] startKey) throws Exception {
         KeyRange keyRange = KeyRanges.createKeyRange(startKey, rangeRequest.getEndExclusive(), batchHint);
-        return rowRangeLoader.getRows(keyRange, fetchMode);
+        return rowRangeLoader.getRows(keyRange, slicePredicate);
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumns(List<KeySlice> firstPage) {

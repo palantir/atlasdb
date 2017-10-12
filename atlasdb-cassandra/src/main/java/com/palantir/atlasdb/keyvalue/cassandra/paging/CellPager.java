@@ -27,6 +27,7 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.SlicePredicate;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -41,6 +42,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy.PageSizes;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.common.annotation.Output;
 
 /*
@@ -175,8 +179,8 @@ public class CellPager {
         private void fetchNextRange() {
             pageSizes = pageSizeStrategy.computePageSizes(cellBatchHint, stats);
             KeyRange range = KeyRanges.createKeyRange(nextRow, PtBytes.EMPTY_BYTE_ARRAY, pageSizes.rowLimit);
-            ColumnFetchMode fetchMode = ColumnFetchMode.fetchAtMost(pageSizes.columnPerRowLimit);
-            List<KeySlice> slices = rowRangeLoader.getRows(range, fetchMode);
+            SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.of(pageSizes.columnPerRowLimit));
+            List<KeySlice> slices = rowRangeLoader.getRows(range, predicate);
             if (slices.isEmpty()) {
                 nextRow = null;
             } else {

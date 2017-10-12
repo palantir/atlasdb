@@ -30,6 +30,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -198,6 +199,7 @@ public abstract class ConsecutiveNarrowTable {
             int endRow = startRow + sliceSize;
             RangeRequest request = RangeRequest.builder()
                     .batchHint(1 + sliceSize)
+                    .retainColumns(ImmutableList.of(Tables.COLUMN_NAME_IN_BYTES.array()))
                     .startRowInclusive(Ints.toByteArray(startRow))
                     .endRowExclusive(Ints.toByteArray(endRow))
                     .build();
