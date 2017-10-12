@@ -18,6 +18,7 @@ package com.palantir.atlasdb.monitoring;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 
 public class TimestampTracker implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TimestampTracker.class);
@@ -55,14 +57,30 @@ public class TimestampTracker implements AutoCloseable {
 
     @VisibleForTesting
     void registerTimestampForTracking(String shortName, Supplier<Long> supplier) {
-        metricsManager.registerMetric(TimestampTracker.class, shortName, createCachingGauge(supplier));
+        metricsManager.registerMetric(
+                TimestampTracker.class,
+                shortName,
+                createCachingTimestampGauge(shortName, supplier));
     }
 
-    private <T> Gauge<T> createCachingGauge(Supplier<T> supplier) {
-        return new CachedGauge<T>(clock, CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
+    private Gauge<Long> createCachingTimestampGauge(String shortName, Supplier<Long> supplier) {
+        return new CachedGauge<Long>(clock, CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
+            AtomicLong upperBound = new AtomicLong(Long.MIN_VALUE);
+
             @Override
-            protected T loadValue() {
-                return supplier.get();
+            protected Long loadValue() {
+                try {
+                    // Note that this gauge is only an approximation, because some timestamps can go backwards.
+                    return upperBound.accumulateAndGet(supplier.get(), Math::max);
+                } catch (Exception e) {
+                    long timestampToReturn = upperBound.get();
+                    log.info("An exception occurred when trying to update the {} timestamp for tracking purposes."
+                                    + " Returning the last known value of {}.",
+                            SafeArg.of("timestampName", shortName),
+                            SafeArg.of("timestamp", timestampToReturn),
+                            e);
+                    return timestampToReturn;
+                }
             }
         };
     }
