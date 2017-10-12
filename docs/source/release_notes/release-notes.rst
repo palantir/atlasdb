@@ -83,14 +83,14 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
 
     *    - |new|
-         - AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp as well as current timestamp.
+         - AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp, and current timestamp.
            These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
     *    - |fixed|
          - ``MetricsManager`` now supports de-registration of metrics for a given prefix.
            Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/EFGH>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
     *    - |devbreak|
          - Removed the following unnecessary classes related to wrapping KVSes:
