@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isEmptyString;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
