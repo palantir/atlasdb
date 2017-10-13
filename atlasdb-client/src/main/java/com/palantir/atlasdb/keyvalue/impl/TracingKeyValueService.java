@@ -115,6 +115,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate().isInitialized();
+    }
+
+    @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("createTable({})", tableRef)) {

@@ -237,7 +237,8 @@ public final class TransactionManagers {
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        TransactionManagersInitializer.createInitialTables(kvs, schemas, config.initializeAsync());
+        TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(kvs, schemas,
+                config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env,
                 config.initializeAsync());
 
@@ -270,6 +271,7 @@ public final class TransactionManagers {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
+                initializer,
                 allowHiddenTableAccess,
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),

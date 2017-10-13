@@ -680,4 +680,13 @@ public interface KeyValueService extends AutoCloseable {
     @Path("node-availability-status")
     @Consumes(MediaType.APPLICATION_JSON)
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
+
+    /**
+     * @return true iff the KeyValueService has been initialized and is ready to use
+     *         Note that this check ignores the cluster's availability - use {@link #getClusterAvailabilityStatus()} if
+     *         you wish to verify that we can talk to the backing store.
+     */
+    default boolean isInitialized() {
+        return true;
+    }
 }
