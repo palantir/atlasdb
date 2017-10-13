@@ -1180,6 +1180,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return col;
     }
 
+
     private void batchMutateInternal(Client client,
                                      TableReference tableRef,
                                      Map<ByteBuffer, Map<String, List<Mutation>>> map,
@@ -1988,7 +1989,35 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 + " into a more garbage-cleanup friendly truncate(), but this failed.",
                         UnsafeArg.of("table", tableRef), e);
 
-                super.deleteRange(tableRef, range);
+                clientPool.runWithRetryOnHost(clientPool.getRandomHostForKey(range.getStartInclusive()),
+                        client -> {
+                            ByteBuffer start = range.getStartInclusive().length == 0
+                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
+                                    : CassandraKeyValueServices.makeCompositeBuffer(
+                                            range.getStartInclusive(),
+                                            -1);
+                            ByteBuffer finish = range.getEndExclusive().length == 0
+                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
+                                    : CassandraKeyValueServices.makeCompositeBuffer(
+                                            RangeRequests
+                                                    .previousLexicographicName(range.getEndExclusive()),
+                                            Long.MAX_VALUE);
+                            Deletion deletion = new Deletion();
+                            SliceRange sliceRange = new SliceRange();
+                            sliceRange.setStart(start);
+                            sliceRange.setFinish(finish);
+                            sliceRange.setReversed(range.isReverse());
+                            SlicePredicate slicePredicate = new SlicePredicate();
+                            slicePredicate.setSlice_range(sliceRange);
+
+                            deletion.setPredicate(slicePredicate);
+
+                            Mutation mutation = new Mutation();
+                            mutation.setDeletion(deletion);
+
+                            batchMutateInternal(client, tableRef, ImmutableMap.of(mutation), deleteConsistency);
+
+                        }
             }
         } else {
             super.deleteRange(tableRef, range);
