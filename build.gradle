@@ -133,4 +133,10 @@ allprojects {
     tasks.withType(Test) {
         systemProperty 'RUNNING_IN_GRADLE', 'true'
     }
+
+    if (System.env.CIRCLE_TEST_REPORTS) {
+        tasks.withType(Test) { test ->
+            test.reports.junitXml.destination = new File(new File(System.env.CIRCLE_TEST_REPORTS, "junit"), project.getName())
+        }
+    }
 }

@@ -41,10 +41,6 @@ test:
         parallel: true
     - bash <(curl -s https://codecov.io/bash):
         parallel: true
-    - mkdir -p $CIRCLE_TEST_REPORTS/junit/:
-        parallel: true
-    - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;:
-        parallel: true
     - mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs:
         parallel: true
     - "if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi":
