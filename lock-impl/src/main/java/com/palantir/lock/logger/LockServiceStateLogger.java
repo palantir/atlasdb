@@ -45,16 +45,16 @@ import com.palantir.lock.impl.LockServiceImpl;
 public class LockServiceStateLogger {
     private static Logger log = LoggerFactory.getLogger(LockServiceStateLogger.class);
 
-    private static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
-    private static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
+    static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
+    static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
+
+    static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
+    static final String HELD_LOCKS_TITLE = "HeldLocks";
+
     private static final String WARNING_LOCK_DESCRIPTORS = "WARNING: Lock descriptors may contain sensitive information";
     private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [{}] either already exists"
             + "or can't be created. This is a very unlikely scenario."
             + "Retrigger logging or check if process has permitions on the folder";
-
-
-    private static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
-    private static final String HELD_LOCKS_TITLE = "HeldLocks";
 
     private final LockDescriptorMapper lockDescriptorMapper = new LockDescriptorMapper();
     private final long startTimestamp = System.currentTimeMillis();

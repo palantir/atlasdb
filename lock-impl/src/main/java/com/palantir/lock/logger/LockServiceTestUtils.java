@@ -18,10 +18,12 @@ package com.palantir.lock.logger;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Lists;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
@@ -41,6 +43,11 @@ public class LockServiceTestUtils {
             }
         }
         rootDir.delete();
+    }
+
+    static List<File> logStateDirFiles() {
+        File rootDir = new File(TEST_LOG_STATE_DIR);
+        return Lists.newArrayList(rootDir.listFiles());
     }
 
     public static HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId,
