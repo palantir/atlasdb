@@ -105,6 +105,10 @@ develop
           ``AutoCloseable``, shutting down its internal executor service.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2451>`__)
 
+    *    - |fixed|
+         - Lock state logging will dump ``expiresIn`` of refreshed token, instead of original, which was negative after refreshing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2469>`__)
+
     *   - |fixed|
         - When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
           We now throw the actual cause for the invocation exception.
