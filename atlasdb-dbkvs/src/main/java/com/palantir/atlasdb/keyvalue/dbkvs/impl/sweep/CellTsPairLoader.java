@@ -16,25 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
+import java.util.Iterator;
 import java.util.List;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CandidatePagingState.CellTsPairInfo;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CandidatePagingState.StartingPosition;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface CellTsPairLoader {
 
-    class Page {
-        public final List<CellTsPairInfo> entries;
-        public final boolean scannedSingleRow;
-        public final boolean reachedEnd;
-
-        public Page(List<CellTsPairInfo> entries, boolean scannedSingleRow, boolean reachedEnd) {
-            this.entries = entries;
-            this.scannedSingleRow = scannedSingleRow;
-            this.reachedEnd = reachedEnd;
-        }
-    }
-
-    Page loadNextPage(StartingPosition startInclusive, long cellsAlreadyExaminedInStartingRow);
+    Iterator<List<CellTsPairInfo>> createPageIterator(TableReference tableRef, CandidateCellForSweepingRequest request);
 
 }

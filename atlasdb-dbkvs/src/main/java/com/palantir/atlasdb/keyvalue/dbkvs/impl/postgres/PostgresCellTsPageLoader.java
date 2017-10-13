@@ -18,8 +18,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -27,94 +33,108 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CandidatePagingState;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CandidatePagingState.StartingPosition;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairInfo;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairLoader;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairLoaderFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.SweepQueryHelpers;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
-public class PostgresCellTsPageLoaderFactory implements CellTsPairLoaderFactory {
+public class PostgresCellTsPageLoader implements CellTsPairLoader {
 
     private final PostgresPrefixedTableNames prefixedTableNames;
     private final SqlConnectionSupplier connectionPool;
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
 
-    public PostgresCellTsPageLoaderFactory(PostgresPrefixedTableNames prefixedTableNames,
+    public PostgresCellTsPageLoader(PostgresPrefixedTableNames prefixedTableNames,
                                                 SqlConnectionSupplier connectionPool) {
         this.prefixedTableNames = prefixedTableNames;
         this.connectionPool = connectionPool;
     }
 
     @Override
-    public CellTsPairLoader createCellTsLoader(TableReference tableRef, CandidateCellForSweepingRequest request) {
-        return new Loader(connectionPool,
+    public Iterator<List<CellTsPairInfo>> createPageIterator(TableReference tableRef,
+                                                             CandidateCellForSweepingRequest request) {
+        return new PageIterator(
+                connectionPool,
                 request,
-                request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE),
+                Math.max(1, request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE)),
                 DbKvs.internalTableName(tableRef),
-                prefixedTableNames.get(tableRef));
+                prefixedTableNames.get(tableRef),
+                request.startRowInclusive());
     }
 
-    private static class Loader implements CellTsPairLoader {
+    private static class PageIterator implements Iterator<List<CellTsPairInfo>> {
         final SqlConnectionSupplier connectionPool;
         final CandidateCellForSweepingRequest request;
         final int sqlRowLimit;
         final String tableName;
         final String prefixedTableName;
 
-        Loader(SqlConnectionSupplier connectionPool,
-                CandidateCellForSweepingRequest request,
-                int sqlRowLimit,
-                String tableName,
-                String prefixedTableName) {
+        byte[] startRowInclusive;
+        byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
+        @Nullable Long startTsInclusive = null;
+        boolean reachedEnd = false;
+
+        PageIterator(SqlConnectionSupplier connectionPool, CandidateCellForSweepingRequest request, int sqlRowLimit,
+                String tableName, String prefixedTableName, byte[] startRowInclusive) {
             this.connectionPool = connectionPool;
             this.request = request;
             this.sqlRowLimit = sqlRowLimit;
             this.tableName = tableName;
             this.prefixedTableName = prefixedTableName;
+            this.startRowInclusive = startRowInclusive;
         }
 
         @Override
-        public Page loadNextPage(StartingPosition startInclusive,
-                                 long cellsAlreadyExaminedInStartingRow) {
+        public boolean hasNext() {
+            return !reachedEnd;
+        }
+
+        // We don't use AbstractIterator to make sure hasNext() is fast and doesn't actually load the next page.
+        // As a downside, our iterator can return an empty page at the end.
+        // However, we can just filter out empty pages later.
+        @Override
+        public List<CellTsPairInfo> next() {
+            Preconditions.checkState(hasNext());
+            List<CellTsPairInfo> cellTsPairs = loadNextPage();
+            computeNextStartPosition(cellTsPairs);
+            return cellTsPairs;
+        }
+
+        private List<CellTsPairInfo> loadNextPage() {
             try (ConnectionSupplier conns = new ConnectionSupplier(connectionPool);
-                    AgnosticLightResultSet resultSet = selectNextPage(conns, startInclusive)) {
-                List<CandidatePagingState.CellTsPairInfo> cellTsPairs = readResultSet(resultSet);
-                return new Page(cellTsPairs, false, cellTsPairs.size() < sqlRowLimit);
+                    AgnosticLightResultSet resultSet = selectNextPage(conns)) {
+                List<CellTsPairInfo> ret = new ArrayList<>();
+                for (AgnosticLightResultRow row : resultSet) {
+                    byte[] rowName = row.getBytes("row_name");
+                    byte[] colName = row.getBytes("col_name");
+                    if (request.shouldCheckIfLatestValueIsEmpty()) {
+                        long[] sortedTimestamps = castAndSortTimestamps((Object[]) row.getArray("timestamps"));
+                        boolean isLatestValEmpty = row.getBoolean("latest_val_empty");
+                        for (int i = 0; i < sortedTimestamps.length - 1; ++i) {
+                            ret.add(new CellTsPairInfo(rowName, colName, sortedTimestamps[i], false));
+                        }
+                        // For the maximum timestamp, we know whether its value is empty or not,
+                        // so we handle it separately
+                        ret.add(new CellTsPairInfo(
+                                rowName, colName, sortedTimestamps[sortedTimestamps.length - 1], isLatestValEmpty));
+                    } else {
+                        long ts = row.getLong("ts");
+                        ret.add(new CellTsPairInfo(rowName, colName, ts, false));
+                    }
+                }
+                return ret;
             }
         }
 
-        private AgnosticLightResultSet selectNextPage(ConnectionSupplier conns, StartingPosition startingPosition) {
-            FullQuery query = getQuery(startingPosition);
+        private AgnosticLightResultSet selectNextPage(ConnectionSupplier conns) {
+            FullQuery query = getQuery();
             return conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
         }
 
-        private List<CandidatePagingState.CellTsPairInfo> readResultSet(AgnosticLightResultSet resultSet) {
-            List<CandidatePagingState.CellTsPairInfo> ret = new ArrayList<>();
-            for (AgnosticLightResultRow row : resultSet) {
-                byte[] rowName = row.getBytes("row_name");
-                byte[] colName = row.getBytes("col_name");
-                if (request.shouldCheckIfLatestValueIsEmpty()) {
-                    long[] sortedTimestamps = castAndSortTimestamps((Object[]) row.getArray("timestamps"));
-                    boolean isLatestValEmpty = row.getBoolean("latest_val_empty");
-                    for (int i = 0; i < sortedTimestamps.length - 1; ++i) {
-                        ret.add(new CandidatePagingState.CellTsPairInfo(rowName, colName, sortedTimestamps[i], false));
-                    }
-                    // For the maximum timestamp, we know whether its value is empty or not, so we handle it separately
-                    ret.add(new CandidatePagingState.CellTsPairInfo(
-                            rowName, colName, sortedTimestamps[sortedTimestamps.length - 1], isLatestValEmpty));
-                } else {
-                    long ts = row.getLong("ts");
-                    ret.add(new CandidatePagingState.CellTsPairInfo(rowName, colName, ts, false));
-                }
-            }
-            return ret;
-        }
-
-        private FullQuery getQuery(StartingPosition startingPos) {
+        private FullQuery getQuery() {
             if (request.shouldCheckIfLatestValueIsEmpty()) {
                 FullQuery.Builder queryBuilder = FullQuery.builder()
                         .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING_THOROUGH(").append(tableName).append(") */")
@@ -129,7 +149,7 @@ public class PostgresCellTsPageLoaderFactory implements CellTsPairLoaderFactory 
                         .append("      WHERE ts < ? ", request.sweepTimestamp());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(startingPos.rowName, startingPos.colName, startingPos.timestamp);
+                        .startCellTsInclusive(startRowInclusive, startColInclusive, startTsInclusive);
                 return queryBuilder
                         .append("      ORDER BY row_name, col_name, ts")
                         .append("      LIMIT ").append(sqlRowLimit)
@@ -151,11 +171,23 @@ public class PostgresCellTsPageLoaderFactory implements CellTsPairLoaderFactory 
                         .append("  WHERE ts < ? ", request.sweepTimestamp());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(startingPos.rowName, startingPos.colName, startingPos.timestamp);
+                        .startCellTsInclusive(startRowInclusive, startColInclusive, startTsInclusive);
                 return queryBuilder
                         .append("  ORDER BY row_name, col_name, ts")
                         .append("  LIMIT ").append(sqlRowLimit)
                         .build();
+            }
+        }
+
+        private void computeNextStartPosition(List<CellTsPairInfo> results) {
+            if (results.size() < sqlRowLimit) {
+                reachedEnd = true;
+            } else {
+                CellTsPairInfo lastResult = Iterables.getLast(results);
+                Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
+                startRowInclusive = lastResult.rowName;
+                startColInclusive = lastResult.colName;
+                startTsInclusive = lastResult.ts + 1;
             }
         }
     }
