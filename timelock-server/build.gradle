@@ -1,13 +1,13 @@
 apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
 
-apply from: "../gradle/publish-jars.gradle"
-apply from: "../gradle/shared.gradle"
-apply from: "../gradle/timelock.gradle"
-
 testSets {
     integTest
 }
+
+apply from: "../gradle/publish-jars.gradle"
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/timelock.gradle"
 
 jacocoTestReport {
     executionData test, integTest
