@@ -58,6 +58,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         @Override
         public boolean isInitialized() {
+            // Note that the PersistentLockService is also initialized asynchronously as part of
+            // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
+            // requests (note that it is not accessible from any TransactionManager implementation), so we omit
+            // checking here whether it is initialized.
             return manager.getKeyValueService().isInitialized()
                     && manager.getTimelockService().isInitialized()
                     && manager.getTimestampService().isInitialized()
