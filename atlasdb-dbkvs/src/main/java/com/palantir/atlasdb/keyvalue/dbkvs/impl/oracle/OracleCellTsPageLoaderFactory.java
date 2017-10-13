@@ -65,7 +65,14 @@ import com.palantir.nexus.db.sql.SqlConnection;
 //
 // As a workaround, we have two modes: in "normal" mode, we perform the (**)-like query. We maintain
 // a counter of cells that we have already gone through in the current row. If the counter exceeds
-// some threshold, we switch to the "single row" mode.
+// some threshold, we switch to the "single row" mode. In this mode, we do queries like
+//
+//     AND row_name = ? AND col_name >= ? AND (col_name > ? OR ts >= ?)
+//
+// For this query, Oracle does a range scan using 'row_name = ? AND col_name >= ?' as the access
+// predicate and '(col_name > ? OR ts >= ?)' as the filter predicate. Once we exhaust all results
+// in the row, we switch back to the "normal" mode, starting from the beginning of the lexicographically
+// next row.
 public class OracleCellTsPageLoaderFactory implements CellTsPairLoaderFactory {
     private final SqlConnectionSupplier connectionPool;
     private final OracleTableNameGetter tableNameGetter;
@@ -94,7 +101,7 @@ public class OracleCellTsPageLoaderFactory implements CellTsPairLoaderFactory {
         private final CandidateCellForSweepingRequest request;
         private final TableDetails tableDetails;
         private final int sqlRowLimit;
-        private SqlConnectionSupplier connectionPool;
+        private final SqlConnectionSupplier connectionPool;
 
         Loader(SqlConnectionSupplier connectionPool,
                 CandidateCellForSweepingRequest request,

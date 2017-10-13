@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -39,7 +40,7 @@ public class DbKvsGetCandidateCellsForSweeping {
             CandidateCellForSweepingRequest request) {
         CellTsPairLoader loader = cellTsPairLoaderFactory.createCellTsLoader(tableRef, request);
         CandidatePagingState state = CandidatePagingState.create(request.startRowInclusive());
-        return new PageIterator(loader, state);
+        return Iterators.filter(new PageIterator(loader, state), page -> !page.isEmpty());
     }
 
     private class PageIterator extends AbstractIterator<List<CandidateCellForSweeping>> {
