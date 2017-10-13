@@ -13,27 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.performance.benchmarks.table;
 
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-@State(Scope.Benchmark)
-public class VeryWideRowTable extends WideRowTable {
-    @Override
-    public TableReference getTableRef() {
-        return TableReference.createFromFullyQualifiedName("performance.persistent_very_wide");
-    }
+public interface CellTsPairLoaderFactory {
 
-    @Override
-    public int getNumCols() {
-        return 1_000_000;
-    }
+    CellTsPairLoader createCellTsLoader(TableReference tableRef, CandidateCellForSweepingRequest request);
 
-    @Override
-    public boolean isPersistent() {
-        return true;
-    }
 }
