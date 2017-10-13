@@ -112,7 +112,7 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         lockRefresher.close();
     }
 }
