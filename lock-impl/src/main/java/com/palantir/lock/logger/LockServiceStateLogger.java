@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -45,10 +46,14 @@ import com.palantir.lock.impl.LockServiceImpl;
 public class LockServiceStateLogger {
     private static Logger log = LoggerFactory.getLogger(LockServiceStateLogger.class);
 
+    @VisibleForTesting
     static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
+    @VisibleForTesting
     static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
 
+    @VisibleForTesting
     static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
+    @VisibleForTesting
     static final String HELD_LOCKS_TITLE = "HeldLocks";
 
     private static final String WARNING_LOCK_DESCRIPTORS = "WARNING: Lock descriptors may contain sensitive information";
