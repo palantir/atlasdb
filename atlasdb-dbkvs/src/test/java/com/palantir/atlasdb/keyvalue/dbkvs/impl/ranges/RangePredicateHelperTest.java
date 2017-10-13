@@ -30,12 +30,16 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.nexus.db.DBType;
 
 public class RangePredicateHelperTest {
+    private static final byte[] ROW_NAME = {1, 2, 3 };
+    private static final byte[] COL_NAME = { 4, 5, 6 };
+    private static final long TS = 5L;
 
     @Test
     public void startRowInclusiveEmpty() {
         FullQuery.Builder builder = FullQuery.builder();
         RangePredicateHelper.create(false, DBType.ORACLE, builder).startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), isEmptyString());
         assertThat(query.getArgs(), emptyArray());
     }
@@ -43,133 +47,124 @@ public class RangePredicateHelperTest {
     @Test
     public void startRowInclusiveForward() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        RangePredicateHelper.create(false, DBType.ORACLE, builder).startRowInclusive(rowName);
+        RangePredicateHelper.create(false, DBType.ORACLE, builder).startRowInclusive(ROW_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND row_name >= ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) rowName));
+        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
     }
 
     @Test
     public void startRowInclusiveReverse() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        RangePredicateHelper.create(true, DBType.ORACLE, builder).startRowInclusive(rowName);
+        RangePredicateHelper.create(true, DBType.ORACLE, builder).startRowInclusive(ROW_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND row_name <= ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) rowName));
+        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
     }
 
     @Test
     public void startCellInclusiveEmptyColName() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
         RangePredicateHelper.create(false, DBType.ORACLE, builder)
-                .startCellInclusive(rowName, PtBytes.EMPTY_BYTE_ARRAY);
+                .startCellInclusive(ROW_NAME, PtBytes.EMPTY_BYTE_ARRAY);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND row_name >= ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) rowName));
+        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
     }
 
     @Test
     public void startCellInclusiveForwardPostgres() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellInclusive(rowName, colName);
+        RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (row_name, col_name) >= (?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(rowName, colName));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME));
     }
 
     @Test
     public void startCellInclusiveReversePostgres() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(true, DBType.POSTGRESQL, builder).startCellInclusive(rowName, colName);
+        RangePredicateHelper.create(true, DBType.POSTGRESQL, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (row_name, col_name) <= (?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(rowName, colName));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME));
     }
 
     @Test
     public void startCellInclusiveForwardOracle() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellInclusive(rowName, colName);
+        RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (row_name >= ? AND (row_name > ? OR col_name >= ?))"));
-        assertThat(query.getArgs(), arrayContaining(rowName, rowName, colName));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME));
     }
 
     @Test
     public void startCellInclusiveReverseOracle() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellInclusive(rowName, colName);
+        RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellInclusive(ROW_NAME, COL_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (row_name <= ? AND (row_name < ? OR col_name <= ?))"));
-        assertThat(query.getArgs(), arrayContaining(rowName, rowName, colName));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME));
     }
 
     @Test
     public void startCellTsInclusiveNullTimestamp() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellTsInclusive(rowName, colName, null);
+        RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellTsInclusive(ROW_NAME, COL_NAME, null);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (row_name, col_name) >= (?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(rowName, colName));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME));
     }
 
     @Test
     public void startCellTsInclusiveForwardPostgres() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellTsInclusive(rowName, colName, 5L);
+        RangePredicateHelper.create(false, DBType.POSTGRESQL, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (row_name, col_name, ts) >= (?, ?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(rowName, colName, 5L));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME, TS));
     }
 
     @Test
     public void startCellTsInclusiveReversePostgres() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(true, DBType.POSTGRESQL, builder).startCellTsInclusive(rowName, colName, 5L);
+        RangePredicateHelper.create(true, DBType.POSTGRESQL, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (row_name, col_name, ts) <= (?, ?, ?)"));
-        assertThat(query.getArgs(), arrayContaining(rowName, colName, 5L));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, COL_NAME, TS));
     }
 
     @Test
     public void startCellTsInclusiveForwardOracle() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellTsInclusive(rowName, colName, 5L);
+        RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(),
                 equalTo(" AND (row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?)))"));
-        assertThat(query.getArgs(), arrayContaining(rowName, rowName, colName, colName, 5L));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS));
     }
 
     @Test
     public void startCellTsInclusiveReverseOracle() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        byte[] colName = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellTsInclusive(rowName, colName, 5L);
+        RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(),
                 equalTo(" AND (row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?)))"));
-        assertThat(query.getArgs(), arrayContaining(rowName, rowName, colName, colName, 5L));
+        assertThat(query.getArgs(), arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS));
     }
 
     @Test
@@ -177,6 +172,7 @@ public class RangePredicateHelperTest {
         FullQuery.Builder builder = FullQuery.builder();
         RangePredicateHelper.create(false, DBType.ORACLE, builder).endRowExclusive(PtBytes.EMPTY_BYTE_ARRAY);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), isEmptyString());
         assertThat(query.getArgs(), emptyArray());
     }
@@ -184,21 +180,21 @@ public class RangePredicateHelperTest {
     @Test
     public void endRowExclusiveForward() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        RangePredicateHelper.create(false, DBType.ORACLE, builder).endRowExclusive(rowName);
+        RangePredicateHelper.create(false, DBType.ORACLE, builder).endRowExclusive(ROW_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND row_name < ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) rowName));
+        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
     }
 
     @Test
     public void endRowExclusiveReverse() {
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] rowName = new byte[] { 1, 2, 3 };
-        RangePredicateHelper.create(true, DBType.ORACLE, builder).endRowExclusive(rowName);
+        RangePredicateHelper.create(true, DBType.ORACLE, builder).endRowExclusive(ROW_NAME);
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND row_name > ? "));
-        assertThat(query.getArgs(), arrayContaining((Object) rowName));
+        assertThat(query.getArgs(), arrayContaining((Object) ROW_NAME));
     }
 
     @Test
@@ -206,19 +202,21 @@ public class RangePredicateHelperTest {
         FullQuery.Builder builder = FullQuery.builder();
         RangePredicateHelper.create(false, DBType.ORACLE, builder).columnSelection(ImmutableList.of());
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), isEmptyString());
         assertThat(query.getArgs(), emptyArray());
     }
 
     @Test
     public void columnSelection() {
+        byte[] colTwo = new byte[] { 7, 8, 9 };
+
         FullQuery.Builder builder = FullQuery.builder();
-        byte[] colOne = new byte[] { 1, 2, 3 };
-        byte[] colTwo = new byte[] { 4, 5, 6 };
-        RangePredicateHelper.create(false, DBType.ORACLE, builder).columnSelection(ImmutableList.of(colOne, colTwo));
+        RangePredicateHelper.create(false, DBType.ORACLE, builder).columnSelection(ImmutableList.of(COL_NAME, colTwo));
         FullQuery query = builder.build();
+
         assertThat(query.getQuery(), equalTo(" AND (col_name = ? OR col_name = ?) "));
-        assertThat(query.getArgs(), arrayContaining(colOne, colTwo));
+        assertThat(query.getArgs(), arrayContaining(COL_NAME, colTwo));
     }
 
 }

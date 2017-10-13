@@ -51,6 +51,11 @@ public final class CandidatePagingState {
         return new CandidatePagingState(startRowInclusive);
     }
 
+    /**
+     * Semantically different from Cassandra's CellWithTimestamp, because:
+     * (a) colName can be an empty byte array (indicating starting from the beginning of the row)
+     * (b) timestamp is Nullable.
+     */
     public static class StartingPosition {
         public final byte[] rowName;
         public final byte[] colName;
@@ -164,17 +169,22 @@ public final class CandidatePagingState {
         if (!sameRow) {
             cellTsPairsExaminedInCurrentRow = 0L;
         }
-        if (!sameRow || !sameCol) {
-            Optional<CandidateCellForSweeping> candidate = getCurrentCandidate();
-            currentCellTimestamps.clear();
-            maxSeenTimestampForCurrentCell = null;
-            currentRowName = cellTs.rowName;
-            currentColName = cellTs.colName;
-            currentIsLatestValueEmpty = false;
-            return candidate;
-        } else {
+
+        if (sameRow && sameCol) {
             return Optional.empty();
+        } else {
+            Optional<CandidateCellForSweeping> candidate = getCurrentCandidate();
+            updatePagingState(cellTs);
+            return candidate;
         }
+    }
+
+    private void updatePagingState(CellTsPairInfo latestCandidate) {
+        currentCellTimestamps.clear();
+        maxSeenTimestampForCurrentCell = null;
+        currentRowName = latestCandidate.rowName;
+        currentColName = latestCandidate.colName;
+        currentIsLatestValueEmpty = false;
     }
 
 }

@@ -126,7 +126,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     }
 
     @Test
-    public void startFromGivenRow() {
+    public void startFromGivenRowConservative() {
         new TestDataBuilder()
                 .putEmpty(1, 1, 10L)
                 .putEmpty(1, 2, 10L)
@@ -138,6 +138,18 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         assertThat(getAllCandidates(conservativeRequest(cell(2, 2).getRowName(), 30L, 100))
                 .stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
                 .containsExactly(cell(2, 1), cell(2, 2), cell(3, 1), cell(3, 2));
+    }
+
+    @Test
+    public void startFromGivenRowThorough() {
+        new TestDataBuilder()
+                .putEmpty(1, 1, 10L)
+                .putEmpty(1, 2, 10L)
+                .putEmpty(2, 1, 10L)
+                .putEmpty(2, 2, 10L)
+                .putEmpty(3, 1, 10L)
+                .putEmpty(3, 2, 10L)
+                .store();
         assertThat(getAllCandidates(thoroughRequest(cell(2, 2).getRowName(), 30L, 100))
                 .stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
                 .containsExactly(cell(2, 1), cell(2, 2), cell(3, 1), cell(3, 2));
