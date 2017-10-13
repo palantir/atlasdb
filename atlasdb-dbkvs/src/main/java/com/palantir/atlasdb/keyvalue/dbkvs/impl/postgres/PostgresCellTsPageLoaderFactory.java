@@ -51,20 +51,26 @@ public class PostgresCellTsPageLoaderFactory implements CellTsPairLoaderFactory 
 
     @Override
     public CellTsPairLoader createCellTsLoader(TableReference tableRef, CandidateCellForSweepingRequest request) {
-        return new Loader(
+        return new Loader(connectionPool,
                 request,
                 request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE),
                 DbKvs.internalTableName(tableRef),
                 prefixedTableNames.get(tableRef));
     }
 
-    private class Loader implements CellTsPairLoader {
+    private static class Loader implements CellTsPairLoader {
+        final SqlConnectionSupplier connectionPool;
         final CandidateCellForSweepingRequest request;
         final int sqlRowLimit;
         final String tableName;
         final String prefixedTableName;
 
-        Loader(CandidateCellForSweepingRequest request, int sqlRowLimit, String tableName, String prefixedTableName) {
+        Loader(SqlConnectionSupplier connectionPool,
+                CandidateCellForSweepingRequest request,
+                int sqlRowLimit,
+                String tableName,
+                String prefixedTableName) {
+            this.connectionPool = connectionPool;
             this.request = request;
             this.sqlRowLimit = sqlRowLimit;
             this.tableName = tableName;

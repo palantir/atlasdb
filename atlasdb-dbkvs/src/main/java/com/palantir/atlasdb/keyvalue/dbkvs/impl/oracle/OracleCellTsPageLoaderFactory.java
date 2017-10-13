@@ -87,15 +87,20 @@ public class OracleCellTsPageLoaderFactory implements CellTsPairLoaderFactory {
     @Override
     public CellTsPairLoader createCellTsLoader(TableReference tableRef, CandidateCellForSweepingRequest request) {
         TableDetails tableDetails = getTableDetailsUsingNewConnection(tableRef);
-        return new Loader(request, tableDetails, request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE));
+        return new Loader(connectionPool, request, tableDetails, request.batchSizeHint().orElse(DEFAULT_BATCH_SIZE));
     }
 
-    private class Loader implements CellTsPairLoader {
+    private static class Loader implements CellTsPairLoader {
         private final CandidateCellForSweepingRequest request;
         private final TableDetails tableDetails;
         private final int sqlRowLimit;
+        private SqlConnectionSupplier connectionPool;
 
-        Loader(CandidateCellForSweepingRequest request, TableDetails tableDetails, int sqlRowLimit) {
+        Loader(SqlConnectionSupplier connectionPool,
+                CandidateCellForSweepingRequest request,
+                TableDetails tableDetails,
+                int sqlRowLimit) {
+            this.connectionPool = connectionPool;
             this.request = request;
             this.tableDetails = tableDetails;
             this.sqlRowLimit = sqlRowLimit;
