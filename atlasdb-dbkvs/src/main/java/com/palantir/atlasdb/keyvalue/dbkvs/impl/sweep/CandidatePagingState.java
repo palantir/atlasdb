@@ -96,11 +96,7 @@ public final class CandidatePagingState {
                 Preconditions.checkArgument(cellTs.ts > maxSeenTimestampForCurrentCell,
                         "Timestamps for each cell must be fed in strictly increasing order");
             }
-            maxSeenTimestampForCurrentCell = cellTs.ts;
-            currentIsLatestValueEmpty = cellTs.isEmptyValue;
-            currentCellTimestamps.add(cellTs.ts);
-            cellTsPairsExamined += 1;
-            cellTsPairsExaminedInCurrentRow += 1;
+            updateStateAfterSingleCellProcessed(cellTs);
         }
         if (reachedEndOfResults) {
             getCurrentCandidate().ifPresent(candidates::add);
@@ -109,30 +105,19 @@ public final class CandidatePagingState {
         return candidates;
     }
 
-    public Optional<StartingPosition> getNextStartingPosition() {
-        if (reachedEnd) {
+    private Optional<CandidateCellForSweeping> checkCurrentCellAndUpdateIfNecessary(CellTsPairInfo cellTs) {
+        boolean sameRow = Arrays.equals(currentRowName, cellTs.rowName);
+        boolean sameCol = Arrays.equals(currentColName, cellTs.colName);
+        if (!sameRow) {
+            cellTsPairsExaminedInCurrentRow = 0L;
+        }
+
+        if (sameRow && sameCol) {
             return Optional.empty();
         } else {
-            return Optional.of(new StartingPosition(currentRowName, currentColName, getNextStartTimestamp()));
-        }
-    }
-
-    public long getCellTsPairsExaminedInCurrentRow() {
-        return cellTsPairsExaminedInCurrentRow;
-    }
-
-    public void restartFromNextRow() {
-        @Nullable byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, currentRowName);
-        if (nextRow == null) {
-            reachedEnd = true;
-        } else {
-            currentRowName = nextRow;
-            currentColName = PtBytes.EMPTY_BYTE_ARRAY;
-            maxSeenTimestampForCurrentCell = null;
-            currentCellTimestamps.clear();
-            currentIsLatestValueEmpty = false;
-            cellTsPairsExaminedInCurrentRow = 0L;
-            reachedEnd = false;
+            Optional<CandidateCellForSweeping> candidate = getCurrentCandidate();
+            updateStateForNewCell(cellTs);
+            return candidate;
         }
     }
 
@@ -146,6 +131,30 @@ public final class CandidatePagingState {
                     .isLatestValueEmpty(currentIsLatestValueEmpty)
                     .numCellsTsPairsExamined(cellTsPairsExamined)
                     .build());
+        }
+    }
+
+    private void updateStateForNewCell(CellTsPairInfo cell) {
+        currentCellTimestamps.clear();
+        maxSeenTimestampForCurrentCell = null;
+        currentRowName = cell.rowName;
+        currentColName = cell.colName;
+        currentIsLatestValueEmpty = false;
+    }
+
+    private void updateStateAfterSingleCellProcessed(CellTsPairInfo cellTs) {
+        maxSeenTimestampForCurrentCell = cellTs.ts;
+        currentIsLatestValueEmpty = cellTs.isEmptyValue;
+        currentCellTimestamps.add(cellTs.ts);
+        cellTsPairsExamined += 1;
+        cellTsPairsExaminedInCurrentRow += 1;
+    }
+
+    public Optional<StartingPosition> getNextStartingPosition() {
+        if (reachedEnd) {
+            return Optional.empty();
+        } else {
+            return Optional.of(new StartingPosition(currentRowName, currentColName, getNextStartTimestamp()));
         }
     }
 
@@ -163,28 +172,27 @@ public final class CandidatePagingState {
         }
     }
 
-    private Optional<CandidateCellForSweeping> checkCurrentCellAndUpdateIfNecessary(CellTsPairInfo cellTs) {
-        boolean sameRow = Arrays.equals(currentRowName, cellTs.rowName);
-        boolean sameCol = Arrays.equals(currentColName, cellTs.colName);
-        if (!sameRow) {
-            cellTsPairsExaminedInCurrentRow = 0L;
-        }
+    public long getCellTsPairsExaminedInCurrentRow() {
+        return cellTsPairsExaminedInCurrentRow;
+    }
 
-        if (sameRow && sameCol) {
-            return Optional.empty();
+    public void restartFromNextRow() {
+        @Nullable byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, currentRowName);
+        if (nextRow == null) {
+            reachedEnd = true;
         } else {
-            Optional<CandidateCellForSweeping> candidate = getCurrentCandidate();
-            updatePagingState(cellTs);
-            return candidate;
+            updateStateForNewRow(nextRow);
         }
     }
 
-    private void updatePagingState(CellTsPairInfo latestCandidate) {
-        currentCellTimestamps.clear();
+    private void updateStateForNewRow(byte[] nextRow) {
+        currentRowName = nextRow;
+        currentColName = PtBytes.EMPTY_BYTE_ARRAY;
         maxSeenTimestampForCurrentCell = null;
-        currentRowName = latestCandidate.rowName;
-        currentColName = latestCandidate.colName;
+        currentCellTimestamps.clear();
         currentIsLatestValueEmpty = false;
+        cellTsPairsExaminedInCurrentRow = 0L;
+        reachedEnd = false;
     }
 
 }
