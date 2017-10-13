@@ -114,6 +114,10 @@ public class SerializableTransactionManagerTest {
                 false); // initializeAsync
 
         when(mockKvs.isInitialized()).thenReturn(false);
+        when(mockTimelockService.isInitialized()).thenReturn(false);
+        when(mockCleaner.isInitialized()).thenReturn(false);
+        when(mockInitializer.isInitialized()).thenReturn(false);
+
         assertTrue(theManager.isInitialized());
     }
 }
