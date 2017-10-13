@@ -9,6 +9,7 @@
   </appender>
 
   <logger name="org.apache.cassandra" level="WARN"/>
+  <logger name="com.palantir.atlasdb.keyvalue.cassandra.Heartbeat" level="DEBUG"/>
 
   <root level="info">
     <appender-ref ref="STDOUT" />
