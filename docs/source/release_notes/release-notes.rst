@@ -44,8 +44,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Sweep is now more efficient on Cassandra, Postgres and Oracle.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -131,11 +133,6 @@ v0.60.0
          - When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
            We now throw the actual cause for the invocation exception.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
-
-    *    - |improved|
-         - Sweep is now more efficient on Cassandra, Postgres and Oracle.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
