@@ -72,6 +72,11 @@ develop
            This will help support large internal product's usage of the Timelock server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
+    *    - |improved|
+         - Sweep is now more efficient on Cassandra, Postgres and Oracle.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -449,6 +454,7 @@ v0.54.0
     *    - |changed|
          - Updated our dependency on ``sls-packaging`` from 2.3.1 to 2.4.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2268>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -500,11 +506,6 @@ v0.53.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2207>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
-    *    - |improved|
-         - New efficient and OOM-proof implementation of sweep for Cassandra KVS.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2231>`__)
-
 
 =======
 v0.52.0
