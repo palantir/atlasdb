@@ -108,14 +108,17 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadS
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnFetchMode;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.RowRangeLoader;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.SingleRowColumnPager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.sweep.CassandraGetCandidateCellsForSweepingImpl;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -191,7 +194,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     protected final CassandraKeyValueServiceConfigManager configManager;
 
     private final Optional<CassandraJmxCompactionManager> compactionManager;
-    private final CassandraClientPool clientPool;
+
+    @VisibleForTesting
+    final CassandraClientPool clientPool;
 
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
@@ -206,6 +211,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
+
+    private final CassandraGetCandidateCellsForSweepingImpl getCandidateCellsForSweepingImpl;
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
@@ -263,6 +270,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
+
+        SingleRowColumnPager singleRowPager = new SingleRowColumnPager(clientPool, queryRunner);
+        CellPager cellPager = new CellPager(
+                singleRowPager, clientPool, queryRunner, new CellPagerBatchSizingStrategy());
+        this.getCandidateCellsForSweepingImpl = new CassandraGetCandidateCellsForSweepingImpl(cellPager);
     }
 
     @Override
@@ -1454,7 +1466,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
+        return ClosableIterators.wrap(
+                getCandidateCellsForSweepingImpl.getCandidateCellsForSweeping(tableRef, request, deleteConsistency));
     }
 
     private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
@@ -1463,12 +1476,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int columnBatchSize,
             long timestamp,
             ConsistencyLevel consistency) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ONE);
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
 
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
-        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor::new, timestamp);
+        return getRangeWithPageCreator(
+                rowRangeLoader,
+                ColumnFetchMode.fetchAtMost(1),
+                columnGetter,
+                rangeRequest,
+                TimestampExtractor::new,
+                timestamp);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
@@ -1477,14 +1496,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long timestamp,
             ConsistencyLevel consistency,
             Supplier<ResultsExtractor<T>> resultsExtractor) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
-        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
+        return getRangeWithPageCreator(
+                rowRangeLoader, ColumnFetchMode.fetchAll(), columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
-            RowGetter rowGetter,
+            RowRangeLoader rowRangeLoader,
+            ColumnFetchMode fetchMode,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
@@ -1497,7 +1518,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
-                rowGetter,
+                rowRangeLoader,
+                fetchMode,
                 columnGetter,
                 rangeRequest,
                 resultsExtractor,
