@@ -16,7 +16,10 @@
 package com.palantir.atlasdb.cleaner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.junit.After;
 import org.junit.Before;
@@ -49,6 +52,19 @@ public class AsyncPuncherTest {
     @After
     public void tearDown() {
         asyncPuncher.shutdown();
+    }
+
+    @Test
+    public void delegatesInitializationCheck() {
+        Puncher delegate = mock(Puncher.class);
+        Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL);
+
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(puncher.isInitialized());
+        assertTrue(puncher.isInitialized());
     }
 
     @Test

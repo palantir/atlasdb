@@ -110,7 +110,7 @@ public final class SweeperServiceImpl implements SweeperService {
         if (startRow == null) {
             return PtBytes.EMPTY_BYTE_ARRAY;
         }
-        return BaseEncoding.base16().decode(startRow);
+        return BaseEncoding.base16().decode(startRow.toUpperCase());
     }
 
     private void runSweepWithoutSavingResults(TableReference tableRef) {

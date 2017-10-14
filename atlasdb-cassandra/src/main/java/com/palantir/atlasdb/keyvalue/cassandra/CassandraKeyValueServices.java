@@ -113,11 +113,9 @@ public final class CassandraKeyValueServices {
                         + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
                         + " and examine their logs to determine the issue."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                        + " You can quick-check this with 'nodetool describecluster'."
-                        + " For this node, the current keyspaces are: %s",
+                        + " You can quick-check this with 'nodetool describecluster'.",
                 tableName,
-                schemaVersions.toString(),
-                client.describe_keyspaces());
+                schemaVersions.toString());
         throw new IllegalStateException(errorMessage);
     }
 

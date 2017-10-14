@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.impl;
+package com.palantir.lock.client;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;

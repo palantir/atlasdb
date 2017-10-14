@@ -31,6 +31,7 @@ import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
@@ -73,6 +74,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
+        environment.jersey().register(new NotInitializedExceptionMapper());
     }
 
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)

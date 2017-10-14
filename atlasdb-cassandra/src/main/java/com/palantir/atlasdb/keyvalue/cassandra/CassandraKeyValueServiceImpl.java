@@ -277,6 +277,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.getCandidateCellsForSweepingImpl = new CassandraGetCandidateCellsForSweepingImpl(cellPager);
     }
 
+    @Override
     public boolean isInitialized() {
         return wrapper.isInitialized();
     }
