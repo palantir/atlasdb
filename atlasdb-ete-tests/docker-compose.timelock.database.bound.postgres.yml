@@ -36,3 +36,5 @@ services:
     command: exit
     depends_on:
       - ete1
+    environment:
+      - ME=ete1
