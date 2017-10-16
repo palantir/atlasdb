@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -198,7 +197,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col4", "v5", 3);
         putDirect("row1a", "col4", "v5", 100);
         putDirect("row2", "col2", "v3", 1);
-        putDirect("row2", "col2", "v6", 2);
         putDirect("row2", "col4", "v4", 6);
 
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().build(), 1));
@@ -237,13 +235,12 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testKeyValueRangeSingleColumnSelection() {
+    public void testKeyValueRangeColumnSelection() {
         putDirect("row1", "col1", "v1", 0);
         putDirect("row1", "col2", "v2", 2);
         putDirect("row1", "col4", "v5", 3);
         putDirect("row1a", "col4", "v5", 100);
         putDirect("row2", "col2", "v3", 1);
-        putDirect("row2", "col2", "v6", 2);
         putDirect("row2", "col4", "v4", 6);
 
         List<byte[]> selectedColumns = ImmutableList.of(PtBytes.toBytes("col2"));
@@ -253,77 +250,23 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 2));
         assertEquals(1, list.size());
-        assertContainsCells(list.get(0), "row2", ImmutableMap.of("col2", "v3"));
+        RowResult<Value> row = list.iterator().next();
+        assertEquals(1, row.getColumns().size());
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 3));
         assertEquals(2, list.size());
-        assertContainsCells(list.get(0), "row1", ImmutableMap.of("col2", "v2"));
-        assertContainsCells(list.get(1), "row2", ImmutableMap.of("col2", "v6"));
+        row = list.iterator().next();
+        assertEquals(1, row.getColumns().size());
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange.getBuilder().endRowExclusive(PtBytes.toBytes("row2")).build(), 3));
         assertEquals(1, list.size());
-        assertContainsCells(list.get(0), "row1", ImmutableMap.of("col2", "v2"));
+        row = list.iterator().next();
+        assertEquals(1, row.getColumns().size());
 
         list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange.getBuilder().startRowInclusive(PtBytes.toBytes("row1a")).build(), 3));
         assertEquals(1, list.size());
-        assertContainsCells(list.get(0), "row2", ImmutableMap.of("col2", "v6"));
-    }
-
-    @Test
-    public void testKeyValueRangeMultiColumnSelection() {
-        putDirect("row1", "col1", "v1", 0);
-        putDirect("row1", "col2", "v2", 2);
-        putDirect("row1", "col4", "v5", 3);
-        putDirect("row1a", "col4", "v5", 100);
-        putDirect("row2", "col2", "v3", 1);
-        putDirect("row2", "col2", "v6", 2);
-        putDirect("row2", "col4", "v4", 6);
-
-        List<byte[]> selectedColumns = ImmutableList.of(PtBytes.toBytes("col1"), PtBytes.toBytes("col2"));
-        RangeRequest simpleRange = RangeRequest.builder().retainColumns(ColumnSelection.create(selectedColumns)).build();
-        ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 1));
-        assertEquals(1, list.size());
-        assertContainsCells(list.get(0), "row1", ImmutableMap.of("col1", "v1"));
-
-        list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 2));
-        assertEquals(2, list.size());
-        assertContainsCells(list.get(0), "row1", ImmutableMap.of("col1", "v1"));
-        assertContainsCells(list.get(1), "row2", ImmutableMap.of("col2", "v3"));
-
-        list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange, 3));
-        assertEquals(2, list.size());
-        assertContainsCells(list.get(0), "row1", ImmutableMap.of("col1", "v1", "col2", "v2"));
-        assertContainsCells(list.get(1), "row2", ImmutableMap.of("col2", "v6"));
-
-        list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange.getBuilder().endRowExclusive(PtBytes.toBytes("row2")).build(), 3));
-        assertEquals(1, list.size());
-        assertContainsCells(list.get(0), "row1", ImmutableMap.of("col2", "v2"));
-
-        list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, simpleRange.getBuilder().startRowInclusive(PtBytes.toBytes("row1a")).build(), 3));
-        assertEquals(1, list.size());
-        assertEquals(1, list.size());
-        assertContainsCells(list.get(0), "row2", ImmutableMap.of("col2", "v6"));
-    }
-
-    private void assertContainsCells(
-            RowResult<Value> rowResult,
-            String rowName,
-            Map<String, String> valuesByColumn) {
-        Map<Cell, ByteBuffer> expectedCells = Maps.newHashMap();
-        valuesByColumn.forEach((column, value) -> {
-            expectedCells.put(
-                    Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(column)),
-                    ByteBuffer.wrap(PtBytes.toBytes(value)));
-        });
-
-        Map<Cell, ByteBuffer> actualCells = Maps.newHashMap();
-        rowResult.getCells().forEach(entry -> {
-            actualCells.put(
-                    entry.getKey(),
-                    ByteBuffer.wrap(entry.getValue().getContents()));
-        });
-
-        assertEquals(expectedCells, actualCells);
+        row = list.iterator().next();
+        assertEquals(1, row.getColumns().size());
     }
 
     @Test

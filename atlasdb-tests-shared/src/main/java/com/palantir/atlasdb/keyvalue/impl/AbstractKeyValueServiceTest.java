@@ -853,6 +853,8 @@ public abstract class AbstractKeyValueServiceTest {
         }
         keyValueService.truncateTable(TEST_TABLE);
         keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
+        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP - 10);
+        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP + 10);
     }
 
     private void doTestGetRangePagingWithColumnSelection(int batchSizeHint,
