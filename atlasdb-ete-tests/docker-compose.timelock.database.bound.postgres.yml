@@ -2,7 +2,7 @@ version: '2'
 
 services:
   timelock:
-    image: palantirtechnologies/timelock-server-distribution
+    image: palantirtechnologies/timelock-server-distribution:latest
     command: [bash, -c, 'cp var/conf/timelock-postgres.yml var/conf/timelock.yml && service/bin/init.sh console']
     depends_on:
       - postgres
