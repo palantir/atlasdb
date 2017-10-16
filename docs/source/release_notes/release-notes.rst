@@ -109,6 +109,11 @@ v0.61.0
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
 
+    *    - |improved|
+         - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
+           it is more likely that this will be configured via per-service overrides for the services for whom the
+           current cache size is inadequate.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2496>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

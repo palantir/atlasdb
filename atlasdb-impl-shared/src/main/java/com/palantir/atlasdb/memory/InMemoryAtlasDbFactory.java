@@ -26,6 +26,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -67,6 +68,13 @@ import com.palantir.timestamp.TimestampService;
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     private static final Logger log = LoggerFactory.getLogger(InMemoryAtlasDbFactory.class);
+
+    /**
+     * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
+     * To be removed whenever someone removes the deprecated constructors that don't know about atlas configs...
+     */
+    @Deprecated
+    private static final long DEFAULT_TIMESTAMP_CACHE_SIZE = AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
 
     /**
      * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
@@ -173,7 +181,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 sweepStrategyManager,
                 cleaner,
                 DEFAULT_MAX_CONCURRENT_RANGES,
-                DEFAULT_GET_RANGES_CONCURRENCY);
+                DEFAULT_GET_RANGES_CONCURRENCY,
+                DEFAULT_TIMESTAMP_CACHE_SIZE);
         cleaner.start(ret);
         return ret;
     }

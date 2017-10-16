@@ -103,7 +103,8 @@ public class TestTransactionManagerModule {
                 cleaner,
                 config.allowAccessToHiddenTables(),
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
-                config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency());
+                config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
+                config.atlasDbConfig().getTimestampCacheSize());
     }
 
 }
