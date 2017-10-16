@@ -196,18 +196,163 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
-<td>AtlasDB no longer tries to register Cassandra metrics for each pool with the same names.
-We now add <cite>poolN</cite> to the metric name in CassandraClientPoolingContainer, where N is the pool number.
-This will prevent spurious stacktraces in logs due to failure in registering metrics with the same name.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2415">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Sweep is now more efficient on Cassandra, Postgres and Oracle.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2436">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-60-0">
+<h2>v0.60.0<a class="headerlink" href="#v0-60-0" title="Permalink to this headline">¶</a></h2>
+<p>12 October 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">AtlasDB now supports asynchronous initialization, where <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> creates a <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> even when initialization fails, for instance because the KVS is not up yet.</p>
+<p>To enable asynchronous initialization, a new config option <code class="docutils literal"><span class="pre">initializeAsync</span></code> was added to AtlasDbConfig.
+If this option is set to true, <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> first attempts to create a <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> synchronously, i.e., consistent with current behaviour.
+If this fails, it returns a <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> for which the necessary initialization is scheduled in the background and which throws a <code class="docutils literal"><span class="pre">NotInitializedException</span></code> on any method call until the initialization completes - this is, until the backing store becomes available.</p>
+<p>While waiting for AtlasDB to be ready, clients can poll <code class="docutils literal"><span class="pre">isInitialized()</span></code> on the returned <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code>.</p>
+<p class="last">The default value for the config  is <code class="docutils literal"><span class="pre">false</span></code> in order to preserve previous behaviour.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2390">Pull Request 1</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2476">Pull Request 2</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
+We recommend this to be configured only for cases where you absolutely need to persist all state in the database, for example,
+in special cases where backups are simply database dumps and do not have any mechanism for storing timestamps.
+This will help support large internal product’s usage of the Timelock server.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2364">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">In order to limit the access to inner methods, and to make the implementation of the above feasible, we’ve extracted interfaces and renamed the following classes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">CassandraClientPool</span></code></li>
+<li><code class="docutils literal"><span class="pre">CassandraKeyValueService</span></code></li>
+<li><code class="docutils literal"><span class="pre">LockStore</span></code></li>
+<li><code class="docutils literal"><span class="pre">PersistentTimestampService</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">Now the factory methods for the above classes return the interfaces. The actual implementation of such classes was moved to their corresponding *Impl files.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2390">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">LockRefreshingTimelockService</span></code> has been moved to the <code class="docutils literal"><span class="pre">lock-api</span></code> project under the package name <code class="docutils literal"><span class="pre">com.palantir.lock.client</span></code>, and now implements
+<code class="docutils literal"><span class="pre">AutoCloseable</span></code>, shutting down its internal executor service.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2451">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">PersistentLockManager</span></code> can now reacquire the persistent lock if another process unilaterally clears the lock.
+Previously in this case, sweep would continually fail to acquire the lock until the service restarts.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2419">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">CassandraClientPool</span></code> no longer logs stack traces twice for every failed attempt to connect to Cassandra.
+Instead, the exception is logged once only, when we run out of retries.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2432">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
+Previously, giving a start row with hex characters in lower case e.g. <code class="docutils literal"><span class="pre">deadbeef</span></code> would result in an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code> being thrown.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2468">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">Removed the following unnecessary classes related to wrapping KVSes:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">NamespacedKeyValueService</span></code></li>
+<li><code class="docutils literal"><span class="pre">NamespaceMappingKeyValueService</span></code></li>
+<li><code class="docutils literal"><span class="pre">NamespacedKeyValueServices</span></code></li>
+<li><code class="docutils literal"><span class="pre">StaticTableMappingService</span></code></li>
+</ul>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2448">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Lock state logging will dump <code class="docutils literal"><span class="pre">expiresIn</span></code> of refreshed token, instead of original, which was negative after refreshing.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2469">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
+We now throw the actual cause for the invocation exception.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2460">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-59-1">
+<h2>v0.59.1<a class="headerlink" href="#v0-59-1" title="Permalink to this headline">¶</a></h2>
+<p>04 October 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Allow passing a <a class="reference external" href="https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java">ProxyConfiguration</a> to allow setting custom proxy on the TimeLock clients.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2393">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-59-0">
+<h2>v0.59.0<a class="headerlink" href="#v0-59-0" title="Permalink to this headline">¶</a></h2>
+<p>04 October 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Timestamp batching has now been enabled by default.
 Please see <a class="reference internal" href="../configuration/timestamp_client.html#timestamp-client-config"><span class="std std-ref">Timestamp Client Options</span></a> for details.
 This should improve throughput and latency, especially if load is heavy and/or clients are communicating with a TimeLock cluster which is used by many services.
 Note that there may be an increase in latency under light load (e.g. 2-4 threads).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2392">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now offers a simplified version of the schema API by setting the <code class="docutils literal"><span class="pre">enableV2Table()</span></code> flag in your TableDefinition.
+This would generate an additional table class with some easy to use functions such as <code class="docutils literal"><span class="pre">putColumn(key,</span> <span class="pre">value)</span></code>, <code class="docutils literal"><span class="pre">getColumn(key)</span></code>, <code class="docutils literal"><span class="pre">deleteColumn(key)</span></code>.
+We only provide these methods for named columns, and don’t currently support dynamic columns.
+You can add this to your current Schema, and use the new simplified APIs by using the V2 generated table.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2401">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now offers specifying <code class="docutils literal"><span class="pre">hashFirstNRowComponents(n)</span></code> in Table and Index definitions.
+This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
+When using with prefix range requests, the hashed components must also be specified in the prefix.
+Adding this to an existing Schema is not supported, as that would require a data migration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2384">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now offers specifying <code class="docutils literal"><span class="pre">hashRowComponents()</span></code> in StreamStore definitions.
+This prevents hotspotting in Cassandra by prepending the hashed concatenation of the <code class="docutils literal"><span class="pre">streamId</span></code> and <code class="docutils literal"><span class="pre">blockId</span></code> to the row key.
+Adding this to an existing StreamStore is not supported, as that would require a data migration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2384">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal"><span class="pre">lock/log-current-state</span></code> endpoint now correctly logs the number of outstanding lock requests.
@@ -218,33 +363,25 @@ Note that there may be an increase in latency under light load (e.g. 2-4 threads
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2397">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Oracle auto-shrink is now not enabled by default. This is an experimental feature to allow Oracle non-EE users to compact automatically.
-However, it has seen timeouts for large amounts of data. We are turning this off by default, until we figure out a better retry mechanism for
-shrink failures.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/ABCD">Pull Request</a>)</td>
+<td>Oracle auto-shrink is now disabled by default.
+This is an experimental feature allowing Oracle non-EE users to compact automatically.
+We decided to turn it off by default since we have observed timeouts for large amounts of data, until we find a better retry mechanism for shrink failures.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2405">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Can now specify <code class="docutils literal"><span class="pre">hashRowComponents()</span></code> in StreamStore definitions. This prevents hotspotting in Cassandra
-by prepending the hashed concatenation of the <code class="docutils literal"><span class="pre">streamId</span></code> and <code class="docutils literal"><span class="pre">blockId</span></code> to the row key.
-We do not support adding this to an existing StreamStore, as it would require data migration.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2384">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Can now specify <code class="docutils literal"><span class="pre">hashFirstNRowComponents(n)</span></code> in Table and Index definitions.
-This prevents hotspotting by prepending the hashed concatenation of the row components to the row key.
-When using with prefix range requests, the components that are hashed must also be specified in the prefix.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2384">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Can now use a simplified version of the schema API by setting the <code class="docutils literal"><span class="pre">enableV2Table()</span></code> flag in your TableDefinition.
-This would generate an additional table class with some easy to use functions such as <code class="docutils literal"><span class="pre">putColumn(key,</span> <span class="pre">value)</span></code>, <code class="docutils literal"><span class="pre">getColumn(key)</span></code>, <code class="docutils literal"><span class="pre">deleteColumn(key)</span></code>.
-We only provide these methods for named columns, and don’t currently support dynamic columns.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2401">Pull Request</a>)</td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB no longer tries to register Cassandra metrics for each pool with the same names.
+We now add <cite>poolN</cite> to the metric name in CassandraClientPoolingContainer, where N is the pool number.
+This will prevent spurious stacktraces in logs due to failure in registering metrics with the same name.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2415">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
 <td>Adjusted the remoting-api library version to match the version used by remoting3.
 Developers may need to check your dependencies, but no other actions should be required.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2399">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Adjusted optimizer hints for getRange() to prevent Oracle from picking a bad query plan.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2421">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -263,6 +400,14 @@ Developers may need to check your dependencies, but no other actions should be r
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB now logs slow queries CQL queries (via <code class="docutils literal"><span class="pre">kvs-slow-log</span></code>) used for sweep
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2363">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw “shutdown” exceptions, which was likely due to a documented bug in okhttp 3.4.1.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2343">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Upgraded all uses of <a class="reference external" href="https://github.com/palantir/http-remoting">http-remoting</a> from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).
 Developers may need to check their dependencies, as well as update instantiation of their calls to <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> to use the remoting3 API.
