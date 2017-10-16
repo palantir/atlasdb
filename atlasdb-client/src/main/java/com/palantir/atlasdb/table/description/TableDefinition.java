@@ -18,6 +18,7 @@ package com.palantir.atlasdb.table.description;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -339,6 +340,12 @@ public class TableDefinition extends AbstractDefinition {
         return this.v2TableEnabled;
     }
 
+    /**
+     * Enables generates of a separate set of "v2" tables, with simplified APIs for reading and writing data.
+     *
+     * This is a beta feature. API stability is not guaranteed, and the risk of defects is higher.
+     */
+    @Beta
     public void enableV2Table() {
         this.v2TableEnabled = true;
     }

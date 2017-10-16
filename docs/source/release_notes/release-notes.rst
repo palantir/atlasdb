@@ -73,6 +73,9 @@ develop
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *   - |fixed|
+        - V2 generated tables now support using ``Persistable``s as column values. Note that this is still a beta feature, and API stability is not guaranteed.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2495>`__)         
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -108,7 +111,6 @@ v0.61.0
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

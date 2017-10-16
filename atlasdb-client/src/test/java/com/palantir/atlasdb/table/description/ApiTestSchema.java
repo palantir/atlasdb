@@ -19,6 +19,7 @@ import java.io.File;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.table.description.test.StringValuePersister;
 
 /**
  * Schema used to test for Table API correctness and for accidental TableRenderer changes.
@@ -37,14 +38,12 @@ public class ApiTestSchema implements AtlasSchema {
 
         schema.addTableDefinition("SchemaApiTest", new TableDefinition() {
             {
-                javaTableName("SchemaApiTest");
-
                 rowName();
                 rowComponent("component1", ValueType.STRING);
 
                 columns();
                 column("column1", "c", ValueType.VAR_LONG);
-                column("column2", "d", ValueType.STRING);
+                column("column2", "d", StringValuePersister.class);
 
                 enableV2Table();
                 rangeScanAllowed();
@@ -53,8 +52,6 @@ public class ApiTestSchema implements AtlasSchema {
 
         schema.addTableDefinition("HashComponentsTest", new TableDefinition() {
             {
-                javaTableName("HashComponentsTest");
-
                 rowName();
                 hashFirstNRowComponents(2);
                 rowComponent("component1", ValueType.VAR_LONG);
