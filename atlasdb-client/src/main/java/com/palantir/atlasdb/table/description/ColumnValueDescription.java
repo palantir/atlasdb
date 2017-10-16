@@ -199,6 +199,34 @@ public final class ColumnValueDescription {
         return type.getJavaObjectClassName();
     }
 
+    public Class getJavaObjectTypeClass() {
+        if (format == Format.PERSISTER) {
+            return getPersister().getPersistingClassType();
+        }
+        if (canonicalClassName != null) {
+            try {
+                return Class.forName(canonicalClassName);
+            } catch (ClassNotFoundException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        return type.getJavaObjectClass();
+    }
+
+    public Class getJavaTypeClass() {
+        if (format == Format.PERSISTER) {
+            return getPersister().getPersistingClassType();
+        }
+        if (canonicalClassName != null) {
+            try {
+                return Class.forName(canonicalClassName);
+            } catch (ClassNotFoundException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        return type.getJavaClass();
+    }
+
     public Persister<?> getPersister() {
         Preconditions.checkArgument(Format.PERSISTER == format);
             @SuppressWarnings("unchecked")
@@ -274,7 +302,7 @@ public final class ColumnValueDescription {
 
     public Class<?> getImportClass(ClassLoader classLoader) {
         if (className == null) {
-            return type.getTypeClass();
+            return type.getJavaClass();
         }
         try {
             return Class.forName(className, true, classLoader);

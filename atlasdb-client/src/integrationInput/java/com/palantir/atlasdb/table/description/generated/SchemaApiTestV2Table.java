@@ -13,6 +13,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.table.description.StringValue;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
@@ -166,7 +167,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Returns the value for column Column2 and specified row components. */
-    public Optional<String> getColumn2(String component1) {
+    public Optional<StringValue> getColumn2(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
         ColumnSelection colSelection = 
@@ -184,7 +185,7 @@ public class SchemaApiTestV2Table {
      * Returns a mapping from the specified row keys to their value at column Column2.
      * As the Column2 values are all loaded in memory, do not use for large amounts of data.
      * If the column does not exist for a key, the entry will be omitted from the map. */
-    public Map<String, String> getColumn2(Iterable<String> rowKeys) {
+    public Map<String, StringValue> getColumn2(Iterable<String> rowKeys) {
         ColumnSelection colSelection = 
                  ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists
@@ -207,14 +208,14 @@ public class SchemaApiTestV2Table {
      * Returns a mapping from all the row keys in a rangeRequest to their value at column Column2
      * (if that column exists for the row-key). As the Column2 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map. */
-    public LinkedHashMap<String, String> getSmallRowRangeColumn2(RangeRequest rangeRequest) {
+    public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest) {
         ColumnSelection colSelection =
                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column2.");
 
-        LinkedHashMap<String, String> resultsMap = new LinkedHashMap<>();
+        LinkedHashMap<String, StringValue> resultsMap = new LinkedHashMap<>();
         BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
                 .immutableCopy().forEach(entry -> {
                      SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
@@ -228,7 +229,7 @@ public class SchemaApiTestV2Table {
      * Returns a mapping from all the row keys in a range to their value at column Column2
      * (if that column exists for the row-key). As the Column2 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map. */
-    public LinkedHashMap<String, String> getSmallRowRangeColumn2(String startInclusive,
+    public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(String startInclusive,
             String endExclusive) {
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(SchemaApiTestTable.SchemaApiTestRow.of(startInclusive).persistToBytes())
@@ -241,7 +242,7 @@ public class SchemaApiTestV2Table {
      * Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value
      * at column Column2 (if that column exists). As the Column2 entries are all loaded in memory,
      * do not use for large values of sizeLimit. The order of results is preserved in the map. */
-    public LinkedHashMap<String, String> getSmallRowRangeColumn2(RangeRequest rangeRequest,
+    public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest,
             int sizeLimit) {
         ColumnSelection colSelection =
                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
@@ -249,7 +250,7 @@ public class SchemaApiTestV2Table {
         Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
                 "Must not request columns other than Column2.");
 
-        LinkedHashMap<String, String> resultsMap = new LinkedHashMap<>();
+        LinkedHashMap<String, StringValue> resultsMap = new LinkedHashMap<>();
         BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
                 .batchAccept(sizeLimit, batch -> {
                      batch.forEach(entry -> {
@@ -293,7 +294,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Takes the row-keys and a value to be inserted at column Column1. */
-    public void putColumn1(String component1, Long column1) {
+    public void putColumn1(String component1, long column1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         t.put(tableRef, ColumnValues.toCellValues(ImmutableMultimap.of(row, SchemaApiTestTable.Column1.of(column1))));
     }
@@ -314,7 +315,7 @@ public class SchemaApiTestV2Table {
 
     /**
      * Takes the row-keys and a value to be inserted at column Column2. */
-    public void putColumn2(String component1, String column2) {
+    public void putColumn2(String component1, StringValue column2) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         t.put(tableRef, ColumnValues.toCellValues(ImmutableMultimap.of(row, SchemaApiTestTable.Column2.of(column2))));
     }
@@ -323,10 +324,10 @@ public class SchemaApiTestV2Table {
      * Takes a function that would update the value at column Column2, for the specified row
      * components. No effect if there is no value at that column. Doesn't do an additional
      * write if the new value is the same as the old one. */
-    public void updateColumn2(String component1, Function<String, String> processor) {
-        Optional<String> result = getColumn2(component1);
+    public void updateColumn2(String component1, Function<StringValue, StringValue> processor) {
+        Optional<StringValue> result = getColumn2(component1);
         if (result.isPresent()) {
-            String newValue = processor.apply(result.get());
+            StringValue newValue = processor.apply(result.get());
             if (Objects.equals(newValue, result.get()) == false) {
                 putColumn2(component1, processor.apply(result.get()));
             }

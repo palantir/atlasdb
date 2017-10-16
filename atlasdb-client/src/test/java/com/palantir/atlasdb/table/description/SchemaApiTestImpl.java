@@ -79,7 +79,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, StringValue> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
         ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
@@ -100,7 +100,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected Map<String,String> getRangeSecondColumnOnlyFirstTwoResults(
+    protected Map<String, StringValue> getRangeSecondColumnOnlyFirstTwoResults(
             Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 

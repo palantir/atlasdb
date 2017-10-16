@@ -21,7 +21,8 @@ import static com.palantir.atlasdb.table.description.render.ColumnRenderers.VarN
 import static com.palantir.atlasdb.table.description.render.Renderers.CamelCase;
 import static com.palantir.atlasdb.table.description.render.Renderers.addParametersFromRowComponents;
 import static com.palantir.atlasdb.table.description.render.Renderers.getArgumentsFromRowComponents;
-import static com.palantir.atlasdb.table.description.render.Renderers.getColumnTypeClass;
+import static com.palantir.atlasdb.table.description.render.Renderers.getColumnClassForGenericTypeParameter;
+import static com.palantir.atlasdb.table.description.render.Renderers.getColumnClass;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -260,7 +261,7 @@ public class TableClassRendererV2 {
 
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Optional.class),
-                ClassName.get(getColumnTypeClass(col))));
+                ClassName.get(getColumnClassForGenericTypeParameter(col))));
         getterBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("byte[] bytes = row.persistToBytes()")
@@ -295,13 +296,13 @@ public class TableClassRendererV2 {
                 .addParameter(
                         ParameterizedTypeName.get(
                                 ClassName.get(Iterable.class),
-                                ClassName.get(rowComponent.getType().getTypeClass())),
+                                ClassName.get(rowComponent.getType().getJavaClass())),
                         "rowKeys");
 
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class),
-                ClassName.get(rowComponent.getType().getTypeClass()),
-                ClassName.get(getColumnTypeClass(col))));
+                ClassName.get(rowComponent.getType().getJavaClass()),
+                ClassName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
@@ -343,7 +344,7 @@ public class TableClassRendererV2 {
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class),
                 rowType,
-                ClassName.get(getColumnTypeClass(col))));
+                ClassName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
@@ -379,8 +380,8 @@ public class TableClassRendererV2 {
                 .addParameter(RangeRequest.class, "rangeRequest")
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(LinkedHashMap.class),
-                        ClassName.get(rowComponent.getType().getTypeClass()),
-                        ClassName.get(getColumnTypeClass(col))));
+                        ClassName.get(rowComponent.getType().getJavaClass()),
+                        ClassName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
@@ -392,8 +393,8 @@ public class TableClassRendererV2 {
                         Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
                 .addCode("\n")
                 .addStatement("$T<$T, $T> resultsMap = new $T<>()",
-                        LinkedHashMap.class, rowComponent.getType().getTypeClass(),
-                        getColumnTypeClass(col), LinkedHashMap.class)
+                        LinkedHashMap.class, rowComponent.getType().getJavaClass(),
+                        getColumnClassForGenericTypeParameter(col), LinkedHashMap.class)
                 .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".immutableCopy().forEach(entry -> {\n"
                                 + "     $T resultEntry =\n "
@@ -417,12 +418,12 @@ public class TableClassRendererV2 {
                             + "(if that column exists for the row-key). As the $L values are all loaded in memory,\n"
                             + "do not use for large amounts of data. The order of results is preserved in the map.",
                         VarName(col), VarName(col))
-                .addParameter(rowComponent.getType().getTypeClass(), "startInclusive")
-                .addParameter(rowComponent.getType().getTypeClass(), "endExclusive")
+                .addParameter(rowComponent.getType().getJavaClass(), "startInclusive")
+                .addParameter(rowComponent.getType().getJavaClass(), "endExclusive")
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(LinkedHashMap.class),
-                        ClassName.get(rowComponent.getType().getTypeClass()),
-                        ClassName.get(getColumnTypeClass(col))));
+                        ClassName.get(rowComponent.getType().getJavaClass()),
+                        ClassName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T rangeRequest = $T.builder()\n"
@@ -448,8 +449,8 @@ public class TableClassRendererV2 {
                 .addParameter(int.class, "sizeLimit")
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(LinkedHashMap.class),
-                        ClassName.get(rowComponent.getType().getTypeClass()),
-                        ClassName.get(getColumnTypeClass(col))));
+                        ClassName.get(rowComponent.getType().getJavaClass()),
+                        ClassName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
@@ -462,8 +463,8 @@ public class TableClassRendererV2 {
                         Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
                 .addCode("\n")
                 .addStatement("$T<$T, $T> resultsMap = new $T<>()",
-                        LinkedHashMap.class, rowComponent.getType().getTypeClass(),
-                        getColumnTypeClass(col), LinkedHashMap.class)
+                        LinkedHashMap.class, rowComponent.getType().getJavaClass(),
+                        getColumnClassForGenericTypeParameter(col), LinkedHashMap.class)
                 .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".batchAccept(sizeLimit, batch -> {\n"
                                 + "     batch.forEach(entry -> {\n"
@@ -491,7 +492,7 @@ public class TableClassRendererV2 {
                 .returns(ParameterizedTypeName.get(
                             ClassName.get(LinkedHashMap.class),
                             rowType,
-                            ClassName.get(getColumnTypeClass(col))));
+                            ClassName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
@@ -503,7 +504,7 @@ public class TableClassRendererV2 {
                         Preconditions.class, "Must not request additional columns.")
                 .addCode("\n")
                 .addStatement("$T<$T, $T> resultsMap = new $T<>()",
-                        LinkedHashMap.class, rowType, getColumnTypeClass(col), LinkedHashMap.class)
+                        LinkedHashMap.class, rowType, getColumnClassForGenericTypeParameter(col), LinkedHashMap.class)
                 .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".immutableCopy().forEach(entry -> {\n"
                                 + "     $T resultEntry =\n "
@@ -529,7 +530,7 @@ public class TableClassRendererV2 {
                 .returns(ParameterizedTypeName.get(
                         ClassName.get(LinkedHashMap.class),
                         rowType,
-                        ClassName.get(getColumnTypeClass(col))));
+                        ClassName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection =\n"
@@ -542,7 +543,7 @@ public class TableClassRendererV2 {
                         Preconditions.class, "Must not request columns other than " + VarName(col) + "." )
                 .addCode("\n")
                 .addStatement("$T<$T, $T> resultsMap = new $T<>()",
-                        LinkedHashMap.class, rowType, getColumnTypeClass(col), LinkedHashMap.class)
+                        LinkedHashMap.class, rowType, getColumnClassForGenericTypeParameter(col), LinkedHashMap.class)
                 .addStatement("$T.of(t.getRange(tableRef, rangeRequest))\n"
                                 + ".batchAccept(sizeLimit, batch -> {\n"
                                 + "     batch.forEach(entry -> {\n"
@@ -626,7 +627,7 @@ public class TableClassRendererV2 {
         putColumnBuilder = addParametersFromRowComponents(putColumnBuilder, tableMetadata);
 
         TypeName columnValueType = tableType.nestedClass(VarName(col));
-        putColumnBuilder.addParameter(getColumnTypeClass(col), col.getLongName());
+        putColumnBuilder.addParameter(getColumnClass(col), col.getLongName());
         putColumnBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("t.put(tableRef, $T.toCellValues($T.of(row, $T.of($L))))",
@@ -644,14 +645,14 @@ public class TableClassRendererV2 {
         updateColumnIfExistsBuilder = addParametersFromRowComponents(updateColumnIfExistsBuilder, tableMetadata);
         updateColumnIfExistsBuilder.addParameter(ParameterizedTypeName.get(
                 ClassName.get(Function.class),
-                ClassName.get(getColumnTypeClass(col)),
-                ClassName.get(getColumnTypeClass(col))), "processor");
+                ClassName.get(getColumnClassForGenericTypeParameter(col)),
+                ClassName.get(getColumnClassForGenericTypeParameter(col))), "processor");
         String args = getArgumentsFromRowComponents(tableMetadata);
         updateColumnIfExistsBuilder
                 .addStatement("$T<$T> result = get$L($L)",
-                        Optional.class, getColumnTypeClass(col), VarName(col), args)
+                        Optional.class, getColumnClassForGenericTypeParameter(col), VarName(col), args)
                 .beginControlFlow("if (result.isPresent())")
-                .addStatement("$T newValue = processor.apply(result.get())", getColumnTypeClass(col))
+                .addStatement("$T newValue = processor.apply(result.get())", getColumnClassForGenericTypeParameter(col))
                 .beginControlFlow("if ($T.equals(newValue, result.get()) == false)", Objects.class)
                 .addStatement("put$L($L, processor.apply(result.get()))", VarName(col), args)
                 .endControlFlow()
