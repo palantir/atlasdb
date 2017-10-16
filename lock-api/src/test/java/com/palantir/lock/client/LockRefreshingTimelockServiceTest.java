@@ -17,6 +17,8 @@
 package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -55,6 +57,16 @@ public class LockRefreshingTimelockServiceTest {
     private final TimelockService timelock = new LockRefreshingTimelockService(delegate, refresher);
 
     private static final long TIMEOUT = 10_000;
+
+    @Test
+    public void delegatesInitializationCheck() {
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(timelock.isInitialized());
+        assertTrue(timelock.isInitialized());
+    }
 
 
     @Test
