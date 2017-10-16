@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -33,8 +34,11 @@ public class PostgresDbPersistenceTimelockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithDockerTag(
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setup(
             PostgresDbPersistenceTimelockTestSuite.class,
             "docker-compose.timelock.database.bound.postgres.yml",
-            CLIENTS);
+            CLIENTS,
+            ImmutableMap.of(),
+            true,
+            true);
 }

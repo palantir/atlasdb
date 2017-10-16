@@ -102,12 +102,6 @@ public abstract class EteSetup {
         return setup(eteClass, composeFile, availableClientNames, environment, false);
     }
 
-    public static RuleChain setupCompositionWithDockerTag(Class<?> eteClass,
-            String composeFile,
-            List<String> availableClientNames) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES)
-                .around(DOCKER_TAG_TASK);
-    }
 
     public static RuleChain setup(
             Class<?> eteClass,
@@ -115,6 +109,16 @@ public abstract class EteSetup {
             List<String> availableClientNames,
             Map<String, String> environment,
             boolean waitForServers) {
+        return setup(eteClass, composeFile, availableClientNames, environment, waitForServers, false);
+    }
+
+    public static RuleChain setup(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Map<String, String> environment,
+            boolean waitForServers,
+            boolean withDockerTag) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
         DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
@@ -129,18 +133,20 @@ public abstract class EteSetup {
 
         DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);
 
-        if (waitForServers) {
-            return RuleChain
-                    .outerRule(GRADLE_PREPARE_TASK)
-                    .around(docker)
-                    .around(dockerProxyRule)
-                    .around(waitForServersToBeReady());
-        } else {
-            return RuleChain
-                    .outerRule(GRADLE_PREPARE_TASK)
-                    .around(docker)
-                    .around(dockerProxyRule);
+        RuleChain ruleChain = RuleChain.outerRule(GRADLE_PREPARE_TASK);
+
+        if (withDockerTag) {
+            ruleChain = ruleChain.around(DOCKER_TAG_TASK);
         }
+
+        ruleChain = ruleChain
+                .around(docker)
+                .around(dockerProxyRule);
+
+        if (waitForServers) {
+            ruleChain = ruleChain.around(waitForServersToBeReady());
+        }
+        return ruleChain;
     }
 
 
