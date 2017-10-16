@@ -911,7 +911,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         ByteBuffer start = startColOrEmpty.length == 0
                 ? Range.UNBOUND_START
                 : Range.startOfColumn(startColOrEmpty, startTs);
-        ByteBuffer end = startColOrEmpty.length == 0
+        ByteBuffer end = endColExlusiveOrEmpty.length == 0
                 ? Range.UNBOUND_END
                 : Range.endOfColumn(RangeRequests.previousLexicographicName(endColExlusiveOrEmpty));
         return Range.of(start, end);
