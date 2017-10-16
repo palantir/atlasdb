@@ -32,7 +32,7 @@ public class MetricsManagerTest {
     private static final Class<List> LIST_CLASS = List.class;
     private static final Class<ListIterator> LIST_ITERATOR_CLASS = ListIterator.class;
 
-    private static final String ERROR_PREFIX = "errors";
+    private static final String ERROR_PREFIX = "error";
     private static final String OUT_OF_BOUNDS = "outofbounds";
     private static final String ERROR_OUT_OF_BOUNDS = ERROR_PREFIX + "." + OUT_OF_BOUNDS;
     private static final String OOM = "oom";
