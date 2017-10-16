@@ -58,18 +58,18 @@ public final class SlicePredicates {
         Range ALL = Range.of(UNBOUND_START, UNBOUND_END);
 
         static Range singleColumn(byte[] columnName, long maxTimestampExclusive) {
-            ByteBuffer start = latestVersionForColumn(columnName, maxTimestampExclusive);
-            ByteBuffer end = oldestVersionForColumn(columnName);
+            ByteBuffer start = startOfColumn(columnName, maxTimestampExclusive);
+            ByteBuffer end = endOfColumn(columnName);
             return of(start, end);
         }
 
-        static ByteBuffer latestVersionForColumn(byte[] columnName, long maxTimestampExclusive) {
+        static ByteBuffer startOfColumn(byte[] columnName, long maxTimestampExclusive) {
             return CassandraKeyValueServices.makeCompositeBuffer(
                     columnName,
                     maxTimestampExclusive - 1);
         }
 
-        static ByteBuffer oldestVersionForColumn(byte[] columnName) {
+        static ByteBuffer endOfColumn(byte[] columnName) {
             return CassandraKeyValueServices.makeCompositeBuffer(
                     RangeRequests.previousLexicographicName(columnName),
                     -1);

@@ -910,10 +910,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private Range createColumnRange(byte[] startColOrEmpty, byte[] endColOrEmpty, long startTs) {
         ByteBuffer start = startColOrEmpty.length == 0
                 ? Range.UNBOUND_START
-                : Range.latestVersionForColumn(startColOrEmpty, startTs);
+                : Range.startOfColumn(startColOrEmpty, startTs);
         ByteBuffer end = startColOrEmpty.length == 0
                 ? Range.UNBOUND_END
-                : Range.oldestVersionForColumn(startColOrEmpty);
+                : Range.endOfColumn(startColOrEmpty);
         return Range.of(start, end);
     }
 
@@ -1359,7 +1359,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         }
                     }
                     for (Map<ByteBuffer, Map<String, List<Mutation>>> map : maps.values()) {
-                        // NOTE: we run with ConsistencyLevel.NO_LIMIT here instead of ConsistencyLevel.QUORUM
+                        // NOTE: we run with ConsistencyLevel.ALL here instead of ConsistencyLevel.QUORUM
                         // because we want to remove all copies of this data
                         batchMutateInternal(client, tableRef, map, deleteConsistency);
                     }
