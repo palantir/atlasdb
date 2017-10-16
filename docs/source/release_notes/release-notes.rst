@@ -48,7 +48,9 @@ develop
          - Sweep is now more efficient on Cassandra, Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
 
-
+    *    - |fixed|
+         - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
