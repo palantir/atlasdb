@@ -49,7 +49,6 @@ task longTest(type: Test) {
 task timeLockTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
     include '**/*TimeLock*.class'
-    include '**/PostgresDbPersistenceTimelockTestSuite.class'
 }
 
 task startupIndependenceTest(type: Test) {
@@ -61,7 +60,6 @@ test {
     dependsOn longTest, prepareForEteTests, timeLockTest, startupIndependenceTest
     exclude '**/MultiCassandraTestSuite.class'
     exclude '**/*TimeLock*.class'
-    exclude '**/PostgresDbPersistenceTimelockTestSuite.class'
     exclude '**/*EteTest.class'
 }
 
