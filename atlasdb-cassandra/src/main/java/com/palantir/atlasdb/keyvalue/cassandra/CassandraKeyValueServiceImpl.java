@@ -907,13 +907,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private Range createColumnRange(byte[] startColOrEmpty, byte[] endColOrEmpty, long startTs) {
+    private Range createColumnRange(byte[] startColOrEmpty, byte[] endColExlusiveOrEmpty, long startTs) {
         ByteBuffer start = startColOrEmpty.length == 0
                 ? Range.UNBOUND_START
                 : Range.startOfColumn(startColOrEmpty, startTs);
         ByteBuffer end = startColOrEmpty.length == 0
                 ? Range.UNBOUND_END
-                : Range.endOfColumn(startColOrEmpty);
+                : Range.endOfColumn(RangeRequests.previousLexicographicName(endColExlusiveOrEmpty));
         return Range.of(start, end);
     }
 

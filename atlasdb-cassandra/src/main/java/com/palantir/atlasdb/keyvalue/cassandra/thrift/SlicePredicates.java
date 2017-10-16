@@ -23,7 +23,6 @@ import org.apache.cassandra.thrift.SliceRange;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 
 public final class SlicePredicates {
@@ -71,12 +70,12 @@ public final class SlicePredicates {
 
         static ByteBuffer endOfColumn(byte[] columnName) {
             return CassandraKeyValueServices.makeCompositeBuffer(
-                    RangeRequests.previousLexicographicName(columnName),
+                    columnName,
                     -1);
         }
 
-        static Range of(ByteBuffer start, ByteBuffer end) {
-            return ImmutableRange.builder().start(start).end(end).build();
+        static Range of(ByteBuffer startInclusive, ByteBuffer endInclusive) {
+            return ImmutableRange.builder().start(startInclusive).end(endInclusive).build();
         }
 
         ByteBuffer start();
