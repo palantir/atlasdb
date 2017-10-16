@@ -109,7 +109,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnFetchMode;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowRangeLoader;
@@ -1496,7 +1495,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
-        return getRangeWithPageCreator(rowRangeLoader, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);
+        return getRangeWithPageCreator(rowRangeLoader, predicate, columnGetter, rangeRequest, resultsExtractor,
+                startTs);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
