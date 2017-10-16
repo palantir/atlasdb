@@ -50,7 +50,7 @@ develop
 
     *    - |fixed|
          - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
