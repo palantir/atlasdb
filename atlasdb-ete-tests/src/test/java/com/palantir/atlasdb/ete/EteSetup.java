@@ -51,6 +51,8 @@ import com.palantir.docker.proxy.DockerProxyRule;
 // Please don't make the setup methods private.
 public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
+    private static final Gradle DOCKER_TAG_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
+
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
 
     private static final short SERVER_PORT = 3828;
@@ -61,6 +63,10 @@ public abstract class EteSetup {
 
     public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
+    }
+
+    public static RuleChain setupCompositionWithDockerTag(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES).around(DOCKER_TAG_TASK);
     }
 
     public static RuleChain setupComposition(

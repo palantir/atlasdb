@@ -33,7 +33,7 @@ public class PostgresDbPersistenceTimelockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithDockerTag(
             PostgresDbPersistenceTimelockTestSuite.class,
             "docker-compose.timelock.database.bound.postgres.yml",
             CLIENTS);
