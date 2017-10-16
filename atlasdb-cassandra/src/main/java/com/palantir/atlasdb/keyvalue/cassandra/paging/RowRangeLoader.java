@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class RowRangeLoader {
-    private final SlicePredicate slicePredicate;
     private CassandraClientPool clientPool;
     private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
@@ -45,16 +44,14 @@ public class RowRangeLoader {
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel consistency,
-            TableReference tableRef,
-            SlicePredicate slicePredicate) {
+            TableReference tableRef) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
-        this.slicePredicate = slicePredicate;
     }
 
-    public List<KeySlice> getRows(KeyRange keyRange, ColumnFetchMode fetchMode) {
+    public List<KeySlice> getRows(KeyRange keyRange, SlicePredicate slicePredicate) {
         ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
@@ -83,5 +80,7 @@ public class RowRangeLoader {
                     }
                 });
     }
+
+
     
 }

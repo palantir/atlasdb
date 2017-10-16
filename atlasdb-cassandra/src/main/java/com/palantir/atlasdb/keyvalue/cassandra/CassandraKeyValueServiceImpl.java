@@ -1464,14 +1464,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             ConsistencyLevel consistency) {
         SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
 
-        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef, predicate);
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
 
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
         return getRangeWithPageCreator(
                 rowRangeLoader,
-                ColumnFetchMode.fetchAtMost(1),
+                predicate,
                 columnGetter,
                 rangeRequest,
                 TimestampExtractor::new,
@@ -1493,15 +1493,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             // each column. note that if no columns are specified, it's a special case that means all columns
             predicate = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
         }
-        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef, predicate);
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
-        return getRangeWithPageCreator(rowRangeLoader, columnGetter, rangeRequest, resultsExtractor, startTs);
+        return getRangeWithPageCreator(rowRangeLoader, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             RowRangeLoader rowRangeLoader,
-            ColumnFetchMode fetchMode,
+            SlicePredicate slicePredicate,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
@@ -1515,7 +1515,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
                 rowRangeLoader,
-                fetchMode,
+                slicePredicate,
                 columnGetter,
                 rangeRequest,
                 resultsExtractor,
