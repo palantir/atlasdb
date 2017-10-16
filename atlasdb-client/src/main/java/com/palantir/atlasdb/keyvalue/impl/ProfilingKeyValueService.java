@@ -86,9 +86,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
         void log(String fmt, Object... args);
     }
 
-    interface FlushableLoggingFunction extends LoggingFunction, AutoCloseable {
-        void flush();
-
+    interface CloseableLoggingFunction extends LoggingFunction, AutoCloseable {
         @Override
         void close();
     }
@@ -97,20 +95,17 @@ public final class ProfilingKeyValueService implements KeyValueService {
     // Warning to users of this class: We do not guarantee that SLF4J special characters work properly across log lines,
     // nor do we guarantee behaviour when the number of arguments does not match the number of placeholders.
     @VisibleForTesting
-    static class LogAccumulator implements FlushableLoggingFunction {
+    static class LogAccumulator implements CloseableLoggingFunction {
         private static final String DELIMITER = "\n";
 
         private final List<String> formatElements = Lists.newArrayList();
         private final List<Object> argList = Lists.newArrayList();
         private final LoggingFunction sink;
 
+        private boolean isClosed = false;
+
         LogAccumulator(LoggingFunction sink) {
             this.sink = sink;
-        }
-
-        @Override
-        public synchronized void flush() {
-            sink.log(String.join(DELIMITER, formatElements), argList.toArray(new Object[argList.size()]));
         }
 
         @Override
@@ -120,8 +115,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
         }
 
         @Override
-        public void close() {
-            flush();
+        public synchronized void close() {
+            if (!isClosed) {
+                sink.log(String.join(DELIMITER, formatElements), argList.toArray(new Object[argList.size()]));
+            }
+            isClosed = true;
         }
     }
 
@@ -231,7 +229,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
         void log() {
             stopwatch.stop();
             Consumer<LoggingFunction> logger = (loggingMethod) -> {
-                try (FlushableLoggingFunction wrappingLogger = new LogAccumulator(loggingMethod)) {
+                try (CloseableLoggingFunction wrappingLogger = new LogAccumulator(loggingMethod)) {
                     primaryLogger.accept(wrappingLogger, stopwatch);
                     if (result != null) {
                         additionalLoggerWithAccessToResult.accept(wrappingLogger, result);

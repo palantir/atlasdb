@@ -41,7 +41,7 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
             mock(ProfilingKeyValueService.LoggingFunction.class);
 
     @Test
-    public void canAcceptLogs() {
+    public void propagatesLogsToSink() {
         try (ProfilingKeyValueService.LogAccumulator accumulator =
                 new ProfilingKeyValueService.LogAccumulator(logSink)) {
             accumulator.log(LOG_TEMPLATE_1, ARG_1);
@@ -50,7 +50,7 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
     }
 
     @Test
-    public void concatenatesLogsWithNewlinesInBetweenIfLoggingMultipleTimesBeforeFlush() {
+    public void concatenatesLogsWithNewlinesInBetweenIfLoggingMultipleTimesBeforeClose() {
         try (ProfilingKeyValueService.LogAccumulator accumulator =
                 new ProfilingKeyValueService.LogAccumulator(logSink)) {
             accumulator.log(LOG_TEMPLATE_1, ARG_1);
@@ -60,10 +60,19 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
     }
 
     @Test
-    public void doesNotLogAnythingIfNotFlushed() {
+    public void doesNotLogAnythingIfNotClosed() {
         ProfilingKeyValueService.LogAccumulator accumulator = new ProfilingKeyValueService.LogAccumulator(logSink);
         accumulator.log(LOG_TEMPLATE_1, ARG_1);
         verify(logSink, never()).log(any(), any());
+    }
+
+    @Test
+    public void logsOnlyOnceEvenIfClosedMultipleTimes() {
+        ProfilingKeyValueService.LogAccumulator accumulator = new ProfilingKeyValueService.LogAccumulator(logSink);
+        accumulator.log(LOG_TEMPLATE_1, ARG_1);
+        accumulator.close();
+        accumulator.close();
+        verify(logSink).log(LOG_TEMPLATE_1, ARG_1);
     }
 
     @After
