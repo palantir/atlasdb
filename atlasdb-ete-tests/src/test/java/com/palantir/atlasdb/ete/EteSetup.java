@@ -61,13 +61,12 @@ public abstract class EteSetup {
     private static List<String> availableClients;
     private static Duration waitDuration;
 
-    public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
+    public static RuleChain setupComposition(Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames) {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
     }
 
-    public static RuleChain setupCompositionWithDockerTag(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES).around(DOCKER_TAG_TASK);
-    }
 
     public static RuleChain setupComposition(
             Class<?> eteClass,
@@ -101,6 +100,13 @@ public abstract class EteSetup {
             List<String> availableClientNames,
             Map<String, String> environment) {
         return setup(eteClass, composeFile, availableClientNames, environment, false);
+    }
+
+    public static RuleChain setupCompositionWithDockerTag(Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES)
+                .around(DOCKER_TAG_TASK);
     }
 
     public static RuleChain setup(
