@@ -117,8 +117,9 @@ import com.palantir.remoting2.tracing.Tracers;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    protected final TimestampCache timestampCache = TimestampCache.create();
-    protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(4);
+    protected final TimestampCache timestampCache = new TimestampCache();
+    protected final ExecutorService getRangesExecutor =
+            Executors.newFixedThreadPool(AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY);
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;

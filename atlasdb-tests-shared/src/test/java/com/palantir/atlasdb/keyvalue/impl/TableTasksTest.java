@@ -73,7 +73,8 @@ public class TableTasksTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false, 4);
+                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false,
+                AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY, AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         txManager = transactionManager;
     }
 

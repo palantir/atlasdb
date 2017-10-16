@@ -87,13 +87,13 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
-    protected final TimestampCache timestampCache = TimestampCache.create();
+    protected final TimestampCache timestampCache = new TimestampCache();
     protected boolean supportsReverse() {
         return true;
     }
 
-    protected static final int GET_RANGES_CONCURRENCY = 16;
-    protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(GET_RANGES_CONCURRENCY);
+    protected static final ExecutorService GET_RANGES_EXECUTOR = Executors.newFixedThreadPool(
+            AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY);
 
     protected Transaction startTransaction() {
         return new SnapshotTransaction(

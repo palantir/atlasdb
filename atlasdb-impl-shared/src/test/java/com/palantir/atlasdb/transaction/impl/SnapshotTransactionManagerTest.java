@@ -55,7 +55,8 @@ public class SnapshotTransactionManagerTest {
             cleaner,
             false,
             () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-            4);
+            AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY,
+            AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
     @Test
     public void isAlwaysInitialized() {
@@ -94,7 +95,8 @@ public class SnapshotTransactionManagerTest {
                 cleaner,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                4);
+                AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         newTransactionManager.close(); // should not throw
     }
 

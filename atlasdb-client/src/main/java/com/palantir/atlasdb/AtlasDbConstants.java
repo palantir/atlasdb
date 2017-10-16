@@ -115,6 +115,11 @@ public final class AtlasDbConstants {
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 
+
+    public static final long DEFAULT_TIMESTAMP_CACHE_SIZE = 1_000_000;
+
+    public static final int DEFAULT_CONCURRENT_RANGES_PER_QUERY = 32;
+
     public static final int MAX_TABLE_PREFIX_LENGTH = 7;
     public static final int MAX_OVERFLOW_TABLE_PREFIX_LENGTH = 6;
 

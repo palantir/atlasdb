@@ -76,7 +76,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 conflictDetectionManager,
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                AbstractTransactionTest.GET_RANGES_CONCURRENCY);
+                AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
     @Override

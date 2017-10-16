@@ -84,7 +84,8 @@ import com.palantir.timestamp.TimestampService;
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            int concurrentGetRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize,
+            long timestampCacheSize) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -98,6 +99,7 @@ import com.palantir.timestamp.TimestampService;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
+        timestampValidationReadCache.resize(timestampCacheSize);
     }
 
     @Override

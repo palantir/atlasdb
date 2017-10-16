@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -35,8 +36,6 @@ import com.palantir.timestamp.TimestampService;
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
-
-    private static final int GET_RANGES_CONCURRENCY = 16;
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
                                       TimestampService timestampService,
@@ -55,7 +54,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY);
+                AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -74,7 +74,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY);
+                AtlasDbConstants.DEFAULT_CONCURRENT_RANGES_PER_QUERY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
     @Override
