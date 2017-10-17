@@ -57,6 +57,10 @@ develop
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
 
+    *    - |improved|
+         - Added time spent before thread inturrepted into log in ``RequestBatchingTimestampService``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2506>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
