@@ -65,29 +65,26 @@ public class BenchmarkRunnerBase {
     }
 
     protected static final BenchmarksService createClient() {
-        return AtlasDbFeignTargetFactory.createProxyWithFailover(
-                Optional.empty(),
-                ImmutableSet.of(BENCHMARK_SERVER),
-                10_000,
-                1_000_000,
-                1_000,
-                BenchmarksService.class,
-                "benchmarks");
+        return createProxyWithLargeTimeout(BenchmarksService.class);
     }
 
     private static SweeperService createSweeper() {
+        return createProxyWithLargeTimeout(SweeperService.class);
+    }
+
+    private static <T> T createProxyWithLargeTimeout(Class<T> type) {
         return AtlasDbFeignTargetFactory.createProxyWithFailover(
+                Optional.empty(),
                 Optional.empty(),
                 ImmutableSet.of(BENCHMARK_SERVER),
                 10_000,
                 1_000_000,
                 1_000,
-                SweeperService.class,
+                type,
                 "benchmarks");
     }
 
     private static String readBenchmarkServerUri() {
-        //return "http://localhost:9425";
         try {
             for (String line : Files.readLines(new File("../scripts/benchmarks/servers.txt"),
                     Charset.forName("UTF-8"))) {

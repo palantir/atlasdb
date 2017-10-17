@@ -30,7 +30,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting2.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -64,6 +64,6 @@ public class TimelockBenchmarkClientLauncher extends Application<TimelockBenchma
 
         environment.jersey().register(new BenchmarksResource(configuration.getAtlas(), txnManager));
         environment.jersey().register(
-                HttpRemotingJerseyFeature.with(HttpRemotingJerseyFeature.StacktracePropagation.PROPAGATE));
+                HttpRemotingJerseyFeature.INSTANCE);
     }
 }
