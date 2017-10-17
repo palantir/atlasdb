@@ -48,6 +48,9 @@ develop
          - Sweep is now more efficient on Cassandra, Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
 
+    *    - |fixed|
+         - V2 generated tables now support using ``Persistable``s as column values. Note that this is still a beta feature, and API stability is not guaranteed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2495>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
