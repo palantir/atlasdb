@@ -83,6 +83,10 @@ public final class TableTasks {
                 txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
     }
 
+    private interface InterruptibleAction {
+        void execute(MutableRange range) throws InterruptedException;
+    }
+
     public static void copyExternal(ExecutorService exec,
                                     final TableReference srcTable,
                                     final TableReference dstTable,
@@ -90,6 +94,7 @@ public final class TableTasks {
                                     int threadCount,
                                     final CopyStats stats,
                                     final CopyTask task) throws InterruptedException {
+        InterruptibleAction action = range -> executeTask(srcTable, dstTable, stats, task, range);
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
             if (Thread.currentThread().isInterrupted()) {
@@ -103,7 +108,7 @@ public final class TableTasks {
                         break;
                     }
                     try {
-                        executeTask(srcTable, dstTable, stats, task, range);
+                        action.execute(range);
                     } catch (InterruptedException e) {
                         throw Throwables.rewrapAndThrowUncheckedException(e);
                     }
@@ -205,6 +210,7 @@ public final class TableTasks {
                                      int threadCount,
                                      final DiffStats stats,
                                      final DiffTask task) throws InterruptedException {
+        InterruptibleAction action = range -> executeTask(strategy, plusTable, minusTable, stats, task, range);
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
             if (Thread.currentThread().isInterrupted()) {
@@ -218,7 +224,7 @@ public final class TableTasks {
                         break;
                     }
                     try {
-                        executeTask(strategy, plusTable, minusTable, stats, task, range);
+                        action.execute(range);
                     } catch (InterruptedException e) {
                         throw Throwables.rewrapAndThrowUncheckedException(e);
                     }
