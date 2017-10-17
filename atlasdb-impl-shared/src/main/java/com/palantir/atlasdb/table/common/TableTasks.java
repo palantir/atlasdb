@@ -95,16 +95,17 @@ public final class TableTasks {
                                     final CopyStats stats,
                                     final CopyTask task) throws InterruptedException {
         InterruptibleAction action = range -> executeTask(srcTable, dstTable, stats, task, range);
+        String actionName = "copy";
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
             if (Thread.currentThread().isInterrupted()) {
-                log.info("Thread interrupted. Cancelling copy of range {}", range);
+                log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
                 break;
             }
             pool.submitTask(() -> {
                 do {
                     if (Thread.currentThread().isInterrupted()) {
-                        log.info("Thread interrupted. Cancelling copy of range {}", range);
+                        log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
                         break;
                     }
                     try {
@@ -211,16 +212,17 @@ public final class TableTasks {
                                      final DiffStats stats,
                                      final DiffTask task) throws InterruptedException {
         InterruptibleAction action = range -> executeTask(strategy, plusTable, minusTable, stats, task, range);
+        String actionName = "diff";
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
             if (Thread.currentThread().isInterrupted()) {
-                log.info("Thread interrupted. Cancelling diff of range {}", range);
+                log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
                 break;
             }
             pool.submitTask(() -> {
                 do {
                     if (Thread.currentThread().isInterrupted()) {
-                        log.info("Thread interrupted. Cancelling diff of range {}", range);
+                        log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
                         break;
                     }
                     try {
