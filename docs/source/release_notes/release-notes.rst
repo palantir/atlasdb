@@ -85,7 +85,7 @@ v0.60.1
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
     *    - |devbreak| |improved|
-         - In order to limit the access to inner methods, and to make the implementation of the above feasible, we've extracted interfaces and renamed the following classes:
+         - In order to limit the access to inner methods, and to make the implementation of asynchronous initialization feasible, we've extracted interfaces and renamed the following classes:
 
               - ``CassandraClientPool``
               - ``CassandraKeyValueService``
