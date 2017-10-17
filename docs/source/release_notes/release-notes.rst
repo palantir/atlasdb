@@ -143,7 +143,6 @@ v0.60.0
 
 This version was skipped due to issues on release. No artifacts with this version were ever published.
 
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
