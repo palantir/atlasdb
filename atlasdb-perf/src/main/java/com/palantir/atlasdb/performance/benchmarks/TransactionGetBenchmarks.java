@@ -69,7 +69,7 @@ public class TransactionGetBenchmarks {
 
     private List<RowResult<byte[]>> getSingleRowWithRangeQueryInner(final ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, 1));
+            RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, 1, false));
             List<RowResult<byte[]>> result = BatchingVisitables.copyToList(
                     txn.getRange(table.getTableRef(), request));
             byte[] rowName = Iterables.getOnlyElement(result).getRowName();
@@ -84,7 +84,7 @@ public class TransactionGetBenchmarks {
     private List<RowResult<byte[]>> getRangeInner(ConsecutiveNarrowTable table) {
         final int rangeRequestSize = 1000;
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, rangeRequestSize));
+            RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, rangeRequestSize, false));
             List<RowResult<byte[]>> results = BatchingVisitables.copyToList(txn.getRange(
                     table.getTableRef(), request));
             Preconditions.checkState(results.size() == rangeRequestSize,
@@ -96,7 +96,7 @@ public class TransactionGetBenchmarks {
     private Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInner(ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Iterable<RangeRequest> requests =
-                    table.getRangeRequests(1000, RANGES_SINGLE_REQUEST_SIZE);
+                    table.getRangeRequests(1000, RANGES_SINGLE_REQUEST_SIZE, false);
             Iterable<BatchingVisitable<RowResult<byte[]>>> results =
                     txn.getRanges(table.getTableRef(), requests);
             results.forEach(bvs -> {
