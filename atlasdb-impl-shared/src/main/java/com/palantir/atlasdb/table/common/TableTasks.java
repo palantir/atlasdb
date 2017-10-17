@@ -104,16 +104,7 @@ public final class TableTasks {
                     }
                     final RangeRequest request = range.getRangeRequest();
                     try {
-                        long startTime = System.currentTimeMillis();
-                        PartialCopyStats partialStats = task.call(request, range);
-                        stats.rowsCopied.addAndGet(partialStats.rowsCopied);
-                        stats.cellsCopied.addAndGet(partialStats.cellsCopied);
-                        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
-                                partialStats.rowsCopied,
-                                partialStats.cellsCopied,
-                                srcTable,
-                                dstTable,
-                                System.currentTimeMillis() - startTime);
+                        executeTask(srcTable, dstTable, stats, task, range, request);
                     } catch (InterruptedException e) {
                         throw Throwables.rewrapAndThrowUncheckedException(e);
                     }
@@ -229,33 +220,7 @@ public final class TableTasks {
                     }
                     final RangeRequest request = range.getRangeRequest();
                     try {
-                        long startTime = System.currentTimeMillis();
-                        PartialDiffStats partialStats = task.call(request, range, strategy);
-                        stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
-                        stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
-                        stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
-                        stats.rowsVisited.addAndGet(partialStats.rowsVisited);
-                        stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
-                        stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
-                        if (log.isInfoEnabled()) {
-                            log.info("Processed diff of "
-                                    + "{} rows "
-                                    + "{} rows only in source "
-                                    + "{} rows partially in common "
-                                    + "{} rows completely in common "
-                                    + "{} cells only in source "
-                                    + "{} cells in common "
-                                    + "between {} and {} in {} ms.",
-                                    partialStats.rowsVisited,
-                                    partialStats.rowsOnlyInSource,
-                                    partialStats.rowsPartiallyInCommon,
-                                    partialStats.rowsCompletelyInCommon,
-                                    partialStats.cellsOnlyInSource,
-                                    partialStats.cellsInCommon,
-                                    plusTable,
-                                    minusTable,
-                                    System.currentTimeMillis() - startTime);
-                        }
+                        executeTask(strategy, plusTable, minusTable, stats, task, range, request);
                     } catch (InterruptedException e) {
                         throw Throwables.rewrapAndThrowUncheckedException(e);
                     }
@@ -263,6 +228,52 @@ public final class TableTasks {
             });
         }
         pool.waitForSubmittedTasks();
+    }
+
+    private static void executeTask(TableReference srcTable, TableReference dstTable, CopyStats stats,
+            CopyTask task, MutableRange range, RangeRequest request) throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        PartialCopyStats partialStats = task.call(request, range);
+        stats.rowsCopied.addAndGet(partialStats.rowsCopied);
+        stats.cellsCopied.addAndGet(partialStats.cellsCopied);
+        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
+                partialStats.rowsCopied,
+                partialStats.cellsCopied,
+                srcTable,
+                dstTable,
+                System.currentTimeMillis() - startTime);
+    }
+
+    private static void executeTask(DiffStrategy strategy, TableReference plusTable,
+            TableReference minusTable, DiffStats stats, DiffTask task, MutableRange range,
+            RangeRequest request) throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        PartialDiffStats partialStats = task.call(request, range, strategy);
+        stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
+        stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
+        stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
+        stats.rowsVisited.addAndGet(partialStats.rowsVisited);
+        stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
+        stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
+        if (log.isInfoEnabled()) {
+            log.info("Processed diff of "
+                    + "{} rows "
+                    + "{} rows only in source "
+                    + "{} rows partially in common "
+                    + "{} rows completely in common "
+                    + "{} cells only in source "
+                    + "{} cells in common "
+                    + "between {} and {} in {} ms.",
+                    partialStats.rowsVisited,
+                    partialStats.rowsOnlyInSource,
+                    partialStats.rowsPartiallyInCommon,
+                    partialStats.rowsCompletelyInCommon,
+                    partialStats.cellsOnlyInSource,
+                    partialStats.cellsInCommon,
+                    plusTable,
+                    minusTable,
+                    System.currentTimeMillis() - startTime);
+        }
     }
 
     private static DiffStrategy getDiffStrategy(Transaction tx,
