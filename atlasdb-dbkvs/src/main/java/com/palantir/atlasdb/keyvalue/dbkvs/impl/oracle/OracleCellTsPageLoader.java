@@ -115,11 +115,20 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
         final TableDetails tableDetails;
         final int sqlRowLimit;
 
-        byte[] startRowInclusive;
-        byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
-        @Nullable Long startTsInclusive = null;
+        private class Token {
+            byte[] startRowInclusive;
+            byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
+            @Nullable
+            Long startTsInclusive = null;
+            boolean reachedEnd = false;
+
+            Token(byte[] startRowInclusive) {
+                this.startRowInclusive = startRowInclusive;
+            }
+        }
+
+        Token token;
         long cellTsPairsAlreadyExaminedInCurrentRow = 0L;
-        boolean reachedEnd = false;
 
         PageIterator(SqlConnectionSupplier connectionPool, CandidateCellForSweepingRequest request,
                      TableDetails tableDetails, int sqlRowLimit, byte[] startRowInclusive) {
@@ -127,12 +136,12 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             this.request = request;
             this.tableDetails = tableDetails;
             this.sqlRowLimit = sqlRowLimit;
-            this.startRowInclusive = startRowInclusive;
+            this.token = new Token(startRowInclusive);
         }
 
         @Override
         public boolean hasNext() {
-            return !reachedEnd;
+            return !token.reachedEnd;
         }
 
         // We don't use AbstractIterator to make sure hasNext() is fast and doesn't actually load the next page.
@@ -196,16 +205,22 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
 
         private void appendRangePredicates(boolean singleRow, FullQuery.Builder builder) {
             if (singleRow) {
-                builder.append(" AND row_name = ?", startRowInclusive);
-                if (startColInclusive.length > 0) {
-                    builder.append(" AND col_name >= ?", startColInclusive);
-                    if (startTsInclusive != null) {
-                        builder.append(" AND (col_name > ? OR ts >= ?)", startColInclusive, startTsInclusive);
+                builder.append(" AND row_name = ?", token.startRowInclusive);
+                if (token.startColInclusive.length > 0) {
+                    builder.append(" AND col_name >= ?", token.startColInclusive);
+                    if (token.startTsInclusive != null) {
+                        builder.append(" AND (col_name > ? OR ts >= ?)",
+                                token.startColInclusive,
+                                token.startTsInclusive);
                     }
                 }
             } else {
                 RangePredicateHelper.create(false, DBType.ORACLE, builder)
-                        .startCellTsInclusive(startRowInclusive, startColInclusive, startTsInclusive);
+                        .startCellTsInclusive(
+                                // TODO can we reuse a value type here?
+                                token.startRowInclusive,
+                                token.startColInclusive,
+                                token.startTsInclusive);
             }
         }
 
@@ -228,7 +243,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
         }
 
         private void updateCountOfExaminedCellTsPairsInCurrentRow(List<CellTsPairInfo> results) {
-            byte[] currentRow = startRowInclusive;
+            byte[] currentRow = token.startRowInclusive;
             for (CellTsPairInfo cellTs : results) {
                 if (!Arrays.equals(currentRow, cellTs.rowName)) {
                     currentRow = cellTs.rowName;
@@ -243,25 +258,33 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
                 if (scannedSingleRow) {
                     // If we scanned a single row and reached the end, we just restart
                     // from the lexicographically next row
-                    byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, startRowInclusive);
+                    byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, token.startRowInclusive);
                     if (nextRow == null) {
-                        reachedEnd = true;
+                        token.reachedEnd = true;
                     } else {
-                        startRowInclusive = nextRow;
-                        startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
-                        startTsInclusive = null;
+                        newRow(nextRow);
                         cellTsPairsAlreadyExaminedInCurrentRow = 0L;
                     }
                 } else {
-                    reachedEnd = true;
+                    token.reachedEnd = true;
                 }
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
                 Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
-                startRowInclusive = lastResult.rowName;
-                startColInclusive = lastResult.colName;
-                startTsInclusive = lastResult.ts + 1;
+                continueRow(lastResult);
             }
+        }
+
+        private void continueRow(CellTsPairInfo lastResult) {
+            token.startRowInclusive = lastResult.rowName;
+            token.startColInclusive = lastResult.colName;
+            token.startTsInclusive = lastResult.ts + 1;
+        }
+
+        private void newRow(byte[] nextRow) {
+            token.startRowInclusive = nextRow;
+            token.startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
+            token.startTsInclusive = null;
         }
 
     }
