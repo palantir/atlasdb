@@ -86,10 +86,13 @@ public class RequestBatchingTimestampService implements TimestampService {
                 }
             }
 
+            long startTs = System.currentTimeMillis();
             try {
                 batch.awaitPopulation();
             } catch (InterruptedException e) {
-                log.warn("Interrupted waiting for timestamp batch to populate. Trying another batch.", e);
+                long timeSpent = System.currentTimeMillis() - startTs;
+                log.warn("Interrupted waiting for timestamp batch to populate after " + timeSpent + "ms."
+                        + " Trying another batch.", e);
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }
             if (!batch.isFailed()) {
