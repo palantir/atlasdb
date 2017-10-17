@@ -289,6 +289,11 @@ Previously, giving a start row with hex characters in lower case e.g. <code clas
 We now throw the actual cause for the invocation exception.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2460">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Sweep candidate batches are now logged correctly.
+Previously, we would log a <code class="docutils literal"><span class="pre">SafeArg</span></code> for these batches that had no content.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2475">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

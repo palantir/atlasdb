@@ -209,16 +209,16 @@
 </ul>
 <p>Logged when a new table has been selected to be swept, after 1.</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">Sweeping</span> <span class="pre">another</span> <span class="pre">batch</span> <span class="pre">of</span> <span class="pre">table:</span> <span class="pre">{}.</span> <span class="pre">Batch</span> <span class="pre">starts</span> <span class="pre">on</span> <span class="pre">row</span> <span class="pre">{}</span></code></li>
+<li><code class="docutils literal"><span class="pre">Sweeping</span> <span class="pre">another</span> <span class="pre">batch</span> <span class="pre">of</span> <span class="pre">table:</span> <span class="pre">{table</span> <span class="pre">name}.</span> <span class="pre">Batch</span> <span class="pre">starts</span> <span class="pre">on</span> <span class="pre">row</span> <span class="pre">{start</span> <span class="pre">row}</span></code></li>
 </ul>
 <p>Logged when a new batch of the same table is going to be swept, after 5.</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">Swept</span> <span class="pre">successfully.</span></code></li>
+<li><code class="docutils literal"><span class="pre">Analyzed</span> <span class="pre">{number</span> <span class="pre">of</span> <span class="pre">values</span> <span class="pre">read}</span> <span class="pre">cell+timestamp</span> <span class="pre">pairs</span> <span class="pre">from</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}</span> <span class="pre">...</span></code></li>
 </ul>
 <p>Logged when a batch of values has been successfully swept, after 4. Its parameters also contain the number of
 (cell + ts) pairs read and deleted on this batch.</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">Finished</span> <span class="pre">sweeping</span></code></li>
+<li><code class="docutils literal"><span class="pre">Finished</span> <span class="pre">sweeping</span> <span class="pre">table</span> <span class="pre">{table</span> <span class="pre">name}.</span> <span class="pre">...</span></code></li>
 </ul>
 <p>Logged when a table has been successfully swept, after 6. Its parameters also contain the number of (cell + ts) pairs
 read and deleted when sweeping this table.</p>
