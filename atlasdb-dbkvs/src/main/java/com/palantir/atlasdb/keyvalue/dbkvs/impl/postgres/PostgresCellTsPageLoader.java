@@ -94,7 +94,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
         public List<CellTsPairInfo> next() {
             Preconditions.checkState(hasNext());
             List<CellTsPairInfo> cellTsPairs = loadNextPage();
-            computeNextStartPosition(cellTsPairs);
+            token = computeNextStartPosition(cellTsPairs);
             return cellTsPairs;
         }
 
@@ -174,13 +174,13 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
             }
         }
 
-        private void computeNextStartPosition(List<CellTsPairInfo> results) {
+        private CellTsPairToken computeNextStartPosition(List<CellTsPairInfo> results) {
             if (results.size() < sqlRowLimit) {
-                token = CellTsPairToken.end();
+                return CellTsPairToken.end();
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
                 Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
-                token = CellTsPairToken.continueRow(lastResult);
+                return CellTsPairToken.continueRow(lastResult);
             }
         }
     }

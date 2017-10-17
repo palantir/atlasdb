@@ -139,7 +139,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             boolean singleRow = shouldScanSingleRow();
             List<CellTsPairInfo> cellTsPairs = loadPage(singleRow);
             updateCountOfExaminedCellTsPairsInCurrentRow(cellTsPairs);
-            computeNextStartPosition(cellTsPairs, singleRow);
+            token = computeNextStartPosition(cellTsPairs, singleRow);
             return cellTsPairs;
         }
 
@@ -239,25 +239,25 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             }
         }
 
-        private void computeNextStartPosition(List<CellTsPairInfo> results, boolean scannedSingleRow) {
+        private CellTsPairToken computeNextStartPosition(List<CellTsPairInfo> results, boolean scannedSingleRow) {
             if (results.size() < sqlRowLimit) {
                 if (scannedSingleRow) {
                     // If we scanned a single row and reached the end, we just restart
                     // from the lexicographically next row
                     byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, token.startRowInclusive);
                     if (nextRow == null) {
-                        token = CellTsPairToken.end();
+                        return CellTsPairToken.end();
                     } else {
-                        token = CellTsPairToken.startRow(nextRow);
                         cellTsPairsAlreadyExaminedInCurrentRow = 0L;
+                        return CellTsPairToken.startRow(nextRow);
                     }
                 } else {
-                    token = CellTsPairToken.end();
+                    return CellTsPairToken.end();
                 }
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
                 Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
-                token = CellTsPairToken.continueRow(lastResult);
+                return CellTsPairToken.continueRow(lastResult);
             }
         }
 
