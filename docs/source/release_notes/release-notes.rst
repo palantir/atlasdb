@@ -52,6 +52,10 @@ develop
            It also now returns information about how much data was swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
+    *   - |improved|
+        - Exposes another version of getRanges that uses a configurable concurrency level, defaulting to 8.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
+
     *    - |fixed|
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
@@ -150,10 +154,6 @@ v0.60.0
 =======
 
 This version was skipped due to issues on release. No artifacts with this version were ever published.
-
-    *   - |improvement|
-        - Exposes another version of getRanges that uses a configurable concurrency level, defaulting to 8.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
