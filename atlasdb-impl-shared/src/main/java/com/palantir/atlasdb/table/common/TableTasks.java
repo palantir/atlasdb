@@ -92,8 +92,16 @@ public final class TableTasks {
                                     final CopyTask task) throws InterruptedException {
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
+            if (Thread.currentThread().isInterrupted()) {
+                log.info("Thread interrupted. Cancelling copy of range {}", range);
+                break;
+            }
             pool.submitTask(() -> {
                 do {
+                    if (Thread.currentThread().isInterrupted()) {
+                        log.info("Thread interrupted. Cancelling copy of range {}", range);
+                        break;
+                    }
                     final RangeRequest request = range.getRangeRequest();
                     try {
                         long startTime = System.currentTimeMillis();
@@ -209,8 +217,16 @@ public final class TableTasks {
                                      final DiffTask task) throws InterruptedException {
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges(threadCount, batchSize)) {
+            if (Thread.currentThread().isInterrupted()) {
+                log.info("Thread interrupted. Cancelling diff of range {}", range);
+                break;
+            }
             pool.submitTask(() -> {
                 do {
+                    if (Thread.currentThread().isInterrupted()) {
+                        log.info("Thread interrupted. Cancelling diff of range {}", range);
+                        break;
+                    }
                     final RangeRequest request = range.getRangeRequest();
                     try {
                         long startTime = System.currentTimeMillis();
