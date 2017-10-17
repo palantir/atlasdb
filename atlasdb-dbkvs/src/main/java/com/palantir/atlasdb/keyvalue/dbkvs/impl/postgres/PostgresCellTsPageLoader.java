@@ -72,10 +72,19 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
         final String tableName;
         final String prefixedTableName;
 
-        byte[] startRowInclusive;
-        byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
-        @Nullable Long startTsInclusive = null;
-        boolean reachedEnd = false;
+        private class Token {
+            byte[] startRowInclusive;
+            byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
+            @Nullable
+            Long startTsInclusive = null;
+            boolean reachedEnd = false;
+
+            Token(byte[] startRowInclusive) {
+                this.startRowInclusive = startRowInclusive;
+            }
+        }
+
+        Token token;
 
         PageIterator(SqlConnectionSupplier connectionPool, CandidateCellForSweepingRequest request, int sqlRowLimit,
                 String tableName, String prefixedTableName, byte[] startRowInclusive) {
@@ -84,12 +93,12 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
             this.sqlRowLimit = sqlRowLimit;
             this.tableName = tableName;
             this.prefixedTableName = prefixedTableName;
-            this.startRowInclusive = startRowInclusive;
+            this.token = new Token(startRowInclusive);
         }
 
         @Override
         public boolean hasNext() {
-            return !reachedEnd;
+            return !token.reachedEnd;
         }
 
         // We don't use AbstractIterator to make sure hasNext() is fast and doesn't actually load the next page.
@@ -149,7 +158,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .append("      WHERE ts < ? ", request.sweepTimestamp());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(startRowInclusive, startColInclusive, startTsInclusive);
+                        .startCellTsInclusive(token.startRowInclusive, token.startColInclusive, token.startTsInclusive);
                 return queryBuilder
                         .append("      ORDER BY row_name, col_name, ts")
                         .append("      LIMIT ").append(sqlRowLimit)
@@ -171,7 +180,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .append("  WHERE ts < ? ", request.sweepTimestamp());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(startRowInclusive, startColInclusive, startTsInclusive);
+                        .startCellTsInclusive(token.startRowInclusive, token.startColInclusive, token.startTsInclusive);
                 return queryBuilder
                         .append("  ORDER BY row_name, col_name, ts")
                         .append("  LIMIT ").append(sqlRowLimit)
@@ -181,13 +190,13 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
 
         private void computeNextStartPosition(List<CellTsPairInfo> results) {
             if (results.size() < sqlRowLimit) {
-                reachedEnd = true;
+                token.reachedEnd = true;
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
                 Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
-                startRowInclusive = lastResult.rowName;
-                startColInclusive = lastResult.colName;
-                startTsInclusive = lastResult.ts + 1;
+                token.startRowInclusive = lastResult.rowName;
+                token.startColInclusive = lastResult.colName;
+                token.startTsInclusive = lastResult.ts + 1;
             }
         }
     }
