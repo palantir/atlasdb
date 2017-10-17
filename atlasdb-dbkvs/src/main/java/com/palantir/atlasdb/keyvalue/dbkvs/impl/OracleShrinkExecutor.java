@@ -89,7 +89,8 @@ public class OracleShrinkExecutor {
         }
 
         Stopwatch timer = Stopwatch.createStarted();
-        try (ConnectionSupplier conns = new ConnectionSupplier(connectionPool)) {
+        ConnectionSupplier conns = new ConnectionSupplier(connectionPool);
+        try {
             Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
             getConnectionWithIncreasedTimeout(conns).executeUnregisteredQuery(
                     "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
@@ -118,6 +119,7 @@ public class OracleShrinkExecutor {
         } catch (TableMappingNotFoundException e) {
             throw new RuntimeException(e);
         } finally {
+            conns.close();
             log.info("Call to KVS.compactInternally on table {} took {} ms.",
                     tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
         }

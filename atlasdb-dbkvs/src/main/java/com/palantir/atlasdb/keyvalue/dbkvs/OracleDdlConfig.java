@@ -60,7 +60,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return false;
     }
 
-    //Create a ShrinkConfig class
+    //TODO(hsaraogi): Create a ShrinkConfig class
     @Value.Default
     public boolean enableShrinkOnOracleStandardEdition() {
         return false;
@@ -78,6 +78,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Value.Default
     public int shrinkConnectionTimeoutMillis() {
+        // This is set to 10 minutes as we saw socket timeouts with 5 minutes.
         return 60 * 10 * 1000;
     }
 
