@@ -138,7 +138,6 @@ public class SpecificTableSweeper {
 
         Stopwatch watch = Stopwatch.createStarted();
         try {
-            log.info("Beginning");
             SweepResults results = sweepRunner.run(
                     tableRef,
                     batchConfig,

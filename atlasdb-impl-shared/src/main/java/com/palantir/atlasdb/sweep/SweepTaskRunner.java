@@ -126,7 +126,7 @@ public class SweepTaskRunner {
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
-                    UnsafeArg.of("table name", tableRef));
+                    LoggingArgs.tableRef("tableRef", tableRef));
             return SweepResults.createEmptySweepResult();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
