@@ -102,9 +102,8 @@ public final class TableTasks {
                         log.info("Thread interrupted. Cancelling copy of range {}", range);
                         break;
                     }
-                    final RangeRequest request = range.getRangeRequest();
                     try {
-                        executeTask(srcTable, dstTable, stats, task, range, request);
+                        executeTask(srcTable, dstTable, stats, task, range);
                     } catch (InterruptedException e) {
                         throw Throwables.rewrapAndThrowUncheckedException(e);
                     }
@@ -218,9 +217,8 @@ public final class TableTasks {
                         log.info("Thread interrupted. Cancelling diff of range {}", range);
                         break;
                     }
-                    final RangeRequest request = range.getRangeRequest();
                     try {
-                        executeTask(strategy, plusTable, minusTable, stats, task, range, request);
+                        executeTask(strategy, plusTable, minusTable, stats, task, range);
                     } catch (InterruptedException e) {
                         throw Throwables.rewrapAndThrowUncheckedException(e);
                     }
@@ -231,7 +229,8 @@ public final class TableTasks {
     }
 
     private static void executeTask(TableReference srcTable, TableReference dstTable, CopyStats stats,
-            CopyTask task, MutableRange range, RangeRequest request) throws InterruptedException {
+            CopyTask task, MutableRange range) throws InterruptedException {
+        final RangeRequest request = range.getRangeRequest();
         long startTime = System.currentTimeMillis();
         PartialCopyStats partialStats = task.call(request, range);
         stats.rowsCopied.addAndGet(partialStats.rowsCopied);
@@ -245,8 +244,9 @@ public final class TableTasks {
     }
 
     private static void executeTask(DiffStrategy strategy, TableReference plusTable,
-            TableReference minusTable, DiffStats stats, DiffTask task, MutableRange range,
-            RangeRequest request) throws InterruptedException {
+            TableReference minusTable, DiffStats stats, DiffTask task, MutableRange range)
+            throws InterruptedException {
+        final RangeRequest request = range.getRangeRequest();
         long startTime = System.currentTimeMillis();
         PartialDiffStats partialStats = task.call(request, range, strategy);
         stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
@@ -257,13 +257,13 @@ public final class TableTasks {
         stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
         if (log.isInfoEnabled()) {
             log.info("Processed diff of "
-                    + "{} rows "
-                    + "{} rows only in source "
-                    + "{} rows partially in common "
-                    + "{} rows completely in common "
-                    + "{} cells only in source "
-                    + "{} cells in common "
-                    + "between {} and {} in {} ms.",
+                            + "{} rows "
+                            + "{} rows only in source "
+                            + "{} rows partially in common "
+                            + "{} rows completely in common "
+                            + "{} cells only in source "
+                            + "{} cells in common "
+                            + "between {} and {} in {} ms.",
                     partialStats.rowsVisited,
                     partialStats.rowsOnlyInSource,
                     partialStats.rowsPartiallyInCommon,
