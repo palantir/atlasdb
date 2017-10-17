@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 
@@ -33,13 +34,24 @@ public class SweepStatsKeyValueServiceTest {
     private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);
     private static final TableReference TABLE = TableReference.createWithEmptyNamespace("table");
 
+    private KeyValueService delegate = mock(KeyValueService.class);
+
     private SweepStatsKeyValueService kvs;
 
     @Before
     public void before() {
-        KeyValueService delegate = mock(KeyValueService.class);
         TimestampService timestampService = mock(TimestampService.class);
         kvs = SweepStatsKeyValueService.create(delegate, timestampService);
+    }
+
+    @Test
+    public void delegatesInitializationCheck() {
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(kvs.isInitialized());
+        assertTrue(kvs.isInitialized());
     }
 
     @Test

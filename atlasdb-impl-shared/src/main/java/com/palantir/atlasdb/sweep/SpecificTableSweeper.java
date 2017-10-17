@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -123,23 +122,36 @@ public class SpecificTableSweeper {
         return sweepMetrics;
     }
 
-    void runOnceForTable(TableToSweep tableToSweep,
-            Optional<SweepBatchConfig> newSweepBatchConfig,
-            boolean saveSweepResults) {
-        Stopwatch watch = Stopwatch.createStarted();
+    void runOnceAndSaveResults(TableToSweep tableToSweep) {
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
-        SweepBatchConfig batchConfig = newSweepBatchConfig.orElse(getAdjustedBatchConfig());
+        SweepBatchConfig batchConfig = getAdjustedBatchConfig();
+
+        SweepResults results = runOneIteration(tableRef, startRow, batchConfig);
+        saveSweepResults(tableToSweep, results);
+    }
+
+    SweepResults runOneIteration(
+            TableReference tableRef,
+            byte[] startRow,
+            SweepBatchConfig batchConfig) {
+
+        Stopwatch watch = Stopwatch.createStarted();
         try {
             SweepResults results = sweepRunner.run(
                     tableRef,
                     batchConfig,
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.info("Swept successfully.",
+            log.info("Analyzed {} cell+timestamp pairs"
+                            + " from table {}"
+                            + " starting at row {}"
+                            + " and deleted {} stale values"
+                            + " in {} ms"
+                            + " up to timestamp {}.",
+                    SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
                     SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()),
                     SafeArg.of("time taken", elapsedMillis),
                     SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
@@ -149,28 +161,27 @@ public class SpecificTableSweeper {
                             .tableName(tableRef.getQualifiedName())
                             .elapsedMillis(elapsedMillis)
                             .build());
-            if (saveSweepResults) {
-                saveSweepResults(tableToSweep, results);
-            }
+            return results;
         } catch (RuntimeException e) {
             // This error may be logged on some paths above, but I prefer to log defensively.
-            log.info("Failed to sweep.",
+            log.info("Failed to sweep table {}"
+                            + " at row {}"
+                            + " with candidate batch size {},"
+                            + " delete batch size {},"
+                            + " and {} cell+timestamp pairs to examine.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("batchConfig", batchConfig),
+                    SafeArg.of("candidateBatchSize", batchConfig.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", batchConfig.deleteBatchSize()),
+                    SafeArg.of("maxCellTsPairsToExamine", batchConfig.maxCellTsPairsToExamine()),
                     e);
             throw e;
         }
     }
 
-    private SweepBatchConfig getAdjustedBatchConfig() {
+    public SweepBatchConfig getAdjustedBatchConfig() {
         SweepBatchConfig baseConfig = sweepBatchConfig.get();
-        return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(
-                        BackgroundSweeperImpl.adjustBatchParameter(baseConfig.maxCellTsPairsToExamine()))
-                .candidateBatchSize(BackgroundSweeperImpl.adjustBatchParameter(baseConfig.candidateBatchSize()))
-                .deleteBatchSize(BackgroundSweeperImpl.adjustBatchParameter(baseConfig.deleteBatchSize()))
-                .build();
+        return baseConfig.adjust(BackgroundSweeperImpl.batchSizeMultiplier);
     }
 
     private static String startRowToHex(@Nullable byte[] row) {
@@ -200,7 +211,9 @@ public class SpecificTableSweeper {
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.info("Finished sweeping.",
+            log.info("Finished sweeping table {}."
+                            + " Examined {} cell+timestamp pairs,"
+                            + " deleted {} stale values.",
                     LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                     SafeArg.of("cellTs pairs examined", cellsExamined),
                     SafeArg.of("cellTs pairs deleted", staleValuesDeleted));

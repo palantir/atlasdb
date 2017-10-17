@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -56,6 +57,11 @@ public class SnapshotTransactionManagerTest {
             () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
             8,
             2);
+
+    @Test
+    public void isAlwaysInitialized() {
+        assertTrue(snapshotTransactionManager.isInitialized());
+    }
 
     @Test
     public void closesKeyValueServiceOnClose() {

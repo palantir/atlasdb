@@ -85,6 +85,11 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     }
 
     @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return getFreshTimestamps(1).getLowerBound();
     }

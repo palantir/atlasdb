@@ -18,7 +18,9 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -101,6 +103,16 @@ public class TracingKeyValueServiceTest {
     @Test(expected = NullPointerException.class)
     public void createNullThrows() throws Exception {
         TracingKeyValueService.create(null);
+    }
+
+    @Test
+    public void delegatesInitializationCheck() {
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(kvs.isInitialized());
+        assertTrue(kvs.isInitialized());
     }
 
     @Test

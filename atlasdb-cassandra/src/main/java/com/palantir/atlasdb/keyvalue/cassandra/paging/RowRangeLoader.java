@@ -27,6 +27,7 @@ import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.UnavailableException;
+import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -36,44 +37,43 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
 
-public class RowGetter {
+public class RowRangeLoader {
     private CassandraClientPool clientPool;
     private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
     private TableReference tableRef;
-    private ColumnFetchMode fetchMode;
 
-    public RowGetter(
+    public RowRangeLoader(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel consistency,
-            TableReference tableRef,
-            ColumnFetchMode fetchMode) {
+            TableReference tableRef) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
-        this.fetchMode = fetchMode;
     }
 
-    public List<KeySlice> getRows(KeyRange keyRange) throws Exception {
+    public List<KeySlice> getRows(KeyRange keyRange, ColumnFetchMode fetchMode) {
         ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
-                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
+                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, RuntimeException>() {
                     @Override
-                    public List<KeySlice> apply(Cassandra.Client client) throws Exception {
+                    public List<KeySlice> apply(Cassandra.Client client) throws RuntimeException {
                         try {
-                            return queryRunner.run(client, tableRef,
-                                    () -> client.get_range_slices(colFam, getSlicePredicate(), keyRange, consistency));
+                            return queryRunner.run(client, tableRef, () -> client.get_range_slices(
+                                    colFam, getSlicePredicate(fetchMode), keyRange, consistency));
                         } catch (UnavailableException e) {
                             if (consistency.equals(ConsistencyLevel.ALL)) {
                                 throw new InsufficientConsistencyException("This operation requires all Cassandra"
                                         + " nodes to be up and available.", e);
                             } else {
-                                throw e;
+                                throw new RuntimeException(e);
                             }
+                        } catch (TException e) {
+                            throw new RuntimeException(e);
                         }
                     }
 
@@ -84,7 +84,7 @@ public class RowGetter {
                 });
     }
 
-    private SlicePredicate getSlicePredicate() {
+    private SlicePredicate getSlicePredicate(ColumnFetchMode fetchMode) {
         SliceRange slice = new SliceRange(
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
