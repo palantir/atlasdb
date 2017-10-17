@@ -84,7 +84,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
 
         @Override
         public boolean hasNext() {
-            return !token.reachedEnd;
+            return !token.reachedEnd();
         }
 
         // We don't use AbstractIterator to make sure hasNext() is fast and doesn't actually load the next page.
@@ -144,7 +144,9 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .append("      WHERE ts < ? ", request.sweepTimestamp());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(token.startRowInclusive, token.startColInclusive, token.startTsInclusive);
+                        .startCellTsInclusive(token.startRowInclusive(),
+                                token.startColInclusive(),
+                                token.startTsInclusive());
                 return queryBuilder
                         .append("      ORDER BY row_name, col_name, ts")
                         .append("      LIMIT ").append(sqlRowLimit)
@@ -166,7 +168,9 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .append("  WHERE ts < ? ", request.sweepTimestamp());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(token.startRowInclusive, token.startColInclusive, token.startTsInclusive);
+                        .startCellTsInclusive(token.startRowInclusive(),
+                                token.startColInclusive(),
+                                token.startTsInclusive());
                 return queryBuilder
                         .append("  ORDER BY row_name, col_name, ts")
                         .append("  LIMIT ").append(sqlRowLimit)

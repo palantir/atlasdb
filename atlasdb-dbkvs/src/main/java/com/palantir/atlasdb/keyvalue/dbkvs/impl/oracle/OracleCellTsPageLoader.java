@@ -127,7 +127,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
 
         @Override
         public boolean hasNext() {
-            return !token.reachedEnd;
+            return !token.reachedEnd();
         }
 
         // We don't use AbstractIterator to make sure hasNext() is fast and doesn't actually load the next page.
@@ -191,21 +191,21 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
 
         private void appendRangePredicates(boolean singleRow, FullQuery.Builder builder) {
             if (singleRow) {
-                builder.append(" AND row_name = ?", token.startRowInclusive);
-                if (token.startColInclusive.length > 0) {
-                    builder.append(" AND col_name >= ?", token.startColInclusive);
-                    if (token.startTsInclusive != null) {
+                builder.append(" AND row_name = ?", token.startRowInclusive());
+                if (token.startColInclusive().length > 0) {
+                    builder.append(" AND col_name >= ?", token.startColInclusive());
+                    if (token.startTsInclusive() != null) {
                         builder.append(" AND (col_name > ? OR ts >= ?)",
-                                token.startColInclusive,
-                                token.startTsInclusive);
+                                token.startColInclusive(),
+                                token.startTsInclusive());
                     }
                 }
             } else {
                 RangePredicateHelper.create(false, DBType.ORACLE, builder)
                         .startCellTsInclusive(
-                                token.startRowInclusive,
-                                token.startColInclusive,
-                                token.startTsInclusive);
+                                token.startRowInclusive(),
+                                token.startColInclusive(),
+                                token.startTsInclusive());
             }
         }
 
@@ -228,7 +228,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
         }
 
         private void updateCountOfExaminedCellTsPairsInCurrentRow(List<CellTsPairInfo> results) {
-            byte[] currentRow = token.startRowInclusive;
+            byte[] currentRow = token.startRowInclusive();
             for (CellTsPairInfo cellTs : results) {
                 if (!Arrays.equals(currentRow, cellTs.rowName)) {
                     currentRow = cellTs.rowName;
@@ -243,7 +243,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
                 if (scannedSingleRow) {
                     // If we scanned a single row and reached the end, we just restart
                     // from the lexicographically next row
-                    byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, token.startRowInclusive);
+                    byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, token.startRowInclusive());
                     if (nextRow == null) {
                         return CellTsPairToken.end();
                     } else {

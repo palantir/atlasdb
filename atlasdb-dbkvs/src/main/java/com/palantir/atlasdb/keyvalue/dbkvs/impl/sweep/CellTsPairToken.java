@@ -18,37 +18,51 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
 import javax.annotation.Nullable;
 
+import org.immutables.value.Value;
+
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 
-public final class CellTsPairToken {
-    public final byte[] startRowInclusive;
-    public final byte[] startColInclusive;
-    @Nullable
-    public final Long startTsInclusive;
-    public final boolean reachedEnd;
+@Value.Immutable
+public abstract class CellTsPairToken {
+    public abstract byte[] startRowInclusive();
 
-    private CellTsPairToken(byte[] startRowInclusive,
-            byte[] startColInclusive,
-            Long startTsInclusive,
-            boolean reachedEnd) {
-        this.startRowInclusive = startRowInclusive;
-        this.startColInclusive = startColInclusive;
-        this.startTsInclusive = startTsInclusive;
-        this.reachedEnd = reachedEnd;
+    @Value.Default
+    public byte[] startColInclusive() {
+        return PtBytes.EMPTY_BYTE_ARRAY;
+    }
+
+    @Nullable
+    @Value.Default
+    public Long startTsInclusive() {
+        return null;
+    }
+
+    @Value.Default
+    public boolean reachedEnd() {
+        return false;
     }
 
     public static CellTsPairToken startRow(byte[] startRowInclusive) {
-        return new CellTsPairToken(startRowInclusive, PtBytes.EMPTY_BYTE_ARRAY, null, false);
+        return ImmutableCellTsPairToken.builder()
+                .startRowInclusive(startRowInclusive)
+                .build();
     }
 
     public static CellTsPairToken continueRow(CellTsPairInfo lastResult) {
         Preconditions.checkState(lastResult.ts != Long.MAX_VALUE, "Illegal timestamp MAX_VALUE");
 
-        return new CellTsPairToken(lastResult.rowName, lastResult.colName, lastResult.ts + 1, false);
+        return ImmutableCellTsPairToken.builder()
+                .startRowInclusive(lastResult.rowName)
+                .startColInclusive(lastResult.colName)
+                .startTsInclusive(lastResult.ts + 1)
+                .build();
     }
 
     public static CellTsPairToken end() {
-        return new CellTsPairToken(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, null, true);
+        return ImmutableCellTsPairToken.builder()
+                .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
+                .reachedEnd(true)
+                .build();
     }
 }
