@@ -204,7 +204,7 @@ public final class DbKvs extends AbstractKeyValueService {
         OverflowValueLoader overflowValueLoader = new OracleOverflowValueLoader(oracleDdlConfig, tableNameGetter);
         DbKvsGetRange getRange = new OracleGetRange(
                 connections, overflowValueLoader, tableNameGetter, valueStyleCache, oracleDdlConfig);
-        CellTsPairLoader cellTsPairLoaderFactory = new OracleCellTsPageLoader(
+        CellTsPairLoader cellTsPageLoader = new OracleCellTsPageLoader(
                 connections, tableNameGetter, valueStyleCache, oracleDdlConfig);
         return new DbKvs(
                 executor,
@@ -214,7 +214,7 @@ public final class DbKvs extends AbstractKeyValueService {
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
                 getRange,
-                new DbKvsGetCandidateCellsForSweeping(cellTsPairLoaderFactory));
+                new DbKvsGetCandidateCellsForSweeping(cellTsPageLoader));
     }
 
     private DbKvs(ExecutorService executor,

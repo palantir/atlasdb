@@ -26,16 +26,16 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class DbKvsGetCandidateCellsForSweeping {
 
-    private final CellTsPairLoader cellTsPairLoaderFactory;
+    private final CellTsPairLoader cellTsPairLoader;
 
-    public DbKvsGetCandidateCellsForSweeping(CellTsPairLoader cellTsPairLoaderFactory) {
-        this.cellTsPairLoaderFactory = cellTsPairLoaderFactory;
+    public DbKvsGetCandidateCellsForSweeping(CellTsPairLoader cellTsPairLoader) {
+        this.cellTsPairLoader = cellTsPairLoader;
     }
 
     public Iterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        Iterator<List<CellTsPairInfo>> cellTsIter = cellTsPairLoaderFactory.createPageIterator(tableRef, request);
+        Iterator<List<CellTsPairInfo>> cellTsIter = cellTsPairLoader.createPageIterator(tableRef, request);
         Iterator<List<CandidateCellForSweeping>> rawIter = CandidateGroupingIterator.create(cellTsIter);
         return Iterators.filter(rawIter, page -> !page.isEmpty());
     }
