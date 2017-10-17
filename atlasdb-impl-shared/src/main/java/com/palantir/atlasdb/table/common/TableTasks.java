@@ -94,29 +94,8 @@ public final class TableTasks {
                                     int threadCount,
                                     final CopyStats stats,
                                     final CopyTask task) throws InterruptedException {
-        InterruptibleAction action = range -> executeTask(srcTable, dstTable, stats, task, range);
-        String actionName = "copy";
-        BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
-        for (final MutableRange range : getRanges(threadCount, batchSize)) {
-            if (Thread.currentThread().isInterrupted()) {
-                log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
-                break;
-            }
-            pool.submitTask(() -> {
-                do {
-                    if (Thread.currentThread().isInterrupted()) {
-                        log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
-                        break;
-                    }
-                    try {
-                        action.execute(range);
-                    } catch (InterruptedException e) {
-                        throw Throwables.rewrapAndThrowUncheckedException(e);
-                    }
-                } while (!range.isComplete());
-            });
-        }
-        pool.waitForSubmittedTasks();
+        new TaskExecutor(exec, batchSize, threadCount).executeTask("copy",
+                range -> executeTask(srcTable, dstTable, stats, task, range));
     }
 
     private static PartialCopyStats copyInternal(final Transaction transaction,
@@ -211,29 +190,8 @@ public final class TableTasks {
                                      int threadCount,
                                      final DiffStats stats,
                                      final DiffTask task) throws InterruptedException {
-        InterruptibleAction action = range -> executeTask(strategy, plusTable, minusTable, stats, task, range);
-        String actionName = "diff";
-        BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
-        for (final MutableRange range : getRanges(threadCount, batchSize)) {
-            if (Thread.currentThread().isInterrupted()) {
-                log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
-                break;
-            }
-            pool.submitTask(() -> {
-                do {
-                    if (Thread.currentThread().isInterrupted()) {
-                        log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
-                        break;
-                    }
-                    try {
-                        action.execute(range);
-                    } catch (InterruptedException e) {
-                        throw Throwables.rewrapAndThrowUncheckedException(e);
-                    }
-                } while (!range.isComplete());
-            });
-        }
-        pool.waitForSubmittedTasks();
+        new TaskExecutor(exec, batchSize, threadCount).executeTask("diff",
+                range -> executeTask(strategy, plusTable, minusTable, stats, task, range));
     }
 
     private static void executeTask(TableReference srcTable, TableReference dstTable, CopyStats stats,
@@ -514,5 +472,42 @@ public final class TableTasks {
     private static class PartialCopyStats {
         private long rowsCopied = 0;
         private long cellsCopied = 0;
+    }
+
+    private static class TaskExecutor {
+        private ExecutorService exec;
+        private int batchSize;
+        private int threadCount;
+
+        TaskExecutor(ExecutorService exec, int batchSize, int threadCount) {
+            this.exec = exec;
+            this.batchSize = batchSize;
+            this.threadCount = threadCount;
+        }
+
+        void executeTask(String actionName,
+                InterruptibleAction action) throws InterruptedException {
+            BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
+            for (final MutableRange range : getRanges(threadCount, batchSize)) {
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
+                    break;
+                }
+                pool.submitTask(() -> {
+                    do {
+                        if (Thread.currentThread().isInterrupted()) {
+                            log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
+                            break;
+                        }
+                        try {
+                            action.execute(range);
+                        } catch (InterruptedException e) {
+                            throw Throwables.rewrapAndThrowUncheckedException(e);
+                        }
+                    } while (!range.isComplete());
+                });
+            }
+            pool.waitForSubmittedTasks();
+        }
     }
 }
