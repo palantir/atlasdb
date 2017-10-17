@@ -21,8 +21,8 @@ import static com.palantir.atlasdb.table.description.render.ColumnRenderers.VarN
 import static com.palantir.atlasdb.table.description.render.Renderers.CamelCase;
 import static com.palantir.atlasdb.table.description.render.Renderers.addParametersFromRowComponents;
 import static com.palantir.atlasdb.table.description.render.Renderers.getArgumentsFromRowComponents;
-import static com.palantir.atlasdb.table.description.render.Renderers.getColumnClassForGenericTypeParameter;
 import static com.palantir.atlasdb.table.description.render.Renderers.getColumnClass;
+import static com.palantir.atlasdb.table.description.render.Renderers.getColumnClassForGenericTypeParameter;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
