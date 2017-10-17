@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
@@ -35,11 +34,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nullable;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Defaults;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -130,35 +129,51 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
         while (true) {
-            PaxosValue greatestLearned = knowledge.getGreatestLearnedValue();
+            LeadershipState currentState = determineLeadershipState();
 
-            if (isThisNodeTheLeaderFor(greatestLearned)) {
-                StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearned);
-
-                if (leadingStatus == StillLeadingStatus.LEADING) {
-                    return new PaxosLeadershipToken(greatestLearned);
-                } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
+            switch (currentState.status()) {
+                case LEADING:
+                    return currentState.confirmedToken().get();
+                case NO_QUORUM:
                     // If we don't have quorum we should just retry our calls.
                     continue;
-                }
-            } else {
-                // We are not the leader, so we should ping them to see if they are still up.
-                if (pingLeader()) {
-                    Thread.sleep(updatePollingRateInMs);
+                case NOT_LEADING:
+                    proposeLeadershipOrWaitForBackoff(currentState);
                     continue;
-                }
+                default:
+                    throw new IllegalStateException("unknown status: " + currentState.status());
             }
-
-            boolean learnedNewState = updateLearnedStateFromPeers(greatestLearned);
-            if (learnedNewState) {
-                continue;
-            }
-
-            long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
-            Thread.sleep(backoffTime);
-
-            proposeLeadershipAfter(greatestLearned);
         }
+    }
+
+    private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState)
+            throws InterruptedException {
+        if (pingLeader()) {
+            Thread.sleep(updatePollingRateInMs);
+            return;
+        }
+
+        boolean learnedNewState = updateLearnedStateFromPeers(currentState.greatestLearnedValue());
+        if (learnedNewState) {
+            return;
+        }
+
+        long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
+        Thread.sleep(backoffTime);
+
+        proposeLeadershipAfter(currentState.greatestLearnedValue());
+    }
+
+    @Override
+    public Optional<LeadershipToken> getCurrentTokenIfLeading() {
+        return determineLeadershipState().confirmedToken();
+    }
+
+    private LeadershipState determineLeadershipState() {
+        Optional<PaxosValue> greatestLearnedValue = getGreatestLearnedPaxosValue();
+        StillLeadingStatus leadingStatus = determineLeadershipStatus(greatestLearnedValue);
+
+        return LeadershipState.of(greatestLearnedValue, leadingStatus);
     }
 
     private boolean pingLeader() {
@@ -339,26 +354,21 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public boolean ping() {
-        return isThisNodeTheLeaderFor(knowledge.getGreatestLearnedValue());
+        return getGreatestLearnedPaxosValue()
+                .map(this::isThisNodeTheLeaderFor)
+                .orElse(false);
     }
 
-    private void proposeLeadershipAfter(PaxosValue value) {
+    private void proposeLeadershipAfter(Optional<PaxosValue> value) {
         lock.lock();
         try {
-            PaxosValue latestValue = knowledge.getGreatestLearnedValue();
-
-            if (!Objects.equals(value, latestValue)) {
+            if (!isLatestRound(value)) {
                 // This means that new data has come in so we shouldn't propose leadership.
                 // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader behaves correctly.
                 return;
             }
 
-            long seq;
-            if (value != null) {
-                seq = value.getRound() + 1;
-            } else {
-                seq = Defaults.defaultValue(long.class);
-            }
+            long seq = value.map(val -> val.getRound() + 1).orElse(0L);
 
             eventRecorder.recordProposalAttempt(seq);
             proposer.propose(seq, null);
@@ -369,6 +379,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         } finally {
             lock.unlock();
         }
+    }
+
+    private Optional<PaxosValue> getGreatestLearnedPaxosValue() {
+        return Optional.ofNullable(knowledge.getGreatestLearnedValue());
     }
 
     @Override
@@ -388,17 +402,29 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         return status;
     }
 
+    private StillLeadingStatus determineLeadershipStatus(Optional<PaxosValue> value) {
+        return value.map(this::determineLeadershipStatus).orElse(StillLeadingStatus.NOT_LEADING);
+    }
+
     private StillLeadingStatus determineLeadershipStatus(PaxosValue value) {
         if (!isThisNodeTheLeaderFor(value)) {
             return StillLeadingStatus.NOT_LEADING;
         }
 
-        if (value.getRound() != latestRoundLearnedLocally()) {
+        if (!isLatestRound(value)) {
             return StillLeadingStatus.NOT_LEADING;
         }
 
         return latestRoundVerifier.isLatestRound(value.getRound())
                 .toStillLeadingStatus();
+    }
+
+    private boolean isLatestRound(PaxosValue value) {
+        return isLatestRound(Optional.of(value));
+    }
+
+    private boolean isLatestRound(Optional<PaxosValue> valueIfAny) {
+        return valueIfAny.equals(getGreatestLearnedPaxosValue());
     }
 
     private void recordLeadershipStatus(
@@ -412,13 +438,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private long latestRoundLearnedLocally() {
-        return knowledge.getGreatestLearnedValue().getRound();
+        return getGreatestLearnedPaxosValue().map(PaxosValue::getRound).orElse(-1L);
     }
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {
-        if (value == null) {
-            return false;
-        }
         return value.getLeaderUUID().equals(proposer.getUuid());
     }
 
@@ -432,8 +455,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      *
      * @returns true if new state was learned, otherwise false
      */
-    public boolean updateLearnedStateFromPeers(PaxosValue greatestLearned) {
-        final long nextToLearnSeq = greatestLearned != null ? greatestLearned.getRound() + 1 : Defaults.defaultValue(long.class);
+    public boolean updateLearnedStateFromPeers(Optional<PaxosValue> greatestLearned) {
+        final long nextToLearnSeq = greatestLearned.map(value -> value.getRound() + 1).orElse(0L);
         List<PaxosUpdate> updates = PaxosQuorumChecker.<PaxosLearner, PaxosUpdate> collectQuorumResponses(
                 learners,
                 new Function<PaxosLearner, PaxosUpdate>() {
@@ -462,5 +485,26 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         return learned;
+    }
+
+    @Value.Immutable
+    interface LeadershipState {
+
+        @Value.Parameter
+        Optional<PaxosValue> greatestLearnedValue();
+
+        @Value.Parameter
+        StillLeadingStatus status();
+
+        default Optional<LeadershipToken> confirmedToken() {
+            if (status() == StillLeadingStatus.LEADING) {
+                return Optional.of(new PaxosLeadershipToken(greatestLearnedValue().get()));
+            }
+            return Optional.empty();
+        }
+
+        static LeadershipState of(Optional<PaxosValue> value, StillLeadingStatus status) {
+            return ImmutableLeadershipState.of(value, status);
+        }
     }
 }
