@@ -127,7 +127,7 @@ public class OracleShrinkExecutor {
         SqlConnection sqlConnection = conns.get();
         try {
             int originalNetworkTimeout = sqlConnection.getUnderlyingConnection().getNetworkTimeout();
-            int newNetworkTimeout = originalNetworkTimeout * 5;
+            int newNetworkTimeout = oracleDdlConfig.shrinkConnectionTimeoutMillis();
             sqlConnection.getUnderlyingConnection().setNetworkTimeout(Executors.newSingleThreadExecutor(),
                     newNetworkTimeout);
             log.info("Increased sql socket read timeout from {} to {}",

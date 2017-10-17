@@ -60,6 +60,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return false;
     }
 
+    //Create a ShrinkConfig class
     @Value.Default
     public boolean enableShrinkOnOracleStandardEdition() {
         return false;
@@ -73,6 +74,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @Value.Default
     public long shrinkPauseOnFailureSeconds() {
         return 60 * 30;
+    }
+
+    @Value.Default
+    public int shrinkConnectionTimeoutMillis() {
+        return 60 * 10 * 1000;
     }
 
     @Value.Default
