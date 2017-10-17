@@ -20,14 +20,14 @@ Logged when the service has started, to indicate that background sweeper thread 
 
 - ``Beginning iteration of sweep for table {} starting at row {}``
 
-Logged before we begin an iteration of sweep, after 1. (note that this could be triggered by background sweep, the sweep CLI, or the ``SweeperService`` endpoints)
+Logged before we begin an iteration of sweep, after 1 or 5. (note that this could be triggered by background sweep, the sweep CLI, or the ``SweeperService`` endpoints)
 
-- ``Swept successfully.``
+- ``Analyzed {number of values read} cell+timestamp pairs from table {table name} ...``
 
 Logged when a batch of values has been successfully swept, after 4. Its parameters also contain the number of
 (cell + ts) pairs read and deleted on this batch.
 
-- ``Finished sweeping``
+- ``Finished sweeping table {table name}. ...``
 
 Logged when a table has been successfully swept, after 6. Its parameters also contain the number of (cell + ts) pairs
 read and deleted when sweeping this table.

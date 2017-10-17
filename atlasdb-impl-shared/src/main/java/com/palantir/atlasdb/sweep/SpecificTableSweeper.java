@@ -144,10 +144,15 @@ public class SpecificTableSweeper {
                     batchConfig,
                     startRow);
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.info("Swept successfully.",
+            log.info("Analyzed {} cell+timestamp pairs"
+                            + " from table {}"
+                            + " starting at row {}"
+                            + " and deleted {} stale values"
+                            + " in {} ms"
+                            + " up to timestamp {}.",
+                    SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
                     SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()),
                     SafeArg.of("time taken", elapsedMillis),
                     SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
@@ -160,10 +165,16 @@ public class SpecificTableSweeper {
             return results;
         } catch (RuntimeException e) {
             // This error may be logged on some paths above, but I prefer to log defensively.
-            log.info("Failed to sweep.",
+            log.info("Failed to sweep table {}"
+                            + " at row {}"
+                            + " with candidate batch size {},"
+                            + " delete batch size {},"
+                            + " and {} cell+timestamp pairs to examine.",
                     LoggingArgs.tableRef("tableRef", tableRef),
                     UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("batchConfig", batchConfig),
+                    SafeArg.of("candidateBatchSize", batchConfig.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", batchConfig.deleteBatchSize()),
+                    SafeArg.of("maxCellTsPairsToExamine", batchConfig.maxCellTsPairsToExamine()),
                     e);
             throw e;
         }
@@ -201,7 +212,9 @@ public class SpecificTableSweeper {
         } else {
             saveFinalSweepResults(tableToSweep, cumulativeResults);
             performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.info("Finished sweeping.",
+            log.info("Finished sweeping table {}."
+                            + " Examined {} cell+timestamp pairs,"
+                            + " deleted {} stale values.",
                     LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                     SafeArg.of("cellTs pairs examined", cellsExamined),
                     SafeArg.of("cellTs pairs deleted", staleValuesDeleted));
