@@ -36,6 +36,11 @@ public class DelegatingManagedTimestampService implements ManagedTimestampServic
     }
 
     @Override
+    public boolean isInitialized() {
+        return timestampService.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return timestampService.getFreshTimestamp();
     }

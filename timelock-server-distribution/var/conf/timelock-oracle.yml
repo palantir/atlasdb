@@ -1,0 +1,36 @@
+clients:
+  - test
+  - test2
+  - atlasete
+
+cluster:
+  localServer: localhost:8421
+  servers:
+    - localhost:8421
+
+algorithm:
+  type: paxos
+
+timestampBoundPersister:
+  type: database
+  key-value-service:
+    type: relational
+    ddl:
+      type: oracle
+      overflowMigrationState: FINISHED
+      jdbcHandler:
+        type: oracle
+    connection:
+      type: oracle
+      host: oracle
+      port: 1521
+      sid: palantir
+      dbLogin: palantir
+      dbPassword: palpal
+server:
+  applicationConnectors:
+    - type: http
+      port: 8421
+  adminConnectors:
+    - type: http
+      port: 8422

@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.paxos;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
+public interface PaxosLatestRoundVerifier {
 
-public class DbKvsPostgresGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
-    @Override
-    protected KeyValueService createKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-    }
+    PaxosQuorumStatus isLatestRound(long round);
+
 }

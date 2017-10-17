@@ -29,12 +29,12 @@ import com.google.common.collect.ImmutableList;
         TodoEteTest.class,
         CommandLineEteTest.class
         })
-public class PostgresDbPersistenceTimelockTestSuite extends EteSetup {
+public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            PostgresDbPersistenceTimelockTestSuite.class,
+            PostgresDbPersistenceTimeLockTestSuite.class,
             "docker-compose.timelock.database.bound.postgres.yml",
             CLIENTS);
 }

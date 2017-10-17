@@ -58,9 +58,8 @@ public final class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
         } catch (InvocationTargetException e) {
             if (e.getTargetException() instanceof NotInitializedException) {
                 log.warn("Resource is not initialized yet!");
-                throw e.getTargetException();
             }
-            throw e;
+            throw e.getTargetException();
         }
     }
 }

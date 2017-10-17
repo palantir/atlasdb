@@ -32,10 +32,13 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
 
-    public static void createInitialTables(KeyValueService keyValueService, Set<Schema> schemas,
+    public static TransactionManagersInitializer createInitialTables(KeyValueService keyValueService,
+            Set<Schema> schemas,
             boolean initializeAsync) {
-        new TransactionManagersInitializer(keyValueService, schemas)
-                .initialize(initializeAsync);
+        TransactionManagersInitializer initializer = new TransactionManagersInitializer(
+                keyValueService, schemas);
+        initializer.initialize(initializeAsync);
+        return initializer;
     }
 
     private TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas) {

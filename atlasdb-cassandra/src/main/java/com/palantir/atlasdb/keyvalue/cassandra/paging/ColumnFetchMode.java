@@ -15,14 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-public enum ColumnFetchMode {
-    FETCH_ONE(1),
-    FETCH_ALL(Integer.MAX_VALUE);
-
+public final class ColumnFetchMode {
     private final int columnsToFetch;
 
-    ColumnFetchMode(int columnsToFetch) {
+    private ColumnFetchMode(int columnsToFetch) {
         this.columnsToFetch = columnsToFetch;
+    }
+
+    public static ColumnFetchMode fetchAll() {
+        return new ColumnFetchMode(Integer.MAX_VALUE);
+    }
+
+    public static ColumnFetchMode fetchAtMost(int numColumnsToFetch) {
+        return new ColumnFetchMode(numColumnsToFetch);
     }
 
     public int getColumnsToFetch() {
