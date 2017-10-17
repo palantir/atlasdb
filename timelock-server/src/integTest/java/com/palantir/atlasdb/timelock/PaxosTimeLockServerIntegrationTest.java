@@ -438,8 +438,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
         // time / lock services
         metrics.assertContainsTimer(
-                "com.palantir.atlasdb.timelock.AsyncTimelockService.test.getFreshTimestamp");
-        metrics.assertContainsTimer("com.palantir.lock.LockService.test.currentTimeMillis");
+                "com.palantir.atlasdb.timelock.AsyncTimelockService.getFreshTimestamp");
+        metrics.assertContainsTimer("com.palantir.lock.LockService.currentTimeMillis");
 
         // local leader election classes
         metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");
@@ -449,10 +449,10 @@ public class PaxosTimeLockServerIntegrationTest {
         metrics.assertContainsTimer("com.palantir.leader.LeaderElectionService.blockOnBecomingLeader");
 
         // local timestamp bound classes
-        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.test.getUpperLimit");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.test.getGreatestLearnedValue");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.test.accept");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.test.propose");
+        metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.getUpperLimit");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.getGreatestLearnedValue");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
 
         // async lock
         // TODO(nziebart): why does this flake on circle?
