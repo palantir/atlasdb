@@ -843,18 +843,21 @@ public abstract class AbstractKeyValueServiceTest {
     // row 4: 1 2 3 4
     // ...
     private void populateTableWithTriangularData(int numRows) {
-        Map<Cell, byte[]> values = new HashMap<>();
+        Map<Cell, byte[]> expectedValues = new HashMap<>();
         for (long row = 1; row <= numRows; ++row) {
             for (long col = 1; col <= row; ++col) {
                 byte[] rowName = PtBytes.toBytes(Long.MIN_VALUE ^ row);
                 byte[] colName = PtBytes.toBytes(Long.MIN_VALUE ^ col);
-                values.put(Cell.create(rowName, colName), PtBytes.toBytes(row + "," + col));
+                expectedValues.put(Cell.create(rowName, colName), PtBytes.toBytes(row + "," + col));
             }
         }
+        Map<Cell, byte[]> unexpectedValues = Maps.transformValues(expectedValues, val -> PtBytes.toBytes("foo"));
+
         keyValueService.truncateTable(TEST_TABLE);
-        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
-        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP - 10);
-        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP + 10);
+        keyValueService.put(TEST_TABLE, expectedValues, TEST_TIMESTAMP - 1); // only these should be returned
+
+        keyValueService.put(TEST_TABLE, unexpectedValues, TEST_TIMESTAMP - 10);
+        keyValueService.put(TEST_TABLE, unexpectedValues, TEST_TIMESTAMP + 10);
     }
 
     private void doTestGetRangePagingWithColumnSelection(int batchSizeHint,
@@ -870,7 +873,7 @@ public abstract class AbstractKeyValueServiceTest {
                 .retainColumns(columnSelection)
                 .batchHint(batchSizeHint)
                 .build();
-        try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(TEST_TABLE, request, Long.MAX_VALUE)) {
+        try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(TEST_TABLE, request, TEST_TIMESTAMP)) {
             List<RowResult<Value>> results = ImmutableList.copyOf(iter);
             assertEquals(getExpectedResultForRangePagingWithColumnSelectionTest(numRows, numColsInSelection, reverse),
                     results);
