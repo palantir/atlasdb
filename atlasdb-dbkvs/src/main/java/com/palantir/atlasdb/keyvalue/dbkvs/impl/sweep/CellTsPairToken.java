@@ -20,14 +20,32 @@ import javax.annotation.Nullable;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 
-public class CellTsPairToken {
-    public byte[] startRowInclusive;
-    public byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
+public final class CellTsPairToken {
+    public final byte[] startRowInclusive;
+    public final byte[] startColInclusive;
     @Nullable
-    public Long startTsInclusive = null;
-    public boolean reachedEnd = false;
+    public final Long startTsInclusive;
+    public final boolean reachedEnd;
 
-    public CellTsPairToken(byte[] startRowInclusive) {
+    private CellTsPairToken(byte[] startRowInclusive,
+            byte[] startColInclusive,
+            Long startTsInclusive,
+            boolean reachedEnd) {
         this.startRowInclusive = startRowInclusive;
+        this.startColInclusive = startColInclusive;
+        this.startTsInclusive = startTsInclusive;
+        this.reachedEnd = reachedEnd;
+    }
+
+    public static CellTsPairToken startRow(byte[] startRowInclusive) {
+        return new CellTsPairToken(startRowInclusive, PtBytes.EMPTY_BYTE_ARRAY, null, false);
+    }
+
+    public static CellTsPairToken continueRow(CellTsPairInfo lastResult) {
+        return new CellTsPairToken(lastResult.rowName, lastResult.colName, lastResult.ts + 1, false);
+    }
+
+    public static CellTsPairToken end() {
+        return new CellTsPairToken(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, null, true);
     }
 }

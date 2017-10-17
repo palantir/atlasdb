@@ -79,7 +79,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
             this.sqlRowLimit = sqlRowLimit;
             this.tableName = tableName;
             this.prefixedTableName = prefixedTableName;
-            this.token = new CellTsPairToken(startRowInclusive);
+            this.token = CellTsPairToken.startRow(startRowInclusive);
         }
 
         @Override
@@ -176,13 +176,11 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
 
         private void computeNextStartPosition(List<CellTsPairInfo> results) {
             if (results.size() < sqlRowLimit) {
-                token.reachedEnd = true;
+                token = CellTsPairToken.end();
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
                 Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
-                token.startRowInclusive = lastResult.rowName;
-                token.startColInclusive = lastResult.colName;
-                token.startTsInclusive = lastResult.ts + 1;
+                token = CellTsPairToken.continueRow(lastResult);
             }
         }
     }

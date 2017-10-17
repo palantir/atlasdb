@@ -23,7 +23,6 @@ import java.util.List;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -123,7 +122,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             this.request = request;
             this.tableDetails = tableDetails;
             this.sqlRowLimit = sqlRowLimit;
-            this.token = new CellTsPairToken(startRowInclusive);
+            this.token = CellTsPairToken.startRow(startRowInclusive);
         }
 
         @Override
@@ -247,31 +246,19 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
                     // from the lexicographically next row
                     byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(false, token.startRowInclusive);
                     if (nextRow == null) {
-                        token.reachedEnd = true;
+                        token = CellTsPairToken.end();
                     } else {
-                        newRow(nextRow);
+                        token = CellTsPairToken.startRow(nextRow);
                         cellTsPairsAlreadyExaminedInCurrentRow = 0L;
                     }
                 } else {
-                    token.reachedEnd = true;
+                    token = CellTsPairToken.end();
                 }
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
                 Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
-                continueRow(lastResult);
+                token = CellTsPairToken.continueRow(lastResult);
             }
-        }
-
-        private void continueRow(CellTsPairInfo lastResult) {
-            token.startRowInclusive = lastResult.rowName;
-            token.startColInclusive = lastResult.colName;
-            token.startTsInclusive = lastResult.ts + 1;
-        }
-
-        private void newRow(byte[] nextRow) {
-            token.startRowInclusive = nextRow;
-            token.startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
-            token.startTsInclusive = null;
         }
 
     }
