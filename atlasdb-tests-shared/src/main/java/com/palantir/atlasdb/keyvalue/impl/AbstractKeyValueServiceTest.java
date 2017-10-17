@@ -854,7 +854,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, byte[]> unexpectedValues = Maps.transformValues(expectedValues, val -> PtBytes.toBytes("foo"));
 
         keyValueService.truncateTable(TEST_TABLE);
-        keyValueService.put(TEST_TABLE, expectedValues, TEST_TIMESTAMP - 1); // only these should be returned
+        keyValueService.put(TEST_TABLE, expectedValues, TEST_TIMESTAMP); // only these should be returned
 
         keyValueService.put(TEST_TABLE, unexpectedValues, TEST_TIMESTAMP - 10);
         keyValueService.put(TEST_TABLE, unexpectedValues, TEST_TIMESTAMP + 10);
@@ -873,7 +873,8 @@ public abstract class AbstractKeyValueServiceTest {
                 .retainColumns(columnSelection)
                 .batchHint(batchSizeHint)
                 .build();
-        try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(TEST_TABLE, request, TEST_TIMESTAMP)) {
+        try (ClosableIterator<RowResult<Value>> iter = keyValueService.getRange(TEST_TABLE, request,
+                TEST_TIMESTAMP + 1)) {
             List<RowResult<Value>> results = ImmutableList.copyOf(iter);
             assertEquals(getExpectedResultForRangePagingWithColumnSelectionTest(numRows, numColsInSelection, reverse),
                     results);
