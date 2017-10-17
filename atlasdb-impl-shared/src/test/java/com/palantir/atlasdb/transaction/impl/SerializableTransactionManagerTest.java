@@ -52,7 +52,8 @@ public class SerializableTransactionManagerTest {
                 mockInitializer,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
-                1, // concurrentGetRangesThreadPoolSize
+                8, // concurrentGetRangesThreadPoolSize
+                2, // defaultGetRangesConcurrency
                 true); // initializeAsync
 
         when(mockKvs.isInitialized()).thenReturn(true);
@@ -110,7 +111,8 @@ public class SerializableTransactionManagerTest {
                 mockInitializer,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
-                1, // concurrentGetRangesThreadPoolSize
+                8, // concurrentGetRangesThreadPoolSize
+                2, // defaultGetRangesConcurrency
                 false); // initializeAsync
 
         when(mockKvs.isInitialized()).thenReturn(false);
