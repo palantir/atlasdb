@@ -93,8 +93,9 @@ public interface TransactionManager extends AutoCloseable {
             throws E, TransactionFailedRetriableException;
 
     /**
-     * This will open and run a read only transaction.  Read transactions are just like normal
-     * transactions, but will throw if any write operations are called.
+     * This will open and run a read-only transaction. Read-only transactions are similar to other
+     * transactions, but will throw if any write operations are called. Furthermore, they often
+     * make fewer network calls than their read/write counterparts so should be used where possible.
      *
      * @param task task to run
      *

@@ -22,16 +22,16 @@ Logged when the service has started, to indicate that background sweeper thread 
 
 Logged when a new table has been selected to be swept, after 1.
 
-- ``Sweeping another batch of table: {}. Batch starts on row {}``
+- ``Sweeping another batch of table: {table name}. Batch starts on row {start row}``
 
 Logged when a new batch of the same table is going to be swept, after 5.
 
-- ``Swept successfully.``
+- ``Analyzed {number of values read} cell+timestamp pairs from table {table name} ...``
 
 Logged when a batch of values has been successfully swept, after 4. Its parameters also contain the number of
 (cell + ts) pairs read and deleted on this batch.
 
-- ``Finished sweeping``
+- ``Finished sweeping table {table name}. ...``
 
 Logged when a table has been successfully swept, after 6. Its parameters also contain the number of (cell + ts) pairs
 read and deleted when sweeping this table.
