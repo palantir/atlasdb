@@ -126,8 +126,8 @@ public class MetricsManagerTest {
 
     @Test
     public void doesNotDeregisterMetricsFromOtherClassesEvenIfStringPrefixesMatch() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE); // java.util.List.errors.outofbounds
-        metricsManager.registerMetric(LIST_ITERATOR_CLASS, ERROR_OOM, GAUGE); // java.util.ListIterator.errors.oom
+        metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE); // java.util.List.error.outofbounds
+        metricsManager.registerMetric(LIST_ITERATOR_CLASS, ERROR_OOM, GAUGE); // java.util.ListIterator.error.oom
 
         metricsManager.deregisterMetricsWithPrefix(LIST_CLASS, "");
 
