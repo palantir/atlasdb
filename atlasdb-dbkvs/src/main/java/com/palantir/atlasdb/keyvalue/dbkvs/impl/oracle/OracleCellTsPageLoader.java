@@ -203,7 +203,6 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             } else {
                 RangePredicateHelper.create(false, DBType.ORACLE, builder)
                         .startCellTsInclusive(
-                                // TODO can we reuse a value type here?
                                 token.startRowInclusive,
                                 token.startColInclusive,
                                 token.startTsInclusive);
