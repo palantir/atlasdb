@@ -134,6 +134,16 @@ v0.60.1
            We now throw the actual cause for the invocation exception.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.60.0
+=======
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
