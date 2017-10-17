@@ -29,13 +29,19 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -50,6 +56,7 @@ public class TimeLockMigratorTest {
     private static final String PING_ENDPOINT = "/testClient/timestamp-management/ping";
     private static final MappingBuilder TEST_MAPPING = post(urlEqualTo(TEST_ENDPOINT));
     private static final MappingBuilder PING_MAPPING = get(urlEqualTo(PING_ENDPOINT));
+    private static final String SCENARIO = "scenario";
 
     private static final String USER_AGENT = "user-agent (123456789)";
 
@@ -67,7 +74,10 @@ public class TimeLockMigratorTest {
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse()
                 .withStatus(200)
                 .withBody(TimestampManagementService.PING_RESPONSE)
-                .withHeader("Content-Type", "text/plain")));
+                .withHeader("Content-Type", "text/plain"))
+                .inScenario(SCENARIO)
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willSetStateTo(Scenario.STARTED));
 
         String serverUri = String.format("http://%s:%s",
                 WireMockConfiguration.DEFAULT_BIND_ADDRESS,
@@ -107,5 +117,62 @@ public class TimeLockMigratorTest {
         TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
+    }
+
+    @Test
+    public void asyncMigrationProceedsIfTimeLockInitiallyUnavailable() throws InterruptedException {
+        String nowSucceeding = "nowSucceeding";
+
+        wireMockRule.stubFor(PING_MAPPING.inScenario(SCENARIO)
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse().withStatus(500))
+                .willSetStateTo(nowSucceeding));
+
+        wireMockRule.stubFor(PING_MAPPING.inScenario(SCENARIO)
+                .whenScenarioStateIs(nowSucceeding)
+                .willReturn(aResponse().withStatus(204)));
+
+        wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
+
+        TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT, true);
+        migrator.migrate();
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(migrator::isInitialized);
+
+        wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
+        verify(invalidator, times(1)).backupAndInvalidate();
+        wireMockRule.verify(postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
+    }
+
+    @Test
+    public void asyncMigrationProceedsIfInvalidatorInitiallyUnavailable() throws InterruptedException {
+        when(invalidator.backupAndInvalidate())
+                .thenAnswer(new Answer<Long>() {
+                    private volatile boolean shouldFail = true;
+                    @Override
+                    public Long answer(InvocationOnMock invocation) throws Throwable {
+                        if (shouldFail) {
+                            shouldFail = false;
+                            throw new IllegalStateException("not ready yet");
+                        }
+                        return BACKUP_TIMESTAMP;
+                    }
+                });
+
+        wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
+        TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT, true);
+        migrator.migrate();
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(migrator::isInitialized);
+
+        wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
+        verify(invalidator, times(2)).backupAndInvalidate();
+        wireMockRule.verify(postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }
 }
