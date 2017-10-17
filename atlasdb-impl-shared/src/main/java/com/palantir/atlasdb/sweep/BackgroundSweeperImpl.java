@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -35,7 +34,6 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -147,7 +145,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             if (checkAndRepairTableDrop()) {
                 log.info("The table being swept by the background sweeper was dropped, moving on...");
             } else {
-                SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
+                SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
                 log.warn("The background sweep job failed unexpectedly with candidate batch size {},"
                                 + " delete batch size {},"
                                 + " and {} cell+timestamp pairs to examine."
@@ -181,22 +179,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
         } else {
-            specificTableSweeper.runOnceForTable(tableToSweep.get(), Optional.empty(), true);
+            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get());
             return true;
         }
-    }
-
-    private SweepBatchConfig getAdjustedBatchConfig() {
-        SweepBatchConfig baseConfig = specificTableSweeper.getSweepBatchConfig().get();
-        return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(adjustBatchParameter(baseConfig.maxCellTsPairsToExamine()))
-                .candidateBatchSize(adjustBatchParameter(baseConfig.candidateBatchSize()))
-                .deleteBatchSize(adjustBatchParameter(baseConfig.deleteBatchSize()))
-                .build();
-    }
-
-    static int adjustBatchParameter(int parameterValue) {
-        return Math.max(1, (int) (batchSizeMultiplier * parameterValue));
     }
 
     // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made
@@ -209,17 +194,12 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
                                 tx);
                         if (progress.isPresent()) {
-                            log.info("Sweeping another batch of table: {}. Batch starts on row {}",
-                                    LoggingArgs.tableRef("table name", progress.get().tableRef()),
-                                    UnsafeArg.of("startRow", progress.get().startRow()));
-                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress.get()));
+                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
                             Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
                                     tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
                             if (nextTable.isPresent()) {
-                                log.info("Now starting to sweep next table: {}.",
-                                        LoggingArgs.tableRef("table name", nextTable.get()));
-                                return Optional.of(new TableToSweep(nextTable.get(), null));
+                                return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
                             } else {
                                 return Optional.empty();
                             }
