@@ -1505,7 +1505,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
-            long timestamp) {
+            long startTs) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
@@ -1519,7 +1519,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 columnGetter,
                 rangeRequest,
                 resultsExtractor,
-                timestamp
+                startTs
         );
 
         return ClosableIterators.wrap(rowResults.iterator());
