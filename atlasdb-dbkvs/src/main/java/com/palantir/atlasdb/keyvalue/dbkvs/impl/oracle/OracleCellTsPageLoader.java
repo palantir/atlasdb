@@ -255,7 +255,6 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
                 }
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
-                Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
                 return CellTsPairToken.continueRow(lastResult);
             }
         }

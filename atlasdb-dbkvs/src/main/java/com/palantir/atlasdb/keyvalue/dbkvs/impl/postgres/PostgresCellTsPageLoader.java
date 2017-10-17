@@ -125,11 +125,11 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
         }
 
         private AgnosticLightResultSet selectNextPage(ConnectionSupplier conns) {
-            FullQuery query = getQuery();
-            return conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+            FullQuery fullQuery = getFullQuery();
+            return conns.get().selectLightResultSetUnregisteredQuery(fullQuery.getQuery(), fullQuery.getArgs());
         }
 
-        private FullQuery getQuery() {
+        private FullQuery getFullQuery() {
             if (request.shouldCheckIfLatestValueIsEmpty()) {
                 FullQuery.Builder queryBuilder = FullQuery.builder()
                         .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING_THOROUGH(").append(tableName).append(") */")
@@ -179,7 +179,6 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                 return CellTsPairToken.end();
             } else {
                 CellTsPairInfo lastResult = Iterables.getLast(results);
-                Preconditions.checkState(lastResult.ts != Long.MAX_VALUE);
                 return CellTsPairToken.continueRow(lastResult);
             }
         }

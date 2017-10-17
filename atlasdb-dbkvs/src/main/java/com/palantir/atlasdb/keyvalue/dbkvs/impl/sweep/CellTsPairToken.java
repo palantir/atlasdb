@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 public final class CellTsPairToken {
@@ -42,6 +43,8 @@ public final class CellTsPairToken {
     }
 
     public static CellTsPairToken continueRow(CellTsPairInfo lastResult) {
+        Preconditions.checkState(lastResult.ts != Long.MAX_VALUE, "Illegal timestamp MAX_VALUE");
+
         return new CellTsPairToken(lastResult.rowName, lastResult.colName, lastResult.ts + 1, false);
     }
 
