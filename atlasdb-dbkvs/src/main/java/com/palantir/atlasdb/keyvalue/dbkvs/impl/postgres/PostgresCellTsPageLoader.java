@@ -21,11 +21,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -35,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairInfo;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairLoader;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairToken;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.SweepQueryHelpers;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
@@ -72,19 +70,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
         final String tableName;
         final String prefixedTableName;
 
-        private class Token {
-            byte[] startRowInclusive;
-            byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
-            @Nullable
-            Long startTsInclusive = null;
-            boolean reachedEnd = false;
-
-            Token(byte[] startRowInclusive) {
-                this.startRowInclusive = startRowInclusive;
-            }
-        }
-
-        Token token;
+        CellTsPairToken token;
 
         PageIterator(SqlConnectionSupplier connectionPool, CandidateCellForSweepingRequest request, int sqlRowLimit,
                 String tableName, String prefixedTableName, byte[] startRowInclusive) {
@@ -93,7 +79,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
             this.sqlRowLimit = sqlRowLimit;
             this.tableName = tableName;
             this.prefixedTableName = prefixedTableName;
-            this.token = new Token(startRowInclusive);
+            this.token = new CellTsPairToken(startRowInclusive);
         }
 
         @Override

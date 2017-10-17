@@ -21,8 +21,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -39,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairInfo;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairLoader;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairToken;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.SweepQueryHelpers;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
@@ -115,19 +114,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
         final TableDetails tableDetails;
         final int sqlRowLimit;
 
-        private class Token {
-            byte[] startRowInclusive;
-            byte[] startColInclusive = PtBytes.EMPTY_BYTE_ARRAY;
-            @Nullable
-            Long startTsInclusive = null;
-            boolean reachedEnd = false;
-
-            Token(byte[] startRowInclusive) {
-                this.startRowInclusive = startRowInclusive;
-            }
-        }
-
-        Token token;
+        CellTsPairToken token;
         long cellTsPairsAlreadyExaminedInCurrentRow = 0L;
 
         PageIterator(SqlConnectionSupplier connectionPool, CandidateCellForSweepingRequest request,
@@ -136,7 +123,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             this.request = request;
             this.tableDetails = tableDetails;
             this.sqlRowLimit = sqlRowLimit;
-            this.token = new Token(startRowInclusive);
+            this.token = new CellTsPairToken(startRowInclusive);
         }
 
         @Override
