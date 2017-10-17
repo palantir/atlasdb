@@ -48,11 +48,15 @@ develop
          - Sweep is now more efficient on Cassandra, Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
 
+    *    - |fixed|
+         - Sweep candidate batches are now logged correctly.
+           Previously, we would log a ``SafeArg`` for these batches that had no content.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.60.0
+v0.60.1
 =======
  
 12 October 2017
@@ -85,7 +89,7 @@ v0.60.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
     *    - |devbreak| |improved|
-         - In order to limit the access to inner methods, and to make the implementation of the above feasible, we've extracted interfaces and renamed the following classes:
+         - In order to limit the access to inner methods, and to make the implementation of asynchronous initialization feasible, we've extracted interfaces and renamed the following classes:
 
               - ``CassandraClientPool``
               - ``CassandraKeyValueService``
@@ -134,10 +138,14 @@ v0.60.0
            We now throw the actual cause for the invocation exception.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
 
-    *    - |fixed|
-         - Sweep candidate batches are now logged correctly.
-           Previously, we would log a ``SafeArg`` for these batches that had no content.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.60.0
+=======
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
