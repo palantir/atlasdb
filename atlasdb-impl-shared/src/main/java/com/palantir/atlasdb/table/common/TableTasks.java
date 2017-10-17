@@ -58,6 +58,10 @@ public final class TableTasks {
         // Utility class
     }
 
+    private interface InterruptibleRangeTask {
+        void execute(MutableRange range) throws InterruptedException;
+    }
+
     public static void copy(
             TransactionManager txManager,
             ExecutorService exec,
@@ -83,10 +87,6 @@ public final class TableTasks {
                 txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
     }
 
-    private interface InterruptibleAction {
-        void execute(MutableRange range) throws InterruptedException;
-    }
-
     public static void copyExternal(ExecutorService exec,
                                     final TableReference srcTable,
                                     final TableReference dstTable,
@@ -94,8 +94,26 @@ public final class TableTasks {
                                     int threadCount,
                                     final CopyStats stats,
                                     final CopyTask task) throws InterruptedException {
-        new TaskExecutor(exec, batchSize, threadCount).executeTask("copy",
-                range -> executeTask(srcTable, dstTable, stats, task, range));
+        new InterruptibleRangeExecutor(exec, batchSize, threadCount).executeTask("copy",
+                range -> executeCopyTask(srcTable, dstTable, stats, task, range));
+    }
+
+    private static void executeCopyTask(TableReference srcTable,
+            TableReference dstTable,
+            CopyStats stats,
+            CopyTask task,
+            MutableRange range) throws InterruptedException {
+        final RangeRequest request = range.getRangeRequest();
+        long startTime = System.currentTimeMillis();
+        PartialCopyStats partialStats = task.call(request, range);
+        stats.rowsCopied.addAndGet(partialStats.rowsCopied);
+        stats.cellsCopied.addAndGet(partialStats.cellsCopied);
+        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
+                partialStats.rowsCopied,
+                partialStats.cellsCopied,
+                srcTable,
+                dstTable,
+                System.currentTimeMillis() - startTime);
     }
 
     private static PartialCopyStats copyInternal(final Transaction transaction,
@@ -190,27 +208,16 @@ public final class TableTasks {
                                      int threadCount,
                                      final DiffStats stats,
                                      final DiffTask task) throws InterruptedException {
-        new TaskExecutor(exec, batchSize, threadCount).executeTask("diff",
-                range -> executeTask(strategy, plusTable, minusTable, stats, task, range));
+        new InterruptibleRangeExecutor(exec, batchSize, threadCount).executeTask("diff",
+                range -> executeDiffTask(strategy, plusTable, minusTable, stats, task, range));
     }
 
-    private static void executeTask(TableReference srcTable, TableReference dstTable, CopyStats stats,
-            CopyTask task, MutableRange range) throws InterruptedException {
-        final RangeRequest request = range.getRangeRequest();
-        long startTime = System.currentTimeMillis();
-        PartialCopyStats partialStats = task.call(request, range);
-        stats.rowsCopied.addAndGet(partialStats.rowsCopied);
-        stats.cellsCopied.addAndGet(partialStats.cellsCopied);
-        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
-                partialStats.rowsCopied,
-                partialStats.cellsCopied,
-                srcTable,
-                dstTable,
-                System.currentTimeMillis() - startTime);
-    }
-
-    private static void executeTask(DiffStrategy strategy, TableReference plusTable,
-            TableReference minusTable, DiffStats stats, DiffTask task, MutableRange range)
+    private static void executeDiffTask(DiffStrategy strategy,
+            TableReference plusTable,
+            TableReference minusTable,
+            DiffStats stats,
+            DiffTask task,
+            MutableRange range)
             throws InterruptedException {
         final RangeRequest request = range.getRangeRequest();
         long startTime = System.currentTimeMillis();
@@ -474,33 +481,32 @@ public final class TableTasks {
         private long cellsCopied = 0;
     }
 
-    private static class TaskExecutor {
+    private static class InterruptibleRangeExecutor {
         private ExecutorService exec;
         private int batchSize;
         private int threadCount;
 
-        TaskExecutor(ExecutorService exec, int batchSize, int threadCount) {
+        InterruptibleRangeExecutor(ExecutorService exec, int batchSize, int threadCount) {
             this.exec = exec;
             this.batchSize = batchSize;
             this.threadCount = threadCount;
         }
 
-        void executeTask(String actionName,
-                InterruptibleAction action) throws InterruptedException {
+        void executeTask(String taskName, InterruptibleRangeTask task) throws InterruptedException {
             BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
             for (final MutableRange range : getRanges(threadCount, batchSize)) {
                 if (Thread.currentThread().isInterrupted()) {
-                    log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
+                    log.info("Thread interrupted. Cancelling {} of range {}", taskName, range);
                     break;
                 }
                 pool.submitTask(() -> {
                     do {
                         if (Thread.currentThread().isInterrupted()) {
-                            log.info("Thread interrupted. Cancelling {} of range {}", actionName, range);
+                            log.info("Thread interrupted. Cancelling {} of range {}", taskName, range);
                             break;
                         }
                         try {
-                            action.execute(range);
+                            task.execute(range);
                         } catch (InterruptedException e) {
                             throw Throwables.rewrapAndThrowUncheckedException(e);
                         }
