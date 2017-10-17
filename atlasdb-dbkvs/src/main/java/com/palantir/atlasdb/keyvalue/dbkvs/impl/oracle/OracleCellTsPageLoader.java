@@ -149,7 +149,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
         // However, we can just filter out empty pages later.
         @Override
         public List<CellTsPairInfo> next() {
-            Preconditions.checkArgument(hasNext());
+            Preconditions.checkState(hasNext());
             boolean singleRow = shouldScanSingleRow();
             List<CellTsPairInfo> cellTsPairs = loadPage(singleRow);
             updateCountOfExaminedCellTsPairsInCurrentRow(cellTsPairs);
