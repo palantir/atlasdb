@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.logging;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -29,7 +29,7 @@ import org.junit.Test;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 
-public class ProfilingKeyValueServiceLogAccumulatorTest {
+public class KvsProfilingLoggerTest {
     private static final String LOG_TEMPLATE_1 = "The method {} was called.";
     private static final String LOG_TEMPLATE_2 = "Exception occurred: {}. {}.";
 
@@ -37,13 +37,13 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
     private static final Arg<String> ARG_2 = SafeArg.of("baz", "quux");
     private static final Arg<String> ARG_3 = SafeArg.of("wat", "atlas");
 
-    private final ProfilingKeyValueService.LoggingFunction logSink =
-            mock(ProfilingKeyValueService.LoggingFunction.class);
+    private final KvsProfilingLogger.LoggingFunction logSink =
+            mock(KvsProfilingLogger.LoggingFunction.class);
 
     @Test
     public void propagatesLogsToSink() {
-        try (ProfilingKeyValueService.LogAccumulator accumulator =
-                new ProfilingKeyValueService.LogAccumulator(logSink)) {
+        try (KvsProfilingLogger.LogAccumulator accumulator =
+                new KvsProfilingLogger.LogAccumulator(logSink)) {
             accumulator.log(LOG_TEMPLATE_1, ARG_1);
         }
         verify(logSink).log(LOG_TEMPLATE_1, ARG_1);
@@ -51,8 +51,8 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
 
     @Test
     public void concatenatesLogsWithNewlinesInBetweenIfLoggingMultipleTimesBeforeClose() {
-        try (ProfilingKeyValueService.LogAccumulator accumulator =
-                new ProfilingKeyValueService.LogAccumulator(logSink)) {
+        try (KvsProfilingLogger.LogAccumulator accumulator =
+                new KvsProfilingLogger.LogAccumulator(logSink)) {
             accumulator.log(LOG_TEMPLATE_1, ARG_1);
             accumulator.log(LOG_TEMPLATE_2, ARG_2, ARG_3);
         }
@@ -61,14 +61,14 @@ public class ProfilingKeyValueServiceLogAccumulatorTest {
 
     @Test
     public void doesNotLogAnythingIfNotClosed() {
-        ProfilingKeyValueService.LogAccumulator accumulator = new ProfilingKeyValueService.LogAccumulator(logSink);
+        KvsProfilingLogger.LogAccumulator accumulator = new KvsProfilingLogger.LogAccumulator(logSink);
         accumulator.log(LOG_TEMPLATE_1, ARG_1);
         verify(logSink, never()).log(any(), any());
     }
 
     @Test
     public void logsOnlyOnceEvenIfClosedMultipleTimes() {
-        ProfilingKeyValueService.LogAccumulator accumulator = new ProfilingKeyValueService.LogAccumulator(logSink);
+        KvsProfilingLogger.LogAccumulator accumulator = new KvsProfilingLogger.LogAccumulator(logSink);
         accumulator.log(LOG_TEMPLATE_1, ARG_1);
         accumulator.close();
         accumulator.close();
