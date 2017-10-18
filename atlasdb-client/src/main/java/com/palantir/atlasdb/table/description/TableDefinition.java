@@ -339,6 +339,10 @@ public class TableDefinition extends AbstractDefinition {
         return this.v2TableEnabled;
     }
 
+    /**
+     * Enables Schema V2 features for this table.
+     * Warning: this is a beta feature and has not been fully tested.
+     */
     public void enableV2Table() {
         this.v2TableEnabled = true;
     }
