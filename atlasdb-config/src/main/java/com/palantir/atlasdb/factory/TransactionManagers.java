@@ -521,10 +521,10 @@ public final class TransactionManagers {
         LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(env, leaderConfig, userAgent);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService localLock = ServiceCreator.createInstrumentedService(
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader),
+                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leader, false),
                 LockService.class);
         TimestampService localTime = ServiceCreator.createInstrumentedService(
-                AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader),
+                AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader, false),
                 TimestampService.class);
         env.register(localLock);
         env.register(localTime);

@@ -44,13 +44,6 @@ public interface LeaderElectionService {
     LeadershipToken blockOnBecomingLeader() throws InterruptedException;
 
     /**
-     * Returns a leadership token iff this node is currently the leader. This method may involve network
-     * calls to ensure that the token is valid at the time of invocation, but will return immediately if
-     * this node is not the last known leader.
-     */
-    Optional<LeadershipToken> getCurrentTokenIfLeading();
-
-    /**
      * This method actually ensures that there is a quorum of supporters that this node is still leading.
      * If this node cannot get a quorum that it is still the leader then this method will return false and this node
      * may not respond to requests and must get back in line by calling {@link #blockOnBecomingLeader()}.
@@ -68,4 +61,9 @@ public interface LeaderElectionService {
      */
     Optional<HostAndPort> getSuspectedLeaderInMemory();
 
+    /**
+     * Whether this node is the last known leader, according to local information. A return value of {@code true} does
+     * not necessarily mean that this node is currently the leader.
+     */
+    boolean isLastKnownLeader();
 }

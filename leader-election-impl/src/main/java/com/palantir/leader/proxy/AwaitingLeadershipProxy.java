@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -31,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
@@ -48,20 +50,32 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
     private static final long MAX_NO_QUORUM_RETRIES = 10;
+    private static final long MAX_TIME_TO_WAIT_FOR_LEADERSHIP_MILLIS = 500;
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
-                                         LeaderElectionService leaderElectionService) {
+                                         LeaderElectionService leaderElectionService,
+                                         boolean tryWaitForLeadershipSynchronously) {
         AwaitingLeadershipProxy<U> proxy = new AwaitingLeadershipProxy<>(
                 delegateSupplier,
                 leaderElectionService,
                 interfaceClass);
         proxy.tryToGainLeadership();
 
+        if (tryWaitForLeadershipSynchronously) {
+            proxy.tryWaitForLeadershipToBeGained();
+        }
+
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
                 new Class<?>[] { interfaceClass, Closeable.class },
                 proxy);
+    }
+
+    private static <U> void tryConfirmLeadershipSynchronously(
+            AwaitingLeadershipProxy<U> proxy,
+            LeaderElectionService leaderElectionService) {
+
     }
 
     final Supplier<T> delegateSupplier;
@@ -91,17 +105,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void tryToGainLeadership() {
-        Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
-        if (currentToken.isPresent()) {
-            onGainedLeadership(currentToken.get());
-        } else {
-            tryToGainLeadershipAsync();
-        }
-    }
-
-    private void tryToGainLeadershipAsync() {
         try {
-            executor.submit(this::gainLeadershipBlocking);
+            executor.submit(this::gainLeadership);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
                 throw new IllegalStateException("failed to submit task but proxy not closed", e);
@@ -109,10 +114,45 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    private void gainLeadershipBlocking() {
+    private void tryWaitForLeadershipToBeGained() {
+        Stopwatch timer = Stopwatch.createStarted();
+        while (timer.elapsed(TimeUnit.MILLISECONDS) < MAX_TIME_TO_WAIT_FOR_LEADERSHIP_MILLIS
+                && leaderElectionService.isLastKnownLeader()
+                && delegateRef.get() == null) {
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    private void gainLeadership() {
         try {
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
-            onGainedLeadership(leadershipToken);
+            // We are now the leader, we should create a delegate so we can service calls
+            T delegate = null;
+            while (delegate == null) {
+                try {
+                    delegate = delegateSupplier.get();
+                } catch (Throwable t) {
+                    log.error("problem creating delegate", t);
+                    if (isClosed) {
+                        return;
+                    }
+                }
+            }
+
+            // Do not modify, hide, or remove this line without considering impact on correctness.
+            delegateRef.set(delegate);
+
+            if (isClosed) {
+                clearDelegate();
+            } else {
+                leadershipTokenRef.set(leadershipToken);
+                log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
+            }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
         } catch (Throwable e) {
@@ -120,41 +160,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    private boolean onGainedLeadership(LeadershipToken leadershipToken)  {
-        // We are now the leader, we should create a delegate so we can service calls
-        T delegate = null;
-        while (delegate == null) {
-            try {
-                delegate = delegateSupplier.get();
-            } catch (Throwable t) {
-                log.error("problem creating delegate", t);
-                if (isClosed) {
-                    return true;
-                }
-            }
-        }
-
-        // Do not modify, hide, or remove this line without considering impact on correctness.
-        delegateRef.set(delegate);
-
-        if (isClosed) {
-            clearDelegate();
-        } else {
-            leadershipTokenRef.set(leadershipToken);
-            log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
-        }
-        return false;
-    }
-
-    private void clearDelegate() {
+    private void clearDelegate() throws IOException {
         Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
-            try {
-                ((Closeable) delegate).close();
-            } catch (IOException ex) {
-                // we don't want to rethrow here; we're likely on a background thread
-                log.warn("problem closing delegate", ex);
-            }
+            ((Closeable) delegate).close();
         }
     }
 

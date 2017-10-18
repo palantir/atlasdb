@@ -19,9 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -39,6 +36,8 @@ import org.junit.Test;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
@@ -52,8 +51,8 @@ public class AwaitingLeadershipProxyTest {
 
     @Before
     public void before() throws InterruptedException {
+        when(leaderElectionService.isLastKnownLeader()).thenReturn(true);
         when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
-        when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(leaderElectionService.isStillLeading(leadershipToken)).thenReturn(
                 LeaderElectionService.StillLeadingStatus.LEADING);
@@ -68,11 +67,10 @@ public class AwaitingLeadershipProxyTest {
         LeaderElectionService mockLeader = mock(LeaderElectionService.class);
 
         when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
-        when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
 
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader, true);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -89,11 +87,10 @@ public class AwaitingLeadershipProxyTest {
         LeaderElectionService mockLeader = mock(LeaderElectionService.class);
 
         when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
-        when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
 
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader, true);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -138,24 +135,32 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldGainLeadershipImmediatelyIfAlreadyLeading() throws Exception {
-        when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.of(leadershipToken));
+        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+            return leadershipToken;
+        });
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, () -> () -> { },
+                leaderElectionService, true);
 
-        Callable proxy = proxyFor(() -> null);
-
-        proxy.call();
-
-        verify(leaderElectionService, never()).blockOnBecomingLeader();
+        proxy.run();
     }
 
     @Test
-    public void shouldBlockOnGainingLeadershipIfNotCurrentlyLeading() throws Exception {
-        Callable proxy = proxyFor(() -> null);
-        waitForLeadershipToBeGained();
+    public void shouldGainLeadershipAsynchronouslyIfNotLeading() throws Exception {
+        when(leaderElectionService.isLastKnownLeader()).thenReturn(false);
+        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+            return leadershipToken;
+        });
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, () -> () -> { },
+                leaderElectionService, true);
 
-        proxy.call();
+        assertThatThrownBy(() -> proxy.run()).isInstanceOf(NotCurrentLeaderException.class);
 
-        verify(leaderElectionService).getCurrentTokenIfLeading();
-        verify(leaderElectionService).blockOnBecomingLeader();
+        Awaitility.await()
+                .atMost(Duration.ONE_SECOND)
+                .ignoreExceptionsInstanceOf(NotCurrentLeaderException.class)
+                .until(proxy);
     }
 
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
@@ -168,8 +173,6 @@ public class AwaitingLeadershipProxyTest {
 
             return delegate.call();
         });
-
-        waitForLeadershipToBeGained();
 
         Future<Void> blockingCall = executor.submit(proxy);
         delegateCallStarted.await();
@@ -199,12 +202,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private Callable proxyFor(Callable fn) throws InterruptedException {
-        return AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService);
-    }
-
-    private void waitForLeadershipToBeGained() throws InterruptedException {
-        verify(leaderElectionService, timeout(5_000)).blockOnBecomingLeader();
-        Uninterruptibles.sleepUninterruptibly(100L, TimeUnit.MILLISECONDS);
+        return AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService, true);
     }
 
     private LeaderElectionService mockLeaderElectionServiceWithSequence(
