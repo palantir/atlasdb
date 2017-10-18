@@ -53,7 +53,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
     *   - |improved|
-        - Exposes another version of getRanges that uses a configurable concurrency level, defaulting to 8.
+        - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
+          provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
+          Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
 
     *    - |fixed|
