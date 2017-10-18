@@ -26,20 +26,20 @@ import com.palantir.nexus.db.DBType;
 
 public final class RangePredicateHelper {
     private final boolean reverse;
-    private final TupleComparisonFactory tupleComparisonFactory;
+    private final TupleComparisonStrategy tupleComparisonStrategy;
     private final FullQuery.Builder queryBuilder;
 
     private RangePredicateHelper(boolean reverse,
-                                 TupleComparisonFactory tupleComparisonFactory,
+                                 TupleComparisonStrategy tupleComparisonStrategy,
                                  FullQuery.Builder queryBuilder) {
         this.reverse = reverse;
-        this.tupleComparisonFactory = tupleComparisonFactory;
+        this.tupleComparisonStrategy = tupleComparisonStrategy;
         this.queryBuilder = queryBuilder;
     }
 
     public static RangePredicateHelper create(boolean reverse, DBType dbType, FullQuery.Builder builder) {
-        TupleComparisonFactory tupleComparisonFactory = getTupleComparisonFactoryByDbType(dbType);
-        return new RangePredicateHelper(reverse, tupleComparisonFactory, builder);
+        TupleComparisonStrategy tupleComparisonStrategy = getTupleComparisonStrategyByDbType(dbType);
+        return new RangePredicateHelper(reverse, tupleComparisonStrategy, builder);
     }
 
     public RangePredicateHelper startRowInclusive(byte[] startRow) {
@@ -53,9 +53,9 @@ public final class RangePredicateHelper {
         if (startCol.length > 0) {
             queryBuilder.append(" AND ");
             if (reverse) {
-                tupleComparisonFactory.cellLessOrEqualTo(startRow, startCol, queryBuilder);
+                tupleComparisonStrategy.cellLessOrEqualTo(startRow, startCol, queryBuilder);
             } else {
-                tupleComparisonFactory.cellGreaterOrEqualTo(startRow, startCol, queryBuilder);
+                tupleComparisonStrategy.cellGreaterOrEqualTo(startRow, startCol, queryBuilder);
             }
         } else {
             startRowInclusive(startRow);
@@ -67,9 +67,9 @@ public final class RangePredicateHelper {
         if (startTs != null) {
             queryBuilder.append(" AND ");
             if (reverse) {
-                tupleComparisonFactory.cellTsLessOrEqualTo(startRow, startCol, startTs, queryBuilder);
+                tupleComparisonStrategy.cellTsLessOrEqualTo(startRow, startCol, startTs, queryBuilder);
             } else {
-                tupleComparisonFactory.cellTsGreaterOrEqualTo(startRow, startCol, startTs, queryBuilder);
+                tupleComparisonStrategy.cellTsGreaterOrEqualTo(startRow, startCol, startTs, queryBuilder);
             }
         } else {
             startCellInclusive(startRow, startCol);
@@ -93,15 +93,15 @@ public final class RangePredicateHelper {
         return this;
     }
 
-    private static TupleComparisonFactory getTupleComparisonFactoryByDbType(DBType dbType) {
+    private static TupleComparisonStrategy getTupleComparisonStrategyByDbType(DBType dbType) {
         if (dbType == DBType.ORACLE) {
-            return TupleComparisonFactory.WITHOUT_ROW_VALUE_SYNTAX;
+            return TupleComparisonStrategy.WITHOUT_ROW_VALUE_SYNTAX;
         } else {
-            return TupleComparisonFactory.USING_ROW_VALUE_SYNTAX;
+            return TupleComparisonStrategy.USING_ROW_VALUE_SYNTAX;
         }
     }
 
-    private enum TupleComparisonFactory {
+    private enum TupleComparisonStrategy {
         USING_ROW_VALUE_SYNTAX {
             @Override
             void cellGreaterOrEqualTo(byte[] rhsRow, byte[] rhsCol, FullQuery.Builder builder) {
