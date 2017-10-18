@@ -105,8 +105,8 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                 List<CellTsPairInfo> ret = new ArrayList<>();
                 for (AgnosticLightResultRow row : resultSet) {
                     Preconditions.checkState(AgnosticLightResultRowImpl.class.isInstance(row),
-                            "Expected row to be of type AgnosticLightResultRowImpl, but found unknown type : "
-                                    + row.getClass().toString());
+                            "Expected row to be of type AgnosticLightResultRowImpl, but found unknown type %s",
+                            row.getClass().toString());
                     byte[] rowName = row.getBytes("row_name");
                     byte[] colName = row.getBytes("col_name");
                     if (request.shouldCheckIfLatestValueIsEmpty()) {
