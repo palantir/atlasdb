@@ -41,7 +41,6 @@ import org.junit.Test;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 public class CoalescingSupplierTest {
-
     private static final int DEFAULT_VALUE = 123;
 
     private final Supplier<Integer> delegate = mock(Supplier.class);
