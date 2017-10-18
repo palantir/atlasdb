@@ -155,6 +155,7 @@ public class AwaitingLeadershipProxyTest {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, () -> () -> { },
                 leaderElectionService, true);
 
+        // should not have synchronously confirmed leadership
         assertThatThrownBy(() -> proxy.run()).isInstanceOf(NotCurrentLeaderException.class);
 
         Awaitility.await()
