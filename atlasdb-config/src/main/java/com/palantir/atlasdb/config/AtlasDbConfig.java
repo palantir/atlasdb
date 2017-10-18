@@ -254,15 +254,6 @@ public abstract class AtlasDbConfig {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
 
-    /**
-     * The maximum number of threads to use in concurrent getRanges requests when the user
-     * does not explicitly set a value.
-     */
-    @Value.Default
-    public int defaultGetRangesConcurrency() {
-        return AtlasDbConstants.DEFAULT_GET_RANGES_CONCURRENCY;
-    }
-
     @Value.Check
     protected final void check() {
         checkLeaderAndTimelockBlocks();

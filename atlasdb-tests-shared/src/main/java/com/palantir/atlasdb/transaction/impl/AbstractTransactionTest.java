@@ -92,10 +92,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return true;
     }
 
-    protected static final int GET_RANGES_THREAD_POOL_SIZE = 16;
+    public static final int GET_RANGES_THREAD_POOL_SIZE = 16;
+    public static final int DEFAULT_GET_RANGES_CONCURRENCY = 4;
+
     protected static final ExecutorService GET_RANGES_EXECUTOR =
             Executors.newFixedThreadPool(GET_RANGES_THREAD_POOL_SIZE);
-    protected static final int DEFAULT_GET_RANGES_CONCURRENCY = 4;
 
     protected Transaction startTransaction() {
         return new SnapshotTransaction(

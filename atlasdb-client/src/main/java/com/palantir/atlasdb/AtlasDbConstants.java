@@ -124,6 +124,4 @@ public final class AtlasDbConstants {
     public static final int POSTGRES_TABLE_NAME_CHAR_LIMIT = 63;
 
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
-
-    public static final int DEFAULT_GET_RANGES_CONCURRENCY = 8;
 }

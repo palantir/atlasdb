@@ -28,6 +28,7 @@ import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -65,8 +66,10 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        LockAwareTransactionManager txManager = new SerializableTransactionManager(kvs, tsService, lockClient,
-                lockService, txService, constraints, cdm, ssm, cleaner, false, 16, 4);
+        LockAwareTransactionManager txManager = new SerializableTransactionManager(
+                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
         setupTables(kvs);
         return txManager;
     }

@@ -97,7 +97,7 @@ public class TransactionManagerModule {
                 cleaner,
                 config.allowAccessToHiddenTables(),
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
-                config.atlasDbConfig().defaultGetRangesConcurrency());
+                config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency());
     }
 
 }

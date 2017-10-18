@@ -33,6 +33,7 @@ dependencies {
   processor 'com.google.auto.service:auto-service:1.0-rc2'
   processor project(":atlasdb-processors")
 
+  testCompile project(":atlasdb-tests-shared")
   testCompile group: 'com.palantir.remoting3', name: 'jaxrs-clients'
   testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
   testCompile group: 'org.assertj', name: 'assertj-core'
