@@ -129,6 +129,9 @@ public class CoalescingSupplierTest {
             List<Future<?>> futures = IntStream.range(0, count)
                     .mapToObj(i -> executor.submit(task))
                     .collect(Collectors.toList());
+
+            // give the threads a chance to start
+            Uninterruptibles.sleepUninterruptibly(20, TimeUnit.MILLISECONDS);
             return new AsyncTasks(futures);
         }
 
