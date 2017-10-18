@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Rule;
@@ -97,6 +98,7 @@ public class CandidateGroupingIteratorTest {
                                                       long numCellTsPairsExamined,
                                                       boolean latestValEmpty,
                                                       long... ts) {
+        Arrays.sort(ts);
         return ImmutableCandidateCellForSweeping.builder()
                 .cell(Cell.create(bytes(rowName), bytes(colName)))
                 .isLatestValueEmpty(latestValEmpty)
