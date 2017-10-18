@@ -233,7 +233,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         return getDouble(col);
     }
 
-    @Override
     public Object getArray(String colname) throws PalantirSqlException {
         return getArray(findColumn(colname));
     }
