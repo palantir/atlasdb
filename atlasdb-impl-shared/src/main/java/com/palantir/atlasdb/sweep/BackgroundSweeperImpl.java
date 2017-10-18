@@ -120,14 +120,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             while (true) {
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
-                Thread.sleep(getMillisToSleepFor(outcome));
+                Thread.sleep(getMillisToSleepBasedOn(outcome));
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
-    private long getMillisToSleepFor(SweepOutcome outcome) {
+    private long getMillisToSleepBasedOn(SweepOutcome outcome) {
         if (outcome == SUCCESS) {
             return sweepPauseMillis.get();
         }
