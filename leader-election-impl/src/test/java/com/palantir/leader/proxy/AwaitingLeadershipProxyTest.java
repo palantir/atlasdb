@@ -164,6 +164,18 @@ public class AwaitingLeadershipProxyTest {
                 .until(proxy);
     }
 
+    @Test
+    public void shouldNotGainLeadershipSynchronouslyIfNotAskedToDoSo() throws Exception {
+        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+            return leadershipToken;
+        });
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, () -> () -> { },
+                leaderElectionService, false);
+
+        assertThatThrownBy(() -> proxy.run()).isInstanceOf(NotCurrentLeaderException.class);
+    }
+
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
         CountDownLatch leadershipLost = new CountDownLatch(1);
