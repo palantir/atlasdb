@@ -197,6 +197,29 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">getRange</span></code> is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
+Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
+Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2480">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-61-0">
+<h2>v0.61.0<a class="headerlink" href="#v0-61-0" title="Permalink to this headline">¶</a></h2>
+<p>18 October 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Sweep is now more efficient on Cassandra, Postgres and Oracle.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2436">Pull Request</a>)</td>
 </tr>
@@ -210,18 +233,12 @@ It also now returns information about how much data was swept.
 Previously, we would log a <code class="docutils literal"><span class="pre">SafeArg</span></code> for these batches that had no content.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2475">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><code class="docutils literal"><span class="pre">getRange</span></code> is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
-Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
-Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2480">Pull Request</a>)</td>
-</tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="v0-60-1">
 <h2>v0.60.1<a class="headerlink" href="#v0-60-1" title="Permalink to this headline">¶</a></h2>
-<p>12 October 2017</p>
+<p>16 October 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />

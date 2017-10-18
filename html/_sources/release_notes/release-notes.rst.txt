@@ -45,8 +45,30 @@ develop
          - Change
 
     *    - |improved|
+         - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
+           Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
+           Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.61.0
+=======
+
+18 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
          - Sweep is now more efficient on Cassandra, Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
+
     *    - |improved|
          - The ``SweeperService`` endpoint registered on all clients will now sweeps the full table by default, rather than a single batch.
            It also now returns information about how much data was swept.
@@ -56,12 +78,6 @@ develop
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
-           
-    *    - |improved|
-         - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
-           Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
-           Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -69,7 +85,7 @@ develop
 v0.60.1
 =======
  
-12 October 2017
+16 October 2017
 
 .. list-table::
     :widths: 5 40
