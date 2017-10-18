@@ -30,6 +30,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -151,11 +152,10 @@ public class TimeLockMigratorTest {
     public void asyncMigrationProceedsIfInvalidatorInitiallyUnavailable() throws InterruptedException {
         when(invalidator.backupAndInvalidate())
                 .thenAnswer(new Answer<Long>() {
-                    private volatile boolean shouldFail = true;
+                    private AtomicBoolean shouldFail = new AtomicBoolean(true);
                     @Override
                     public Long answer(InvocationOnMock invocation) throws Throwable {
-                        if (shouldFail) {
-                            shouldFail = false;
+                        if (shouldFail.getAndSet(false)) {
                             throw new IllegalStateException("not ready yet");
                         }
                         return BACKUP_TIMESTAMP;
