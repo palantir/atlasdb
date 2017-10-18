@@ -200,11 +200,21 @@
 <td>Sweep is now more efficient on Cassandra, Postgres and Oracle.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2436">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The <code class="docutils literal"><span class="pre">SweeperService</span></code> endpoint registered on all clients will now sweeps the full table by default, rather than a single batch.
+It also now returns information about how much data was swept.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2409">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Sweep candidate batches are now logged correctly.
+Previously, we would log a <code class="docutils literal"><span class="pre">SafeArg</span></code> for these batches that had no content.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2475">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="v0-60-0">
-<h2>v0.60.0<a class="headerlink" href="#v0-60-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="v0-60-1">
+<h2>v0.60.1<a class="headerlink" href="#v0-60-1" title="Permalink to this headline">¶</a></h2>
 <p>12 October 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -236,7 +246,7 @@ This will help support large internal product’s usage of the Timelock server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2364">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
-<td><p class="first">In order to limit the access to inner methods, and to make the implementation of the above feasible, we’ve extracted interfaces and renamed the following classes:</p>
+<td><p class="first">In order to limit the access to inner methods, and to make the implementation of asynchronous initialization feasible, we’ve extracted interfaces and renamed the following classes:</p>
 <blockquote>
 <div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">CassandraClientPool</span></code></li>
@@ -289,13 +299,12 @@ Previously, giving a start row with hex characters in lower case e.g. <code clas
 We now throw the actual cause for the invocation exception.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2460">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Sweep candidate batches are now logged correctly.
-Previously, we would log a <code class="docutils literal"><span class="pre">SafeArg</span></code> for these batches that had no content.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2475">Pull Request</a>)</td>
-</tr>
 </tbody>
 </table>
+</div>
+<div class="section" id="v0-60-0">
+<h2>v0.60.0<a class="headerlink" href="#v0-60-0" title="Permalink to this headline">¶</a></h2>
+<p>This version was skipped due to issues on release. No artifacts with this version were ever published.</p>
 </div>
 <div class="section" id="v0-59-1">
 <h2>v0.59.1<a class="headerlink" href="#v0-59-1" title="Permalink to this headline">¶</a></h2>
