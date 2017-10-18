@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-public enum ColumnFetchMode {
-    FETCH_ONE(1),
-    FETCH_ALL(Integer.MAX_VALUE);
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-    private final int columnsToFetch;
+import java.util.Iterator;
+import java.util.List;
 
-    ColumnFetchMode(int columnsToFetch) {
-        this.columnsToFetch = columnsToFetch;
-    }
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-    public int getColumnsToFetch() {
-        return columnsToFetch;
-    }
+public interface CellTsPairLoader {
+
+    Iterator<List<CellTsPairInfo>> createPageIterator(TableReference tableRef, CandidateCellForSweepingRequest request);
+
 }

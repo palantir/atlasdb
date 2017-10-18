@@ -48,7 +48,6 @@ import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -108,14 +107,19 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadS
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnFetchMode;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.RowRangeLoader;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.SingleRowColumnPager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.sweep.CassandraGetCandidateCellsForSweepingImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -191,7 +195,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     protected final CassandraKeyValueServiceConfigManager configManager;
 
     private final Optional<CassandraJmxCompactionManager> compactionManager;
-    private final CassandraClientPool clientPool;
+
+    @VisibleForTesting
+    final CassandraClientPool clientPool;
 
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
@@ -206,6 +212,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
+
+    private final CassandraGetCandidateCellsForSweepingImpl getCandidateCellsForSweepingImpl;
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
@@ -263,8 +271,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
+
+        SingleRowColumnPager singleRowPager = new SingleRowColumnPager(clientPool, queryRunner);
+        CellPager cellPager = new CellPager(
+                singleRowPager, clientPool, queryRunner, new CellPagerBatchSizingStrategy());
+        this.getCandidateCellsForSweepingImpl = new CassandraGetCandidateCellsForSweepingImpl(cellPager);
     }
 
+    @Override
     public boolean isInitialized() {
         return wrapper.isInitialized();
     }
@@ -441,13 +455,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             @Override
                             public Map<Cell, Value> apply(Client client) throws Exception {
                                 // We want to get all the columns in the row so set start and end to empty.
-                                SliceRange slice = new SliceRange(
-                                        ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                                        ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                                        false,
-                                        Integer.MAX_VALUE);
-                                SlicePredicate pred = new SlicePredicate();
-                                pred.setSlice_range(slice);
+                                SlicePredicate pred = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
 
                                 List<ByteBuffer> rowNames = wrap(batch);
 
@@ -628,11 +636,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         new FunctionCheckedException<Client, Void, Exception>() {
                             @Override
                             public Void apply(Client client) throws Exception {
-                                ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
-                                ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
-                                SliceRange slice = new SliceRange(start, end, false, loadAllTs ? Integer.MAX_VALUE : 1);
-                                SlicePredicate predicate = new SlicePredicate();
-                                predicate.setSlice_range(slice);
+                                Range range = Range.singleColumn(col, startTs);
+                                Limit limit = loadAllTs ? Limit.NO_LIMIT : Limit.ONE;
+                                SlicePredicate predicate = SlicePredicates.create(range, limit);
 
                                 List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
                                 for (Cell c : partition) {
@@ -785,21 +791,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
                         @Override
                         public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
-                            ByteBuffer start = batchColumnRangeSelection.getStartCol().length == 0
-                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                    : CassandraKeyValueServices.makeCompositeBuffer(
-                                            batchColumnRangeSelection.getStartCol(),
-                                            startTs - 1);
-                            ByteBuffer end = batchColumnRangeSelection.getEndCol().length == 0
-                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                    : CassandraKeyValueServices.makeCompositeBuffer(
-                                            RangeRequests
-                                                    .previousLexicographicName(batchColumnRangeSelection.getEndCol()),
-                                            -1);
-                            SliceRange slice =
-                                    new SliceRange(start, end, false, batchColumnRangeSelection.getBatchHint());
-                            SlicePredicate pred = new SlicePredicate();
-                            pred.setSlice_range(slice);
+                            Range range = createColumnRange(
+                                    batchColumnRangeSelection.getStartCol(),
+                                    batchColumnRangeSelection.getEndCol(), startTs);
+                            Limit limit = Limit.of(batchColumnRangeSelection.getBatchHint());
+                            SlicePredicate pred = SlicePredicates.create(range, limit);
 
                             ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
@@ -852,17 +848,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     @Override
                     public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(Client client)
                             throws Exception {
-                        ByteBuffer start = startCol.length == 0
-                                ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                : CassandraKeyValueServices.makeCompositeBuffer(startCol, startTs - 1);
-                        ByteBuffer end = batchColumnRangeSelection.getEndCol().length == 0
-                                ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
-                                : CassandraKeyValueServices.makeCompositeBuffer(
-                                        RangeRequests.previousLexicographicName(batchColumnRangeSelection.getEndCol()),
-                                        -1);
-                        SliceRange slice = new SliceRange(start, end, false, batchColumnRangeSelection.getBatchHint());
-                        SlicePredicate pred = new SlicePredicate();
-                        pred.setSlice_range(slice);
+                        Range range = createColumnRange(startCol, batchColumnRangeSelection.getEndCol(), startTs);
+                        Limit limit = Limit.of(batchColumnRangeSelection.getBatchHint());
+                        SlicePredicate pred = SlicePredicates.create(range, limit);
 
                         ByteBuffer rowByteBuffer = ByteBuffer.wrap(row);
 
@@ -917,6 +905,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } else {
             return RangeRequests.nextLexicographicName(lastCol);
         }
+    }
+
+    private Range createColumnRange(byte[] startColOrEmpty, byte[] endColExlusiveOrEmpty, long startTs) {
+        ByteBuffer start = startColOrEmpty.length == 0
+                ? Range.UNBOUND_START
+                : Range.startOfColumn(startColOrEmpty, startTs);
+        ByteBuffer end = endColExlusiveOrEmpty.length == 0
+                ? Range.UNBOUND_END
+                : Range.endOfColumn(RangeRequests.previousLexicographicName(endColExlusiveOrEmpty));
+        return Range.of(start, end);
     }
 
     /**
@@ -1453,7 +1451,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
+        return ClosableIterators.wrap(
+                getCandidateCellsForSweepingImpl.getCandidateCellsForSweeping(tableRef, request, deleteConsistency));
     }
 
     private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
@@ -1462,32 +1461,51 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int columnBatchSize,
             long timestamp,
             ConsistencyLevel consistency) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ONE);
+        SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
+
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
 
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
-        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor::new, timestamp);
+        return getRangeWithPageCreator(
+                rowRangeLoader,
+                predicate,
+                columnGetter,
+                rangeRequest,
+                TimestampExtractor::new,
+                timestamp);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
-            long timestamp,
+            long startTs,
             ConsistencyLevel consistency,
             Supplier<ResultsExtractor<T>> resultsExtractor) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
+        SlicePredicate predicate;
+        if (rangeRequest.getColumnNames().size() == 1) {
+            byte[] colName = rangeRequest.getColumnNames().iterator().next();
+            predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
+        } else {
+            // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
+            // each column. note that if no columns are specified, it's a special case that means all columns
+            predicate = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
+        }
+        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
-        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
+        return getRangeWithPageCreator(rowRangeLoader, predicate, columnGetter, rangeRequest, resultsExtractor,
+                startTs);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
-            RowGetter rowGetter,
+            RowRangeLoader rowRangeLoader,
+            SlicePredicate slicePredicate,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
-            long timestamp) {
+            long startTs) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
@@ -1496,11 +1514,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
-                rowGetter,
+                rowRangeLoader,
+                slicePredicate,
                 columnGetter,
                 rangeRequest,
                 resultsExtractor,
-                timestamp
+                startTs
         );
 
         return ClosableIterators.wrap(rowResults.iterator());

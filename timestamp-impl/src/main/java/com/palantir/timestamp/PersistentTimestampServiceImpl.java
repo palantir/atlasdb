@@ -85,6 +85,11 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     }
 
     @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return getFreshTimestamps(1).getLowerBound();
     }
@@ -104,7 +109,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
         timestamp.increaseTo(newTimestamp);
     }
 
-    @SuppressWarnings("unused") // used by product
+    @Override
     public long getUpperLimitTimestampToHandOutInclusive() {
         return timestamp.getUpperLimitTimestampToHandOutInclusive();
     }

@@ -44,7 +44,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class KvsGetRangeBenchmarks {
 
     private Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
-        RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, sliceSize));
+        RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, sliceSize, false));
         int startRow = Ints.fromByteArray(request.getStartInclusive());
         ClosableIterator<RowResult<Value>> result =
                 table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
@@ -61,7 +61,7 @@ public class KvsGetRangeBenchmarks {
     }
 
     private Object getMultiRangeInner(ConsecutiveNarrowTable table) {
-        Iterable<RangeRequest> requests = table.getRangeRequests(1000, 1);
+        Iterable<RangeRequest> requests = table.getRangeRequests(1000, 1, false);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 table.getKvs().getFirstBatchForRanges(table.getTableRef(), requests, Long.MAX_VALUE);
 

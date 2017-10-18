@@ -52,14 +52,13 @@ import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
-import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
@@ -98,8 +97,8 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.impl.LockRefreshingTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
@@ -213,10 +212,6 @@ public final class TransactionManagers {
             String userAgent) {
         checkInstallConfig(config);
 
-        if (config.initializeAsync()) {
-            env.register(new NotInitializedExceptionMapper());
-        }
-
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> optionalRuntimeConfigSupplier.get().orElse(defaultRuntime);
@@ -236,16 +231,18 @@ public final class TransactionManagers {
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 userAgent);
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs,
-                config.initializeAsync());
-        kvs = ProfilingKeyValueService.create(kvs, config.getKvsSlowLogThresholdMillis());
+
+        KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
+        KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
+
         kvs = SweepStatsKeyValueService.create(kvs,
                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()));
         kvs = TracingKeyValueService.create(kvs);
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        TransactionManagersInitializer.createInitialTables(kvs, schemas, config.initializeAsync());
+        TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(kvs, schemas,
+                config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(kvs, env,
                 config.initializeAsync());
 
@@ -278,6 +275,7 @@ public final class TransactionManagers {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
+                initializer,
                 allowHiddenTableAccess,
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),

@@ -68,6 +68,11 @@ public class RequestBatchingTimestampService implements TimestampService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         Long result = null;
         do {

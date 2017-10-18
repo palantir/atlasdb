@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -101,16 +102,16 @@ public class LockStoreImpl implements LockStore {
     }
 
     public static LockStore create(KeyValueService kvs, boolean initializeAsync) {
-        LockStoreImpl lockStore = createImplForTest(kvs, initializeAsync);
+        LockStoreImpl lockStore = createImpl(kvs, initializeAsync);
         return lockStore.wrapper.isInitialized() ? lockStore : lockStore.wrapper;
     }
 
     @VisibleForTesting
     static LockStoreImpl createImplForTest(KeyValueService kvs) {
-        return createImplForTest(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return createImpl(kvs, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    private static LockStoreImpl createImplForTest(KeyValueService kvs, boolean initializeAsync) {
+    private static LockStoreImpl createImpl(KeyValueService kvs, boolean initializeAsync) {
         LockStoreImpl lockStore = new LockStoreImpl(kvs);
         lockStore.wrapper.initialize(initializeAsync);
         return lockStore;
@@ -132,7 +133,7 @@ public class LockStoreImpl implements LockStore {
                 lockEntry.value());
 
         keyValueService.checkAndSet(request);
-        log.info("Successfully acquired the persistent lock: {}", lockEntry);
+        log.info("Successfully acquired the persistent lock: {}", SafeArg.of("lockEntry", lockEntry));
         return lockEntry;
     }
 
@@ -144,7 +145,7 @@ public class LockStoreImpl implements LockStore {
                 LOCK_OPEN.value());
 
         keyValueService.checkAndSet(request);
-        log.info("Successfully released the persistent lock: {}", lockEntry);
+        log.info("Successfully released the persistent lock: {}", SafeArg.of("lockEntry", lockEntry));
     }
 
     @Override

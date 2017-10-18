@@ -26,19 +26,6 @@ public interface CandidateCellForSweepingRequest {
     OptionalInt batchSizeHint();
 
     /**
-     * This can be used in the future when we implement the 'transaction table sweeping' feature.
-     * This should be set to the timestamp T such that all transactions with start timestamps less than T that
-     * appear in the given table are known to be committed. The number T can come from the previous run of sweep
-     * for the table.
-     *
-     * This enables in-database pre-filtering of cells that should be considered for sweeping.
-     * For example, if a cell has exactly one timestamp and this timestamp is known to belong to a committed
-     * transaction, then the cell doesn't need to be swept, and therefore we can avoid sending it over the network
-     * from the DB to the sweeper process.
-     */
-    long minUncommittedStartTimestamp();
-
-    /**
      *  Only start timestamps that are strictly below this number will be considered.
      */
     long sweepTimestamp();

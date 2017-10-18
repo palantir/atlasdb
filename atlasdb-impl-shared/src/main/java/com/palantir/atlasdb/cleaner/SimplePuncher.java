@@ -43,6 +43,11 @@ public final class SimplePuncher implements Puncher {
     }
 
     @Override
+    public boolean isInitialized() {
+        return puncherStore.isInitialized();
+    }
+
+    @Override
     public void punch(long timestamp) {
         puncherStore.put(timestamp, clock.getTimeMillis());
 

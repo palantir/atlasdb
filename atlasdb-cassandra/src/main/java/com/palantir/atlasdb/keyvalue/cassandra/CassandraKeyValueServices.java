@@ -113,11 +113,9 @@ public final class CassandraKeyValueServices {
                         + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
                         + " and examine their logs to determine the issue."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                        + " You can quick-check this with 'nodetool describecluster'."
-                        + " For this node, the current keyspaces are: %s",
+                        + " You can quick-check this with 'nodetool describecluster'.",
                 tableName,
-                schemaVersions.toString(),
-                client.describe_keyspaces());
+                schemaVersions.toString());
         throw new IllegalStateException(errorMessage);
     }
 
@@ -177,7 +175,7 @@ public final class CassandraKeyValueServices {
         return "0x" + PtBytes.encodeHexString(array);
     }
 
-    static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
+    public static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
         ByteBuffer buffer = ByteBuffer
@@ -220,7 +218,7 @@ public final class CassandraKeyValueServices {
      * Convenience method to get the name buffer for the specified column and
      * decompose it into the name and timestamp.
      */
-    static Pair<byte[], Long> decomposeName(Column column) {
+    public static Pair<byte[], Long> decomposeName(Column column) {
         ByteBuffer nameBuffer;
         if (column.isSetName()) {
             nameBuffer = column.bufferForName();

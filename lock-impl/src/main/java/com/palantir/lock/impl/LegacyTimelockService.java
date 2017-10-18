@@ -60,6 +60,11 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return timestampService.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return timestampService.getFreshTimestamp();
     }
