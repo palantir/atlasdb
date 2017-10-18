@@ -15,6 +15,14 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.DISABLED;
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.NOTHING_TO_SWEEP;
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.RETRYING_WITH_SMALLER_BATCH;
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.SUCCESS;
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
+
 import java.util.Optional;
 import java.util.Set;
 
@@ -110,40 +118,50 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
-                long millisToSleep = checkConfigAndRunSweep(locks);
-                Thread.sleep(millisToSleep);
+                SweepOutcome outcome = checkConfigAndRunSweep(locks);
+
+                Thread.sleep(getMillisToSleepFor(outcome));
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
-    // Returns milliseconds to sleep
-    @VisibleForTesting
-    long checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
-        if (isSweepEnabled.get()) {
-            return grabLocksAndRun(locks);
-        } else {
-            log.debug("Skipping sweep because it is currently disabled.");
+    private long getMillisToSleepFor(SweepOutcome outcome) {
+        if (outcome == SUCCESS) {
+            return sweepPauseMillis.get();
         }
         return getBackoffTimeWhenSweepHasNotRun();
     }
 
-    private long grabLocksAndRun(SweepLocks locks) throws InterruptedException {
-        boolean sweptSuccessfully = false;
+    @VisibleForTesting
+    SweepOutcome checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
+        if (isSweepEnabled.get()) {
+            return grabLocksAndRun(locks);
+        }
+
+        log.debug("Skipping sweep because it is currently disabled.");
+        return DISABLED;
+    }
+
+    private SweepOutcome grabLocksAndRun(SweepLocks locks) throws InterruptedException {
+        SweepOutcome outcome = null;
         try {
             locks.lockOrRefresh();
             if (locks.haveLocks()) {
-                sweptSuccessfully = runOnce();
+                outcome = runOnce();
             } else {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
+                outcome = UNABLE_TO_ACQUIRE_LOCKS;
             }
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
+            outcome = NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
             if (checkAndRepairTableDrop()) {
                 log.info("The table being swept by the background sweeper was dropped, moving on...");
+                outcome = TABLE_DROPPED_WHILE_SWEEPING;
             } else {
                 SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
                 log.warn("The background sweep job failed unexpectedly with candidate batch size {},"
@@ -156,15 +174,16 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         e);
                 // Cut batch size in half, always sweep at least one row (we round down).
                 batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
+
+                outcome = RETRYING_WITH_SMALLER_BATCH;
             }
         }
 
-        if (sweptSuccessfully) {
+        if (outcome == SUCCESS) {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
-            return sweepPauseMillis.get();
-        } else {
-            return getBackoffTimeWhenSweepHasNotRun();
         }
+
+        return outcome;
     }
 
     private long getBackoffTimeWhenSweepHasNotRun() {
@@ -172,15 +191,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     @VisibleForTesting
-    boolean runOnce() {
+    SweepOutcome runOnce() {
         Optional<TableToSweep> tableToSweep = getTableToSweep();
         if (!tableToSweep.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
-            return false;
+            return NOTHING_TO_SWEEP;
         } else {
             specificTableSweeper.runOnceAndSaveResults(tableToSweep.get());
-            return true;
+            return SUCCESS;
         }
     }
 
@@ -249,5 +268,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    enum SweepOutcome {
+        SUCCESS, NOTHING_TO_SWEEP, RETRYING_WITH_SMALLER_BATCH, DISABLED, UNABLE_TO_ACQUIRE_LOCKS, NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
     }
 }
