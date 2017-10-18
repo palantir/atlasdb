@@ -44,7 +44,7 @@ public class KvsDeleteBenchmarks {
         Iterable<RangeRequest> rangeRequests =
                 numBatches == 1
                         ? ImmutableList.of(RangeRequest.all())
-                        : table.getRangeRequests(1, table.getNumRows() / numBatches);
+                        : table.getRangeRequests(1, table.getNumRows() / numBatches, true);
 
         rangeRequests.forEach(rangeRequest -> table.getKvs().deleteRange(table.getTableRef(), rangeRequest));
 
