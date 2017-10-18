@@ -123,18 +123,19 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
                 updateBatchSizeBasedOn(outcome);
 
-                Thread.sleep(getMillisToSleepBasedOn(outcome));
+                sleepBasedOn(outcome);
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
-    private long getMillisToSleepBasedOn(SweepOutcome outcome) {
+    private void sleepBasedOn(SweepOutcome outcome) throws InterruptedException {
+        long sleepDurationMillis = getBackoffTimeWhenSweepHasNotRun();
         if (outcome == SUCCESS) {
-            return sweepPauseMillis.get();
+            sleepDurationMillis = sweepPauseMillis.get();
         }
-        return getBackoffTimeWhenSweepHasNotRun();
+        Thread.sleep(sleepDurationMillis);
     }
 
     private void updateBatchSizeBasedOn(SweepOutcome outcome) {
