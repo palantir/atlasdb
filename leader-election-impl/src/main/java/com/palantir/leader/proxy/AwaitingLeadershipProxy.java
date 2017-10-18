@@ -111,8 +111,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void gainLeadershipBlocking() {
         try {
-            LeadershipToken leadershipToken = leaderElectionService.getCurrentTokenIfLeading()
-                    .orElse(leaderElectionService.blockOnBecomingLeader());
+            LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             onGainedLeadership(leadershipToken);
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
