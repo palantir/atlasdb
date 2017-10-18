@@ -72,12 +72,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 proxy);
     }
 
-    private static <U> void tryConfirmLeadershipSynchronously(
-            AwaitingLeadershipProxy<U> proxy,
-            LeaderElectionService leaderElectionService) {
-
-    }
-
     final Supplier<T> delegateSupplier;
     final LeaderElectionService leaderElectionService;
     final ExecutorService executor;
