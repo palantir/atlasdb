@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.DISABLED;
+import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.ERROR;
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.NOTHING_TO_SWEEP;
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.RETRYING_WITH_SMALLER_BATCH;
@@ -183,13 +184,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
-            if (checkAndRepairTableDrop()) {
-                log.info("The table being swept by the background sweeper was dropped, moving on...");
-                return TABLE_DROPPED_WHILE_SWEEPING;
-            } else {
-                log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...", e);
-                return RETRYING_WITH_SMALLER_BATCH;
-            }
+
+            return determineCauseOfFailure(e);
         }
     }
 
@@ -234,26 +230,24 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 });
     }
 
-    /**
-     * Check whether the table being swept was dropped. If so, stop sweeping it and move on.
-     *
-     * @return Whether the table being swept was dropped
-     */
-    boolean checkAndRepairTableDrop() {
+    private SweepOutcome determineCauseOfFailure(Exception e) {
         try {
             Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
             Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(
                     specificTableSweeper.getSweepProgressStore()::loadProgress);
+
             if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
-                return false;
+                log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...", e);
+                return RETRYING_WITH_SMALLER_BATCH;
             } else {
                 specificTableSweeper.getSweepProgressStore().clearProgress();
-                return true;
+                log.info("The table being swept by the background sweeper was dropped, moving on...");
+                return TABLE_DROPPED_WHILE_SWEEPING;
             }
-        } catch (RuntimeException e) {
-            log.error("Failed to check whether the table being swept was dropped."
-                    + " Continuing under the assumption that it wasn't...", e);
-            return false;
+        } catch (RuntimeException newE) {
+            log.error("Sweep failed", e);
+            log.error("Failed to check whether the table being swept was dropped. Retrying...", newE);
+            return ERROR;
         }
     }
 
