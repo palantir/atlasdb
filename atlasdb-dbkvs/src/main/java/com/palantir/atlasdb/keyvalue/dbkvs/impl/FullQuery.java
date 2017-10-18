@@ -15,35 +15,114 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 public class FullQuery {
     private final String query;
-    private final List<Object> args = Lists.newArrayList();
+    private final List<Object> args;
 
-    public FullQuery(String query) {
-        this.query = query;
+    public static final class Builder {
+        private final StringBuilder queryBuilder = new StringBuilder(100);
+        private final ImmutableList.Builder<Object> argsBuilder = ImmutableList.builder();
+
+        private Builder() {}
+
+        public Builder append(String query) {
+            queryBuilder.append(query);
+            return this;
+        }
+
+        public Builder append(long number) {
+            queryBuilder.append(number);
+            return this;
+        }
+
+        public Builder append(String query, Object arg) {
+            queryBuilder.append(query);
+            argsBuilder.add(arg);
+            return this;
+        }
+
+        public Builder append(String query, Object arg1, Object arg2) {
+            queryBuilder.append(query);
+            argsBuilder.add(arg1);
+            argsBuilder.add(arg2);
+            return this;
+        }
+
+        public Builder append(String query, Object arg1, Object arg2, Object arg3) {
+            queryBuilder.append(query);
+            argsBuilder.add(arg1);
+            argsBuilder.add(arg2);
+            argsBuilder.add(arg3);
+            return this;
+        }
+
+        public Builder addArg(Object arg) {
+            argsBuilder.add(arg);
+            return this;
+        }
+
+        public Builder addAllArgs(Iterable<?> args) {
+            argsBuilder.addAll(args);
+            return this;
+        }
+
+        public FullQuery build() {
+            // TODO(gbonik): remove new ArrayList<> once we get rid of withArgs methods
+            return new FullQuery(queryBuilder.toString(), new ArrayList<>(argsBuilder.build()));
+        }
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private FullQuery(String query, List<Object> args) {
+        this.query = query;
+        this.args = args;
+    }
+
+    /** @deprecated Use builder() instead.
+     */
+    @Deprecated
+    public FullQuery(String query) {
+        this.query = query;
+        this.args = new ArrayList<>();
+    }
+
+    /** @deprecated Use builder() instead.
+     */
+    @Deprecated
     public FullQuery withArg(Object arg) {
         this.args.add(arg);
         return this;
     }
 
+    /** @deprecated Use builder() instead.
+     */
+    @Deprecated
     public FullQuery withArgs(Iterable<?> newArgs) {
         Iterables.addAll(args, newArgs);
         return this;
     }
 
+    /** @deprecated Use builder() instead.
+     */
+    @Deprecated
     public FullQuery withArgs(Object arg1, Object arg2) {
         this.args.add(arg1);
         this.args.add(arg2);
         return this;
     }
 
+    /** @deprecated Use builder() instead.
+     */
+    @Deprecated
     public FullQuery withArgs(Object arg1, Object arg2, Object arg3) {
         this.args.add(arg1);
         this.args.add(arg2);
@@ -58,4 +137,5 @@ public class FullQuery {
     public Object[] getArgs() {
         return args.toArray();
     }
+
 }

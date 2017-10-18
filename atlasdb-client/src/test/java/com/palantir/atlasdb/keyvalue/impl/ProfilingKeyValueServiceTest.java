@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.doAnswer;
@@ -39,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -65,7 +68,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == ProfilingKeyValueService.SLOW_LOGGER_NAME
+            return ev.getLoggerName() == KvsProfilingLogger.SLOW_LOGGER_NAME
                     && ev.getLevel() == Level.WARN;
         }
     });
@@ -74,7 +77,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == LoggerFactory.getLogger(ProfilingKeyValueService.class).getName()
+            return ev.getLoggerName() == LoggerFactory.getLogger(KvsProfilingLogger.class).getName()
                     && ev.getLevel() == Level.TRACE;
         }
     });
@@ -92,12 +95,22 @@ public class ProfilingKeyValueServiceTest {
     @Before
     public void before() throws Exception {
         delegate = mock(KeyValueService.class);
-        kvs = ProfilingKeyValueService.create(delegate, 1000);
+        kvs = ProfilingKeyValueService.create(delegate);
     }
 
     @After
     public void after() throws Exception {
         kvs.close();
+    }
+
+    @Test
+    public void delegatesInitializationCheck() {
+        when(delegate.isInitialized())
+                .thenReturn(false)
+                .thenReturn(true);
+
+        assertFalse(kvs.isInitialized());
+        assertTrue(kvs.isInitialized());
     }
 
     @Test

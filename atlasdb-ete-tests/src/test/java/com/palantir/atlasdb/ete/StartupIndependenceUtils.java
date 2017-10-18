@@ -93,7 +93,7 @@ public final class StartupIndependenceUtils {
             addTodo();
             fail("Expected to throw an exception");
         } catch (Exception e) {
-            assertTrue(exceptionIsRetryableAndContainsMessage(e, "CassandraKeyValueService is not initialized yet"));
+            assertTrue(exceptionIsRetryableAndContainsMessage(e, "TransactionManager is not initialized yet"));
         }
     }
 

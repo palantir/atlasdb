@@ -41,6 +41,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return timestampService.isInitialized();
+    }
+
+    @Override
     public long getFreshTimestamp() {
         return timestampService.getFreshTimestamp();
     }

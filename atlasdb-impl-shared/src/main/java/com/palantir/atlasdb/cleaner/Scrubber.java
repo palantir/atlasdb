@@ -82,7 +82,8 @@ import com.palantir.remoting3.tracing.Tracers;
  *
  * @author jweel
  */
-public final class Scrubber {
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
+public class Scrubber {
     private static final Logger log = LoggerFactory.getLogger(Scrubber.class);
     private static final int MAX_RETRY_ATTEMPTS = 100;
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
@@ -174,6 +175,10 @@ public final class Scrubber {
         NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
         this.readerExec = Tracers.wrap(PTExecutors.newFixedThreadPool(readThreadCount, threadFactory));
         this.exec = Tracers.wrap(PTExecutors.newFixedThreadPool(threadCount, threadFactory));
+    }
+
+    public boolean isInitialized() {
+        return keyValueService.isInitialized() && scrubberStore.isInitialized();
     }
 
     /**

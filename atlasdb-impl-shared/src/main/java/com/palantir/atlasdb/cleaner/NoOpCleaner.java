@@ -24,6 +24,11 @@ public final class NoOpCleaner implements Cleaner {
     public static final NoOpCleaner INSTANCE = new NoOpCleaner();
 
     @Override
+    public boolean isInitialized() {
+        return true;
+    }
+
+    @Override
     public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
                                        long scrubTimestamp) {
         throw new UnsupportedOperationException("This cleaner does not support scrubbing");
