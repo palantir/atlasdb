@@ -137,6 +137,7 @@ public class PaxosTimeLockServerIntegrationTest {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.
                         CLIENTS.forEach(client -> getTimelockService(client).getFreshTimestamp());
                         CLIENTS.forEach(client -> getTimelockService(client).currentTimeMillis());
+                        CLIENTS.forEach(client -> getLockService(client).currentTimeMillis());
                         return leader.ping();
                     } catch (Throwable t) {
                         return false;
@@ -163,8 +164,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void throwsOnSingleClientRequestingSameLockTooManyTimes() throws Exception {
-        List<LockService> lockServiceList = ImmutableList.of(
-                getLockService(CLIENT_1));
+        List<LockService> lockServiceList = ImmutableList.of(getLockService(CLIENT_1));
+
         int exceedingRequests = 10;
         int maxRequestsForOneClient = SHARED_TC_LIMIT;
 
