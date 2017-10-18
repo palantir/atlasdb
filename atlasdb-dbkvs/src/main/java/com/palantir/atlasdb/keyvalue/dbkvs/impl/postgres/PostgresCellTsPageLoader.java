@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairToken;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.SweepQueryHelpers;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
+import com.palantir.nexus.db.sql.AgnosticLightResultRowImpl;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
 public class PostgresCellTsPageLoader implements CellTsPairLoader {
@@ -103,10 +104,14 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                     AgnosticLightResultSet resultSet = selectNextPage(conns)) {
                 List<CellTsPairInfo> ret = new ArrayList<>();
                 for (AgnosticLightResultRow row : resultSet) {
+                    Preconditions.checkState(AgnosticLightResultRowImpl.class.isInstance(row),
+                            "Expected row to be of type AgnosticLightResultRowImpl, but found unknown type %s",
+                            row.getClass().toString());
                     byte[] rowName = row.getBytes("row_name");
                     byte[] colName = row.getBytes("col_name");
                     if (request.shouldCheckIfLatestValueIsEmpty()) {
-                        long[] sortedTimestamps = castAndSortTimestamps((Object[]) row.getArray("timestamps"));
+                        long[] sortedTimestamps = castAndSortTimestamps(
+                                (Object[]) ((AgnosticLightResultRowImpl) row).getArray("timestamps"));
                         boolean isLatestValEmpty = row.getBoolean("latest_val_empty");
                         for (int i = 0; i < sortedTimestamps.length - 1; ++i) {
                             ret.add(new CellTsPairInfo(rowName, colName, sortedTimestamps[i], false));
