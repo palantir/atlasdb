@@ -24,12 +24,15 @@ import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.SUCC
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
 
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -40,6 +43,7 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
@@ -52,6 +56,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Long> sweepPauseMillis;
     private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
+
+    private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
 
     static volatile double batchSizeMultiplier = 1.0;
 
@@ -122,12 +128,17 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
                 updateBatchSizeBasedOn(outcome);
+                updateMetricsBasedOn(outcome);
 
                 sleepBasedOn(outcome);
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
+    }
+
+    private void updateMetricsBasedOn(SweepOutcome outcome) {
+        sweepOutcomeMetrics.registerOutcome(outcome);
     }
 
     private void sleepBasedOn(SweepOutcome outcome) throws InterruptedException {
@@ -274,5 +285,24 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     enum SweepOutcome {
         SUCCESS, NOTHING_TO_SWEEP, RETRYING_WITH_SMALLER_BATCH, DISABLED, UNABLE_TO_ACQUIRE_LOCKS, NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
+    }
+
+    private class SweepOutcomeMetrics {
+        private final MetricsManager metricsManager = new MetricsManager();
+        private SweepOutcome lastOutcome = null;
+
+        SweepOutcomeMetrics() {
+            for (SweepOutcome outcome : SweepOutcome.values()) {
+                metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(), () -> getCount(outcome));
+            }
+        }
+
+        private Integer getCount(SweepOutcome outcome) {
+            return outcome == lastOutcome ? 1 : 0;
+        }
+
+        public void registerOutcome(SweepOutcome outcome) {
+            lastOutcome = outcome;
+        }
     }
 }
