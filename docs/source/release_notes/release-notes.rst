@@ -47,14 +47,23 @@ develop
     *    - |improved|
          - Sweep is now more efficient on Cassandra, Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
+    *    - |improved|
+         - The ``SweeperService`` endpoint registered on all clients will now sweeps the full table by default, rather than a single batch.
+           It also now returns information about how much data was swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
     *    - |fixed|
          - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
+
+    *    - Sweep candidate batches are now logged correctly.
+           Previously, we would log a ``SafeArg`` for these batches that had no content.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.60.0
+v0.60.1
 =======
  
 12 October 2017
@@ -87,7 +96,7 @@ v0.60.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2364>`__)
 
     *    - |devbreak| |improved|
-         - In order to limit the access to inner methods, and to make the implementation of the above feasible, we've extracted interfaces and renamed the following classes:
+         - In order to limit the access to inner methods, and to make the implementation of asynchronous initialization feasible, we've extracted interfaces and renamed the following classes:
 
               - ``CassandraClientPool``
               - ``CassandraKeyValueService``
@@ -135,6 +144,15 @@ v0.60.0
          - When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
            We now throw the actual cause for the invocation exception.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2460>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.60.0
+=======
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
