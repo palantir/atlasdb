@@ -120,6 +120,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             while (true) {
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
+                updateBatchSizeBasedOn(outcome);
+
                 Thread.sleep(getMillisToSleepBasedOn(outcome));
             }
         } catch (InterruptedException e) {
@@ -134,6 +136,29 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return getBackoffTimeWhenSweepHasNotRun();
     }
 
+    private void updateBatchSizeBasedOn(SweepOutcome outcome) {
+        if (outcome == SUCCESS) {
+            batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
+            return;
+        }
+        if (outcome == RETRYING_WITH_SMALLER_BATCH) {
+            SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
+
+            // Cut batch size in half, always sweep at least one row (we round down).
+            batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
+
+            log.warn("The background sweep job failed unexpectedly with candidate batch size {},"
+                            + " delete batch size {},"
+                            + " and {} cell+timestamp pairs to examine."
+                            + " Attempting to continue with new batchSizeMultiplier {}",
+                    SafeArg.of("candidateBatchSize", lastBatchConfig.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", lastBatchConfig.deleteBatchSize()),
+                    SafeArg.of("maxCellTsPairsToExamine", lastBatchConfig.maxCellTsPairsToExamine()),
+                    SafeArg.of("batchSizeMultiplier", batchSizeMultiplier));
+            return;
+        }
+    }
+
     @VisibleForTesting
     SweepOutcome checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
         if (isSweepEnabled.get()) {
@@ -145,7 +170,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private SweepOutcome grabLocksAndRun(SweepLocks locks) throws InterruptedException {
-        SweepOutcome outcome = null;
+        SweepOutcome outcome;
         try {
             locks.lockOrRefresh();
             if (locks.haveLocks()) {
@@ -163,24 +188,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 log.info("The table being swept by the background sweeper was dropped, moving on...");
                 outcome = TABLE_DROPPED_WHILE_SWEEPING;
             } else {
-                SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
-                log.warn("The background sweep job failed unexpectedly with candidate batch size {},"
-                                + " delete batch size {},"
-                                + " and {} cell+timestamp pairs to examine."
-                                + " Attempting to continue with a lower batch size...",
-                        SafeArg.of("candidateBatchSize", lastBatchConfig.candidateBatchSize()),
-                        SafeArg.of("deleteBatchSize", lastBatchConfig.deleteBatchSize()),
-                        SafeArg.of("maxCellTsPairsToExamine", lastBatchConfig.maxCellTsPairsToExamine()),
-                        e);
-                // Cut batch size in half, always sweep at least one row (we round down).
-                batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
-
+                log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...", e);
                 outcome = RETRYING_WITH_SMALLER_BATCH;
             }
-        }
-
-        if (outcome == SUCCESS) {
-            batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
         }
 
         return outcome;
