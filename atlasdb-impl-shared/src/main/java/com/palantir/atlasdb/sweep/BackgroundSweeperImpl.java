@@ -24,15 +24,12 @@ import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.SUCC
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
 
-import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -127,29 +124,17 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             while (true) {
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
-                updateBatchSizeBasedOn(outcome);
-                updateMetricsBasedOn(outcome);
+                updateBatchSize(outcome);
+                updateMetrics(outcome);
 
-                sleepBasedOn(outcome);
+                sleepUntilNextRun(outcome);
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
         }
     }
 
-    private void updateMetricsBasedOn(SweepOutcome outcome) {
-        sweepOutcomeMetrics.registerOutcome(outcome);
-    }
-
-    private void sleepBasedOn(SweepOutcome outcome) throws InterruptedException {
-        long sleepDurationMillis = getBackoffTimeWhenSweepHasNotRun();
-        if (outcome == SUCCESS) {
-            sleepDurationMillis = sweepPauseMillis.get();
-        }
-        Thread.sleep(sleepDurationMillis);
-    }
-
-    private void updateBatchSizeBasedOn(SweepOutcome outcome) {
+    private void updateBatchSize(SweepOutcome outcome) {
         if (outcome == SUCCESS) {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
             return;
@@ -170,6 +155,18 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                     SafeArg.of("batchSizeMultiplier", batchSizeMultiplier));
             return;
         }
+    }
+
+    private void updateMetrics(SweepOutcome outcome) {
+        sweepOutcomeMetrics.registerOutcome(outcome);
+    }
+
+    private void sleepUntilNextRun(SweepOutcome outcome) throws InterruptedException {
+        long sleepDurationMillis = getBackoffTimeWhenSweepHasNotRun();
+        if (outcome == SUCCESS) {
+            sleepDurationMillis = sweepPauseMillis.get();
+        }
+        Thread.sleep(sleepDurationMillis);
     }
 
     @VisibleForTesting
