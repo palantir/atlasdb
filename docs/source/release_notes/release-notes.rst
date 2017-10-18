@@ -85,6 +85,16 @@ v0.61.0
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
 
+    *    - |fixed|
+         - Async Initialization now works with TimeLock and Cassandra KVS.
+           Previously, we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if neither of them was available.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
+    *    - |fixed|
+         - ``AsyncInitializer`` now shuts down its executor after initialization has completed.
+           Previously, the executor service wasn't shut down, which could lead to the initializer thread hanging around unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
