@@ -170,30 +170,27 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private SweepOutcome grabLocksAndRun(SweepLocks locks) throws InterruptedException {
-        SweepOutcome outcome;
         try {
             locks.lockOrRefresh();
             if (locks.haveLocks()) {
-                outcome = runOnce();
+                return runOnce();
             } else {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
-                outcome = UNABLE_TO_ACQUIRE_LOCKS;
+                return UNABLE_TO_ACQUIRE_LOCKS;
             }
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
-            outcome = NOT_ENOUGH_DB_NODES_ONLINE;
+            return NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
             if (checkAndRepairTableDrop()) {
                 log.info("The table being swept by the background sweeper was dropped, moving on...");
-                outcome = TABLE_DROPPED_WHILE_SWEEPING;
+                return TABLE_DROPPED_WHILE_SWEEPING;
             } else {
                 log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...", e);
-                outcome = RETRYING_WITH_SMALLER_BATCH;
+                return RETRYING_WITH_SMALLER_BATCH;
             }
         }
-
-        return outcome;
     }
 
     private long getBackoffTimeWhenSweepHasNotRun() {
