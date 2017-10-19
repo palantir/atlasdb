@@ -482,9 +482,9 @@ public final class TableTasks {
     }
 
     private static class InterruptibleRangeExecutor {
-        private ExecutorService exec;
-        private int batchSize;
-        private int threadCount;
+        private final ExecutorService exec;
+        private final int batchSize;
+        private final int threadCount;
 
         InterruptibleRangeExecutor(ExecutorService exec, int batchSize, int threadCount) {
             this.exec = exec;
