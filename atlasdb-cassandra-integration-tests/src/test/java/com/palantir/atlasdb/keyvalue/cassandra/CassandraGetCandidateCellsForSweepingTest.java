@@ -48,7 +48,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
     @Test
     public void returnCandidateIfPossiblyUncommittedTimestamp() {
         new TestDataBuilder().put(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 5)))
+        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
                         .sortedTimestamps(new long[] { 10L })
@@ -60,7 +60,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
     @Test
     public void returnCandidateIfTwoCommittedTimestamps() {
         new TestDataBuilder().put(1, 1, 10L).put(1, 1, 20L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30)))
+        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
                         .sortedTimestamps(new long[] { 10L, 20L })
@@ -74,13 +74,13 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
     @Test
     public void doNotReturnCandidateWithCommitedEmptyValueIfConservative() {
         new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30))).isEmpty();
+        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1))).isEmpty();
     }
 
     @Test
     public void returnCandidateWithCommitedEmptyValueIfThorough() {
         new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30)))
+        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
                         .sortedTimestamps(new long[] { 10L })
