@@ -215,10 +215,6 @@
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true
         },
-        "com.palantir.patches.sourceforge:trove3": {
-            "locked": "3.0.3-p5",
-            "requested": "3.0.3-p5"
-        },
         "com.palantir.remoting-api:ssl-config": {
             "locked": "1.1.0",
             "transitive": [
@@ -675,10 +671,6 @@
         },
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true
-        },
-        "com.palantir.patches.sourceforge:trove3": {
-            "locked": "3.0.3-p5",
-            "requested": "3.0.3-p5"
         },
         "com.palantir.remoting-api:ssl-config": {
             "locked": "1.1.0",

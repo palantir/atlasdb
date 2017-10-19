@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 
 public interface CassandraKeyValueService extends KeyValueService {
     /**

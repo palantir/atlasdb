@@ -175,7 +175,7 @@ public final class CassandraKeyValueServices {
         return "0x" + PtBytes.encodeHexString(array);
     }
 
-    public static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
+    static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
         ByteBuffer buffer = ByteBuffer
@@ -218,7 +218,7 @@ public final class CassandraKeyValueServices {
      * Convenience method to get the name buffer for the specified column and
      * decompose it into the name and timestamp.
      */
-    public static Pair<byte[], Long> decomposeName(Column column) {
+    static Pair<byte[], Long> decomposeName(Column column) {
         ByteBuffer nameBuffer;
         if (column.isSetName()) {
             nameBuffer = column.bufferForName();
