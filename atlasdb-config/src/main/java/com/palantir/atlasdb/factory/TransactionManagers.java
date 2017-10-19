@@ -322,6 +322,7 @@ public abstract class TransactionManagers {
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
                 derivedUserAgent());
+        lockAndTimestampServices.migrator().ifPresent(TimeLockMigrator::migrate);
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
@@ -369,7 +370,7 @@ public abstract class TransactionManagers {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                initializer,
+                initializer::isInitialized,
                 allowHiddenTableAccess(),
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
@@ -582,8 +583,11 @@ public abstract class TransactionManagers {
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         TimeLockClientConfig timeLockClientConfig =
                 TimeLockClientConfigs.copyWithClient(config.timelock().get(), resolvedClient);
-        TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
-        return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent, config.initializeAsync());
+        return ImmutableLockAndTimestampServices.copyOf(
+                createNamespacedRawRemoteServices(timeLockClientConfig, userAgent))
+                .withMigrator(migrator);
     }
 
     private static LockAndTimestampServices createNamespacedRawRemoteServices(
@@ -729,5 +733,6 @@ public abstract class TransactionManagers {
         LockService lock();
         TimestampService timestamp();
         TimelockService timelock();
+        Optional<TimeLockMigrator> migrator();
     }
 }
