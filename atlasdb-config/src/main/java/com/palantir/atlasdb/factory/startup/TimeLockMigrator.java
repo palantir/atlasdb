@@ -96,7 +96,7 @@ public class TimeLockMigrator extends AsyncInitializer {
 
     @Override
     protected String getInitializingClassName() {
-        return TransactionManagers.class.getName();
+        return TimeLockMigrator.class.getSimpleName();
     }
 }
 

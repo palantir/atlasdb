@@ -56,6 +56,18 @@ develop
            The existing ``create`` methods are deprecated and will be removed by November 15th, 2017.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2459>`__)
 
+    *    - |fixed|
+         - Async Initialization now works with TimeLock Server.
+           Previously, for Cassandra we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
+           For DBKVS or other key-value services, we would attempt to ping TimeLock on startup, which would fail if TimeLock was available (though the KVS could be unavailable).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+
+    *    - |fixed|
+         - ``AsyncInitializer`` now shuts down its executor after initialization has completed.
+           Previously, the executor service wasn't shut down, which could lead to the initializer thread hanging around unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -84,16 +96,6 @@ v0.61.0
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
-
-    *    - |fixed|
-         - Async Initialization now works with TimeLock and Cassandra KVS.
-           Previously, we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
-
-    *    - |fixed|
-         - ``AsyncInitializer`` now shuts down its executor after initialization has completed.
-           Previously, the executor service wasn't shut down, which could lead to the initializer thread hanging around unnecessarily.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
