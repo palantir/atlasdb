@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.logging;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -25,7 +27,9 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 
 public class KvsProfilingLogger {
 
@@ -41,6 +45,43 @@ public class KvsProfilingLogger {
     @FunctionalInterface
     public interface LoggingFunction {
         void log(String fmt, Object... args);
+    }
+
+    interface CloseableLoggingFunction extends LoggingFunction, AutoCloseable {
+        @Override
+        void close();
+    }
+
+    // Accumulates logs in a single string.
+    // Warning to users of this class: We do not guarantee that SLF4J special characters work properly across log lines,
+    // nor do we guarantee behaviour when the number of arguments does not match the number of placeholders.
+    @VisibleForTesting
+    static class LogAccumulator implements CloseableLoggingFunction {
+        private static final String DELIMITER = "\n";
+
+        private final List<String> formatElements = Lists.newArrayList();
+        private final List<Object> argList = Lists.newArrayList();
+        private final LoggingFunction sink;
+
+        private boolean isClosed = false;
+
+        LogAccumulator(LoggingFunction sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        public synchronized void log(String fmt, Object... args) {
+            formatElements.add(fmt);
+            Collections.addAll(argList, args);
+        }
+
+        @Override
+        public synchronized void close() {
+            if (!isClosed) {
+                sink.log(String.join(DELIMITER, formatElements), argList.toArray(new Object[argList.size()]));
+            }
+            isClosed = true;
+        }
     }
 
     /**
@@ -123,11 +164,13 @@ public class KvsProfilingLogger {
         void log() {
             stopwatch.stop();
             Consumer<LoggingFunction> logger = (loggingMethod) -> {
-                primaryLogger.accept(loggingMethod, stopwatch);
-                if (result != null) {
-                    additionalLoggerWithAccessToResult.accept(loggingMethod, result);
-                } else if (exception != null) {
-                    loggingMethod.log("This operation has thrown an exception {}", exception);
+                try (CloseableLoggingFunction wrappingLogger = new LogAccumulator(loggingMethod)) {
+                    primaryLogger.accept(wrappingLogger, stopwatch);
+                    if (result != null) {
+                        additionalLoggerWithAccessToResult.accept(wrappingLogger, result);
+                    } else if (exception != null) {
+                        wrappingLogger.log("This operation has thrown an exception {}", exception);
+                    }
                 }
             };
 
