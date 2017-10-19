@@ -202,6 +202,12 @@ Previously, a range request in Cassandra would always retrieve all columns and a
 Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2480">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> is now created via an immutable builder instead of a long list of individual arguments. Use <code class="docutils literal"><span class="pre">TransactionManagers.builder()</span></code>
+to get the builder and once completely configured, build the transaction manager via the builder’s <code class="docutils literal"><span class="pre">.buildSerializable()</span></code> method.
+The existing <code class="docutils literal"><span class="pre">create</span></code> methods are deprecated and will be removed by November 15th, 2017.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2459">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -298,11 +304,18 @@ Instead, the exception is logged once only, when we run out of retries.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2432">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>TimeLock Server’s <code class="docutils literal"><span class="pre">ClockSkewMonitor</span></code> now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
+Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
+Also, the log line <code class="docutils literal"><span class="pre">ClockSkewMonitor</span> <span class="pre">threw</span> <span class="pre">an</span> <span class="pre">exception</span></code> which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
+Note that the <code class="docutils literal"><span class="pre">clock.monitor-exception</span></code> metric is still incremented on every call, even if we do not log.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2456">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
 Previously, giving a start row with hex characters in lower case e.g. <code class="docutils literal"><span class="pre">deadbeef</span></code> would result in an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code> being thrown.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2468">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><p class="first">Removed the following unnecessary classes related to wrapping KVSes:</p>
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">NamespacedKeyValueService</span></code></li>
@@ -313,11 +326,11 @@ Previously, giving a start row with hex characters in lower case e.g. <code clas
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2448">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Lock state logging will dump <code class="docutils literal"><span class="pre">expiresIn</span></code> of refreshed token, instead of original, which was negative after refreshing.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2469">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>When using the TimeLock block and either the timestamp or the lock service threw an exception, we were throwing InvocationTargetException instead.
 We now throw the actual cause for the invocation exception.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2460">Pull Request</a>)</td>
