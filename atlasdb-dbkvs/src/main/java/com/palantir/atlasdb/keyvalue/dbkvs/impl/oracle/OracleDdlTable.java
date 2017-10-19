@@ -19,7 +19,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -71,7 +70,8 @@ public final class OracleDdlTable implements DbDdlTable {
             OracleTableNameGetter oracleTableNameGetter,
             TableValueStyleCache valueStyleCache,
             OracleShrinkExecutor oracleShrinkExecutor) {
-        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache, oracleShrinkExecutor);
+        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache,
+                oracleShrinkExecutor);
     }
 
     @Override

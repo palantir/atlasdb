@@ -60,7 +60,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return false;
     }
 
-    //TODO(hsaraogi): Create a ShrinkConfig class
+    // TODO(hsaraogi): Create a ShrinkConfig class
     @Value.Default
     public boolean enableShrinkOnOracleStandardEdition() {
         return false;
