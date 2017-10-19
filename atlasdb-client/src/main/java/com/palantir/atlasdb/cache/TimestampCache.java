@@ -31,7 +31,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
  */
 public class TimestampCache {
 
-    private Cache<Long, Long> startToCommitTimestampCache;
+    private volatile Cache<Long, Long> startToCommitTimestampCache;
 
     public TimestampCache() {
         startToCommitTimestampCache = createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
