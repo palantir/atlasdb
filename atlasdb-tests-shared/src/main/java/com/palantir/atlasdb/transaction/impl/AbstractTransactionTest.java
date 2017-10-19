@@ -92,6 +92,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return true;
     }
 
+    // Duplicates of TransactionTestConstants since this is currently (incorrectly) in main
+    // rather than test. Can use the former once we resolve the dependency issues.
     public static final int GET_RANGES_THREAD_POOL_SIZE = 16;
     public static final int DEFAULT_GET_RANGES_CONCURRENCY = 4;
 
