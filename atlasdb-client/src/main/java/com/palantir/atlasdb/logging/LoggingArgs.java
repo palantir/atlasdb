@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.logging;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
@@ -51,6 +54,12 @@ public final class LoggingArgs {
     @VisibleForTesting
     static synchronized void setLogArbitrator(KeyValueServiceLogArbitrator arbitrator) {
         logArbitrator = arbitrator;
+    }
+
+    public static List<Arg<TableReference>> tablesRef(Collection<TableReference> tableReferences) {
+        return tableReferences.stream()
+                .map(LoggingArgs::tableRef)
+                .collect(Collectors.toList());
     }
 
     /**
