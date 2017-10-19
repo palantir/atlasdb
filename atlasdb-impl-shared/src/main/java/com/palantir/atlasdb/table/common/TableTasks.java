@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Inclusive;
@@ -112,8 +113,8 @@ public final class TableTasks {
         log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
                 SafeArg.of("rowsCopied", partialStats.rowsCopied),
                 SafeArg.of("cellsCopied", partialStats.cellsCopied),
-                SafeArg.of("srcTable", srcTable),
-                SafeArg.of("dstTable", dstTable),
+                LoggingArgs.tableRef("srcTable", srcTable),
+                LoggingArgs.tableRef("dstTable", dstTable),
                 SafeArg.of("timeTaken", System.currentTimeMillis() - startTime));
     }
 
@@ -244,8 +245,8 @@ public final class TableTasks {
                     SafeArg.of("rowsCompletelyInCommon", partialStats.rowsCompletelyInCommon),
                     SafeArg.of("cellsOnlyInSource", partialStats.cellsOnlyInSource),
                     SafeArg.of("cellsInCommon", partialStats.cellsInCommon),
-                    SafeArg.of("plusTable", plusTable),
-                    SafeArg.of("minusTable", minusTable),
+                    LoggingArgs.tableRef("plusTable", plusTable),
+                    LoggingArgs.tableRef("minusTable", minusTable),
                     SafeArg.of("timeTaken", System.currentTimeMillis() - startTime));
         }
     }
