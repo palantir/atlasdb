@@ -46,15 +46,34 @@ public abstract class SweepResults {
 
     public abstract long getSweptTimestamp();
 
+    /**
+     * Returns a new {@link SweepResults} representing cumulative results from this instance and {@code other}. Assumes
+     * that {@code other} represents results from subsequent iteration of sweep (i.e., it happened after the run that
+     * produced this instance).
+     */
+    public SweepResults accumulateWith(SweepResults other) {
+        return SweepResults.builder()
+                .cellTsPairsExamined(getCellTsPairsExamined() + other.getCellTsPairsExamined())
+                .staleValuesDeleted(getStaleValuesDeleted() + other.getStaleValuesDeleted())
+                .sweptTimestamp(other.getSweptTimestamp())
+                .nextStartRow(other.getNextStartRow())
+                .build();
+    }
+
     public static ImmutableSweepResults.Builder builder() {
         return ImmutableSweepResults.builder();
     }
 
     public static SweepResults createEmptySweepResult() {
+        return createEmptySweepResult(Optional.empty());
+    }
+
+    public static SweepResults createEmptySweepResult(Optional<byte[]> startRow) {
         return builder()
                 .cellTsPairsExamined(0)
                 .staleValuesDeleted(0)
                 .sweptTimestamp(0)
+                .nextStartRow(startRow)
                 .build();
     }
 
