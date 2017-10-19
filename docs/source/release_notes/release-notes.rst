@@ -87,7 +87,7 @@ v0.61.0
 
     *    - |fixed|
          - Async Initialization now works with TimeLock and Cassandra KVS.
-           Previously, we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if neither of them was available.
+           Previously, we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
 
     *    - |fixed|
