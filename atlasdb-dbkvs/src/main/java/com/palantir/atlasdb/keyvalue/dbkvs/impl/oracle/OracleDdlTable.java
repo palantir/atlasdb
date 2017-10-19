@@ -32,8 +32,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.util.VersionStrings;
 
@@ -70,8 +72,8 @@ public final class OracleDdlTable implements DbDdlTable {
             OracleTableNameGetter oracleTableNameGetter,
             TableValueStyleCache valueStyleCache,
             OracleShrinkExecutor oracleShrinkExecutor) {
-        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache,
-                oracleShrinkExecutor);
+        return new OracleDdlTable(
+                config, conns, tableRef, oracleTableNameGetter, valueStyleCache, oracleShrinkExecutor);
     }
 
     @Override
@@ -256,11 +258,13 @@ public final class OracleDdlTable implements DbDdlTable {
                         + " feature online. Since this can't be automated in your configuration,"
                         + " good practice would be do to occasional offline manual maintenance of rebuilding"
                         + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
-                        + " like more information. Underlying error was: {}", tableRef, e.getMessage());
+                        + " like more information. Underlying error was: {}",
+                        LoggingArgs.tableRef(tableRef),
+                        UnsafeArg.of("exception message", e.getMessage()));
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
             }
-        } else if (config.enableShrinkOnOracleStandardEdition()) {
+        } else if (config.shrinkConfig().enableShrinkOnOracleStandardEdition()) {
             oracleShrinkExecutor.shrinkAsync(tableRef);
         }
     }

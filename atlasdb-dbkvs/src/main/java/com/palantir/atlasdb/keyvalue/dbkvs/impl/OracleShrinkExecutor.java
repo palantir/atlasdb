@@ -28,12 +28,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleStandardEditionShrinkConfiguration;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.nexus.db.sql.SqlConnection;
 
 public class OracleShrinkExecutor {
@@ -42,7 +43,7 @@ public class OracleShrinkExecutor {
     private final SqlConnectionSupplier connectionPool;
     private final ExecutorService executorService;
     private final OracleTableNameGetter oracleTableNameGetter;
-    private OracleDdlConfig oracleDdlConfig;
+    private final OracleStandardEditionShrinkConfiguration shrinkConfig;
 
     private static Future<Boolean> previousShrinkFuture;
 
@@ -50,11 +51,11 @@ public class OracleShrinkExecutor {
             SqlConnectionSupplier connectionPool,
             ExecutorService executorService,
             OracleTableNameGetter oracleTableNameGetter,
-            OracleDdlConfig oracleDdlConfig) {
+            OracleStandardEditionShrinkConfiguration shrinkConfig) {
         this.connectionPool = connectionPool;
         this.executorService = executorService;
         this.oracleTableNameGetter = oracleTableNameGetter;
-        this.oracleDdlConfig = oracleDdlConfig;
+        this.shrinkConfig = shrinkConfig;
     }
 
     public void shrinkAsync(TableReference tableRef) {
@@ -65,18 +66,26 @@ public class OracleShrinkExecutor {
     }
 
     private long getSecondsToWaitBeforeShrink() {
-        long secondsToWaitBeforeShrink = oracleDdlConfig.shrinkPauseSeconds();
+        return shouldWaitLonger()
+                ? shrinkConfig.shrinkPauseSeconds() + shrinkConfig.shrinkPauseOnFailureSeconds()
+                : shrinkConfig.shrinkPauseSeconds();
+    }
+
+    private boolean shouldWaitLonger() {
         if (previousShrinkFuture != null) {
             try {
-                if (!previousShrinkFuture.get()) {
-                    secondsToWaitBeforeShrink =
-                            secondsToWaitBeforeShrink + oracleDdlConfig.shrinkPauseOnFailureSeconds();
+                if (previousShrinkFailed()) {
+                    return true;
                 }
             } catch (InterruptedException | ExecutionException e) {
-                secondsToWaitBeforeShrink = secondsToWaitBeforeShrink + oracleDdlConfig.shrinkPauseOnFailureSeconds();
+                return true;
             }
         }
-        return secondsToWaitBeforeShrink;
+        return false;
+    }
+
+    private boolean previousShrinkFailed() throws InterruptedException, ExecutionException {
+        return !previousShrinkFuture.get();
     }
 
     private boolean shrinkCompactFollowedByShrink(TableReference tableRef, long secondsToWaitBeforeShrink) {
@@ -84,7 +93,7 @@ public class OracleShrinkExecutor {
         try {
             TimeUnit.SECONDS.sleep(secondsToWaitBeforeShrink);
         } catch (InterruptedException e) {
-            log.warn("Skipping Shrink for table: {}", LoggingArgs.tableRef("tableToShrink", tableRef));
+            log.warn("Skipping Shrink for table: {} because the thread was interrupted.", LoggingArgs.tableRef("tableToShrink", tableRef));
             return false;
         }
 
@@ -96,7 +105,8 @@ public class OracleShrinkExecutor {
                     "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
                             + " SHRINK SPACE COMPACT");
             log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
-                    tableRef, shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("time taken", shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS)));
 
             Stopwatch shrinkTimer = Stopwatch.createStarted();
             getConnectionWithIncreasedTimeout(conns).executeUnregisteredQuery(
@@ -104,7 +114,8 @@ public class OracleShrinkExecutor {
                             + " SHRINK SPACE");
             log.info("Call to SHRINK SPACE on table {} took {} ms."
                             + " This implies that locks on the entire table were held for this period.",
-                    tableRef, shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("time taken", shrinkTimer.elapsed(TimeUnit.MILLISECONDS)));
             return true;
         } catch (PalantirSqlException e) {
             log.error("Tried to clean up {} bloat after a sweep operation via Oracle Shrink, but failed."
@@ -114,14 +125,16 @@ public class OracleShrinkExecutor {
                     + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
                     + " like more information. Underlying error was: {}",
                     LoggingArgs.tableRef("tableToShrink", tableRef),
-                    e.getMessage());
+                    UnsafeArg.of("exception message", e.getMessage()));
             return false;
         } catch (TableMappingNotFoundException e) {
             throw new RuntimeException(e);
         } finally {
+            //closing so that other operations cannot grab the increased timeout connection.
             conns.close();
             log.info("Call to KVS.compactInternally on table {} took {} ms.",
-                    tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("time taken", timer.elapsed(TimeUnit.MILLISECONDS)));
         }
     }
 
@@ -129,7 +142,7 @@ public class OracleShrinkExecutor {
         SqlConnection sqlConnection = conns.get();
         try {
             int originalNetworkTimeout = sqlConnection.getUnderlyingConnection().getNetworkTimeout();
-            int newNetworkTimeout = oracleDdlConfig.shrinkConnectionTimeoutMillis();
+            int newNetworkTimeout = shrinkConfig.shrinkConnectionTimeoutMillis();
             sqlConnection.getUnderlyingConnection().setNetworkTimeout(Executors.newSingleThreadExecutor(),
                     newNetworkTimeout);
             log.info("Increased sql socket read timeout from {} to {}",

@@ -236,7 +236,7 @@ public final class DbKvs extends AbstractKeyValueService {
                             .build()),
                     AtlasDbMetrics.getMetricRegistry(),
                     MetricRegistry.name(OracleShrinkExecutor.class, "executor"));
-        return new OracleShrinkExecutor(connections, oracleShrinkExecutorService, tableNameGetter, oracleDdlConfig);
+        return new OracleShrinkExecutor(connections, oracleShrinkExecutorService, tableNameGetter, oracleDdlConfig.shrinkConfig());
     }
 
     private DbKvs(ExecutorService executor,

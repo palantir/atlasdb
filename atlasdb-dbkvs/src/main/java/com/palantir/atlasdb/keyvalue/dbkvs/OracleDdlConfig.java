@@ -60,26 +60,9 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return false;
     }
 
-    // TODO(hsaraogi): Create a ShrinkConfig class
     @Value.Default
-    public boolean enableShrinkOnOracleStandardEdition() {
-        return false;
-    }
-
-    @Value.Default
-    public long shrinkPauseSeconds() {
-        return 10;
-    }
-
-    @Value.Default
-    public long shrinkPauseOnFailureSeconds() {
-        return 60 * 30;
-    }
-
-    @Value.Default
-    public int shrinkConnectionTimeoutMillis() {
-        // This is set to 10 minutes as we saw socket timeouts with 5 minutes.
-        return 60 * 10 * 1000;
+    public OracleStandardEditionShrinkConfiguration shrinkConfig() {
+        return ImmutableOracleStandardEditionShrinkConfiguration.builder().build();
     }
 
     @Value.Default
@@ -121,6 +104,10 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(
                 overflowTablePrefix().endsWith("_"),
                 "Oracle 'overflowTablePrefix' must end with an underscore.");
+        Preconditions.checkState(
+                overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
+                "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
+                AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
         Preconditions.checkState(
                 overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
                 "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
