@@ -18,7 +18,9 @@ package com.palantir.atlasdb.factory;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -67,6 +69,7 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.MetricsRule;
@@ -121,6 +124,10 @@ public class TransactionManagersTest {
     private static final String TIMELOCK_FF_PATH
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
+
+    private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
+    private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
+            TransactionManagers.LockAndTimestampServices.class);
 
     private int availablePort;
     private TimeLockClientConfig mockClientConfig;
@@ -357,6 +364,29 @@ public class TransactionManagersTest {
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
                 TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
+    }
+
+    @Test
+    public void timeLockMigrationReportsReadyIfMigrationDone() {
+        when(migrator.isInitialized()).thenReturn(true);
+        when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
+
+        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+    }
+
+    @Test
+    public void timeLockMigrationReportsNotReadyIfMigrationNotDone() {
+        when(migrator.isInitialized()).thenReturn(false);
+        when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
+
+        assertFalse(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+    }
+
+    @Test
+    public void timeLockMigrationReportsReadyIfMigrationNotNeeded() {
+        when(lockAndTimestampServices.migrator()).thenReturn(Optional.empty());
+
+        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {

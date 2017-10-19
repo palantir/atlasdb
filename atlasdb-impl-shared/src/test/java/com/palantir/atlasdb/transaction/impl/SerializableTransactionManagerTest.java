@@ -49,7 +49,7 @@ public class SerializableTransactionManagerTest {
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager
                 mockCleaner,
-                mockInitializer,
+                mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
                 1, // concurrentGetRangesThreadPoolSize
@@ -107,7 +107,7 @@ public class SerializableTransactionManagerTest {
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager
                 mockCleaner,
-                mockInitializer,
+                mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
                 1, // concurrentGetRangesThreadPoolSize
