@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -370,7 +371,8 @@ public abstract class TransactionManagers {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                initializer::isInitialized,
+                () -> initializer.isInitialized()
+                        && lockAndTimestampServices.migrator().map(AsyncInitializer::isInitialized).orElse(true),
                 allowHiddenTableAccess(),
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
