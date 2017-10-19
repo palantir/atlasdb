@@ -198,6 +198,33 @@
 <li class="toctree-l1"><a class="reference internal" href="oracle_key_value_service_config.html">DB KVS (Oracle - beta) Configuration</a></li>
 </ul>
 </div>
+<div class="section" id="global-parameters">
+<h2>Global Parameters<a class="headerlink" href="#global-parameters" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="18%" />
+<col width="73%" />
+<col width="9%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Description</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>concurrentGetRangesThreadPoolSize</td>
+<td>The size of the thread pool used for running concurrent range requests.</td>
+<td>KVS-specific</td>
+</tr>
+<tr class="row-odd"><td>defaultGetRangesConcurrency</td>
+<td>The maximum number of threads from the pool specified by <code class="docutils literal"><span class="pre">concurrentGetRangesThreadPoolSize</span></code> to use
+for a single <code class="docutils literal"><span class="pre">getRanges</span></code> request when the user does not explicitly provide a value.</td>
+<td>8</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 
 

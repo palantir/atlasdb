@@ -251,7 +251,13 @@ Previously, the table reference was omitted, such that one might receive lines o
 It also now returns information about how much data was swept.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2409">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Exposes another version of <code class="docutils literal"><span class="pre">getRanges</span></code> that uses a configurable concurrency level when not explicitly
+provided a value. This defaults to 8 and can be configured with the <code class="docutils literal"><span class="pre">KeyValueServiceConfig#defaultGetRangesConcurrency</span></code> parameter.
+Check the full configuration docs <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html">here</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2484">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Sweep candidate batches are now logged correctly.
 Previously, we would log a <code class="docutils literal"><span class="pre">SafeArg</span></code> for these batches that had no content.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2475">Pull Request</a>)</td>
