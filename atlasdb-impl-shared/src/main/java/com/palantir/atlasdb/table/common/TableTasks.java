@@ -50,6 +50,8 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class TableTasks {
     private static final Logger log = LoggerFactory.getLogger(TableTasks.class);
@@ -108,11 +110,11 @@ public final class TableTasks {
         stats.rowsCopied.addAndGet(partialStats.rowsCopied);
         stats.cellsCopied.addAndGet(partialStats.cellsCopied);
         log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
-                partialStats.rowsCopied,
-                partialStats.cellsCopied,
-                srcTable,
-                dstTable,
-                System.currentTimeMillis() - startTime);
+                SafeArg.of("rowsCopied", partialStats.rowsCopied),
+                SafeArg.of("cellsCopied", partialStats.cellsCopied),
+                SafeArg.of("srcTable", srcTable),
+                SafeArg.of("dstTable", dstTable),
+                SafeArg.of("timeTaken", System.currentTimeMillis() - startTime));
     }
 
     private static PartialCopyStats copyInternal(final Transaction transaction,
@@ -236,15 +238,15 @@ public final class TableTasks {
                             + "{} cells only in source "
                             + "{} cells in common "
                             + "between {} and {} in {} ms.",
-                    partialStats.rowsVisited,
-                    partialStats.rowsOnlyInSource,
-                    partialStats.rowsPartiallyInCommon,
-                    partialStats.rowsCompletelyInCommon,
-                    partialStats.cellsOnlyInSource,
-                    partialStats.cellsInCommon,
-                    plusTable,
-                    minusTable,
-                    System.currentTimeMillis() - startTime);
+                    SafeArg.of("rowsVisited", partialStats.rowsVisited),
+                    SafeArg.of("rowsOnlyInSource", partialStats.rowsOnlyInSource),
+                    SafeArg.of("rowsPartiallyInCommon", partialStats.rowsPartiallyInCommon),
+                    SafeArg.of("rowsCompletelyInCommon", partialStats.rowsCompletelyInCommon),
+                    SafeArg.of("cellsOnlyInSource", partialStats.cellsOnlyInSource),
+                    SafeArg.of("cellsInCommon", partialStats.cellsInCommon),
+                    SafeArg.of("plusTable", plusTable),
+                    SafeArg.of("minusTable", minusTable),
+                    SafeArg.of("timeTaken", System.currentTimeMillis() - startTime));
         }
     }
 
@@ -495,13 +497,17 @@ public final class TableTasks {
             BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
             for (final MutableRange range : getRanges(threadCount, batchSize)) {
                 if (Thread.currentThread().isInterrupted()) {
-                    log.info("Thread interrupted. Cancelling {} of range {}", taskName, range);
-                    break;
+                    log.info("Thread interrupted. Cancelling {} of range {}",
+                            SafeArg.of("taskName", taskName),
+                            UnsafeArg.of("range", range));
+                    return;
                 }
                 pool.submitTask(() -> {
                     do {
                         if (Thread.currentThread().isInterrupted()) {
-                            log.info("Thread interrupted. Cancelling {} of range {}", taskName, range);
+                            log.info("Thread interrupted. Cancelling {} of range {}",
+                                    SafeArg.of("taskName", taskName),
+                                    UnsafeArg.of("range", range));
                             break;
                         }
                         try {
