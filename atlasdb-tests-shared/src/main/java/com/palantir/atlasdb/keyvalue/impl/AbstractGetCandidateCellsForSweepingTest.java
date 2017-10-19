@@ -67,55 +67,6 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         }
     }
 
-
-    @Test
-    public void returnCandidateIfPossiblyUncommittedTimestamp() {
-        new TestDataBuilder().put(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 5)))
-                .containsExactly(ImmutableCandidateCellForSweeping.builder()
-                        .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L })
-                        .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(1)
-                        .build());
-    }
-
-    @Test
-    public void doNotReturnCandidateIfOnlyCommittedTimestamp() {
-        new TestDataBuilder().put(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30))).isEmpty();
-    }
-
-    @Test
-    public void returnCandidateIfTwoCommittedTimestamps() {
-        new TestDataBuilder().put(1, 1, 10L).put(1, 1, 20L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30)))
-                .containsExactly(ImmutableCandidateCellForSweeping.builder()
-                        .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L, 20L })
-                        .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(2)
-                        .build());
-    }
-
-    @Test
-    public void doNotReturnCandidateWithCommitedEmptyValueIfConservative() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30))).isEmpty();
-    }
-
-    @Test
-    public void returnCandidateWithCommitedEmptyValueIfThorough() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 30)))
-                .containsExactly(ImmutableCandidateCellForSweeping.builder()
-                        .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L })
-                        .isLatestValueEmpty(true)
-                        .numCellsTsPairsExamined(1)
-                        .build());
-    }
-
     @Test
     public void singleCellSpanningSeveralPages() {
         new TestDataBuilder()
@@ -239,7 +190,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()));
     }
 
-    private List<CandidateCellForSweeping> getAllCandidates(CandidateCellForSweepingRequest request) {
+    protected List<CandidateCellForSweeping> getAllCandidates(CandidateCellForSweepingRequest request) {
         try (ClosableIterator<List<CandidateCellForSweeping>> iter =
                     kvs.getCandidateCellsForSweeping(TEST_TABLE, request)) {
             return ImmutableList.copyOf(
