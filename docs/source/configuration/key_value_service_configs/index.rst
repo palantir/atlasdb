@@ -20,15 +20,18 @@ Global Parameters
 =================
 
 .. list-table::
-    :widths: 10 40
+    :widths: 10 40 5
     :header-rows: 1
 
     *    - Property
          - Description
+         - Default
 
     *    - concurrentGetRangesThreadPoolSize
          - The size of the thread pool used for running concurrent range requests.
+         - KVS-specific
 
     *    - defaultGetRangesConcurrency
          - The maximum number of threads from the pool specified by ``concurrentGetRangesThreadPoolSize`` to use
            for a single ``getRanges`` request when the user does not explicitly provide a value.
+         - 8
