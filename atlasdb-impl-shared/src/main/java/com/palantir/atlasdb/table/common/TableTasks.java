@@ -103,9 +103,8 @@ public final class TableTasks {
             CopyStats stats,
             CopyTask task,
             MutableRange range) throws InterruptedException {
-        final RangeRequest request = range.getRangeRequest();
         long startTime = System.currentTimeMillis();
-        PartialCopyStats partialStats = task.call(request, range);
+        PartialCopyStats partialStats = task.call(range.getRangeRequest(), range);
         stats.rowsCopied.addAndGet(partialStats.rowsCopied);
         stats.cellsCopied.addAndGet(partialStats.cellsCopied);
         log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
