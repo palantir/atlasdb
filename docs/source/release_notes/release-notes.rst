@@ -53,6 +53,17 @@ develop
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
 
+    *   - |improved| |userbreak|
+        - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
+          This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+    *   - |fixed|
+        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -146,16 +157,6 @@ v0.60.0
 =======
 
 This version was skipped due to issues on release. No artifacts with this version were ever published.
-
-    *   - |improved| |userbreak|
-        - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
-          This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
-
-    *   - |fixed|
-        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
-          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
