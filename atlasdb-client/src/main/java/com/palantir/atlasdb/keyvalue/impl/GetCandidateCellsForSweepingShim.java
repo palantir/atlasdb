@@ -61,7 +61,8 @@ public class GetCandidateCellsForSweepingShim {
                 CandidateCellForSweepingRequest request) {
         RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(request.startRowInclusive())
-                .batchHint(request.batchSizeHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
+                .batchHint(request.batchSizeHint().orElse(
+                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_NON_CASSANDRA))
                 .build();
         try (ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults = new ReleasableCloseable<>(
                     getValues(tableRef, range, request.sweepTimestamp(), request.shouldCheckIfLatestValueIsEmpty()));
