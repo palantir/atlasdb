@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
+import java.util.Iterator;
+import java.util.List;
 
-public class DbKvsPostgresGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
-    @Override
-    protected KeyValueService createKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-    }
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
+public interface CellTsPairLoader {
+
+    Iterator<List<CellTsPairInfo>> createPageIterator(TableReference tableRef, CandidateCellForSweepingRequest request);
+
 }

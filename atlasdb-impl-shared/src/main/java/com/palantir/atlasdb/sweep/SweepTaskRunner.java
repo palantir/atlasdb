@@ -30,6 +30,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellLimit;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -124,7 +126,7 @@ public class SweepTaskRunner {
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
-                    UnsafeArg.of("table name", tableRef));
+                    LoggingArgs.tableRef("tableRef", tableRef));
             return SweepResults.createEmptySweepResult();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
@@ -140,6 +142,10 @@ public class SweepTaskRunner {
                                byte[] startRow,
                                RunType runType,
                                Sweeper sweeper) {
+        log.info("Beginning iteration of sweep for table {} starting at row {}",
+                LoggingArgs.tableRef(tableRef),
+                UnsafeArg.of("startRow", PtBytes.encodeHexString(startRow)));
+
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions
@@ -156,8 +162,6 @@ public class SweepTaskRunner {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .batchSizeHint(batchConfig.candidateBatchSize())
-                 // TODO(sberler): change once we figure out transaction table sweep
-                .minUncommittedStartTimestamp(Long.MIN_VALUE)
                 .sweepTimestamp(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(sweeper.shouldSweepLastCommitted())
                 .timestampsToIgnore(sweeper.getTimestampsToIgnore())

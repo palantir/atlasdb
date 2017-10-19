@@ -63,6 +63,11 @@ public interface AgnosticResultRow {
     public Long getLongObject(String colname) throws PalantirSqlException;
 
     /**
+     * Will return false if field is null.
+     */
+    boolean getBoolean(String colname) throws PalantirSqlException;
+
+    /**
      * Will return 0 if field is null.
      */
     public int getInteger(String colname) throws PalantirSqlException;
