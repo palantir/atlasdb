@@ -45,7 +45,7 @@ develop
          - Change
 
     *    - |improved|
-         - Sweep is now more efficient on Cassandra, Postgres and Oracle.
+         - Sweep is now more efficient on Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
     *    - |improved|
          - The ``SweeperService`` endpoint registered on all clients will now sweeps the full table by default, rather than a single batch.
