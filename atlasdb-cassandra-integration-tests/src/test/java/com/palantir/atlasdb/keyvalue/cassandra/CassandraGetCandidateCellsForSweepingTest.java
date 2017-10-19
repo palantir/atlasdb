@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -69,23 +68,4 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
                         .build());
     }
 
-    // TODO(nziebart): check that this is ok to fail, and delete
-    @Ignore
-    @Test
-    public void doNotReturnCandidateWithCommitedEmptyValueIfConservative() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1))).isEmpty();
-    }
-
-    @Test
-    public void returnCandidateWithCommitedEmptyValueIfThorough() {
-        new TestDataBuilder().putEmpty(1, 1, 10L).store();
-        assertThat(getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
-                .containsExactly(ImmutableCandidateCellForSweeping.builder()
-                        .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L })
-                        .isLatestValueEmpty(true)
-                        .numCellsTsPairsExamined(1)
-                        .build());
-    }
 }
