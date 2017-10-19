@@ -147,6 +147,13 @@ v0.60.1
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
 
     *    - |fixed|
+         - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
+           Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
+           Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
+           Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
+
+    *    - |fixed|
          - The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
            Previously, giving a start row with hex characters in lower case e.g. ``deadbeef`` would result in an ``IllegalArgumentException`` being thrown.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2468>`__)
