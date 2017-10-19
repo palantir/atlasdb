@@ -49,11 +49,13 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     protected final TransactionReadSentinelBehavior readSentinelBehavior;
     protected final boolean allowHiddenTableAccess;
     final ExecutorService getRangesExecutor;
+    final int defaultGetRangesConcurrency;
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
                                       TransactionService transactionService,
                                       AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                      int concurrentGetRangesThreadPoolSize) {
+                                      int concurrentGetRangesThreadPoolSize,
+                                      int defaultGetRangesConcurrency) {
         this(
                 keyValueService,
                 transactionService,
@@ -61,7 +63,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 Suppliers.ofInstance(Long.MAX_VALUE),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
@@ -69,7 +72,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                                       AtlasDbConstraintCheckingMode constraintCheckingMode,
                                       Supplier<Long> startTimestamp,
                                       TransactionReadSentinelBehavior readSentinelBehavior,
-                                      int concurrentGetRangesThreadPoolSize) {
+                                      int concurrentGetRangesThreadPoolSize,
+                                      int defaultGetRangesConcurrency) {
         this(
                 keyValueService,
                 transactionService,
@@ -77,7 +81,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 startTimestamp,
                 readSentinelBehavior,
                 false,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
@@ -86,7 +91,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                                       Supplier<Long> startTimestamp,
                                       TransactionReadSentinelBehavior readSentinelBehavior,
                                       boolean allowHiddenTableAccess,
-                                      int concurrentGetRangesThreadPoolSize) {
+                                      int concurrentGetRangesThreadPoolSize,
+                                      int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
         this.constraintCheckingMode = constraintCheckingMode;
@@ -94,6 +100,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     @Override
@@ -107,7 +114,8 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 readSentinelBehavior,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency);
         return runTaskThrowOnConflict(task, new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 

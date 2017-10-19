@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
@@ -98,6 +99,16 @@ public interface Transaction {
             final TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             int concurrencyLevel,
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
+
+    /**
+     * Same as {@link #getRanges(TableReference, Iterable, int, BiFunction)} but uses the default concurrency
+     * value specified by {@link KeyValueServiceConfig#defaultGetRangesConcurrency()}.
+     */
+    @Idempotent
+    <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
             BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor);
 
     /**
