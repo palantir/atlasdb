@@ -107,14 +107,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadS
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowRangeLoader;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.SingleRowColumnPager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.sweep.CassandraGetCandidateCellsForSweepingImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
@@ -122,6 +118,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.annotation.Idempotent;
@@ -213,8 +210,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
 
-    private final CassandraGetCandidateCellsForSweepingImpl getCandidateCellsForSweepingImpl;
-
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     public static CassandraKeyValueService create(
@@ -271,11 +266,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
-
-        SingleRowColumnPager singleRowPager = new SingleRowColumnPager(clientPool, queryRunner);
-        CellPager cellPager = new CellPager(
-                singleRowPager, clientPool, queryRunner, new CellPagerBatchSizingStrategy());
-        this.getCandidateCellsForSweepingImpl = new CassandraGetCandidateCellsForSweepingImpl(cellPager);
     }
 
     @Override
