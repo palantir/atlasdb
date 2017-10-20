@@ -73,6 +73,11 @@ develop
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *    - |new|
+         - AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp, and current timestamp.
+           These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -170,11 +175,6 @@ v0.60.1
          - ``CassandraClientPool`` no longer logs stack traces twice for every failed attempt to connect to Cassandra.
            Instead, the exception is logged once only, when we run out of retries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
-
-    *    - |new|
-         - AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp, and current timestamp.
-           These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
     *    - |fixed|
          - ``MetricsManager`` now supports de-registration of metrics for a given prefix.
