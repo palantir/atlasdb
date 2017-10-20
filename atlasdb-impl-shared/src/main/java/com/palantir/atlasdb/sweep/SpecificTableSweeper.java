@@ -175,7 +175,7 @@ public class SpecificTableSweeper {
         sweepPerfLogger.logSweepResults(performanceResults);
     }
 
-    private void logSweepError(TableReference tableRef, byte[] startRow, SweepBatchConfig config, RuntimeException e) {
+    private void logSweepError(TableReference tableRef, byte[] startRow, SweepBatchConfig config, RuntimeException exception) {
         log.info("Failed to sweep table {}"
                         + " at row {}"
                         + " with candidate batch size {},"
@@ -186,7 +186,7 @@ public class SpecificTableSweeper {
                 SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
                 SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
                 SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
-                e);
+                exception);
     }
 
     private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
