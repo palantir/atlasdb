@@ -131,9 +131,11 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -1652,8 +1654,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
 
         if (!tablesToActuallyCreate.isEmpty()) {
-            log.info("Grabbing schema mutation lock to create tables {}",
-                    LoggingArgs.tablesRef(tablesToActuallyCreate.keySet()));
+            Pair<Arg<List<TableReference>>, Arg<List<TableReference>>> safeAndUnsafeTables = LoggingArgs.tablesRef(
+                    tablesToActuallyCreate.keySet());
+            log.info("Grabbing schema mutation lock to create tables {} and {}",
+                    safeAndUnsafeTables.lhSide, safeAndUnsafeTables.rhSide);
             schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
@@ -2369,7 +2373,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         tables.remove(tableToKeep.get());
         if (tables.size() > 0) {
             dropTablesInternal(tables);
-            log.info("Dropped tables [{}]", LoggingArgs.tablesRef(tables));
+            Pair<Arg<List<TableReference>>, Arg<List<TableReference>>> safeAndUnsafeTables =
+                    LoggingArgs.tablesRef(tables);
+            log.info("Dropped tables {} and {}", safeAndUnsafeTables.lhSide, safeAndUnsafeTables.rhSide);
         }
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",

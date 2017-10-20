@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.logging;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.util.Pair;
 
 /**
  * Includes utilities for generating logging args that may be safe or unsafe, depending on table metadata.
@@ -56,10 +57,25 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
-    public static List<Arg<TableReference>> tablesRef(Collection<TableReference> tableReferences) {
-        return tableReferences.stream()
-                .map(LoggingArgs::tableRef)
-                .collect(Collectors.toList());
+    /**
+     * Partition the given {@code tableReferences} in a pair of safe and unsafe tables for logging.
+     * The first element of the pair are the safe to log tables, while the second element of the pair are the unsafe.
+     */
+    public static Pair<Arg<List<TableReference>>, Arg<List<TableReference>>> tablesRef(
+            Collection<TableReference> tableReferences) {
+
+        List<TableReference> safeTableRefs = new ArrayList<>();
+        List<TableReference> unsafeTableRefs = new ArrayList<>();
+
+        for (TableReference tableRef : tableReferences) {
+            if (logArbitrator.isTableReferenceSafe(tableRef)) {
+                safeTableRefs.add(tableRef);
+            } else {
+                unsafeTableRefs.add(tableRef);
+            }
+        }
+
+        return new Pair<>(SafeArg.of("tableRefs", safeTableRefs), UnsafeArg.of("tableRefs", unsafeTableRefs));
     }
 
     /**

@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.Comparator;
 import java.util.List;
 
 import org.junit.AfterClass;
@@ -38,12 +37,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.util.Pair;
 
 public class LoggingArgsTest {
     private static final String ARG_NAME = "argName";
     private static final TableReference SAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.safe");
     private static final TableReference UNSAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
-    private static final List<TableReference> LIST_OF_TABLE_SAFE_AND_UNSAFE_REFERENCES = Lists.newArrayList(
+    private static final List<TableReference> LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES = Lists.newArrayList(
             SAFE_TABLE_REFERENCE,
             UNSAFE_TABLE_REFERENCE
     );
@@ -134,10 +134,14 @@ public class LoggingArgsTest {
 
     @Test
     public void canReturnListOfSafeTableReferences() {
-        List<Arg<TableReference>> returnedArgs = LoggingArgs.tablesRef(LIST_OF_TABLE_SAFE_AND_UNSAFE_REFERENCES);
-        returnedArgs.sort(Comparator.comparing(arg -> arg.getValue().getTablename()));
-        assertThat(returnedArgs.get(0)).isInstanceOf(UnsafeArg.class);
-        assertThat(returnedArgs.get(1)).isInstanceOf(SafeArg.class);
+        Pair<Arg<List<TableReference>>, Arg<List<TableReference>>> returnedArgs =
+                LoggingArgs.tablesRef(LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES);
+
+        assertThat(returnedArgs.lhSide).isInstanceOf(SafeArg.class);
+        assertThat(returnedArgs.lhSide.getValue().contains(SAFE_TABLE_REFERENCE));
+
+        assertThat(returnedArgs.rhSide).isInstanceOf(UnsafeArg.class);
+        assertThat(returnedArgs.rhSide.getValue().contains(UNSAFE_TABLE_REFERENCE));
     }
 
     @Test
