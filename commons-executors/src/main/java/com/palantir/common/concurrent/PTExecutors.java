@@ -95,13 +95,7 @@ public final class PTExecutors {
      * @throws NullPointerException if threadFactory is null
      */
     public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory) {
-        return newThreadPoolExecutor(
-                0,
-                Integer.MAX_VALUE,
-                DEFAULT_THREAD_POOL_TIMEOUT_MILLIS,
-                TimeUnit.MILLISECONDS,
-                new SynchronousQueue<Runnable>(),
-                threadFactory);
+        return newCachedThreadPool(threadFactory, DEFAULT_THREAD_POOL_TIMEOUT_MILLIS);
     }
 
     /**
@@ -117,9 +111,35 @@ public final class PTExecutors {
      * @throws NullPointerException if threadFactory is null
      */
     public static ThreadPoolExecutor newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
+        return newCachedThreadPool(threadFactory, threadTimeoutMillis, 0, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Creates a thread pool with a minimum of corePoolSize threads and a maximum of maximumPoolSize
+     * threads. Uses the provided ThreadFactory to create new threads when needed.
+     *
+     * @param threadFactory the factory to use when creating new threads
+     * @return the newly created thread pool
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ThreadPoolExecutor newCachedThreadPool(
+            ThreadFactory threadFactory, int corePoolSize, int maximumPoolSize) {
+        return newCachedThreadPool(threadFactory, DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, corePoolSize, maximumPoolSize);
+    }
+
+    /**
+     * Creates a thread pool with a minimum of corePoolSize threads and a maximum of maximumPoolSize
+     * threads. Uses the provided ThreadFactory to create new threads when needed.
+     *
+     * @param threadFactory the factory to use when creating new threads
+     * @return the newly created thread pool
+     * @throws NullPointerException if threadFactory is null
+     */
+    public static ThreadPoolExecutor newCachedThreadPool(
+            ThreadFactory threadFactory, int threadTimeoutMillis, int corePoolSize, int maximumPoolSize) {
         return newThreadPoolExecutor(
-                0,
-                Integer.MAX_VALUE,
+                corePoolSize,
+                maximumPoolSize,
                 threadTimeoutMillis,
                 TimeUnit.MILLISECONDS,
                 new SynchronousQueue<Runnable>(),
