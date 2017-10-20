@@ -108,8 +108,9 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return Tracers.wrap(executor);
     }
 
-    protected static ExecutorService createCachedThreadPool(String threadNamePrefix, int minPoolSize, int maxPoolSize) {
-        ThreadPoolExecutor executor = PTExecutors.newCachedThreadPool(
+    protected static ExecutorService createScalingThreadPoolWithCallerRunsOnEmpty(
+            String threadNamePrefix, int minPoolSize, int maxPoolSize) {
+        ThreadPoolExecutor executor = PTExecutors.newScalingThreadPoolWithCallerRunsOnEmpty(
                 new NamedThreadFactory(threadNamePrefix, false), minPoolSize, maxPoolSize);
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
         return Tracers.wrap(executor);
