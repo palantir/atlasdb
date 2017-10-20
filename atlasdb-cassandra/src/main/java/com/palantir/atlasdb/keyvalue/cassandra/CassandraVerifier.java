@@ -46,6 +46,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.Maps2;
+import com.palantir.logsafe.SafeArg;
 
 public final class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
@@ -212,7 +213,7 @@ public final class CassandraVerifier {
                 config);
         ks.setDurable_writes(true);
         client.system_add_keyspace(ks);
-        log.info("Created keyspace: {}", config.getKeyspaceOrThrow());
+        log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
         CassandraKeyValueServices.waitForSchemaVersions(
                 config,
                 client,

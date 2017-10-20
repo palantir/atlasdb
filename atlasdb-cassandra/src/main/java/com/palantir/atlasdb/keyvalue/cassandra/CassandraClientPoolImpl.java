@@ -324,7 +324,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                                 activeCheckouts > 0 ? Integer.toString(activeCheckouts) : "(unknown)",
                                 totalAllowed > 0 ? Integer.toString(totalAllowed) : "(not bounded)"));
             }
-            log.debug("Current pool state: {}", currentState.toString());
+            log.debug("Current pool state: {}", SafeArg.of("currentState", currentState.toString()));
         }
     }
 
@@ -413,7 +413,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
                     + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
                     + " Current state logged at DEBUG");
-            log.debug("Current ring view is: {} and our current host blacklist is {}", tokenMap, blacklistedHosts);
+            log.debug("Current ring view is: {} and our current host blacklist is {}",
+                    SafeArg.of("tokenMap", tokenMap),
+                    SafeArg.of("blacklistedHosts", blacklistedHosts));
             return getRandomGoodHost().getHost();
         } else {
             return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
@@ -729,7 +731,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 }
                 tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
-                log.warn("failed to get ring info from host: {}", host, e);
+                log.warn("failed to get ring info from host: {}", SafeArg.of("host", host), e);
             } finally {
                 if (client != null) {
                     client.getOutputProtocol().getTransport().close();
@@ -738,7 +740,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
             if (tokenRangesToHost.isEmpty()) {
                 log.warn("Failed to get ring info for entire Cassandra cluster ({});"
-                        + " ring could not be checked for consistency.", config.getKeyspaceOrThrow());
+                        + " ring could not be checked for consistency.",
+                        SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
                 return;
             }
 
@@ -748,7 +751,10 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
             RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
                     + " This can lead to inconsistent reads and lost data. ");
-            log.error("QA-86204 {}: The token ranges to host are:\n{}", ex.getMessage(), tokenRangesToHost, ex);
+            log.error("QA-86204 {}: The token ranges to host are:\n{}",
+                    UnsafeArg.of("exceptionMessage", ex.getMessage()),
+                    SafeArg.of("tokenRangesToHost", tokenRangesToHost),
+                    ex);
 
 
             // provide some easier to grok logging for the two most common cases
@@ -756,15 +762,15 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 tokenRangesToHost.asMap().entrySet().stream()
                         .filter(entry -> entry.getValue().size() == 1)
                         .forEach(entry -> log.error("Host: {} disagrees with the other nodes about the ring state.",
-                                Iterables.getFirst(entry.getValue(), null)));
+                                SafeArg.of("host", Iterables.getFirst(entry.getValue(), null))));
             }
             if (tokenRangesToHost.keySet().size() == 2) {
                 ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToHost.keySet());
                 Set<TokenRange> set1 = sets.get(0);
                 Set<TokenRange> set2 = sets.get(1);
                 log.error("Hosts are split. group1: {} group2: {}",
-                        tokenRangesToHost.get(set1),
-                        tokenRangesToHost.get(set2));
+                        SafeArg.of("set1", tokenRangesToHost.get(set1)),
+                        SafeArg.of("set2", tokenRangesToHost.get(set2)));
             }
 
             CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
