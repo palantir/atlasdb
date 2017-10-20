@@ -56,7 +56,6 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -129,7 +128,7 @@ public class TransactionManagersTest {
 
     private AtlasDbConfig config;
     private AtlasDbRuntimeConfig runtimeConfig;
-    private TransactionManagers.Environment environment;
+    private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
@@ -177,7 +176,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
 
-        environment = mock(TransactionManagers.Environment.class);
+        environment = mock(Consumer.class);
 
         invalidator = mock(TimestampStoreInvalidator.class);
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
@@ -260,8 +259,10 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
-        TransactionManagers.create(realConfig, Optional::empty,
-                ImmutableSet.of(), environment, false);
+        TransactionManagers.builder()
+                .config(realConfig)
+                .registrar(environment)
+                .buildSerializable();
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
 
@@ -300,8 +301,10 @@ public class TransactionManagersTest {
 
         Runnable callback = mock(Runnable.class);
 
-        SerializableTransactionManager manager = TransactionManagers.create(
-                realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        SerializableTransactionManager manager = TransactionManagers.builder()
+                .config(realConfig)
+                .registrar(environment)
+                .buildSerializable();
         manager.registerClosingCallback(callback);
         manager.close();
         verify(callback, times(1)).run();
@@ -313,7 +316,10 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .build();
 
-        TransactionManagers.create(realConfig, Optional::empty, ImmutableSet.of(), environment, false);
+        TransactionManagers.builder()
+                .config(realConfig)
+                .registrar(environment)
+                .buildSerializable();
         assertThat(metricsRule.metrics().getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
     }
@@ -373,7 +379,7 @@ public class TransactionManagersTest {
                     .withStatus(200)
                     .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
             return null;
-        }).when(environment).register(isA(PingableLeader.class));
+        }).when(environment).accept(isA(PingableLeader.class));
         setupLeaderBlockInConfig();
     }
 

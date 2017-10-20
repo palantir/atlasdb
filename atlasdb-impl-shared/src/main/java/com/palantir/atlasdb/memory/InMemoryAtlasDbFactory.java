@@ -74,6 +74,12 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Deprecated
     private static final int DEFAULT_MAX_CONCURRENT_RANGES = 64;
 
+    /**
+     * @deprecated see usage below. Should be configured with the {@link InMemoryAtlasDbConfig}.
+     */
+    @Deprecated
+    private static final int DEFAULT_GET_RANGES_CONCURRENCY = 8;
+
     @Override
     public String getType() {
         return "memory";
@@ -166,7 +172,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                DEFAULT_MAX_CONCURRENT_RANGES);
+                DEFAULT_MAX_CONCURRENT_RANGES,
+                DEFAULT_GET_RANGES_CONCURRENCY);
         cleaner.start(ret);
         return ret;
     }

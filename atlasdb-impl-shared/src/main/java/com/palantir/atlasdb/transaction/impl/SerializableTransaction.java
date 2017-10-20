@@ -114,7 +114,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    boolean allowHiddenTableAccess,
                                    TimestampCache timestampCache,
                                    long lockAcquireTimeoutMs,
-                                   ExecutorService getRangesExecutor) {
+                                   ExecutorService getRangesExecutor,
+                                   int defaultGetRangesConcurrency) {
         super(keyValueService,
               timelockService,
               transactionService,
@@ -131,7 +132,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               allowHiddenTableAccess,
               timestampCache,
               lockAcquireTimeoutMs,
-              getRangesExecutor);
+              getRangesExecutor,
+              defaultGetRangesConcurrency);
     }
 
     @Override
@@ -722,7 +724,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs,
-                getRangesExecutor) {
+                getRangesExecutor,
+                defaultGetRangesConcurrency) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
