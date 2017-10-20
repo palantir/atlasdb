@@ -20,12 +20,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
+import java.util.Comparator;
+import java.util.List;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -39,6 +43,10 @@ public class LoggingArgsTest {
     private static final String ARG_NAME = "argName";
     private static final TableReference SAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.safe");
     private static final TableReference UNSAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
+    private static final List<TableReference> LIST_OF_TABLE_SAFE_AND_UNSAFE_REFERENCES = Lists.newArrayList(
+            SAFE_TABLE_REFERENCE,
+            UNSAFE_TABLE_REFERENCE
+    );
 
     private static final String SAFE_ROW_NAME = "saferow";
     private static final String UNSAFE_ROW_NAME = "row";
@@ -122,6 +130,14 @@ public class LoggingArgsTest {
     public void canReturnBothSafeAndUnsafeTableReferences() {
         assertThat(LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE)).isInstanceOf(SafeArg.class);
         assertThat(LoggingArgs.tableRef(ARG_NAME, UNSAFE_TABLE_REFERENCE)).isInstanceOf(UnsafeArg.class);
+    }
+
+    @Test
+    public void canReturnListOfSafeTableReferences() {
+        List<Arg<TableReference>> returnedArgs = LoggingArgs.tablesRef(LIST_OF_TABLE_SAFE_AND_UNSAFE_REFERENCES);
+        returnedArgs.sort(Comparator.comparing(arg -> arg.getValue().getTablename()));
+        assertThat(returnedArgs.get(0)).isInstanceOf(UnsafeArg.class);
+        assertThat(returnedArgs.get(1)).isInstanceOf(SafeArg.class);
     }
 
     @Test
