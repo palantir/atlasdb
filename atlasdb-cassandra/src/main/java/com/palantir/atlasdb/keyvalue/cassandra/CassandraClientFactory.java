@@ -95,8 +95,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                     SafeArg.of("address", addr),
                     UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
                     SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
-                    UnsafeArg.of("usernameConfig", config.credentials().isPresent() ?
-                            " as user " + config.credentials().get().username() : ""));
+                    UnsafeArg.of("usernameConfig", config.credentials().isPresent()
+                            ? " as user " + config.credentials().get().username() : ""));
             return ret;
         } catch (Exception e) {
             ret.getOutputProtocol().getTransport().close();
