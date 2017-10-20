@@ -158,7 +158,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void updateMetrics(SweepOutcome outcome) {
-        sweepOutcomeMetrics.registerOutcome(outcome);
+        sweepOutcomeMetrics.registerOccurenceOf(outcome);
     }
 
     private void sleepUntilNextRun(SweepOutcome outcome) throws InterruptedException {
@@ -298,7 +298,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return outcome == lastOutcome ? 1 : 0;
         }
 
-        public void registerOutcome(SweepOutcome outcome) {
+        public void registerOccurenceOf(SweepOutcome outcome) {
             lastOutcome = outcome;
         }
     }
