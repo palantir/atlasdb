@@ -73,6 +73,11 @@ develop
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *    - |improved|
+         - ``BackgroupSweeperImpl`` now record additional metrics on how each run of sweep went.  At the moment we just sample the last run when asked for metrics and return 1 for the outcome which just happened and 0 for everything else.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2531>`__)
+
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
