@@ -190,7 +190,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()));
     }
 
-    private List<CandidateCellForSweeping> getAllCandidates(CandidateCellForSweepingRequest request) {
+    protected List<CandidateCellForSweeping> getAllCandidates(CandidateCellForSweepingRequest request) {
         try (ClosableIterator<List<CandidateCellForSweeping>> iter =
                     kvs.getCandidateCellsForSweeping(TEST_TABLE, request)) {
             return ImmutableList.copyOf(

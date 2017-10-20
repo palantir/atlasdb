@@ -90,7 +90,7 @@ v0.61.0
          - Change
 
     *    - |improved|
-         - Sweep is now more efficient on Cassandra, Postgres and Oracle.
+         - Sweep is now more efficient on Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
 
     *    - |improved|
