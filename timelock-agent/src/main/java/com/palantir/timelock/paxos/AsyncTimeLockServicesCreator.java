@@ -102,7 +102,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
-        // TODO(nziebart) tag with the client name, when tritium supports it
+        // TODO(nziebart): tag with the client name, when tritium supports it
         return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
     }
 }
