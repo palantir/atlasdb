@@ -24,6 +24,8 @@ import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.SUCC
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
 import static com.palantir.atlasdb.sweep.BackgroundSweeperImpl.SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
 
+import static java.util.Arrays.stream;
+
 import java.util.Optional;
 import java.util.Set;
 
@@ -289,9 +291,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         private SweepOutcome lastOutcome = null;
 
         SweepOutcomeMetrics() {
-            for (SweepOutcome outcome : SweepOutcome.values()) {
-                metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(), () -> getCount(outcome));
-            }
+            stream(SweepOutcome.values()).forEach( outcome ->
+                metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(), () -> getCount(outcome))
+            );
         }
 
         private Integer getCount(SweepOutcome outcome) {
