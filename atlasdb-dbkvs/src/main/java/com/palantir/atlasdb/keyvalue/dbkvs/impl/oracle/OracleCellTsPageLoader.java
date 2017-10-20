@@ -179,7 +179,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             }
             queryBuilder
                     .append("  FROM ").append(tableDetails.shortName).append(" t")
-                    .append("  WHERE ts < ? ", request.sweepTimestamp());
+                    .append("  WHERE ts < ? ", request.maxTimestampExclusiveHint());
             SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
             appendRangePredicates(singleRow, queryBuilder);
             return queryBuilder

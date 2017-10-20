@@ -26,9 +26,10 @@ public interface CandidateCellForSweepingRequest {
     OptionalInt batchSizeHint();
 
     /**
-     *  Only start timestamps that are strictly below this number will be considered.
+     *  Only start timestamps that are strictly below this number will be considered by the caller. This value is
+     *  merely a hint to the implementation, so that it may optimize its querying.
      */
-    long sweepTimestamp();
+    long maxTimestampExclusiveHint();
 
     /**
      *  In practice, this is true for the THOROUGH sweep strategy and false for CONSERVATIVE.
@@ -36,8 +37,9 @@ public interface CandidateCellForSweepingRequest {
     boolean shouldCheckIfLatestValueIsEmpty();
 
     /*
-     *  In practice, this is the empty set if for the THOROUGH sweep strategy and { -1 } for CONSERVATIVE.
+     *  In practice, this is the empty set if for the THOROUGH sweep strategy and { -1 } for CONSERVATIVE. This value is
+     *  merely a hint to the implementation, so that it may optimize its querying.
      */
-    long[] timestampsToIgnore();
+    long[] timestampsToIgnoreHint();
 
 }

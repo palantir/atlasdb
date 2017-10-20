@@ -65,9 +65,9 @@ public class GetCandidateCellsForSweepingShim {
                         AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_NON_CASSANDRA))
                 .build();
         try (ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults = new ReleasableCloseable<>(
-                    getValues(tableRef, range, request.sweepTimestamp(), request.shouldCheckIfLatestValueIsEmpty()));
+                    getValues(tableRef, range, request.maxTimestampExclusiveHint(), request.shouldCheckIfLatestValueIsEmpty()));
              ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults = new ReleasableCloseable<>(
-                     keyValueService.getRangeOfTimestamps(tableRef, range, request.sweepTimestamp()))) {
+                     keyValueService.getRangeOfTimestamps(tableRef, range, request.maxTimestampExclusiveHint()))) {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults.get());
             MutableLong numExamined = new MutableLong(0);
             Set<Long> timestampsToIgnore = ImmutableSet.copyOf(Longs.asList(request.timestampsToIgnore()));

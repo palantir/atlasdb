@@ -24,7 +24,7 @@ public interface CandidateCellForSweeping {
 
     /**
      * All start timestamps for the cell that are strictly less than
-     * {@link CandidateCellForSweepingRequest#sweepTimestamp()} and are not in
+     * {@link CandidateCellForSweepingRequest#maxTimestampExclusiveHint()} and are not in
      * {@link CandidateCellForSweepingRequest#timestampsToIgnore()}, in ascending order.
      *
      * If the array is empty, then the cell is not an actual candidate and is only returned

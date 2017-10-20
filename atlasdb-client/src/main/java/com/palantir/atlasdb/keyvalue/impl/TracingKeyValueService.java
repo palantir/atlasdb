@@ -267,7 +267,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             CandidateCellForSweepingRequest request) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("getCandidateCellsForSweeping({}, ts {})",
-                tableRef, request.sweepTimestamp())) {
+                tableRef, request.maxTimestampExclusiveHint())) {
             return delegate().getCandidateCellsForSweeping(tableRef, request);
         }
     }

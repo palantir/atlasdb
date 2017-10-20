@@ -102,6 +102,51 @@ public class CqlExecutor {
 
     /**
      * @param tableRef the table from which to select
+     * @param row the row from key
+     * @param limit the maximum number of results to return.
+     * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
+     * <code>maxTimestampExclusive</code>
+     */
+    public List<CellWithTimestamp> getCellTimestamps(
+            TableReference tableRef,
+            byte[] startRowInclusive,
+            int limit) {
+        CqlQuery query = new CqlQuery(
+                "SELECT key, column1, column2 FROM %s WHERE token(key) > token(%s) LIMIT %s;",
+                quotedTableName(tableRef),
+                key(startRowInclusive),
+                limit(limit));
+        return query.executeAndGetCells(startRowInclusive);
+    }
+
+    /**
+     * @param tableRef the table from which to select
+     * @param row the row key
+     * @param startColumnInclusive the column name
+     * @param maxTimestampExclusive the maximum timestamp, exclusive
+     * @param limit the maximum number of results to return.
+     * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
+     * <code>maxTimestampExclusive</code>
+     */
+    public List<CellWithTimestamp> getCellTimestampsWithinRow(
+            TableReference tableRef,
+            byte[] row,
+            byte[] startColumnInclusive,
+            long maxTimestampExclusive,
+            int limit) {
+        long invertedTimestamp = ~maxTimestampExclusive;
+        CqlQuery query = new CqlQuery(
+                "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;",
+                quotedTableName(tableRef),
+                key(row),
+                column1(startColumnInclusive),
+                column2(invertedTimestamp),
+                limit(limit));
+        return query.executeAndGetCells(row);
+    }
+
+    /**
+     * @param tableRef the table from which to select
      * @param row the row key
      * @param previousColumn the lexicographic lower bound (exclusive) for the column name
      * @param limit the maximum number of results to return.
