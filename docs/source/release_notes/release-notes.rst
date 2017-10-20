@@ -68,6 +68,10 @@ develop
           This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *   - |improved|
+        - The executor used by the Cassandra KVS is now allowed to grow larger so that we can better delegate blocking to the underlying Cassandra client pools.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__)
+
     *   - |fixed|
         - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
