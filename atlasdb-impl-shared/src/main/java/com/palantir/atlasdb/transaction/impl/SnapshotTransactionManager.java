@@ -71,6 +71,7 @@ import com.palantir.timestamp.TimestampService;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final TimestampTracker timestampTracker;
+    final int defaultGetRangesConcurrency;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -86,7 +87,8 @@ import com.palantir.timestamp.TimestampService;
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            int concurrentGetRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -101,6 +103,7 @@ import com.palantir.timestamp.TimestampService;
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.timestampTracker = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner);
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     @Override
@@ -187,7 +190,8 @@ import com.palantir.timestamp.TimestampService;
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency);
     }
 
     @Override
@@ -211,7 +215,8 @@ import com.palantir.timestamp.TimestampService;
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency);
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 

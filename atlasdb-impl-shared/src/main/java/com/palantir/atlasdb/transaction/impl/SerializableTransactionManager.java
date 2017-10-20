@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.Optional;
 
 import com.google.common.base.Supplier;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -37,27 +38,35 @@ import com.palantir.timestamp.TimestampService;
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
-        private SerializableTransactionManager manager;
-        private volatile boolean isInitialized = false;
+        private final SerializableTransactionManager manager;
+        private final AsyncInitializer prerequisite;
 
-        public InitializeCheckingWrapper(SerializableTransactionManager manager) {
+        public InitializeCheckingWrapper(SerializableTransactionManager manager,
+                AsyncInitializer prerequisite) {
             this.manager = manager;
+            this.prerequisite = prerequisite;
         }
 
         @Override
         public SerializableTransactionManager delegate() {
-            if (!isInitialized) {
-                try {
-                    // SerializableTransactionManager should throw until the underlying KVS is initialized.
-                    // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
-                    manager.getKeyValueService().getClusterAvailabilityStatus();
-                } catch (NotInitializedException e) {
-                    log.info("The KeyValueService is not initialized yet!");
-                    throw e;
-                }
-                isInitialized = true;
+            if (!isInitialized()) {
+                throw new NotInitializedException("TransactionManager");
             }
+
             return manager;
+        }
+
+        @Override
+        public boolean isInitialized() {
+            // Note that the PersistentLockService is also initialized asynchronously as part of
+            // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
+            // requests (note that it is not accessible from any TransactionManager implementation), so we omit
+            // checking here whether it is initialized.
+            return manager.getKeyValueService().isInitialized()
+                    && manager.getTimelockService().isInitialized()
+                    && manager.getTimestampService().isInitialized()
+                    && manager.getCleaner().isInitialized()
+                    && prerequisite.isInitialized();
         }
 
         @Override
@@ -76,7 +85,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * use the delegate instead.
      */
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, 1);
+        this(null, null, null, null, null, null, null, null, null, 1, 1);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -87,9 +96,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
+            AsyncInitializer initializer,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
             boolean initializeAsync) {
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 keyValueService,
@@ -102,9 +113,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
 
-        return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager)
+        return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager, initializer)
                 : serializableTransactionManager;
     }
 
@@ -117,7 +129,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            int concurrentGetRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -128,7 +141,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 false,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -141,7 +155,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            int concurrentGetRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -152,7 +167,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -164,7 +180,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            int concurrentGetRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency) {
         this(
                 keyValueService,
                 timelockService,
@@ -176,7 +193,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -189,7 +207,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            int concurrentGetRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency) {
         super(
                 keyValueService,
                 timelockService,
@@ -201,7 +220,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
     }
 
     @Override
@@ -226,7 +246,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency);
     }
 
 }

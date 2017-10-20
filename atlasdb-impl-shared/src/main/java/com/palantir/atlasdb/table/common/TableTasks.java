@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Inclusive;
@@ -50,12 +51,18 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class TableTasks {
     private static final Logger log = LoggerFactory.getLogger(TableTasks.class);
 
     private TableTasks() {
         // Utility class
+    }
+
+    private interface InterruptibleRangeTask {
+        void execute(MutableRange range) throws InterruptedException;
     }
 
     public static void copy(
@@ -90,29 +97,25 @@ public final class TableTasks {
                                     int threadCount,
                                     final CopyStats stats,
                                     final CopyTask task) throws InterruptedException {
-        BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
-        for (final MutableRange range : getRanges(threadCount, batchSize)) {
-            pool.submitTask(() -> {
-                do {
-                    final RangeRequest request = range.getRangeRequest();
-                    try {
-                        long startTime = System.currentTimeMillis();
-                        PartialCopyStats partialStats = task.call(request, range);
-                        stats.rowsCopied.addAndGet(partialStats.rowsCopied);
-                        stats.cellsCopied.addAndGet(partialStats.cellsCopied);
-                        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
-                                partialStats.rowsCopied,
-                                partialStats.cellsCopied,
-                                srcTable,
-                                dstTable,
-                                System.currentTimeMillis() - startTime);
-                    } catch (InterruptedException e) {
-                        throw Throwables.rewrapAndThrowUncheckedException(e);
-                    }
-                } while (!range.isComplete());
-            });
-        }
-        pool.waitForSubmittedTasks();
+        new InterruptibleRangeExecutor(exec, batchSize, threadCount).executeTask("copy",
+                range -> executeCopyTask(srcTable, dstTable, stats, task, range));
+    }
+
+    private static void executeCopyTask(TableReference srcTable,
+            TableReference dstTable,
+            CopyStats stats,
+            CopyTask task,
+            MutableRange range) throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        PartialCopyStats partialStats = task.call(range.getRangeRequest(), range);
+        stats.rowsCopied.addAndGet(partialStats.rowsCopied);
+        stats.cellsCopied.addAndGet(partialStats.cellsCopied);
+        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
+                SafeArg.of("rowsCopied", partialStats.rowsCopied),
+                SafeArg.of("cellsCopied", partialStats.cellsCopied),
+                LoggingArgs.tableRef("srcTable", srcTable),
+                LoggingArgs.tableRef("dstTable", dstTable),
+                SafeArg.of("timeTaken", System.currentTimeMillis() - startTime));
     }
 
     private static PartialCopyStats copyInternal(final Transaction transaction,
@@ -207,46 +210,45 @@ public final class TableTasks {
                                      int threadCount,
                                      final DiffStats stats,
                                      final DiffTask task) throws InterruptedException {
-        BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
-        for (final MutableRange range : getRanges(threadCount, batchSize)) {
-            pool.submitTask(() -> {
-                do {
-                    final RangeRequest request = range.getRangeRequest();
-                    try {
-                        long startTime = System.currentTimeMillis();
-                        PartialDiffStats partialStats = task.call(request, range, strategy);
-                        stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
-                        stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
-                        stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
-                        stats.rowsVisited.addAndGet(partialStats.rowsVisited);
-                        stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
-                        stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
-                        if (log.isInfoEnabled()) {
-                            log.info("Processed diff of "
-                                    + "{} rows "
-                                    + "{} rows only in source "
-                                    + "{} rows partially in common "
-                                    + "{} rows completely in common "
-                                    + "{} cells only in source "
-                                    + "{} cells in common "
-                                    + "between {} and {} in {} ms.",
-                                    partialStats.rowsVisited,
-                                    partialStats.rowsOnlyInSource,
-                                    partialStats.rowsPartiallyInCommon,
-                                    partialStats.rowsCompletelyInCommon,
-                                    partialStats.cellsOnlyInSource,
-                                    partialStats.cellsInCommon,
-                                    plusTable,
-                                    minusTable,
-                                    System.currentTimeMillis() - startTime);
-                        }
-                    } catch (InterruptedException e) {
-                        throw Throwables.rewrapAndThrowUncheckedException(e);
-                    }
-                } while (!range.isComplete());
-            });
+        new InterruptibleRangeExecutor(exec, batchSize, threadCount).executeTask("diff",
+                range -> executeDiffTask(strategy, plusTable, minusTable, stats, task, range));
+    }
+
+    private static void executeDiffTask(DiffStrategy strategy,
+            TableReference plusTable,
+            TableReference minusTable,
+            DiffStats stats,
+            DiffTask task,
+            MutableRange range)
+            throws InterruptedException {
+        final RangeRequest request = range.getRangeRequest();
+        long startTime = System.currentTimeMillis();
+        PartialDiffStats partialStats = task.call(request, range, strategy);
+        stats.rowsOnlyInSource.addAndGet(partialStats.rowsOnlyInSource);
+        stats.rowsPartiallyInCommon.addAndGet(partialStats.rowsPartiallyInCommon);
+        stats.rowsCompletelyInCommon.addAndGet(partialStats.rowsCompletelyInCommon);
+        stats.rowsVisited.addAndGet(partialStats.rowsVisited);
+        stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
+        stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
+        if (log.isInfoEnabled()) {
+            log.info("Processed diff of "
+                            + "{} rows "
+                            + "{} rows only in source "
+                            + "{} rows partially in common "
+                            + "{} rows completely in common "
+                            + "{} cells only in source "
+                            + "{} cells in common "
+                            + "between {} and {} in {} ms.",
+                    SafeArg.of("rowsVisited", partialStats.rowsVisited),
+                    SafeArg.of("rowsOnlyInSource", partialStats.rowsOnlyInSource),
+                    SafeArg.of("rowsPartiallyInCommon", partialStats.rowsPartiallyInCommon),
+                    SafeArg.of("rowsCompletelyInCommon", partialStats.rowsCompletelyInCommon),
+                    SafeArg.of("cellsOnlyInSource", partialStats.cellsOnlyInSource),
+                    SafeArg.of("cellsInCommon", partialStats.cellsInCommon),
+                    LoggingArgs.tableRef("plusTable", plusTable),
+                    LoggingArgs.tableRef("minusTable", minusTable),
+                    SafeArg.of("timeTaken", System.currentTimeMillis() - startTime));
         }
-        pool.waitForSubmittedTasks();
     }
 
     private static DiffStrategy getDiffStrategy(Transaction tx,
@@ -479,5 +481,45 @@ public final class TableTasks {
     private static class PartialCopyStats {
         private long rowsCopied = 0;
         private long cellsCopied = 0;
+    }
+
+    private static class InterruptibleRangeExecutor {
+        private final ExecutorService exec;
+        private final int batchSize;
+        private final int threadCount;
+
+        InterruptibleRangeExecutor(ExecutorService exec, int batchSize, int threadCount) {
+            this.exec = exec;
+            this.batchSize = batchSize;
+            this.threadCount = threadCount;
+        }
+
+        void executeTask(String taskName, InterruptibleRangeTask task) throws InterruptedException {
+            BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
+            for (final MutableRange range : getRanges(threadCount, batchSize)) {
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("Thread interrupted. Cancelling {} of range {}",
+                            SafeArg.of("taskName", taskName),
+                            UnsafeArg.of("range", range));
+                    return;
+                }
+                pool.submitTask(() -> {
+                    do {
+                        if (Thread.currentThread().isInterrupted()) {
+                            log.info("Thread interrupted. Cancelling {} of range {}",
+                                    SafeArg.of("taskName", taskName),
+                                    UnsafeArg.of("range", range));
+                            break;
+                        }
+                        try {
+                            task.execute(range);
+                        } catch (InterruptedException e) {
+                            throw Throwables.rewrapAndThrowUncheckedException(e);
+                        }
+                    } while (!range.isComplete());
+                });
+            }
+            pool.waitForSubmittedTasks();
+        }
     }
 }

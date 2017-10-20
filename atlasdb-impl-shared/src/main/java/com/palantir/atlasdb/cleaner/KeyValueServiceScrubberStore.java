@@ -117,6 +117,11 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
+    }
+
+    @Override
     public void queueCellsForScrubbing(
             Multimap<Cell, TableReference> cellToTableRefs,
             long scrubTimestamp,
