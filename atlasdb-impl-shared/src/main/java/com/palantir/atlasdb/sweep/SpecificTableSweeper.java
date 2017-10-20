@@ -131,6 +131,11 @@ public class SpecificTableSweeper {
         saveSweepResults(tableToSweep, results);
     }
 
+    public SweepBatchConfig getAdjustedBatchConfig() {
+        SweepBatchConfig baseConfig = sweepBatchConfig.get();
+        return baseConfig.adjust(BackgroundSweeperImpl.batchSizeMultiplier);
+    }
+
     SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
@@ -184,37 +189,36 @@ public class SpecificTableSweeper {
                 e);
     }
 
-    public SweepBatchConfig getAdjustedBatchConfig() {
-        SweepBatchConfig baseConfig = sweepBatchConfig.get();
-        return baseConfig.adjust(BackgroundSweeperImpl.batchSizeMultiplier);
+    private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
+        SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
+
+        if (currentIteration.getNextStartRow().isPresent()) {
+            saveIntermediateSweepResults(tableToSweep, cumulativeResults);
+        } else {
+            saveFinalSweepResults(tableToSweep, cumulativeResults);
+            performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
+            log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values.",
+                    LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
+                    SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),
+                    SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()));
+            sweepProgressStore.clearProgress();
+        }
     }
 
-    private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
+    private static SweepResults getCumulativeSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
         long staleValuesDeleted = tableToSweep.getStaleValuesDeletedPreviously()
                 + currentIteration.getStaleValuesDeleted();
         long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellTsPairsExamined();
         long minimumSweptTimestamp = Math.min(
                 tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
                 currentIteration.getSweptTimestamp());
-        SweepResults cumulativeResults = SweepResults.builder()
+
+        return SweepResults.builder()
                 .staleValuesDeleted(staleValuesDeleted)
                 .cellTsPairsExamined(cellsExamined)
                 .sweptTimestamp(minimumSweptTimestamp)
                 .nextStartRow(currentIteration.getNextStartRow())
                 .build();
-        if (currentIteration.getNextStartRow().isPresent()) {
-            saveIntermediateSweepResults(tableToSweep, cumulativeResults);
-        } else {
-            saveFinalSweepResults(tableToSweep, cumulativeResults);
-            performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.info("Finished sweeping table {}."
-                            + " Examined {} cell+timestamp pairs,"
-                            + " deleted {} stale values.",
-                    LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
-                    SafeArg.of("cellTs pairs examined", cellsExamined),
-                    SafeArg.of("cellTs pairs deleted", staleValuesDeleted));
-            sweepProgressStore.clearProgress();
-        }
     }
 
     private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
