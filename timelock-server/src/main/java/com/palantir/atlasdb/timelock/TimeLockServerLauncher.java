@@ -15,21 +15,15 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.List;
 import java.util.function.Consumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -57,19 +51,13 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module());
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
-        List<SafeArg> safeArgs = Lists.newArrayList(
-                SafeArg.of("table1", ":D"),
-                SafeArg.of("table2", ":D"),
-                SafeArg.of("table3", ":D"));
-        Logger logger = LoggerFactory.getLogger("TimeLocksServerLauncher");
-        logger.info("test safe args: {}", safeArgs);
 
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
         TimeLockAgent agent = new TimeLockAgent(
                 combined.install(),
                 combined::runtime, // this won't actually live reload
-                combined.deprecated(),gd
+                combined.deprecated(),
                 registrar);
         agent.createAndRegisterResources();
     }
