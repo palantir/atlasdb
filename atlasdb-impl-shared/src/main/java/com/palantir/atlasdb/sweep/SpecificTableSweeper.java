@@ -142,6 +142,8 @@ public class SpecificTableSweeper {
             SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
             logSweepPerformance(tableRef, startRow, results, watch);
 
+            reportSweepMetrics(results);
+
             return results;
         } catch (RuntimeException e) {
             // This error may be logged on some paths above, but I prefer to log defensively.
@@ -277,8 +279,6 @@ public class SpecificTableSweeper {
             sweepPriorityStore.update(tx, tableToSweep.getTableRef(), update.build());
             return null;
         });
-
-        reportSweepMetrics(finalSweepResults);
     }
 
     private void reportSweepMetrics(SweepResults sweepResults) {
