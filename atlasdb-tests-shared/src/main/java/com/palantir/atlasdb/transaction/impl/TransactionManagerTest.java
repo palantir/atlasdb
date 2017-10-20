@@ -86,7 +86,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(getKeyValueService(),
                 mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE, 16);
+                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
 
         // fetch an immutable timestamp once so it's cached
         when(mockTimestampService.getFreshTimestamp()).thenReturn(1L);

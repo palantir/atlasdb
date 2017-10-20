@@ -203,6 +203,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TimestampCache timestampValidationReadCache;
     protected final long lockAcquireTimeoutMs;
     protected final ExecutorService getRangesExecutor;
+    protected final int defaultGetRangesConcurrency;
 
     private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
@@ -229,7 +230,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache,
                                long lockAcquireTimeoutMs,
-                               ExecutorService getRangesExecutor) {
+                               ExecutorService getRangesExecutor,
+                               int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -247,6 +249,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     // TEST ONLY
@@ -260,7 +263,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache,
-                        ExecutorService getRangesExecutor) {
+                        ExecutorService getRangesExecutor,
+                        int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -278,6 +282,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -289,7 +294,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   boolean allowHiddenTableAccess,
                                   TimestampCache timestampValidationReadCache,
                                   long lockAcquireTimeoutMs,
-                                  ExecutorService getRangesExecutor) {
+                                  ExecutorService getRangesExecutor,
+                                  int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -307,6 +313,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     @Override
@@ -715,6 +722,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
+    }
+
+    @Override
+    public <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
     }
 
     private static boolean isSingleton(Iterable<?> elements) {
