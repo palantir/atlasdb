@@ -30,8 +30,11 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -129,6 +132,8 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -257,10 +262,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig,
                                        boolean initializeAsync) {
-        super(AbstractKeyValueService.createScalingThreadPoolWithCallerRunsOnEmpty(
-                "Atlas Cassandra KVS",
-                configManager.getConfig().poolSize() * configManager.getConfig().servers().size(),
-                configManager.getConfig().maxConnectionBurstSize() * configManager.getConfig().servers().size()));
+        super(createExecutor(configManager.getConfig()));
         this.log = log;
         this.configManager = configManager;
         this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
@@ -278,6 +280,24 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CellPager cellPager = new CellPager(
                 singleRowPager, clientPool, queryRunner, new CellPagerBatchSizingStrategy());
         this.getCandidateCellsForSweepingImpl = new CassandraGetCandidateCellsForSweepingImpl(cellPager);
+    }
+
+    /**
+     * Creates a thread pool that maintains between (poolSize * numServers) and (maxConnectionBurstSize * numServers)
+     * threads. When the max pool size is hit, new requests will not be queued but rather will be run in the caller's
+     * thread. Throttling will be taken care of by the underlying client pools.
+     */
+    private static ExecutorService createExecutor(CassandraKeyValueServiceConfig config) {
+        int numServers = config.servers().size();
+        return PTExecutors.newThreadPoolExecutor(
+                config.poolSize() * numServers,
+                config.maxConnectionBurstSize() * numServers,
+                1,
+                TimeUnit.MINUTES,
+                // Want queue to return false on offer so that the pool can grow past its core size
+                new ArrayBlockingQueue<>(0),
+                new NamedThreadFactory("Atlas Cassandra KVS", false),
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Override
