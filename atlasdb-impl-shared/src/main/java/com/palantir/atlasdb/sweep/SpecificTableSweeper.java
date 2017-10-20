@@ -263,13 +263,13 @@ public class SpecificTableSweeper {
         }
     }
 
-    private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults sweepResults) {
+    private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults finalSweepResults) {
         txManager.runTaskWithRetry((TxTask) tx -> {
             ImmutableUpdateSweepPriority.Builder update = ImmutableUpdateSweepPriority.builder()
-                    .newStaleValuesDeleted(sweepResults.getStaleValuesDeleted())
-                    .newCellTsPairsExamined(sweepResults.getCellTsPairsExamined())
+                    .newStaleValuesDeleted(finalSweepResults.getStaleValuesDeleted())
+                    .newCellTsPairsExamined(finalSweepResults.getCellTsPairsExamined())
                     .newLastSweepTimeMillis(wallClock.getTimeMillis())
-                    .newMinimumSweptTimestamp(sweepResults.getSweptTimestamp());
+                    .newMinimumSweptTimestamp(finalSweepResults.getSweptTimestamp());
             if (!tableToSweep.hasPreviousProgress()) {
                 // This is the first (and only) set of results being written for this table.
                 update.newWriteCount(0L);
@@ -278,6 +278,10 @@ public class SpecificTableSweeper {
             return null;
         });
 
+        reportSweepMetrics(finalSweepResults);
+    }
+
+    private void reportSweepMetrics(SweepResults sweepResults) {
         sweepMetrics.examinedCells(sweepResults.getCellTsPairsExamined());
         sweepMetrics.deletedCells(sweepResults.getStaleValuesDeleted());
     }
