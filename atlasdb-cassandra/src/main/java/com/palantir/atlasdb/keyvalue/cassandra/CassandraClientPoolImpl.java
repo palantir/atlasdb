@@ -412,10 +412,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
                     + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
-                    + " Current state logged at DEBUG");
-            log.debug("Current ring view is: {} and our current host blacklist is {}",
-                    SafeArg.of("tokenMap", tokenMap),
+                    + " Current host blacklist is {}."
+                    + " Current state logged at TRACE",
                     SafeArg.of("blacklistedHosts", blacklistedHosts.toString()));
+            log.trace("Current ring view is: {}.",
+                    SafeArg.of("tokenMap", tokenMap));
             return getRandomGoodHost().getHost();
         } else {
             return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
@@ -752,7 +753,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
                     + " This can lead to inconsistent reads and lost data. ");
             log.error("QA-86204 {}: The token ranges to host are:\n{}",
-                    UnsafeArg.of("exception", ex.getMessage()), SafeArg.of("tokenRangeToHost", tokenRangesToHost), ex);
+                    SafeArg.of("exception", ex.getMessage()), SafeArg.of("tokenRangeToHost", tokenRangesToHost), ex);
 
 
             // provide some easier to grok logging for the two most common cases
