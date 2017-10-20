@@ -73,6 +73,9 @@ develop
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *   - |improved|
+        - Safe and Unsafe args were used for Cassandra* classes.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
