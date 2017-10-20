@@ -38,6 +38,8 @@ public class ApiTestSchema implements AtlasSchema {
 
         schema.addTableDefinition("SchemaApiTest", new TableDefinition() {
             {
+                javaTableName("SchemaApiTest");
+
                 rowName();
                 rowComponent("component1", ValueType.STRING);
 
@@ -52,6 +54,8 @@ public class ApiTestSchema implements AtlasSchema {
 
         schema.addTableDefinition("HashComponentsTest", new TableDefinition() {
             {
+                javaTableName("HashComponentsTest");
+
                 rowName();
                 hashFirstNRowComponents(2);
                 rowComponent("component1", ValueType.VAR_LONG);
