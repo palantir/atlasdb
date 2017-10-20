@@ -16,11 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+public class CellTsPairInfo {
+    public final byte[] rowName;
+    public final byte[] colName;
+    public final long ts;
+    public final boolean hasEmptyValue;
 
-public interface CellTsPairLoaderFactory {
-
-    CellTsPairLoader createCellTsLoader(TableReference tableRef, CandidateCellForSweepingRequest request);
-
+    public CellTsPairInfo(byte[] rowName, byte[] colName, long ts, boolean hasEmptyValue) {
+        this.rowName = rowName;
+        this.colName = colName;
+        this.ts = ts;
+        this.hasEmptyValue = hasEmptyValue;
+    }
 }

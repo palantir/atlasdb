@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
+package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Iterator;
-import java.util.List;
+public final class TransactionTestConstants {
+    private TransactionTestConstants() {}
 
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-
-public interface CellTsPairLoader {
-
-    Iterator<List<CellTsPairInfo>> createPageIterator(TableReference tableRef, CandidateCellForSweepingRequest request);
-
+    public static final int GET_RANGES_THREAD_POOL_SIZE = 16;
+    public static final int DEFAULT_GET_RANGES_CONCURRENCY = 4;
 }

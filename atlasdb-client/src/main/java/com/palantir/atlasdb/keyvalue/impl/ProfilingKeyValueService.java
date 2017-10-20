@@ -23,9 +23,6 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -53,8 +50,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public final class ProfilingKeyValueService implements KeyValueService {
-
-    private static final Logger log = LoggerFactory.getLogger(ProfilingKeyValueService.class);
 
     private final KeyValueService delegate;
 
@@ -117,6 +112,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
         return (logger, stopwatch) ->
                 logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
                         LoggingArgs.method(method),
+                        LoggingArgs.tableRef(tableRef),
                         LoggingArgs.range(tableRef, range),
                         LoggingArgs.durationMillis(stopwatch));
     }

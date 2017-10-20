@@ -36,8 +36,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
-    private static final int GET_RANGES_CONCURRENCY = 16;
-
     public TestTransactionManagerImpl(KeyValueService keyValueService,
                                       TimestampService timestampService,
                                       LockClient lockClient,
@@ -55,7 +53,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
     }
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -74,7 +73,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
     }
 
     @Override
@@ -107,7 +107,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 constraintModeSupplier.get(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampValidationReadCache,
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency);
     }
 
     @Override

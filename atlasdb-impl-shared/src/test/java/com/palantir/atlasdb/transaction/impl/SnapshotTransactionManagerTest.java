@@ -55,7 +55,8 @@ public class SnapshotTransactionManagerTest {
             cleaner,
             false,
             () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-            4);
+            TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
+            TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY);
 
     @Test
     public void isAlwaysInitialized() {
@@ -94,7 +95,8 @@ public class SnapshotTransactionManagerTest {
                 cleaner,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                4);
+                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
+                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY);
         newTransactionManager.close(); // should not throw
     }
 

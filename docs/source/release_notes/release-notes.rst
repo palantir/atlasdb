@@ -45,17 +45,70 @@ develop
          - Change
 
     *    - |improved|
+         - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
+           Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
+           Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
+
+    *    - |deprecated| |improved|
+         - ``SerializableTransactionManager`` is now created via an immutable builder instead of a long list of individual arguments. Use ``TransactionManagers.builder()``
+           to get the builder and once completely configured, build the transaction manager via the builder's ``.buildSerializable()`` method.
+           The existing ``create`` methods are deprecated and will be removed by November 15th, 2017.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2459>`__)
+
+    *    - |fixed|
+         - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
+           Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
+           Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
+           Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
+
+    *   - |improved| |userbreak|
+        - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
+          This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+    *   - |fixed|
+        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.61.0
+=======
+
+18 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
          - Sweep is now more efficient on Cassandra, Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
+
     *    - |improved|
          - The ``SweeperService`` endpoint registered on all clients will now sweeps the full table by default, rather than a single batch.
            It also now returns information about how much data was swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
+    *   - |improved|
+        - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
+          provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
+          Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
+
     *    - |fixed|
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -63,7 +116,7 @@ develop
 v0.60.1
 =======
  
-12 October 2017
+16 October 2017
 
 .. list-table::
     :widths: 5 40
@@ -150,6 +203,7 @@ v0.60.0
 =======
 
 This version was skipped due to issues on release. No artifacts with this version were ever published.
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

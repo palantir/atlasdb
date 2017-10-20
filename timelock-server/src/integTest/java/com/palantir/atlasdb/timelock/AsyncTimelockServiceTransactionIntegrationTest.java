@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -87,8 +86,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
                                 .build())
                         .build())
                 .build();
-        txnManager = TransactionManagers.create(config, () -> Optional.empty(), ImmutableSet.of(),
-                ignored -> { }, false);
+        txnManager = TransactionManagers.builder().config(config).buildSerializable();
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
