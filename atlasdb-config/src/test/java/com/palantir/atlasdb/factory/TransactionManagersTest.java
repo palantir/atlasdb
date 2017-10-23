@@ -262,6 +262,7 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(realConfig)
                 .registrar(environment)
+                .userAgent("test")
                 .buildSerializable();
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
@@ -304,6 +305,7 @@ public class TransactionManagersTest {
         SerializableTransactionManager manager = TransactionManagers.builder()
                 .config(realConfig)
                 .registrar(environment)
+                .userAgent("test")
                 .buildSerializable();
         manager.registerClosingCallback(callback);
         manager.close();
@@ -319,6 +321,7 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(realConfig)
                 .registrar(environment)
+                .userAgent("test")
                 .buildSerializable();
         assertThat(metricsRule.metrics().getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));

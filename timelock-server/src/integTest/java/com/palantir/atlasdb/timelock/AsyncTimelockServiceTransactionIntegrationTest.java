@@ -86,7 +86,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
                                 .build())
                         .build())
                 .build();
-        txnManager = TransactionManagers.builder().config(config).buildSerializable();
+        txnManager = TransactionManagers.builder().config(config).userAgent("test").buildSerializable();
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
