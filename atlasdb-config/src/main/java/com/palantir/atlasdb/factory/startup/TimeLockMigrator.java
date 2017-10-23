@@ -24,7 +24,8 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
-public final class TimeLockMigrator extends AsyncInitializer {
+@SuppressWarnings("FinalClass")
+public class TimeLockMigrator extends AsyncInitializer {
     private final TimestampStoreInvalidator source;
     private final TimestampManagementService destination;
     private final boolean initializeAsync;
