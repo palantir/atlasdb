@@ -217,7 +217,7 @@ final class SchemaMutationLock {
                     if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis) {
                         TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
                         log.error("Timed out after waiting for {} milliseconds for the schema mutation lock",
-                                stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                                SafeArg.of("wait duration", stopwatch.elapsed(TimeUnit.MILLISECONDS)));
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 

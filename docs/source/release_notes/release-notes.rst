@@ -74,7 +74,7 @@ develop
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
     *   - |improved|
-        - Safe and Unsafe args were used for Cassandra* classes.
+        - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

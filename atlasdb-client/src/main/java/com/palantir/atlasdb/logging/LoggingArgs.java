@@ -34,7 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.util.Pair;
 
 /**
  * Includes utilities for generating logging args that may be safe or unsafe, depending on table metadata.
@@ -42,6 +41,18 @@ import com.palantir.util.Pair;
  * Always returns unsafe, until hydrated.
  */
 public final class LoggingArgs {
+    public static class SafeAndUnsafeTableReferences {
+        public final SafeArg<List<TableReference>> safeTableRefs;
+        public final UnsafeArg<List<TableReference>> unsafeTableRefs;
+
+        private SafeAndUnsafeTableReferences(
+                SafeArg<List<TableReference>> safeTableRefs,
+                UnsafeArg<List<TableReference>> unsafeTableRefs) {
+            this.safeTableRefs = safeTableRefs;
+            this.unsafeTableRefs = unsafeTableRefs;
+        }
+    }
+
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
 
     private LoggingArgs() {
@@ -57,13 +68,7 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
-    /**
-     * Partition the given {@code tableReferences} in a pair of safe and unsafe tables for logging.
-     * The first element of the pair are the safe to log tables, while the second element of the pair are the unsafe.
-     */
-    public static Pair<Arg<List<TableReference>>, Arg<List<TableReference>>> tablesRef(
-            Collection<TableReference> tableReferences) {
-
+    public static SafeAndUnsafeTableReferences tableRefs(Collection<TableReference> tableReferences) {
         List<TableReference> safeTableRefs = new ArrayList<>();
         List<TableReference> unsafeTableRefs = new ArrayList<>();
 
@@ -75,7 +80,8 @@ public final class LoggingArgs {
             }
         }
 
-        return new Pair<>(SafeArg.of("tableRefs", safeTableRefs), UnsafeArg.of("tableRefs", unsafeTableRefs));
+        return new SafeAndUnsafeTableReferences(SafeArg.of("tableRefs", safeTableRefs),
+                UnsafeArg.of("tableRefs", unsafeTableRefs));
     }
 
     /**
