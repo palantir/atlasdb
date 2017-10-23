@@ -24,4 +24,4 @@ If you ever need to force a particular table to be swept immediately, you can ru
 
 Note that using the sweep endpoints to manually kick off sweep will *not* update the Background Sweeper's sweep priority table.
 
-*sNote the the sweep config might be lower if previous sweep runs have failed.
+*Note the the sweep config might be lower if previous sweep runs have failed.
