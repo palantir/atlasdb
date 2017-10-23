@@ -37,6 +37,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.ws.rs.NotSupportedException;
+
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
@@ -93,6 +95,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -106,9 +109,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTs
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CandidateCellsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CellTimestampsIterator;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CellWithTimestamps;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
@@ -116,7 +121,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -1427,35 +1431,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        Integer timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
-        return getTimestampsInBatchesWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestampsGetterBatchSize,
-                timestamp,
-                deleteConsistency);
+        throw new NotSupportedException();
     }
 
     @Override
-    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
-            CandidateCellForSweepingRequest request) {
-        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
-    }
-
-    private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef,
-            RangeRequest rangeRequest,
-            int columnBatchSize,
-            long timestamp,
-            ConsistencyLevel consistency) {
-        SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
+            CandidateCellForSweepingRequest request) {
+        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, ConsistencyLevel.ALL);
+        CellTimestampsIterator cellTimestamps = new CellTimestampsIterator(
+                cqlExecutor,
+                tableRef,
+                request.startRowInclusive(),
+                request.batchSizeHint().orElse(1_024));
 
-        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
-        ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
-
-        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, TimestampExtractor::new,
-                timestamp);
+        return new CandidateCellsForSweepingIterator(
+                cellTimestamps, this, request, tableRef);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(

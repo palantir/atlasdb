@@ -42,4 +42,11 @@ public interface CandidateCellForSweepingRequest {
      */
     long[] timestampsToIgnoreHint();
 
+    default CandidateCellForSweepingRequest withStartRow(byte[] startRow) {
+        return ImmutableCandidateCellForSweepingRequest.builder()
+                .from(this)
+                .startRowInclusive(startRow)
+                .build();
+    }
+
 }

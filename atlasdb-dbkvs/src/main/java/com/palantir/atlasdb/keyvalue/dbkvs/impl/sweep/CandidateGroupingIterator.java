@@ -18,11 +18,13 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -103,11 +105,19 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
         } else {
             return Optional.of(ImmutableCandidateCellForSweeping.builder()
                     .cell(Cell.create(currentRowName, currentColName))
-                    .sortedTimestamps(currentCellTimestamps.toArray())
+                    .sortedTimestamps(toList(currentCellTimestamps))
                     .isLatestValueEmpty(currentIsLatestValueEmpty)
                     .numCellsTsPairsExamined(cellTsPairsExamined)
                     .build());
         }
+    }
+
+    private Collection<Long> toList(TLongList currentCellTimestamps) {
+        List<Long> result = Lists.newArrayListWithExpectedSize(currentCellTimestamps.size());
+        for (int i = 0; i < currentCellTimestamps.size(); i++) {
+            result.add(currentCellTimestamps.get(i));
+        }
+        return result;
     }
 
     private void updateStateForNewCell(CellTsPairInfo cell) {

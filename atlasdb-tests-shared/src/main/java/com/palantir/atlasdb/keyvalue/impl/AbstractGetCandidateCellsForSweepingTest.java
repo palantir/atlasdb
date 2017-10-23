@@ -82,7 +82,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .cell(cell(10, 1))
                 .isLatestValueEmpty(false)
                 .numCellsTsPairsExamined(5)
-                .sortedTimestamps(1000L, 1001L, 1002L, 1003L, 1004L)
+                .sortedTimestamps(ImmutableList.of(1000L, 1001L, 1002L, 1003L, 1004L))
                 .build()), cells);
     }
 
@@ -98,13 +98,13 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .containsExactly(
                     ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
-                        .sortedTimestamps(5L, 10L)
+                        .sortedTimestamps(ImmutableList.of(5L, 10L))
                         .isLatestValueEmpty(true)
                         .numCellsTsPairsExamined(2)
                         .build(),
                     ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(2, 2))
-                        .sortedTimestamps(4L, 9L)
+                        .sortedTimestamps(ImmutableList.of(4L, 9L))
                         .isLatestValueEmpty(false)
                         .numCellsTsPairsExamined(4)
                         .build());
@@ -181,9 +181,9 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         List<CandidateCellForSweeping> candidates = getAllCandidates(
                 ImmutableCandidateCellForSweepingRequest.builder()
                         .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
-                        .sweepTimestamp(40L)
+                        .maxTimestampExclusiveHint(40L)
                         .shouldCheckIfLatestValueIsEmpty(checkIfLatestValueIsEmpty)
-                        .timestampsToIgnore(Value.INVALID_VALUE_TIMESTAMP)
+                        .timestampsToIgnoreHint(Value.INVALID_VALUE_TIMESTAMP)
                         .batchSizeHint(1)
                         .build());
         assertEquals(expectedCells,
@@ -196,7 +196,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
             return ImmutableList.copyOf(
                     Iterators.filter(
                             Iterators.concat(Iterators.transform(iter, List::iterator)),
-                            list -> list.sortedTimestamps().length > 0));
+                            list -> list.sortedTimestamps().size() > 0));
         }
     }
 
@@ -205,9 +205,9 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                                                                          int batchSizeHint) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
-                .sweepTimestamp(sweepTs)
+                .maxTimestampExclusiveHint(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(false)
-                .timestampsToIgnore(Value.INVALID_VALUE_TIMESTAMP)
+                .timestampsToIgnoreHint(Value.INVALID_VALUE_TIMESTAMP)
                 .batchSizeHint(batchSizeHint)
                 .build();
     }
@@ -215,9 +215,9 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     protected static CandidateCellForSweepingRequest thoroughRequest(byte[] startRow, long sweepTs, int batchSizeHint) {
         return ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
-                .sweepTimestamp(sweepTs)
+                .maxTimestampExclusiveHint(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(true)
-                .timestampsToIgnore()
+                .timestampsToIgnoreHint()
                 .batchSizeHint(batchSizeHint)
                 .build();
     }

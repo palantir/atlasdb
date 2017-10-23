@@ -16,13 +16,30 @@
 package com.palantir.common.base;
 
 import java.io.Closeable;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Spliterators;
+import java.util.function.Function;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @SuppressWarnings("DangerousJsonTypeInfoUsage")
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property= "@class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     @Override
-    void close();
+    default void close() { }
+
+    default <U> ClosableIterator<U> map(Function<T, U> mapper) {
+        return ClosableIterators.wrap(stream(this).map(mapper).iterator(), this);
+    }
+
+    default <U> ClosableIterator<U> flatMap(Function<T, Collection<U>> mapper) {
+        return ClosableIterators.wrap(stream(this).flatMap(obj -> mapper.apply(obj).stream()).iterator(), this);
+    }
+
+    static <T> Stream<T> stream(Iterator<T> iterator) {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false);
+    }
 }

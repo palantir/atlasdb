@@ -70,7 +70,7 @@ public class GetCandidateCellsForSweepingShim {
                      keyValueService.getRangeOfTimestamps(tableRef, range, request.maxTimestampExclusiveHint()))) {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults.get());
             MutableLong numExamined = new MutableLong(0);
-            Set<Long> timestampsToIgnore = ImmutableSet.copyOf(Longs.asList(request.timestampsToIgnore()));
+            Set<Long> timestampsToIgnore = ImmutableSet.copyOf(Longs.asList(request.timestampsToIgnoreHint()));
             Iterator<List<RowResult<Set<Long>>>> tsBatches = Iterators.partition(tsResults.get(), range.getBatchHint());
             Iterator<List<CandidateCellForSweeping>> candidates = Iterators.transform(tsBatches, tsBatch -> {
                 List<CandidateCellForSweeping> candidateBatch = Lists.newArrayList();
@@ -85,7 +85,7 @@ public class GetCandidateCellsForSweepingShim {
                         numExamined.add(timestampArr.length);
                         candidateBatch.add(ImmutableCandidateCellForSweeping.builder()
                                 .cell(cell)
-                                .sortedTimestamps(timestampArr)
+                                //.sortedTimestamps(timestampArr)
                                 .isLatestValueEmpty(latestValEmpty)
                                 .numCellsTsPairsExamined(numExamined.longValue())
                                 .build());

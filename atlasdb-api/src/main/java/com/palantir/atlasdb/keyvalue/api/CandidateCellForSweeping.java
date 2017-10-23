@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Set;
+
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -30,7 +34,7 @@ public interface CandidateCellForSweeping {
      * If the array is empty, then the cell is not an actual candidate and is only returned
      * for the purpose of reporting the number of examined cells.
      */
-    long[] sortedTimestamps();
+    Collection<Long> sortedTimestamps();
 
     /**
      * If {@link CandidateCellForSweepingRequest#shouldCheckIfLatestValueIsEmpty()} was set to true,
@@ -39,11 +43,13 @@ public interface CandidateCellForSweeping {
      * <p>
      * Otherwise, the return value is undefined and depends on the implementation.
      */
-    boolean isLatestValueEmpty();
+    Optional<Boolean> isLatestValueEmpty();
 
-    /**
-     * The number of the (cell, timestamp) pairs examined so far.
-     */
-    long numCellsTsPairsExamined();
+    static CandidateCellForSweeping of(Cell cell, Collection<Long> sortedTimestamps) {
+        return ImmutableCandidateCellForSweeping.builder()
+                .sortedTimestamps(sortedTimestamps)
+                .cell(cell)
+                .build();
+    }
 
 }

@@ -24,7 +24,7 @@ public final class SweepQueryHelpers {
 
     public static void appendIgnoredTimestampPredicate(CandidateCellForSweepingRequest request,
                                                        FullQuery.Builder builder) {
-        for (long ts : request.timestampsToIgnore()) {
+        for (long ts : request.timestampsToIgnoreHint()) {
             // In practice this will always be -1, so we don't bother with binds
             builder.append(" AND ts <> ").append(String.valueOf(ts));
         }

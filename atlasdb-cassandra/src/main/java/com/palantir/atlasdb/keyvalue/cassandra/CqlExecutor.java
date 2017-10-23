@@ -123,7 +123,7 @@ public class CqlExecutor {
      * @param tableRef the table from which to select
      * @param row the row key
      * @param startColumnInclusive the column name
-     * @param maxTimestampExclusive the maximum timestamp, exclusive
+     * @param startTimestampExclusive the maximum timestamp, exclusive
      * @param limit the maximum number of results to return.
      * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
      * <code>maxTimestampExclusive</code>
@@ -132,9 +132,9 @@ public class CqlExecutor {
             TableReference tableRef,
             byte[] row,
             byte[] startColumnInclusive,
-            long maxTimestampExclusive,
+            long startTimestampExclusive,
             int limit) {
-        long invertedTimestamp = ~maxTimestampExclusive;
+        long invertedTimestamp = ~startTimestampExclusive;
         CqlQuery query = new CqlQuery(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;",
                 quotedTableName(tableRef),
