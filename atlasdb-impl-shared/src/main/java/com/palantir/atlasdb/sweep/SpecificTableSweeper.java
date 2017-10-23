@@ -128,7 +128,7 @@ public class SpecificTableSweeper {
         SweepBatchConfig batchConfig = getAdjustedBatchConfig();
 
         SweepResults results = runOneIteration(tableRef, startRow, batchConfig);
-        saveSweepResults(tableToSweep, results);
+        processSweepResults(tableToSweep, results);
     }
 
     public SweepBatchConfig getAdjustedBatchConfig() {
@@ -192,19 +192,13 @@ public class SpecificTableSweeper {
                 exception);
     }
 
-    private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
+    private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
         SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
 
         if (currentIteration.getNextStartRow().isPresent()) {
             saveIntermediateSweepResults(tableToSweep, cumulativeResults);
         } else {
-            saveFinalSweepResults(tableToSweep, cumulativeResults);
-            performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values.",
-                    LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
-                    SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),
-                    SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()));
-            sweepProgressStore.clearProgress();
+            processFinishedSweep(tableToSweep, cumulativeResults);
         }
     }
 
@@ -246,6 +240,16 @@ public class SpecificTableSweeper {
             sweepProgressStore.saveProgress(tx, newProgress);
             return null;
         });
+    }
+
+    private void processFinishedSweep(TableToSweep tableToSweep, SweepResults cumulativeResults) {
+        saveFinalSweepResults(tableToSweep, cumulativeResults);
+        performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
+        log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values.",
+                LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
+                SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),
+                SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()));
+        sweepProgressStore.clearProgress();
     }
 
     private void performInternalCompactionIfNecessary(TableReference tableRef, SweepResults results) {
