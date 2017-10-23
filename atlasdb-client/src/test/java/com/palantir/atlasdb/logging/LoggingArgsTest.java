@@ -132,6 +132,7 @@ public class LoggingArgsTest {
     }
 
     @Test
+    @SuppressWarnings("CheckReturnValue") // We test that returnedArgs will contain both a safe and unsafe references.
     public void canReturnListOfSafeTableReferences() {
         LoggingArgs.SafeAndUnsafeTableReferences returnedArgs =
                 LoggingArgs.tableRefs(LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES);
