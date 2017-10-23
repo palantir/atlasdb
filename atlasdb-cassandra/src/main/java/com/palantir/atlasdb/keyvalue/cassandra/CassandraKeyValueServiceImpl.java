@@ -296,7 +296,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 TimeUnit.MINUTES,
                 new ArrayBlockingQueue<Runnable>(1) {
                     @Override
-                    public boolean offer(Runnable e, long timeout, TimeUnit unit) {
+                    public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
                         // When executor grows past its core pool size, we want to reject enqueue operations
                         // so that it will grow to its max pool size before calling its rejection handler.
                         return false;
