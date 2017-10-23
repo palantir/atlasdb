@@ -173,7 +173,7 @@ public abstract class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        return builder().config(config).schemas(schemas).buildSerializable();
+        return builder().config(config).schemas(schemas).userAgent(UserAgents.DEFAULT_USER_AGENT).buildSerializable();
     }
 
     // Begin deprecated creation methods
