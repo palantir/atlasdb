@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.immutables.value.Value;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
@@ -41,16 +43,10 @@ import com.palantir.logsafe.UnsafeArg;
  * Always returns unsafe, until hydrated.
  */
 public final class LoggingArgs {
-    public static class SafeAndUnsafeTableReferences {
-        public final SafeArg<List<TableReference>> safeTableRefs;
-        public final UnsafeArg<List<TableReference>> unsafeTableRefs;
-
-        private SafeAndUnsafeTableReferences(
-                SafeArg<List<TableReference>> safeTableRefs,
-                UnsafeArg<List<TableReference>> unsafeTableRefs) {
-            this.safeTableRefs = safeTableRefs;
-            this.unsafeTableRefs = unsafeTableRefs;
-        }
+    @Value.Immutable
+    public interface SafeAndUnsafeTableReferences {
+        SafeArg<List<TableReference>> safeTableRefs();
+        UnsafeArg<List<TableReference>> unsafeTableRefs();
     }
 
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
@@ -80,8 +76,10 @@ public final class LoggingArgs {
             }
         }
 
-        return new SafeAndUnsafeTableReferences(SafeArg.of("tableRefs", safeTableRefs),
-                UnsafeArg.of("tableRefs", unsafeTableRefs));
+        return ImmutableSafeAndUnsafeTableReferences.builder()
+                .safeTableRefs(SafeArg.of("tableRefs", safeTableRefs))
+                .unsafeTableRefs(UnsafeArg.of("tableRefs", unsafeTableRefs))
+                .build();
     }
 
     /**

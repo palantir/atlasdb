@@ -136,8 +136,8 @@ public class LoggingArgsTest {
         LoggingArgs.SafeAndUnsafeTableReferences returnedArgs =
                 LoggingArgs.tableRefs(LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES);
 
-        assertThat(returnedArgs.safeTableRefs.getValue().contains(SAFE_TABLE_REFERENCE));
-        assertThat(returnedArgs.unsafeTableRefs.getValue().contains(UNSAFE_TABLE_REFERENCE));
+        assertThat(returnedArgs.safeTableRefs().getValue().contains(SAFE_TABLE_REFERENCE));
+        assertThat(returnedArgs.unsafeTableRefs().getValue().contains(UNSAFE_TABLE_REFERENCE));
     }
 
     @Test

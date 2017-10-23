@@ -1655,7 +1655,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
                     tablesToActuallyCreate.keySet());
             log.info("Grabbing schema mutation lock to create tables {} and {}",
-                    safeAndUnsafe.safeTableRefs, safeAndUnsafe.unsafeTableRefs);
+                    safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
             schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
@@ -2372,8 +2372,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (tables.size() > 0) {
             dropTablesInternal(tables);
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(tables);
-            log.info("Dropped tables {} and {}",
-                    safeAndUnsafe.safeTableRefs, safeAndUnsafe.unsafeTableRefs);
+            log.info("Dropped tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
         }
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",
