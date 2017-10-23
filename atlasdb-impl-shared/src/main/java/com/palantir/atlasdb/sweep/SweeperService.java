@@ -56,6 +56,8 @@ public interface SweeperService {
      * @param deleteBatchSize (Optional) see {@link SweepBatchConfig#deleteBatchSize()}
      */
     @POST
+//    @Produces(MediaType.APPLICATION_JSON)
+//    @Consumes(MediaType.APPLICATION_JSON)
     @Path("sweep-table")
     SweepTableResponse sweepTable(
             @QueryParam("tablename") String tableName,
