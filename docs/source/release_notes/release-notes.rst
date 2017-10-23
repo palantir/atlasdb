@@ -110,7 +110,6 @@ v0.61.1
          - Reverted the Sweep rewrite for Cassandra as it would unnecessarily load values into memory which could
            cause Cassandra to OOM if the values are large enough.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2521>`__)
->>>>>>> e3a8cffbadae0500cdcd83fe9c2b237732edba4b
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
