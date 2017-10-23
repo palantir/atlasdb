@@ -16,6 +16,7 @@ Schema atlasSchema = ...
 SerializableTransactionManager tm = TransactionManagers.builder()
     .config(atlasConfig)
     .schemas(ImmutableSet.of(atlasSchema))
+    .userAgent("user agent")
     .buildSerializable();
 ```
 
@@ -48,6 +49,7 @@ public void run(AtlasDbServerConfiguration config, Environment env) throws Excep
     TransactionManager transactionManager = TransactionManagers.builder()
         .config(config.getAtlas())
         .registrar(env.jersey()::register)
+        .userAgent("user agent")
         .buildSerializable();
     ...
 ```
