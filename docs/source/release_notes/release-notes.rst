@@ -107,6 +107,15 @@ v0.61.1
            cause Cassandra to OOM if the values are large enough.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2521>`__)
 
+    *    - |improved| |devbreak|
+         - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
+           it is more likely that this will be configured via per-service overrides for the services for whom the
+           current cache size is inadequate.
+           This is a small API change for users manually constructing a TransactionManager, which now requires a
+           transaction cache size parameter. Please add it from the AtlasDbConfig, or instead of manually creating
+           a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2496>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
