@@ -77,6 +77,41 @@ develop
         - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
 
+    *   - |fixed|
+        - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
+
+    *   - |devbreak|
+        - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``. All of the ``TransactionManagers.create(..)`` methods are still deprecated.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
+
+    *   - |changed|
+        - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
+          This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.61.1
+=======
+
+19 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Reverted the Sweep rewrite for Cassandra as it would unnecessarily load values into memory which could
+           cause Cassandra to OOM if the values are large enough.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2521>`__)
+>>>>>>> e3a8cffbadae0500cdcd83fe9c2b237732edba4b
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
