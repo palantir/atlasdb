@@ -1,11 +1,5 @@
 {
     "compileClasspath": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -187,12 +181,6 @@
             "locked": "1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.jayway.awaitility:awaitility": {
-            "locked": "1.6.5",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
         "com.jcraft:jzlib": {
@@ -583,12 +571,18 @@
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
+        "org.awaitility:awaitility": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
-                "com.jayway.awaitility:awaitility",
                 "com.palantir.atlasdb:atlasdb-tests-shared",
                 "junit:junit",
+                "org.awaitility:awaitility",
                 "org.hamcrest:hamcrest-library",
                 "org.mockito:mockito-core"
             ]
@@ -596,8 +590,8 @@
         "org.hamcrest:hamcrest-library": {
             "locked": "1.3",
             "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "com.palantir.atlasdb:atlasdb-tests-shared"
+                "com.palantir.atlasdb:atlasdb-tests-shared",
+                "org.awaitility:awaitility"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -622,7 +616,7 @@
         "org.objenesis:objenesis": {
             "locked": "2.2",
             "transitive": [
-                "com.jayway.awaitility:awaitility",
+                "org.awaitility:awaitility",
                 "org.mockito:mockito-core"
             ]
         },
@@ -662,12 +656,6 @@
         }
     },
     "runtime": {
-        "cglib:cglib-nodep": {
-            "locked": "3.1",
-            "transitive": [
-                "com.jayway.awaitility:awaitility"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -849,12 +837,6 @@
             "locked": "1.2",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
-            ]
-        },
-        "com.jayway.awaitility:awaitility": {
-            "locked": "1.6.5",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
         "com.jcraft:jzlib": {
@@ -1245,12 +1227,18 @@
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
+        "org.awaitility:awaitility": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-tests-shared"
+            ]
+        },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
-                "com.jayway.awaitility:awaitility",
                 "com.palantir.atlasdb:atlasdb-tests-shared",
                 "junit:junit",
+                "org.awaitility:awaitility",
                 "org.hamcrest:hamcrest-library",
                 "org.mockito:mockito-core"
             ]
@@ -1258,8 +1246,8 @@
         "org.hamcrest:hamcrest-library": {
             "locked": "1.3",
             "transitive": [
-                "com.jayway.awaitility:awaitility",
-                "com.palantir.atlasdb:atlasdb-tests-shared"
+                "com.palantir.atlasdb:atlasdb-tests-shared",
+                "org.awaitility:awaitility"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -1284,7 +1272,7 @@
         "org.objenesis:objenesis": {
             "locked": "2.2",
             "transitive": [
-                "com.jayway.awaitility:awaitility",
+                "org.awaitility:awaitility",
                 "org.mockito:mockito-core"
             ]
         },
