@@ -56,12 +56,6 @@ develop
            It also now returns information about how much data was swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
-    *   - |improved|
-        - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
-          provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
-          Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
-
     *    - |fixed|
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.

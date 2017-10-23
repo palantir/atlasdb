@@ -117,7 +117,7 @@ import com.palantir.remoting2.tracing.Tracers;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    protected final TimestampCache timestampCache = TimestampCache.create();
+    protected final TimestampCache timestampCache = new TimestampCache();
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;
 
