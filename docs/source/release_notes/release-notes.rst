@@ -81,6 +81,26 @@ develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.61.1
+=======
+
+19 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Reverted the Sweep rewrite for Cassandra as it would unnecessarily load values into memory which could
+           cause Cassandra to OOM if the values are large enough.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2521>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.61.0
 =======
 
