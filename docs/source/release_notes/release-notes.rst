@@ -63,6 +63,11 @@ develop
            Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
 
+    *   - |fixed|
+        - ``InMemoryAtlasDbConfig`` now has an empty namespace, instead of "test".
+          This means that internal products will no longer have to set their root-level namespace to "test" in order to use ``InMemoryKeyValueService`` for testing.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2541>`__)
+
     *   - |improved| |userbreak|
         - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
           This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
@@ -109,13 +114,13 @@ v0.61.0
 =======
 v0.60.1
 =======
- 
+
 16 October 2017
 
 .. list-table::
     :widths: 5 40
     :header-rows: 1
-    
+
     *    - Type
          - Change
 
@@ -131,7 +136,7 @@ v0.60.1
            The default value for the config  is ``false`` in order to preserve previous behaviour.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2390>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2476>`__)
-           
+
     *    - |new|
          - Timelock server can now be configured to persist the timestamp bound in the database, specifically in Cassandra/Postgres/Oracle.
            We recommend this to be configured only for cases where you absolutely need to persist all state in the database, for example,
@@ -149,7 +154,7 @@ v0.60.1
 
            Now the factory methods for the above classes return the interfaces. The actual implementation of such classes was moved to their corresponding \*Impl files.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2390>`__)
-           
+
     *    - |devbreak| |improved|
          - ``LockRefreshingTimelockService`` has been moved to the ``lock-api`` project under the package name ``com.palantir.lock.client``, and now implements
            ``AutoCloseable``, shutting down its internal executor service.
@@ -307,11 +312,11 @@ v0.58.0
 
     *    - |improved|
          - AtlasDB now logs slow queries CQL queries (via ``kvs-slow-log``) used for sweep
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2363>`__)     
-         
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2363>`__)
+
     *    - |devbreak| |fixed|
          - AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw "shutdown" exceptions, which was likely due to a documented bug in okhttp 3.4.1.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)         
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2343>`__)
 
     *    - |devbreak| |improved|
          - Upgraded all uses of `http-remoting <https://github.com/palantir/http-remoting>`__ from remoting2 to remoting3, except for serialization of errors (preserved for backwards wire compatibility).

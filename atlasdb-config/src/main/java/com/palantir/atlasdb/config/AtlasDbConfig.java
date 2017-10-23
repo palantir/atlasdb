@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
@@ -293,7 +294,7 @@ public abstract class AtlasDbConfig {
                     Preconditions.checkState(client.equals(namespace),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config.")));
-        } else {
+        } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"
                             + " or the keyspace/dbName/sid config needs to be set.");
