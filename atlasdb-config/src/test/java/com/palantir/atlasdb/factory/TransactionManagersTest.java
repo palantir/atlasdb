@@ -230,11 +230,11 @@ public class TransactionManagersTest {
         setUpForRemoteServices();
         setupLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.lock().currentTimeMillis();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
@@ -247,11 +247,11 @@ public class TransactionManagersTest {
         setUpForLocalServices();
         setupLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.lock().currentTimeMillis();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
@@ -393,9 +393,9 @@ public class TransactionManagersTest {
         assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(0L)));
         assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(0L)));
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.timelock().currentTimeMillis();
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.timelock().currentTimeMillis();
 
         assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(1L)));
         assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(1L)));
@@ -453,7 +453,7 @@ public class TransactionManagersTest {
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp =
                 TransactionManagers.createLockAndTimestampServices(
                         config,
                         () -> ImmutableTimestampClientConfig.of(false),
@@ -462,8 +462,8 @@ public class TransactionManagersTest {
                         InMemoryTimestampService::new,
                         invalidator,
                         USER_AGENT);
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.timelock().currentTimeMillis();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.timelock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
