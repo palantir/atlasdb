@@ -89,12 +89,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int poolRefreshIntervalSeconds() {
-        return 5 * 60;
+        return 2 * 60;
     }
 
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
-        return 2 * 60;
+        return 30;
     }
 
     /**

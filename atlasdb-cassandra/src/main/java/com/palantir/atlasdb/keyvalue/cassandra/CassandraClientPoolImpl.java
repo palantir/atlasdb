@@ -384,7 +384,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
         Set<InetSocketAddress> livingHosts = Sets.difference(filteredHosts, blacklistedHosts.keySet());
         if (livingHosts.isEmpty()) {
-            log.error("There are no known live hosts in the connection pool matching the predicate. We're choosing"
+            log.warn("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
             livingHosts = filteredHosts;
         }
