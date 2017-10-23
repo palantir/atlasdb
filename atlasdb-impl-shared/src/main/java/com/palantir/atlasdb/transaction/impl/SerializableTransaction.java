@@ -32,6 +32,8 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -66,6 +68,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
@@ -97,6 +100,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             columnRangeEndsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
+    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
     public SerializableTransaction(KeyValueService keyValueService,
                                    TimelockService timelockService,
@@ -480,6 +484,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
 
                 if (currentRow == null) {
+                    getTransactionConflictsMeter().mark();
                     throw TransactionSerializableConflictException.create(
                             table,
                             getTimestamp(),
@@ -497,6 +502,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                             Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
                 }
                 if (!areMapsEqual(orignalReads, currentCells)) {
+                    getTransactionConflictsMeter().mark();
                     throw TransactionSerializableConflictException.create(
                             table,
                             getTimestamp(),
@@ -539,6 +545,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         Sets.intersection(batchWithoutWritesSet, readsForTable.keySet()),
                         Functions.forMap(readsForTable));
                 if (!areMapsEqual(currentBatch, originalReads)) {
+                    getTransactionConflictsMeter().mark();
                     throw TransactionSerializableConflictException.create(
                             table,
                             getTimestamp(),
@@ -571,6 +578,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         getReadsInRange(table, range),
                         ByteBuffer::wrap);
                 if (!bv.transformBatch(input -> filterWritesFromRows(input, writes)).isEqual(readsInRange.entrySet())) {
+                    getTransactionConflictsMeter().mark();
                     throw TransactionSerializableConflictException.create(
                             table,
                             getTimestamp(),
@@ -650,6 +658,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     boolean isEqual = bv.transformBatch(input -> filterWritesFromCells(input, writes))
                             .isEqual(readsInRange.entrySet());
                     if (!isEqual) {
+                        getTransactionConflictsMeter().mark();
                         throw TransactionSerializableConflictException.create(
                                 table,
                                 getTimestamp(),
@@ -658,6 +667,12 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
             }
         }
+    }
+
+    private Meter getTransactionConflictsMeter() {
+        // TODO(hsaraogi): add table names as a tag
+        return metricRegistry.meter(
+                MetricRegistry.name(SerializableTransaction.class, "SerializableTransactionConflict"));
     }
 
     private List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
