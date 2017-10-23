@@ -73,6 +73,11 @@ develop
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *   - |changed|
+        - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
+          This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

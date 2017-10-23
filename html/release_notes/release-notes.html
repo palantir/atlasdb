@@ -225,6 +225,11 @@ This should improve log readability in log ingestion tools when AtlasDB is run i
 Previously, the table reference was omitted, such that one might receive lines of the form <code class="docutils literal"><span class="pre">Call</span> <span class="pre">to</span> <span class="pre">KVS.getRange</span> <span class="pre">on</span> <span class="pre">table</span> <span class="pre">RangeRequest{reverse=false}</span> <span class="pre">with</span> <span class="pre">range</span> <span class="pre">1504</span> <span class="pre">took</span> <span class="pre">{}</span> <span class="pre">ms.</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2474">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td><code class="docutils literal"><span class="pre">SweepMetrics</span></code> are now updated at the end of every batch rather than cumulative metrics at the end of every table.
+This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn’t update any metrics which again distorted the view of what work sweep was doing on the DB.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2535">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
