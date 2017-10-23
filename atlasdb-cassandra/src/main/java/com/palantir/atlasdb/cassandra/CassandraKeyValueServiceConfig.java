@@ -87,11 +87,17 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 20;
     }
 
+    /**
+     * The duration we wait to check if the all underlying Cassandra nodes are healthy.
+     */
     @Value.Default
     public int poolRefreshIntervalSeconds() {
         return 2 * 60;
     }
 
+    /**
+     * The minimal duration we wait to check if a Cassandra node is healthy.
+     */
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
         return 30;
