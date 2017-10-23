@@ -52,7 +52,8 @@ public class SerializableTransactionManagerTest {
                 mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
-                1, // concurrentGetRangesThreadPoolSize
+                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
+                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 true); // initializeAsync
 
         when(mockKvs.isInitialized()).thenReturn(true);
@@ -110,7 +111,8 @@ public class SerializableTransactionManagerTest {
                 mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
-                1, // concurrentGetRangesThreadPoolSize
+                TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
+                TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 false); // initializeAsync
 
         when(mockKvs.isInitialized()).thenReturn(false);

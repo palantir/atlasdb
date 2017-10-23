@@ -1004,6 +1004,12 @@ public class TableRenderer {
                 line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
             } line("}");
             line();
+            line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
+            line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
+                line("return t.getRanges(tableRef, ranges,");
+                line("        (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, ", RowResult, "::of)));");
+            } line("}");
+            line();
             line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
                 line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);");
                 line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");

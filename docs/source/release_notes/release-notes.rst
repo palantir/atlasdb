@@ -67,6 +67,47 @@ develop
            Previously, the executor service wasn't shut down, which could lead to the initializer thread hanging around unnecessarily.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
 
+         - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
+           Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
+           Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
+           Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
+
+    *   - |improved| |userbreak|
+        - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
+          This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+    *   - |fixed|
+        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+    *   - |changed|
+        - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
+          This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.61.1
+=======
+
+19 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Reverted the Sweep rewrite for Cassandra as it would unnecessarily load values into memory which could
+           cause Cassandra to OOM if the values are large enough.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2521>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -92,10 +133,17 @@ v0.61.0
            It also now returns information about how much data was swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
+    *   - |improved|
+        - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
+          provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
+          Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
+
     *    - |fixed|
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -190,6 +238,7 @@ v0.60.0
 =======
 
 This version was skipped due to issues on release. No artifacts with this version were ever published.
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
