@@ -73,6 +73,10 @@ develop
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *   - |devbreak|
+        - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``. All of the ``TransactionManagers.create(..)`` methods are still deprecated.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
