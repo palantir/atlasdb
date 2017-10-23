@@ -131,7 +131,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
             return;
         }
-        if (outcome == SweepOutcome.RETRYING_WITH_SMALLER_BATCH) {
+        if (outcome == SweepOutcome.RETRYING_WITH_SMALLER_BATCH || outcome == SweepOutcome.ERROR) {
             SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
 
             // Cut batch size in half, always sweep at least one row (we round down).
