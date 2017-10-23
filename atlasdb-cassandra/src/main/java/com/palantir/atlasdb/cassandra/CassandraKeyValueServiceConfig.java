@@ -88,7 +88,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     /**
-     * The duration we wait to check if the all underlying Cassandra nodes are healthy.
+     * The period between refreshing the Cassandra client pools.
+     * At every refresh, we check the health of the current blacklisted nodes — if they're healthy, we whitelist them.
      */
     @Value.Default
     public int poolRefreshIntervalSeconds() {
@@ -96,7 +97,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     /**
-     * The minimal duration we wait to check if a Cassandra node is healthy.
+     * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
      */
     @Value.Default
     public int unresponsiveHostBackoffTimeSeconds() {
