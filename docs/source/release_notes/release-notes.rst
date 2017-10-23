@@ -76,7 +76,7 @@ develop
     *   - |changed|
         - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
           This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/XXXX>`__)
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
