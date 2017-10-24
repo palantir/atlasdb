@@ -16,8 +16,13 @@
 
 package com.palantir.atlasdb.logging;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
@@ -38,6 +43,12 @@ import com.palantir.logsafe.UnsafeArg;
  * Always returns unsafe, until hydrated.
  */
 public final class LoggingArgs {
+    @Value.Immutable
+    public interface SafeAndUnsafeTableReferences {
+        SafeArg<List<TableReference>> safeTableRefs();
+        UnsafeArg<List<TableReference>> unsafeTableRefs();
+    }
+
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
 
     private LoggingArgs() {
@@ -51,6 +62,24 @@ public final class LoggingArgs {
     @VisibleForTesting
     static synchronized void setLogArbitrator(KeyValueServiceLogArbitrator arbitrator) {
         logArbitrator = arbitrator;
+    }
+
+    public static SafeAndUnsafeTableReferences tableRefs(Collection<TableReference> tableReferences) {
+        List<TableReference> safeTableRefs = new ArrayList<>();
+        List<TableReference> unsafeTableRefs = new ArrayList<>();
+
+        for (TableReference tableRef : tableReferences) {
+            if (logArbitrator.isTableReferenceSafe(tableRef)) {
+                safeTableRefs.add(tableRef);
+            } else {
+                unsafeTableRefs.add(tableRef);
+            }
+        }
+
+        return ImmutableSafeAndUnsafeTableReferences.builder()
+                .safeTableRefs(SafeArg.of("tableRefs", safeTableRefs))
+                .unsafeTableRefs(UnsafeArg.of("tableRefs", unsafeTableRefs))
+                .build();
     }
 
     /**

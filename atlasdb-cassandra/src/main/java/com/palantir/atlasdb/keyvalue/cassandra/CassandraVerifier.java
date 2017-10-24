@@ -46,6 +46,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.Maps2;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public final class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
@@ -120,10 +122,15 @@ public final class CassandraVerifier {
                 || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + tableName);
     }
 
+    /**
+     * If {@code shouldLogAndNotThrow} is set, log the {@code errorMessage} at error.
+     * The {@code errorMessage} is considered safe to be logged.
+     * If {@code shouldLogAndNotThrow} is not set, an IllegalStateException is thrown with message {@code errorMessage}.
+     */
     static void logErrorOrThrow(String errorMessage, boolean shouldLogAndNotThrow) {
         if (shouldLogAndNotThrow) {
             log.error("{} This would have normally resulted in Palantir exiting however "
-                    + "safety checks have been disabled.", errorMessage);
+                    + "safety checks have been disabled.", SafeArg.of("errorMessage", errorMessage));
         } else {
             throw new IllegalStateException(errorMessage);
         }
@@ -172,12 +179,14 @@ public final class CassandraVerifier {
                 } else {
                     throw ire;
                 }
-            } catch (Exception f) {
+            } catch (Exception exception) {
                 log.warn("Couldn't use host {} to create keyspace."
                         + " It returned exception \"{}\" during the attempt."
                         + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
-                        + " See the debug-level log for the stack trace.", host, f.toString(), f);
-                log.debug("Specifically, creating the keyspace failed with the following stack trace", f);
+                        + " See the debug-level log for the stack trace.",
+                        SafeArg.of("host", host),
+                        UnsafeArg.of("exceptionMessage", exception.toString()));
+                log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
             }
         }
         return false;
@@ -212,7 +221,7 @@ public final class CassandraVerifier {
                 config);
         ks.setDurable_writes(true);
         client.system_add_keyspace(ks);
-        log.info("Created keyspace: {}", config.getKeyspaceOrThrow());
+        log.info("Created keyspace: {}", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
         CassandraKeyValueServices.waitForSchemaVersions(
                 config,
                 client,
@@ -331,7 +340,8 @@ public final class CassandraVerifier {
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
                     CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
-                    log.debug("Connected cassandra thrift version is: {}", serverVersion);
+                    log.debug("Connected cassandra thrift version is: {}",
+                            SafeArg.of("cassandraVersion", serverVersion));
                     return serverVersion.supportsCheckAndSet();
                 } catch (TException ex) {
                     throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"

@@ -73,6 +73,10 @@ develop
           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
+    *   - |improved|
+        - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
+
     *   - |fixed|
         - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
