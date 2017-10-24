@@ -123,7 +123,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 : serializableTransactionManager;
     }
 
-    @VisibleForTesting
+    // Used for testing.
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
