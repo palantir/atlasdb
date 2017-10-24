@@ -16,10 +16,12 @@
 package com.palantir.atlasdb.containers;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
@@ -58,6 +60,10 @@ public class ThreeNodeCassandraClusterOperations {
         }
     }
 
+    public void disableAutoCompaction() throws IOException, InterruptedException {
+        runNodetoolCommandOnAllContainers("disableautocompaction", NODETOOL_REPAIR_TIMEOUT_SECONDS);
+    }
+
     private void runNodetoolRepair() throws IOException, InterruptedException {
         runNodetoolCommand("repair system_auth", NODETOOL_REPAIR_TIMEOUT_SECONDS);
     }
@@ -87,11 +93,29 @@ public class ThreeNodeCassandraClusterOperations {
 
     private String runNodetoolCommand(String nodetoolCommand, int timeoutSeconds) throws IOException,
             InterruptedException {
+        return runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds,
+                ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME);
+    }
+
+    private List<String> runNodetoolCommandOnAllContainers(String nodetoolCommand, int timeoutSeconds)
+            throws IOException, InterruptedException {
+        List<String> ret = Lists.newArrayList();
+        ret.add(runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds,
+                ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME));
+        ret.add(runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds,
+                ThreeNodeCassandraCluster.SECOND_CASSANDRA_CONTAINER_NAME));
+        ret.add(runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds,
+                ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME));
+        return ret;
+    }
+
+    private String runNodetoolCommandOnContainer(String nodetoolCommand, int timeoutSeconds, String container)
+            throws IOException, InterruptedException {
         return runCommandInCliContainer(
                 "timeout",
                 Integer.toString(timeoutSeconds),
                 "nodetool",
-                "--host", ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
+                "--host", container,
                 nodetoolCommand);
     }
 

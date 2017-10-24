@@ -92,6 +92,7 @@ public class ThreeNodeCassandraCluster extends Container {
                 // slightly hijacking the isReady function here - using it
                 // to actually modify the cluster
                 cassandraOperations.replicateSystemAuthenticationDataOnAllNodes();
+                cassandraOperations.disableAutoCompaction();
 
                 return canCreateCassandraKeyValueService();
             } catch (Exception e) {
