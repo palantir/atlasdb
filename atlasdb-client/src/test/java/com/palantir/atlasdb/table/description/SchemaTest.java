@@ -43,7 +43,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaTest {
-
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
@@ -51,6 +50,7 @@ public class SchemaTest {
     private static final String TEST_TABLE_NAME = "TestTable";
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
+    private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
@@ -139,6 +139,7 @@ public class SchemaTest {
 
     @Test
     // If you are intentionally making Table API changes, please manually regenerate the ApiTestSchema
+    // and copy the new files to the ${EXPECTED_FILES_FOLDER_PATH} folder.
     public void checkAgainstAccidentalTableAPIChanges() throws IOException {
         // TODO (amarzoca): Add tests for schemas that use more of the rendering features (Triggers, StreamStores, etc)
         Schema schema = ApiTestSchema.getSchema();
@@ -170,7 +171,7 @@ public class SchemaTest {
             String generatedFilePath =
                     String.format("com/palantir/atlasdb/table/description/generated/%s.java", tableName);
 
-            File expectedFile = new File("src/integrationInput/java", generatedFilePath);
+            File expectedFile = new File(EXPECTED_FILES_FOLDER_PATH, generatedFilePath);
             File actualFile = new File(testFolder.getRoot(), generatedFilePath);
             assertThat(actualFile).hasSameContentAs(expectedFile);
         });
