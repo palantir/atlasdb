@@ -30,6 +30,7 @@ import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 
@@ -47,11 +48,18 @@ public class TimestampTracker implements AutoCloseable {
         this.clock = clock;
     }
 
+    public static TimestampTracker createNoOpTracker() {
+        return new TimestampTracker(Clock.defaultClock());
+    }
+
     public static TimestampTracker createWithDefaultTrackers(TimelockService timeLockService, Cleaner cleaner) {
         TimestampTracker tracker = new TimestampTracker(Clock.defaultClock());
-        tracker.registerTimestampForTracking("timestamp.fresh", timeLockService::getFreshTimestamp);
-        tracker.registerTimestampForTracking("timestamp.immutable", timeLockService::getImmutableTimestamp);
-        tracker.registerTimestampForTracking("timestamp.unreadable", cleaner::getUnreadableTimestamp);
+        tracker.registerTimestampForTracking("timestamp.fresh",
+                TimestampTracker.ignoreNotInitializedException(timeLockService::getFreshTimestamp));
+        tracker.registerTimestampForTracking("timestamp.immutable",
+                TimestampTracker.ignoreNotInitializedException(timeLockService::getImmutableTimestamp));
+        tracker.registerTimestampForTracking("timestamp.unreadable",
+                TimestampTracker.ignoreNotInitializedException(cleaner::getUnreadableTimestamp));
         return tracker;
     }
 
@@ -81,6 +89,18 @@ public class TimestampTracker implements AutoCloseable {
                             e);
                     return timestampToReturn;
                 }
+            }
+        };
+    }
+
+    private static Supplier<Long> ignoreNotInitializedException(Supplier<Long> metricFunction) {
+        return () -> {
+            try {
+                return metricFunction.get();
+            } catch (NotInitializedException exception) {
+                // Ignore not initialized exception, as we don't want to have metrics from when the services are not
+                // initialized.
+                return 0L;
             }
         };
     }
