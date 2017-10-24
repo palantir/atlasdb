@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Optional;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -84,7 +85,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * use the delegate instead.
      */
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, 1, 1, 1);
+        this(null, null, null, null, null, null, null, null, false, null, 1, 1, 1);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -122,6 +123,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 : serializableTransactionManager;
     }
 
+    @VisibleForTesting
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
@@ -135,8 +137,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             long timestampCacheSize) {
         this(keyValueService,
-                timestampService,
-                lockClient,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
                 constraintModeSupplier,
@@ -144,11 +145,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 timestampCacheSize);
     }
 
+    // Used by internal product.
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
@@ -172,39 +175,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                timestampCacheSize);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimelockService timelockService,
-            LockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            boolean allowHiddenTableAccess,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
-        this(
-                keyValueService,
-                timelockService,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
-                allowHiddenTableAccess,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 timestampCacheSize);
     }
 
+    // Canonical constructor.
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
