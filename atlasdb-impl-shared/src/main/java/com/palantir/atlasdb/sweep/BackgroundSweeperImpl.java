@@ -143,7 +143,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
             return;
         }
-        if (outcome == SweepOutcome.RETRYING_WITH_SMALLER_BATCH || outcome == SweepOutcome.ERROR) {
+        if (outcome == SweepOutcome.ERROR) {
             SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
 
             // Cut batch size in half, always sweep at least one row (we round down).
@@ -192,13 +192,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
                 return SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
             }
-        } catch (InsufficientConsistencyException e) {
-            log.warn("Could not sweep because not all nodes of the database are online.", e);
-            return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
 
-            return determineCauseOfFailure(e);
+            log.error("Sweep failed", e);
+            return SweepOutcome.ERROR;
         }
     }
 
@@ -215,8 +213,18 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return SweepOutcome.NOTHING_TO_SWEEP;
         }
 
-        specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), getAdjustedBatchConfig());
-        return SweepOutcome.SUCCESS;
+        SweepBatchConfig batchConfig = getAdjustedBatchConfig();
+        try {
+            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
+            return SweepOutcome.SUCCESS;
+        } catch (InsufficientConsistencyException e) {
+            log.warn("Could not sweep because not all nodes of the database are online.", e);
+            return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
+        } catch (RuntimeException e) {
+            specificTableSweeper.getSweepMetrics().sweepError();
+
+            return determineCauseOfFailure(e, tableToSweep.get());
+        }
     }
 
     // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made
@@ -243,25 +251,32 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 });
     }
 
-    private SweepOutcome determineCauseOfFailure(Exception originalException) {
+    private SweepOutcome determineCauseOfFailure(Exception originalException, TableToSweep tableToSweep) {
         try {
             Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
-            Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(
-                    specificTableSweeper.getSweepProgressStore()::loadProgress);
 
-            if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
-                log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...",
-                        originalException);
-                return SweepOutcome.RETRYING_WITH_SMALLER_BATCH;
-            } else {
-                specificTableSweeper.getSweepProgressStore().clearProgress();
+            if (!tables.contains(tableToSweep.getTableRef())) {
+                clearSweepProgress();
                 log.info("The table being swept by the background sweeper was dropped, moving on...");
                 return SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
             }
+
+            log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...",
+                    originalException);
+            return SweepOutcome.ERROR;
+
         } catch (RuntimeException newE) {
             log.error("Sweep failed", originalException);
             log.error("Failed to check whether the table being swept was dropped. Retrying...", newE);
             return SweepOutcome.ERROR;
+        }
+    }
+
+    private void clearSweepProgress() {
+        Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(
+                specificTableSweeper.getSweepProgressStore()::loadProgress);
+        if (progress.isPresent()) {
+            specificTableSweeper.getSweepProgressStore().clearProgress();
         }
     }
 
@@ -286,7 +301,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private enum SweepOutcome {
-        SUCCESS, NOTHING_TO_SWEEP, RETRYING_WITH_SMALLER_BATCH, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
+        SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
         NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
     }
 
