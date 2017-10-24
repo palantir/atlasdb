@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Optional;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;

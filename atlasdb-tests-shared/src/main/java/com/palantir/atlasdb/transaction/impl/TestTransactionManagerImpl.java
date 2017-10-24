@@ -38,13 +38,14 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      LockService lockService,
-                                      TransactionService transactionService,
-                                      ConflictDetectionManager conflictDetectionManager,
-                                      SweepStrategyManager sweepStrategyManager) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager) {
         super(
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -61,12 +62,13 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      LockService lockService,
-                                      TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
