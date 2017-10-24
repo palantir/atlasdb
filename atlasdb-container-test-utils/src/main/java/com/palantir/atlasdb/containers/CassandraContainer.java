@@ -22,6 +22,7 @@ import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
@@ -37,9 +38,13 @@ public class CassandraContainer extends Container {
     public static final String PASSWORD = "cassandra";
 
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("localhost", CASSANDRA_PORT))
+            .addServers(new InetSocketAddress("cassandra", CASSANDRA_PORT))
             .poolSize(20)
             .keyspace("atlasdb")
+            .credentials(ImmutableCassandraCredentialsConfig.builder()
+                    .username(USERNAME)
+                    .password(PASSWORD)
+                    .build())
             .replicationFactor(1)
             .mutationBatchCount(10000)
             .mutationBatchSizeBytes(10000000)
