@@ -26,6 +26,7 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 
 public class MetricsManager {
 
@@ -36,6 +37,12 @@ public class MetricsManager {
 
     public MetricsManager() {
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+        this.registeredMetrics = new HashSet<>();
+    }
+
+    @VisibleForTesting
+    MetricsManager(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
         this.registeredMetrics = new HashSet<>();
     }
 

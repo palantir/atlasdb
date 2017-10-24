@@ -42,8 +42,8 @@ public class MetricsManagerTest {
 
     private static final Gauge GAUGE = () -> 1L;
 
-    private final MetricsManager metricsManager = new MetricsManager();
-    private final MetricRegistry registry = metricsManager.getRegistry();
+    private final MetricRegistry registry = new MetricRegistry();
+    private final MetricsManager metricsManager = new MetricsManager(registry);
 
     @Test
     public void registersMetricsByName() {
