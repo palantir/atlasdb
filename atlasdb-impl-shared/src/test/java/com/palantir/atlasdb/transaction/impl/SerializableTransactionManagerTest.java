@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.lock.v2.TimelockService;
@@ -49,12 +50,13 @@ public class SerializableTransactionManagerTest {
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager
                 mockCleaner,
-                mockInitializer,
+                mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
-                () -> 1L, // lockAcquireTimeoutMs
+                () -> 1L, // lockAcquireTimeout
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                true); // initializeAsync
+                true, // initializeAsync
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
         when(mockKvs.isInitialized()).thenReturn(true);
         when(mockTimelockService.isInitialized()).thenReturn(true);
@@ -108,12 +110,13 @@ public class SerializableTransactionManagerTest {
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager
                 mockCleaner,
-                mockInitializer,
+                mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                false); // initializeAsync
+                false, // initializeAsync
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
         when(mockKvs.isInitialized()).thenReturn(false);
         when(mockTimelockService.isInitialized()).thenReturn(false);

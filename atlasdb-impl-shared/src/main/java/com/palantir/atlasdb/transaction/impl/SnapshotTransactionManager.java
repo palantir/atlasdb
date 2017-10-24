@@ -88,7 +88,8 @@ import com.palantir.timestamp.TimestampService;
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency) {
+            int defaultGetRangesConcurrency,
+            long timestampCacheSize) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -104,6 +105,7 @@ import com.palantir.timestamp.TimestampService;
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.timestampTracker = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner);
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        timestampValidationReadCache.resize(timestampCacheSize);
     }
 
     @Override

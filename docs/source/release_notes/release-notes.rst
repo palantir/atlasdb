@@ -57,6 +57,17 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2459>`__)
 
     *    - |fixed|
+         - Async Initialization now works with TimeLock Server.
+           Previously, for Cassandra we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
+           For DBKVS or other key-value services, we would attempt to ping TimeLock on startup, which would fail if TimeLock was unavailable (though the KVS need not be available).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+
+    *    - |fixed|
+         - ``AsyncInitializer`` now shuts down its executor after initialization has completed.
+           Previously, the executor service wasn't shut down, which could lead to the initializer thread hanging around unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+
+    *    - |fixed|
          - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
            Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
            Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
@@ -78,6 +89,62 @@ develop
            These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
+    *   - |fixed|
+        - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
+          The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
+
+    *   - |fixed|
+        - The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
+          This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
+
+    *   - |improved|
+        - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
+
+    *   - |fixed|
+        - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
+
+    *   - |devbreak|
+        - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``. All of the ``TransactionManagers.create(..)`` methods are still deprecated.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
+
+    *   - |changed|
+        - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
+          This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.61.1
+=======
+
+19 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Reverted the Sweep rewrite for Cassandra as it would unnecessarily load values into memory which could
+           cause Cassandra to OOM if the values are large enough.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2521>`__)
+
+    *    - |improved| |devbreak|
+         - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
+           it is more likely that this will be configured via per-service overrides for the services for whom the
+           current cache size is inadequate.
+           This is a small API change for users manually constructing a TransactionManager, which now requires a
+           transaction cache size parameter. Please add it from the AtlasDbConfig, or instead of manually creating
+           a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2496>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
