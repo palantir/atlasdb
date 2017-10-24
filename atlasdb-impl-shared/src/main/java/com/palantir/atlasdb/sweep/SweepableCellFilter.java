@@ -15,17 +15,13 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang.ArrayUtils;
-
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -78,8 +74,7 @@ public class SweepableCellFilter {
         TLongList uncommittedTimestamps = new TLongArrayList();
         long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
         boolean maxStartTsIsCommitted = false;
-        Set<Long> timestampsToIgnore = ImmutableSet.copyOf(
-                Arrays.asList(ArrayUtils.toObject(sweeper.getTimestampsToIgnore())));
+        Set<Long> timestampsToIgnore = sweeper.getTimestampsToIgnore();
         for (long startTs : candidate.sortedTimestamps()) {
             if (timestampsToIgnore.contains(startTs)) {
                 continue;

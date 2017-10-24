@@ -162,9 +162,9 @@ public class SweepTaskRunner {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(startRow)
                 .batchSizeHint(batchConfig.candidateBatchSize())
-                .maxTimestampExclusiveHint(sweepTs)
+                .maxTimestampExclusive(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(sweeper.shouldSweepLastCommitted())
-                .timestampsToIgnoreHint(sweeper.getTimestampsToIgnore())
+                .timestampsToIgnore(sweeper.getTimestampsToIgnore())
                 .build();
 
         SweepableCellFilter sweepableCellFilter = new SweepableCellFilter(transactionService, sweeper, sweepTs);

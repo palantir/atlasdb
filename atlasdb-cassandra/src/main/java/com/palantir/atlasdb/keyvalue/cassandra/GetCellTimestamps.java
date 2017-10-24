@@ -72,7 +72,7 @@ public class GetCellTimestamps {
     }
 
     private boolean fetchAllTimestampsBeginningAtStartRow() {
-        List<CellWithTimestamp> batch = cqlExecutor.getCellTimestamps(tableRef, startRowInclusive, batchHint);
+        List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, startRowInclusive, batchHint);
 
         return cells.addAll(batch);
     }
@@ -84,7 +84,7 @@ public class GetCellTimestamps {
 
         CellWithTimestamp lastCell = Iterables.getLast(cells);
 
-        List<CellWithTimestamp> batch = cqlExecutor.getCellTimestampsWithinRow(
+        List<CellWithTimestamp> batch = cqlExecutor.getTimestampsWithinRow(
                 tableRef,
                 lastCell.cell().getRowName(),
                 lastCell.cell().getColumnName(),

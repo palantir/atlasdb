@@ -102,13 +102,10 @@ public class CqlExecutor {
     }
 
     /**
-     * @param tableRef the table from which to select
-     * @param startRowInclusive the row from key
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
-     * <code>maxTimestampExclusive</code>
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
+     * {@code startRowInclusive}, potentially spanning across multiple rows.
      */
-    public List<CellWithTimestamp> getCellTimestamps(
+    public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
             byte[] startRowInclusive,
             int limit) {
@@ -121,15 +118,10 @@ public class CqlExecutor {
     }
 
     /**
-     * @param tableRef the table from which to select
-     * @param row the row key
-     * @param startColumnInclusive the column name
-     * @param startTimestampExclusive the maximum timestamp, exclusive
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
-     * <code>maxTimestampExclusive</code>
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the (column, timestamp)
+     * pair represented by ({@code startColumnInclusive}, {@code startTimestampExclusive}).
      */
-    public List<CellWithTimestamp> getCellTimestampsWithinRow(
+    public List<CellWithTimestamp> getTimestampsWithinRow(
             TableReference tableRef,
             byte[] row,
             byte[] startColumnInclusive,

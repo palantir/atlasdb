@@ -58,10 +58,6 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
         return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
     }
 
-    public static void main(String[] args) {
-        System.out.println(new LockDescriptor(BaseEncoding.base64().decode("c2NoZWR1bGVkLWNoZWNrcy1sb2Nr")).getLockIdAsString());
-    }
-
     @Override
     public String toString() {
         String lockIdAsString = getLockIdAsString();
