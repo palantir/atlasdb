@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -54,7 +55,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
     public TestTransactionManagerImpl(KeyValueService keyValueService,
@@ -74,7 +76,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
     @Override

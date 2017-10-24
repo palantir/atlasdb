@@ -117,7 +117,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testMetricsNotRecordedAfterIncompleteRun() {
+    public void testMetricsRecordedAfterIncompleteRun() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
@@ -127,11 +127,12 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verifyZeroInteractions(sweepMetrics);
+        Mockito.verify(sweepMetrics).deletedCells(2);
+        Mockito.verify(sweepMetrics).examinedCells(10);
     }
 
     @Test
-    public void testRecordCumulativeMetricsAfterCompleteRun() {
+    public void testRecordFinalBatchMetricsAfterCompleteRun() {
         setProgress(
                 ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
@@ -146,8 +147,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .sweptTimestamp(12345L)
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetrics).examinedCells(21);
-        Mockito.verify(sweepMetrics).deletedCells(5);
+        Mockito.verify(sweepMetrics).deletedCells(2);
+        Mockito.verify(sweepMetrics).examinedCells(10);
     }
 
     @Test
