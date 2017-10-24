@@ -129,7 +129,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             } catch (Throwable t) {
                 log.error("problem creating delegate", t);
                 if (isClosed) {
-                    return true;
+                    return;
                 }
             }
         }

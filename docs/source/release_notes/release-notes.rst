@@ -43,7 +43,11 @@ develop
 
     *    - Type
          - Change
-
+         
+    *    - |improved|
+         - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
+           
     *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
