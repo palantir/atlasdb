@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -361,7 +362,7 @@ public abstract class TransactionManagers {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                initializer,
+                () -> areTransactionManagerInitializationPrerequisitesSatisfied(initializer, lockAndTimestampServices),
                 allowHiddenTableAccess(),
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
@@ -382,6 +383,17 @@ public abstract class TransactionManagers {
                 persistentLockManager);
 
         return transactionManager;
+    }
+
+    private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
+            AsyncInitializer initializer,
+            LockAndTimestampServices lockAndTimestampServices) {
+        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
+    }
+
+    @VisibleForTesting
+    static boolean timeLockMigrationCompleteIfNeeded(LockAndTimestampServices lockAndTimestampServices) {
+        return lockAndTimestampServices.migrator().map(AsyncInitializer::isInitialized).orElse(true);
     }
 
     private static void checkInstallConfig(AtlasDbConfig config) {
@@ -576,8 +588,12 @@ public abstract class TransactionManagers {
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         TimeLockClientConfig timeLockClientConfig =
                 TimeLockClientConfigs.copyWithClient(config.timelock().get(), resolvedClient);
-        TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
-        return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent, config.initializeAsync());
+        migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+        return ImmutableLockAndTimestampServices.copyOf(
+                createNamespacedRawRemoteServices(timeLockClientConfig, userAgent))
+                .withMigrator(migrator);
     }
 
     private static LockAndTimestampServices createNamespacedRawRemoteServices(
@@ -723,5 +739,6 @@ public abstract class TransactionManagers {
         LockService lock();
         TimestampService timestamp();
         TimelockService timelock();
+        Optional<TimeLockMigrator> migrator();
     }
 }
