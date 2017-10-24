@@ -434,10 +434,10 @@ public abstract class TransactionManagers {
                 transactionManager,
                 sweepRunner,
                 sweepPerfLogger,
-                sweepBatchConfig,
                 sweepMetrics);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+                sweepBatchConfig,
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 persistentLockManager,
@@ -453,13 +453,11 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepMetrics sweepMetrics) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
-                sweepBatchConfig,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
                 sweepMetrics);

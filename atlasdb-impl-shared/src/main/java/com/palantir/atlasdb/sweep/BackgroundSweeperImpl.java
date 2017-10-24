@@ -41,6 +41,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
+    private final Supplier<SweepBatchConfig> sweepBatchConfig;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final PersistentLockManager persistentLockManager;
@@ -48,7 +49,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
 
-    static volatile double batchSizeMultiplier = 1.0;
+    private static volatile double batchSizeMultiplier = 1.0;
 
     private Thread daemon;
 
@@ -56,12 +57,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     BackgroundSweeperImpl(
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
+            Supplier<SweepBatchConfig> sweepBatchConfig,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
+        this.sweepBatchConfig = sweepBatchConfig;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
         this.persistentLockManager = persistentLockManager;
@@ -69,6 +72,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     public static BackgroundSweeperImpl create(
+            Supplier<SweepBatchConfig> sweepBatchConfig,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
@@ -78,10 +82,16 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
+                sweepBatchConfig,
                 isSweepEnabled,
                 sweepPauseMillis,
                 persistentLockManager,
                 specificTableSweeper);
+    }
+
+    public SweepBatchConfig getAdjustedBatchConfig() {
+        SweepBatchConfig baseConfig = sweepBatchConfig.get();
+        return baseConfig.adjust(BackgroundSweeperImpl.batchSizeMultiplier);
     }
 
     @Override
@@ -134,7 +144,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return;
         }
         if (outcome == SweepOutcome.RETRYING_WITH_SMALLER_BATCH || outcome == SweepOutcome.ERROR) {
-            SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
+            SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
 
             // Cut batch size in half, always sweep at least one row (we round down).
             batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
@@ -203,10 +213,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             // Don't change this log statement. It's parsed by test automation code.
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return SweepOutcome.NOTHING_TO_SWEEP;
-        } else {
-            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get());
-            return SweepOutcome.SUCCESS;
         }
+
+        specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), getAdjustedBatchConfig());
+        return SweepOutcome.SUCCESS;
     }
 
     // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made

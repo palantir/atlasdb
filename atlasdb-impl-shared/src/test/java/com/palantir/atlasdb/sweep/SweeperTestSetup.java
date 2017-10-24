@@ -53,9 +53,17 @@ public class SweeperTestSetup {
     @Before
     public void setup() {
         specificTableSweeper = getSpecificTableSweeperService();
+
+        ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
+                .deleteBatchSize(100)
+                .candidateBatchSize(200)
+                .maxCellTsPairsToExamine(1000)
+                .build();
+
         backgroundSweeper = new BackgroundSweeperImpl(
                 Mockito.mock(LockService.class),
                 nextTableToSweepProvider,
+                () -> sweepBatchConfig,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
@@ -63,17 +71,10 @@ public class SweeperTestSetup {
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {
-        ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
-                .deleteBatchSize(100)
-                .candidateBatchSize(200)
-                .maxCellTsPairsToExamine(1000)
-                .build();
-
         return new SpecificTableSweeper(
                 SweeperTestSetup.mockTxManager(),
                 kvs,
                 sweepTaskRunner,
-                () -> sweepBatchConfig,
                 priorityStore,
                 progressStore,
                 Mockito.mock(BackgroundSweeperPerformanceLogger.class),

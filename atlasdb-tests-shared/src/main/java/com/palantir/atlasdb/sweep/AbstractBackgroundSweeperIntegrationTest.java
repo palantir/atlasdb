@@ -87,12 +87,12 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 txManager,
                 kvs,
                 sweepRunner,
-                () -> sweepBatchConfig,
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 sweepMetrics);
 
         backgroundSweeper = BackgroundSweeperImpl.create(
+                () -> sweepBatchConfig,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
                 persistentLockManager,
