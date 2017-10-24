@@ -48,6 +48,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 
 final class SchemaMutationLock {
     public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
@@ -215,7 +216,8 @@ final class SchemaMutationLock {
                     // lock holder taking unreasonable amount of time, signal something's wrong
                     if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis) {
                         TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
-                        log.error("Schema lock timeout", schemaLockTimeoutError);
+                        log.error("Timed out after waiting for {} milliseconds for the schema mutation lock",
+                                SafeArg.of("wait duration", stopwatch.elapsed(TimeUnit.MILLISECONDS)));
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 
@@ -227,7 +229,8 @@ final class SchemaMutationLock {
                 }
 
                 // we won the lock!
-                log.info("Successfully acquired schema mutation lock with id [{}]", perOperationNodeId);
+                log.info("Successfully acquired schema mutation lock with id [{}]",
+                        SafeArg.of("lockId", perOperationNodeId));
                 return null;
             });
         } catch (InterruptedException e) {
@@ -328,7 +331,8 @@ final class SchemaMutationLock {
                 List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
                 CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
                 if (casResult.isSuccess()) {
-                    log.info("Successfully released schema mutation lock with id [{}]", existingLockId);
+                    log.info("Successfully released schema mutation lock with id [{}]",
+                            SafeArg.of("lockId", existingLockId));
                 }
                 return casResult.isSuccess();
             });
@@ -347,7 +351,7 @@ final class SchemaMutationLock {
                     () -> client.get(getGlobalDdlLockRowName(), columnPath, ConsistencyLevel.LOCAL_QUORUM));
             existingColumn = result.getColumn();
         } catch (NotFoundException e) {
-            log.debug("No existing schema lock found in table [{}]", lockTableRef);
+            log.debug("No existing schema lock found in table [{}]", SafeArg.of("tableName", lockTableRef));
         }
         return Optional.ofNullable(existingColumn);
     }
