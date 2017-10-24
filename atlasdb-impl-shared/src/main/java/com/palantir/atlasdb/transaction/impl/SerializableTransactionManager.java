@@ -123,8 +123,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 : serializableTransactionManager;
     }
 
-    // Used for testing.
-    public SerializableTransactionManager(KeyValueService keyValueService,
+    public static SerializableTransactionManager createForTest(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
             LockService lockService,
@@ -136,7 +135,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             long timestampCacheSize) {
-        this(keyValueService,
+        return new SerializableTransactionManager(keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
