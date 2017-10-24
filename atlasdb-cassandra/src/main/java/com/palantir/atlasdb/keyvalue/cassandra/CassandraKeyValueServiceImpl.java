@@ -116,8 +116,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.annotation.Idempotent;
@@ -324,7 +326,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
                         // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema",
-                                UnsafeArg.of("table", tableRef));
+                                LoggingArgs.tableRef(tableRef));
                         updatedCfs.add(clientSideCf);
                     }
                 } else if (!hiddenTables.isHidden(tableRef)) {
@@ -334,7 +336,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             + " AtlasDB metadata. If you recently did a Palantir update, try waiting until"
                             + " schema upgrades are completed on all backend CLIs/services etc and restarting"
                             + " this service. If this error re-occurs on subsequent attempted startups, please"
-                            + " contact Palantir support.", UnsafeArg.of("table", tableRef.getQualifiedName()));
+                            + " contact Palantir support.", LoggingArgs.tableRef(tableRef));
                 }
             }
 
@@ -469,7 +471,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             if (rowCount > fetchBatchCount) {
                 log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
                         + "this may indicate overly-large batching on a higher level.\n{}",
-                        UnsafeArg.of("table", tableRef.getQualifiedName()),
+                        LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rowCount", rowCount),
                         SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
             }
@@ -525,7 +527,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
-            log.info("Attempted get on '{}' table with empty cells", UnsafeArg.of("tableRef", tableRef));
+            log.info("Attempted get on '{}' table with empty cells", LoggingArgs.tableRef(tableRef));
             return ImmutableMap.of();
         }
 
@@ -563,7 +565,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (log.isTraceEnabled()) {
             log.trace("Loading {} cells from {} {}starting at timestamp {}, partitioned across {} nodes.",
                     SafeArg.of("cells", cells.size()),
-                    UnsafeArg.of("table", tableRef),
+                    LoggingArgs.tableRef(tableRef),
                     SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                     SafeArg.of("startTs", startTs),
                     SafeArg.of("totalPartitions", totalPartitions));
@@ -574,7 +576,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             if (log.isTraceEnabled()) {
                 log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
                         SafeArg.of("cells", hostsAndCells.values().size()),
-                        UnsafeArg.of("table", tableRef),
+                        LoggingArgs.tableRef(tableRef),
                         SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                         SafeArg.of("startTs", startTs),
                         SafeArg.of("ipPort", hostAndCells.getKey()));
@@ -614,7 +616,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
                                 + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
                         SafeArg.of("host", host),
-                        UnsafeArg.of("table", tableRef),
+                        LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rows", columnCells.size()),
                         SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
             }
@@ -635,7 +637,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 if (log.isTraceEnabled()) {
                                     log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
                                             SafeArg.of("cells", partition.size()),
-                                            UnsafeArg.of("table", tableRef),
+                                            LoggingArgs.tableRef(tableRef),
                                             SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                                             SafeArg.of("startTs", startTs),
                                             SafeArg.of("host", host));
@@ -1540,7 +1542,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         client.system_drop_column_family(internalTableName(table));
                         putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                     } else {
-                        log.warn("Ignored call to drop a table ({}) that did not exist.", UnsafeArg.of("table", table));
+                        log.warn("Ignored call to drop a table ({}) that did not exist.",
+                                LoggingArgs.tableRef(table));
                     }
                 }
                 CassandraKeyValueServices.waitForSchemaVersions(
@@ -1609,7 +1612,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
 
         if (!tablesToActuallyCreate.isEmpty()) {
-            log.info("Grabbing schema mutation lock to create tables {}", tablesToActuallyCreate);
+            LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
+                    tablesToActuallyCreate.keySet());
+            log.info("Grabbing schema mutation lock to create tables {} and {}",
+                    safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
             schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
@@ -1636,14 +1642,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     if (Arrays.equals(
                             existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
                         log.debug("Case-insensitive matched table already existed with same metadata,"
-                                + " skipping update to {}", UnsafeArg.of("table", tableReference));
+                                + " skipping update to {}", LoggingArgs.tableRef(tableReference));
                     } else { // existing table has different metadata, so we should perform an update
                         tableMetadataUpdates.put(tableReference, newMetadata);
                     }
                 }
             } else {
                 log.debug("Table already existed with same metadata, skipping update to {}",
-                        UnsafeArg.of("table", tableReference));
+                        LoggingArgs.tableRef(tableReference));
             }
         }
 
@@ -1669,7 +1675,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     filteredTables.put(table, metadata);
                 } else {
                     log.debug("Filtering out existing table ({}) that already existed (case insensitive).",
-                            UnsafeArg.of("table", table));
+                            LoggingArgs.tableRef(table));
                 }
             }
         } catch (Exception e) {
@@ -1745,11 +1751,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .findFirst();
 
         if (!match.isPresent()) {
-            log.debug("Couldn't find table metadata for {}", UnsafeArg.of("table", tableRef));
+            log.debug("Couldn't find table metadata for {}", LoggingArgs.tableRef(tableRef));
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
-            log.debug("Found table metadata for {} at matching name {}", UnsafeArg.of("table", tableRef),
-                    UnsafeArg.of("matchingTable", match.get().getKey()));
+            log.debug("Found table metadata for {} at matching name {}", LoggingArgs.tableRef(tableRef),
+                    LoggingArgs.tableRef("matchingTable", match.get().getKey()));
             return match.get().getValue();
         }
     }
@@ -1964,7 +1970,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             } catch (TException e) {
                 log.info("Tried to make a deleteRange({}, RangeRequest.all())"
                                 + " into a more garbage-cleanup friendly truncate(), but this failed.",
-                        UnsafeArg.of("table", tableRef), e);
+                        LoggingArgs.tableRef(tableRef), e);
 
                 super.deleteRange(tableRef, range);
             }
@@ -2148,7 +2154,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     + " If you actually want to clear deleted data immediately"
                     + " from Cassandra, lower your gc_grace_seconds setting and"
                     + " run `nodetool compact {} {}`.", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
-                    UnsafeArg.of("table", internalTableName(tableRef)));
+                    LoggingArgs.tableRef(tableRef));
             return;
         }
         long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
@@ -2158,12 +2164,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             compactionManager.get().performTombstoneCompaction(timeoutInSeconds, keyspace, tableRef);
         } catch (TimeoutException e) {
             log.error("Compaction for {}.{} could not finish in {} seconds.", UnsafeArg.of("keyspace", keyspace),
-                    UnsafeArg.of("table", tableRef), SafeArg.of("timeout", timeoutInSeconds), e);
+                    LoggingArgs.tableRef(tableRef), SafeArg.of("timeout", timeoutInSeconds), e);
             log.error("Compaction status: {}",
                     UnsafeArg.of("compactionStatus", compactionManager.get().getCompactionStatus()));
         } catch (InterruptedException e) {
             log.error("Compaction for {}.{} was interrupted.", UnsafeArg.of("keyspace", keyspace),
-                    UnsafeArg.of("table", tableRef));
+                    LoggingArgs.tableRef(tableRef));
         } finally {
             alterGcAndTombstone(
                     keyspace,
@@ -2278,10 +2284,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 tableRef.getQualifiedName());
                         log.trace("gc_grace_seconds is set to {} for {}.{}",
                                 SafeArg.of("gcGraceSeconds", gcGraceSeconds), UnsafeArg.of("keyspace", keyspace),
-                                UnsafeArg.of("table", tableRef));
+                                LoggingArgs.tableRef(tableRef));
                         log.trace("tombstone_threshold_ratio is set to {} for {}.{}",
                                 SafeArg.of("tombstoneThresholdRatio", tombstoneThresholdRatio),
-                                UnsafeArg.of("keyspace", keyspace), UnsafeArg.of("table", tableRef));
+                                UnsafeArg.of("keyspace", keyspace), LoggingArgs.tableRef(tableRef));
                     }
                 }
                 return null;
@@ -2291,7 +2297,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     SafeArg.of("gcGraceSeconds", gcGraceSeconds),
                     SafeArg.of("tombstoneThresholdRatio", tombstoneThresholdRatio),
                     UnsafeArg.of("keyspace", keyspace),
-                    UnsafeArg.of("table", tableRef),
+                    LoggingArgs.tableRef(tableRef),
                     e);
         }
     }
@@ -2325,11 +2331,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         tables.remove(tableToKeep.get());
         if (tables.size() > 0) {
             dropTablesInternal(tables);
-            log.info("Dropped tables [{}]", UnsafeArg.of("table names", tables));
+            LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(tables);
+            log.info("Dropped tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
         }
         schemaMutationLock.cleanLockState();
         log.info("Reset the schema mutation lock in table [{}]",
-                UnsafeArg.of("table name", tableToKeep.get().toString()));
+                LoggingArgs.tableRef(tableToKeep.get()));
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {

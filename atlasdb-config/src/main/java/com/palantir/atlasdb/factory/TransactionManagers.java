@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -141,15 +142,7 @@ public abstract class TransactionManagers {
         return false;
     }
 
-    abstract Optional<Class<?>> callingClass();
-
-    abstract Optional<String> userAgent();
-
-    // directly specified -> inferred from caller -> default
-    @Value.Derived
-    String derivedUserAgent() {
-        return userAgent().orElse(callingClass().map(UserAgents::fromClass).orElse(UserAgents.DEFAULT_USER_AGENT));
-    }
+    abstract String userAgent();
 
     public static Builder builder() {
         return new Builder();
@@ -183,7 +176,7 @@ public abstract class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        return builder().config(config).schemas(schemas).buildSerializable();
+        return builder().config(config).schemas(schemas).userAgent(UserAgents.DEFAULT_USER_AGENT).buildSerializable();
     }
 
     // Begin deprecated creation methods
@@ -260,7 +253,7 @@ public abstract class TransactionManagers {
                 .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
-                .callingClass(callingClass)
+                .userAgent(UserAgents.fromClass(callingClass))
                 .buildSerializable();
     }
 
@@ -323,7 +316,7 @@ public abstract class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions()),
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
-                derivedUserAgent());
+                userAgent());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
@@ -371,12 +364,13 @@ public abstract class TransactionManagers {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                initializer,
+                () -> areTransactionManagerInitializationPrerequisitesSatisfied(initializer, lockAndTimestampServices),
                 allowHiddenTableAccess(),
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.keyValueService().defaultGetRangesConcurrency(),
-                config.initializeAsync());
+                config.initializeAsync(),
+                config.getTimestampCacheSize());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
@@ -393,6 +387,17 @@ public abstract class TransactionManagers {
                 persistentLockManager);
 
         return transactionManager;
+    }
+
+    private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
+            AsyncInitializer initializer,
+            LockAndTimestampServices lockAndTimestampServices) {
+        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
+    }
+
+    @VisibleForTesting
+    static boolean timeLockMigrationCompleteIfNeeded(LockAndTimestampServices lockAndTimestampServices) {
+        return lockAndTimestampServices.migrator().map(AsyncInitializer::isInitialized).orElse(true);
     }
 
     private static void checkInstallConfig(AtlasDbConfig config) {
@@ -598,8 +603,12 @@ public abstract class TransactionManagers {
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         TimeLockClientConfig timeLockClientConfig =
                 TimeLockClientConfigs.copyWithClient(config.timelock().get(), resolvedClient);
-        TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent).migrate();
-        return createNamespacedRawRemoteServices(timeLockClientConfig, userAgent);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent, config.initializeAsync());
+        migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+        return ImmutableLockAndTimestampServices.copyOf(
+                createNamespacedRawRemoteServices(timeLockClientConfig, userAgent))
+                .withMigrator(migrator);
     }
 
     private static LockAndTimestampServices createNamespacedRawRemoteServices(
@@ -745,5 +754,6 @@ public abstract class TransactionManagers {
         LockService lock();
         TimestampService timestamp();
         TimelockService timelock();
+        Optional<TimeLockMigrator> migrator();
     }
 }

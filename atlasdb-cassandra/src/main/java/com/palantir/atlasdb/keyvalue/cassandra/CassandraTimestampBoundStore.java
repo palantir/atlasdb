@@ -45,6 +45,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.AutoDelegate_TimestampBoundStore;
 import com.palantir.timestamp.DebugLogger;
@@ -195,8 +196,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
-            log.error("[CAS] Error trying to set from {} to {}", oldVal, newVal, e);
-            DebugLogger.logger.error("[CAS] Error trying to set from {} to {}", oldVal, newVal, e);
+            log.error("[CAS] Error trying to set from {} to {}",
+                    SafeArg.of("oldValue", oldVal),
+                    SafeArg.of("newValue", newVal),
+                    e);
+            DebugLogger.logger.error("[CAS] Error trying to set from {} to {}",
+                    SafeArg.of("oldValue", oldVal),
+                    SafeArg.of("newValue", newVal),
+                    e);
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
@@ -212,9 +219,20 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                             newVal,
                             currentLimit,
                             getCurrentTimestampValues(result)));
-            log.error(msg, oldVal, newVal, currentLimit, getCurrentTimestampValues(result), err);
-            DebugLogger.logger.error(msg, oldVal, newVal, currentLimit, getCurrentTimestampValues(result), err);
-            DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
+            log.error(msg,
+                    SafeArg.of("oldValue", oldVal),
+                    SafeArg.of("newValue", newVal),
+                    SafeArg.of("inMemoryLimit", currentLimit),
+                    SafeArg.of("dbLimit", getCurrentTimestampValues(result)),
+                    err);
+            DebugLogger.logger.error(msg,
+                    SafeArg.of("oldValue", oldVal),
+                    SafeArg.of("newValue", newVal),
+                    SafeArg.of("inMemoryLimit", currentLimit),
+                    SafeArg.of("dbLimit", getCurrentTimestampValues(result)),
+                    err);
+            DebugLogger.logger.error("Thread dump: {}",
+                    SafeArg.of("threadDump", ThreadDumps.programmaticThreadDump()));
             throw err;
         } else {
             DebugLogger.logger.debug("[CAS] Setting cached limit to {}.", newVal);
