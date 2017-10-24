@@ -61,47 +61,6 @@ public class CqlExecutor {
     }
 
     /**
-     * @param tableRef the table from which to select
-     * @param row the row key
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> cells that match the row name
-     */
-    List<CellWithTimestamp> getColumnsForRow(TableReference tableRef, byte[] row, int limit) {
-        CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
-                quotedTableName(tableRef),
-                key(row),
-                limit(limit));
-        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
-    }
-
-    /**
-     * @param tableRef the table from which to select
-     * @param row the row key
-     * @param column the column name
-     * @param maxTimestampExclusive the maximum timestamp, exclusive
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
-     * <code>maxTimestampExclusive</code>
-     */
-    List<CellWithTimestamp> getTimestampsForRowAndColumn(
-            TableReference tableRef,
-            byte[] row,
-            byte[] column,
-            long maxTimestampExclusive,
-            int limit) {
-        long invertedTimestamp = ~maxTimestampExclusive;
-        CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
-                quotedTableName(tableRef),
-                key(row),
-                column1(column),
-                column2(invertedTimestamp),
-                limit(limit));
-        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
-    }
-
-    /**
      * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
      * {@code startRowInclusive}, potentially spanning across multiple rows.
      */
@@ -157,28 +116,6 @@ public class CqlExecutor {
     private long extractTimestamp(CqlRow row, int columnIndex) {
         byte[] flippedTimestampAsBytes = row.getColumns().get(columnIndex).getValue();
         return ~PtBytes.toLong(flippedTimestampAsBytes);
-    }
-
-    /**
-     * @param tableRef the table from which to select
-     * @param row the row key
-     * @param previousColumn the lexicographic lower bound (exclusive) for the column name
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> results where the column name is lexicographically later than the supplied
-     * <code>previousColumn</code>. Note that this can return results from multiple columns
-     */
-    List<CellWithTimestamp> getNextColumnsForRow(
-            TableReference tableRef,
-            byte[] row,
-            byte[] previousColumn,
-            int limit) {
-        CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
-                quotedTableName(tableRef),
-                key(row),
-                column1(previousColumn),
-                limit(limit));
-        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
     }
 
     private Arg<String> key(byte[] row) {
