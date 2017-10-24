@@ -128,55 +128,7 @@ public class SpecificTableSweeper {
         SweepBatchConfig batchConfig = getAdjustedBatchConfig();
 
         SweepResults results = runOneIteration(tableRef, startRow, batchConfig);
-        saveSweepResults(tableToSweep, results);
-    }
-
-    SweepResults runOneIteration(
-            TableReference tableRef,
-            byte[] startRow,
-            SweepBatchConfig batchConfig) {
-
-        Stopwatch watch = Stopwatch.createStarted();
-        try {
-            SweepResults results = sweepRunner.run(
-                    tableRef,
-                    batchConfig,
-                    startRow);
-            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-            log.info("Analyzed {} cell+timestamp pairs"
-                            + " from table {}"
-                            + " starting at row {}"
-                            + " and deleted {} stale values"
-                            + " in {} ms"
-                            + " up to timestamp {}.",
-                    SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
-                    LoggingArgs.tableRef("tableRef", tableRef),
-                    UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()),
-                    SafeArg.of("time taken", elapsedMillis),
-                    SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
-            sweepPerfLogger.logSweepResults(
-                    SweepPerformanceResults.builder()
-                            .sweepResults(results)
-                            .tableName(tableRef.getQualifiedName())
-                            .elapsedMillis(elapsedMillis)
-                            .build());
-            return results;
-        } catch (RuntimeException e) {
-            // This error may be logged on some paths above, but I prefer to log defensively.
-            log.info("Failed to sweep table {}"
-                            + " at row {}"
-                            + " with candidate batch size {},"
-                            + " delete batch size {},"
-                            + " and {} cell+timestamp pairs to examine.",
-                    LoggingArgs.tableRef("tableRef", tableRef),
-                    UnsafeArg.of("startRow", startRowToHex(startRow)),
-                    SafeArg.of("candidateBatchSize", batchConfig.candidateBatchSize()),
-                    SafeArg.of("deleteBatchSize", batchConfig.deleteBatchSize()),
-                    SafeArg.of("maxCellTsPairsToExamine", batchConfig.maxCellTsPairsToExamine()),
-                    e);
-            throw e;
-        }
+        processSweepResults(tableToSweep, results);
     }
 
     public SweepBatchConfig getAdjustedBatchConfig() {
@@ -184,41 +136,86 @@ public class SpecificTableSweeper {
         return baseConfig.adjust(BackgroundSweeperImpl.batchSizeMultiplier);
     }
 
-    private static String startRowToHex(@Nullable byte[] row) {
-        if (row == null) {
-            return "0";
-        } else {
-            return PtBytes.encodeHexString(row);
+    SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
+        Stopwatch watch = Stopwatch.createStarted();
+        try {
+            SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
+            logSweepPerformance(tableRef, startRow, results, watch);
+
+            reportSweepMetrics(results);
+
+            return results;
+        } catch (RuntimeException e) {
+            // This error may be logged on some paths above, but I prefer to log defensively.
+            logSweepError(tableRef, startRow, batchConfig, e);
+            throw e;
         }
     }
 
+    private void logSweepPerformance(TableReference tableRef, byte[] startRow, SweepResults results, Stopwatch watch) {
+        long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
 
-    private void saveSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
+        log.info("Analyzed {} cell+timestamp pairs"
+                        + " from table {}"
+                        + " starting at row {}"
+                        + " and deleted {} stale values"
+                        + " in {} ms"
+                        + " up to timestamp {}.",
+                SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
+                LoggingArgs.tableRef("tableRef", tableRef),
+                UnsafeArg.of("startRow", startRowToHex(startRow)),
+                SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()),
+                SafeArg.of("time taken", elapsedMillis),
+                SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
+
+        SweepPerformanceResults performanceResults = SweepPerformanceResults.builder()
+                .sweepResults(results)
+                .tableName(tableRef.getQualifiedName())
+                .elapsedMillis(elapsedMillis)
+                .build();
+
+        sweepPerfLogger.logSweepResults(performanceResults);
+    }
+
+    private void logSweepError(TableReference tableRef, byte[] startRow, SweepBatchConfig config,
+            RuntimeException exception) {
+        log.info("Failed to sweep table {}"
+                        + " at row {}"
+                        + " with candidate batch size {},"
+                        + " delete batch size {},"
+                        + " and {} cell+timestamp pairs to examine.",
+                LoggingArgs.tableRef("tableRef", tableRef),
+                UnsafeArg.of("startRow", startRowToHex(startRow)),
+                SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
+                SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
+                SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
+                exception);
+    }
+
+    private void processSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
+        SweepResults cumulativeResults = getCumulativeSweepResults(tableToSweep, currentIteration);
+
+        if (currentIteration.getNextStartRow().isPresent()) {
+            saveIntermediateSweepResults(tableToSweep, cumulativeResults);
+        } else {
+            processFinishedSweep(tableToSweep, cumulativeResults);
+        }
+    }
+
+    private static SweepResults getCumulativeSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
         long staleValuesDeleted = tableToSweep.getStaleValuesDeletedPreviously()
                 + currentIteration.getStaleValuesDeleted();
         long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellTsPairsExamined();
         long minimumSweptTimestamp = Math.min(
                 tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
                 currentIteration.getSweptTimestamp());
-        SweepResults cumulativeResults = SweepResults.builder()
+
+        return SweepResults.builder()
                 .staleValuesDeleted(staleValuesDeleted)
                 .cellTsPairsExamined(cellsExamined)
                 .sweptTimestamp(minimumSweptTimestamp)
                 .nextStartRow(currentIteration.getNextStartRow())
                 .build();
-        if (currentIteration.getNextStartRow().isPresent()) {
-            saveIntermediateSweepResults(tableToSweep, cumulativeResults);
-        } else {
-            saveFinalSweepResults(tableToSweep, cumulativeResults);
-            performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-            log.info("Finished sweeping table {}."
-                            + " Examined {} cell+timestamp pairs,"
-                            + " deleted {} stale values.",
-                    LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
-                    SafeArg.of("cellTs pairs examined", cellsExamined),
-                    SafeArg.of("cellTs pairs deleted", staleValuesDeleted));
-            sweepProgressStore.clearProgress();
-        }
     }
 
     private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
@@ -245,6 +242,16 @@ public class SpecificTableSweeper {
         });
     }
 
+    private void processFinishedSweep(TableToSweep tableToSweep, SweepResults cumulativeResults) {
+        saveFinalSweepResults(tableToSweep, cumulativeResults);
+        performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
+        log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values.",
+                LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
+                SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),
+                SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()));
+        sweepProgressStore.clearProgress();
+    }
+
     private void performInternalCompactionIfNecessary(TableReference tableRef, SweepResults results) {
         if (results.getStaleValuesDeleted() > 0) {
             Stopwatch watch = Stopwatch.createStarted();
@@ -263,13 +270,13 @@ public class SpecificTableSweeper {
         }
     }
 
-    private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults sweepResults) {
+    private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults finalSweepResults) {
         txManager.runTaskWithRetry((TxTask) tx -> {
             ImmutableUpdateSweepPriority.Builder update = ImmutableUpdateSweepPriority.builder()
-                    .newStaleValuesDeleted(sweepResults.getStaleValuesDeleted())
-                    .newCellTsPairsExamined(sweepResults.getCellTsPairsExamined())
+                    .newStaleValuesDeleted(finalSweepResults.getStaleValuesDeleted())
+                    .newCellTsPairsExamined(finalSweepResults.getCellTsPairsExamined())
                     .newLastSweepTimeMillis(wallClock.getTimeMillis())
-                    .newMinimumSweptTimestamp(sweepResults.getSweptTimestamp());
+                    .newMinimumSweptTimestamp(finalSweepResults.getSweptTimestamp());
             if (!tableToSweep.hasPreviousProgress()) {
                 // This is the first (and only) set of results being written for this table.
                 update.newWriteCount(0L);
@@ -277,8 +284,18 @@ public class SpecificTableSweeper {
             sweepPriorityStore.update(tx, tableToSweep.getTableRef(), update.build());
             return null;
         });
+    }
 
+    private void reportSweepMetrics(SweepResults sweepResults) {
         sweepMetrics.examinedCells(sweepResults.getCellTsPairsExamined());
         sweepMetrics.deletedCells(sweepResults.getStaleValuesDeleted());
+    }
+
+    private static String startRowToHex(@Nullable byte[] row) {
+        if (row == null) {
+            return "0";
+        } else {
+            return PtBytes.encodeHexString(row);
+        }
     }
 }

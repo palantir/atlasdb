@@ -85,7 +85,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * use the delegate instead.
      */
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, 1, 1);
+        this(null, null, null, null, null, null, null, null, null, 1, 1, 1);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -101,7 +101,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            long timestampCacheSize) {
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 keyValueService,
                 timelockService,
@@ -114,7 +115,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
 
         return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager, initializer)
                 : serializableTransactionManager;
@@ -130,7 +132,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency) {
+            int defaultGetRangesConcurrency,
+            long timestampCacheSize) {
         this(keyValueService,
                 timestampService,
                 lockClient,
@@ -142,7 +145,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 false,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -156,7 +160,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency) {
+            int defaultGetRangesConcurrency,
+            long timestampCacheSize) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -168,7 +173,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -181,7 +187,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
             int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency) {
+            int defaultGetRangesConcurrency,
+            long timestampCacheSize) {
         this(
                 keyValueService,
                 timelockService,
@@ -194,7 +201,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
     }
 
     public SerializableTransactionManager(KeyValueService keyValueService,
@@ -208,7 +216,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency) {
+            int defaultGetRangesConcurrency,
+            long timestampCacheSize) {
         super(
                 keyValueService,
                 timelockService,
@@ -221,7 +230,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
     }
 
     @Override

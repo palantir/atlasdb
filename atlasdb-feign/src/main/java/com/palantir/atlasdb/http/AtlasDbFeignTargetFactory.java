@@ -37,7 +37,10 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
 public final class AtlasDbFeignTargetFactory {
-    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
+    // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,
+    // and we don't want it to exactly align with the feign timeout
+    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options(
+            10_000, 65_000);
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new Jdk8Module());

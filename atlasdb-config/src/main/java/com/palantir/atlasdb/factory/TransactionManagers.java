@@ -139,15 +139,7 @@ public abstract class TransactionManagers {
         return false;
     }
 
-    abstract Optional<Class<?>> callingClass();
-
-    abstract Optional<String> userAgent();
-
-    // directly specified -> inferred from caller -> default
-    @Value.Derived
-    String derivedUserAgent() {
-        return userAgent().orElse(callingClass().map(UserAgents::fromClass).orElse(UserAgents.DEFAULT_USER_AGENT));
-    }
+    abstract String userAgent();
 
     public static Builder builder() {
         return new Builder();
@@ -181,7 +173,7 @@ public abstract class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        return builder().config(config).schemas(schemas).buildSerializable();
+        return builder().config(config).schemas(schemas).userAgent(UserAgents.DEFAULT_USER_AGENT).buildSerializable();
     }
 
     // Begin deprecated creation methods
@@ -258,7 +250,7 @@ public abstract class TransactionManagers {
                 .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
-                .callingClass(callingClass)
+                .userAgent(UserAgents.fromClass(callingClass))
                 .buildSerializable();
     }
 
@@ -321,7 +313,7 @@ public abstract class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions()),
                 atlasFactory::getTimestampService,
                 atlasFactory.getTimestampStoreInvalidator(),
-                derivedUserAgent());
+                userAgent());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
@@ -374,7 +366,8 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.keyValueService().defaultGetRangesConcurrency(),
-                config.initializeAsync());
+                config.initializeAsync(),
+                config.getTimestampCacheSize());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,

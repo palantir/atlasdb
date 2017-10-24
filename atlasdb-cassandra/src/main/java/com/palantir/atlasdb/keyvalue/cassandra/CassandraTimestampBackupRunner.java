@@ -36,6 +36,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
 public class CassandraTimestampBackupRunner {
@@ -88,7 +89,7 @@ public class CassandraTimestampBackupRunner {
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue));
             executeAndVerifyCas(client, casMap);
-            log.info("[BACKUP] Backed up the value {}", currentBackupBound);
+            log.info("[BACKUP] Backed up the value {}", SafeArg.of("currentBackupBound", currentBackupBound));
             return PtBytes.toLong(backupValue);
         });
     }
@@ -115,7 +116,7 @@ public class CassandraTimestampBackupRunner {
                     CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                     Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY));
             executeAndVerifyCas(client, casMap);
-            log.info("[RESTORE] Restored the value {}", currentBackupBound);
+            log.info("[RESTORE] Restored the value {}", SafeArg.of("currentBackupBound", currentBackupBound));
             return null;
         });
     }

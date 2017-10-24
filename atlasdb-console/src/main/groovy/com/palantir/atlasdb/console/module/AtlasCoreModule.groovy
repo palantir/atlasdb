@@ -217,6 +217,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
         SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config)
                 .allowHiddenTableAccess(true)
+                .userAgent("atlasdb console")
                 .buildSerializable();
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService())
         AtlasDbService service = new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache)
