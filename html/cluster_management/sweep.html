@@ -276,7 +276,7 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">candidateBatchHint</span></code></td>
 <td><code class="docutils literal"><span class="pre">candidateBatchSize</span></code></td>
-<td>1</td>
+<td>1 (Cassandra); 1024 (all other KVSs)</td>
 <td>Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">deleteBatchHint</span></code></td>
