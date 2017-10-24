@@ -22,7 +22,6 @@ import org.immutables.value.Value;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
-import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCellWithTimestamp;
 
 @Value.Immutable
 public abstract class CellWithTimestamp {
