@@ -296,7 +296,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
         SweepOutcomeMetrics() {
             Arrays.stream(SweepOutcome.values()).forEach(outcome ->
-                    metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(), () -> getLastOutcome(outcome))
+                    metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(),
+                            () -> getLastOutcome(outcome))
             );
         }
 
