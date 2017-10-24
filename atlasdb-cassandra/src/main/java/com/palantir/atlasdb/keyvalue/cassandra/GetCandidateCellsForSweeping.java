@@ -31,10 +31,14 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.CellWithTimestamps;
 
 public class GetCandidateCellsForSweeping {
 
+    private final int DEFAULT_TIMESTAMPS_BATCH_SIZE = 10_000;
+
     private final KeyValueService kvs;
     private final CqlExecutor cqlExecutor;
     private final TableReference table;
     private final CandidateCellForSweepingRequest request;
+    private final int timestampsBatchSize;
+    private final int valuesBatchSize;
 
     private List<CellWithTimestamps> cellTimestamps;
     private Set<Cell> cellsWithEmptyValues;
@@ -48,6 +52,10 @@ public class GetCandidateCellsForSweeping {
         this.cqlExecutor = cqlExecutor;
         this.request = request;
         this.kvs = kvs;
+
+        this.timestampsBatchSize = request.batchSizeHint().orElse(DEFAULT_TIMESTAMPS_BATCH_SIZE);
+        // TODO(nziebart): this should probably be configurable
+        this.valuesBatchSize = Math.max(100, timestampsBatchSize / 10);
     }
 
     public List<CandidateCellForSweeping> execute() {
@@ -59,11 +67,8 @@ public class GetCandidateCellsForSweeping {
     }
 
     private void fetchCellTimestamps() {
-        cellTimestamps = new GetCellTimestamps(
-                cqlExecutor,
-                table,
-                request.startRowInclusive(),
-                request.batchSizeHint().orElse(10_000)).execute();
+        cellTimestamps = new GetCellTimestamps(cqlExecutor, table, request.startRowInclusive(), timestampsBatchSize)
+                .execute();
     }
 
     public void findCellsWithEmptyValuesIfNeeded() {
@@ -73,7 +78,7 @@ public class GetCandidateCellsForSweeping {
         }
 
         cellsWithEmptyValues = new GetEmptyLatestValues(cellTimestamps, kvs, table, request.maxTimestampExclusive(),
-                100).execute();
+                valuesBatchSize).execute();
     }
 
     private List<CandidateCellForSweeping> convertToSweepCandidates() {

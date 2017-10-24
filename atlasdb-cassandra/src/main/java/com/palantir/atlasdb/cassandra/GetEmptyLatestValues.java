@@ -54,12 +54,12 @@ public class GetEmptyLatestValues {
     public Set<Cell> execute() {
         Set<Cell> result = Sets.newHashSet();
         for (List<CellWithTimestamps> batch : Iterables.partition(cellTimestamps, batchSize)) {
-            result.addAll(getCellsWithLatestValuesEmptyBatch(batch));
+            result.addAll(getSingleBatch(batch));
         }
         return result;
     }
 
-    private Set<Cell> getCellsWithLatestValuesEmptyBatch(
+    private Set<Cell> getSingleBatch(
             List<CellWithTimestamps> batch) {
         Map<Cell, Long> timestampsByCell = batch.stream()
                 .collect(Collectors.toMap(
