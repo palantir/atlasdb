@@ -63,7 +63,8 @@ public class GetCandidateCellsForSweeping {
                 cqlExecutor,
                 table,
                 request.startRowInclusive(),
-                request.batchSizeHint().orElse(10_000)).execute();
+                request.batchSizeHint().orElse(10_000))
+                .execute();
     }
 
     public void findCellsWithEmptyValuesIfNeeded() {
