@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -24,13 +23,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.PeekingIterator;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellWithTimestamps;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.RowWithTimestamps;
 
 public class GetCellTimestamps {
 
@@ -39,7 +35,7 @@ public class GetCellTimestamps {
     private final byte[] startRowInclusive;
     private final int batchHint;
 
-    private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
+    private final Collection<CellWithTimestamp> cells = Lists.newArrayList();
 
     public GetCellTimestamps(
             CqlExecutor cqlExecutor,
@@ -52,10 +48,10 @@ public class GetCellTimestamps {
         this.batchHint = batchHint;
     }
 
-    public List<RowWithTimestamps> execute() {
+    public List<CellWithTimestamps> execute() {
         fetchBatchOfTimestamps();
 
-        return groupTimestampsByRowAndCell();
+        return groupTimestampsByCell();
     }
 
     /**
@@ -69,7 +65,7 @@ public class GetCellTimestamps {
     }
 
     private void fetchRemainingTimestampsForLastRow() {
-        boolean moreToFetch = !timestamps.isEmpty();
+        boolean moreToFetch = !cells.isEmpty();
         while (moreToFetch) {
             moreToFetch = fetchBatchOfRemainingCellTsPairsInLastRow();
         }
@@ -78,11 +74,11 @@ public class GetCellTimestamps {
     private void fetchAllTimestampsBeginningAtStartRow() {
         List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, startRowInclusive, batchHint);
 
-        timestamps.addAll(batch);
+        cells.addAll(batch);
     }
 
     private boolean fetchBatchOfRemainingCellTsPairsInLastRow() {
-        CellWithTimestamp lastCell = Iterables.getLast(timestamps);
+        CellWithTimestamp lastCell = Iterables.getLast(cells);
 
         List<CellWithTimestamp> batch = cqlExecutor.getTimestampsWithinRow(
                 tableRef,
@@ -91,42 +87,17 @@ public class GetCellTimestamps {
                 lastCell.timestamp(),
                 batchHint);
 
-        return timestamps.addAll(batch);
+        return cells.addAll(batch);
     }
 
-    private List<RowWithTimestamps> groupTimestampsByRowAndCell() {
-        Map<Cell, List<Long>> timestampsByCell = timestamps.stream().collect(
+    private List<CellWithTimestamps> groupTimestampsByCell() {
+        Map<Cell, List<Long>> timestampsByCell = cells.stream().collect(
                 Collectors.groupingBy(CellWithTimestamp::cell,
                         Collectors.mapping(CellWithTimestamp::timestamp, Collectors.toList())));
 
-        List<CellWithTimestamps> orderedCells = timestampsByCell.entrySet().stream()
+        return timestampsByCell.entrySet().stream()
                 .map(entry -> CellWithTimestamps.of(entry.getKey(), entry.getValue()))
                 .sorted(Comparator.comparing(CellWithTimestamps::cell))
                 .collect(Collectors.toList());
-
-        List<RowWithTimestamps> rows = Lists.newArrayList();
-        PeekingIterator<CellWithTimestamps> cellsIterator = Iterators.peekingIterator(orderedCells.iterator());
-        while(cellsIterator.hasNext()) {
-            byte[] currentRow = peekRowName(cellsIterator);
-            List<CellWithTimestamps> cellsForRow = collectTimestampsForRow(currentRow, cellsIterator);
-            rows.add(RowWithTimestamps.of(currentRow, cellsForRow));
-        }
-
-        return rows;
-    }
-
-    private List<CellWithTimestamps> collectTimestampsForRow(byte[] currentRow, PeekingIterator<CellWithTimestamps> orderedCells) {
-        List<CellWithTimestamps> result = Lists.newArrayList();
-
-        while (orderedCells.hasNext() && Arrays.equals(currentRow, peekRowName(orderedCells))) {
-            CellWithTimestamps cell = orderedCells.next();
-            result.add(cell);
-        }
-
-        return result;
-    }
-
-    private byte[] peekRowName(PeekingIterator<CellWithTimestamps> cellsIterator) {
-        return cellsIterator.peek().cell().getRowName();
     }
 }

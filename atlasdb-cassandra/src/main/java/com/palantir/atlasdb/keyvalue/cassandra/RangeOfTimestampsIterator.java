@@ -62,9 +62,9 @@ public class RangeOfTimestampsIterator implements ClosableIterator<RowResult<Set
     public RowResult<Set<Long>> next() {
         byte[] currentRow = peekNextRowName();
 
-        SortedMap<byte[], Set<Long>> timestampsByColumn = collectTimestampsForRow(currentRow);
+        SortedMap<byte[], Set<Long>> timestampsByCell = collectTimestampsForRow(currentRow);
 
-        return RowResult.create(currentRow, timestampsByColumn);
+        return RowResult.create(currentRow, timestampsByCell);
     }
 
     private byte[] peekNextRowName() {
