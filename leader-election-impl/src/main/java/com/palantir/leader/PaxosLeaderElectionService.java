@@ -368,7 +368,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 return;
             }
 
-            long seq = value.map(val -> val.getRound() + 1).orElse(0L);
+            long seq = value.map(val -> val.getRound()).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
 
             eventRecorder.recordProposalAttempt(seq);
             proposer.propose(seq, null);
@@ -438,7 +438,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private long latestRoundLearnedLocally() {
-        return getGreatestLearnedPaxosValue().map(PaxosValue::getRound).orElse(-1L);
+        return getGreatestLearnedPaxosValue().map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {
@@ -456,8 +456,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      * @returns true if new state was learned, otherwise false
      */
     public boolean updateLearnedStateFromPeers(Optional<PaxosValue> greatestLearned) {
-        final long nextToLearnSeq = greatestLearned.map(value -> value.getRound() + 1).orElse(0L);
-        List<PaxosUpdate> updates = PaxosQuorumChecker.<PaxosLearner, PaxosUpdate> collectQuorumResponses(
+        final long nextToLearnSeq =
+                greatestLearned.map(value -> value.getRound()).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+        List<PaxosUpdate> updates = PaxosQuorumChecker.<PaxosLearner, PaxosUpdate>collectQuorumResponses(
                 learners,
                 new Function<PaxosLearner, PaxosUpdate>() {
                     @Override

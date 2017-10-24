@@ -130,6 +130,7 @@ public class AwaitingLeadershipProxyTest {
         Callable<Void> proxy = proxyFor(() -> {
             throw new InterruptedException(TEST_MESSAGE);
         });
+        waitForLeadershipToBeGained();
 
         assertThatThrownBy(() -> proxy.call())
                 .isInstanceOf(InterruptedException.class)
