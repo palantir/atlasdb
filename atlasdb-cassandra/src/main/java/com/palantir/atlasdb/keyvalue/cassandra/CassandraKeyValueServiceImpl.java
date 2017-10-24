@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -2429,10 +2430,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 results.add(future.get());
             }
             return results;
+        } catch (ExecutionException e) {
+            throw Throwables.throwUncheckedException(e.getCause());
         } catch (Exception e) {
-            //TODO(hsaraogi): You can get a java.util.concurrent.ExecutionException
-            // with cause: com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory$ClientCreationFailedException:
-            // with message: Failed to construct client for /127.0.0.2:9160/atlasete.
             throw Throwables.throwUncheckedException(e);
         } finally {
             for (Future<V> future : futures) {
