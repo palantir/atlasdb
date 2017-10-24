@@ -42,4 +42,5 @@ public interface KeyValueServiceConfig {
     default int defaultGetRangesConcurrency() {
         return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
     }
+
 }
