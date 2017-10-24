@@ -17,12 +17,16 @@ package com.palantir.atlasdb.server;
 
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ImmutableSweepConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory;
 import com.palantir.atlasdb.server.generated.TodoSchemaTableFactory;
@@ -30,6 +34,7 @@ import com.palantir.atlasdb.server.generated.TodoTable;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -62,6 +67,9 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
 
         tm = TransactionManagers.builder()
                 .config(config.getConfig())
+                .runtimeConfigSupplier(() -> Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
+                        .sweep(ImmutableSweepConfig.builder().enabled(false).build())
+                        .build()))
                 .registrar(environment.jersey()::register)
                 .schemas(ImmutableSet.of(TodoSchema.getSchema()))
                 .buildSerializable();
@@ -100,7 +108,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                             return null;
                         }
                 );
-                Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+                Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
             } catch (NotInitializedException e) {
                 System.out.println("looks like the tm is not initialized yet.");
 //            } catch (PalantirRuntimeException e) { //ClientCreationFailedException
@@ -110,9 +118,21 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
 //                    System.out.println("oohhhhh no" + e.getMessage());
 //                }
             } catch (CassandraClientFactory.ClientCreationFailedException e) {
-                System.out.println("looks like the tm throws something." + e.getMessage());
-//            } catch (Throwable t) {
-//                System.out.println("looks like the tm throws something." + t.getMessage());
+                System.out.println("looks like the tm threw ClientCreationFailedException." + e.getMessage());
+            } catch (PalantirRuntimeException e) {
+                if (ExecutionException.class.isInstance(e.getCause()) && org.apache.cassandra.thrift.UnavailableException.class.isInstance(e.getCause().getCause())) {
+                    System.out.println("looks like the tm threw an ExecutionException wrapping thrift UnavailableException." + e.getMessage());
+                } else if (ExecutionException.class.isInstance(e.getCause()) && CassandraClientFactory.ClientCreationFailedException.class.isInstance(e.getCause().getCause())) {
+                    System.out.println("OHH NO! looks like the tm threw an ExecutionException wrapping ClientCreationFailedException." + e.getMessage());
+                } else if (e.getMessage().contains("Tried to connect to cassandra 6 times. Error writing to Cassandra socket.")) {
+                    System.out.println("looks like the tm threw as it failed to connect to C* 6 times." + e.getMessage());
+                } else {
+                    System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
+                }
+            } catch (Throwable t) {
+                System.out.println("OHH NO! looks like the tm throws something." + t.getMessage());
+            } finally {
+                System.out.flush();
             }
         }
     }

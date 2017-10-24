@@ -2430,6 +2430,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return results;
         } catch (Exception e) {
+            //TODO(hsaraogi): You can get a java.util.concurrent.ExecutionException
+            // with cause: com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory$ClientCreationFailedException:
+            // with message: Failed to construct client for /127.0.0.2:9160/atlasete.
             throw Throwables.throwUncheckedException(e);
         } finally {
             for (Future<V> future : futures) {

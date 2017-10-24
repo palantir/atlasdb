@@ -9,6 +9,17 @@ server:
     - type: http
       port: 3829
 
+logging:
+  level: INFO
+  appenders:
+    - type: file
+      currentLogFilename: var/log/myapplication.log
+      threshold: ALL
+      archive: true
+      archivedLogFilenamePattern: var/log/myapplication-%d.log
+      archivedFileCount: 5
+      timeZone: UTC
+
 atlasdb:
   keyValueService:
     type: cassandra
@@ -31,7 +42,6 @@ atlasdb:
     ignoreDatacenterConfigurationChecks: true
     ignorePartitionerChecks: true
   initializeAsync: true
-#  sweep:
   enableSweep: false
 
   namespace: atlasete
