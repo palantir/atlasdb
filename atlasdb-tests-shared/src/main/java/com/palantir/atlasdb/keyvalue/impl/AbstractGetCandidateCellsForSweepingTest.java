@@ -131,6 +131,19 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     }
 
     @Test
+    public void ignoresTimestampsToIgnore() {
+        new TestDataBuilder()
+                .put(1, 1, -1L)
+                .put(1, 1, 5L)
+                .putEmpty(2, 2, -1L)
+                .put(2, 2, 10L)
+                .store();
+        boolean containsIgnoredTimestamps = getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 100L, 100))
+                .stream().anyMatch(candidate -> candidate.sortedTimestamps().contains(-1L));
+        assertThat(containsIgnoredTimestamps).isFalse();
+    }
+
+    @Test
     public void returnCellsInOrder() {
         new TestDataBuilder()
                 .putEmpty(1, 1, 10L)

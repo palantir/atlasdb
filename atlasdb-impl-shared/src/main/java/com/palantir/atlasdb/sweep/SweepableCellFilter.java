@@ -17,7 +17,6 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -74,12 +73,7 @@ public class SweepableCellFilter {
         TLongList uncommittedTimestamps = new TLongArrayList();
         long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
         boolean maxStartTsIsCommitted = false;
-        Set<Long> timestampsToIgnore = sweeper.getTimestampsToIgnore();
         for (long startTs : candidate.sortedTimestamps()) {
-            if (timestampsToIgnore.contains(startTs)) {
-                continue;
-            }
-
             long commitTs = commitTss.load(startTs);
 
             if (startTs > maxStartTs && commitTs < sweepTs) {

@@ -51,6 +51,9 @@ public class GetEmptyLatestValues {
         this.batchSize = batchSize;
     }
 
+    /**
+     * Returns the subset of {@link Cell}s whose latest values prior to {@code maxTimestampExclusive} are empty.
+     */
     public Set<Cell> execute() {
         Set<Cell> result = Sets.newHashSet();
         for (List<CellWithTimestamps> batch : Iterables.partition(cellTimestamps, batchSize)) {

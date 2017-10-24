@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
@@ -43,9 +44,12 @@ public interface CellWithTimestamps {
                 .build();
     }
 
-    default CandidateCellForSweeping toSweepCandidate(long maxTimestampExclusive, boolean latestValueEmpty) {
+    default CandidateCellForSweeping toSweepCandidate(
+            long maxTimestampExclusive,
+            Set<Long> timestampsToIgnore,
+            boolean latestValueEmpty) {
         List<Long> filteredTimestamps = sortedTimestamps().stream()
-                .filter(ts -> ts < maxTimestampExclusive)
+                .filter(ts -> ts < maxTimestampExclusive && !timestampsToIgnore.contains(ts))
                 .collect(Collectors.toList());
         return ImmutableCandidateCellForSweeping.builder()
                 .cell(cell())

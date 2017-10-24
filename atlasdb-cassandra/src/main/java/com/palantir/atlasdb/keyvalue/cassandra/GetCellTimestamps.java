@@ -35,7 +35,7 @@ public class GetCellTimestamps {
     private final byte[] startRowInclusive;
     private final int batchHint;
 
-    private final Collection<CellWithTimestamp> cells = Lists.newArrayList();
+    private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
 
     public GetCellTimestamps(
             CqlExecutor cqlExecutor,
@@ -48,6 +48,9 @@ public class GetCellTimestamps {
         this.batchHint = batchHint;
     }
 
+    /**
+     * Fetches a batch of timestamps, grouped by cell. The returned {@link CellWithTimestamp}s are ordered by cell.
+     */
     public List<CellWithTimestamps> execute() {
         fetchBatchOfTimestamps();
 
@@ -64,21 +67,21 @@ public class GetCellTimestamps {
         fetchRemainingTimestampsForLastRow();
     }
 
+    private void fetchAllTimestampsBeginningAtStartRow() {
+        List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, startRowInclusive, batchHint);
+
+        timestamps.addAll(batch);
+    }
+
     private void fetchRemainingTimestampsForLastRow() {
-        boolean moreToFetch = !cells.isEmpty();
+        boolean moreToFetch = !timestamps.isEmpty();
         while (moreToFetch) {
             moreToFetch = fetchBatchOfRemainingCellTsPairsInLastRow();
         }
     }
 
-    private void fetchAllTimestampsBeginningAtStartRow() {
-        List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, startRowInclusive, batchHint);
-
-        cells.addAll(batch);
-    }
-
     private boolean fetchBatchOfRemainingCellTsPairsInLastRow() {
-        CellWithTimestamp lastCell = Iterables.getLast(cells);
+        CellWithTimestamp lastCell = Iterables.getLast(timestamps);
 
         List<CellWithTimestamp> batch = cqlExecutor.getTimestampsWithinRow(
                 tableRef,
@@ -87,11 +90,11 @@ public class GetCellTimestamps {
                 lastCell.timestamp(),
                 batchHint);
 
-        return cells.addAll(batch);
+        return timestamps.addAll(batch);
     }
 
     private List<CellWithTimestamps> groupTimestampsByCell() {
-        Map<Cell, List<Long>> timestampsByCell = cells.stream().collect(
+        Map<Cell, List<Long>> timestampsByCell = timestamps.stream().collect(
                 Collectors.groupingBy(CellWithTimestamp::cell,
                         Collectors.mapping(CellWithTimestamp::timestamp, Collectors.toList())));
 

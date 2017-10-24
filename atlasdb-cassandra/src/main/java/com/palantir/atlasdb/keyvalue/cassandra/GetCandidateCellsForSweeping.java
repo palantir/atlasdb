@@ -58,6 +58,9 @@ public class GetCandidateCellsForSweeping {
         this.valuesBatchSize = Math.max(100, timestampsBatchSize / 10);
     }
 
+    /**
+     * Fetches a batch of candidate cells. The returned {@link CandidateCellForSweeping}s are ordered by cell.
+     */
     public List<CandidateCellForSweeping> execute() {
         fetchCellTimestamps();
 
@@ -86,6 +89,7 @@ public class GetCandidateCellsForSweeping {
                 cellTimestamps,
                 cell -> cell.toSweepCandidate(
                         request.maxTimestampExclusive(),
+                        request.timestampsToIgnore(),
                         cellsWithEmptyValues.contains(cell.cell())));
     }
 }

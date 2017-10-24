@@ -47,9 +47,8 @@ public class RangeOfTimestampsIterator implements ClosableIterator<RowResult<Set
                 .addTimestampsToIgnore()
                 .build();
         this.rangeRequest = rangeRequest;
-        this.delegate = keyValueService.getCandidateCellsForSweeping(
-                tableRef,
-                request).flatMap(list -> list);
+        this.delegate = keyValueService.getCandidateCellsForSweeping(tableRef, request)
+                .flatMap(list -> list);
         this.candidates = Iterators.peekingIterator(delegate);
     }
 
