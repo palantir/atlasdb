@@ -77,6 +77,16 @@ develop
         - V2 generated tables now support using ``Persistable`` as column values. Note that this is still a beta feature, and API stability is not guaranteed.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2495>`__)         
 
+    *   - |fixed|
+        - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
+          The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
+
+    *   - |fixed|
+        - The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
+          This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
+
     *   - |improved|
         - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
