@@ -74,7 +74,7 @@ develop
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
     *   - |fixed|
-        - V2 generated tables now support using ``Persistable``s as column values. Note that this is still a beta feature, and API stability is not guaranteed.
+        - V2 generated tables now support using ``Persistable`` as column values. Note that this is still a beta feature, and API stability is not guaranteed.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2495>`__)         
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
