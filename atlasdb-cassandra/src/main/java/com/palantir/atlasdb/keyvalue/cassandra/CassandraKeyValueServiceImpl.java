@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -2435,6 +2436,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 results.add(future.get());
             }
             return results;
+        } catch (ExecutionException e) {
+            throw Throwables.throwUncheckedException(e.getCause());
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
