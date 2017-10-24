@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
@@ -32,7 +34,9 @@ public interface CellWithTimestamps {
 
     List<Long> sortedTimestamps();
 
-    static CellWithTimestamps of(Cell cell, List<Long> sortedTimestamps) {
+    static CellWithTimestamps of(Cell cell, List<Long> unsortedTimestamps) {
+        List<Long> sortedTimestamps = Lists.newArrayList(unsortedTimestamps);
+        Collections.sort(sortedTimestamps);
         return ImmutableCellWithTimestamps.builder()
                 .cell(cell)
                 .sortedTimestamps(sortedTimestamps)
@@ -40,9 +44,12 @@ public interface CellWithTimestamps {
     }
 
     default CandidateCellForSweeping toSweepCandidate(long maxTimestampExclusive, boolean latestValueEmpty) {
+        List<Long> filteredTimestamps = sortedTimestamps().stream()
+                .filter(ts -> ts < maxTimestampExclusive)
+                .collect(Collectors.toList());
         return ImmutableCandidateCellForSweeping.builder()
                 .cell(cell())
-                .sortedTimestamps(Collections2.filter(sortedTimestamps(), ts -> ts < maxTimestampExclusive))
+                .sortedTimestamps(filteredTimestamps)
                 .isLatestValueEmpty(latestValueEmpty)
                 .build();
     }

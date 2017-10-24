@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.OptionalInt;
+import java.util.Set;
 
 import org.immutables.value.Value;
 
@@ -26,10 +27,9 @@ public interface CandidateCellForSweepingRequest {
     OptionalInt batchSizeHint();
 
     /**
-     *  Only start timestamps that are strictly below this number will be considered by the caller. This value is
-     *  merely a hint to the implementation, so that it may optimize its querying.
+     *  The maximum timestamp to be returned in the resulting {@link CandidateCellForSweeping} objects.
      */
-    long maxTimestampExclusiveHint();
+    long maxTimestampExclusive();
 
     /**
      *  In practice, this is true for the THOROUGH sweep strategy and false for CONSERVATIVE.
@@ -37,10 +37,9 @@ public interface CandidateCellForSweepingRequest {
     boolean shouldCheckIfLatestValueIsEmpty();
 
     /*
-     *  In practice, this is the empty set if for the THOROUGH sweep strategy and { -1 } for CONSERVATIVE. This value is
-     *  merely a hint to the implementation, so that it may optimize its querying.
+     *  In practice, this is the empty set if for the THOROUGH sweep strategy and { -1 } for CONSERVATIVE.
      */
-    long[] timestampsToIgnoreHint();
+    Set<Long> timestampsToIgnore();
 
     default CandidateCellForSweepingRequest withStartRow(byte[] startRow) {
         return ImmutableCandidateCellForSweepingRequest.builder()

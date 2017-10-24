@@ -27,12 +27,11 @@ import java.util.Map;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CellWithTimestamps;
 
-public class CellTimestampsFetch {
+public class GetCellTimestamps {
 
     private final CqlExecutor cqlExecutor;
     private final TableReference tableRef;
@@ -41,7 +40,7 @@ public class CellTimestampsFetch {
 
     private final Collection<CellWithTimestamp> cells = Lists.newArrayList();
 
-    public CellTimestampsFetch(
+    public GetCellTimestamps(
             CqlExecutor cqlExecutor,
             TableReference tableRef,
             byte[] startRowInclusive,
@@ -60,8 +59,8 @@ public class CellTimestampsFetch {
 
     /**
      * We always finish the last whole row when fetching timestamps. Sweep actually only requires that we return a
-     * whole cell at a time, but since this module only receives a start row (and not row+cell), it's best to finish the
-     * whole row.
+     * whole cell at a time, but due to the limited types of queries cassandra supports, it's easiest to finish a whole
+     * row.
      */
     private void fetchBatchOfTimestamps() {
         fetchAllTimestampsBeginningAtStartRow();

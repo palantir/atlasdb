@@ -28,7 +28,12 @@ public abstract class CellWithTimestamp {
 
     public abstract long timestamp();
 
-    public static class Builder extends ImmutableCellWithTimestamp.Builder { }
+    public static CellWithTimestamp of(Cell cell, long timestamp) {
+        return ImmutableCellWithTimestamp.builder()
+                .cell(cell)
+                .timestamp(timestamp)
+                .build();
+    }
 
     public ColumnOrSuperColumn asColumnOrSuperColumn() {
         Column col = new Column().setName(

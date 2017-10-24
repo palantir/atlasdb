@@ -18,23 +18,22 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 
 public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+//    @ClassRule
+//    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
+//            .with(new CassandraContainer());
 
     @Override
     protected KeyValueService createKeyValueService() {
@@ -50,9 +49,8 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L })
+                        .sortedTimestamps(ImmutableList.of(10L))
                         .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(1)
                         .build());
     }
 
@@ -62,9 +60,8 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
         assertThat(getAllCandidates(conservativeRequest(PtBytes.EMPTY_BYTE_ARRAY, 40L, 1)))
                 .containsExactly(ImmutableCandidateCellForSweeping.builder()
                         .cell(cell(1, 1))
-                        .sortedTimestamps(new long[] { 10L, 20L })
+                        .sortedTimestamps(ImmutableList.of(10L, 20L))
                         .isLatestValueEmpty(false)
-                        .numCellsTsPairsExamined(2)
                         .build());
     }
 

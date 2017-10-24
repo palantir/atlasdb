@@ -155,10 +155,9 @@ public class AllCellsPerRowPagerTest {
     }
 
     private CellWithTimestamp makeCell(String columnName, long timestamp) {
-        return new CellWithTimestamp.Builder()
-                .cell(Cell.create(rowKey.array(), columnName.getBytes(StandardCharsets.UTF_8)))
-                .timestamp(timestamp)
-                .build();
+        return CellWithTimestamp.of(
+                Cell.create(rowKey.array(), columnName.getBytes(StandardCharsets.UTF_8)),
+                timestamp);
     }
 
     private static ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {

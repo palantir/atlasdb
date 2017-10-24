@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
@@ -47,7 +48,7 @@ public class CqlExecutor {
     private QueryExecutor queryExecutor;
 
     public interface QueryExecutor {
-        CqlResult execute(byte[] row, String query);
+        CqlResult execute(byte[] rowHintForHostSelection, String query);
     }
 
     CqlExecutor(CassandraClientPool clientPool, ConsistencyLevel consistency) {
@@ -71,7 +72,7 @@ public class CqlExecutor {
                 quotedTableName(tableRef),
                 key(row),
                 limit(limit));
-        return query.executeAndGetCells(row);
+        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
     }
 
     /**
@@ -97,12 +98,12 @@ public class CqlExecutor {
                 column1(column),
                 column2(invertedTimestamp),
                 limit(limit));
-        return query.executeAndGetCells(row);
+        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
     }
 
     /**
      * @param tableRef the table from which to select
-     * @param row the row from key
+     * @param startRowInclusive the row from key
      * @param limit the maximum number of results to return.
      * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
      * <code>maxTimestampExclusive</code>
@@ -112,11 +113,11 @@ public class CqlExecutor {
             byte[] startRowInclusive,
             int limit) {
         CqlQuery query = new CqlQuery(
-                "SELECT key, column1, column2 FROM %s WHERE token(key) > token(%s) LIMIT %s;",
+                "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;",
                 quotedTableName(tableRef),
                 key(startRowInclusive),
                 limit(limit));
-        return query.executeAndGetCells(startRowInclusive);
+        return query.executeAndGetCells(startRowInclusive, this::getCellForKeyColumn1Column2);
     }
 
     /**
@@ -142,7 +143,28 @@ public class CqlExecutor {
                 column1(startColumnInclusive),
                 column2(invertedTimestamp),
                 limit(limit));
-        return query.executeAndGetCells(row);
+        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
+    }
+
+    private CellWithTimestamp getCellForColumn1Column2(CqlRow row, byte[] key) {
+        byte[] rowName = key;
+        byte[] columnName = row.getColumns().get(0).getValue();
+        long timestamp = extractTimestamp(row, 1);
+
+        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
+    }
+
+    private CellWithTimestamp getCellForKeyColumn1Column2(CqlRow row) {
+        byte[] rowName = row.getColumns().get(0).getValue();
+        byte[] columnName = row.getColumns().get(1).getValue();
+        long timestamp = extractTimestamp(row, 2);
+
+        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
+    }
+
+    private long extractTimestamp(CqlRow row, int columnIndex) {
+        byte[] flippedTimestampAsBytes = row.getColumns().get(columnIndex).getValue();
+        return ~PtBytes.toLong(flippedTimestampAsBytes);
     }
 
     /**
@@ -164,7 +186,7 @@ public class CqlExecutor {
                 key(row),
                 column1(previousColumn),
                 limit(limit));
-        return query.executeAndGetCells(row);
+        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
     }
 
     private Arg<String> key(byte[] row) {
@@ -188,16 +210,11 @@ public class CqlExecutor {
         return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
     }
 
-    private List<CellWithTimestamp> getCells(byte[] key, CqlResult cqlResult) {
-        return cqlResult.getRows().stream().map(cqlRow -> getCell(key, cqlRow)).collect(Collectors.toList());
-    }
-
-    private CellWithTimestamp getCell(byte[] key, CqlRow cqlRow) {
-        byte[] columnName = cqlRow.getColumns().get(0).getValue();
-        byte[] flippedTimestampAsBytes = cqlRow.getColumns().get(1).getValue();
-        long timestampLong = ~PtBytes.toLong(flippedTimestampAsBytes);
-
-        return new CellWithTimestamp.Builder().cell(Cell.create(key, columnName)).timestamp(timestampLong).build();
+    private List<CellWithTimestamp> getCells(Function<CqlRow, CellWithTimestamp> cellTsExtractor, CqlResult cqlResult) {
+        return cqlResult.getRows()
+                .stream()
+                .map(cellTsExtractor)
+                .collect(Collectors.toList());
     }
 
     private final class CqlQuery {
@@ -209,12 +226,14 @@ public class CqlExecutor {
             this.queryArgs = args;
         }
 
-        public List<CellWithTimestamp> executeAndGetCells(byte[] row) {
+        public List<CellWithTimestamp> executeAndGetCells(
+                byte[] rowHintForHostSelection,
+                Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
             CqlResult cqlResult = KvsProfilingLogger.maybeLog(
-                    () -> queryExecutor.execute(row, toString()),
+                    () -> queryExecutor.execute(rowHintForHostSelection, toString()),
                     this::logSlowResult,
                     this::logResultSize);
-            return getCells(row, cqlResult);
+            return getCells(cellTsExtractor, cqlResult);
         }
 
         private void logSlowResult(KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
@@ -248,8 +267,8 @@ public class CqlExecutor {
         }
 
         @Override
-        public CqlResult execute(byte[] row, String query) {
-            return executeQueryOnHost(query, getHostForRow(row));
+        public CqlResult execute(byte[] rowHintForHostSelection, String query) {
+            return executeQueryOnHost(query, getHostForRow(rowHintForHostSelection));
         }
 
         private InetSocketAddress getHostForRow(byte[] row) {

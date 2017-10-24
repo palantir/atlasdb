@@ -104,7 +104,7 @@ public class SweepableCellFilter {
         }
         boolean needsSentinel = sweeper.shouldAddSentinels() && timestampsToSweep.size() > 1;
         boolean shouldSweepLastCommitted = sweeper.shouldSweepLastCommitted()
-                && candidate.isLatestValueEmpty().orElse(false)
+                && candidate.isLatestValueEmpty()
                 && maxStartTsIsCommitted;
         if (!timestampsToSweep.isEmpty() && !shouldSweepLastCommitted) {
             timestampsToSweep.removeAt(timestampsToSweep.size() - 1);
