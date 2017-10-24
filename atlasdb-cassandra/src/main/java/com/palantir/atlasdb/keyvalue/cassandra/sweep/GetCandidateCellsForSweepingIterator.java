@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import java.util.List;
 
@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.common.base.ClosableIterator;
 
 public class GetCandidateCellsForSweepingIterator extends AbstractIterator<List<CandidateCellForSweeping>>

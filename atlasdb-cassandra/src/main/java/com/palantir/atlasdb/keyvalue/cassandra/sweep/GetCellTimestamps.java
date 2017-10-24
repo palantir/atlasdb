@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -26,7 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CellWithTimestamps;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 
 public class GetCellTimestamps {
 

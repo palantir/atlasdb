@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.paging;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ImmutableCellWithTimestamps;
 
 @Value.Immutable
 public interface CellWithTimestamps {

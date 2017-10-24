@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CellWithTimestamps;
 
 public class GetEmptyLatestValues {
 

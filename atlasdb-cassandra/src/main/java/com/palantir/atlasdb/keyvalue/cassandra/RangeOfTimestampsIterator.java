@@ -45,6 +45,7 @@ public class RangeOfTimestampsIterator implements ClosableIterator<RowResult<Set
                 .startRowInclusive(rangeRequest.getStartInclusive())
                 .maxTimestampExclusive(timestamp)
                 .addTimestampsToIgnore()
+                .shouldCheckIfLatestValueIsEmpty(false)
                 .build();
         this.rangeRequest = rangeRequest;
         this.delegate = keyValueService.getCandidateCellsForSweeping(tableRef, request)

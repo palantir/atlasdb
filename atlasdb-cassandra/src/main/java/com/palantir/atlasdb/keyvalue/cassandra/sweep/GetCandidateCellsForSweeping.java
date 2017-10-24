@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.cassandra.GetEmptyLatestValues;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CellWithTimestamps;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 
 public class GetCandidateCellsForSweeping {
 
-    private final int DEFAULT_TIMESTAMPS_BATCH_SIZE = 10_000;
+    private static final int DEFAULT_TIMESTAMPS_BATCH_SIZE = 10_000;
 
     private final KeyValueService kvs;
     private final CqlExecutor cqlExecutor;
