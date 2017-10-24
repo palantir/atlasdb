@@ -67,6 +67,11 @@ public abstract class ConnectionConfig {
     }
 
     @Value.Default
+    public boolean isInitializationFailFast() {
+        return true;
+    }
+
+    @Value.Default
     public Integer getMaxConnectionAge() {
         return 1800;
     }
@@ -129,6 +134,8 @@ public abstract class ConnectionConfig {
 
         config.setMinimumIdle(getMinConnections());
         config.setMaximumPoolSize(getMaxConnections());
+
+        config.setInitializationFailFast(isInitializationFailFast());
 
         config.setMaxLifetime(TimeUnit.SECONDS.toMillis(getMaxConnectionAge()));
         config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
