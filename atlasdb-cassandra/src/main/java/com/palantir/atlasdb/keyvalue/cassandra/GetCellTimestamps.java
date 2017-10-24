@@ -16,14 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
-
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -68,20 +65,19 @@ public class GetCellTimestamps {
     }
 
     private void fetchRemainingTimestampsForLastRow() {
-        while (fetchBatchOfRemainingCellTsPairsInLastRow()) { }
+        boolean moreToFetch = !cells.isEmpty();
+        while (moreToFetch) {
+            moreToFetch = fetchBatchOfRemainingCellTsPairsInLastRow();
+        }
     }
 
-    private boolean fetchAllTimestampsBeginningAtStartRow() {
+    private void fetchAllTimestampsBeginningAtStartRow() {
         List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, startRowInclusive, batchHint);
 
-        return cells.addAll(batch);
+        cells.addAll(batch);
     }
 
     private boolean fetchBatchOfRemainingCellTsPairsInLastRow() {
-        if (cells.isEmpty()) {
-            return false;
-        }
-
         CellWithTimestamp lastCell = Iterables.getLast(cells);
 
         List<CellWithTimestamp> batch = cqlExecutor.getTimestampsWithinRow(
@@ -96,12 +92,12 @@ public class GetCellTimestamps {
 
     private List<CellWithTimestamps> groupTimestampsByCell() {
         Map<Cell, List<Long>> timestampsByCell = cells.stream().collect(
-                groupingBy(CellWithTimestamp::cell,
-                        mapping(CellWithTimestamp::timestamp, toList())));
+                Collectors.groupingBy(CellWithTimestamp::cell,
+                        Collectors.mapping(CellWithTimestamp::timestamp, Collectors.toList())));
 
         return timestampsByCell.entrySet().stream()
                 .map(entry -> CellWithTimestamps.of(entry.getKey(), entry.getValue()))
                 .sorted(Comparator.comparing(CellWithTimestamps::cell))
-                .collect(toList());
+                .collect(Collectors.toList());
     }
 }

@@ -60,7 +60,7 @@ public class SweepableCellFilter {
                     builder.addCells(cellToSweep);
                 }
             }
-            numCellTsPairsExamined = 1;// candidate.numCellsTsPairsExamined();
+            numCellTsPairsExamined += candidate.sortedTimestamps().size();
             lastCellExamined = candidate.cell();
         }
         return builder.numCellTsPairsExaminedSoFar(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();

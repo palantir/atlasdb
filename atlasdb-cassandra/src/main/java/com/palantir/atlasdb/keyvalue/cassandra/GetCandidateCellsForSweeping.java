@@ -79,8 +79,8 @@ public class GetCandidateCellsForSweeping {
     private List<CandidateCellForSweeping> convertToSweepCandidates() {
         return Lists.transform(
                 cellTimestamps,
-                cellTimestamps -> cellTimestamps.toSweepCandidate(
+                cell -> cell.toSweepCandidate(
                         request.maxTimestampExclusive(),
-                        cellsWithEmptyValues.contains(cellTimestamps.cell())));
+                        cellsWithEmptyValues.contains(cell.cell())));
     }
 }

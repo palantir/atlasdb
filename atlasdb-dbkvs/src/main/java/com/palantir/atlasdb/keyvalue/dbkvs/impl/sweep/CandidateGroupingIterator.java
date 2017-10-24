@@ -40,7 +40,6 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
     private byte[] currentColName = PtBytes.EMPTY_BYTE_ARRAY;
     private final TLongList currentCellTimestamps = new TLongArrayList();
     private boolean currentIsLatestValueEmpty = false;
-    private long cellTsPairsExamined = 0L;
 
     private CandidateGroupingIterator(Iterator<List<CellTsPairInfo>> cellTsIterator) {
         this.cellTsIterator = cellTsIterator;
@@ -82,7 +81,6 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
     private void updateStateAfterSingleCellTsPairProcessed(CellTsPairInfo cellTs) {
         currentIsLatestValueEmpty = cellTs.hasEmptyValue;
         currentCellTimestamps.add(cellTs.ts);
-        cellTsPairsExamined += 1;
     }
 
     private Optional<CandidateCellForSweeping> checkCurrentCellAndUpdateIfNecessary(CellTsPairInfo cellTs) {
@@ -107,15 +105,14 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
                     .cell(Cell.create(currentRowName, currentColName))
                     .sortedTimestamps(toList(currentCellTimestamps))
                     .isLatestValueEmpty(currentIsLatestValueEmpty)
-                    .numCellsTsPairsExamined(cellTsPairsExamined)
                     .build());
         }
     }
 
-    private Collection<Long> toList(TLongList currentCellTimestamps) {
-        List<Long> result = Lists.newArrayListWithExpectedSize(currentCellTimestamps.size());
-        for (int i = 0; i < currentCellTimestamps.size(); i++) {
-            result.add(currentCellTimestamps.get(i));
+    private Collection<Long> toList(TLongList values) {
+        List<Long> result = Lists.newArrayListWithExpectedSize(values.size());
+        for (int i = 0; i < values.size(); i++) {
+            result.add(values.get(i));
         }
         return result;
     }

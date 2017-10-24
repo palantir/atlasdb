@@ -51,7 +51,7 @@ public class GetCandidateCellsForSweepingIterator extends AbstractIterator<List<
 
     @Override
     protected List<CandidateCellForSweeping> computeNext() {
-        List<CandidateCellForSweeping> batch = getCandidateCellsForSweepingBatch(nextStartRow);
+        List<CandidateCellForSweeping> batch = getCandidateCellsForSweepingBatch();
         if (batch.isEmpty()) {
             return endOfData();
         }
@@ -62,7 +62,7 @@ public class GetCandidateCellsForSweepingIterator extends AbstractIterator<List<
         return batch;
     }
 
-    private List<CandidateCellForSweeping> getCandidateCellsForSweepingBatch(byte[] nextStartRow) {
+    private List<CandidateCellForSweeping> getCandidateCellsForSweepingBatch() {
         return new GetCandidateCellsForSweeping(kvs, cqlExecutor, table, request.withStartRow(nextStartRow)).execute();
     }
 }
