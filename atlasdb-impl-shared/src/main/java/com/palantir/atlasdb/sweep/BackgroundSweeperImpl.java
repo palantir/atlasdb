@@ -116,6 +116,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             while (true) {
                 SweepOutcome outcome = checkConfigAndRunSweep(locks);
 
+                log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
+
                 updateBatchSize(outcome);
                 updateMetrics(outcome);
 
