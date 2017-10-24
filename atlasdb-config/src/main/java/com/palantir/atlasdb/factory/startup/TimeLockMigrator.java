@@ -70,7 +70,6 @@ public class TimeLockMigrator extends AsyncInitializer {
      * is unreadable.
      */
     @Idempotent
-    @SuppressWarnings("CheckReturnValue") // errorprone doesn't pick up "when=NEVER"
     public void migrate() {
         initialize(initializeAsync);
     }
@@ -84,6 +83,7 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     @Override
+    @SuppressWarnings({"CheckReturnValue", "ResultOfMethodCallIgnored"}) // errorprone doesn't pick up "when=NEVER"
     protected synchronized void tryInitialize() {
         try {
             destination.ping();
