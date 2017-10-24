@@ -32,14 +32,14 @@ public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     default void close() { }
 
     default <U> ClosableIterator<U> map(Function<T, U> mapper) {
-        return ClosableIterators.wrap(stream(this).map(mapper).iterator(), this);
+        return ClosableIterators.wrap(stream().map(mapper).iterator(), this);
     }
 
     default <U> ClosableIterator<U> flatMap(Function<T, Collection<U>> mapper) {
-        return ClosableIterators.wrap(stream(this).flatMap(obj -> mapper.apply(obj).stream()).iterator(), this);
+        return ClosableIterators.wrap(stream().flatMap(obj -> mapper.apply(obj).stream()).iterator(), this);
     }
 
-    static <T> Stream<T> stream(Iterator<T> iterator) {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false);
+    default Stream<T> stream() {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(this, 0), false);
     }
 }
