@@ -60,7 +60,7 @@ develop
          - Async Initialization now works with TimeLock Server.
            Previously, for Cassandra we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
            For DBKVS or other key-value services, we would attempt to ping TimeLock on startup, which would fail if TimeLock was unavailable (though the KVS need not be available).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2520>`__)
 
     *    - |fixed|
          - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
