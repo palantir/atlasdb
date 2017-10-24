@@ -177,7 +177,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         log.debug("Closed transport for client {}", client.getObject());
     }
 
-    static class ClientCreationFailedException extends RuntimeException {
+    public static class ClientCreationFailedException extends RuntimeException {
         private static final long serialVersionUID = 1L;
 
         ClientCreationFailedException(String message, Exception cause) {
