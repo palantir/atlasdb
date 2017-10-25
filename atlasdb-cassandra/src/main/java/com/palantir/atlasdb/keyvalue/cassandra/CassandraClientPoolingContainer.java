@@ -43,6 +43,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
@@ -99,7 +101,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             openRequests.getAndIncrement();
             return runWithGoodResource(fn);
         } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}': {}", host, t.toString());
+            log.warn("Error occurred talking to host '{}': {}",
+                    SafeArg.of("host", host), UnsafeArg.of("exception", t.toString()));
             throw t;
         } finally {
             openRequests.getAndDecrement();
@@ -123,7 +126,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return fn.apply(resource);
         } catch (Exception e) {
             if (isInvalidClientConnection(e)) {
-                log.warn("Not reusing resource {} due to {}", resource, e.toString(), e);
+                log.warn("Not reusing resource {} due to {}",
+                        SafeArg.of("clientPool", resource),
+                        UnsafeArg.of("exception", e.toString()), e);
                 shouldReuse = false;
             }
             if (e instanceof TTransportException
@@ -135,7 +140,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         } finally {
             if (resource != null) {
                 if (shouldReuse) {
-                    log.debug("Returning {} to pool", resource);
+                    log.debug("Returning {} to pool", SafeArg.of("pool", resource));
                     eagerlyCleanupReadBuffersFromIdleConnection(resource);
                     clientPool.returnObject(resource);
                 } else {
@@ -156,7 +161,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 byte[] underlyingBuffer = memoryInputTransport.getBuffer();
                 if (underlyingBuffer != null) {
                     log.debug("During {} check-in, cleaned up a read buffer of {} bytes",
-                            idleClient, underlyingBuffer.length);
+                            SafeArg.of("pool", idleClient), SafeArg.of("bufferLength", underlyingBuffer.length));
                     memoryInputTransport.clear();
                 }
             }
@@ -173,7 +178,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     private void invalidateQuietly(Client resource) {
         try {
-            log.debug("Discarding: {}", resource);
+            log.debug("Discarding: {}", SafeArg.of("pool", resource));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             // Ignore

@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.SafeArg;
 
 public class SchemaMutationLockTables {
     public static final String LOCK_TABLE_PREFIX = "_locks";
@@ -69,7 +70,7 @@ public class SchemaMutationLockTables {
     private TableReference createLockTable(Cassandra.Client client) throws TException {
         String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
-        log.info("Creating lock table {}", lockTable);
+        log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable));
         createTableInternal(client, lockTable);
         return lockTable;
     }

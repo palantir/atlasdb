@@ -66,7 +66,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected TransactionManager getManager() {
-        return new SerializableTransactionManager(
+        return SerializableTransactionManager.createForTest(
                 keyValueService,
                 timestampService,
                 lockClient,
@@ -77,7 +77,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
     @Override
