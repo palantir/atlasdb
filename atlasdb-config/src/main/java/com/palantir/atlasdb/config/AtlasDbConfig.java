@@ -254,20 +254,6 @@ public abstract class AtlasDbConfig {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
 
-
-    /**
-     * The number of timestamps to cache that we have seen in previous reads.
-     * This will use somewhere around 90MB of heap memory per million timestamps because of various overheads
-     * from Java Objects and the cache's LRU tracking.
-     *
-     * Probably the only reason to configure away from the default would be a service that can afford the heap usage,
-     * and has read patterns that deal with a very large working set of existing transactions.
-     */
-    @Value.Default
-    public long getTimestampCacheSize() {
-        return AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
-    }
-
     @Value.Check
     protected final void check() {
         checkLeaderAndTimelockBlocks();

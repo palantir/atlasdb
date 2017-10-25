@@ -31,6 +31,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -70,6 +71,7 @@ import com.palantir.timestamp.TimestampService;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final int defaultGetRangesConcurrency;
+    final TimestampCache timestampValidationReadCache;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -87,7 +89,7 @@ import com.palantir.timestamp.TimestampService;
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -102,7 +104,7 @@ import com.palantir.timestamp.TimestampService;
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        timestampValidationReadCache.resize(timestampCacheSize);
+        this.timestampValidationReadCache = new TimestampCache(timestampCacheSize.get());
     }
 
     @Override
@@ -252,6 +254,11 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
+    @Override
+    public void clearTimestampCache() {
+        timestampValidationReadCache.clear();
+    }
+
     private void closeLockServiceIfPossible() {
         if (lockService instanceof AutoCloseable) {
             try {
@@ -322,6 +329,7 @@ import com.palantir.timestamp.TimestampService;
         return new TimelockTimestampServiceAdapter(timelockService);
     }
 
+    @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
         switch (clusterAvailabilityStatus) {

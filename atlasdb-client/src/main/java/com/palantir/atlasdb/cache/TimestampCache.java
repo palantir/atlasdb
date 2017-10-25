@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cache;
 
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -23,7 +24,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 /**
@@ -31,15 +31,19 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
  */
 public class TimestampCache {
 
+    // TODO: create a background thread periodically polls the supplier to look for a change and resizes if necessary
+    private final Supplier<Long> size;
+
     private volatile Cache<Long, Long> startToCommitTimestampCache;
 
-    public TimestampCache() {
-        startToCommitTimestampCache = createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+    public TimestampCache(Supplier<Long> size) {
+        this.size = size;
+        startToCommitTimestampCache = createCache(size.get());
         AtlasDbMetrics.registerCache(startToCommitTimestampCache,
                 MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
     }
 
-    public void resize(long newSize) {
+    private void resize(long newSize) {
         ConcurrentMap<Long, Long> existing = startToCommitTimestampCache.asMap();
         startToCommitTimestampCache = createCache(newSize);
         startToCommitTimestampCache.putAll(existing);
@@ -47,6 +51,7 @@ public class TimestampCache {
 
     @VisibleForTesting
     TimestampCache(Cache<Long, Long> cache) {
+        this.size = null;
         this.startToCommitTimestampCache = cache;
     }
 

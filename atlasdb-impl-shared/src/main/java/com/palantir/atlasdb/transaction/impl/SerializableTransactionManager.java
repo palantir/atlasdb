@@ -84,7 +84,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * use the delegate instead.
      */
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, false, null, 1, 1, 1);
+        this(null, null, null, null, null, null, null, null, false, null, 1, 1, null);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -101,7 +101,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 keyValueService,
                 timelockService,
@@ -133,7 +133,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         return new SerializableTransactionManager(keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
@@ -166,7 +166,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean allowHiddenTableAccess,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -196,7 +196,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         super(
                 keyValueService,
                 timelockService,
