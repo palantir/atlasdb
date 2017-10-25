@@ -102,7 +102,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return runWithGoodResource(fn);
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}",
-                    SafeArg.of("host", host), UnsafeArg.of("exception", t.toString()));
+                    SafeArg.of("host", host.getHostString()), UnsafeArg.of("exception", t.toString()));
             throw t;
         } finally {
             openRequests.getAndDecrement();

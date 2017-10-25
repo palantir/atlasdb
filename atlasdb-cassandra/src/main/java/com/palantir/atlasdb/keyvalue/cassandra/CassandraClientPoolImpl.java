@@ -21,6 +21,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -337,7 +338,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
                     log.info("Added host {} back into the pool after a waiting period and successful health check.",
-                            SafeArg.of("host", host));
+                            SafeArg.of("host", host.getHostString()));
                 }
             }
         }
@@ -358,7 +359,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         } catch (Exception e) {
             log.warn("We tried to add {} back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", host),
+                    SafeArg.of("host", host.getHostString()),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()));
             return false;
@@ -609,7 +610,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                             UnsafeArg.of("queryString", fn.toString()),
                             SafeArg.of("sleepDuration", sleepDuration),
-                            SafeArg.of("hostName", hostPool.getHost()));
+                            SafeArg.of("hostName", hostPool.getHost().getHostString()));
 
                     try {
                         Thread.sleep(sleepDuration);
@@ -621,7 +622,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     }
                 } else if (isFastFailoverException(e)) {
                     log.info("Retrying with fast failover a query intended for host {}.",
-                            SafeArg.of("hostName", hostPool.getHost()));
+                            SafeArg.of("hostName", hostPool.getHost().getHostString()));
                     shouldRetryOnDifferentHost = true;
                 }
             }
@@ -732,7 +733,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 }
                 tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
-                log.warn("Failed to get ring info from host: {}", SafeArg.of("host", host), e);
+                log.warn("Failed to get ring info from host: {}", SafeArg.of("host", host.getHostString()), e);
             } finally {
                 if (client != null) {
                     client.getOutputProtocol().getTransport().close();
@@ -761,19 +762,25 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 tokenRangesToHost.asMap().entrySet().stream()
                         .filter(entry -> entry.getValue().size() == 1)
                         .forEach(entry -> log.error("Host: {} disagrees with the other nodes about the ring state.",
-                                SafeArg.of("host", Iterables.getFirst(entry.getValue(), null))));
+                                // We've checked above that entry.getValue() has one element, so we never NPE here.
+                                SafeArg.of("host", Iterables.getFirst(entry.getValue(), null).getHostString())));
             }
             if (tokenRangesToHost.keySet().size() == 2) {
                 ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToHost.keySet());
                 Set<TokenRange> set1 = sets.get(0);
                 Set<TokenRange> set2 = sets.get(1);
                 log.error("Hosts are split. group1: {} group2: {}",
-                        SafeArg.of("hosts1", tokenRangesToHost.get(set1)),
-                        SafeArg.of("hosts2", tokenRangesToHost.get(set2)));
+                        SafeArg.of("hosts1", extractHostNameFromHostCollection(tokenRangesToHost, set1)),
+                        SafeArg.of("hosts2", extractHostNameFromHostCollection(tokenRangesToHost, set2)));
             }
 
             CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
         }
+    }
+
+    private Collection<String> extractHostNameFromHostCollection(
+            Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost, Set<TokenRange> set) {
+        return tokenRangesToHost.get(set).stream().map(InetSocketAddress::getHostString).collect(Collectors.toSet());
     }
 
     @VisibleForTesting
