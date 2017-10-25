@@ -149,6 +149,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 timestampCacheSize);
     }
 
+    /**
+     * @deprecated Use {@link SerializableTransactionManager#create} to create this class.
+     */
     @Deprecated
     // Used by internal product.
     public SerializableTransactionManager(KeyValueService keyValueService,

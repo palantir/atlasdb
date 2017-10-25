@@ -113,7 +113,7 @@ develop
 
     *   - |devbreak|
         - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
-          If you used one of the deleted constructors, consider using either the static ``create`` method or the canonical constructor.
+          If you used one of the deleted or deprecated constructors, use the static ``create`` method.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
