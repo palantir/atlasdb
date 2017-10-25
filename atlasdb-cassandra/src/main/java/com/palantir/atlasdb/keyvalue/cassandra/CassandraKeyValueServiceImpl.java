@@ -56,6 +56,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedExecutorService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -127,6 +128,7 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -289,25 +291,28 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     private static ExecutorService createExecutor(CassandraKeyValueServiceConfig config) {
         int numServers = config.servers().size();
-        return PTExecutors.newThreadPoolExecutor(
-                config.poolSize() * numServers,
-                config.maxConnectionBurstSize() * numServers,
-                1,
-                TimeUnit.MINUTES,
-                // When executor grows past its core pool size, we want to reject enqueue operations
-                // so that it will grow to its max pool size before calling its rejection handler.
-                new ArrayBlockingQueue<Runnable>(1) {
-                    @Override
-                    public boolean offer(Runnable runnable) {
-                        return false;
-                    }
-                    @Override
-                    public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
-                        return false;
-                    }
-                },
-                new NamedThreadFactory("Atlas Cassandra KVS", false),
-                new ThreadPoolExecutor.CallerRunsPolicy());
+        return new InstrumentedExecutorService(
+                PTExecutors.newThreadPoolExecutor(
+                        config.poolSize() * numServers,
+                        config.maxConnectionBurstSize() * numServers,
+                        1,
+                        TimeUnit.MINUTES,
+                        // When executor grows past its core pool size, we want to reject enqueue operations
+                        // so that it will grow to its max pool size before calling its rejection handler.
+                        new ArrayBlockingQueue<Runnable>(1) {
+                            @Override
+                            public boolean offer(Runnable runnable) {
+                                return false;
+                            }
+                            @Override
+                            public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
+                                return false;
+                            }
+                        },
+                        new NamedThreadFactory("Atlas Cassandra KVS", false),
+                        new ThreadPoolExecutor.CallerRunsPolicy()),
+                AtlasDbMetrics.getMetricRegistry(),
+                "atlasdb-cassandra-kvs");
     }
 
     @Override
