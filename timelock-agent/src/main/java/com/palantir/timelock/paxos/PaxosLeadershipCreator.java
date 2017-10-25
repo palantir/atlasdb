@@ -78,7 +78,8 @@ public class PaxosLeadershipCreator {
         return AwaitingLeadershipProxy.newProxyInstance(
                 clazz,
                 delegateSupplier::get,
-                leaderElectionService);
+                leaderElectionService,
+                true);
     }
 
     private LeaderConfig getLeaderConfig() {

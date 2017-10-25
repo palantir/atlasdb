@@ -212,6 +212,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         return Optional.of(potentialLeadersToHosts.get(maybeLeader.get()));
     }
 
+    @Override
+    public boolean isLastKnownLeader() {
+        return isThisNodeTheLeaderFor(knowledge.getGreatestLearnedValue());
+    }
+
     private Optional<PingableLeader> getSuspectedLeader(boolean useNetwork) {
         PaxosValue value = knowledge.getGreatestLearnedValue();
         if (value == null) {
@@ -339,7 +344,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public boolean ping() {
-        return isThisNodeTheLeaderFor(knowledge.getGreatestLearnedValue());
+        return isLastKnownLeader();
     }
 
     private void proposeLeadershipAfter(PaxosValue value) {
@@ -415,7 +420,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         return knowledge.getGreatestLearnedValue().getRound();
     }
 
-    private boolean isThisNodeTheLeaderFor(PaxosValue value) {
+    private boolean isThisNodeTheLeaderFor(@Nullable PaxosValue value) {
         if (value == null) {
             return false;
         }

@@ -60,4 +60,10 @@ public interface LeaderElectionService {
      * leader or can't cheaply find one.
      */
     Optional<HostAndPort> getSuspectedLeaderInMemory();
+
+    /**
+     * Whether this node is the last known leader, according to local information. A return value of {@code true} does
+     * not necessarily mean that this node is currently the leader.
+     */
+    boolean isLastKnownLeader();
 }

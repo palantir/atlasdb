@@ -19,8 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -38,6 +36,8 @@ import org.junit.Test;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
@@ -46,11 +46,12 @@ public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
     private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
 
     @Before
     public void before() throws InterruptedException {
-        LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
+        when(leaderElectionService.isLastKnownLeader()).thenReturn(true);
         when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
         when(leaderElectionService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(leaderElectionService.isStillLeading(leadershipToken)).thenReturn(
@@ -69,7 +70,7 @@ public class AwaitingLeadershipProxyTest {
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
 
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader, true);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -89,7 +90,7 @@ public class AwaitingLeadershipProxyTest {
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
 
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader, true);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -132,6 +133,49 @@ public class AwaitingLeadershipProxyTest {
                 .hasMessage(TEST_MESSAGE);
     }
 
+    @Test
+    public void shouldGainLeadershipImmediatelyIfAlreadyLeading() throws Exception {
+        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+            return leadershipToken;
+        });
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, () -> () -> { },
+                leaderElectionService, true);
+
+        proxy.run();
+    }
+
+    @Test
+    public void shouldGainLeadershipAsynchronouslyIfNotLeading() throws Exception {
+        when(leaderElectionService.isLastKnownLeader()).thenReturn(false);
+        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+            return leadershipToken;
+        });
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, () -> () -> { },
+                leaderElectionService, true);
+
+        // should not have synchronously confirmed leadership
+        assertThatThrownBy(() -> proxy.run()).isInstanceOf(NotCurrentLeaderException.class);
+
+        Awaitility.await()
+                .atMost(Duration.ONE_SECOND)
+                .ignoreExceptionsInstanceOf(NotCurrentLeaderException.class)
+                .until(proxy);
+    }
+
+    @Test
+    public void shouldNotGainLeadershipSynchronouslyIfNotAskedToDoSo() throws Exception {
+        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+            Uninterruptibles.sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+            return leadershipToken;
+        });
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, () -> () -> { },
+                leaderElectionService, false);
+
+        assertThatThrownBy(() -> proxy.run()).isInstanceOf(NotCurrentLeaderException.class);
+    }
+
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
         CountDownLatch leadershipLost = new CountDownLatch(1);
@@ -171,12 +215,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private Callable proxyFor(Callable fn) throws InterruptedException {
-        Callable proxy = AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService);
-
-        // wait for leadership to be gained
-        verify(leaderElectionService, timeout(5_000)).blockOnBecomingLeader();
-        Uninterruptibles.sleepUninterruptibly(100L, TimeUnit.MILLISECONDS);
-        return proxy;
+        return AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService, true);
     }
 
     private LeaderElectionService mockLeaderElectionServiceWithSequence(

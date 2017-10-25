@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -31,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
@@ -48,15 +50,21 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
     private static final long MAX_NO_QUORUM_RETRIES = 10;
+    private static final long MAX_TIME_TO_WAIT_FOR_LEADERSHIP_MILLIS = 500;
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
-                                         LeaderElectionService leaderElectionService) {
+                                         LeaderElectionService leaderElectionService,
+                                         boolean tryWaitForLeadershipSynchronously) {
         AwaitingLeadershipProxy<U> proxy = new AwaitingLeadershipProxy<>(
                 delegateSupplier,
                 leaderElectionService,
                 interfaceClass);
         proxy.tryToGainLeadership();
+
+        if (tryWaitForLeadershipSynchronously) {
+            proxy.tryWaitForLeadershipToBeGained();
+        }
 
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
@@ -96,6 +104,20 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
                 throw new IllegalStateException("failed to submit task but proxy not closed", e);
+            }
+        }
+    }
+
+    private void tryWaitForLeadershipToBeGained() {
+        Stopwatch timer = Stopwatch.createStarted();
+        while (timer.elapsed(TimeUnit.MILLISECONDS) < MAX_TIME_TO_WAIT_FOR_LEADERSHIP_MILLIS
+                && leaderElectionService.isLastKnownLeader()
+                && delegateRef.get() == null) {
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(ex);
             }
         }
     }
