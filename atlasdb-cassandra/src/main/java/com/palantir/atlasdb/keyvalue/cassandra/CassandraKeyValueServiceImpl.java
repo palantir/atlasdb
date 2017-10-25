@@ -490,7 +490,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ImmutableMap.copyOf(result);
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -562,7 +562,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return builder.build();
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -779,7 +779,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ret;
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -817,7 +817,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         }
                     });
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -958,7 +958,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -978,7 +978,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             putInternal(tableRef, values.entries());
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -1246,7 +1246,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
+                throw Throwables.unwrapAndThrowUncheckedException(e);
             }
         }
     }
@@ -1377,7 +1377,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (UnavailableException e) {
             throw new PalantirRuntimeException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -1720,7 +1720,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
             }
         } catch (Exception e) {
-            Throwables.throwUncheckedException(e);
+            Throwables.unwrapAndThrowUncheckedException(e);
         }
 
         return filteredTables;
@@ -1741,7 +1741,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
                             && !thriftException.getMessage().contains("already existing table")) {
-                        Throwables.throwUncheckedException(thriftException);
+                        Throwables.unwrapAndThrowUncheckedException(thriftException);
                     }
                 }
             }
@@ -1983,7 +1983,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            Throwables.throwUncheckedException(e);
+            Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2047,7 +2047,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
             putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2104,7 +2104,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2137,8 +2137,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
                 return null;
             });
-        } catch (TException e) {
-            throw Throwables.throwUncheckedException(e);
+        } catch (CheckAndSetException e) {
+            throw e;
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2422,7 +2424,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 //Callable<Void> returns null, so can't use immutable list
                 return Collections.singletonList(tasks.get(0).call());
             } catch (Exception e) {
-                throw Throwables.throwUncheckedException(e);
+                throw Throwables.unwrapAndThrowUncheckedException(e);
             }
         }
 
@@ -2436,10 +2438,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 results.add(future.get());
             }
             return results;
-        } catch (ExecutionException e) {
-            throw Throwables.throwUncheckedException(e.getCause());
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         } finally {
             for (Future<V> future : futures) {
                 future.cancel(true);
@@ -2448,10 +2448,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static class TableCellAndValue {
-        public static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
+        private static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
                 input -> input.cell.getRowName();
 
-        public static final Function<TableCellAndValue, Long> SIZING_FUNCTION =
+        private static final Function<TableCellAndValue, Long> SIZING_FUNCTION =
                 input -> input.value.length + Cells.getApproxSizeOfCell(input.cell);
 
         private final TableReference tableRef;
