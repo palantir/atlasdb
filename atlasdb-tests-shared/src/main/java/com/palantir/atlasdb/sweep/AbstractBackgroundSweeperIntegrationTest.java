@@ -92,7 +92,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 sweepMetrics);
 
-        sweepBatchConfigSource = new AdjustableSweepBatchConfigSource(() -> sweepBatchConfig);
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
 
         backgroundSweeper = BackgroundSweeperImpl.create(
                 sweepBatchConfigSource,

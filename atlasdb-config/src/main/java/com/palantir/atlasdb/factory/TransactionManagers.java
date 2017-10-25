@@ -435,7 +435,7 @@ public abstract class TransactionManagers {
                 sweepStrategyManager,
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        AdjustableSweepBatchConfigSource sweepBatchConfigSource = new AdjustableSweepBatchConfigSource(() ->
+        AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
         SweepMetrics sweepMetrics = new SweepMetrics();

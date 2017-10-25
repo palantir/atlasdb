@@ -61,7 +61,7 @@ public class SweeperTestSetup {
                 .maxCellTsPairsToExamine(1000)
                 .build();
 
-        sweepBatchConfigSource = new AdjustableSweepBatchConfigSource(() -> sweepBatchConfig);
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
 
         backgroundSweeper = new BackgroundSweeperImpl(
                 Mockito.mock(LockService.class),

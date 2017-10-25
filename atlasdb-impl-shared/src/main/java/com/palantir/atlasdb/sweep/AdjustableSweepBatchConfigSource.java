@@ -19,7 +19,9 @@ package com.palantir.atlasdb.sweep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
 public class AdjustableSweepBatchConfigSource {
@@ -29,12 +31,25 @@ public class AdjustableSweepBatchConfigSource {
 
     private static volatile double batchSizeMultiplier = 1.0;
 
-    public AdjustableSweepBatchConfigSource(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
+    private AdjustableSweepBatchConfigSource(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         this.rawSweepBatchConfig = rawSweepBatchConfig;
+    }
+
+    public static AdjustableSweepBatchConfigSource create(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
+        AdjustableSweepBatchConfigSource configSource = new AdjustableSweepBatchConfigSource(rawSweepBatchConfig);
+
+        new MetricsManager().registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
+                () -> getBatchSizeMultiplier());
+
+        return configSource;
     }
 
     public SweepBatchConfig getRawSweepConfig() {
         return rawSweepBatchConfig.get();
+    }
+
+    public static double getBatchSizeMultiplier() {
+        return batchSizeMultiplier;
     }
 
     public SweepBatchConfig getAdjustedSweepConfig() {
