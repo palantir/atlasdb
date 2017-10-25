@@ -39,9 +39,10 @@ import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
-    private final Supplier<SweepBatchConfig> sweepBatchConfig;
+    private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final PersistentLockManager persistentLockManager;
@@ -49,22 +50,20 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
 
-    private static volatile double batchSizeMultiplier = 1.0;
-
     private Thread daemon;
 
     @VisibleForTesting
     BackgroundSweeperImpl(
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
-            Supplier<SweepBatchConfig> sweepBatchConfig,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
-        this.sweepBatchConfig = sweepBatchConfig;
+        this.sweepBatchConfigSource = sweepBatchConfigSource;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
         this.persistentLockManager = persistentLockManager;
@@ -72,7 +71,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     public static BackgroundSweeperImpl create(
-            Supplier<SweepBatchConfig> sweepBatchConfig,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
@@ -82,16 +81,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
-                sweepBatchConfig,
+                sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
                 persistentLockManager,
                 specificTableSweeper);
-    }
-
-    public SweepBatchConfig getAdjustedBatchConfig() {
-        SweepBatchConfig baseConfig = sweepBatchConfig.get();
-        return baseConfig.adjust(BackgroundSweeperImpl.batchSizeMultiplier);
     }
 
     @Override
@@ -140,24 +134,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     private void updateBatchSize(SweepOutcome outcome) {
         if (outcome == SweepOutcome.SUCCESS) {
-            batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
-            return;
+            sweepBatchConfigSource.increaseMultiplier();
         }
         if (outcome == SweepOutcome.ERROR) {
-            SweepBatchConfig lastBatchConfig = getAdjustedBatchConfig();
-
-            // Cut batch size in half, always sweep at least one row (we round down).
-            batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
-
-            log.warn("The background sweep job failed unexpectedly with candidate batch size {},"
-                            + " delete batch size {},"
-                            + " and {} cell+timestamp pairs to examine."
-                            + " Attempting to continue with new batchSizeMultiplier {}",
-                    SafeArg.of("candidateBatchSize", lastBatchConfig.candidateBatchSize()),
-                    SafeArg.of("deleteBatchSize", lastBatchConfig.deleteBatchSize()),
-                    SafeArg.of("maxCellTsPairsToExamine", lastBatchConfig.maxCellTsPairsToExamine()),
-                    SafeArg.of("batchSizeMultiplier", batchSizeMultiplier));
-            return;
+            sweepBatchConfigSource.decreaseMultiplier();
         }
     }
 
@@ -213,7 +193,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             return SweepOutcome.NOTHING_TO_SWEEP;
         }
 
-        SweepBatchConfig batchConfig = getAdjustedBatchConfig();
+        SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig();
         try {
             specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
             return SweepOutcome.SUCCESS;

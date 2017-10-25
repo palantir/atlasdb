@@ -60,7 +60,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Rule
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
-            new SweeperServiceImpl(getSpecificTableSweeperService()),
+            new SweeperServiceImpl(getSpecificTableSweeperService(), sweepBatchConfigSource),
             new CheckAndSetExceptionMapper(),
             HttpRemotingJerseyFeature.INSTANCE);
 

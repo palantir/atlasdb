@@ -68,6 +68,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             .build();
     protected TransactionService txService;
     protected SpecificTableSweeper specificTableSweeper;
+    protected AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
     @Before
     public void setup() {
@@ -91,8 +92,10 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 new NoOpBackgroundSweeperPerformanceLogger(),
                 sweepMetrics);
 
+        sweepBatchConfigSource = new AdjustableSweepBatchConfigSource(() -> sweepBatchConfig);
+
         backgroundSweeper = BackgroundSweeperImpl.create(
-                () -> sweepBatchConfig,
+                sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
                 persistentLockManager,

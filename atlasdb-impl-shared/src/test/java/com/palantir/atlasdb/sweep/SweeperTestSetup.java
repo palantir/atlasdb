@@ -49,6 +49,7 @@ public class SweeperTestSetup {
     private boolean sweepEnabled = true;
     protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
     protected long currentTimeMillis = 1000200300L;
+    protected AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
     @Before
     public void setup() {
@@ -60,10 +61,12 @@ public class SweeperTestSetup {
                 .maxCellTsPairsToExamine(1000)
                 .build();
 
+        sweepBatchConfigSource = new AdjustableSweepBatchConfigSource(() -> sweepBatchConfig);
+
         backgroundSweeper = new BackgroundSweeperImpl(
                 Mockito.mock(LockService.class),
                 nextTableToSweepProvider,
-                () -> sweepBatchConfig,
+                sweepBatchConfigSource,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
