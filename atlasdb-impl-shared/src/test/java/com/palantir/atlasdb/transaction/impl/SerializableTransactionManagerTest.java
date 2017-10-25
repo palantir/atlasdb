@@ -50,7 +50,7 @@ public class SerializableTransactionManagerTest {
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager
                 mockCleaner,
-                mockInitializer,
+                mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeout
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
@@ -110,7 +110,7 @@ public class SerializableTransactionManagerTest {
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager
                 mockCleaner,
-                mockInitializer,
+                mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
                 () -> 1L, // lockAcquireTimeoutMs
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,

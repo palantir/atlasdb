@@ -57,6 +57,17 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2459>`__)
 
     *    - |fixed|
+         - Async Initialization now works with TimeLock Server.
+           Previously, for Cassandra we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
+           For DBKVS or other key-value services, we would attempt to ping TimeLock on startup, which would fail if TimeLock was unavailable (though the KVS need not be available).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+
+    *    - |fixed|
+         - ``AsyncInitializer`` now shuts down its executor after initialization has completed.
+           Previously, the executor service wasn't shut down, which could lead to the initializer thread hanging around unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+
+    *    - |fixed|
          - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
            Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
            Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
@@ -113,6 +124,11 @@ develop
            a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2496>`__)
 
+    *    - |devbreak|
+         - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
+           If you used one of the deleted or deprecated constructors, use the static ``create`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -149,7 +165,7 @@ v0.61.0
          - Change
 
     *    - |improved|
-         - Sweep is now more efficient on Cassandra, Postgres and Oracle.
+         - Sweep is now more efficient on Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
 
     *    - |improved|
