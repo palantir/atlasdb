@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -39,6 +40,8 @@ public class SweeperTestSetup {
     protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
             "backgroundsweeper.fasttest");
 
+    protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+
     protected SpecificTableSweeper specificTableSweeper;
     protected BackgroundSweeperImpl backgroundSweeper;
     protected KeyValueService kvs = Mockito.mock(KeyValueService.class);
@@ -49,12 +52,9 @@ public class SweeperTestSetup {
     private boolean sweepEnabled = true;
     protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
     protected long currentTimeMillis = 1000200300L;
-    protected AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
-    @Before
-    public void setup() {
-        specificTableSweeper = getSpecificTableSweeperService();
-
+    @BeforeClass
+    public static void initialiseConfig() {
         ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
                 .deleteBatchSize(100)
                 .candidateBatchSize(200)
@@ -62,6 +62,11 @@ public class SweeperTestSetup {
                 .build();
 
         sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
+    }
+
+    @Before
+    public void setup() {
+        specificTableSweeper = getSpecificTableSweeperService();
 
         backgroundSweeper = new BackgroundSweeperImpl(
                 Mockito.mock(LockService.class),
