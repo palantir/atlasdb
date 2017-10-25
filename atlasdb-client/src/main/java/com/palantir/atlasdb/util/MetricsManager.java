@@ -36,8 +36,7 @@ public class MetricsManager {
     private final Set<String> registeredMetrics;
 
     public MetricsManager() {
-        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
-        this.registeredMetrics = new HashSet<>();
+        this(AtlasDbMetrics.getMetricRegistry());
     }
 
     @VisibleForTesting
