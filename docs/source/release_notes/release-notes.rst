@@ -45,6 +45,10 @@ develop
          - Change
          
     *    - |improved|
+         - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
+    
+    *    - |improved|
          - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
            
