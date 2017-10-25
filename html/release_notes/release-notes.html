@@ -263,6 +263,11 @@ This means we check the health of a blacklisted Cassandra node and whitelist it 
 This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn’t update any metrics which again distorted the view of what work sweep was doing on the DB.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2535">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Simplify and annotate the constructors for <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code>. This should make the code of that class more maintainable.
+If you used one of the deleted or deprecated constructors, use the static <code class="docutils literal"><span class="pre">create</span></code> method.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2549">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
