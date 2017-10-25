@@ -76,7 +76,7 @@ public final class AdjustableSweepBatchConfigSource {
         // Cut batch size in half, always sweep at least one row (we round down).
         batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
 
-        log.warn("The background sweep job failed unexpectedly with candidate batch size {},"
+        log.warn("Sweep failed unexpectedly with candidate batch size {},"
                         + " delete batch size {},"
                         + " and {} cell+timestamp pairs to examine."
                         + " Attempting to continue with new batchSizeMultiplier {}",
