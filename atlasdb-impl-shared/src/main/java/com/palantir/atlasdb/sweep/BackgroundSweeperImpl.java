@@ -253,11 +253,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     private void clearSweepProgress() {
-        Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(
-                specificTableSweeper.getSweepProgressStore()::loadProgress);
-        if (progress.isPresent()) {
-            specificTableSweeper.getSweepProgressStore().clearProgress();
-        }
+        specificTableSweeper.getSweepProgressStore().clearProgress();
     }
 
     @VisibleForTesting
