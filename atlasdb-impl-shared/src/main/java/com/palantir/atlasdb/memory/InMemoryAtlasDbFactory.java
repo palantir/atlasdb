@@ -170,7 +170,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 client,
                 ImmutableList.of(follower),
                 transactionService).buildCleaner();
-        SerializableTransactionManager ret = new SerializableTransactionManager(
+        SerializableTransactionManager ret = SerializableTransactionManager.createForTest(
                 keyValueService,
                 ts,
                 client,
