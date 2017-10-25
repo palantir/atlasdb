@@ -33,6 +33,7 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -346,10 +348,14 @@ final class SchemaMutationLock {
         ColumnPath columnPath = new ColumnPath(lockTableRef.getQualifiedName());
         columnPath.setColumn(getGlobalDdlLockColumnName());
         Column existingColumn = null;
+        ConsistencyLevel localQuorum = ConsistencyLevel.LOCAL_QUORUM;
         try {
             ColumnOrSuperColumn result = queryRunner.run(client, lockTableRef,
-                    () -> client.get(getGlobalDdlLockRowName(), columnPath, ConsistencyLevel.LOCAL_QUORUM));
+                    () -> client.get(getGlobalDdlLockRowName(), columnPath, localQuorum));
             existingColumn = result.getColumn();
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "Checking the schema lock requires " + localQuorum + " Cassandra nodes to be up and available.", e);
         } catch (NotFoundException e) {
             log.debug("No existing schema lock found in table [{}]", SafeArg.of("tableName", lockTableRef));
         }
