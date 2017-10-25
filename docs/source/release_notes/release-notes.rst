@@ -46,7 +46,7 @@ develop
          
     *    - |improved|
          - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2501`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
 
     *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
