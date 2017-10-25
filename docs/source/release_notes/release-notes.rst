@@ -116,6 +116,10 @@ develop
           This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
 
+    *   - |devbreak|
+        - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
+          If you used one of the deleted or deprecated constructors, use the static ``create`` method.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -162,7 +166,7 @@ v0.61.0
          - Change
 
     *    - |improved|
-         - Sweep is now more efficient on Cassandra, Postgres and Oracle.
+         - Sweep is now more efficient on Postgres and Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2436>`__)
 
     *    - |improved|

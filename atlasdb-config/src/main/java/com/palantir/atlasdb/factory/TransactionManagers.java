@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -69,6 +70,7 @@ import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
@@ -373,7 +375,9 @@ public abstract class TransactionManagers {
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
                 config.getSweepPersistentLockWaitMillis());
-        initializeSweepEndpointAndBackgroundProcess(runtimeConfigSupplier,
+        initializeSweepEndpointAndBackgroundProcess(
+                config,
+                runtimeConfigSupplier,
                 registrar(),
                 kvs,
                 transactionService,
@@ -408,6 +412,7 @@ public abstract class TransactionManagers {
     }
 
     private static void initializeSweepEndpointAndBackgroundProcess(
+            AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             KeyValueService kvs,
@@ -430,7 +435,8 @@ public abstract class TransactionManagers {
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
         com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig = () ->
-                getSweepBatchConfig(runtimeConfigSupplier.get().sweep());
+                getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService());
+
         SweepMetrics sweepMetrics = new SweepMetrics();
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
@@ -472,12 +478,21 @@ public abstract class TransactionManagers {
         return specificTableSweeper;
     }
 
-    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
+    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig, KeyValueServiceConfig kvsConfig) {
         return ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(sweepConfig.readLimit())
-                .candidateBatchSize(sweepConfig.candidateBatchHint())
+                .candidateBatchSize(sweepConfig.candidateBatchHint()
+                        .orElse(getDefaultSweepCandidateBatchHint(kvsConfig)))
                 .deleteBatchSize(sweepConfig.deleteBatchHint())
                 .build();
+    }
+
+    // TODO(nziebart): this is a hack until we fix cassandra's getCandidateCellsForSweep to behave like the other KVSs
+    private static int getDefaultSweepCandidateBatchHint(KeyValueServiceConfig kvsConfig) {
+        if (kvsConfig.type().equals("cassandra")) {
+            return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_CASSANDRA;
+        }
+        return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_NON_CASSANDRA;
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(
