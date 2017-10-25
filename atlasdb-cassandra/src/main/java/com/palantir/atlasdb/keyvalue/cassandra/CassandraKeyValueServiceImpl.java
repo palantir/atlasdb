@@ -291,28 +291,26 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     private static ExecutorService createExecutor(CassandraKeyValueServiceConfig config) {
         int numServers = config.servers().size();
-        return new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        config.poolSize() * numServers,
-                        config.maxConnectionBurstSize() * numServers,
-                        1,
-                        TimeUnit.MINUTES,
-                        // When executor grows past its core pool size, we want to reject enqueue operations
-                        // so that it will grow to its max pool size before calling its rejection handler.
-                        new ArrayBlockingQueue<Runnable>(1) {
-                            @Override
-                            public boolean offer(Runnable runnable) {
-                                return false;
-                            }
-                            @Override
-                            public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
-                                return false;
-                            }
-                        },
-                        new NamedThreadFactory("Atlas Cassandra KVS", false),
-                        new ThreadPoolExecutor.CallerRunsPolicy()),
-                AtlasDbMetrics.getMetricRegistry(),
-                "atlasdb-cassandra-kvs");
+        ThreadPoolExecutor executor = PTExecutors.newThreadPoolExecutor(
+                config.poolSize() * numServers,
+                config.maxConnectionBurstSize() * numServers,
+                1,
+                TimeUnit.MINUTES,
+                // When executor grows past its core pool size, we want to reject enqueue operations
+                // so that it will grow to its max pool size before calling its rejection handler.
+                new ArrayBlockingQueue<Runnable>(1) {
+                    @Override
+                    public boolean offer(Runnable runnable) {
+                        return false;
+                    }
+                    @Override
+                    public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
+                        return false;
+                    }
+                },
+                new NamedThreadFactory("Atlas Cassandra KVS", false),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        return new InstrumentedExecutorService(executor, AtlasDbMetrics.getMetricRegistry(), "atlasdb-cassandra-kvs");
     }
 
     @Override
