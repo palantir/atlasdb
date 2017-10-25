@@ -31,50 +31,55 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
 
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      LockService lockService,
-                                      TransactionService transactionService,
-                                      ConflictDetectionManager conflictDetectionManager,
-                                      SweepStrategyManager sweepStrategyManager) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager) {
         super(
                 createAssertKeyValue(keyValueService, lockService),
-                timestampService,
-                lockClient,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     }
 
+    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      LockService lockService,
-                                      TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode) {
+            TimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(
                 createAssertKeyValue(keyValueService, lockService),
-                timestampService,
-                lockClient,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
+                false,
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
