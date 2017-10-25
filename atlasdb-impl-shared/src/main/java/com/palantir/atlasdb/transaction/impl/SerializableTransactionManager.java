@@ -22,6 +22,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
+import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -103,7 +104,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
             long timestampCacheSize) {
-        TimestampTracker timestampTracker = TimestampTracker.createWithDefaultTrackers(timelockService, cleaner);
+        TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
+                timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 keyValueService,
                 timelockService,
@@ -147,7 +149,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                TimestampTracker.createNoOpTracker(),
+                TimestampTrackerImpl.createNoOpTracker(),
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 timestampCacheSize);
