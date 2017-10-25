@@ -32,7 +32,7 @@ Changelog
   :hidden:
 
 =======
-develop
+v0.61.3
 =======
 
 .. replace this with the release date
@@ -44,9 +44,54 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak| |fixed|
-         - Move @CancelableServerCall to a more fitting package that matches internal codebase.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
+    *    - |improved|
+         - Sweep progress is now persisted as a blob. This allows us to use check and set to avoid versioning the entries in the sweep progress table.
+           No migration is necessary as the data is persisted to a new table, however sweep will start sweeping a new table since the previously persisted sweep progress will be ignored.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2555>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.61.1
+=======
+
+19 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Reverted the Sweep rewrite for Cassandra as it would unnecessarily load values into memory which could
+           cause Cassandra to OOM if the values are large enough.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2521>`__)
+
+    *    - |improved| |devbreak|
+         - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
+           it is more likely that this will be configured via per-service overrides for the services for whom the
+           current cache size is inadequate.
+           This is a small API change for users manually constructing a TransactionManager, which now requires a
+           transaction cache size parameter. Please add it from the AtlasDbConfig, or instead of manually creating
+           a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2496>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.61.0
+=======
+
+18 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved|
          - Sweep is now more efficient on Postgres and Oracle.

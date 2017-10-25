@@ -238,9 +238,10 @@ public class SpecificTableSweeper {
                     .cellTsPairsExamined(results.getCellTsPairsExamined())
                     //noinspection OptionalGetWithoutIsPresent // covered by precondition above
                     .startRow(results.getNextStartRow().get())
+                    .startColumn(PtBytes.toBytes("unused"))
                     .minimumSweptTimestamp(results.getSweptTimestamp())
                     .build();
-            sweepProgressStore.saveProgress(tx, newProgress);
+            sweepProgressStore.saveProgress(newProgress);
             return null;
         });
     }

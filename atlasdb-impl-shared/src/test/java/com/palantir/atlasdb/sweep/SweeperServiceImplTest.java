@@ -182,7 +182,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     }
 
     private void verifyNoSweepResultsSaved() {
-        verify(progressStore, never()).saveProgress(any(), any());
+        verify(progressStore, never()).saveProgress(any());
         verify(priorityStore, never()).update(any(), any(), any());
     }
 
