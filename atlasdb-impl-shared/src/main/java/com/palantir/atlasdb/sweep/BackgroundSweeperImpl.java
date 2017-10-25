@@ -15,13 +15,17 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static sun.jvm.hotspot.code.CompressedStream.L;
+
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -283,21 +287,24 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     private class SweepOutcomeMetrics {
         private final MetricsManager metricsManager = new MetricsManager();
-        private SweepOutcome lastOutcome = null;
+        private final SlidingTimeWindowReservoir reservoir;
 
         SweepOutcomeMetrics() {
             Arrays.stream(SweepOutcome.values()).forEach(outcome ->
                     metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(),
-                            () -> getLastOutcome(outcome))
+                            () -> getOutcomeCount(outcome))
             );
+            reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
         }
 
-        private Integer getLastOutcome(SweepOutcome outcome) {
-            return outcome == lastOutcome ? 1 : 0;
+        private Long getOutcomeCount(SweepOutcome outcome) {
+            return Arrays.stream(reservoir.getSnapshot().getValues())
+                    .filter(l -> l == outcome.ordinal())
+                    .count();
         }
 
         void registerOccurrenceOf(SweepOutcome outcome) {
-            lastOutcome = outcome;
+            reservoir.update(outcome.ordinal());
         }
     }
 }
