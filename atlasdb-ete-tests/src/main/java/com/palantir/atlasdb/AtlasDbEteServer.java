@@ -102,6 +102,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 .config(config)
                 .schemas(ETE_SCHEMAS)
                 .registrar(environment.jersey()::register)
+                .userAgent("ete test")
                 .buildSerializable();
     }
 

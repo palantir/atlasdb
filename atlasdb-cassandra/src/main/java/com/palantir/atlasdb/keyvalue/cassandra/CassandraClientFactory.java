@@ -46,6 +46,8 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
@@ -90,10 +92,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
-                    addr,
-                    config.getKeyspaceOrThrow(),
-                    config.usingSsl() ? " over SSL" : "",
-                    config.credentials().isPresent() ? " as user " + config.credentials().get().username() : "");
+                    SafeArg.of("address", addr),
+                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
+                    SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
+                    UnsafeArg.of("usernameConfig", config.credentials().isPresent()
+                            ? " as user " + config.credentials().get().username() : ""));
             return ret;
         } catch (Exception e) {
             ret.getOutputProtocol().getTransport().close();
@@ -109,7 +112,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
             thriftSocket.getSocket().setKeepAlive(true);
             thriftSocket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis());
         } catch (SocketException e) {
-            log.error("Couldn't set socket keep alive for {}", addr);
+            log.error("Couldn't set socket keep alive for {}", SafeArg.of("address", addr));
         }
 
         if (config.usingSsl()) {
@@ -174,7 +177,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public void destroyObject(PooledObject<Client> client) {
         client.getObject().getOutputProtocol().getTransport().close();
-        log.debug("Closed transport for client {}", client.getObject());
+        log.debug("Closed transport for client {}", SafeArg.of("cassandraClient", client.getObject()));
     }
 
     public static class ClientCreationFailedException extends RuntimeException {

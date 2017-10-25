@@ -18,7 +18,9 @@ package com.palantir.atlasdb.factory;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -67,6 +69,7 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.MetricsRule;
@@ -121,6 +124,10 @@ public class TransactionManagersTest {
     private static final String TIMELOCK_FF_PATH
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
+
+    private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
+    private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
+            TransactionManagers.LockAndTimestampServices.class);
 
     private int availablePort;
     private TimeLockClientConfig mockClientConfig;
@@ -223,11 +230,11 @@ public class TransactionManagersTest {
         setUpForRemoteServices();
         setupLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.lock().currentTimeMillis();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
@@ -240,11 +247,11 @@ public class TransactionManagersTest {
         setUpForLocalServices();
         setupLeaderBlockInConfig();
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
 
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.lock().currentTimeMillis();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
@@ -262,6 +269,7 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(realConfig)
                 .registrar(environment)
+                .userAgent("test")
                 .buildSerializable();
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
@@ -304,6 +312,7 @@ public class TransactionManagersTest {
         SerializableTransactionManager manager = TransactionManagers.builder()
                 .config(realConfig)
                 .registrar(environment)
+                .userAgent("test")
                 .buildSerializable();
         manager.registerClosingCallback(callback);
         manager.close();
@@ -319,6 +328,7 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(realConfig)
                 .registrar(environment)
+                .userAgent("test")
                 .buildSerializable();
         assertThat(metricsRule.metrics().getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
@@ -359,13 +369,36 @@ public class TransactionManagersTest {
                 TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
+    @Test
+    public void timeLockMigrationReportsReadyIfMigrationDone() {
+        when(migrator.isInitialized()).thenReturn(true);
+        when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
+
+        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+    }
+
+    @Test
+    public void timeLockMigrationReportsNotReadyIfMigrationNotDone() {
+        when(migrator.isInitialized()).thenReturn(false);
+        when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
+
+        assertFalse(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+    }
+
+    @Test
+    public void timeLockMigrationReportsReadyIfMigrationNotNeeded() {
+        when(lockAndTimestampServices.migrator()).thenReturn(Optional.empty());
+
+        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+    }
+
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
         assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(0L)));
         assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(0L)));
 
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices = getLockAndTimestampServices();
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.timelock().currentTimeMillis();
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.timelock().currentTimeMillis();
 
         assertThat(metricsRule.metrics().timer(timestampMetric).getCount(), is(equalTo(1L)));
         assertThat(metricsRule.metrics().timer(lockMetric).getCount(), is(equalTo(1L)));
@@ -423,7 +456,7 @@ public class TransactionManagersTest {
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
-        TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+        TransactionManagers.LockAndTimestampServices lockAndTimestamp =
                 TransactionManagers.createLockAndTimestampServices(
                         config,
                         () -> ImmutableTimestampClientConfig.of(false),
@@ -432,8 +465,8 @@ public class TransactionManagersTest {
                         InMemoryTimestampService::new,
                         invalidator,
                         USER_AGENT);
-        lockAndTimestampServices.timelock().getFreshTimestamp();
-        lockAndTimestampServices.timelock().currentTimeMillis();
+        lockAndTimestamp.timelock().getFreshTimestamp();
+        lockAndTimestamp.timelock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
                 .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));

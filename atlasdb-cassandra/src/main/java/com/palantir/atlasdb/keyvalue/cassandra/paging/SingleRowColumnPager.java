@@ -31,6 +31,7 @@ import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -38,6 +39,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
@@ -107,19 +109,24 @@ public class SingleRowColumnPager {
         }
 
         private List<ColumnOrSuperColumn> getPage(Cassandra.Client client) throws TException {
-            Optional<ByteBuffer> startColumn = getStartColumn(lastSeenColumn);
-            if (startColumn.isPresent()) {
-                SliceRange sliceRange = new SliceRange(
-                        startColumn.get(),
-                        ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                        false, // reversed
-                        pageSize);
-                SlicePredicate slicePred = new SlicePredicate();
-                slicePred.setSlice_range(sliceRange);
-                return queryRunner.run(client, tableRef,
-                        () -> client.get_slice(rowKey, columnParent, slicePred, consistencyLevel));
-            } else {
-                return ImmutableList.of();
+            try {
+                Optional<ByteBuffer> startColumn = getStartColumn(lastSeenColumn);
+                if (startColumn.isPresent()) {
+                    SliceRange sliceRange = new SliceRange(
+                            startColumn.get(),
+                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                            false, // reversed
+                            pageSize);
+                    SlicePredicate slicePred = new SlicePredicate();
+                    slicePred.setSlice_range(sliceRange);
+                    return queryRunner.run(client, tableRef,
+                            () -> client.get_slice(rowKey, columnParent, slicePred, consistencyLevel));
+                } else {
+                    return ImmutableList.of();
+                }
+            } catch (UnavailableException e) {
+                throw new InsufficientConsistencyException(
+                        "get_slice requires " + consistencyLevel + " Cassandra nodes to be up and available.", e);
             }
         }
     }

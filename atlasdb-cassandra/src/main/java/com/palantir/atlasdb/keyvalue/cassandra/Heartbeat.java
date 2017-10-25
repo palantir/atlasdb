@@ -21,11 +21,13 @@ import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
@@ -89,14 +91,19 @@ class Heartbeat implements Runnable {
     }
 
     private CASResult writeDdlLockWithCas(Client client, Column ourUpdate, List<Column> expected) throws TException {
-        return queryRunner.run(client, lockTable,
-                () -> client.cas(
-                        SchemaMutationLock.getGlobalDdlLockRowName(),
-                        lockTable.getQualifiedName(),
-                        expected,
-                        ImmutableList.of(ourUpdate),
-                        ConsistencyLevel.SERIAL,
-                        writeConsistency));
+        try {
+            return queryRunner.run(client, lockTable,
+                    () -> client.cas(
+                            SchemaMutationLock.getGlobalDdlLockRowName(),
+                            lockTable.getQualifiedName(),
+                            expected,
+                            ImmutableList.of(ourUpdate),
+                            ConsistencyLevel.SERIAL,
+                            writeConsistency));
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "CAS for the heartbeat requires " + writeConsistency + "Casandra nodes to be available.", e);
+        }
     }
 
     @Override

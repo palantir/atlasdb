@@ -76,7 +76,8 @@ public class TableTasksTest {
         SerializableTransactionManager transactionManager = new SerializableTransactionManager(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         txManager = transactionManager;
     }
 

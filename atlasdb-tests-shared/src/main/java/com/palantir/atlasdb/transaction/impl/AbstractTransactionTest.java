@@ -87,7 +87,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
-    protected final TimestampCache timestampCache = TimestampCache.create();
+    protected final TimestampCache timestampCache = new TimestampCache();
     protected boolean supportsReverse() {
         return true;
     }

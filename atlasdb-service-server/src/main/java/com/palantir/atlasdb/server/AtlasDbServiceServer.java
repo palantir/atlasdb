@@ -85,6 +85,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                         .build()))
                 .registrar(environment.jersey()::register)
                 .schemas(ImmutableSet.of(TodoSchema.getSchema()))
+                .userAgent("AtlasDbServiceServer")
                 .buildSerializable();
 
 

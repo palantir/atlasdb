@@ -42,7 +42,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
 
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
-    protected final TimestampCache timestampValidationReadCache = TimestampCache.create();
+    protected final TimestampCache timestampValidationReadCache = new TimestampCache();
     private volatile boolean closed = false;
 
     @Override
