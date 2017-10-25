@@ -45,6 +45,11 @@ develop
          - Change
 
     *    - |improved|
+         - Sweep progress is now persisted as a blob. This allows us to use check and set to avoid versioning the entries in the sweep progress table.
+           No migration is necessary as the data is persisted to a new table, however sweep will start sweeping a new table since the previously persisted sweep progress will be ignored.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2555>`__)
+
+    *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
