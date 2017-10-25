@@ -19,12 +19,11 @@ package com.palantir.atlasdb.sweep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Gauge;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
-public class AdjustableSweepBatchConfigSource {
+public final class AdjustableSweepBatchConfigSource {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
 
     private final Supplier<SweepBatchConfig> rawSweepBatchConfig;

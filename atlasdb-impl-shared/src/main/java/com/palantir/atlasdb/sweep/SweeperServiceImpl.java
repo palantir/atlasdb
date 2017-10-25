@@ -27,7 +27,8 @@ public final class SweeperServiceImpl implements SweeperService {
     private final SpecificTableSweeper specificTableSweeper;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
-    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper, AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
+    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         this.specificTableSweeper = specificTableSweeper;
         this.sweepBatchConfigSource = sweepBatchConfigSource;
     }
