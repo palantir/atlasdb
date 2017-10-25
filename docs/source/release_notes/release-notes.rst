@@ -45,6 +45,10 @@ develop
          - Change
 
     *    - |improved|
+         - We now report metrics for Transaction conflicts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
+
+    *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
