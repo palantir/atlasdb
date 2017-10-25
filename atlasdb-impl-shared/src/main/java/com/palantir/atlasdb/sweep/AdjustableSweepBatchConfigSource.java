@@ -48,7 +48,7 @@ public class AdjustableSweepBatchConfigSource {
                 .build();
     }
 
-    private int adjust(int parameterValue, double multiplier) {
+    private static int adjust(int parameterValue, double multiplier) {
         return Math.max(1, (int) (multiplier * parameterValue));
     }
 
