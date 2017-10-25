@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,14 +35,11 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableSweepConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory;
 import com.palantir.atlasdb.server.generated.TodoSchemaTableFactory;
 import com.palantir.atlasdb.server.generated.TodoTable;
 import com.palantir.atlasdb.table.description.Schema;
-import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
@@ -96,7 +91,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     }
 
     private static void runTxns() throws FileNotFoundException {
-        File file = new File("output3.txt");
+        File file = new File("output.txt");
         PrintStream printStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(file)));
         System.setOut(printStream);
         while (true) {
@@ -128,21 +123,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                 Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
             } catch (NotInitializedException e) {
                 log.info("looks like we got NotInitializedException.");
-            } catch (CassandraClientFactory.ClientCreationFailedException e) {
-                log.info("looks like we got ClientCreationFailedException");
-            } catch (PalantirRuntimeException e) {
-                if (e.getCause().getClass() == UnavailableException.class) {
-                    log.info("looks like we got UnavailableException.");
-                } else if (e.getCause().getClass() == TTransportException.class && e.getMessage() == null) {
-                    log.info("looks like we got TTransportException with message null.");
-                } else {
-                        System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
-                        e.printStackTrace(System.out);
-                        System.out.println("=============================================================================");
-                    }
-            } catch (TransactionCommitFailedException e) {
-                log.info("looks like we got TransactionCommitFailedException");
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
                 e.printStackTrace(System.out);
                 System.out.println("=============================================================================");
