@@ -100,7 +100,7 @@ public class TransactionManagerModule {
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
-                config.atlasDbConfig().getTimestampCacheSize());
+                () -> config.atlasDbRuntimeConfigConfig().getTimestampCacheSize());
     }
 
 }

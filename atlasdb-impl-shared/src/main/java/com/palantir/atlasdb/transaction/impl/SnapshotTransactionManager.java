@@ -31,7 +31,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -71,7 +70,6 @@ import com.palantir.timestamp.TimestampService;
     protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final int defaultGetRangesConcurrency;
-    final TimestampCache timestampValidationReadCache;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -90,6 +88,8 @@ import com.palantir.timestamp.TimestampService;
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize) {
+        super(timestampCacheSize::get);
+
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -104,7 +104,6 @@ import com.palantir.timestamp.TimestampService;
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        this.timestampValidationReadCache = new TimestampCache(timestampCacheSize.get());
     }
 
     @Override
