@@ -2431,7 +2431,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return results;
         } catch (ExecutionException e) {
-            throw Throwables.throwUncheckedException(e.getCause());
+            if (e.getCause() != null
+                    && (e.getCause().getClass() == CassandraClientFactory.ClientCreationFailedException.class
+                    || e.getCause().getClass() == UnavailableException.class)) {
+                throw Throwables.throwUncheckedException(e.getCause());
+            } else {
+                throw Throwables.throwUncheckedException(e);
+            }
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {

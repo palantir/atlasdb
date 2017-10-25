@@ -32,7 +32,7 @@ atlasdb:
       username: cassandra
       password: cassandra
     ssl: false
-    replicationFactor: 1
+    replicationFactor: 3
     mutationBatchCount: 10000
     mutationBatchSizeBytes: 10000000
     fetchBatchCount: 1000
@@ -44,7 +44,7 @@ atlasdb:
   initializeAsync: true
   enableSweep: false
 
-  namespace: atlasete
+  namespace: atlasete2
 
 #  leader:
 #    quorumSize: 1
