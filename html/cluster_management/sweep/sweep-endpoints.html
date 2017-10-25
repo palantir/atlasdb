@@ -190,47 +190,52 @@
             
   <div class="section" id="atlasdb-sweep-endpoints">
 <span id="id1"></span><h1>AtlasDB Sweep Endpoints<a class="headerlink" href="#atlasdb-sweep-endpoints" title="Permalink to this headline">¶</a></h1>
-<p>If you ever need to force a particular table to be swept immediately, you can run sweep by hitting any of the following endpoints from the service API.</p>
+<p>If you ever need to force a particular table to be swept immediately, you can run sweep by hitting the following endpoint.</p>
 <blockquote>
 <div><table border="1" class="docutils">
 <colgroup>
-<col width="22%" />
+<col width="17%" />
+<col width="37%" />
+<col width="20%" />
 <col width="26%" />
-<col width="52%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Endpoint</th>
 <th class="head">Query Parameters</th>
+<th class="head">Required/Optional</th>
 <th class="head">Description</th>
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">/sweep/sweep-table</span></code></td>
+<tr class="row-even"><td rowspan="9"><code class="docutils literal"><span class="pre">/sweep/sweep-table</span></code></td>
 <td><code class="docutils literal"><span class="pre">tablename</span></code>: fully qualified table name</td>
-<td>Sweep a particular table from EMPTY startRow with default <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code>.</td>
+<td>Required</td>
+<td rowspan="9">Sweep a particular table.</td>
 </tr>
-<tr class="row-odd"><td rowspan="2"><code class="docutils literal"><span class="pre">/sweep/sweep-table-from-row</span></code></td>
-<td><code class="docutils literal"><span class="pre">tablename</span></code>: fully qualified table name</td>
-<td rowspan="2">Sweep a particular table from specified startRow with default <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code>.</td>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">startRow</span></code>: base16 encoded start row</td>
+<td>Optional (default: empty
+i.e. first row of table)</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">startRow</span></code>: base16 encoded start row</td>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">fullSweep</span></code>: sweep full table or single batch</td>
+<td>Optional (default: true)</td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><code class="docutils literal"><span class="pre">/sweep/sweep-table-from-row-with-batch</span></code></td>
-<td><code class="docutils literal"><span class="pre">tablename</span></code>: fully qualified table name</td>
-<td rowspan="5">Sweep a particular table from specified startRow with specified <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> parameters.</td>
+<tr class="row-odd"><td rowspan="2"><code class="docutils literal"><span class="pre">maxCellTsPairsToExamine</span></code>: cells to examine</td>
+<td rowspan="2">Optional (default: 1000)*</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">startRow</span></code>: base16 encoded start row</td>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><code class="docutils literal"><span class="pre">candidateBatchSize</span></code>: cells to read per batch</td>
+<td rowspan="2">Optional (default: 1)*</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">maxCellTsPairsToExamine</span></code>: cells to examine</td>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2"><code class="docutils literal"><span class="pre">deleteBatchSize</span></code>: cells to delete per batch</td>
+<td rowspan="2">Optional (default: 1000)*</td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">candidateBatchSize</span></code>: cells to read per batch</td>
-</tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">deleteBatchSize</span></code>: cells to delete per batch</td>
-</tr>
+<tr class="row-even"></tr>
 </tbody>
 </table>
 </div></blockquote>
 <p>Note that using the sweep endpoints to manually kick off sweep will <em>not</em> update the Background Sweeper’s sweep priority table.</p>
+<p>* Note the the sweep config might be lower if previous sweep runs have failed.</p>
 </div>
 
 
