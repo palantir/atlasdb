@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import static sun.jvm.hotspot.code.CompressedStream.L;
-
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
