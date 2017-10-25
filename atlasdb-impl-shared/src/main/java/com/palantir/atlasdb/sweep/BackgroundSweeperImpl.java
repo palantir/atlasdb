@@ -191,7 +191,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
                     @Override
                     public Optional<TableToSweep> execute(Transaction tx) {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
+                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore()
+                                .loadProgress(tx);
                         if (progress.isPresent()) {
                             return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
@@ -215,7 +216,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     boolean checkAndRepairTableDrop() {
         try {
             Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
-            Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
+            Optional<SweepProgress> progress = specificTableSweeper.getTxManager().runTaskReadOnly(
+                    specificTableSweeper.getSweepProgressStore()::loadProgress);
             if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
                 return false;
             } else {

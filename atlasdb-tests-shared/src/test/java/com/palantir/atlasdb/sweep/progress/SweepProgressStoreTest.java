@@ -70,27 +70,39 @@ public class SweepProgressStoreTest {
 
     @Test
     public void testLoadEmpty() {
-        Assert.assertFalse(progressStore.loadProgress().isPresent());
+        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
     }
 
     @Test
     public void testSaveAndLoad() {
-        progressStore.saveProgress(PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress());
+        txManager.runTaskWithRetry(tx -> {
+            progressStore.saveProgress(tx, PROGRESS);
+            return null;
+        });
+        Assert.assertEquals(Optional.of(PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
     }
 
     @Test
     public void testOverwrite() {
-        progressStore.saveProgress(PROGRESS);
-        progressStore.saveProgress(OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress());
+        txManager.runTaskWithRetry(tx -> {
+            progressStore.saveProgress(tx, PROGRESS);
+            return null;
+        });
+        txManager.runTaskWithRetry(tx -> {
+            progressStore.saveProgress(tx, OTHER_PROGRESS);
+            return null;
+        });
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
     }
 
     @Test
     public void testClear() {
-        progressStore.saveProgress(PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress());
+        txManager.runTaskWithRetry(tx -> {
+            progressStore.saveProgress(tx, PROGRESS);
+            return null;
+        });
+        Assert.assertTrue(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
         progressStore.clearProgress();
-        Assert.assertFalse(progressStore.loadProgress().isPresent());
+        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
     }
 }

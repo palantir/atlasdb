@@ -94,11 +94,11 @@ public class SweeperTestSetup {
     }
 
     protected void setNoProgress() {
-        Mockito.doReturn(Optional.empty()).when(progressStore).loadProgress();
+        Mockito.doReturn(Optional.empty()).when(progressStore).loadProgress(Mockito.any());
     }
 
     protected void setProgress(SweepProgress progress) {
-        Mockito.doReturn(Optional.of(progress)).when(progressStore).loadProgress();
+        Mockito.doReturn(Optional.of(progress)).when(progressStore).loadProgress(Mockito.any());
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {

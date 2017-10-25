@@ -238,7 +238,7 @@ public class SpecificTableSweeper {
                     .startColumn(PtBytes.toBytes("unused"))
                     .minimumSweptTimestamp(results.getSweptTimestamp())
                     .build();
-            sweepProgressStore.saveProgress(newProgress);
+            sweepProgressStore.saveProgress(tx, newProgress);
             return null;
         });
     }

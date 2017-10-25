@@ -89,6 +89,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verify(progressStore).saveProgress(
+                Mockito.any(),
                 Mockito.eq(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(2)
