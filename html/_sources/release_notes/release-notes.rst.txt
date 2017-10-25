@@ -53,6 +53,9 @@ develop
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
+           
+    *    - |fixed|
+         - ``SerializableErrorDecoder`` will decode error properly instead of throwing ``NullPointerException``.
 
     *    - |deprecated| |improved|
          - ``SerializableTransactionManager`` is now created via an immutable builder instead of a long list of individual arguments. Use ``TransactionManagers.builder()``
