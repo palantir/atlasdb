@@ -31,7 +31,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.processors.AutoDelegate;
@@ -84,7 +83,8 @@ public class TimestampTrackerImpl implements TimestampTracker {
 
     public static TimestampTracker createWithDefaultTrackers(TimelockService timeLockService, Cleaner cleaner,
             boolean initializeAsync) {
-        TimestampTrackerImpl timestampTracker = new TimestampTrackerImpl(Clock.defaultClock(), timeLockService, cleaner);
+        TimestampTrackerImpl timestampTracker = new TimestampTrackerImpl(
+                Clock.defaultClock(), timeLockService, cleaner);
         timestampTracker.wrapper.initialize(initializeAsync);
         return timestampTracker.wrapper.isInitialized() ? timestampTracker : timestampTracker.wrapper;
     }
