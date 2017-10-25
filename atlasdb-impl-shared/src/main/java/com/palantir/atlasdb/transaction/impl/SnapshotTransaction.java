@@ -1817,6 +1817,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+        // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.iterator().next();
             Long commitTsOrNull = defaultTransactionService.get(singleTs);
