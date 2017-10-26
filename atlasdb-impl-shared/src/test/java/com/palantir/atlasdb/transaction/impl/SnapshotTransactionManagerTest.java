@@ -32,6 +32,7 @@ import org.mockito.InOrder;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
@@ -55,6 +56,7 @@ public class SnapshotTransactionManagerTest {
             cleaner,
             false,
             () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+            TimestampTrackerImpl.createNoOpTracker(),
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
             AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
@@ -96,6 +98,7 @@ public class SnapshotTransactionManagerTest {
                 cleaner,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                TimestampTrackerImpl.createNoOpTracker(),
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
