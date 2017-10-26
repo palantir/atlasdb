@@ -205,76 +205,80 @@
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2503">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>We now report metrics for Transaction conflicts.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2540">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">getRange</span></code> is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
 Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
 Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2480">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">SerializableErrorDecoder</span></code> will decode error properly instead of throwing <code class="docutils literal"><span class="pre">NullPointerException</span></code>.</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> is now created via an immutable builder instead of a long list of individual arguments. Use <code class="docutils literal"><span class="pre">TransactionManagers.builder()</span></code>
 to get the builder and once completely configured, build the transaction manager via the builder’s <code class="docutils literal"><span class="pre">.buildSerializable()</span></code> method.
 The existing <code class="docutils literal"><span class="pre">create</span></code> methods are deprecated and will be removed by November 15th, 2017.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2459">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Async Initialization now works with TimeLock Server.
 Previously, for Cassandra we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
 For DBKVS or other key-value services, we would attempt to ping TimeLock on startup, which would fail if TimeLock was unavailable (though the KVS need not be available).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2518">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">AsyncInitializer</span></code> now shuts down its executor after initialization has completed.
 Previously, the executor service wasn’t shut down, which could lead to the initializer thread hanging around unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2518">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>TimeLock Server’s <code class="docutils literal"><span class="pre">ClockSkewMonitor</span></code> now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
 Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
 Also, the log line <code class="docutils literal"><span class="pre">ClockSkewMonitor</span> <span class="pre">threw</span> <span class="pre">an</span> <span class="pre">exception</span></code> which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
 Note that the <code class="docutils literal"><span class="pre">clock.monitor-exception</span></code> metric is still incremented on every call, even if we do not log.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2456">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The <code class="docutils literal"><span class="pre">ProfilingKeyValueService</span></code> now reports its multipart log lines as a single line.
 This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2474">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">ProfilingKeyValueService</span></code> now logs correctly when logging a message for <code class="docutils literal"><span class="pre">getRange</span></code>, <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code> and <code class="docutils literal"><span class="pre">DeleteRange</span></code>.
 Previously, the table reference was omitted, such that one might receive lines of the form <code class="docutils literal"><span class="pre">Call</span> <span class="pre">to</span> <span class="pre">KVS.getRange</span> <span class="pre">on</span> <span class="pre">table</span> <span class="pre">RangeRequest{reverse=false}</span> <span class="pre">with</span> <span class="pre">range</span> <span class="pre">1504</span> <span class="pre">took</span> <span class="pre">{}</span> <span class="pre">ms.</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2474">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing “There are no known live hosts in the connection pool … We’re choosing one at random …”.
 The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2543">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
 This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2543">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2537">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue where a <code class="docutils literal"><span class="pre">waitForLocks</span></code> request could retry unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2491">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal"><span class="pre">TransactionManagers.builder()</span></code> no longer has a <code class="docutils literal"><span class="pre">callingClass(..)</span></code> method and now requires the consumer to directly specify their user agent via the previously optional method <code class="docutils literal"><span class="pre">userAgent(..)</span></code>. All of the <code class="docutils literal"><span class="pre">TransactionManagers.create(..)</span></code> methods are still deprecated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2542">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td><code class="docutils literal"><span class="pre">SweepMetrics</span></code> are now updated at the end of every batch rather than cumulative metrics at the end of every table.
 This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn’t update any metrics which again distorted the view of what work sweep was doing on the DB.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2535">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Simplify and annotate the constructors for <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code>. This should make the code of that class more maintainable.
 If you used one of the deleted or deprecated constructors, use the static <code class="docutils literal"><span class="pre">create</span></code> method.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2549">Pull Request</a>)</td>
