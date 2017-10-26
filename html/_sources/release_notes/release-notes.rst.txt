@@ -43,6 +43,10 @@ develop
 
     *    - Type
          - Change
+
+    *    - |devbreak| |fixed|
+         - Move @CancelableServerCall to a more fitting package that matches internal codebase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
          
     *    - |improved|
          - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
