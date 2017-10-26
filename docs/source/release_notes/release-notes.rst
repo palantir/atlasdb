@@ -45,8 +45,11 @@ develop
          - Change
 
     *    - |improved|
-         - Sweep progress is now persisted as a blob. This allows us to use check and set to avoid versioning the entries in the sweep progress table.
-           No migration is necessary as the data is persisted to a new table, however sweep will start sweeping a new table since the previously persisted sweep progress will be ignored.
+         - Sweep progress is now persisted as a blob.
+           This allows us to use check and set to avoid versioning the entries in the sweep progress table.
+           As a result, loading of the persisted SweepResult which was previously linear in the size of the table being swept can be done in constant time.
+           No migration is necessary as the data is persisted to a new table, however sweep will ignore any previously persisted sweep progress.
+           Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2555>`__)
 
     *    - |improved|
