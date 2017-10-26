@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -28,12 +29,14 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 
 public class SerializableTransactionManagerTest {
 
     private KeyValueService mockKvs = mock(KeyValueService.class);
     private TimelockService mockTimelockService = mock(TimelockService.class);
+    private LockService mockLockService = mock(LockService.class);
     private Cleaner mockCleaner = mock(Cleaner.class);
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
 
@@ -44,7 +47,7 @@ public class SerializableTransactionManagerTest {
         manager = SerializableTransactionManager.create(
                 mockKvs,
                 mockTimelockService,
-                null, // lockService
+                mockLockService,
                 null, // transactionService
                 () -> null, // constraintMode
                 null, // conflictDetectionManager
@@ -62,6 +65,22 @@ public class SerializableTransactionManagerTest {
         when(mockTimelockService.isInitialized()).thenReturn(true);
         when(mockCleaner.isInitialized()).thenReturn(true);
         when(mockInitializer.isInitialized()).thenReturn(true);
+    }
+
+    @Test
+    public void exposesObjectsNeededForInitialization() {
+        // Setup manager to not be initialized.
+        when(mockKvs.isInitialized()).thenReturn(false);
+        assertThat(manager.isInitialized()).isFalse();
+
+        // Check that fetching elements do not throw.
+        assertThat(manager.getTimelockService()).isEqualTo(mockTimelockService);
+        assertThat(manager.getLockService()).isEqualTo(mockLockService);
+        assertThat(manager.getKeyValueService()).isEqualTo(mockKvs);
+
+        // It's not simple to compare equality of TimestampService, as it is a TimelockTimestampServiceAdapter.
+        // So we just assert that it doesn't throw.
+        manager.getTimestampService();
     }
 
     @Test
