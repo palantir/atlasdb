@@ -317,6 +317,11 @@ public abstract class AtlasDbConfig {
                                 + " Please contact AtlasDB support to remediate this. Specific steps are required;"
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
+        } else if (timelock().isPresent()) {
+            // Special case - empty timelock and empty namespace/keyspace does not make sense
+            boolean timelockClientNonEmpty = !timelock().get().client().orElse("").isEmpty();
+            Preconditions.checkState(timelockClientNonEmpty,
+                    "For InMemoryKVS, the TimeLock client should not be empty");
         }
     }
 

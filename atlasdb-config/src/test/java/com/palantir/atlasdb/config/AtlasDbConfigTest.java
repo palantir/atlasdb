@@ -241,6 +241,33 @@ public class AtlasDbConfigTest {
     }
 
     @Test
+    public void inMemoryConfigCannotHaveEmptyNamespaceWithEmptyTimelockClient() {
+        InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
+        assertFalse("This test assumes the InMemoryAtlasDbConfig has no namespace by default",
+                kvsConfig.namespace().isPresent());
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace(Optional.empty())
+                .keyValueService(kvsConfig)
+                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("TimeLock client should not be empty")));
+    }
+
+    // Documenting that for in-memory, we don't care what the timelock client is - it just has to be non-empty.
+    @Test
+    public void inMemoryKeyspaceAndTimelockClientCanBeDifferent() {
+        InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
+        assertFalse("This test assumes the InMemoryAtlasDbConfig has no namespace by default",
+                kvsConfig.namespace().isPresent());
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvsConfig)
+                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
+                .build();
+    }
+
+    @Test
     public void namespaceAndTimelockClientShouldMatch() {
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .namespace("client")
