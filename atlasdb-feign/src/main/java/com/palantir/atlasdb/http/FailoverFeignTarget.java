@@ -208,6 +208,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     public String url() {
         int indexToHit = failoverCount.get();
         mostRecentServerIndex.set(indexToHit);
+        // Need to materialise a value first, otherwise a poorly timed change could result in an out-of-bounds access
+        // (e.g. list has size 5, indexToHit is 4, but in between parameter evaluation and getting the list it reduces
+        // in size).
         ImmutableList<String> serversList = serversListSupplier.get();
         return serversList.get(indexToHit % serversList.size());
     }

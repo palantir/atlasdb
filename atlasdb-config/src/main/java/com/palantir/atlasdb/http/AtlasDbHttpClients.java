@@ -94,7 +94,7 @@ public final class AtlasDbHttpClients {
     }
 
     /**
-     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class, String)}, which
+     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Supplier, Class, String)}, which
      * requires you to specify the ProxySelector parameter.
      */
     @Deprecated
@@ -134,6 +134,11 @@ public final class AtlasDbHttpClients {
                 UserAgents.DEFAULT_USER_AGENT);
     }
 
+    /**
+     * @deprecated Please use {@link #createProxyWithFailover(Optional, Optional, Supplier, Class, String)}.
+     * If live reloading is not desired, you may provide a Supplier that returns a constant value.
+     */
+    @Deprecated
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,

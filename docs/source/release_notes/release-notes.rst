@@ -46,7 +46,13 @@ develop
 
     *    - |improved|
          - ``AtlasDbHttpClients`` and ``AtlasDbFeignTargetFactory`` now support live reloading of remote URLs.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2570>`__)
+
+    *    - |deprecated|
+         - ``AtlasDbHttpClients`` factory methods which take ``Collection<String>`` URIs and/or omit user agents have been deprecated.
+           Please switch to use the full factory method which supports live reloading.
+           If live reloading is not desired, you may provide a Supplier which returns a constant value.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2570>`__)
 
     *    - |devbreak| |fixed|
          - Move @CancelableServerCall to a more fitting package that matches internal codebase.
