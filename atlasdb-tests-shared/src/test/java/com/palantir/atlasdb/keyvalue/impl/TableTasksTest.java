@@ -46,6 +46,7 @@ import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -73,7 +74,7 @@ public class TableTasksTest {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        SerializableTransactionManager transactionManager = SerializableTransactionManager.createForTest(
+        SerializableTransactionManager transactionManager = SerializableTransactionManagerImpl.createForTest(
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
