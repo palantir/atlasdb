@@ -48,15 +48,14 @@ public class AtlasDbServicesConnector implements Closeable {
         DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
         KeyValueServiceConfig config = dburi.getKeyValueServiceInstrumentation()
                 .getKeyValueServiceConfig(dburi.getAddress());
-        ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(
-                ImmutableAtlasDbConfig.builder()
-                        .keyValueService(config)
-                        .build(),
-                ImmutableAtlasDbRuntimeConfig
-                        .defaultRuntimeConfig());
+        ImmutableAtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder().keyValueService(config).build();
+        ImmutableAtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.defaultRuntimeConfig();
+        ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(atlasDbConfig, runtimeConfig);
+
         services = DaggerAtlasDbServices.builder()
                 .servicesConfigModule(servicesConfigModule)
                 .build();
+
         return services;
     }
 
