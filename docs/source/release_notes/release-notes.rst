@@ -44,6 +44,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - ``AtlasDbHttpClients`` and ``AtlasDbFeignTargetFactory`` now support live reloading of remote URLs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/NNNN>`__)
+
     *    - |devbreak| |fixed|
          - Move @CancelableServerCall to a more fitting package that matches internal codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
