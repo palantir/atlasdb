@@ -59,7 +59,7 @@ public class SnapshotTransactionManagerTest {
             TimestampTrackerImpl.createNoOpTracker(),
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-            AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
     @Test
     public void isAlwaysInitialized() {
@@ -101,7 +101,7 @@ public class SnapshotTransactionManagerTest {
                 TimestampTrackerImpl.createNoOpTracker(),
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         newTransactionManager.close(); // should not throw
     }
 

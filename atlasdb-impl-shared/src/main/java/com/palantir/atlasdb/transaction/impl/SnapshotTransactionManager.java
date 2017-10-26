@@ -90,7 +90,9 @@ import com.palantir.timestamp.TimestampService;
             TimestampTracker timestampTracker,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
+        super(timestampCacheSize);
+
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.lockService = lockService;
@@ -106,7 +108,6 @@ import com.palantir.timestamp.TimestampService;
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
         this.timestampTracker = timestampTracker;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
-        timestampValidationReadCache.resize(timestampCacheSize);
     }
 
     @Override
@@ -257,6 +258,11 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
+    @Override
+    public void clearTimestampCache() {
+        timestampValidationReadCache.clear();
+    }
+
     private void closeLockServiceIfPossible() {
         if (lockService instanceof AutoCloseable) {
             try {
@@ -327,6 +333,7 @@ import com.palantir.timestamp.TimestampService;
         return new TimelockTimestampServiceAdapter(timelockService);
     }
 
+    @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
         switch (clusterAvailabilityStatus) {

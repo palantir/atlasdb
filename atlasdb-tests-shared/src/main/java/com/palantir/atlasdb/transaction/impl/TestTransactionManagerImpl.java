@@ -56,12 +56,12 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
+                TimestampTrackerImpl.createNoOpTracker(),
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                TimestampTrackerImpl.createNoOpTracker(),
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -80,12 +80,12 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
+                TimestampTrackerImpl.createNoOpTracker(),
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                TimestampTrackerImpl.createNoOpTracker(),
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
     }
 
     @Override

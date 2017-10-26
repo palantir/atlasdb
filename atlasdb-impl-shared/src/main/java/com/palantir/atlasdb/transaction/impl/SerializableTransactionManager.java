@@ -85,8 +85,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * This constructor is necessary for the InitializeCheckingWrapper. We initialize a dummy transaction manager and
      * use the delegate instead.
      */
+    // TODO(ssouza): it's hard to change the interface of STM with this.
+    // We should extract interfaces and delete this hack.
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, false, null, null, 1, 1, 1L);
+        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -103,7 +105,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
                 timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
@@ -115,12 +117,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
+                timestampTracker,
+                timestampCacheSize,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
-                timestampTracker,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                timestampCacheSize);
+                defaultGetRangesConcurrency);
 
         return initializeAsync
                 ? new InitializeCheckingWrapper(serializableTransactionManager, initializationPrerequisite)
@@ -138,7 +140,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         return new SerializableTransactionManager(keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
@@ -147,12 +149,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
+                TimestampTrackerImpl.createNoOpTracker(),
+                timestampCacheSize,
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                TimestampTrackerImpl.createNoOpTracker(),
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                timestampCacheSize);
+                defaultGetRangesConcurrency);
     }
 
     /**
@@ -173,7 +175,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TimestampTracker timestampTracker,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            Supplier<Long> timestampCacheSize) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -183,12 +185,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
+                timestampTracker,
+                timestampCacheSize,
                 allowHiddenTableAccess,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                timestampTracker,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency,
-                timestampCacheSize);
+                defaultGetRangesConcurrency
+        );
     }
 
     // Canonical constructor.
@@ -200,12 +203,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
+            TimestampTracker timestampTracker,
+            Supplier<Long> timestampCacheSize,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            TimestampTracker timestampTracker,
             int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            long timestampCacheSize) {
+            int defaultGetRangesConcurrency) {
         super(
                 keyValueService,
                 timelockService,

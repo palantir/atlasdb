@@ -71,7 +71,7 @@ public final class SweepTestUtils {
                 kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         setupTables(kvs);
         return txManager;
     }
