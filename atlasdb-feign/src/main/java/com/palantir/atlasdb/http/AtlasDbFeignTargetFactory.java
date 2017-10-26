@@ -94,6 +94,20 @@ public final class AtlasDbFeignTargetFactory {
                 sslSocketFactory,
                 proxySelector,
                 () -> endpointUris,
+                type,
+                userAgent);
+    }
+
+    public static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
+            Supplier<Collection<String>> endpointUriSupplier,
+            Class<T> type,
+            String userAgent) {
+        return createProxyWithFailover(
+                sslSocketFactory,
+                proxySelector,
+                endpointUriSupplier,
                 DEFAULT_FEIGN_OPTIONS,
                 FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
                 type,
