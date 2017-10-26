@@ -81,7 +81,8 @@ public class SweepProgressStore {
         try {
             return Optional.of(OBJECT_MAPPER.readValue(result.get(ROW), ImmutableSweepProgress.class));
         } catch (Exception e) {
-            log.warn("Error deserializing SweepProgress object while attempting to load intermittent result.");
+            log.warn("Error deserializing SweepProgress object while attempting to load intermittent result. Sweep "
+                    + "will choose a new table to sweep.");
             return Optional.empty();
         }
     }

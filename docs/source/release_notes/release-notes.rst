@@ -48,8 +48,13 @@ develop
          - Sweep progress is now persisted as a blob.
            This allows us constant time loading of the persisted SweepResult which was previously linear in the size of the table being swept.
            No migration is necessary as the data is persisted to a new table, however sweep will ignore any previously persisted sweep progress.
+           Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2555>`__)
 
+    *    - |devbreak| |fixed|
+         - Move @CancelableServerCall to a more fitting package that matches internal codebase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
+         
     *    - |improved|
          - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
@@ -58,6 +63,10 @@ develop
          - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
            
+    *    - |improved|
+         - We now report metrics for Transaction conflicts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
+
     *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
