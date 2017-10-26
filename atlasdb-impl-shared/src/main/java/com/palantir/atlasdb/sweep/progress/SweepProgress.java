@@ -30,6 +30,7 @@ public interface SweepProgress {
 
     byte[] startRow();
 
+    // This is currently not used, but it is included for potential future sweep optimizations
     byte[] startColumn();
 
     long staleValuesDeleted();

@@ -24,8 +24,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -42,11 +42,13 @@ public class SweepProgressStore {
     private final SweepProgressTable progressTable;
     private final TableReference tableRef;
 
-    private static final byte[] row = PtBytes.toBytes("dummy");
-    private static final byte[] column = PtBytes.toBytes("s");
-    private static final Cell CELL = Cell.create(row, column);
+    private static final byte[] BYTE_ROW = SweepProgressTable.SweepProgressRow.of(0).persistToBytes();
+    private static final byte[] BYTE_COL = SweepProgressTable.SweepProgressNamedColumn.SWEEP_PROGRESS.getShortName();
+    private static final Cell CELL = Cell.create(BYTE_ROW, BYTE_COL);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new AfterburnerModule());
 
     public SweepProgressStore(KeyValueService kvs, SweepTableFactory tableFactory) {
         this.kvs = kvs;
@@ -64,7 +66,8 @@ public class SweepProgressStore {
         try {
             kvs.checkAndSet(casProgressRequest(oldProgress, newProgress));
         } catch (Exception e) {
-            log.warn("Exception trying to persist sweep progress.", e);
+            log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
+                    + "persisted. This should not cause sweep issues unless the problem persists.", e);
         }
     }
 
@@ -93,10 +96,16 @@ public class SweepProgressStore {
     }
 
     public static Optional<SweepProgress> hydrateProgress(Map<Cell, Value> result) {
+        if (result.isEmpty()) {
+            log.info("No persisted intermittent SweepProgress information found. "
+                    + "Sweep will choose a new table to sweep.");
+            return Optional.empty();
+        }
         try {
-            return Optional.of(OBJECT_MAPPER.readValue(result.get(CELL).getContents(), ImmutableSweepProgress.class));
+            return Optional.of(OBJECT_MAPPER.readValue(result.get(CELL).getContents(), SweepProgress.class));
         } catch (Exception e) {
-            log.info("Encountered an exception loading persisted sweep progress. Defaulting to no progress.", e);
+            log.warn("Error deserializing SweepProgress object while attempting to load intermediate result. "
+                    + "Sweep will choose a new table to sweep.", e);
             return Optional.empty();
         }
     }
