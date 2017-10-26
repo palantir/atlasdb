@@ -15,21 +15,33 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
+import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepProgressTable;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRow;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class SweepProgressStore {
+    private static final Logger log = LoggerFactory.getLogger(SweepProgressStore.class);
 
     private final KeyValueService kvs;
     private final SweepTableFactory tableFactory;
+
+    private static final SweepProgressTable.SweepProgressRow ROW = SweepProgressTable.SweepProgressRow.of(0);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new AfterburnerModule());
 
     public SweepProgressStore(KeyValueService kvs, SweepTableFactory tableFactory) {
         this.kvs = kvs;
@@ -37,20 +49,17 @@ public class SweepProgressStore {
     }
 
     public Optional<SweepProgress> loadProgress(Transaction tx)  {
-        SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-        Optional<SweepProgressRowResult> result = Optional.ofNullable(
-                progressTable.getRow(SweepProgressRow.of(0)).orElse(null));
-        return result.map(SweepProgressStore::hydrateProgress);
+        SweepProgressTable table = tableFactory.getSweepProgressTable(tx);
+        return hydrateProgress(table.getSweepProgresss(ImmutableList.of(ROW)));
     }
 
-    public void saveProgress(Transaction tx, SweepProgress progress) {
-        SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-        SweepProgressRow row = SweepProgressRow.of(0);
-        progressTable.putFullTableName(row, progress.tableRef().getQualifiedName());
-        progressTable.putStartRow(row, progress.startRow());
-        progressTable.putCellsDeleted(row, progress.staleValuesDeleted());
-        progressTable.putCellsExamined(row, progress.cellTsPairsExamined());
-        progressTable.putMinimumSweptTimestamp(row, progress.minimumSweptTimestamp());
+    public void saveProgress(Transaction transaction, SweepProgress newProgress) {
+        SweepProgressTable table = tableFactory.getSweepProgressTable(transaction);
+        try {
+            table.putSweepProgress(ROW, OBJECT_MAPPER.writeValueAsBytes(newProgress));
+        } catch (JsonProcessingException e) {
+            log.warn("Error serializing SweepProgress object while attempting to save intermittent result.");
+        }
     }
 
     /**
@@ -64,14 +73,17 @@ public class SweepProgressStore {
         kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
     }
 
-    private static SweepProgress hydrateProgress(SweepProgressTable.SweepProgressRowResult rr) {
-        return ImmutableSweepProgress.builder()
-                .tableRef(TableReference.createUnsafe(rr.getFullTableName()))
-                .startRow(rr.getStartRow())
-                .cellTsPairsExamined(rr.getCellsExamined())
-                .staleValuesDeleted(rr.getCellsDeleted())
-                .minimumSweptTimestamp(rr.getMinimumSweptTimestamp())
-                .build();
+    public static Optional<SweepProgress> hydrateProgress(Map<SweepProgressTable.SweepProgressRow, byte[]> result) {
+        if (result.isEmpty()) {
+            log.info("No persisted SweepProgress information found. Sweep will choose a new table to sweep.");
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(OBJECT_MAPPER.readValue(result.get(ROW), ImmutableSweepProgress.class));
+        } catch (Exception e) {
+            log.warn("Error deserializing SweepProgress object while attempting to load intermittent result. Sweep "
+                    + "will choose a new table to sweep.");
+            return Optional.empty();
+        }
     }
-
 }

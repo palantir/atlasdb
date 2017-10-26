@@ -191,8 +191,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
                     @Override
                     public Optional<TableToSweep> execute(Transaction tx) {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
-                                tx);
+                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore()
+                                .loadProgress(tx);
                         if (progress.isPresent()) {
                             return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {

@@ -23,6 +23,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -39,6 +40,7 @@ public class SweepProgressStoreTest {
 
     private static final SweepProgress PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {1, 2, 3})
+            .startColumn(PtBytes.toBytes("unused"))
             .minimumSweptTimestamp(12345L)
             .staleValuesDeleted(10L)
             .cellTsPairsExamined(200L)
@@ -46,6 +48,7 @@ public class SweepProgressStoreTest {
             .build();
     private static final SweepProgress OTHER_PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {4, 5, 6})
+            .startColumn(PtBytes.toBytes("unused"))
             .minimumSweptTimestamp(67890L)
             .staleValuesDeleted(11L)
             .cellTsPairsExamined(202L)
@@ -102,5 +105,4 @@ public class SweepProgressStoreTest {
         progressStore.clearProgress();
         Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
     }
-
 }

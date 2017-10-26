@@ -44,6 +44,13 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |fixed|
+         - Sweep progress is now persisted as a blob.
+           This allows us constant time loading of the persisted SweepResult which was previously linear in the size of the table being swept.
+           No migration is necessary as the data is persisted to a new table, however sweep will ignore any previously persisted sweep progress.
+           Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2555>`__)
+
     *    - |devbreak| |fixed|
          - Move @CancelableServerCall to a more fitting package that matches internal codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
