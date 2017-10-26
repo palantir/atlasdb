@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.keyvalue.api;
 
-/**
- * Thrown by a key value service when an operation could not be performed
- * because the required consistency could not be met.
- */
-public class InsufficientConsistencyException extends DependencyUnavailableException {
-    private static final long serialVersionUID = 1L;
+public class DependencyUnavailableException extends Exception {
+    public DependencyUnavailableException() {/**/}
 
-    public InsufficientConsistencyException(String msg) {
+    public DependencyUnavailableException(Throwable throwable) {
+        super(throwable);
+    }
+
+    public DependencyUnavailableException(String msg) {
         super(msg);
     }
 
-    public InsufficientConsistencyException(String msg, Throwable ex) {
-        super(msg, ex);
+    public DependencyUnavailableException(String msg, Throwable throwable) {
+        super(msg, throwable);
     }
 }

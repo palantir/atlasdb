@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -120,7 +121,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void createTable(TableReference tableRef, byte[] tableMetadata) {
+    public void createTable(TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("createTable({})", tableRef)) {
             delegate().createTable(tableRef, tableMetadata);
@@ -128,7 +129,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableNamesToTableMetadata) {
+    public void createTables(Map<TableReference, byte[]> tableNamesToTableMetadata)
+            throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("createTables({})",
                 tableNamesToTableMetadata.keySet())) {
@@ -137,7 +139,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("delete({}, {} keys)", tableRef, keys.size())) {
             delegate().delete(tableRef, keys);
@@ -145,7 +147,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void deleteRange(TableReference tableRef, RangeRequest range) {
+    public void deleteRange(TableReference tableRef, RangeRequest range) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("deleteRange({})", tableRef)) {
             delegate().deleteRange(tableRef, range);
@@ -153,7 +155,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void dropTable(TableReference tableRef) {
+    public void dropTable(TableReference tableRef) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("dropTable({})", tableRef)) {
             delegate().dropTable(tableRef);
@@ -161,7 +163,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void dropTables(Set<TableReference> tableRefs) {
+    public void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("dropTables({})", tableRefs)) {
             delegate().dropTables(tableRefs);
@@ -186,7 +188,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp)
+            throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("getAllTimestamps({}, {} keys, ts {})",
                 tableRef, keys.size(), timestamp)) {
@@ -254,7 +257,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
             RangeRequest rangeRequest,
-            long timestamp) {
+            long timestamp) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("getRangeOfTimestamps({}, ts {})",
                 tableRef, timestamp)) {
@@ -370,7 +373,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void truncateTable(TableReference tableRef) {
+    public void truncateTable(TableReference tableRef) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("truncateTable({})", tableRef)) {
             delegate().truncateTable(tableRef);
@@ -378,7 +381,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void truncateTables(Set<TableReference> tableRefs) {
+    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("truncateTables({})", tableRefs)) {
             delegate().truncateTables(tableRefs);

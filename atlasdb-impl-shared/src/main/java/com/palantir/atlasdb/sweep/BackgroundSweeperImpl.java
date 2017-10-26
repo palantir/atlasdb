@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
@@ -138,8 +137,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             } else {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
             }
-        } catch (InsufficientConsistencyException e) {
-            log.warn("Could not sweep because not all nodes of the database are online.", e);
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
             if (checkAndRepairTableDrop()) {

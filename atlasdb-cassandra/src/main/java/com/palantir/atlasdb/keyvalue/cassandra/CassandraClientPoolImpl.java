@@ -682,9 +682,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception ex) throws K {
         if (isRetriableException(ex) || isRetriableWithBackoffException(ex) || isFastFailoverException(ex)) {
             if (numTries >= MAX_TRIES_TOTAL) {
-                if (ex instanceof TTransportException
-                        && ex.getCause() != null
-                        && (ex.getCause().getClass() == SocketException.class)) {
+                if (ifExceptionHasGivenTypes(ex, TTransportException.class, SocketException.class)) {
                     log.error(CONNECTION_FAILURE_MSG, numTries, ex);
                     String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numTries).getMessage();
                     throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
@@ -693,25 +691,33 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     throw (K) ex;
                 }
             } else {
-                // Only log the actual exception the first time
-                if (numTries > 1) {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
-                            SafeArg.of("numTries", numTries),
-                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
-                            SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
-                            UnsafeArg.of("exceptionMessage", ex.getMessage()));
-                } else {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
-                            SafeArg.of("numTries", numTries),
-                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
-                            ex);
-                }
+                logExceptionOrExceptionMessage(numTries, ex);
                 if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
                     addToBlacklist(host);
                 }
             }
         } else {
             throw (K) ex;
+        }
+    }
+
+    private boolean ifExceptionHasGivenTypes(Exception ex, Class exeptionType, Class causeType) {
+        return exeptionType.isInstance(ex) && ex.getCause() != null && (ex.getCause().getClass() == causeType);
+    }
+
+    private void logExceptionOrExceptionMessage(int numTries, Exception ex) {
+        // Only log the actual exception the first time
+        if (numTries > 1) {
+            log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+                    SafeArg.of("numTries", numTries),
+                    SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
+                    SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
+                    UnsafeArg.of("exceptionMessage", ex.getMessage()));
+        } else {
+            log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
+                    SafeArg.of("numTries", numTries),
+                    SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
+                    ex);
         }
     }
 
@@ -778,6 +784,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static boolean isConnectionException(Throwable ex) {
+        //TODO: add ex instanceof TTransportException here.
         return ex != null
                 && (ex instanceof SocketTimeoutException
                 || ex instanceof ClientCreationFailedException

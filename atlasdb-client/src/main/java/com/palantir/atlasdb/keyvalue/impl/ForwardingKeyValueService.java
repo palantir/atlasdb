@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -56,37 +57,40 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void createTable(TableReference tableRef, final byte[] tableMetadata) {
+    public void createTable(TableReference tableRef, final byte[] tableMetadata)
+            throws InsufficientConsistencyException {
         delegate().createTable(tableRef, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata)
+            throws InsufficientConsistencyException {
         delegate().createTables(tableRefToTableMetadata);
     }
 
     @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) throws InsufficientConsistencyException {
         delegate().delete(tableRef, keys);
     }
 
     @Override
-    public void deleteRange(TableReference tableRef, RangeRequest range) {
+    public void deleteRange(TableReference tableRef, RangeRequest range) throws InsufficientConsistencyException {
         delegate().deleteRange(tableRef, range);
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp)
+            throws InsufficientConsistencyException {
         return delegate().getAllTimestamps(tableRef, keys, timestamp);
     }
 
     @Override
-    public void dropTable(TableReference tableRef) {
+    public void dropTable(TableReference tableRef) throws InsufficientConsistencyException {
         delegate().dropTable(tableRef);
     }
 
     @Override
-    public void dropTables(Set<TableReference> tableRefs) {
+    public void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         delegate().dropTables(tableRefs);
     }
 
@@ -130,7 +134,8 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
-                                                                       long timestamp) {
+                                                                       long timestamp)
+            throws InsufficientConsistencyException {
         return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
@@ -182,12 +187,12 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void truncateTable(TableReference tableRef) {
+    public void truncateTable(TableReference tableRef) throws InsufficientConsistencyException {
         delegate().truncateTable(tableRef);
     }
 
     @Override
-    public void truncateTables(Set<TableReference> tableRefs) {
+    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         delegate().truncateTables(tableRefs);
     }
 

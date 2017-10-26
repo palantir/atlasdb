@@ -36,6 +36,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -72,14 +73,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void createTable(TableReference tableRef, byte[] tableMetadata) {
+    public void createTable(TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException {
         sanityCheckTableName(tableRef);
         sanityCheckTableMetadata(tableRef, tableMetadata);
         delegate.createTable(tableRef, tableMetadata);
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata)
+            throws InsufficientConsistencyException {
         if (tableRefToTableMetadata.isEmpty()) {
             return;
         }
@@ -114,7 +116,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) throws InsufficientConsistencyException {
         if (keys.isEmpty()) {
             return;
         }
@@ -122,7 +124,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void deleteRange(TableReference tableRef, RangeRequest rangeRequest) {
+    public void deleteRange(TableReference tableRef, RangeRequest rangeRequest)
+            throws InsufficientConsistencyException {
         if (!rangeRequest.getColumnNames().isEmpty()) {
             throw new UnsupportedOperationException(
                     "We don't anticipate supporting deleting ranges with partial column selections.");
@@ -139,7 +142,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
+            throws InsufficientConsistencyException {
         if (cells.isEmpty()) {
             return ImmutableSetMultimap.of();
         } else {
@@ -271,7 +275,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void truncateTables(Set<TableReference> tableRefs) {
+    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         if (tableRefs.isEmpty()) {
             return;
         }

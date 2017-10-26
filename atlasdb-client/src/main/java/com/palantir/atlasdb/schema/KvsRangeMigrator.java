@@ -28,6 +28,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -183,7 +184,11 @@ public class KvsRangeMigrator implements RangeMigrator {
         Multimap<Cell, Long> keys = Multimaps.forMap(Maps2.createConstantValueMap(
                 writeMap.keySet(),
                 migrationTimestamp));
-        writeKvs.delete(destTable, keys);
+        try {
+            writeKvs.delete(destTable, keys);
+        } catch (InsufficientConsistencyException e) {
+            retryWriteToKvs(writeMap);
+        }
         writeKvs.put(destTable, writeMap, migrationTimestamp);
     }
 

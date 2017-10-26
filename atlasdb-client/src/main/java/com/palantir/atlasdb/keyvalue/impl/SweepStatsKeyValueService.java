@@ -45,6 +45,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -128,7 +129,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void deleteRange(TableReference tableRef, RangeRequest range) {
+    public void deleteRange(TableReference tableRef, RangeRequest range)
+            throws InsufficientConsistencyException {
         delegate().deleteRange(tableRef, range);
         if (RangeRequest.all().equals(range)) {
             // This is equivalent to truncate.
@@ -137,20 +139,20 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    public void truncateTable(TableReference tableRef) {
+    public void truncateTable(TableReference tableRef) throws InsufficientConsistencyException {
         delegate().truncateTable(tableRef);
         recordClear(tableRef);
     }
 
     @Override
-    public void truncateTables(Set<TableReference> tableRefs) {
+    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         delegate().truncateTables(tableRefs);
         clearedTables.addAll(tableRefs);
         recordModifications(CLEAR_WEIGHT * tableRefs.size());
     }
 
     @Override
-    public void dropTable(TableReference tableRef) {
+    public void dropTable(TableReference tableRef) throws InsufficientConsistencyException {
         delegate().dropTable(tableRef);
         recordClear(tableRef);
     }

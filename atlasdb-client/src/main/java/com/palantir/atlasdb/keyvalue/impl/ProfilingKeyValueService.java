@@ -331,7 +331,13 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        maybeLog(() -> delegate.truncateTable(tableRef),
+        maybeLog(() -> {
+                    try {
+                        delegate.truncateTable(tableRef);
+                    } catch (Exception e) {
+
+                    }
+                },
                 logTimeAndTable("truncateTable", tableRef));
     }
 

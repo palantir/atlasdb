@@ -57,6 +57,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -681,7 +682,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testKeyValueMultiput() {
+    public void testKeyValueMultiput() throws InsufficientConsistencyException {
         TableReference table = TableReference.createWithEmptyNamespace("table2");
         keyValueService.createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
         Cell k = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
@@ -799,7 +800,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     // This test is required to pass if you want your KV store to support hard delete
     @Test
-    public void testNegativeTimestamps() {
+    public void testNegativeTimestamps() throws InsufficientConsistencyException {
         Cell k = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("col1"));
         keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(k));
         putDirect("row1", "col1", "v3", 3);

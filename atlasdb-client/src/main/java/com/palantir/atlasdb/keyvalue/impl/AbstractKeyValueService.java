@@ -52,6 +52,7 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -114,14 +115,15 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata)
+            throws InsufficientConsistencyException {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToTableMetadata.entrySet()) {
             createTable(entry.getKey(), entry.getValue());
         }
     }
 
     @Override
-    public void dropTables(Set<TableReference> tableRefs) {
+    public void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         for (TableReference tableName : tableRefs) {
             dropTable(tableName);
         }
@@ -298,7 +300,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteRange(TableReference tableRef, RangeRequest range) {
+    public void deleteRange(TableReference tableRef, RangeRequest range) throws InsufficientConsistencyException {
         try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range,
                 AtlasDbConstants.MAX_TS)) {
             while (iterator.hasNext()) {
@@ -318,7 +320,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void truncateTables(final Set<TableReference> tableRefs) {
+    public void truncateTables(final Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         List<Future<Void>> futures = Lists.newArrayList();
         for (final TableReference tableRef : tableRefs) {
             futures.add(executor.submit(() -> {

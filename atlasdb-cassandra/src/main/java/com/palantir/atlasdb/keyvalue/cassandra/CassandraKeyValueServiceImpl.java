@@ -1182,14 +1182,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void batchMutateInternal(Client client,
                                      TableReference tableRef,
                                      Map<ByteBuffer, Map<String, List<Mutation>>> map,
-                                     ConsistencyLevel consistency) throws TException {
+                                     ConsistencyLevel consistency) throws TException, InsufficientConsistencyException {
         batchMutateInternal(client, ImmutableSet.of(tableRef), map, consistency);
     }
 
     private Void batchMutateInternal(Client client,
                                      Set<TableReference> tableRefs,
                                      Map<ByteBuffer, Map<String, List<Mutation>>> map,
-                                     ConsistencyLevel consistency) throws TException {
+                                     ConsistencyLevel consistency) throws TException, InsufficientConsistencyException {
         try {
             return queryRunner.run(client, tableRefs, () -> {
                 client.batch_mutate(map, consistency);
@@ -1208,7 +1208,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             List<ByteBuffer> rowNames,
             ColumnParent colFam,
             SlicePredicate pred,
-            ConsistencyLevel consistency) throws TException {
+            ConsistencyLevel consistency) throws TException, InsufficientConsistencyException {
         try {
             return queryRunner.run(client, tableRef, () -> client.multiget_slice(rowNames, colFam, pred, consistency));
         } catch (UnavailableException e) {
@@ -1231,7 +1231,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @throws (? extends RuntimeException) if the table does not exist.
      */
     @Override
-    public void truncateTable(final TableReference tableRef) {
+    public void truncateTable(final TableReference tableRef) throws InsufficientConsistencyException {
         truncateTables(ImmutableSet.of(tableRef));
     }
 
@@ -1248,7 +1248,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @throws (? extends RuntimeException) if the table does not exist.
      */
     @Override
-    public void truncateTables(final Set<TableReference> tablesToTruncate) {
+    public void truncateTables(final Set<TableReference> tablesToTruncate) throws InsufficientConsistencyException {
         if (!tablesToTruncate.isEmpty()) {
             try {
                 runTruncateInternal(tablesToTruncate);
@@ -1317,10 +1317,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for.
      *
-     * @throws PalantirRuntimeException if not all hosts respond successfully.
+     * @throws InsufficientConsistencyException if not all hosts respond successfully.
      */
     @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) throws InsufficientConsistencyException {
         Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = partitionMapByHost(keys.asMap().entrySet());
         for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
@@ -1329,7 +1329,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private void deleteOnSingleHost(final InetSocketAddress host,
                                     final TableReference tableRef,
-                                    final Map<Cell, Collection<Long>> cellVersionsMap) {
+                                    final Map<Cell, Collection<Long>> cellVersionsMap)
+            throws InsufficientConsistencyException {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
                 private int numVersions = 0;

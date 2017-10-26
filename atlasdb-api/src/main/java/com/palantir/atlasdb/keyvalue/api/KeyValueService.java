@@ -346,12 +346,14 @@ public interface KeyValueService extends AutoCloseable {
      * is the case then this method may throw if the delete can't be completed on all nodes.
      *  @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for; the map should specify, for each
+     * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
     @POST
     @Path("delete")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void delete(@QueryParam("tableRef") TableReference tableRef, Multimap<Cell, Long> keys);
+    void delete(@QueryParam("tableRef") TableReference tableRef, Multimap<Cell, Long> keys)
+            throws InsufficientConsistencyException;
 
     /**
      * Deletes values in a range from the key-value store.
@@ -370,7 +372,8 @@ public interface KeyValueService extends AutoCloseable {
     @Path("delete-range")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
+    void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range)
+            throws InsufficientConsistencyException;
 
     /**
      * Truncate a table in the key-value store.

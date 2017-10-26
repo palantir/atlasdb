@@ -21,6 +21,7 @@ import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.keyvalue.api.DependencyUnavailableException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -95,7 +96,13 @@ public final class SweepTestUtils {
                 .timeout(Duration.FIVE_MINUTES)
                 .until(() -> {
                     kvs.getAllTableNames().stream()
-                            .forEach(tableRef -> kvs.dropTable(tableRef));
+                            .forEach(tableRef -> {
+                                try {
+                                    kvs.dropTable(tableRef);
+                                } catch (DependencyUnavailableException e) {
+                                    /* keep retrying */
+                                }
+                            });
                     return true;
                 });
         TransactionTables.deleteTables(kvs);

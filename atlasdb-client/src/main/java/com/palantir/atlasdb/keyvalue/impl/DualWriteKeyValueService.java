@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -43,7 +44,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 /**
  * An implementation of KeyValueService which delegates reads to the first KeyValueService and
  * writes to both, except for putUnlessExists, which only goes to the first KeyValueService.
- *
+ * <p>
  * This is useful for Migration.
  */
 public class DualWriteKeyValueService implements KeyValueService {
@@ -68,9 +69,9 @@ public class DualWriteKeyValueService implements KeyValueService {
 
     @Override
     public Map<Cell, Value> getRows(TableReference tableRef,
-                                    Iterable<byte[]> rows,
-                                    ColumnSelection columnSelection,
-                                    long timestamp) {
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            long timestamp) {
         return delegate1.getRows(tableRef, rows, columnSelection, timestamp);
     }
 
@@ -119,25 +120,25 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) throws InsufficientConsistencyException {
         delegate1.delete(tableRef, keys);
         delegate2.delete(tableRef, keys);
     }
 
     @Override
-    public void deleteRange(TableReference tableRef, RangeRequest range) {
+    public void deleteRange(TableReference tableRef, RangeRequest range) throws InsufficientConsistencyException {
         delegate1.deleteRange(tableRef, range);
         delegate2.deleteRange(tableRef, range);
     }
 
     @Override
-    public void truncateTable(TableReference tableRef) {
+    public void truncateTable(TableReference tableRef) throws InsufficientConsistencyException {
         delegate1.truncateTable(tableRef);
         delegate2.truncateTable(tableRef);
     }
 
     @Override
-    public void truncateTables(Set<TableReference> tableRefs) {
+    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         delegate1.truncateTables(tableRefs);
         delegate2.truncateTables(tableRefs);
     }
@@ -157,13 +158,13 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void dropTable(TableReference tableRef) {
+    public void dropTable(TableReference tableRef) throws InsufficientConsistencyException {
         delegate1.dropTable(tableRef);
         delegate2.dropTable(tableRef);
     }
 
     @Override
-    public void dropTables(Set<TableReference> tableRefs) {
+    public void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
         for (TableReference tableRef : tableRefs) {
             delegate1.dropTable(tableRef);
             delegate2.dropTable(tableRef);
@@ -171,7 +172,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void createTable(TableReference tableRef, byte[] tableMetadata) {
+    public void createTable(TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException {
         delegate1.createTable(tableRef, tableMetadata);
         delegate2.createTable(tableRef, tableMetadata);
     }
@@ -204,26 +205,28 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
+            throws InsufficientConsistencyException {
         return delegate1.getAllTimestamps(tableRef, cells, timestamp);
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
             RangeRequest rangeRequest,
-            long timestamp) {
+            long timestamp) throws InsufficientConsistencyException {
         return delegate1.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-                    TableReference tableRef,
-                    CandidateCellForSweepingRequest request) {
+            TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
         return delegate1.getCandidateCellsForSweeping(tableRef, request);
     }
 
     @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata)
+            throws InsufficientConsistencyException {
         delegate1.createTables(tableRefToTableMetadata);
         delegate2.createTables(tableRefToTableMetadata);
     }
@@ -266,10 +269,10 @@ public class DualWriteKeyValueService implements KeyValueService {
 
     @Override
     public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int cellBatchHint,
+            long timestamp) {
         return delegate1.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
     }
 }

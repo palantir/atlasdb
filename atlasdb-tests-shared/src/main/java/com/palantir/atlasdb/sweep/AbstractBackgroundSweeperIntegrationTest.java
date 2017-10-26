@@ -30,6 +30,7 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -126,7 +127,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     protected abstract KeyValueService getKeyValueService();
 
-    protected void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
+    protected void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative)
+            throws InsufficientConsistencyException {
         try (ClosableIterator<RowResult<Set<Long>>> iter =
                 kvs.getRangeOfTimestamps(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
             int numCells = 0;
@@ -140,7 +142,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         }
     }
 
-    protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
+    protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy)
+            throws InsufficientConsistencyException {
         kvs.createTable(tableReference,
                 new TableDefinition() {
                     {

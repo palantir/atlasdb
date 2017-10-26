@@ -46,6 +46,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.DependencyUnavailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
@@ -180,7 +181,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         log.debug("Closed transport for client {}", SafeArg.of("cassandraClient", client.getObject()));
     }
 
-    static class ClientCreationFailedException extends RuntimeException {
+    static class ClientCreationFailedException extends DependencyUnavailableException {
         private static final long serialVersionUID = 1L;
 
         ClientCreationFailedException(String message, Exception cause) {
