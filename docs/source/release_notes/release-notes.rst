@@ -51,10 +51,21 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2555>`__)
 
     *    - |improved|
+         - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
+    
+    *    - |improved|
+         - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
+           
+    *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
+           
+    *    - |fixed|
+         - ``SerializableErrorDecoder`` will decode error properly instead of throwing ``NullPointerException``.
 
     *    - |deprecated| |improved|
          - ``SerializableTransactionManager`` is now created via an immutable builder instead of a long list of individual arguments. Use ``TransactionManagers.builder()``
