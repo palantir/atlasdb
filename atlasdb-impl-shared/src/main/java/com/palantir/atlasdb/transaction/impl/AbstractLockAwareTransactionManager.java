@@ -42,7 +42,7 @@ public abstract class AbstractLockAwareTransactionManager
         extends AbstractTransactionManager
         implements LockAwareTransactionManager {
 
-    protected AbstractLockAwareTransactionManager(java.util.function.Supplier<Long> timestampCacheSize) {
+    AbstractLockAwareTransactionManager(java.util.function.Supplier<Long> timestampCacheSize) {
         super(timestampCacheSize);
     }
 
