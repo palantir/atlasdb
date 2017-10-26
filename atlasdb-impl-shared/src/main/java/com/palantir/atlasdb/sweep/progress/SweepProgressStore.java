@@ -39,7 +39,6 @@ public class SweepProgressStore {
     private static final Logger log = LoggerFactory.getLogger(SweepProgressStore.class);
 
     private final KeyValueService kvs;
-    private final SweepProgressTable progressTable;
     private final TableReference tableRef;
 
     private static final byte[] BYTE_ROW = SweepProgressTable.SweepProgressRow.of(0).persistToBytes();
@@ -52,8 +51,7 @@ public class SweepProgressStore {
 
     public SweepProgressStore(KeyValueService kvs, SweepTableFactory tableFactory) {
         this.kvs = kvs;
-        this.progressTable = tableFactory.getSweepProgressTable(null);
-        this.tableRef = progressTable.getTableRef();
+        this.tableRef = tableFactory.getSweepProgressTable(null).getTableRef();
     }
 
     public Optional<SweepProgress> loadProgress()  {
@@ -95,7 +93,7 @@ public class SweepProgressStore {
         return OBJECT_MAPPER.writeValueAsBytes(value);
     }
 
-    public static Optional<SweepProgress> hydrateProgress(Map<Cell, Value> result) {
+    private static Optional<SweepProgress> hydrateProgress(Map<Cell, Value> result) {
         if (result.isEmpty()) {
             log.info("No persisted intermittent SweepProgress information found. "
                     + "Sweep will choose a new table to sweep.");
