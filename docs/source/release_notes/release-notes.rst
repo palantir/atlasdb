@@ -133,6 +133,11 @@ v0.62.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
     *    - |fixed|
+         - ``MetricsManager`` now supports de-registration of metrics for a given prefix.
+           Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
+
+    *    - |fixed|
          - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
            The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
@@ -291,11 +296,6 @@ v0.60.1
          - ``CassandraClientPool`` no longer logs stack traces twice for every failed attempt to connect to Cassandra.
            Instead, the exception is logged once only, when we run out of retries.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2432>`__)
-
-    *    - |fixed|
-         - ``MetricsManager`` now supports de-registration of metrics for a given prefix.
-           Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
     *    - |fixed|
          - The Sweep endpoint and CLI now accept start rows regardless of the case these are presented in.
