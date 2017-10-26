@@ -33,7 +33,7 @@ public abstract class ServicesConfig {
 
     public abstract AtlasDbConfig atlasDbConfig();
 
-    public abstract AtlasDbRuntimeConfig atlasDbRuntimeConfigConfig();
+    public abstract AtlasDbRuntimeConfig atlasDbRuntimeConfig();
 
     @Value.Derived
     public ServiceDiscoveringAtlasSupplier atlasDbSupplier() {
