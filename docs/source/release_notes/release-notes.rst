@@ -179,6 +179,12 @@ v0.62.0
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2496>`__)
            (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2554>`__)
 
+    *    - |improved|
+         - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
+           provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
+           Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -223,12 +229,6 @@ v0.61.0
          - The ``SweeperService`` endpoint registered on all clients will now sweeps the full table by default, rather than a single batch.
            It also now returns information about how much data was swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
-
-    *   - |improved|
-        - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
-          provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
-          Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
 
     *    - |fixed|
          - Sweep candidate batches are now logged correctly.
