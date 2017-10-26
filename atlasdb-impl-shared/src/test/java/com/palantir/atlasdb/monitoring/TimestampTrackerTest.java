@@ -53,7 +53,7 @@ public class TimestampTrackerTest {
 
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
-        try (TimestampTrackerImpl ignored = createTracker()) {
+        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
             assertThat(AtlasDbMetrics.getMetricRegistry().getNames())
                     .containsExactlyInAnyOrder(buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME),
                             buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME),
@@ -63,7 +63,7 @@ public class TimestampTrackerTest {
 
     @Test
     public void immutableTimestampTrackerDelegatesToTimeLock() {
-        try (TimestampTrackerImpl ignored = createTracker()) {
+        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
             when(timelockService.getImmutableTimestamp()).thenReturn(ONE);
 
             assertThat(getGauge(IMMUTABLE_TIMESTAMP_NAME).getValue()).isEqualTo(ONE);
@@ -75,7 +75,7 @@ public class TimestampTrackerTest {
 
     @Test
     public void freshTimestampTrackerDelegatesToTimeLock() {
-        try (TimestampTrackerImpl ignored = createTracker()) {
+        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
             when(timelockService.getFreshTimestamp()).thenReturn(TEN);
 
             assertThat(getGauge(FRESH_TIMESTAMP_NAME).getValue()).isEqualTo(TEN);
@@ -87,7 +87,7 @@ public class TimestampTrackerTest {
 
     @Test
     public void unreadableTimestampTrackerDelegatesToCleaner() {
-        try (TimestampTrackerImpl ignored = createTracker()) {
+        try (TimestampTrackerImpl ignored = createDefaultTracker()) {
             when(cleaner.getUnreadableTimestamp()).thenReturn(FORTY_TWO);
 
             assertThat(getGauge(UNREADABLE_TIMESTAMP_NAME).getValue()).isEqualTo(FORTY_TWO);
@@ -193,7 +193,7 @@ public class TimestampTrackerTest {
         return new TimestampTrackerImpl(clock, timelockService, cleaner);
     }
 
-    private TimestampTrackerImpl createTracker() {
+    private TimestampTrackerImpl createDefaultTracker() {
         return (TimestampTrackerImpl) TimestampTrackerImpl.createWithDefaultTrackers(timelockService, cleaner, false);
     }
 
