@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
@@ -293,7 +294,7 @@ public abstract class AtlasDbConfig {
                     Preconditions.checkState(client.equals(namespace),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config.")));
-        } else {
+        } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"
                             + " or the keyspace/dbName/sid config needs to be set.");
@@ -316,6 +317,11 @@ public abstract class AtlasDbConfig {
                                 + " Please contact AtlasDB support to remediate this. Specific steps are required;"
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
+        } else if (timelock().isPresent()) {
+            // Special case - empty timelock and empty namespace/keyspace does not make sense
+            boolean timelockClientNonEmpty = !timelock().get().client().orElse("").isEmpty();
+            Preconditions.checkState(timelockClientNonEmpty,
+                    "For InMemoryKVS, the TimeLock client should not be empty");
         }
     }
 

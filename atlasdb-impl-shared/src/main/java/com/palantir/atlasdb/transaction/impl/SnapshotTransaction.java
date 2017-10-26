@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
@@ -1469,6 +1470,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 || conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
                 || conflictHandler == ConflictHandler.SERIALIZABLE) {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
+                getTransactionConflictsMeter().mark();
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
                         dominatingWrites, System.currentTimeMillis() - timeCreated);
             }
@@ -1536,6 +1538,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Predicate<CellConflict> conflicting = Predicates.compose(
                 Predicates.in(conflictingCells),
                 CellConflict.getCellFunction());
+        getTransactionConflictsMeter().mark();
         throw TransactionConflictException.create(table,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
@@ -1940,6 +1943,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Histogram getHistogram(String name) {
         return metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name));
     }
+
+    private Meter getTransactionConflictsMeter() {
+        // TODO(hsaraogi): add table names as a tag
+        return metricRegistry.meter(MetricRegistry.name(SnapshotTransaction.class, "SnapshotTransactionConflict"));
+    }
+
 }
 
 
