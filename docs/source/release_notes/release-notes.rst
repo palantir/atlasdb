@@ -135,6 +135,11 @@ develop
           If you used one of the deleted or deprecated constructors, use the static ``create`` method.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
 
+    *   - |improved|
+        - Expose the TimestampService, KeyValueService and TimeLockService before initialization when initializing asynchronously.
+          AtlasDB users might need these objects when initializing, so we need to expose them without throwing when not initialized.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2564>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
