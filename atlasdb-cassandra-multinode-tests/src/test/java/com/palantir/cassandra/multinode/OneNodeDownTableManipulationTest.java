@@ -23,8 +23,8 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownTableManipulationTest {
     private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
@@ -85,7 +85,7 @@ public class OneNodeDownTableManipulationTest {
     @Test
     public void truncateTableThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.truncateTable(OneNodeDownTestSuite.TEST_TABLE))
-                .isExactlyInstanceOf(PalantirRuntimeException.class)
+                .isExactlyInstanceOf(InsufficientConsistencyException.class)
                 .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");
     }
 
@@ -93,7 +93,7 @@ public class OneNodeDownTableManipulationTest {
     public void truncateTablesThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.truncateTables(
                 ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE)))
-                .isExactlyInstanceOf(PalantirRuntimeException.class)
+                .isExactlyInstanceOf(InsufficientConsistencyException.class)
                 .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");
     }
 }

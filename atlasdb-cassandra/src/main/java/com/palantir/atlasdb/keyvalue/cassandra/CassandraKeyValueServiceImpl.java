@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -1198,7 +1197,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             });
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
-                    "Writing requires " + consistency + " Cassandra nodes to be up and available.", e);
+                    "This batch mutate operation requires " + consistency + " Cassandra nodes to be up and available.",
+                    e);
         }
     }
 
@@ -1213,7 +1213,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return queryRunner.run(client, tableRef, () -> client.multiget_slice(rowNames, colFam, pred, consistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
-                    "Reading requires " + consistency + " Cassandra nodes to be up and available.", e);
+                    "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
         }
     }
 
