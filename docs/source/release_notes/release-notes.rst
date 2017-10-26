@@ -68,6 +68,7 @@ develop
            
     *    - |fixed|
          - ``SerializableErrorDecoder`` will decode error properly instead of throwing ``NullPointerException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2446>`__)
 
     *    - |deprecated| |improved|
          - ``SerializableTransactionManager`` is now created via an immutable builder instead of a long list of individual arguments. Use ``TransactionManagers.builder()``
@@ -93,57 +94,57 @@ develop
            Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
 
-    *   - |fixed|
-        - ``InMemoryAtlasDbConfig`` now has an empty namespace, instead of "test".
-          This means that internal products will no longer have to set their root-level namespace to "test" in order to use ``InMemoryKeyValueService`` for testing.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2541>`__)
+    *    - |fixed|
+         - ``InMemoryAtlasDbConfig`` now has an empty namespace, instead of "test".
+           This means that internal products will no longer have to set their root-level namespace to "test" in order to use ``InMemoryKeyValueService`` for testing.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2541>`__)
 
-    *   - |improved| |userbreak|
-        - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
-          This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+    *    - |improved| |userbreak|
+         - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
+           This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
-    *   - |fixed|
-        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
-          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+    *    - |fixed|
+         - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
     *    - |new|
          - AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp, and current timestamp.
            These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
-    *   - |fixed|
-        - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
-          The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
+    *    - |fixed|
+         - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
+           The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
 
-    *   - |fixed|
-        - The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
-          This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
+    *    - |fixed|
+         - The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
+           This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
 
-    *   - |improved|
-        - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
+    *    - |improved|
+         - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
 
-    *   - |fixed|
-        - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
+    *    - |fixed|
+         - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
 
-    *   - |devbreak|
-        - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``. All of the ``TransactionManagers.create(..)`` methods are still deprecated.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
+    *    - |devbreak|
+         - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``. All of the ``TransactionManagers.create(..)`` methods are still deprecated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
 
-    *   - |changed|
-        - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
-          This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
+    *    - |changed|
+         - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
+           This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
 
-    *   - |devbreak|
-        - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
-          If you used one of the deleted or deprecated constructors, use the static ``create`` method.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
+    *    - |devbreak|
+         - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
+           If you used one of the deleted or deprecated constructors, use the static ``create`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
 
     *    - |improved| |devbreak|
          - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
