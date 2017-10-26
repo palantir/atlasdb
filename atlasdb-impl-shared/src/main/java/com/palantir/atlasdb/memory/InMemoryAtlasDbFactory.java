@@ -182,7 +182,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 cleaner,
                 DEFAULT_MAX_CONCURRENT_RANGES,
                 DEFAULT_GET_RANGES_CONCURRENCY,
-                DEFAULT_TIMESTAMP_CACHE_SIZE);
+                () -> DEFAULT_TIMESTAMP_CACHE_SIZE);
         cleaner.start(ret);
         return ret;
     }

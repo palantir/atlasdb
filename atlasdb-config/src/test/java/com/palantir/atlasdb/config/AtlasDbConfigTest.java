@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,7 @@ import java.util.Optional;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
@@ -213,6 +215,55 @@ public class AtlasDbConfigTest {
                 .namespace("a client")
                 .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .build();
+    }
+
+    @Test
+    public void inMemoryConfigCanHaveEmptyNamespace() {
+        InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
+        assertFalse("This test assumes the InMemoryAtlasDbConfig has no namespace by default",
+                kvsConfig.namespace().isPresent());
+        ImmutableAtlasDbConfig.builder()
+                .namespace(Optional.empty())
+                .keyValueService(kvsConfig)
+                .build();
+    }
+
+    @Test
+    public void inMemoryConfigWorksWithNonTestNamespace() {
+        InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
+        assertFalse("This test assumes the InMemoryAtlasDbConfig has no namespace by default",
+                kvsConfig.namespace().isPresent());
+        ImmutableAtlasDbConfig.builder()
+                .namespace("clive")
+                .keyValueService(kvsConfig)
+                .build();
+    }
+
+    @Test
+    public void inMemoryConfigCannotHaveEmptyNamespaceWithEmptyTimelockClient() {
+        InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
+        assertFalse("This test assumes the InMemoryAtlasDbConfig has no namespace by default",
+                kvsConfig.namespace().isPresent());
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace(Optional.empty())
+                .keyValueService(kvsConfig)
+                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .satisfies((exception) ->
+                        assertThat(exception.getMessage(), containsString("TimeLock client should not be empty")));
+    }
+
+    // Documenting that for in-memory, we don't care what the timelock client is - it just has to be non-empty.
+    @Test
+    public void inMemoryKeyspaceAndTimelockClientCanBeDifferent() {
+        InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
+        assertFalse("This test assumes the InMemoryAtlasDbConfig has no namespace by default",
+                kvsConfig.namespace().isPresent());
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(kvsConfig)
+                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
                 .build();
     }
 

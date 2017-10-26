@@ -56,7 +56,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 true, // initializeAsync
-                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
         when(mockKvs.isInitialized()).thenReturn(true);
         when(mockTimelockService.isInitialized()).thenReturn(true);
@@ -116,7 +116,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 false, // initializeAsync
-                AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
         when(mockKvs.isInitialized()).thenReturn(false);
         when(mockTimelockService.isInitialized()).thenReturn(false);

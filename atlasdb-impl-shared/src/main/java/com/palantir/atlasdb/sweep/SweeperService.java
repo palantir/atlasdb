@@ -49,7 +49,7 @@ public interface SweeperService {
      * Sweeps a particular table.
      *
      * @param tableName the table to sweep, in the format namespace.table_name (e.g. myapp.users)
-     * @param startRow (Optional) the row to start from, encoded as a hex string (e.g. 0x12345abcde)
+     * @param startRow (Optional) the row to start from, encoded as a hex string (e.g. 12345abcde)
      * @param fullSweep (Optional; default true) whether to sweep the full table; if false just runs one batch
      * @param maxCellTsPairsToExamine (Optional) see {@link SweepBatchConfig#maxCellTsPairsToExamine()}
      * @param candidateBatchSize (Optional) see {@link SweepBatchConfig#candidateBatchSize()}

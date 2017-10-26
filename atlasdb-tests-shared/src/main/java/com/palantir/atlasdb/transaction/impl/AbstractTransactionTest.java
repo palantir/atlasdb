@@ -87,7 +87,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
-    protected final TimestampCache timestampCache = new TimestampCache();
+    protected final TimestampCache timestampCache = new TimestampCache(
+            () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected boolean supportsReverse() {
         return true;
     }

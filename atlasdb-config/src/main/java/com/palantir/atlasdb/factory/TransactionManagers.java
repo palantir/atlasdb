@@ -370,7 +370,7 @@ public abstract class TransactionManagers {
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.keyValueService().defaultGetRangesConcurrency(),
                 config.initializeAsync(),
-                config.getTimestampCacheSize());
+                () -> runtimeConfigSupplier.get().getTimestampCacheSize());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,
