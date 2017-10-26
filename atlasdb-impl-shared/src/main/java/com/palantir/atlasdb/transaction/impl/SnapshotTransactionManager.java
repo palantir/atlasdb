@@ -88,7 +88,7 @@ import com.palantir.timestamp.TimestampService;
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize) {
-        super(timestampCacheSize::get);
+        super(timestampCacheSize);
 
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;

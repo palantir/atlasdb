@@ -22,12 +22,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -46,8 +46,8 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
 
-    AbstractTransactionManager(Supplier<Long> timstampCacheSize) {
-        this.timestampValidationReadCache = new TimestampCache(timstampCacheSize);
+    AbstractTransactionManager(Supplier<Long> timestampCacheSize) {
+        this.timestampValidationReadCache = new TimestampCache(timestampCacheSize);
     }
 
     @Override

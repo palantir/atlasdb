@@ -83,8 +83,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * This constructor is necessary for the InitializeCheckingWrapper. We initialize a dummy transaction manager and
      * use the delegate instead.
      */
+    // TODO(ssouza): it's hard to change the interface of STM with this.
+    // We should extract interfaces and delete this hack.
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, false, null, 1, 1, null);
+        this(null, null, null, null, null, null, null, null, false, null, 1, 1, () -> 1L);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,

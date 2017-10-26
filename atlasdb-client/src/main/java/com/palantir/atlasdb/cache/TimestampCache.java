@@ -16,12 +16,12 @@
 package com.palantir.atlasdb.cache;
 
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
