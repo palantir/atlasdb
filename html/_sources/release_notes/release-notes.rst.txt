@@ -44,6 +44,25 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Updated our dependency on ``http-remoting`` to version ``3.5.1``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2574>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.62.0
+======
+
+26 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak| |fixed|
          - Move @CancelableServerCall to a more fitting package that matches internal codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
