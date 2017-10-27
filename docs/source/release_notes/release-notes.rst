@@ -116,11 +116,7 @@ Improvements
          - Change
 
     *    - |improved|
-         - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
-
-    *    - |improved|
-         - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
+         - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
@@ -146,7 +142,7 @@ Improvements
            current cache size is inadequate.
            This is a small API change for users manually constructing a TransactionManager, which now requires a
            transaction cache size parameter. Please add it from the AtlasDbConfig, or instead of manually creating
-           a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
+           a TransactionManager, utilize the builder in TransactionManagers to have this done for you.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2496>`__)
            (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2554>`__)
 
@@ -172,7 +168,8 @@ Logs and Metrics
 
     *    - |metrics|
          - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
-           This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
+           This will provide more accurate metrics for when sweep is doing something.
+           Sweeping run through the sweep endpoint will now also contribute to these metrics — before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
 
     *    - |metrics|
@@ -186,6 +183,7 @@ Logs and Metrics
 
     *    - |metrics|
          - We now report metrics for Transaction conflicts.
+           The metrics are a meter reported under the name ``SerializableTransaction.SerializableTransactionConflict``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
 
     *    - |logs|
@@ -214,7 +212,7 @@ Logs and Metrics
            Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
-Bugfixes
+Bug fixes
 
 .. list-table::
     :widths: 5 40
@@ -229,7 +227,7 @@ Bugfixes
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
 
     *    - |fixed|
-         - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
+         - Timelock server will try to gain leadership synchronously when the first time a new client namespace is requested. Previously, the first request would always return 503.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
 
     *    - |fixed|
