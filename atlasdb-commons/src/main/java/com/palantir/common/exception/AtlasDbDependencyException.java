@@ -16,13 +16,13 @@
 
 package com.palantir.common.exception;
 
-public class DependencyUnavailableException extends RuntimeException {
+public class AtlasDbDependencyException extends RuntimeException {
 
-    public DependencyUnavailableException(String msg) {
+    public AtlasDbDependencyException(String msg) {
         super(msg);
     }
 
-    public DependencyUnavailableException(String msg, Throwable throwable) {
+    public AtlasDbDependencyException(String msg, Throwable throwable) {
         super(msg, throwable);
     }
 

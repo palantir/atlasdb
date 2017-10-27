@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.palantir.common.exception.DependencyUnavailableException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 
@@ -86,11 +86,9 @@ public final class Throwables {
      */
     public static RuntimeException unwrapAndThrowDependencyUnavailableException(Throwable ex) {
         if (isInstance(ex, ExecutionException.class) || isInstance(ex, InvocationTargetException.class)) {
-            createDependencyUnavailableException(ex.getCause());
+            createAtlasDbDependencyException(ex.getCause());
         }
-        throwIfInstance(ex, RuntimeException.class);
-        throwIfInstance(ex, Error.class);
-        throw createDependencyUnavailableException(ex);
+        throw createAtlasDbDependencyException(ex);
     }
 
     public static RuntimeException throwUncheckedException(Throwable ex) {
@@ -99,11 +97,11 @@ public final class Throwables {
         throw createPalantirRuntimeException(ex);
     }
 
-    private static RuntimeException createDependencyUnavailableException(Throwable ex) {
+    private static RuntimeException createAtlasDbDependencyException(Throwable ex) {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
         }
-        return new DependencyUnavailableException("AtlasDB has thrown as the KVS/Timelock was unavailable", ex);
+        return new AtlasDbDependencyException("The KVS/Timelock threw an exception.", ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {
@@ -113,10 +111,8 @@ public final class Throwables {
     private static RuntimeException createPalantirRuntimeException(String newMessage, Throwable ex) {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
-            return new PalantirInterruptedException(newMessage, ex);
-        } else {
-            return new PalantirRuntimeException(newMessage, ex);
         }
+        return new PalantirRuntimeException(newMessage, ex);
     }
 
     /**
