@@ -15,42 +15,58 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
+import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepProgressTable;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRow;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class SweepProgressStore {
+    private static final Logger log = LoggerFactory.getLogger(SweepProgressStore.class);
 
     private final KeyValueService kvs;
-    private final SweepTableFactory tableFactory;
+    private final TableReference tableRef;
+
+    private static final byte[] BYTE_ROW = SweepProgressTable.SweepProgressRow.of(0).persistToBytes();
+    private static final byte[] BYTE_COL = SweepProgressTable.SweepProgressNamedColumn.SWEEP_PROGRESS.getShortName();
+    private static final Cell CELL = Cell.create(BYTE_ROW, BYTE_COL);
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new AfterburnerModule());
 
     public SweepProgressStore(KeyValueService kvs, SweepTableFactory tableFactory) {
         this.kvs = kvs;
-        this.tableFactory = tableFactory;
+        this.tableRef = tableFactory.getSweepProgressTable(null).getTableRef();
     }
 
-    public Optional<SweepProgress> loadProgress(Transaction tx)  {
-        SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-        Optional<SweepProgressRowResult> result = Optional.ofNullable(
-                progressTable.getRow(SweepProgressRow.of(0)).orElse(null));
-        return result.map(SweepProgressStore::hydrateProgress);
+    public Optional<SweepProgress> loadProgress()  {
+        Map<Cell, Value> entry = kvs.get(tableRef, ImmutableMap.of(CELL, Long.MAX_VALUE));
+        return hydrateProgress(entry);
     }
 
-    public void saveProgress(Transaction tx, SweepProgress progress) {
-        SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-        SweepProgressRow row = SweepProgressRow.of(0);
-        progressTable.putFullTableName(row, progress.tableRef().getQualifiedName());
-        progressTable.putStartRow(row, progress.startRow());
-        progressTable.putCellsDeleted(row, progress.staleValuesDeleted());
-        progressTable.putCellsExamined(row, progress.cellTsPairsExamined());
-        progressTable.putMinimumSweptTimestamp(row, progress.minimumSweptTimestamp());
+    public void saveProgress(SweepProgress newProgress) {
+        Optional<SweepProgress> oldProgress = loadProgress();
+        try {
+            kvs.checkAndSet(casProgressRequest(oldProgress, newProgress));
+        } catch (Exception e) {
+            log.warn("Exception trying to persist sweep progress. The intermediate progress might not have been "
+                    + "persisted. This should not cause sweep issues unless the problem persists.", e);
+        }
     }
 
     /**
@@ -61,17 +77,34 @@ public class SweepProgressStore {
         // 1) The table should be small, performance difference should be negligible.
         // 2) Truncate takes an exclusive lock in Postgres, which can interfere
         // with concurrently running backups.
-        kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
+        kvs.deleteRange(tableRef, RangeRequest.all());
     }
 
-    private static SweepProgress hydrateProgress(SweepProgressTable.SweepProgressRowResult rr) {
-        return ImmutableSweepProgress.builder()
-                .tableRef(TableReference.createUnsafe(rr.getFullTableName()))
-                .startRow(rr.getStartRow())
-                .cellTsPairsExamined(rr.getCellsExamined())
-                .staleValuesDeleted(rr.getCellsDeleted())
-                .minimumSweptTimestamp(rr.getMinimumSweptTimestamp())
-                .build();
+    private CheckAndSetRequest casProgressRequest(Optional<SweepProgress> oldProgress, SweepProgress newProgress)
+            throws JsonProcessingException {
+        if (!oldProgress.isPresent()) {
+            return CheckAndSetRequest.newCell(tableRef, CELL, progressToBytes(newProgress));
+        }
+        return CheckAndSetRequest.singleCell(tableRef,
+                CELL, progressToBytes(oldProgress.get()), progressToBytes(newProgress));
     }
 
+    private byte[] progressToBytes(SweepProgress value) throws JsonProcessingException {
+        return OBJECT_MAPPER.writeValueAsBytes(value);
+    }
+
+    private static Optional<SweepProgress> hydrateProgress(Map<Cell, Value> result) {
+        if (result.isEmpty()) {
+            log.info("No persisted intermediate SweepProgress information found. "
+                    + "Sweep will choose a new table to sweep.");
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(OBJECT_MAPPER.readValue(result.get(CELL).getContents(), SweepProgress.class));
+        } catch (Exception e) {
+            log.warn("Error deserializing SweepProgress object while attempting to load intermediate result. "
+                    + "Sweep will choose a new table to sweep.", e);
+            return Optional.empty();
+        }
+    }
 }

@@ -23,6 +23,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -39,6 +40,7 @@ public class SweepProgressStoreTest {
 
     private static final SweepProgress PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {1, 2, 3})
+            .startColumn(PtBytes.toBytes("unused"))
             .minimumSweptTimestamp(12345L)
             .staleValuesDeleted(10L)
             .cellTsPairsExamined(200L)
@@ -46,6 +48,7 @@ public class SweepProgressStoreTest {
             .build();
     private static final SweepProgress OTHER_PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {4, 5, 6})
+            .startColumn(PtBytes.toBytes("unused"))
             .minimumSweptTimestamp(67890L)
             .staleValuesDeleted(11L)
             .cellTsPairsExamined(202L)
@@ -67,40 +70,27 @@ public class SweepProgressStoreTest {
 
     @Test
     public void testLoadEmpty() {
-        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
+        Assert.assertFalse(progressStore.loadProgress().isPresent());
     }
 
     @Test
     public void testSaveAndLoad() {
-        txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, PROGRESS);
-            return null;
-        });
-        Assert.assertEquals(Optional.of(PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
+        progressStore.saveProgress(PROGRESS);
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress());
     }
 
     @Test
     public void testOverwrite() {
-        txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, PROGRESS);
-            return null;
-        });
-        txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, OTHER_PROGRESS);
-            return null;
-        });
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), txManager.runTaskReadOnly(progressStore::loadProgress));
+        progressStore.saveProgress(PROGRESS);
+        progressStore.saveProgress(OTHER_PROGRESS);
+        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress());
     }
 
     @Test
     public void testClear() {
-        txManager.runTaskWithRetry(tx -> {
-            progressStore.saveProgress(tx, PROGRESS);
-            return null;
-        });
-        Assert.assertTrue(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
+        progressStore.saveProgress(PROGRESS);
+        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress());
         progressStore.clearProgress();
-        Assert.assertFalse(txManager.runTaskReadOnly(progressStore::loadProgress).isPresent());
+        Assert.assertFalse(progressStore.loadProgress().isPresent());
     }
-
 }
