@@ -35,4 +35,11 @@ public interface KeyValueServiceConfig {
      */
     int concurrentGetRangesThreadPoolSize();
 
+    /**
+     * The maximum number of threads from the pool of {@link #concurrentGetRangesThreadPoolSize()} to use
+     * for a single getRanges request when the user does not explicitly provide a value.
+     */
+    default int defaultGetRangesConcurrency() {
+        return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
+    }
 }

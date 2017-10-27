@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.cache;
 
+import java.util.concurrent.ConcurrentMap;
+
 import javax.annotation.Nullable;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 /**
@@ -28,13 +31,18 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
  */
 public class TimestampCache {
 
-    private final Cache<Long, Long> startToCommitTimestampCache;
+    private volatile Cache<Long, Long> startToCommitTimestampCache;
 
-    public static TimestampCache create() {
-        TimestampCache timestampCache = new TimestampCache(createDefaultCache());
-        AtlasDbMetrics.registerCache(timestampCache.startToCommitTimestampCache,
+    public TimestampCache() {
+        startToCommitTimestampCache = createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+        AtlasDbMetrics.registerCache(startToCommitTimestampCache,
                 MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
-        return timestampCache;
+    }
+
+    public void resize(long newSize) {
+        ConcurrentMap<Long, Long> existing = startToCommitTimestampCache.asMap();
+        startToCommitTimestampCache = createCache(newSize);
+        startToCommitTimestampCache.putAll(existing);
     }
 
     @VisibleForTesting
@@ -43,9 +51,9 @@ public class TimestampCache {
     }
 
     @VisibleForTesting
-    static Cache<Long, Long> createDefaultCache() {
+    static Cache<Long, Long> createCache(long size) {
         return CacheBuilder.newBuilder()
-                .maximumSize(1_000_000) // up to ~72MB with java Long object bloat
+                .maximumSize(size)
                 .recordStats()
                 .build();
     }
