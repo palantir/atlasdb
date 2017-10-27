@@ -44,6 +44,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.62.1
+======
+
+27 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - Updated our dependency on ``http-remoting`` to version ``3.5.1``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2574>`__)
@@ -66,15 +84,15 @@ develop
     *    - |devbreak| |fixed|
          - Move @CancelableServerCall to a more fitting package that matches internal codebase.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
-         
+
     *    - |improved|
          - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
-    
+
     *    - |improved|
          - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
-           
+
     *    - |improved|
          - We now report metrics for Transaction conflicts.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
@@ -84,7 +102,7 @@ develop
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
-           
+
     *    - |fixed|
          - ``SerializableErrorDecoder`` will decode error properly instead of throwing ``NullPointerException``.
 
@@ -134,7 +152,7 @@ develop
 
     *   - |fixed|
         - V2 generated tables now support using ``Persistable`` as column values. Note that this is still a beta feature, and API stability is not guaranteed.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2495>`__)         
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2495>`__)
 
     *   - |fixed|
         - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
