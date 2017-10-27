@@ -74,7 +74,7 @@ public class CqlExecutor {
                 quotedTableName(tableRef),
                 key(startRowInclusive),
                 limit(limit));
-        return query.executeAndGetCells(startRowInclusive, this::getCellForKeyColumn1Column2);
+        return query.executeAndGetCells(startRowInclusive, this::getCellFromRow);
     }
 
     /**
@@ -95,10 +95,10 @@ public class CqlExecutor {
                 column1(startColumnInclusive),
                 column2(invertedTimestamp),
                 limit(limit));
-        return query.executeAndGetCells(row, result -> getCellForColumn1Column2(result, row));
+        return query.executeAndGetCells(row, result -> getCellFromKeylessRow(result, row));
     }
 
-    private CellWithTimestamp getCellForColumn1Column2(CqlRow row, byte[] key) {
+    private CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
         byte[] rowName = key;
         byte[] columnName = row.getColumns().get(0).getValue();
         long timestamp = extractTimestamp(row, 1);
@@ -106,7 +106,7 @@ public class CqlExecutor {
         return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
     }
 
-    private CellWithTimestamp getCellForKeyColumn1Column2(CqlRow row) {
+    private CellWithTimestamp getCellFromRow(CqlRow row) {
         byte[] rowName = row.getColumns().get(0).getValue();
         byte[] columnName = row.getColumns().get(1).getValue();
         long timestamp = extractTimestamp(row, 2);

@@ -1114,7 +1114,7 @@ public abstract class AbstractKeyValueServiceTest {
                         Cell.create(row0, column0), value0_t1),
                 TEST_TIMESTAMP + 10);
 
-        RangeRequest range = RangeRequest.all().withBatchHint(1);
+        RangeRequest range = RangeRequest.all().withBatchHint(2);
         List<RowResult<Set<Long>>> results = ImmutableList.copyOf(
                 keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
         assertEquals(1, results.size());

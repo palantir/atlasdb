@@ -76,11 +76,11 @@ public class GetCellTimestamps {
     private void fetchRemainingTimestampsForLastRow() {
         boolean moreToFetch = !timestamps.isEmpty();
         while (moreToFetch) {
-            moreToFetch = fetchBatchOfRemainingCellTsPairsInLastRow();
+            moreToFetch = fetchBatchOfRemainingTimestampsForLastRow();
         }
     }
 
-    private boolean fetchBatchOfRemainingCellTsPairsInLastRow() {
+    private boolean fetchBatchOfRemainingTimestampsForLastRow() {
         CellWithTimestamp lastCell = Iterables.getLast(timestamps);
 
         List<CellWithTimestamp> batch = cqlExecutor.getTimestampsWithinRow(

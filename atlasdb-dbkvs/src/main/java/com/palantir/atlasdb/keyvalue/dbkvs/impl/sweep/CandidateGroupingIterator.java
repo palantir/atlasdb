@@ -111,9 +111,7 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
 
     private Collection<Long> toList(TLongList values) {
         List<Long> result = Lists.newArrayListWithExpectedSize(values.size());
-        for (int i = 0; i < values.size(); i++) {
-            result.add(values.get(i));
-        }
+        values.forEach(result::add);
         return result;
     }
 
