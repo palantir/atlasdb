@@ -49,15 +49,58 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |improved|
+         - Metrics are now recorded for put/get operations around commit timestamps.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2561>`__)
 
     *    -
          -
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
-v0.62.0
-=======
+======
+0.62.2
+======
+
+27 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed the deprecated ``TransactionManagers.create`` methods, by specifying a default user agent if none was provided.
+           Previously, ``TransactionManager`` creation would have failed at runtime.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2582>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.62.1
+======
+
+27 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Updated our dependency on ``http-remoting`` to version ``3.5.1``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2574>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.62.0
+======
 
 26 October 2017
 
@@ -70,11 +113,30 @@ Behavior changes
     *    - Type
          - Change
 
+    *    - |devbreak| |fixed|
+         - Move @CancelableServerCall to a more fitting package that matches internal codebase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2562>`__)
+
+    *    - |improved|
+         - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
+
+    *    - |improved|
+         - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
+
+    *    - |improved|
+         - We now report metrics for Transaction conflicts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
+
     *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
+
+    *    - |fixed|
+         - ``SerializableErrorDecoder`` will decode error properly instead of throwing ``NullPointerException``.
 
     *    - |deprecated| |improved|
          - ``SerializableTransactionManager`` is now created via an immutable builder instead of a long list of individual arguments. Use ``TransactionManagers.builder()``
@@ -261,7 +323,6 @@ v0.61.0
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -1463,6 +1524,12 @@ v0.42.0
 
     *    - Type
          - Change
+
+    *    - |changed|
+         - ErrorProne is enabled on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1889>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1901>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1902>`__)
 
     *    - |fixed|
          - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
