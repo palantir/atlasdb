@@ -31,8 +31,8 @@ Changelog
 .. |changed| replace:: :changetype-changed:`CHANGED`
 .. |improved| replace:: :changetype-improved:`IMPROVED`
 .. |deprecated| replace:: :changetype-deprecated:`DEPRECATED`
-.. |logs| replace:: :changetype-deprecated:`LOGS`
-.. |metrics| replace:: :changetype-deprecated:`METRICS`
+.. |logs| replace:: :changetype-logs:`LOGS`
+.. |metrics| replace:: :changetype-metrics:`METRICS`
 
 .. toctree::
   :hidden:
@@ -50,7 +50,7 @@ develop
     *    - Type
          - Change
          
-    *    - |improved|
+    *    - |metrics|
          - Metrics are now recorded for put/get operations around commit timestamps.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2561>`__)
 
@@ -153,6 +153,21 @@ Behavior changes
            This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
 
+    *    - |improved| |devbreak|
+         - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
+           it is more likely that this will be configured via per-service overrides for the services for whom the
+           current cache size is inadequate.
+           This is a small API change for users manually constructing a TransactionManager, which now requires a
+           transaction cache size parameter. Please add it from the AtlasDbConfig, or instead of manually creating
+           a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2496>`__)
+           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2554>`__)
+
+    *    - |improved|
+         - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
+           provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
+           Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
 
 Logs and Metrics
 
@@ -173,6 +188,39 @@ Logs and Metrics
            These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
+    *    - |metrics|
+         - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
+
+    *    - |metrics|
+         - We now report metrics for Transaction conflicts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
+
+    *    - |logs|
+         - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
+
+    *    - |logs| |userbreak|
+         - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
+           This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+    *    - |logs| |fixed|
+         - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
+           Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
+           Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
+           Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
+
+    *    - |logs|
+         - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``deleteRange``.
+           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
+
+    *    - |metrics| |fixed|
+         - ``MetricsManager`` now supports de-registration of metrics for a given prefix.
+           Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
 Bugfixes
 
@@ -187,23 +235,6 @@ Bugfixes
          - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
            The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
-
-    *    - |improved|
-         - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
-
-    *    - |improved|
-         - We now report metrics for Transaction conflicts.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
-
-    *    - |improved|
-         - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
-
-    *    - |improved| |userbreak|
-         - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
-           This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
     *    - |fixed|
          - Timelock server will now gain leadership synchronously, if possible, the first time a new client namespace is requested. Previously, the first request would always return 503.
@@ -224,47 +255,14 @@ Bugfixes
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2491>`__)
 
     *    - |fixed|
-         - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
-           Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
-           Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
-           Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
-
-    *    - |fixed|
          - ``InMemoryAtlasDbConfig`` now has an empty namespace, instead of "test".
            This means that internal products will no longer have to set their root-level namespace to "test" in order to use ``InMemoryKeyValueService`` for testing.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2541>`__)
-
-    *    - |fixed|
-         - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``deleteRange``.
-           Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
-
-    *    - |fixed|
-         - ``MetricsManager`` now supports de-registration of metrics for a given prefix.
-           Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
     *    - |devbreak|
          - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
            If you used one of the deleted or deprecated constructors, use the static ``create`` method.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
-
-    *    - |improved| |devbreak|
-         - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
-           it is more likely that this will be configured via per-service overrides for the services for whom the
-           current cache size is inadequate.
-           This is a small API change for users manually constructing a TransactionManager, which now requires a
-           transaction cache size parameter. Please add it from the AtlasDbConfig, or instead of manually creating
-           a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2496>`__)
-           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2554>`__)
-
-    *    - |improved|
-         - Exposes another version of ``getRanges`` that uses a configurable concurrency level when not explicitly
-           provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
-           Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
 
     *    - |devbreak| |fixed|
          - Move ``@CancelableServerCall`` to a more fitting package that matches internal codebase.
