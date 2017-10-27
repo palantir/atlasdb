@@ -75,7 +75,8 @@ public class CassandraTimestampBackupRunner {
 
             BoundReadability boundReadability = checkReadability(boundData);
             if (boundReadability == BoundReadability.BACKUP) {
-                log.info("[BACKUP] Didn't backup, because there is already a valid backup.");
+                log.info("[BACKUP] Didn't backup, because there is already a valid backup of {}.",
+                        SafeArg.of("currentBackupBound", PtBytes.toLong(currentBackupBound)));
                 return PtBytes.toLong(currentBackupBound);
             }
 
@@ -89,7 +90,7 @@ public class CassandraTimestampBackupRunner {
                             CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                             Pair.create(currentBackupBound, backupValue));
             executeAndVerifyCas(client, casMap);
-            log.info("[BACKUP] Backed up the value {}", SafeArg.of("currentBackupBound", currentBackupBound));
+            log.info("[BACKUP] Backed up the value {}", SafeArg.of("backupValue", PtBytes.toLong(backupValue)));
             return PtBytes.toLong(backupValue);
         });
     }
@@ -116,7 +117,8 @@ public class CassandraTimestampBackupRunner {
                     CassandraTimestampUtils.BACKUP_COLUMN_NAME,
                     Pair.create(currentBackupBound, PtBytes.EMPTY_BYTE_ARRAY));
             executeAndVerifyCas(client, casMap);
-            log.info("[RESTORE] Restored the value {}", SafeArg.of("currentBackupBound", currentBackupBound));
+            log.info("[RESTORE] Restored the value {}",
+                    SafeArg.of("currentBackupBound", PtBytes.toLong(currentBackupBound)));
             return null;
         });
     }
