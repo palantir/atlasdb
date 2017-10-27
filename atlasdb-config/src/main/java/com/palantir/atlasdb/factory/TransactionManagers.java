@@ -230,6 +230,7 @@ public abstract class TransactionManagers {
                 .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
+                .userAgent(UserAgents.DEFAULT_USER_AGENT)
                 .buildSerializable();
     }
 

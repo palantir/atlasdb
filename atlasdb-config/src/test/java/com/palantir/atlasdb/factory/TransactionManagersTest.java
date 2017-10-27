@@ -42,6 +42,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.junit.After;
 import org.junit.Before;
@@ -58,6 +59,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -278,6 +280,19 @@ public class TransactionManagersTest {
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"),
                         LockMode.WRITE)).build();
         assertEquals(expectedTimeout, lockRequest.getLockTimeout());
+    }
+
+    // TODO (tpetracca): remove this test by November 15th, 2017
+    @Test
+    public void canCreateUsingDeprecatedMethods() {
+        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .defaultLockTimeoutSeconds(62)
+                .build();
+
+        Supplier<Optional<AtlasDbRuntimeConfig>> configSupplier = () -> Optional.of(runtimeConfig);
+        TransactionManagers.Environment env = mock(TransactionManagers.Environment.class);
+        TransactionManagers.create(realConfig, configSupplier, ImmutableSet.of(), env, false);
     }
 
     @Test
