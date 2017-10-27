@@ -54,6 +54,26 @@ develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
+0.62.2
+======
+
+27 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed the deprecated ``TransactionManagers.create`` methods, by specifying a default user agent if none was provided.
+           Previously, ``TransactionManager`` creation would have failed at runtime.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2582>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
 0.62.1
 ======
 
