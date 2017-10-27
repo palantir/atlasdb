@@ -30,6 +30,7 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.cache.Cache;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsRule;
 
@@ -41,7 +42,7 @@ public class TimestampCacheTest {
 
     @Test
     public void cacheExposesMetrics() throws Exception {
-        Cache<Long, Long> cache = TimestampCache.createDefaultCache();
+        Cache<Long, Long> cache = TimestampCache.createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         AtlasDbMetrics.registerCache(cache, TEST_CACHE_NAME);
 
         TimestampCache timestampCache = new TimestampCache(cache);
