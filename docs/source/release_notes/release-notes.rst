@@ -44,6 +44,43 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.62.2
+======
+
+27 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed the deprecated ``TransactionManagers.create`` methods, by specifying a default user agent if none was provided.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2582>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.62.1
+======
+
+27 October 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - Updated our dependency on ``http-remoting`` to version ``3.5.1``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2574>`__)
