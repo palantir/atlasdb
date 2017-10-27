@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -42,8 +43,12 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     private static final int GET_RANGES_QUEUE_SIZE_WARNING_THRESHOLD = 1000;
 
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
-    protected final TimestampCache timestampValidationReadCache = new TimestampCache();
+    final TimestampCache timestampValidationReadCache;
     private volatile boolean closed = false;
+
+    AbstractTransactionManager(Supplier<Long> timestampCacheSize) {
+        this.timestampValidationReadCache = new TimestampCache(timestampCacheSize);
+    }
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {

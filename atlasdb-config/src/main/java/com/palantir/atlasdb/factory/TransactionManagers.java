@@ -231,6 +231,7 @@ public abstract class TransactionManagers {
                 .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
+                .userAgent(UserAgents.DEFAULT_USER_AGENT)
                 .buildSerializable();
     }
 
@@ -336,7 +337,8 @@ public abstract class TransactionManagers {
                 registrar(),
                 config.initializeAsync());
 
-        TransactionService transactionService = TransactionServices.createTransactionService(kvs);
+        TransactionService transactionService = AtlasDbMetrics.instrument(TransactionService.class,
+                TransactionServices.createTransactionService(kvs));
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
@@ -371,7 +373,7 @@ public abstract class TransactionManagers {
                 config.keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.keyValueService().defaultGetRangesConcurrency(),
                 config.initializeAsync(),
-                config.getTimestampCacheSize());
+                () -> runtimeConfigSupplier.get().getTimestampCacheSize());
 
         PersistentLockManager persistentLockManager = new PersistentLockManager(
                 persistentLockService,

@@ -73,7 +73,7 @@
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
@@ -87,7 +87,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -201,7 +201,7 @@
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
             ]
@@ -215,7 +215,7 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]

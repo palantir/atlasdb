@@ -76,7 +76,7 @@ public class TestableTimelockCluster {
 
     public void waitUntilReadyToServeClients(List<String> clients) {
         Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
+                .atMost(60, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
