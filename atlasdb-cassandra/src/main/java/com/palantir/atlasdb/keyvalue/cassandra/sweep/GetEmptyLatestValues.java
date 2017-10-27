@@ -25,26 +25,25 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class GetEmptyLatestValues {
 
     private final List<CellWithTimestamps> cellTimestamps;
-    private final KeyValueService keyValueService;
+    private final ValuesLoader valuesLoader;
     private final TableReference table;
     private final long maxTimestampExclusive;
     private final int batchSize;
 
     public GetEmptyLatestValues(
             List<CellWithTimestamps> cellTimestamps,
-            KeyValueService keyValueService,
+            ValuesLoader valuesLoader,
             TableReference table,
             long maxTimestampExclusive,
             int batchSize) {
         this.cellTimestamps = cellTimestamps;
-        this.keyValueService = keyValueService;
+        this.valuesLoader = valuesLoader;
         this.table = table;
         this.maxTimestampExclusive = maxTimestampExclusive;
         this.batchSize = batchSize;
@@ -63,12 +62,11 @@ public class GetEmptyLatestValues {
 
     private Set<Cell> getSingleBatch(
             List<CellWithTimestamps> batch) {
-        Map<Cell, Long> timestampsByCell = batch.stream()
-                .collect(Collectors.toMap(
-                        CellWithTimestamps::cell,
-                        ignored -> maxTimestampExclusive));
+        Set<Cell> cells = batch.stream()
+                .map(CellWithTimestamps::cell)
+                .collect(Collectors.toSet());
 
-        Map<Cell, Value> valuesByCell = keyValueService.get(table, timestampsByCell);
+        Map<Cell, Value> valuesByCell = valuesLoader.getValues(table, cells, maxTimestampExclusive);
         return Maps.filterValues(valuesByCell, Value::isEmpty).keySet();
     }
 

@@ -20,29 +20,27 @@ import java.util.List;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.common.base.ClosableIterator;
 
-public class GetCandidateCellsForSweepingIterator extends AbstractIterator<List<CandidateCellForSweeping>>
-        implements ClosableIterator<List<CandidateCellForSweeping>> {
+public class CandidateRowsForSweepingIterator extends AbstractIterator<List<CandidateRowForSweeping>>
+        implements ClosableIterator<List<CandidateRowForSweeping>> {
 
-    private final KeyValueService kvs;
+    private final ValuesLoader valuesLoader;
     private final CqlExecutor cqlExecutor;
     private final TableReference table;
     private final CandidateCellForSweepingRequest request;
 
     byte[] nextStartRow;
 
-    public GetCandidateCellsForSweepingIterator(
-            KeyValueService kvs,
+    public CandidateRowsForSweepingIterator(
+            ValuesLoader valuesLoader,
             CqlExecutor cqlExecutor, TableReference table,
             CandidateCellForSweepingRequest request) {
-        this.kvs = kvs;
+        this.valuesLoader = valuesLoader;
         this.cqlExecutor = cqlExecutor;
         this.table = table;
         this.request = request;
@@ -51,19 +49,20 @@ public class GetCandidateCellsForSweepingIterator extends AbstractIterator<List<
     }
 
     @Override
-    protected List<CandidateCellForSweeping> computeNext() {
-        List<CandidateCellForSweeping> batch = getCandidateCellsForSweepingBatch();
+    protected List<CandidateRowForSweeping> computeNext() {
+        List<CandidateRowForSweeping> batch = getCandidateCellsForSweepingBatch();
         if (batch.isEmpty()) {
             return endOfData();
         }
 
         nextStartRow = RangeRequests.nextLexicographicName(
-                Iterables.getLast(batch).cell().getRowName());
+                Iterables.getLast(batch).rowName());
 
         return batch;
     }
 
-    private List<CandidateCellForSweeping> getCandidateCellsForSweepingBatch() {
-        return new GetCandidateCellsForSweeping(kvs, cqlExecutor, table, request.withStartRow(nextStartRow)).execute();
+    private List<CandidateRowForSweeping> getCandidateCellsForSweepingBatch() {
+        return new GetCandidateRowsForSweeping(valuesLoader, cqlExecutor, table,
+                request.withStartRow(nextStartRow)).execute();
     }
 }

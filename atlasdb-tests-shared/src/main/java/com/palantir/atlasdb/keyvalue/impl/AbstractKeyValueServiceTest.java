@@ -1119,7 +1119,7 @@ public abstract class AbstractKeyValueServiceTest {
                 keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
         assertEquals(1, results.size());
         assertArrayEquals(row0, results.get(0).getRowName());
-        assertEquals(TEST_TIMESTAMP, (long)results.get(0).getOnlyColumnValue().iterator().next());
+        assertEquals(TEST_TIMESTAMP, (long) results.get(0).getOnlyColumnValue().iterator().next());
     }
 
     @Test
