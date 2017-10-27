@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.exception;
+package com.palantir.common.exception;
 
-import com.palantir.common.exception.DependencyUnavailableException;
-import com.palantir.logsafe.SafeArg;
+public class DependencyUnavailableException extends RuntimeException {
 
-public class NotInitializedException extends DependencyUnavailableException {
-    public NotInitializedException(String objectNotInitialized) {
-        super(String.format("The %s is not initialized yet", SafeArg.of("objectName", objectNotInitialized)));
+    public DependencyUnavailableException(Throwable throwable) {
+        super(throwable);
     }
+
+    public DependencyUnavailableException(String msg) {
+        super(msg);
+    }
+
+    public DependencyUnavailableException(String msg, Throwable throwable) {
+        super(msg, throwable);
+    }
+
 }

@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.common.exception.DependencyUnavailableException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 
@@ -83,17 +84,24 @@ public final class Throwables {
      * If Throwable is a RuntimeException or Error, rethrow it. If not, throw a
      * new PalantirRuntimeException(ex)
      */
-    public static RuntimeException unwrapAndThrowUncheckedException(Throwable ex) {
+    public static RuntimeException unwrapAndThrowDependencyUnavailableException(Throwable ex) {
         if (isInstance(ex, ExecutionException.class) || isInstance(ex, InvocationTargetException.class)) {
-            throwUncheckedException(ex.getCause());
+            createDependencyUnavailableException(ex.getCause());
         }
-        throw throwUncheckedException(ex);
+        throw createDependencyUnavailableException(ex);
     }
 
     public static RuntimeException throwUncheckedException(Throwable ex) {
         throwIfInstance(ex, RuntimeException.class);
         throwIfInstance(ex, Error.class);
         throw createPalantirRuntimeException(ex);
+    }
+
+    private static RuntimeException createDependencyUnavailableException(Throwable ex) {
+        if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
+            Thread.currentThread().interrupt();
+        }
+        return new DependencyUnavailableException("AtlasDB has thrown as the KVS/Timelock was unavailable", ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {
