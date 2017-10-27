@@ -114,6 +114,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
     *   - |fixed|
+        - V2 generated tables now support using ``Persistable`` as column values. Note that this is still a beta feature, and API stability is not guaranteed.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2495>`__)         
+
+    *   - |fixed|
         - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
           The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
@@ -154,7 +158,6 @@ develop
            a TransactionManager, utilize the helpers in TransactionManagers to have this done for you.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2496>`__)
            (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2554>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -210,7 +213,6 @@ v0.61.0
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
