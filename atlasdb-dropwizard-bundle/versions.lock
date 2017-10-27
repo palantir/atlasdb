@@ -504,19 +504,19 @@
             ]
         },
         "com.palantir.remoting-api:errors": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.remoting3:error-handling"
             ]
         },
         "com.palantir.remoting-api:service-config": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra",
@@ -525,7 +525,7 @@
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -543,33 +543,33 @@
             ]
         },
         "com.palantir.remoting3:error-handling": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jersey-servers": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.remoting3:keystores": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -593,7 +593,8 @@
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:jersey-servers",
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.tokens:auth-tokens": {
@@ -636,6 +637,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.papertrail:profiler": {
+            "locked": "1.0.2",
+            "transitive": [
+                "io.dropwizard.metrics:metrics-servlets"
             ]
         },
         "com.squareup.okhttp3:okhttp": {
@@ -695,69 +702,58 @@
             ]
         },
         "io.dropwizard.metrics:metrics-annotation": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard:dropwizard-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-metrics",
-                "io.dropwizard.metrics:metrics-jersey2",
-                "io.dropwizard.metrics:metrics-jetty9",
-                "io.dropwizard.metrics:metrics-json",
-                "io.dropwizard.metrics:metrics-jvm",
-                "io.dropwizard.metrics:metrics-logback",
-                "io.dropwizard.metrics:metrics-servlets",
-                "io.dropwizard:dropwizard-core",
-                "io.dropwizard:dropwizard-metrics",
-                "io.dropwizard:dropwizard-servlets",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-jersey2": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "io.dropwizard.metrics:metrics-jetty9": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "io.dropwizard.metrics:metrics-json": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-jvm": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-logback": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-logging"
             ]
         },
         "io.dropwizard.metrics:metrics-servlets": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
@@ -936,6 +932,7 @@
             "locked": "2.7",
             "transitive": [
                 "com.palantir.atlasdb:lock-impl",
+                "com.papertrail:profiler",
                 "io.dropwizard:dropwizard-util"
             ]
         },
@@ -1812,19 +1809,19 @@
             ]
         },
         "com.palantir.remoting-api:errors": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.remoting3:error-handling"
             ]
         },
         "com.palantir.remoting-api:service-config": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-cassandra",
@@ -1833,7 +1830,7 @@
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
@@ -1851,33 +1848,33 @@
             ]
         },
         "com.palantir.remoting3:error-handling": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jersey-servers": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.remoting3:keystores": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
@@ -1901,7 +1898,8 @@
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:jersey-servers",
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.tokens:auth-tokens": {
@@ -1944,6 +1942,12 @@
             "locked": "0.6.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.papertrail:profiler": {
+            "locked": "1.0.2",
+            "transitive": [
+                "io.dropwizard.metrics:metrics-servlets"
             ]
         },
         "com.squareup.okhttp3:okhttp": {
@@ -2003,69 +2007,58 @@
             ]
         },
         "io.dropwizard.metrics:metrics-annotation": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard:dropwizard-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-metrics",
-                "io.dropwizard.metrics:metrics-jersey2",
-                "io.dropwizard.metrics:metrics-jetty9",
-                "io.dropwizard.metrics:metrics-json",
-                "io.dropwizard.metrics:metrics-jvm",
-                "io.dropwizard.metrics:metrics-logback",
-                "io.dropwizard.metrics:metrics-servlets",
-                "io.dropwizard:dropwizard-core",
-                "io.dropwizard:dropwizard-metrics",
-                "io.dropwizard:dropwizard-servlets",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-jersey2": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
         "io.dropwizard.metrics:metrics-jetty9": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-jetty"
             ]
         },
         "io.dropwizard.metrics:metrics-json": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-jvm": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core"
             ]
         },
         "io.dropwizard.metrics:metrics-logback": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-logging"
             ]
         },
         "io.dropwizard.metrics:metrics-servlets": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "io.dropwizard:dropwizard-core"
             ]
@@ -2244,6 +2237,7 @@
             "locked": "2.7",
             "transitive": [
                 "com.palantir.atlasdb:lock-impl",
+                "com.papertrail:profiler",
                 "io.dropwizard:dropwizard-util"
             ]
         },

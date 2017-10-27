@@ -140,7 +140,7 @@
             "locked": "2.1"
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -323,7 +323,7 @@
             "locked": "2.1"
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
