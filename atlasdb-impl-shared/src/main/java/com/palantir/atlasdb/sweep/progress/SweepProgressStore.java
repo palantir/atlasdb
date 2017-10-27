@@ -95,7 +95,7 @@ public class SweepProgressStore {
 
     private static Optional<SweepProgress> hydrateProgress(Map<Cell, Value> result) {
         if (result.isEmpty()) {
-            log.info("No persisted intermittent SweepProgress information found. "
+            log.info("No persisted intermediate SweepProgress information found. "
                     + "Sweep will choose a new table to sweep.");
             return Optional.empty();
         }
