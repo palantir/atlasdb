@@ -18,10 +18,6 @@ package com.palantir.common.exception;
 
 public class DependencyUnavailableException extends RuntimeException {
 
-    public DependencyUnavailableException(Throwable throwable) {
-        super(throwable);
-    }
-
     public DependencyUnavailableException(String msg) {
         super(msg);
     }

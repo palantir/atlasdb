@@ -88,6 +88,8 @@ public final class Throwables {
         if (isInstance(ex, ExecutionException.class) || isInstance(ex, InvocationTargetException.class)) {
             createDependencyUnavailableException(ex.getCause());
         }
+        throwIfInstance(ex, RuntimeException.class);
+        throwIfInstance(ex, Error.class);
         throw createDependencyUnavailableException(ex);
     }
 
