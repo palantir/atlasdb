@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -37,6 +38,8 @@ public final class AtlasDbConstants {
     public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
+    public static final TableReference SWEEP_PROGRESS_TABLE =
+            SweepTableFactory.of().getSweepProgressTable(null).getTableRef();
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
@@ -79,7 +82,8 @@ public final class AtlasDbConstants {
             SCRUB_TABLE,
             NAMESPACE_TABLE,
             PARTITION_MAP_TABLE,
-            PERSISTED_LOCKS_TABLE);
+            PERSISTED_LOCKS_TABLE,
+            SWEEP_PROGRESS_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
