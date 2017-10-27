@@ -17,6 +17,10 @@ Changelog
     :class: changetype changetype-improved
 .. role:: changetype-deprecated
     :class: changetype changetype-deprecated
+.. role:: changetype-logs
+    :class: changetype changetype-logs
+.. role:: changetype-metrics
+    :class: changetype changetype-metrics
 .. role:: strike
     :class: strike
 
@@ -27,6 +31,8 @@ Changelog
 .. |changed| replace:: :changetype-changed:`CHANGED`
 .. |improved| replace:: :changetype-improved:`IMPROVED`
 .. |deprecated| replace:: :changetype-deprecated:`DEPRECATED`
+.. |logs| replace:: :changetype-deprecated:`LOGS`
+.. |metrics| replace:: :changetype-deprecated:`METRICS`
 
 .. toctree::
   :hidden:
@@ -55,6 +61,8 @@ v0.62.0
 
 26 October 2017
 
+Behavior changes
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -78,20 +86,40 @@ v0.62.0
          - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``. All of the ``TransactionManagers.create(..)`` methods are still deprecated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
 
-    *    - |fixed|
+    *    - |improved|
          - The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
            This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
 
-    *    - |changed|
+
+Logs and Metrics
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |metrics|
          - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
            This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
 
-    *    - |new|
+    *    - |metrics|
          - AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp, and current timestamp.
            These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
+
+
+Bugfixes
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
