@@ -43,6 +43,10 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |improved|
+         - Metrics are now recorded for put/get operations around commit timestamps.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2561>`__)
 
     *    -
          -
