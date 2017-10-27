@@ -101,7 +101,7 @@ public final class Throwables {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
         }
-        return new AtlasDbDependencyException("The KVS/Timelock threw an exception.", ex);
+        return new AtlasDbDependencyException("The KVS or Timelock threw an exception.", ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {
