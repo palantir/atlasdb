@@ -23,7 +23,6 @@ import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableSweepConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -82,12 +80,6 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                 .schemas(ImmutableSet.of(TodoSchema.getSchema()))
                 .userAgent("AtlasDbServiceServer")
                 .buildSerializable();
-
-
-        //        TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
-
-        //        environment.jersey().register(new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache));
-        //        environment.getObjectMapper().registerModule(new AtlasJacksonModule(cache).createModule());
     }
 
     private static void runTxns() throws FileNotFoundException {
@@ -103,24 +95,40 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                     todoTable.putText(TodoTable.TodoRow.of(1), "nopes");
                     return null;
                 });
+            } catch (NotInitializedException e) {`
+                log.info("looks like we got NotInitializedException.");
+            } catch (Exception e) {
+                System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
+                e.printStackTrace(System.out);
+                System.out.println("=============================================================================");
+            } finally {
+                System.out.flush();
+            }
 
+            try {
                 List<TodoTable.TodoRowResult> todoRowResults = tm.runTaskWithRetry(txn -> {
                     TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of();
                     TodoTable todoTable = tableFactory.getTodoTable(txn);
                     return todoTable.getRows(ImmutableList.of(TodoTable.TodoRow.of(7), TodoTable.TodoRow.of(1)));
                 });
-
                 log.info("{}", todoRowResults);
+            } catch (NotInitializedException e) {
+                log.info("looks like we got NotInitializedException.");
+            } catch (Exception e) {
+                System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
+                e.printStackTrace(System.out);
+                System.out.println("=============================================================================");
+            } finally {
+                System.out.flush();
+            }
 
-                tm.runTaskWithRetry(
-                        txn -> {
-                            TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of();
-                            TodoTable todoTable = tableFactory.getTodoTable(txn);
-                            todoTable.delete(ImmutableList.of(TodoTable.TodoRow.of(7), TodoTable.TodoRow.of(1)));
-                            return null;
-                        }
-                );
-                Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+            try {
+                tm.runTaskWithRetry(txn -> {
+                    TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of();
+                    TodoTable todoTable = tableFactory.getTodoTable(txn);
+                    todoTable.delete(ImmutableList.of(TodoTable.TodoRow.of(7)));
+                    return null;
+                });
             } catch (NotInitializedException e) {
                 log.info("looks like we got NotInitializedException.");
             } catch (Exception e) {
