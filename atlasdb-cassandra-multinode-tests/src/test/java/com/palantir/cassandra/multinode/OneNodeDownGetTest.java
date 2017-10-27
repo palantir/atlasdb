@@ -41,7 +41,6 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownGetTest {
 
@@ -113,13 +112,14 @@ public class OneNodeDownGetTest {
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
         assertThatThrownBy(() -> it.next())
                 .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessage("This operation requires all Cassandra nodes to be up and available.");
+                .hasMessage("get_range_slices requires all Cassandra nodes to be up and available.");
     }
 
     @Test
     public void getAllTimestampsThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
-                .isExactlyInstanceOf(PalantirRuntimeException.class);
+                .isExactlyInstanceOf(InsufficientConsistencyException.class)
+                .hasMessage("This get operation requires ALL Cassandra nodes to be up and available.");
     }
 }

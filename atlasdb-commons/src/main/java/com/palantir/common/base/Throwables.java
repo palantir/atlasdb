@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 
@@ -83,17 +84,24 @@ public final class Throwables {
      * If Throwable is a RuntimeException or Error, rethrow it. If not, throw a
      * new PalantirRuntimeException(ex)
      */
-    public static RuntimeException unwrapAndThrowUncheckedException(Throwable ex) {
+    public static RuntimeException unwrapAndThrowDependencyUnavailableException(Throwable ex) {
         if (isInstance(ex, ExecutionException.class) || isInstance(ex, InvocationTargetException.class)) {
-            throwUncheckedException(ex.getCause());
+            createAtlasDbDependencyException(ex.getCause());
         }
-        throw throwUncheckedException(ex);
+        throw createAtlasDbDependencyException(ex);
     }
 
     public static RuntimeException throwUncheckedException(Throwable ex) {
         throwIfInstance(ex, RuntimeException.class);
         throwIfInstance(ex, Error.class);
         throw createPalantirRuntimeException(ex);
+    }
+
+    private static RuntimeException createAtlasDbDependencyException(Throwable ex) {
+        if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
+            Thread.currentThread().interrupt();
+        }
+        return new AtlasDbDependencyException("The KVS or Timelock threw an exception.", ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {
@@ -103,10 +111,8 @@ public final class Throwables {
     private static RuntimeException createPalantirRuntimeException(String newMessage, Throwable ex) {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
-            return new PalantirInterruptedException(newMessage, ex);
-        } else {
-            return new PalantirRuntimeException(newMessage, ex);
         }
+        return new PalantirRuntimeException(newMessage, ex);
     }
 
     /**

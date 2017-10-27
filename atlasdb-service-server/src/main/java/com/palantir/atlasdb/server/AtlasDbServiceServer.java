@@ -95,7 +95,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                     todoTable.putText(TodoTable.TodoRow.of(1), "nopes");
                     return null;
                 });
-            } catch (NotInitializedException e) {`
+            } catch (NotInitializedException e) {
                 log.info("looks like we got NotInitializedException.");
             } catch (Exception e) {
                 System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
