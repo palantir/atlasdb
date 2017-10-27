@@ -19,6 +19,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -32,13 +33,16 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
+    private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
+    private static final String CONTAINER_NAME = "cassandra";
+    private static final String CLI_CONTAINER_NAME = "cli";
 
     public static final int CASSANDRA_PORT = 9160;
     public static final String USERNAME = "cassandra";
     public static final String PASSWORD = "cassandra";
 
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("cassandra", CASSANDRA_PORT))
+            .addServers(new InetSocketAddress(CONTAINER_NAME, CASSANDRA_PORT))
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -75,9 +79,26 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.create(
+        return SuccessOrFailure.onResultOf(() -> {
+            CassandraClusterOperations cassandraOperations = new CassandraClusterOperations(rule,
+                    CASSANDRA_VERSION,
+                    ImmutableList.of(CONTAINER_NAME),
+                    CLI_CONTAINER_NAME);
+
+            if (!cassandraOperations.nodetoolShowsAllCassandraNodesUp()) {
+                return false;
+            }
+
+            cassandraOperations.disableAutoCompaction();
+
+            return canCreateCassandraKeyValueService();
+        });
+    }
+
+    private boolean canCreateCassandraKeyValueService() {
+        return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
                 LEADER_CONFIG)
-                .isInitialized());
+                .isInitialized();
     }
 }
