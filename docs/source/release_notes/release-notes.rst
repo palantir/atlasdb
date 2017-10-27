@@ -54,9 +54,6 @@ develop
          - Metrics are now recorded for put/get operations around commit timestamps.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2561>`__)
 
-    *    -
-         -
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
@@ -104,7 +101,7 @@ develop
 
 26 October 2017
 
-Behavior changes
+Improvements
 
 .. list-table::
     :widths: 5 40
@@ -153,6 +150,11 @@ Behavior changes
            provided a value. This defaults to 8 and can be configured with the ``KeyValueServiceConfig#defaultGetRangesConcurrency`` parameter.
            Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
+
+    *    - |devbreak|
+         - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
+           If you used one of the deleted or deprecated constructors, use the static ``create`` method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
 
 Logs and Metrics
 
@@ -243,11 +245,6 @@ Bugfixes
          - ``InMemoryAtlasDbConfig`` now has an empty namespace, instead of "test".
            This means that internal products will no longer have to set their root-level namespace to "test" in order to use ``InMemoryKeyValueService`` for testing.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2541>`__)
-
-    *    - |devbreak|
-         - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
-           If you used one of the deleted or deprecated constructors, use the static ``create`` method.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
 
     *    - |devbreak| |fixed|
          - Move ``@CancelableServerCall`` to a more fitting package that matches internal codebase.
