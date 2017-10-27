@@ -54,6 +54,11 @@ develop
          - Metrics are now recorded for put/get operations around commit timestamps.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2561>`__)
 
+    *    - |improved|
+         - The executor used by the Cassandra KVS is now allowed to grow larger so that we can better delegate blocking to the underlying Cassandra client pools.
+           Please note that for Cassandra users this may result in increased Atlas thread counts when receiving spikes in requests. The underlying throtting is the same, however, so Cassandra load shouldn't be impacted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
