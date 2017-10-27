@@ -317,7 +317,7 @@ v0.61.0
            It also now returns information about how much data was swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
-    *    - |fixed|
+    *    - |logs|
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
@@ -492,7 +492,7 @@ v0.59.0
            We decided to turn it off by default since we have observed timeouts for large amounts of data, until we find a better retry mechanism for shrink failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2405>`__)
 
-    *    - |userbreak| |fixed|
+    *    - |logs| |userbreak|
          - AtlasDB no longer tries to register Cassandra metrics for each pool with the same names.
            We now add `poolN` to the metric name in CassandraClientPoolingContainer, where N is the pool number.
            This will prevent spurious stacktraces in logs due to failure in registering metrics with the same name.
@@ -523,7 +523,7 @@ v0.58.0
     *    - Type
          - Change
 
-    *    - |improved|
+    *    - |logs|
          - AtlasDB now logs slow queries CQL queries (via ``kvs-slow-log``) used for sweep
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2363>`__)
 
@@ -570,13 +570,13 @@ v0.57.0
     *    - Type
          - Change
 
-    *    - |userbreak| |fixed|
+    *    - |metrics| |userbreak|
          - AtlasDB no longer embeds Cassandra host names in its metrics.
            Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
            This was necessary for compatibility with an internal log-ingestion tool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2324>`__)
 
-    *    - |userbreak| |fixed|
+    *    - |metrics| |userbreak|
          - AtlasDB no longer embeds table names in Sweep metrics.
            Sweep aggregate metrics continue to be reported.
            This was necessary for compatibility with an internal log-ingestion tool.
