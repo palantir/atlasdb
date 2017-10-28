@@ -200,8 +200,9 @@
 <td>Metrics are now recorded for put/get operations around commit timestamps.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2561">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">BackgroupSweeperImpl</span></code> now records additional metrics on how each run of sweep went.  Metrics report the number of occurences of each outcome in the 1 minute prior to the metrics being gathered, we may change this duration in the future.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2531">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -322,53 +323,58 @@ This means that internal products will no longer have to set their root-level na
 This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2474">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The executor used by the Cassandra KVS is now allowed to grow larger so that we can better delegate blocking to the underlying Cassandra client pools.
+Please note that for Cassandra users this may result in increased Atlas thread counts when receiving spikes in requests. The underlying throtting is the same, however, so Cassandra load shouldn’t be impacted.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2534">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">ProfilingKeyValueService</span></code> now logs correctly when logging a message for <code class="docutils literal"><span class="pre">getRange</span></code>, <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code> and <code class="docutils literal"><span class="pre">DeleteRange</span></code>.
 Previously, the table reference was omitted, such that one might receive lines of the form <code class="docutils literal"><span class="pre">Call</span> <span class="pre">to</span> <span class="pre">KVS.getRange</span> <span class="pre">on</span> <span class="pre">table</span> <span class="pre">RangeRequest{reverse=false}</span> <span class="pre">with</span> <span class="pre">range</span> <span class="pre">1504</span> <span class="pre">took</span> <span class="pre">{}</span> <span class="pre">ms.</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2474">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp, and current timestamp.
 These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2467">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>V2 generated tables now support using <code class="docutils literal"><span class="pre">Persistable</span></code> as column values. Note that this is still a beta feature, and API stability is not guaranteed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2495">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing “There are no known live hosts in the connection pool … We’re choosing one at random …”.
 The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2543">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
 This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2543">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2537">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue where a <code class="docutils literal"><span class="pre">waitForLocks</span></code> request could retry unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2491">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal"><span class="pre">TransactionManagers.builder()</span></code> no longer has a <code class="docutils literal"><span class="pre">callingClass(..)</span></code> method and now requires the consumer to directly specify their user agent via the previously optional method <code class="docutils literal"><span class="pre">userAgent(..)</span></code>. All of the <code class="docutils literal"><span class="pre">TransactionManagers.create(..)</span></code> methods are still deprecated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2542">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td><code class="docutils literal"><span class="pre">SweepMetrics</span></code> are now updated at the end of every batch rather than cumulative metrics at the end of every table.
 This will provide more accurate metrics for when sweep is doing something.  Sweeping run through the sweep endpoint will now also contribute to these metrics, before it didn’t update any metrics which again distorted the view of what work sweep was doing on the DB.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2535">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Simplify and annotate the constructors for <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code>. This should make the code of that class more maintainable.
 If you used one of the deleted or deprecated constructors, use the static <code class="docutils literal"><span class="pre">create</span></code> method.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2549">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
 it is more likely that this will be configured via per-service overrides for the services for whom the
 current cache size is inadequate.
