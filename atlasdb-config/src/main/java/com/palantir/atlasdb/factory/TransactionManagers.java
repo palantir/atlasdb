@@ -71,6 +71,7 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
@@ -436,8 +437,8 @@ public abstract class TransactionManagers {
                 sweepStrategyManager,
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig = () ->
-                getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService());
+        AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
+                getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
         SweepMetrics sweepMetrics = new SweepMetrics();
 
@@ -447,10 +448,11 @@ public abstract class TransactionManagers {
                 transactionManager,
                 sweepRunner,
                 sweepPerfLogger,
-                sweepBatchConfig,
-                sweepMetrics);
+                sweepMetrics,
+                sweepBatchConfigSource);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+                sweepBatchConfigSource,
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 persistentLockManager,
@@ -466,17 +468,16 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig,
-            SweepMetrics sweepMetrics) {
+            SweepMetrics sweepMetrics,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
-                sweepBatchConfig,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
                 sweepMetrics);
-        env.accept(new SweeperServiceImpl(specificTableSweeper));
+        env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;
     }
 

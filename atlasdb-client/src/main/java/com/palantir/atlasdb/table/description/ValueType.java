@@ -895,12 +895,14 @@ public enum ValueType {
     public Class getJavaObjectClass() {
         return getJavaClass();
     }
+
     public String getJavaClassName() {
         return getJavaClass().getSimpleName();
     }
     public String getJavaObjectClassName() {
         return getJavaObjectClass().getSimpleName();
     }
+
     public abstract String getPersistCode(String variableName);
     public abstract String getHydrateCode(String inputName, String indexName);
     public abstract String getFlippedHydrateCode(String inputName, String indexName);
