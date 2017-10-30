@@ -92,7 +92,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
-                    SafeArg.of("address", CassandraLogHelper.hostLog(addr)),
+                    SafeArg.of("address", CassandraLogHelper.host(addr)),
                     UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
                     SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
                     UnsafeArg.of("usernameConfig", config.credentials().isPresent()
@@ -113,7 +113,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
             thriftSocket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis());
         } catch (SocketException e) {
             log.error("Couldn't set socket keep alive for host {}",
-                    SafeArg.of("address", CassandraLogHelper.hostLog(addr)));
+                    SafeArg.of("address", CassandraLogHelper.host(addr)));
         }
 
         if (config.usingSsl()) {
@@ -180,7 +180,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         client.getObject().getOutputProtocol().getTransport().close();
         log.debug("Closed transport for client {} of host {}",
                 UnsafeArg.of("client", client),
-                SafeArg.of("cassandraClient", CassandraLogHelper.hostLog(addr)));
+                SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
     }
 
     static class ClientCreationFailedException extends RuntimeException {

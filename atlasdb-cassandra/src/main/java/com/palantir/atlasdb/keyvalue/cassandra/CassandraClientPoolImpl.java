@@ -279,8 +279,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHostsLog(serversToAdd)),
-                SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHostsLog(serversToRemove)));
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
+                SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
         debugLogStateOfPool();
     }
 
@@ -302,7 +302,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             currentPools.get(removedServerAddress).shutdownPooling();
         } catch (Exception e) {
             log.warn("While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
-                    SafeArg.of("removedServerAddress", CassandraLogHelper.hostLog(removedServerAddress)),
+                    SafeArg.of("removedServerAddress", CassandraLogHelper.host(removedServerAddress)),
                     e);
         }
         currentPools.remove(removedServerAddress);
@@ -337,7 +337,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 if (isHostHealthy(host)) {
                     blacklistedHosts.remove(host);
                     log.info("Added host {} back into the pool after a waiting period and successful health check.",
-                            SafeArg.of("host", CassandraLogHelper.hostLog(host)));
+                            SafeArg.of("host", CassandraLogHelper.host(host)));
                 }
             }
         }
@@ -346,7 +346,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     // TODO (gsheasby): Why did we blacklist this host?
     private void addToBlacklist(InetSocketAddress badHost) {
         blacklistedHosts.put(badHost, System.currentTimeMillis());
-        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.hostLog(badHost)));
+        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(badHost)));
     }
 
     private boolean isHostHealthy(InetSocketAddress host) {
@@ -358,7 +358,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         } catch (Exception e) {
             log.warn("We tried to add {} back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", CassandraLogHelper.hostLog(host)),
+                    SafeArg.of("host", CassandraLogHelper.host(host)),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()));
             return false;
@@ -416,7 +416,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     + " Current state logged at TRACE",
                     SafeArg.of("blacklistedHosts", CassandraLogHelper.blacklistedHostsLog(blacklistedHosts)));
             log.trace("Current ring view is: {}.",
-                    SafeArg.of("tokenMap", CassandraLogHelper.getTokenMapLog(tokenMap)));
+                    SafeArg.of("tokenMap", CassandraLogHelper.tokenMap(tokenMap)));
             return getRandomGoodHost().getHost();
         } else {
             return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
@@ -584,7 +584,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         while (true) {
             if (log.isTraceEnabled()) {
                 log.trace("Running function on host {}.",
-                        SafeArg.of("host", CassandraLogHelper.hostLog(specifiedHost)));
+                        SafeArg.of("host", CassandraLogHelper.host(specifiedHost)));
             }
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
@@ -594,8 +594,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                         = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
                 hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
                 log.warn("Randomly redirected a query intended for host {} to {}.",
-                        SafeArg.of("previousHost", CassandraLogHelper.hostLog(previousHostPool)),
-                        SafeArg.of("randomHost", CassandraLogHelper.hostLog(hostPool.getHost())));
+                        SafeArg.of("previousHost", CassandraLogHelper.host(previousHostPool)),
+                        SafeArg.of("randomHost", CassandraLogHelper.host(hostPool.getHost())));
             }
 
             try {
@@ -610,7 +610,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                             UnsafeArg.of("queryString", fn.toString()),
                             SafeArg.of("sleepDuration", sleepDuration),
-                            SafeArg.of("hostName", CassandraLogHelper.hostLog(hostPool.getHost())));
+                            SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
 
                     try {
                         Thread.sleep(sleepDuration);
@@ -622,7 +622,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     }
                 } else if (isFastFailoverException(e)) {
                     log.info("Retrying with fast failover a query intended for host {}.",
-                            SafeArg.of("hostName", CassandraLogHelper.hostLog(hostPool.getHost())));
+                            SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
                     shouldRetryOnDifferentHost = true;
                 }
             }
@@ -734,7 +734,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
                 log.warn("Failed to get ring info from host: {}",
-                        SafeArg.of("host", CassandraLogHelper.hostLog(host)),
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
                         e);
             } finally {
                 if (client != null) {
@@ -757,7 +757,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     + " This can lead to inconsistent reads and lost data. ");
             log.error("QA-86204 {}: The token ranges to host are:\n{}",
                     SafeArg.of("exception", ex.getMessage()),
-                    UnsafeArg.of("tokenRangesToHostLog", CassandraLogHelper.tokenRangesToHostLog(tokenRangesToHost)),
+                    UnsafeArg.of("tokenRangesToHost", CassandraLogHelper.tokenRangesToHost(tokenRangesToHost)),
                     ex);
 
 
@@ -767,7 +767,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                         .filter(entry -> entry.getValue().size() == 1)
                         .forEach(entry -> {
                             // We've checked above that entry.getValue() has one element, so we never NPE here.
-                            String hostString = CassandraLogHelper.hostLog(Iterables.getFirst(entry.getValue(), null));
+                            String hostString = CassandraLogHelper.host(Iterables.getFirst(entry.getValue(), null));
                             log.error("Host: {} disagrees with the other nodes about the ring state.",
                                     SafeArg.of("host", hostString));
                         });
@@ -777,8 +777,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 Set<TokenRange> set1 = sets.get(0);
                 Set<TokenRange> set2 = sets.get(1);
                 log.error("Hosts are split. group1: {} group2: {}",
-                        SafeArg.of("hosts1", CassandraLogHelper.collectionOfHostsLog(tokenRangesToHost.get(set1))),
-                        SafeArg.of("hosts2", CassandraLogHelper.collectionOfHostsLog(tokenRangesToHost.get(set2))));
+                        SafeArg.of("hosts1", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set1))),
+                        SafeArg.of("hosts2", CassandraLogHelper.collectionOfHosts(tokenRangesToHost.get(set2))));
             }
 
             CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());

@@ -34,38 +34,38 @@ final class CassandraLogHelper {
         // Utility class.
     }
 
-    static String hostLog(InetSocketAddress host) {
+    static String host(InetSocketAddress host) {
         return host.getHostString();
     }
 
     static List<String> blacklistedHostsLog(Map<InetSocketAddress, Long> blacklistedHosts) {
         return blacklistedHosts.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
-                        hostLog(blacklistedHostToBlacklistTime.getKey()),
+                        host(blacklistedHostToBlacklistTime.getKey()),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
                 .collect(Collectors.toList());
     }
 
-    static Collection<String> collectionOfHostsLog(Collection<InetSocketAddress> hosts) {
-        return hosts.stream().map(CassandraLogHelper::hostLog).collect(Collectors.toSet());
+    static Collection<String> collectionOfHosts(Collection<InetSocketAddress> hosts) {
+        return hosts.stream().map(CassandraLogHelper::host).collect(Collectors.toSet());
     }
 
-    static List<String> tokenRangesToHostLog(Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost) {
+    static List<String> tokenRangesToHost(Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
                 .map(entry -> String.format("host %s has range %s",
                         entry.getKey().toString(),
-                        hostLog(entry.getValue())))
+                        host(entry.getValue())))
                 .collect(Collectors.toList());
     }
 
-    static List<String> getTokenMapLog(
+    static List<String> tokenMap(
             RangeMap<CassandraClientPoolImpl.LightweightOppToken, List<InetSocketAddress>> tokenMap) {
 
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format("range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
                         getUpperEndpoint(rangeListToHostEntry.getKey()),
-                        CassandraLogHelper.collectionOfHostsLog(rangeListToHostEntry.getValue())))
+                        CassandraLogHelper.collectionOfHosts(rangeListToHostEntry.getValue())))
                 .collect(Collectors.toList());
     }
 
