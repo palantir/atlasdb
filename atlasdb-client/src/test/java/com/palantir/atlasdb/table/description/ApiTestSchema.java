@@ -33,7 +33,7 @@ public class ApiTestSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("ApiTest",
                 ApiTestSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE,
+                Namespace.create("test"),
                 OptionalType.JAVA8);
 
         schema.addTableDefinition("SchemaApiTest", new TableDefinition() {
