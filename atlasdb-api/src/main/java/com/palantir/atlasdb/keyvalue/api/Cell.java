@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
@@ -27,8 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Defaults;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Bytes;
@@ -47,20 +44,12 @@ public final class Cell implements Serializable, Comparable<Cell> {
     // Oracle has an upper bound on RAW types of 2000.
     public static final int MAX_NAME_LENGTH = 1500;
 
-    // these /have/ to be these values to retain serialization back-compat
-    public static final long INVALID_TTL = Defaults.defaultValue(long.class);
-    public static final TimeUnit INVALID_TTL_TYPE = null;
-
     /**
      * Creates a key. Do not modify the rowName or the columnName arrays after passing them.
      * This doesn't make a copy for performance reasons.
      */
     public static Cell create(byte[] rowName, byte[] columnName) {
-        return new Cell(rowName, columnName, INVALID_TTL);
-    }
-
-    public static Cell create(byte[] rowName, byte[] columnName, long ttlDuration, TimeUnit ttlUnit) {
-        return new Cell(rowName, columnName, safeTimeConvert(ttlDuration, ttlUnit));
+        return new Cell(rowName, columnName);
     }
 
     public static boolean isNameValid(byte[] name) {
@@ -86,21 +75,14 @@ public final class Cell implements Serializable, Comparable<Cell> {
 
     private final byte[] rowName;
     private final byte[] columnName;
-    private final long ttlDurationMillis;
     private transient int hashCode = 0;
-
-    private Cell(byte[] rowName, byte[] columnName) {
-        this(rowName, columnName, INVALID_TTL);
-    }
 
     // NOTE: This constructor doesn't copy the arrays for performance reasons.
     @JsonCreator
     private Cell(@JsonProperty("rowName") byte[] rowName,
-                 @JsonProperty("columnName") byte[] columnName,
-                 @JsonProperty("ttlDurationMillis") long ttlDurationMillis) {
+                 @JsonProperty("columnName") byte[] columnName) {
         this.rowName = rowName;
         this.columnName = columnName;
-        this.ttlDurationMillis = ttlDurationMillis;
 
         validateNameValid(rowName);
         validateNameValid(columnName);
@@ -119,21 +101,6 @@ public final class Cell implements Serializable, Comparable<Cell> {
     @Nonnull public byte[] getColumnName() {
         return columnName;
     }
-
-
-    public long getTtlDurationMillis() {
-        return ttlDurationMillis;
-    }
-
-    private static long safeTimeConvert(long ttl, TimeUnit ttlUnit) {
-        if (ttlUnit != null) {
-            return TimeUnit.MILLISECONDS.convert(ttl, ttlUnit);
-        } else {
-            return 0;
-        }
-    }
-
-    public static final Function<Cell, Boolean> IS_EXPIRING = from -> from.getTtlDurationMillis() != INVALID_TTL;
 
     @Override
     public int compareTo(Cell other) {
@@ -172,7 +139,6 @@ public final class Cell implements Serializable, Comparable<Cell> {
         return MoreObjects.toStringHelper(getClass())
                 .add("rowName", PtBytes.encodeHexString(rowName))
                 .add("columnName", PtBytes.encodeHexString(columnName))
-                .addValue((ttlDurationMillis == INVALID_TTL) ? "no TTL" : "ttlDurationMillis=" + ttlDurationMillis)
                 .toString();
     }
 }
