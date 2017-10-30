@@ -122,6 +122,10 @@ develop
          - We now report metrics for Transaction conflicts.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
 
+    *   - |changed|
+        - Log host names in Cassandra* classes.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2592>`__)
+
     *    - |improved|
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.

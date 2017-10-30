@@ -650,7 +650,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             if (columnCells.size() > fetchBatchCount) {
                 log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
                                 + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
-                        SafeArg.of("host", host),
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rows", columnCells.size()),
                         SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
@@ -675,7 +675,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             LoggingArgs.tableRef(tableRef),
                                             SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                                             SafeArg.of("startTs", startTs),
-                                            SafeArg.of("host", host));
+                                            SafeArg.of("host", CassandraLogHelper.host(host)));
                                 }
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
