@@ -35,7 +35,6 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 public class CassandraContainer extends Container {
     private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
     private static final String CONTAINER_NAME = "cassandra";
-    private static final String CLI_CONTAINER_NAME = "cli";
 
     public static final int CASSANDRA_PORT = 9160;
     public static final String USERNAME = "cassandra";
@@ -83,7 +82,7 @@ public class CassandraContainer extends Container {
             CassandraClusterOperations cassandraOperations = new CassandraClusterOperations(rule,
                     CASSANDRA_VERSION,
                     ImmutableList.of(CONTAINER_NAME),
-                    CLI_CONTAINER_NAME);
+                    CONTAINER_NAME); // reuse main container for CLIs
 
             if (!cassandraOperations.nodetoolShowsAllCassandraNodesUp()) {
                 return false;
