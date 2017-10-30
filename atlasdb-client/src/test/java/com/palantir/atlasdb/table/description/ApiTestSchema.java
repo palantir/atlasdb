@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import java.io.File;
+import java.util.stream.IntStream;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -65,6 +66,20 @@ public class ApiTestSchema implements AtlasSchema {
                 column("column", "c", ValueType.STRING);
 
                 rangeScanAllowed();
+            }
+        });
+
+        schema.addTableDefinition("AllValueTypesTest", new TableDefinition() {
+            {
+                javaTableName("AllValueTypesTest");
+
+                rowName();
+                rowComponent("component1", ValueType.STRING);
+
+                columns();
+                IntStream.range(0, ValueType.values().length)
+                        .forEachOrdered(typeIndex ->
+                                column("column" + typeIndex, "c" + typeIndex, ValueType.values()[typeIndex]));
             }
         });
 

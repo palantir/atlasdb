@@ -1,14 +1,15 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import java.util.List;
+
+import javax.annotation.Generated;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import java.lang.Override;
-import java.util.List;
-import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class ApiTestTableFactory {
@@ -41,6 +42,11 @@ public final class ApiTestTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public AllValueTypesTestTable getAllValueTypesTestTable(Transaction t,
+            AllValueTypesTestTable.AllValueTypesTestTrigger... triggers) {
+        return AllValueTypesTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public HashComponentsTestTable getHashComponentsTestTable(Transaction t,
             HashComponentsTestTable.HashComponentsTestTrigger... triggers) {
         return HashComponentsTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
@@ -55,10 +61,15 @@ public final class ApiTestTableFactory {
         return SchemaApiTestV2Table.of(t, namespace);
     }
 
-    public interface SharedTriggers extends HashComponentsTestTable.HashComponentsTestTrigger, SchemaApiTestTable.SchemaApiTestTrigger {
+    public interface SharedTriggers extends AllValueTypesTestTable.AllValueTypesTestTrigger, HashComponentsTestTable.HashComponentsTestTrigger, SchemaApiTestTable.SchemaApiTestTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putAllValueTypesTest(Multimap<AllValueTypesTestTable.AllValueTypesTestRow, ? extends AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putHashComponentsTest(Multimap<HashComponentsTestTable.HashComponentsTestRow, ? extends HashComponentsTestTable.HashComponentsTestNamedColumnValue<?>> newRows) {
             // do nothing
