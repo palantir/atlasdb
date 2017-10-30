@@ -84,6 +84,7 @@ public class TableDefinition extends AbstractDefinition {
      * default. Individual row components or named columns may still be marked as unsafe by explicitly creating them
      * as unsafe (by constructing them with UNSAFE values of LogSafety).
      * Note that specifying this by itself does NOT make the table name safe for logging.
+     * Note that this logging DOES NOT mark the values of either the rows or the columns as safe for logging.
      */
     public void namedComponentsSafeByDefault() {
         Preconditions.checkState(state == State.NONE, "Specifying components are safe by default should be done outside"
@@ -97,6 +98,8 @@ public class TableDefinition extends AbstractDefinition {
      *
      * If you wish to have a table with an unsafe name but safe components, please use namedComponentsSafeByDefault()
      * instead.
+     *
+     * Note that this logging DOES NOT mark the values of either the rows or the columns as safe for logging.
      */
     public void allSafeForLoggingByDefault() {
         tableNameLogSafety(LogSafety.SAFE);
