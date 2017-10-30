@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
@@ -106,13 +105,11 @@ public class CassandraClusterOperations {
         return runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds, containerNames.get(0));
     }
 
-    private List<String> runNodetoolCommandOnAllContainers(String nodetoolCommand, int timeoutSeconds)
+    private void runNodetoolCommandOnAllContainers(String nodetoolCommand, int timeoutSeconds)
             throws IOException, InterruptedException {
-        List<String> ret = Lists.newArrayList();
         for (String containerName : containerNames) {
-            ret.add(runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds, containerName));
+            runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds, containerName);
         }
-        return ret;
     }
 
     private String runNodetoolCommandOnContainer(String nodetoolCommand, int timeoutSeconds, String container)
