@@ -101,6 +101,7 @@ public final class Throwables {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
         }
+        throwIfInstance(ex, AtlasDbDependencyException.class);
         return new AtlasDbDependencyException("The KVS or Timelock threw an exception.", ex);
     }
 
