@@ -25,10 +25,12 @@ import static org.mockito.Mockito.when;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -50,6 +52,11 @@ public class TimestampTrackerTest {
     private final TimelockService timelockService = mock(TimelockService.class);
     private final Cleaner cleaner = mock(Cleaner.class);
     private final Clock mockClock = mock(Clock.class);
+
+    @BeforeClass
+    public static void cleanAtlasMetricsRegistry() {
+        AtlasDbMetrics.getMetricRegistry().removeMatching(MetricFilter.ALL);
+    }
 
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
