@@ -414,7 +414,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
                     + " Current host blacklist is {}."
                     + " Current state logged at TRACE",
-                    SafeArg.of("blacklistedHosts", CassandraLogHelper.blacklistedHostsLog(blacklistedHosts)));
+                    SafeArg.of("blacklistedHosts", CassandraLogHelper.blacklistedHosts(blacklistedHosts)));
             log.trace("Current ring view is: {}.",
                     SafeArg.of("tokenMap", CassandraLogHelper.tokenMap(tokenMap)));
             return getRandomGoodHost().getHost();

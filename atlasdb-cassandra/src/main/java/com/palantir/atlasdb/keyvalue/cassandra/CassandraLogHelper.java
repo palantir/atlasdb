@@ -38,7 +38,7 @@ final class CassandraLogHelper {
         return host.getHostString();
     }
 
-    static List<String> blacklistedHostsLog(Map<InetSocketAddress, Long> blacklistedHosts) {
+    static List<String> blacklistedHosts(Map<InetSocketAddress, Long> blacklistedHosts) {
         return blacklistedHosts.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
                         host(blacklistedHostToBlacklistTime.getKey()),
