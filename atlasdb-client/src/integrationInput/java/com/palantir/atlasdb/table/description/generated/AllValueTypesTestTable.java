@@ -139,63 +139,234 @@ public final class AllValueTypesTestTable implements
     /**
      * <pre>
      * AllValueTypesTestRow {
-     *   {@literal String component1};
+     *   {@literal Long component0};
+     *   {@literal Long component1};
+     *   {@literal Long component2};
+     *   {@literal Long component3};
+     *   {@literal Sha256Hash component4};
+     *   {@literal String component5};
+     *   {@literal byte[] component8};
+     *   {@literal Long component9};
+     *   {@literal UUID component10};
+     *   {@literal byte[] blobComponent};
      * }
      * </pre>
      */
     public static final class AllValueTypesTestRow implements Persistable, Comparable<AllValueTypesTestRow> {
-        private final String component1;
+        private final long component0;
+        private final long component1;
+        private final long component2;
+        private final long component3;
+        private final Sha256Hash component4;
+        private final String component5;
+        private final byte[] component8;
+        private final Long component9;
+        private final UUID component10;
+        private final byte[] blobComponent;
 
-        public static AllValueTypesTestRow of(String component1) {
-            return new AllValueTypesTestRow(component1);
+        public static AllValueTypesTestRow of(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, Long component9, UUID component10, byte[] blobComponent) {
+            return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
         }
 
-        private AllValueTypesTestRow(String component1) {
+        private AllValueTypesTestRow(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, Long component9, UUID component10, byte[] blobComponent) {
+            this.component0 = component0;
             this.component1 = component1;
+            this.component2 = component2;
+            this.component3 = component3;
+            this.component4 = component4;
+            this.component5 = component5;
+            this.component8 = component8;
+            this.component9 = component9;
+            this.component10 = component10;
+            this.blobComponent = blobComponent;
         }
 
-        public String getComponent1() {
+        public long getComponent0() {
+            return component0;
+        }
+
+        public long getComponent1() {
             return component1;
         }
 
-        public static Function<AllValueTypesTestRow, String> getComponent1Fun() {
-            return new Function<AllValueTypesTestRow, String>() {
+        public long getComponent2() {
+            return component2;
+        }
+
+        public long getComponent3() {
+            return component3;
+        }
+
+        public Sha256Hash getComponent4() {
+            return component4;
+        }
+
+        public String getComponent5() {
+            return component5;
+        }
+
+        public byte[] getComponent8() {
+            return component8;
+        }
+
+        public Long getComponent9() {
+            return component9;
+        }
+
+        public UUID getComponent10() {
+            return component10;
+        }
+
+        public byte[] getBlobComponent() {
+            return blobComponent;
+        }
+
+        public static Function<AllValueTypesTestRow, Long> getComponent0Fun() {
+            return new Function<AllValueTypesTestRow, Long>() {
                 @Override
-                public String apply(AllValueTypesTestRow row) {
+                public Long apply(AllValueTypesTestRow row) {
+                    return row.component0;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, Long> getComponent1Fun() {
+            return new Function<AllValueTypesTestRow, Long>() {
+                @Override
+                public Long apply(AllValueTypesTestRow row) {
                     return row.component1;
                 }
             };
         }
 
-        public static Function<String, AllValueTypesTestRow> fromComponent1Fun() {
-            return new Function<String, AllValueTypesTestRow>() {
+        public static Function<AllValueTypesTestRow, Long> getComponent2Fun() {
+            return new Function<AllValueTypesTestRow, Long>() {
                 @Override
-                public AllValueTypesTestRow apply(String row) {
-                    return AllValueTypesTestRow.of(row);
+                public Long apply(AllValueTypesTestRow row) {
+                    return row.component2;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, Long> getComponent3Fun() {
+            return new Function<AllValueTypesTestRow, Long>() {
+                @Override
+                public Long apply(AllValueTypesTestRow row) {
+                    return row.component3;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, Sha256Hash> getComponent4Fun() {
+            return new Function<AllValueTypesTestRow, Sha256Hash>() {
+                @Override
+                public Sha256Hash apply(AllValueTypesTestRow row) {
+                    return row.component4;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, String> getComponent5Fun() {
+            return new Function<AllValueTypesTestRow, String>() {
+                @Override
+                public String apply(AllValueTypesTestRow row) {
+                    return row.component5;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, byte[]> getComponent8Fun() {
+            return new Function<AllValueTypesTestRow, byte[]>() {
+                @Override
+                public byte[] apply(AllValueTypesTestRow row) {
+                    return row.component8;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, Long> getComponent9Fun() {
+            return new Function<AllValueTypesTestRow, Long>() {
+                @Override
+                public Long apply(AllValueTypesTestRow row) {
+                    return row.component9;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, UUID> getComponent10Fun() {
+            return new Function<AllValueTypesTestRow, UUID>() {
+                @Override
+                public UUID apply(AllValueTypesTestRow row) {
+                    return row.component10;
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRow, byte[]> getBlobComponentFun() {
+            return new Function<AllValueTypesTestRow, byte[]>() {
+                @Override
+                public byte[] apply(AllValueTypesTestRow row) {
+                    return row.blobComponent;
                 }
             };
         }
 
         @Override
         public byte[] persistToBytes() {
-            byte[] component1Bytes = PtBytes.toBytes(component1);
-            return EncodingUtils.add(component1Bytes);
+            byte[] component0Bytes = EncodingUtils.encodeUnsignedVarLong(component0);
+            byte[] component1Bytes = EncodingUtils.encodeSignedVarLong(component1);
+            byte[] component2Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ component2);
+            byte[] component3Bytes = EncodingUtils.encodeLittleEndian(component3);
+            byte[] component4Bytes = component4.getBytes();
+            byte[] component5Bytes = EncodingUtils.encodeVarString(component5);
+            byte[] component8Bytes = EncodingUtils.encodeSizedBytes(component8);
+            byte[] component9Bytes = EncodingUtils.encodeNullableFixedLong(component9);
+            byte[] component10Bytes = EncodingUtils.encodeUUID(component10);
+            byte[] blobComponentBytes = blobComponent;
+            return EncodingUtils.add(component0Bytes, component1Bytes, component2Bytes, component3Bytes, component4Bytes, component5Bytes, component8Bytes, component9Bytes, component10Bytes, blobComponentBytes);
         }
 
         public static final Hydrator<AllValueTypesTestRow> BYTES_HYDRATOR = new Hydrator<AllValueTypesTestRow>() {
             @Override
             public AllValueTypesTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                String component1 = PtBytes.toString(__input, __index, __input.length-__index);
+                Long component0 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfUnsignedVarLong(component0);
+                Long component1 = EncodingUtils.decodeSignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfSignedVarLong(component1);
+                Long component2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                __index += 8;
+                Long component3 = EncodingUtils.decodeLittleEndian(__input, __index);
+                __index += 8;
+                Sha256Hash component4 = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
+                __index += 32;
+                String component5 = EncodingUtils.decodeVarString(__input, __index);
+                __index += EncodingUtils.sizeOfVarString(component5);
+                byte[] component8 = EncodingUtils.decodeSizedBytes(__input, __index);
+                __index += EncodingUtils.sizeOfSizedBytes(component8);
+                Long component9 = EncodingUtils.decodeNullableFixedLong(__input,__index);
+                __index += 9;
+                UUID component10 = EncodingUtils.decodeUUID(__input, __index);
+                __index += 16;
+                byte[] blobComponent = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
                 __index += 0;
-                return new AllValueTypesTestRow(component1);
+                return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("component0", component0)
                 .add("component1", component1)
+                .add("component2", component2)
+                .add("component3", component3)
+                .add("component4", component4)
+                .add("component5", component5)
+                .add("component8", component8)
+                .add("component9", component9)
+                .add("component10", component10)
+                .add("blobComponent", blobComponent)
                 .toString();
         }
 
@@ -211,19 +382,28 @@ public final class AllValueTypesTestTable implements
                 return false;
             }
             AllValueTypesTestRow other = (AllValueTypesTestRow) obj;
-            return Objects.equal(component1, other.component1);
+            return Objects.equal(component0, other.component0) && Objects.equal(component1, other.component1) && Objects.equal(component2, other.component2) && Objects.equal(component3, other.component3) && Objects.equal(component4, other.component4) && Objects.equal(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equal(component9, other.component9) && Objects.equal(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(component1);
+            return Arrays.deepHashCode(new Object[]{ component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent });
         }
 
         @Override
         public int compareTo(AllValueTypesTestRow o) {
             return ComparisonChain.start()
+                .compare(this.component0, o.component0)
                 .compare(this.component1, o.component1)
+                .compare(this.component2, o.component2)
+                .compare(this.component3, o.component3)
+                .compare(this.component4, o.component4)
+                .compare(this.component5, o.component5)
+                .compare(this.component8, o.component8, UnsignedBytes.lexicographicalComparator())
+                .compare(this.component9, o.component9)
+                .compare(this.component10, o.component10)
+                .compare(this.blobComponent, o.blobComponent, UnsignedBytes.lexicographicalComparator())
                 .result();
         }
     }
@@ -2079,5 +2259,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Fxp4GN16GsQ2G1iL4IBiMw==";
+    static String __CLASS_HASH = "db/N1QHzErWA9LjGunAMxg==";
 }
