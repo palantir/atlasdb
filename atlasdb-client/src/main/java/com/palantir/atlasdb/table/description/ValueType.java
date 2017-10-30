@@ -434,6 +434,10 @@ public enum ValueType {
             return "32";
         }
 
+        @Override
+        public boolean isJavaObjectType() {
+            return true;
+        }
     },
     /**
      * This value type DOES NOT support range scans.
@@ -869,16 +873,8 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            // UUID isn't a primitive so this will do
-            return getJavaObjectClassName();
-        }
-
-        @Override
-        public String getJavaObjectClassName() {
-            // Needed because UUID otherwise needs to be imported, but we can't just import it everywhere as it isn't
-            // used in schemas without UUIDs.
-            return getJavaClass().getName();
+        public boolean isJavaObjectType() {
+            return true;
         }
     }
     ;
@@ -904,15 +900,27 @@ public enum ValueType {
     }
 
     public abstract Class getJavaClass();
+    public boolean isJavaObjectType() {
+        return false;
+    }
     public Class getJavaObjectClass() {
         return getJavaClass();
     }
+
     public String getJavaClassName() {
+        if (isJavaObjectType()) {
+            return getJavaObjectClassName();
+        }
         return getJavaClass().getSimpleName();
     }
     public String getJavaObjectClassName() {
-        return getJavaObjectClass().getSimpleName();
+        Class<?> objectClass = getJavaObjectClass();
+        if (isJavaObjectType()) {
+            return objectClass.getName();
+        }
+        return objectClass.getSimpleName();
     }
+
     public abstract String getPersistCode(String variableName);
     public abstract String getHydrateCode(String inputName, String indexName);
     public abstract String getFlippedHydrateCode(String inputName, String indexName);
