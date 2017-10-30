@@ -29,6 +29,7 @@ import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
 public class CassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(CassandraClusterOperations.class);
+    private static final int NODETOOL_DISABLEAUTOCOMPACTION_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 60;
 
@@ -70,7 +71,7 @@ public class CassandraClusterOperations {
     }
 
     public void disableAutoCompaction() throws IOException, InterruptedException {
-        runNodetoolCommandOnAllContainers("disableautocompaction", NODETOOL_REPAIR_TIMEOUT_SECONDS);
+        runNodetoolCommandOnAllContainers("disableautocompaction", NODETOOL_DISABLEAUTOCOMPACTION_TIMEOUT_SECONDS);
     }
 
     private void runNodetoolRepair() throws IOException, InterruptedException {
