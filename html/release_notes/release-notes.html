@@ -200,8 +200,9 @@
 <td>Metrics are now recorded for put/get operations around commit timestamps.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2561">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">BackgroupSweeperImpl</span></code> now records additional metrics on how each run of sweep went.  Metrics report the number of occurences of each outcome in the 1 minute prior to the metrics being gathered, we may change this duration in the future.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2531">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
