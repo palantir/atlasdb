@@ -38,7 +38,6 @@ import com.palantir.atlasdb.server.generated.TodoTable;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
@@ -95,8 +94,6 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                     todoTable.putText(TodoTable.TodoRow.of(1), "nopes");
                     return null;
                 });
-            } catch (NotInitializedException e) {
-                log.info("looks like we got NotInitializedException.");
             } catch (Exception e) {
                 System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
                 e.printStackTrace(System.out);
@@ -112,8 +109,6 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                     return todoTable.getRows(ImmutableList.of(TodoTable.TodoRow.of(7), TodoTable.TodoRow.of(1)));
                 });
                 log.info("{}", todoRowResults);
-            } catch (NotInitializedException e) {
-                log.info("looks like we got NotInitializedException.");
             } catch (Exception e) {
                 System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
                 e.printStackTrace(System.out);
@@ -129,8 +124,6 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
                     todoTable.delete(ImmutableList.of(TodoTable.TodoRow.of(7)));
                     return null;
                 });
-            } catch (NotInitializedException e) {
-                log.info("looks like we got NotInitializedException.");
             } catch (Exception e) {
                 System.out.println("OHH NO! looks like the tm throws something." + e.getMessage());
                 e.printStackTrace(System.out);
