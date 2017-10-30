@@ -583,7 +583,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         Set<InetSocketAddress> triedHosts = Sets.newHashSet();
         while (true) {
             if (log.isTraceEnabled()) {
-                log.trace("Running function on host {}.", SafeArg.of("host", CassandraLogHelper.hostLog(specifiedHost)));
+                log.trace("Running function on host {}.",
+                        SafeArg.of("host", CassandraLogHelper.hostLog(specifiedHost)));
             }
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
@@ -732,7 +733,9 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 }
                 tokenRangesToHost.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
             } catch (Exception e) {
-                log.warn("Failed to get ring info from host: {}", SafeArg.of("host", CassandraLogHelper.hostLog(host)), e);
+                log.warn("Failed to get ring info from host: {}",
+                        SafeArg.of("host", CassandraLogHelper.hostLog(host)),
+                        e);
             } finally {
                 if (client != null) {
                     client.getOutputProtocol().getTransport().close();

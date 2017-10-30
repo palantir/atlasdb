@@ -30,6 +30,10 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 
 final class CassandraLogHelper {
+    private CassandraLogHelper() {
+        // Utility class.
+    }
+
     static String hostLog(InetSocketAddress host) {
         return host.getHostString();
     }
