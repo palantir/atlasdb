@@ -112,7 +112,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
             thriftSocket.getSocket().setKeepAlive(true);
             thriftSocket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis());
         } catch (SocketException e) {
-            log.error("Couldn't set socket keep alive for {}", SafeArg.of("address", addr.getHostString()));
+            log.error("Couldn't set socket keep alive for host {}", SafeArg.of("address", addr.getHostString()));
         }
 
         if (config.usingSsl()) {
@@ -177,7 +177,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public void destroyObject(PooledObject<Client> client) {
         client.getObject().getOutputProtocol().getTransport().close();
-        log.debug("Closed transport for client {}", SafeArg.of("cassandraClient", addr.getHostString()));
+        log.debug("Closed transport for client {} of host {}",
+                UnsafeArg.of("client", client),
+                SafeArg.of("cassandraClient", addr.getHostString()));
     }
 
     static class ClientCreationFailedException extends RuntimeException {
