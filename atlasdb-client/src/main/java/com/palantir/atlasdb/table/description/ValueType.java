@@ -434,10 +434,6 @@ public enum ValueType {
             return "32";
         }
 
-        @Override
-        public boolean isJavaObjectType() {
-            return true;
-        }
     },
     /**
      * This value type DOES NOT support range scans.
@@ -872,10 +868,6 @@ public enum ValueType {
             return "16";
         }
 
-        @Override
-        public boolean isJavaObjectType() {
-            return true;
-        }
     }
     ;
 
@@ -900,25 +892,15 @@ public enum ValueType {
     }
 
     public abstract Class getJavaClass();
-    public boolean isJavaObjectType() {
-        return false;
-    }
     public Class getJavaObjectClass() {
         return getJavaClass();
     }
 
     public String getJavaClassName() {
-        if (isJavaObjectType()) {
-            return getJavaObjectClassName();
-        }
         return getJavaClass().getSimpleName();
     }
     public String getJavaObjectClassName() {
-        Class<?> objectClass = getJavaObjectClass();
-        if (isJavaObjectType()) {
-            return objectClass.getName();
-        }
-        return objectClass.getSimpleName();
+        return getJavaObjectClass().getSimpleName();
     }
 
     public abstract String getPersistCode(String variableName);

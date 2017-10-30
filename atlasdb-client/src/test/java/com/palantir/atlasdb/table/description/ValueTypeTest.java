@@ -18,26 +18,13 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.UUID;
-
 import org.junit.Test;
 
-import com.palantir.util.crypto.Sha256Hash;
-
 public class ValueTypeTest {
-
-    private static final String UUID_CLASS_NAME = UUID.class.getName();
-    private static final String SHA256HASH_CLASS_NAME = Sha256Hash.class.getName();
     private static final String BYTE_ARRAY = "byte[]";
 
     @Test
-    public void javaObjectTypesReturnFullyQualifiedClassNames() {
-        assertThat(ValueType.UUID.getJavaClassName()).isEqualTo(UUID_CLASS_NAME);
-        assertThat(ValueType.SHA256HASH.getJavaClassName()).isEqualTo(SHA256HASH_CLASS_NAME);
-    }
-
-    @Test
-    public void nonJavaObjectTypesReturnSimpleClassNames() {
+    public void getJavaClassNameReturnsSimpleClassNames() {
         assertThat(ValueType.FIXED_LONG.getJavaClassName()).isEqualTo("long");
     }
 
@@ -47,13 +34,7 @@ public class ValueTypeTest {
     }
 
     @Test
-    public void javaObjectTypesReturnFullyQualifiedObjectClassNames() {
-        assertThat(ValueType.UUID.getJavaObjectClassName()).isEqualTo(UUID_CLASS_NAME);
-        assertThat(ValueType.SHA256HASH.getJavaObjectClassName()).isEqualTo(SHA256HASH_CLASS_NAME);
-    }
-
-    @Test
-    public void nonJavaObjectTypesReturnSimpleObjectClassNames() {
+    public void getJavaObjectClassNameReturnsSimpleObjectClassName() {
         assertThat(ValueType.FIXED_LONG.getJavaObjectClassName()).isEqualTo("Long");
     }
 
