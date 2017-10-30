@@ -621,7 +621,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     }
                 } else if (isFastFailoverException(e)) {
                     log.info("Retrying with fast failover a query intended for host {}.",
-                            SafeArg.of("hostName", CassandraLogHelper.hostLog(hostPool.getHost()));
+                            SafeArg.of("hostName", CassandraLogHelper.hostLog(hostPool.getHost())));
                     shouldRetryOnDifferentHost = true;
                 }
             }
