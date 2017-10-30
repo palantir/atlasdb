@@ -43,7 +43,12 @@ develop
 
     *    - Type
          - Change
-         
+
+    *    - |fixed|
+         - UUIDs can now be used in schemas again.
+           Previously, schemas generated with UUIDs would reference the ``java.util.UUID`` class without importing it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2589>`__)
+
     *    - |improved|
          - Metrics are now recorded for put/get operations around commit timestamps.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2561>`__)

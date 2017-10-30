@@ -868,6 +868,18 @@ public enum ValueType {
             return "16";
         }
 
+        @Override
+        public String getJavaClassName() {
+            // Needed because UUID otherwise needs to be imported, but we can't just import it everywhere as it isn't
+            // used in schemas without UUIDs.
+            return getJavaClass().getName();
+        }
+
+        @Override
+        public String getJavaObjectClassName() {
+            // UUID isn't a primitive so this will do
+            return getJavaClassName();
+        }
     }
     ;
 
