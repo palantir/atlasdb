@@ -57,6 +57,10 @@ develop
          - ``BackgroupSweeperImpl`` now records additional metrics on how each run of sweep went.  Metrics report the number of occurences of each outcome in the 1 minute prior to the metrics being gathered, we may change this duration in the future.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2531>`__)
 
+    *    - |devbreak|
+         - Deleted the TTL duration field from the ``Cell`` class.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
