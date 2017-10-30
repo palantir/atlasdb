@@ -55,7 +55,7 @@ develop
            Previously, schemas generated with UUIDs would reference the ``java.util.UUID`` class without importing it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2589>`__)
 
-    *    - |improved|
+    *    - |improved| |metrics|
          - Metrics are now recorded for put/get operations around commit timestamps.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2561>`__)
 
@@ -64,11 +64,11 @@ develop
            Please note that for Cassandra users this may result in increased Atlas thread counts when receiving spikes in requests. The underlying throtting is the same, however, so Cassandra load shouldn't be impacted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__)
 
-    *    - |improved|
+    *    - |improved| |metrics|
          - ``BackgroupSweeperImpl`` now records additional metrics on how each run of sweep went.  Metrics report the number of occurences of each outcome in the 1 minute prior to the metrics being gathered, we may change this duration in the future.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2531>`__)
 
-    *   - |changed|
+    *   - |fixed| |logs|
         - Log host names in Cassandra* classes.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2592>`__)
 
