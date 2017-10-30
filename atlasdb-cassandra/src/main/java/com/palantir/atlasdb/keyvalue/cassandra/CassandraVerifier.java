@@ -184,7 +184,7 @@ public final class CassandraVerifier {
                         + " It returned exception \"{}\" during the attempt."
                         + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
                         + " See the debug-level log for the stack trace.",
-                        SafeArg.of("host", host.getHostString()),
+                        SafeArg.of("host", CassandraLogHelper.hostLog(host)),
                         UnsafeArg.of("exceptionMessage", exception.toString()));
                 log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
             }

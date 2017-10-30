@@ -102,7 +102,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             return runWithGoodResource(fn);
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}",
-                    SafeArg.of("host", host.getHostString()), UnsafeArg.of("exception", t.toString()));
+                    SafeArg.of("host", CassandraLogHelper.hostLog(host)), UnsafeArg.of("exception", t.toString()));
             throw t;
         } finally {
             openRequests.getAndDecrement();
@@ -129,7 +129,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 log.warn("Not reusing resource {} due to {} of host {}",
                         UnsafeArg.of("resource", resource),
                         UnsafeArg.of("exception", e.toString()),
-                        SafeArg.of("host", host.getHostString()), e);
+                        SafeArg.of("host", CassandraLogHelper.hostLog(host)), e);
                 shouldReuse = false;
             }
             if (e instanceof TTransportException
@@ -143,7 +143,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 if (shouldReuse) {
                     log.debug("Returning {} to pool of host {}",
                             UnsafeArg.of("resource", resource),
-                            SafeArg.of("host", host.getHostString()));
+                            SafeArg.of("host", CassandraLogHelper.hostLog(host)));
                     eagerlyCleanupReadBuffersFromIdleConnection(resource, host);
                     clientPool.returnObject(resource);
                 } else {
@@ -166,7 +166,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                     log.debug("During {} check-in, cleaned up a read buffer of {} bytes of host {}",
                             UnsafeArg.of("pool", idleClient),
                             SafeArg.of("bufferLength", underlyingBuffer.length),
-                            SafeArg.of("host", host.getHostString()));
+                            SafeArg.of("host", CassandraLogHelper.hostLog(host)));
                     memoryInputTransport.clear();
                 }
             }
@@ -185,7 +185,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         try {
             log.debug("Discarding {} of host {}",
                     UnsafeArg.of("pool", resource),
-                    SafeArg.of("host", host.getHostString()));
+                    SafeArg.of("host", CassandraLogHelper.hostLog(host)));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             // Ignore
@@ -260,7 +260,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         poolConfig.setNumTestsPerEvictionRun(-(int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 
-        poolConfig.setJmxNamePrefix(host.getHostString());
+        poolConfig.setJmxNamePrefix(CassandraLogHelper.hostLog(host));
         GenericObjectPool<Client> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         registerMetrics(pool, poolNumber);
         return pool;

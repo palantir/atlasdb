@@ -30,23 +30,27 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 
 final class CassandraLogHelper {
+    static String hostLog(InetSocketAddress host) {
+        return host.getHostString();
+    }
+
     static List<String> blacklistedHostsLog(Map<InetSocketAddress, Long> blacklistedHosts) {
         return blacklistedHosts.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
-                        blacklistedHostToBlacklistTime.getKey().getHostString(),
+                        hostLog(blacklistedHostToBlacklistTime.getKey()),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
                 .collect(Collectors.toList());
     }
 
     static Collection<String> collectionOfHostsLog(Collection<InetSocketAddress> hosts) {
-        return hosts.stream().map(InetSocketAddress::getHostString).collect(Collectors.toSet());
+        return hosts.stream().map(CassandraLogHelper::hostLog).collect(Collectors.toSet());
     }
 
     static List<String> tokenRangesToHostLog(Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost) {
         return tokenRangesToHost.entries().stream()
                 .map(entry -> String.format("host %s has range %s",
                         entry.getKey().toString(),
-                        entry.getValue().getHostString()))
+                        hostLog(entry.getValue())))
                 .collect(Collectors.toList());
     }
 
