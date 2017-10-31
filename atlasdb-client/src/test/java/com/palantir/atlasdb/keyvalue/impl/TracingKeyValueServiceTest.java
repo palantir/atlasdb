@@ -130,7 +130,7 @@ public class TracingKeyValueServiceTest {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(TABLE_REF, CELL, ROW_NAME, ROW_NAME);
         kvs.checkAndSet(request);
 
-        checkSpan("atlasdb-kvs.checkAndSet(test.testTable, Cell{rowName=726f77, columnName=636f6c, no TTL})");
+        checkSpan("atlasdb-kvs.checkAndSet(test.testTable, Cell{rowName=726f77, columnName=636f6c})");
         verify(delegate).checkAndSet(request);
         verifyNoMoreInteractions(delegate);
     }
