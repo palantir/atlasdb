@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,7 +96,9 @@ public class GetCandidateRowsForSweeping {
                         request.timestampsToIgnore(),
                         cellsWithEmptyValues.contains(cell.cell())))
                 .collect(Collectors.groupingBy(
-                        cell -> ByteBuffer.wrap(cell.cell().getRowName())));
+                        cell -> ByteBuffer.wrap(cell.cell().getRowName()),
+                        LinkedHashMap::new,
+                        Collectors.toList()));
 
         List<CandidateRowForSweeping> candidates = Lists.newArrayList();
         cellsByRow.forEach((row, cells) -> {
