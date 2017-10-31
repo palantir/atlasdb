@@ -120,6 +120,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
+        // TODO(nziebart): tag with the client name, when tritium supports it
+        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
     }
 }

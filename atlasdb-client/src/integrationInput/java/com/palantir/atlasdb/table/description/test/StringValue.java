@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.paging;
+package com.palantir.atlasdb.table.description.test;
 
-import org.apache.cassandra.thrift.Column;
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
-public interface CassandraRawCellValue {
+@JsonSerialize(as=ImmutableStringValue.class)
+@JsonDeserialize(as=ImmutableStringValue.class)
+public interface StringValue {
 
-    byte[] getRowKey();
+    String value();
 
-    Column getColumn();
+    static StringValue of(String value) {
+        return ImmutableStringValue.builder().value(value).build();
+    }
 
 }

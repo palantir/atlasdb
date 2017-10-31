@@ -32,6 +32,7 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -49,6 +50,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.table.description.generated.ApiTestTableFactory;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestV2Table;
+import com.palantir.atlasdb.table.description.test.StringValue;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
 
@@ -76,13 +78,13 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, StringValue> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
         return table.getSmallRowRangeColumn2(startRowKey, endRowKey);
     }
 
     @Override
-    protected Map<String, String> getRangeSecondColumnOnlyFirstTwoResults(
+    protected Map<String, StringValue> getRangeSecondColumnOnlyFirstTwoResults(
             Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
 
@@ -125,6 +127,6 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
 
         table.updateColumn1(TEST_ROW_KEY, entry -> entry + 1);
 
-        verify(table, never()).putColumn1(any(), any());
+        verify(table, never()).putColumn1(any(), anyLong());
     }
 }

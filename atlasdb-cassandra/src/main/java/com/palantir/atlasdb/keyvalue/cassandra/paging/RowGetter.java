@@ -25,7 +25,6 @@ import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -34,13 +33,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
 
-public class RowRangeLoader {
+public class RowGetter {
     private CassandraClientPool clientPool;
     private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
     private TableReference tableRef;
 
-    public RowRangeLoader(
+    public RowGetter(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel consistency,
@@ -51,14 +50,14 @@ public class RowRangeLoader {
         this.tableRef = tableRef;
     }
 
-    public List<KeySlice> getRows(KeyRange keyRange, SlicePredicate slicePredicate) {
+    public List<KeySlice> getRows(KeyRange keyRange, SlicePredicate slicePredicate) throws Exception {
         ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
-                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, RuntimeException>() {
+                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
                     @Override
-                    public List<KeySlice> apply(Cassandra.Client client) throws RuntimeException {
+                    public List<KeySlice> apply(Cassandra.Client client) throws Exception {
                         try {
                             return queryRunner.run(client, tableRef,
                                     () -> client.get_range_slices(colFam, slicePredicate, keyRange, consistency));
@@ -67,10 +66,8 @@ public class RowRangeLoader {
                                 throw new InsufficientConsistencyException("This operation requires all Cassandra"
                                         + " nodes to be up and available.", e);
                             } else {
-                                throw new RuntimeException(e);
+                                throw e;
                             }
-                        } catch (TException e) {
-                            throw new RuntimeException(e);
                         }
                     }
 

@@ -30,8 +30,11 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -53,6 +56,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedExecutorService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -107,29 +111,29 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadS
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPager;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CellPagerBatchSizingStrategy;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.RowRangeLoader;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.SingleRowColumnPager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.sweep.CassandraGetCandidateCellsForSweepingImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -196,9 +200,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     protected final CassandraKeyValueServiceConfigManager configManager;
 
     private final Optional<CassandraJmxCompactionManager> compactionManager;
-
-    @VisibleForTesting
-    final CassandraClientPool clientPool;
+    private final CassandraClientPool clientPool;
 
     private SchemaMutationLock schemaMutationLock;
     private final Optional<LeaderConfig> leaderConfig;
@@ -213,8 +215,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final TracingQueryRunner queryRunner;
     private final CassandraTables cassandraTables;
-
-    private final CassandraGetCandidateCellsForSweepingImpl getCandidateCellsForSweepingImpl;
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
@@ -258,8 +258,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig,
                                        boolean initializeAsync) {
-        super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
-                configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
+        super(createExecutor(configManager.getConfig()));
         this.log = log;
         this.configManager = configManager;
         this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
@@ -272,11 +271,35 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
+    }
 
-        SingleRowColumnPager singleRowPager = new SingleRowColumnPager(clientPool, queryRunner);
-        CellPager cellPager = new CellPager(
-                singleRowPager, clientPool, queryRunner, new CellPagerBatchSizingStrategy());
-        this.getCandidateCellsForSweepingImpl = new CassandraGetCandidateCellsForSweepingImpl(cellPager);
+    /**
+     * Creates a thread pool that maintains between (poolSize * numServers) and (maxConnectionBurstSize * numServers)
+     * threads. When the max pool size is hit, new requests will not be queued but rather will be run in the caller's
+     * thread. Throttling will be taken care of by the underlying client pools.
+     */
+    private static ExecutorService createExecutor(CassandraKeyValueServiceConfig config) {
+        int numServers = config.servers().size();
+        ThreadPoolExecutor executor = PTExecutors.newThreadPoolExecutor(
+                config.poolSize() * numServers,
+                config.maxConnectionBurstSize() * numServers,
+                1,
+                TimeUnit.MINUTES,
+                // When executor grows past its core pool size, we want to reject enqueue operations
+                // so that it will grow to its max pool size before calling its rejection handler.
+                new ArrayBlockingQueue<Runnable>(1) {
+                    @Override
+                    public boolean offer(Runnable runnable) {
+                        return false;
+                    }
+                    @Override
+                    public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
+                        return false;
+                    }
+                },
+                new NamedThreadFactory("Atlas Cassandra KVS", false),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        return new InstrumentedExecutorService(executor, AtlasDbMetrics.getMetricRegistry(), "atlasdb-cassandra-kvs");
     }
 
     @Override
@@ -489,7 +512,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ImmutableMap.copyOf(result);
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -561,7 +584,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return builder.build();
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -627,7 +650,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             if (columnCells.size() > fetchBatchCount) {
                 log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
                                 + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
-                        SafeArg.of("host", host),
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rows", columnCells.size()),
                         SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
@@ -652,7 +675,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             LoggingArgs.tableRef(tableRef),
                                             SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                                             SafeArg.of("startTs", startTs),
-                                            SafeArg.of("host", host));
+                                            SafeArg.of("host", CassandraLogHelper.host(host)));
                                 }
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
@@ -778,7 +801,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ret;
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -816,7 +839,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         }
                     });
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -957,7 +980,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -977,7 +1000,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             putInternal(tableRef, values.entries());
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -1245,7 +1268,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
+                throw Throwables.unwrapAndThrowUncheckedException(e);
             }
         }
     }
@@ -1376,7 +1399,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (UnavailableException e) {
             throw new PalantirRuntimeException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -1452,8 +1475,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return ClosableIterators.wrap(
-                getCandidateCellsForSweepingImpl.getCandidateCellsForSweeping(tableRef, request, deleteConsistency));
+        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
     }
 
     private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
@@ -1463,18 +1485,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long timestamp,
             ConsistencyLevel consistency) {
         SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
-
-        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
 
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
-        return getRangeWithPageCreator(
-                rowRangeLoader,
-                predicate,
-                columnGetter,
-                rangeRequest,
-                TimestampExtractor::new,
+        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, TimestampExtractor::new,
                 timestamp);
     }
 
@@ -1493,15 +1509,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             // each column. note that if no columns are specified, it's a special case that means all columns
             predicate = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
         }
-        RowRangeLoader rowRangeLoader = new RowRangeLoader(clientPool, queryRunner, consistency, tableRef);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
-        return getRangeWithPageCreator(rowRangeLoader, predicate, columnGetter, rangeRequest, resultsExtractor,
-                startTs);
+        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
-            RowRangeLoader rowRangeLoader,
+            RowGetter rowGetter,
             SlicePredicate slicePredicate,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
@@ -1515,7 +1530,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
-                rowRangeLoader,
+                rowGetter,
                 slicePredicate,
                 columnGetter,
                 rangeRequest,
@@ -1719,7 +1734,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
             }
         } catch (Exception e) {
-            Throwables.throwUncheckedException(e);
+            Throwables.unwrapAndThrowUncheckedException(e);
         }
 
         return filteredTables;
@@ -1740,7 +1755,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
                             && !thriftException.getMessage().contains("already existing table")) {
-                        Throwables.throwUncheckedException(thriftException);
+                        Throwables.unwrapAndThrowUncheckedException(thriftException);
                     }
                 }
             }
@@ -1982,7 +1997,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            Throwables.throwUncheckedException(e);
+            Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2046,7 +2061,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
             putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2103,7 +2118,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2136,8 +2151,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
                 return null;
             });
-        } catch (TException e) {
-            throw Throwables.throwUncheckedException(e);
+        } catch (CheckAndSetException e) {
+            throw e;
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         }
     }
 
@@ -2421,7 +2438,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 //Callable<Void> returns null, so can't use immutable list
                 return Collections.singletonList(tasks.get(0).call());
             } catch (Exception e) {
-                throw Throwables.throwUncheckedException(e);
+                throw Throwables.unwrapAndThrowUncheckedException(e);
             }
         }
 
@@ -2436,7 +2453,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return results;
         } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            throw Throwables.unwrapAndThrowUncheckedException(e);
         } finally {
             for (Future<V> future : futures) {
                 future.cancel(true);
@@ -2445,10 +2462,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static class TableCellAndValue {
-        public static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
+        private static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
                 input -> input.cell.getRowName();
 
-        public static final Function<TableCellAndValue, Long> SIZING_FUNCTION =
+        private static final Function<TableCellAndValue, Long> SIZING_FUNCTION =
                 input -> input.value.length + Cells.getApproxSizeOfCell(input.cell);
 
         private final TableReference tableRef;

@@ -116,24 +116,25 @@
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.2.1"
+            "locked": "3.5.1"
         },
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting3:tracing"
             ]
         },
         "commons-io:commons-io": {
@@ -144,7 +145,7 @@
             "requested": "2.6"
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -294,24 +295,25 @@
             ]
         },
         "com.palantir.remoting-api:tracing": {
-            "locked": "1.1.0",
+            "locked": "1.4.0",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
-            "locked": "3.2.1",
+            "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.remoting3:tracing": {
-            "locked": "3.2.1"
+            "locked": "3.5.1"
         },
         "com.palantir.safe-logging:safe-logging": {
             "locked": "0.1.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.remoting3:tracing"
             ]
         },
         "commons-io:commons-io": {
@@ -322,7 +324,7 @@
             "requested": "2.6"
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.2",
+            "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
