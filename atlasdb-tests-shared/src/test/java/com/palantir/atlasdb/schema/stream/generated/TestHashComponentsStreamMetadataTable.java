@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -56,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -647,11 +645,8 @@ public final class TestHashComponentsStreamMetadataTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -722,8 +717,9 @@ public final class TestHashComponentsStreamMetadataTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DuL2a5B8YmGHzs9oDp7q/w==";
+    static String __CLASS_HASH = "DXJHSYLkTQ5VVV8ipxZ9JA==";
 }

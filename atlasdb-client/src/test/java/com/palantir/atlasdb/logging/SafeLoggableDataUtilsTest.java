@@ -137,7 +137,6 @@ public class SafeLoggableDataUtilsTest {
                 0,
                 false,
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                TableMetadataPersistence.ExpirationStrategy.NEVER,
                 false,
                 LogSafety.SAFE);
     }

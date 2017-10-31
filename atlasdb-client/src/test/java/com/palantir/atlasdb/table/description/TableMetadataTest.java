@@ -44,7 +44,6 @@ public class TableMetadataTest {
             0,
             false,
             TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-            TableMetadataPersistence.ExpirationStrategy.NEVER,
             false);
 
     private static final TableMetadata NAME_LOGGABLE_TABLE_METADATA = createWithSpecifiedLogSafety(LogSafety.SAFE);
@@ -116,7 +115,6 @@ public class TableMetadataTest {
                 0,
                 false,
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                TableMetadataPersistence.ExpirationStrategy.NEVER,
                 false,
                 logSafety);
     }
