@@ -552,7 +552,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private  Map<Cell, Value> get(TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
+    private Map<Cell, Value> get(TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
         StartTsResultsCollector collector = new StartTsResultsCollector(maxTimestampExclusive);
         loadWithTs(tableRef, cells, maxTimestampExclusive, false, collector, readConsistency);
         return collector.getCollectedResults();

@@ -38,7 +38,8 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
 
     public CandidateRowsForSweepingIterator(
             ValuesLoader valuesLoader,
-            CqlExecutor cqlExecutor, TableReference table,
+            CqlExecutor cqlExecutor,
+            TableReference table,
             CandidateCellForSweepingRequest request) {
         this.valuesLoader = valuesLoader;
         this.cqlExecutor = cqlExecutor;

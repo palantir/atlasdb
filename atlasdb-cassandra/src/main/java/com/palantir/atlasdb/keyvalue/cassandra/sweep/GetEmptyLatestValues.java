@@ -60,8 +60,7 @@ public class GetEmptyLatestValues {
         return result;
     }
 
-    private Set<Cell> getSingleBatch(
-            List<CellWithTimestamps> batch) {
+    private Set<Cell> getSingleBatch(List<CellWithTimestamps> batch) {
         Set<Cell> cells = batch.stream()
                 .map(CellWithTimestamps::cell)
                 .collect(Collectors.toSet());
