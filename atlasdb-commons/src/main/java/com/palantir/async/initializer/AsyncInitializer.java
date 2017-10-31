@@ -38,6 +38,10 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
+    /**
+     * Note that this executor cannot be shutdown after the object has been initialized, as there might have been
+     * a {@code cancelInitialization} call to the initializing object, and we need to be able to process its handler.
+     */
     private final ScheduledExecutorService singleThreadedExecutor = getExecutorService();
 
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
@@ -71,7 +75,6 @@ public abstract class AsyncInitializer {
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
                     SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime));
-            singleThreadedExecutor.shutdown();
         } catch (Throwable throwable) {
             log.info("Failed to initialize {} on the attempt {}",
                     SafeArg.of("className", getInitializingClassName()),
