@@ -35,7 +35,7 @@ public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     default void close() { }
 
     default <U> ClosableIterator<U> map(Function<T, U> mapper) {
-        return ClosableIterators.wrap(Iterators.transform(this, (com.google.common.base.Function)mapper));
+        return ClosableIterators.wrap(Iterators.transform(this, mapper::apply));
     }
 
     default <U> ClosableIterator<U> flatMap(Function<T, Collection<U>> mapper) {
