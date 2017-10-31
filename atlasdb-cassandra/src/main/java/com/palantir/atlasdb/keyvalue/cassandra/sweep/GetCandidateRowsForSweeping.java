@@ -59,7 +59,7 @@ public class GetCandidateRowsForSweeping {
 
         this.timestampsBatchSize = request.batchSizeHint().orElse(DEFAULT_TIMESTAMPS_BATCH_SIZE);
         // TODO(nziebart): this should probably be configurable
-        this.valuesBatchSize = Math.min(CONSERVATIVE_MAX_VALUES_BATCH_SIZE, timestampsBatchSize / 32);
+        this.valuesBatchSize = Math.max(1, Math.min(CONSERVATIVE_MAX_VALUES_BATCH_SIZE, timestampsBatchSize / 32));
     }
 
     /**
