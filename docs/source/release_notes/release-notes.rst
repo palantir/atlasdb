@@ -140,8 +140,10 @@ Improvements
            The existing ``create`` methods are deprecated and will be removed by November 15th, 2017.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2459>`__)
 
-    *    - |devbreak|
-         - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``. All of the ``TransactionManagers.create(..)`` methods are still deprecated.
+    *    - |devbreak| |improved|
+         - ``TransactionManagers.builder()`` no longer has a ``callingClass(..)`` method and now requires the consumer to directly specify their user agent via the previously optional method ``userAgent(..)``.
+           All of the ``TransactionManagers.create(..)`` methods are still deprecated, and can be used to specify an empty user-agent.
+           We use the user-agent on logs and metrics, so specifying it helps us to diagnose issues in the future.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
 
     *    - |improved|
@@ -149,7 +151,7 @@ Improvements
            This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
 
-    *    - |improved| |devbreak|
+    *    - |devbreak| |improved|
          - Size of the transaction cache is now configurable. It is not anticipated end users will need to touch this;
            it is more likely that this will be configured via per-service overrides for the services for whom the
            current cache size is inadequate.
@@ -165,7 +167,7 @@ Improvements
            Check the full configuration docs `here <https://palantir.github.io/atlasdb/html/configuration/key_value_service_configs/index.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2484>`__)
 
-    *    - |devbreak|
+    *    - |devbreak| |improved|
          - Simplify and annotate the constructors for ``SerializableTransactionManager``. This should make the code of that class more maintainable.
            If you used one of the deleted or deprecated constructors, use the static ``create`` method.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2549>`__)
@@ -179,48 +181,48 @@ Logs and Metrics
     *    - Type
          - Change
 
-    *    - |metrics|
+    *    - |improved| |metrics|
          - ``SweepMetrics`` are now updated at the end of every batch rather than cumulative metrics at the end of every table.
            This will provide more accurate metrics for when sweep is doing something.
-           Sweeping run through the sweep endpoint will now also contribute to these metrics — before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
+           Sweeping through the sweep endpoint will now also contribute to these metrics — before it didn't update any metrics which again distorted the view of what work sweep was doing on the DB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2535>`__)
 
-    *    - |metrics|
+    *    - |new| |metrics|
          - AtlasDB clients now emit metrics that track the immutable timestamp, unreadable timestamp, and current timestamp.
            These metrics should help in performing diagnosis of issues concerning Sweep and/or the lock service.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
-    *    - |metrics|
+    *    - |fixed| |metrics|
          - Timelock server no longer appends client names to metrics. Instead, each metric is aggregated across all clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2501>`__)
 
-    *    - |metrics|
+    *    - |new| |metrics|
          - We now report metrics for Transaction conflicts.
            The metrics are a meter reported under the name ``SerializableTransaction.SerializableTransactionConflict``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2540>`__)
 
-    *    - |logs|
+    *    - |improved| |logs|
          - Specified which logs from Cassandra* classes were Safe or Unsafe for collection, improving the data that we can collect for debugging purposes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2537>`__)
 
-    *    - |logs| |userbreak|
+    *    - |improved| |userbreak| |logs|
          - The ``ProfilingKeyValueService`` now reports its multipart log lines as a single line.
            This should improve log readability in log ingestion tools when AtlasDB is run in multithreaded environments.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
-    *    - |logs| |fixed|
+    *    - |fixed| |logs|
          - TimeLock Server's ``ClockSkewMonitor`` now attempts to contact all other nodes in the TimeLock cluster, even in the presence of remoting exceptions or clock skews.
            Previously, we would stop querying nodes once we encountered a remoting exception or detected clock skew.
            Also, the log line ``ClockSkewMonitor threw an exception`` which was previously logged every second when a TimeLock node was down or otherwise uncontactable is now restricted to once every 10 minutes.
            Note that the ``clock.monitor-exception`` metric is still incremented on every call, even if we do not log.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2456>`__)
 
-    *    - |logs|
+    *    - |fixed| |logs|
          - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``deleteRange``.
            Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
-    *    - |metrics| |fixed|
+    *    - |fixed| |metrics|
          - ``MetricsManager`` now supports de-registration of metrics for a given prefix.
            Previously, this would crash with a ``ConcurrentModificationException`` if metrics were actually being removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
@@ -244,14 +246,14 @@ Bug fixes
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2503>`__)
 
     *    - |fixed|
-         - ``SerializableErrorDecoder`` will decode error properly instead of throwing ``NullPointerException``.
+         - ``SerializableErrorDecoder`` will decode errors properly instead of throwing ``NullPointerException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2446>`__)
 
     *    - |fixed|
          - Async Initialization now works with TimeLock Server.
            Previously, for Cassandra we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
            For DBKVS or other key-value services, we would attempt to ping TimeLock on startup, which would fail if TimeLock was unavailable (though the KVS need not be available).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2520>`__)
 
     *    - |fixed|
          - Fixed an issue where a ``waitForLocks`` request could retry unnecessarily.
@@ -269,7 +271,7 @@ Bug fixes
     *    - |fixed|
          - ``AsyncInitializer`` now shuts down its executor after initialization has completed.
            Previously, the executor service wasn't shut down, which could lead to the initializer thread hanging around unnecessarily.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2518>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2520>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -315,7 +317,7 @@ v0.61.0
            It also now returns information about how much data was swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2409>`__)
 
-    *    - |logs|
+    *    - |fixed| |logs|
          - Sweep candidate batches are now logged correctly.
            Previously, we would log a ``SafeArg`` for these batches that had no content.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2475>`__)
