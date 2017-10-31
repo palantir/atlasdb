@@ -1124,12 +1124,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
-        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
+        putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
+        putInternal(tableRef, values);
+    }
+
+    public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
         Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
         if (values.isEmpty()) {
