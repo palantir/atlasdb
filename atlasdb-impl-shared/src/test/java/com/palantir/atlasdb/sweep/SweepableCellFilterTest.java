@@ -130,7 +130,7 @@ public class SweepableCellFilterTest {
         List<CandidateCellForSweeping> ret = ImmutableList.of(
                 ImmutableCandidateCellForSweeping.builder()
                     .cell(SINGLE_CELL)
-                    .sortedTimestamps(ImmutableList.of(LOW_START_TS))
+                    .sortedTimestamps(ImmutableList.of(LOW_START_TS, HIGH_START_TS))
                     .isLatestValueEmpty(false)
                     .build());
         when(mockTransactionService.get(anyCollection()))
