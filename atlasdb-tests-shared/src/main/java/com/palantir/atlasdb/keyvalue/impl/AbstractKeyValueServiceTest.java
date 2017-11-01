@@ -1097,6 +1097,47 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testGetRangeOfTimestampsOmitsTimestampsLessThanMax() {
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(
+                        Cell.create(row0, column0), value0_t0),
+                TEST_TIMESTAMP);
+
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(
+                        Cell.create(row0, column0), value0_t1),
+                TEST_TIMESTAMP + 10);
+
+        RangeRequest range = RangeRequest.all().withBatchHint(2);
+        List<RowResult<Set<Long>>> results = ImmutableList.copyOf(
+                keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
+        assertEquals(1, results.size());
+        assertArrayEquals(row0, results.get(0).getRowName());
+        assertEquals(TEST_TIMESTAMP, (long) results.get(0).getOnlyColumnValue().iterator().next());
+    }
+
+    @Test
+    public void testGetRangeOfTimestampsFetchesProperRange() {
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(
+                        Cell.create(row0, column0), value0_t0,
+                        Cell.create(row1, column0), value0_t0,
+                        Cell.create(row2, column0), value0_t0),
+                TEST_TIMESTAMP);
+
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(
+                        Cell.create(row0, column0), value0_t1),
+                TEST_TIMESTAMP + 10);
+
+        RangeRequest range = RangeRequest.builder().startRowInclusive(row1).endRowExclusive(row2).build();
+        List<RowResult<Set<Long>>> results = ImmutableList.copyOf(
+                keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
+        assertEquals(1, results.size());
+        assertArrayEquals(row1, results.get(0).getRowName());
+    }
+
+    @Test
     public void testKeyAlreadyExists() {
         // Test that it does not throw some random exceptions
         putTestDataForSingleTimestamp();
