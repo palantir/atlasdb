@@ -29,12 +29,14 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
@@ -208,7 +210,18 @@ public class CqlExecutor {
         private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
             try {
                 return clientPool.runWithRetryOnHost(host, createCqlFunction(query));
+            } catch (UnavailableException e) {
+                throw wrapIfConsistencyAll(e);
             } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
+
+        private RuntimeException wrapIfConsistencyAll(UnavailableException e) {
+            if (consistency.equals(ConsistencyLevel.ALL)) {
+                throw new InsufficientConsistencyException("This operation requires all Cassandra"
+                        + " nodes to be up and available.", e);
+            } else {
                 throw Throwables.throwUncheckedException(e);
             }
         }
