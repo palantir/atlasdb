@@ -30,6 +30,8 @@ public class AtlasDbConstants {
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
+    public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.createWithEmptyNamespace(
+            "_sweep_progress_0_39_fixed");
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
@@ -67,7 +69,8 @@ public class AtlasDbConstants {
             SCRUB_TABLE,
             NAMESPACE_TABLE,
             PARTITION_MAP_TABLE,
-            PERSISTED_LOCKS_TABLE);
+            PERSISTED_LOCKS_TABLE,
+            SWEEP_PROGRESS_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
