@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
@@ -28,13 +29,16 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.FunctionCheckedException;
@@ -47,7 +51,7 @@ public class CqlExecutor {
     private QueryExecutor queryExecutor;
 
     public interface QueryExecutor {
-        CqlResult execute(byte[] row, String query);
+        CqlResult execute(byte[] rowHintForHostSelection, String query);
     }
 
     CqlExecutor(CassandraClientPool clientPool, ConsistencyLevel consistency) {
@@ -60,66 +64,61 @@ public class CqlExecutor {
     }
 
     /**
-     * @param tableRef the table from which to select
-     * @param row the row key
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> cells that match the row name
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
+     * {@code startRowInclusive}, potentially spanning across multiple rows.
      */
-    List<CellWithTimestamp> getColumnsForRow(TableReference tableRef, byte[] row, int limit) {
+    public List<CellWithTimestamp> getTimestamps(
+            TableReference tableRef,
+            byte[] startRowInclusive,
+            int limit) {
         CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
+                "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;",
                 quotedTableName(tableRef),
-                key(row),
+                key(startRowInclusive),
                 limit(limit));
-        return query.executeAndGetCells(row);
+        return query.executeAndGetCells(startRowInclusive, this::getCellFromRow);
     }
 
     /**
-     * @param tableRef the table from which to select
-     * @param row the row key
-     * @param column the column name
-     * @param maxTimestampExclusive the maximum timestamp, exclusive
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> cells that exactly match the row and column name, and have a timestamp less than
-     * <code>maxTimestampExclusive</code>
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the (column, timestamp)
+     * pair represented by ({@code startColumnInclusive}, {@code startTimestampExclusive}).
      */
-    List<CellWithTimestamp> getTimestampsForRowAndColumn(
+    public List<CellWithTimestamp> getTimestampsWithinRow(
             TableReference tableRef,
             byte[] row,
-            byte[] column,
-            long maxTimestampExclusive,
+            byte[] startColumnInclusive,
+            long startTimestampExclusive,
             int limit) {
-        long invertedTimestamp = ~maxTimestampExclusive;
+        long invertedTimestamp = ~startTimestampExclusive;
         CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
+                "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;",
                 quotedTableName(tableRef),
                 key(row),
-                column1(column),
+                column1(startColumnInclusive),
                 column2(invertedTimestamp),
                 limit(limit));
-        return query.executeAndGetCells(row);
+        return query.executeAndGetCells(row, result -> getCellFromKeylessRow(result, row));
     }
 
-    /**
-     * @param tableRef the table from which to select
-     * @param row the row key
-     * @param previousColumn the lexicographic lower bound (exclusive) for the column name
-     * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> results where the column name is lexicographically later than the supplied
-     * <code>previousColumn</code>. Note that this can return results from multiple columns
-     */
-    List<CellWithTimestamp> getNextColumnsForRow(
-            TableReference tableRef,
-            byte[] row,
-            byte[] previousColumn,
-            int limit) {
-        CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
-                quotedTableName(tableRef),
-                key(row),
-                column1(previousColumn),
-                limit(limit));
-        return query.executeAndGetCells(row);
+    private CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
+        byte[] rowName = key;
+        byte[] columnName = row.getColumns().get(0).getValue();
+        long timestamp = extractTimestamp(row, 1);
+
+        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
+    }
+
+    private CellWithTimestamp getCellFromRow(CqlRow row) {
+        byte[] rowName = row.getColumns().get(0).getValue();
+        byte[] columnName = row.getColumns().get(1).getValue();
+        long timestamp = extractTimestamp(row, 2);
+
+        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
+    }
+
+    private long extractTimestamp(CqlRow row, int columnIndex) {
+        byte[] flippedTimestampAsBytes = row.getColumns().get(columnIndex).getValue();
+        return ~PtBytes.toLong(flippedTimestampAsBytes);
     }
 
     private Arg<String> key(byte[] row) {
@@ -143,16 +142,11 @@ public class CqlExecutor {
         return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
     }
 
-    private List<CellWithTimestamp> getCells(byte[] key, CqlResult cqlResult) {
-        return cqlResult.getRows().stream().map(cqlRow -> getCell(key, cqlRow)).collect(Collectors.toList());
-    }
-
-    private CellWithTimestamp getCell(byte[] key, CqlRow cqlRow) {
-        byte[] columnName = cqlRow.getColumns().get(0).getValue();
-        byte[] flippedTimestampAsBytes = cqlRow.getColumns().get(1).getValue();
-        long timestampLong = ~PtBytes.toLong(flippedTimestampAsBytes);
-
-        return new CellWithTimestamp.Builder().cell(Cell.create(key, columnName)).timestamp(timestampLong).build();
+    private List<CellWithTimestamp> getCells(Function<CqlRow, CellWithTimestamp> cellTsExtractor, CqlResult cqlResult) {
+        return cqlResult.getRows()
+                .stream()
+                .map(cellTsExtractor)
+                .collect(Collectors.toList());
     }
 
     private final class CqlQuery {
@@ -164,12 +158,14 @@ public class CqlExecutor {
             this.queryArgs = args;
         }
 
-        public List<CellWithTimestamp> executeAndGetCells(byte[] row) {
+        public List<CellWithTimestamp> executeAndGetCells(
+                byte[] rowHintForHostSelection,
+                Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
             CqlResult cqlResult = KvsProfilingLogger.maybeLog(
-                    () -> queryExecutor.execute(row, toString()),
+                    () -> queryExecutor.execute(rowHintForHostSelection, toString()),
                     this::logSlowResult,
                     this::logResultSize);
-            return getCells(row, cqlResult);
+            return getCells(cellTsExtractor, cqlResult);
         }
 
         private void logSlowResult(KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
@@ -203,8 +199,8 @@ public class CqlExecutor {
         }
 
         @Override
-        public CqlResult execute(byte[] row, String query) {
-            return executeQueryOnHost(query, getHostForRow(row));
+        public CqlResult execute(byte[] rowHintForHostSelection, String query) {
+            return executeQueryOnHost(query, getHostForRow(rowHintForHostSelection));
         }
 
         private InetSocketAddress getHostForRow(byte[] row) {
@@ -214,8 +210,19 @@ public class CqlExecutor {
         private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
             try {
                 return clientPool.runWithRetryOnHost(host, createCqlFunction(query));
+            } catch (UnavailableException e) {
+                throw wrapIfConsistencyAll(e);
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
+            }
+        }
+
+        private RuntimeException wrapIfConsistencyAll(UnavailableException ex) {
+            if (consistency.equals(ConsistencyLevel.ALL)) {
+                throw new InsufficientConsistencyException("This operation requires all Cassandra"
+                        + " nodes to be up and available.", ex);
+            } else {
+                throw Throwables.throwUncheckedException(ex);
             }
         }
 

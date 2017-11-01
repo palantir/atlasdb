@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 
 @Value.Immutable
 public abstract class CellWithTimestamp {
@@ -28,7 +29,12 @@ public abstract class CellWithTimestamp {
 
     public abstract long timestamp();
 
-    public static class Builder extends ImmutableCellWithTimestamp.Builder { }
+    public static CellWithTimestamp of(Cell cell, long timestamp) {
+        return ImmutableCellWithTimestamp.builder()
+                .cell(cell)
+                .timestamp(timestamp)
+                .build();
+    }
 
     public ColumnOrSuperColumn asColumnOrSuperColumn() {
         Column col = new Column().setName(
