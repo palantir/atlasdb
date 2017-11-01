@@ -437,12 +437,15 @@ public interface KeyValueService extends AutoCloseable {
      * @param timestamp the maximum timestamp to load.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
+     *
+     * @deprecated use {@link #getCandidateCellsForSweeping}
      */
     @POST
     @Path("get-range-of-timestamps")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
+    @Deprecated
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             @QueryParam("tableRef") TableReference tableRef,
             RangeRequest rangeRequest,

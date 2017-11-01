@@ -1,0 +1,114 @@
+/*
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
+
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
+
+public class GetCandidateRowsForSweeping {
+
+    private static final int DEFAULT_TIMESTAMPS_BATCH_SIZE = 10_000;
+    private static final int CONSERVATIVE_MAX_VALUES_BATCH_SIZE = 100;
+
+    private final ValuesLoader valuesLoader;
+    private final CqlExecutor cqlExecutor;
+    private final TableReference table;
+    private final CandidateCellForSweepingRequest request;
+    private final int timestampsBatchSize;
+    private final int valuesBatchSize;
+
+    private List<CellWithTimestamps> cellTimestamps;
+    private Set<Cell> cellsWithEmptyValues;
+
+    public GetCandidateRowsForSweeping(
+            ValuesLoader valuesLoader,
+            CqlExecutor cqlExecutor,
+            TableReference table,
+            CandidateCellForSweepingRequest request) {
+        this.table = table;
+        this.cqlExecutor = cqlExecutor;
+        this.request = request;
+        this.valuesLoader = valuesLoader;
+
+        this.timestampsBatchSize = request.batchSizeHint().orElse(DEFAULT_TIMESTAMPS_BATCH_SIZE);
+        // TODO(nziebart): this should probably be configurable
+        this.valuesBatchSize = Math.max(1, Math.min(CONSERVATIVE_MAX_VALUES_BATCH_SIZE, timestampsBatchSize / 32));
+    }
+
+    /**
+     * Fetches a batch of candidate rows. The returned {@link CandidateRowForSweeping}s are ordered by row.
+     */
+    public List<CandidateRowForSweeping> execute() {
+        fetchCellTimestamps();
+
+        findCellsWithEmptyValuesIfNeeded();
+
+        return convertToOrderedSweepCandidateRows();
+    }
+
+    private void fetchCellTimestamps() {
+        cellTimestamps = new GetCellTimestamps(cqlExecutor, table, request.startRowInclusive(), timestampsBatchSize)
+                .execute();
+    }
+
+    public void findCellsWithEmptyValuesIfNeeded() {
+        if (!request.shouldCheckIfLatestValueIsEmpty()) {
+            cellsWithEmptyValues = Collections.emptySet();
+            return;
+        }
+
+        cellsWithEmptyValues = new GetEmptyLatestValues(cellTimestamps, valuesLoader, table,
+                request.maxTimestampExclusive(),
+                valuesBatchSize).execute();
+    }
+
+    private List<CandidateRowForSweeping> convertToOrderedSweepCandidateRows() {
+        Map<ByteBuffer, List<CandidateCellForSweeping>> cellsByRow = cellTimestamps.stream()
+                .map(cell -> cell.toSweepCandidate(
+                        request.maxTimestampExclusive(),
+                        request.timestampsToIgnore(),
+                        cellsWithEmptyValues.contains(cell.cell())))
+                .collect(Collectors.groupingBy(
+                        cell -> ByteBuffer.wrap(cell.cell().getRowName()),
+                        LinkedHashMap::new,
+                        Collectors.toList()));
+
+        List<CandidateRowForSweeping> candidates = Lists.newArrayList();
+        cellsByRow.forEach((row, cells) -> {
+            candidates.add(CandidateRowForSweeping.of(
+                    row.array(),
+                    cells.stream()
+                            .sorted(Comparator.comparing(CandidateCellForSweeping::cell))
+                            .collect(Collectors.toList())));
+        });
+        return candidates;
+    }
+
+}
