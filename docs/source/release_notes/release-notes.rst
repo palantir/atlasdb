@@ -41,7 +41,23 @@ Changelog
 develop
 =======
 
-.. replace this with the release date
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.64.0
+=======
+
+1 November 2017
 
 .. list-table::
     :widths: 5 40
@@ -57,27 +73,31 @@ develop
 
     *    - |improved|
          - The executor used by the Cassandra KVS is now allowed to grow larger so that we can better delegate blocking to the underlying Cassandra client pools.
-           Please note that for Cassandra users this may result in increased Atlas thread counts when receiving spikes in requests. The underlying throtting is the same, however, so Cassandra load shouldn't be impacted.
+           Please note that for Cassandra users this may result in increased Atlas thread counts when receiving spikes in requests.
+           The underlying throttling is the same, however, so Cassandra load shouldn't be impacted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__)
 
     *    - |improved| |metrics|
-         - ``BackgroupSweeperImpl`` now records additional metrics on how each run of sweep went.  Metrics report the number of occurences of each outcome in the 1 minute prior to the metrics being gathered, we may change this duration in the future.
+         - ``BackgroundSweeperImpl`` now records additional metrics on how each run of sweep went.
+           Metrics report the number of occurrences of each outcome in the 1 minute prior to the metrics being gathered.
+           We may change this duration in the future.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2531>`__)
 
-    *   - |fixed| |logs|
-        - Log host names in Cassandra* classes.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2592>`__)
+    *    - |improved| |logs|
+         - Log host names in Cassandra* classes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2592>`__)
 
-    *   - |fixed|
-        - The executors used when async initializing objects are never shutdown anymore.
-          You should be affected by this bug only if you had `AtlasDbConfig.initializeAsync = true`. If so, we recommend upgrading to a version of AtlasDB with this fix.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2547>`__)
+    *    - |fixed|
+         - The executors used when async initializing objects are never shutdown anymore.
+           You should be affected by this bug only if you had ``AtlasDbConfig.initializeAsync = true``.
+           Previously, we would shut down the executors after a successful initialization, which could lead to a race condition with the submission of a ``cancelInitialization`` task.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2547>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.63.0
-======
+=======
+v0.63.0
+=======
 
 27 October 2017
 
@@ -99,9 +119,9 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.62.1
-======
+=======
+v0.62.1
+=======
 
 27 October 2017
 
@@ -118,9 +138,9 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.62.0
-======
+=======
+v0.62.0
+=======
 
 26 October 2017
 
