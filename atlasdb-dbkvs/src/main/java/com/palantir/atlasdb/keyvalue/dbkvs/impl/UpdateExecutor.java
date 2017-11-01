@@ -83,14 +83,14 @@ public class UpdateExecutor {
                 + " WHERE row_name = ?"
                 + " AND col_name = ?"
                 + " AND ts = ?";
-        AgnosticLightResultSet results = connection.selectLightResultSetUnregisteredQuery(
+        try (AgnosticLightResultSet results = connection.selectLightResultSetUnregisteredQuery(
                 sqlString,
                 cell.getRowName(),
                 cell.getColumnName(),
-                ts);
-        List<byte[]> actualValues = Lists.newArrayList();
-        results.iterator().forEachRemaining(row -> actualValues.add(row.getBytes(DbKvs.VAL)));
-        results.close();
-        return actualValues;
+                ts)) {
+            List<byte[]> actualValues = Lists.newArrayList();
+            results.forEach(row -> actualValues.add(row.getBlob(DbKvs.VAL)));
+            return actualValues;
+        }
     }
 }
