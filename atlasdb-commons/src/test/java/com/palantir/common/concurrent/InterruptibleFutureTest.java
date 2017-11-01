@@ -16,10 +16,9 @@
 
 package com.palantir.common.concurrent;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
+import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
@@ -34,11 +33,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.internal.matchers.ThrowableCauseMatcher;
 import org.junit.rules.ExpectedException;
 
-/**
- * Tests for {@link InterruptibleFuture}.
- */
 public class InterruptibleFutureTest {
 
     @Rule
@@ -97,7 +94,7 @@ public class InterruptibleFutureTest {
         interruptible.cancel(true);
         expectedException.expect(Matchers.<Throwable>either(instanceOf(CancellationException.class))
                 .or(Matchers.<Throwable>both(instanceOf(ExecutionException.class))
-                        .and(hasCause(instanceOf(InterruptedException.class)))));
+                        .and(ThrowableCauseMatcher.hasCause(instanceOf(InterruptedException.class)))));
         interruptible.get();
     }
 
@@ -146,7 +143,9 @@ public class InterruptibleFutureTest {
         RunnableFuture<Integer> interruptible = new InterruptibleFuture<Integer>() {
             @Override
             public Integer call() throws InterruptedException {
-                if (Thread.interrupted()) throw new InterruptedException();
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
                 return 1;
             }
         };
