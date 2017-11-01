@@ -196,6 +196,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-64-0">
+<h2>v0.64.0<a class="headerlink" href="#v0-64-0" title="Permalink to this headline">¶</a></h2>
+<p>1 November 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>UUIDs can now be used in schemas again.
 Previously, schemas generated with UUIDs would reference the <code class="docutils literal"><span class="pre">java.util.UUID</span></code> class without importing it.
@@ -203,27 +223,31 @@ Previously, schemas generated with UUIDs would reference the <code class="docuti
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The executor used by the Cassandra KVS is now allowed to grow larger so that we can better delegate blocking to the underlying Cassandra client pools.
-Please note that for Cassandra users this may result in increased Atlas thread counts when receiving spikes in requests. The underlying throtting is the same, however, so Cassandra load shouldn’t be impacted.
+Please note that for Cassandra users this may result in increased Atlas thread counts when receiving spikes in requests.
+The underlying throttling is the same, however, so Cassandra load shouldn’t be impacted.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2534">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
-<td><code class="docutils literal"><span class="pre">BackgroupSweeperImpl</span></code> now records additional metrics on how each run of sweep went.  Metrics report the number of occurences of each outcome in the 1 minute prior to the metrics being gathered, we may change this duration in the future.
+<td><code class="docutils literal"><span class="pre">BackgroundSweeperImpl</span></code> now records additional metrics on how each run of sweep went.
+Metrics report the number of occurrences of each outcome in the 1 minute prior to the metrics being gathered.
+We may change this duration in the future.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2531">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Log host names in Cassandra* classes.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2592">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The executors used when async initializing objects are never shutdown anymore.
-You should be affected by this bug only if you had <cite>AtlasDbConfig.initializeAsync = true</cite>. If so, we recommend upgrading to a version of AtlasDB with this fix.
+You should be affected by this bug only if you had <code class="docutils literal"><span class="pre">AtlasDbConfig.initializeAsync</span> <span class="pre">=</span> <span class="pre">true</span></code>.
+Previously, we would shut down the executors after a successful initialization, which could lead to a race condition with the submission of a <code class="docutils literal"><span class="pre">cancelInitialization</span></code> task.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2547">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="id1">
-<h2>0.63.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="v0-63-0">
+<h2>v0.63.0<a class="headerlink" href="#v0-63-0" title="Permalink to this headline">¶</a></h2>
 <p>27 October 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -248,8 +272,8 @@ Previously, <code class="docutils literal"><span class="pre">TransactionManager<
 </tbody>
 </table>
 </div>
-<div class="section" id="id2">
-<h2>0.62.1<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="v0-62-1">
+<h2>v0.62.1<a class="headerlink" href="#v0-62-1" title="Permalink to this headline">¶</a></h2>
 <p>27 October 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -269,8 +293,8 @@ Previously, <code class="docutils literal"><span class="pre">TransactionManager<
 </tbody>
 </table>
 </div>
-<div class="section" id="id3">
-<h2>0.62.0<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="v0-62-0">
+<h2>v0.62.0<a class="headerlink" href="#v0-62-0" title="Permalink to this headline">¶</a></h2>
 <p>26 October 2017</p>
 <p>Improvements</p>
 <table border="1" class="colwidths-given docutils">
