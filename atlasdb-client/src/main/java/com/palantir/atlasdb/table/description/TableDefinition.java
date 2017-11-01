@@ -18,6 +18,7 @@ package com.palantir.atlasdb.table.description;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -82,7 +83,10 @@ public class TableDefinition extends AbstractDefinition {
      * If specified, this indicates that the names of all row components and named columns should be marked as safe by
      * default. Individual row components or named columns may still be marked as unsafe by explicitly creating them
      * as unsafe (by constructing them with UNSAFE values of LogSafety).
-     * Note that specifying this by itself does NOT make the table name safe for logging.
+     *
+     * Note that specifying this by itself DOES NOT make the table name safe for logging.
+     *
+     * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void namedComponentsSafeByDefault() {
         Preconditions.checkState(state == State.NONE, "Specifying components are safe by default should be done outside"
@@ -96,6 +100,8 @@ public class TableDefinition extends AbstractDefinition {
      *
      * If you wish to have a table with an unsafe name but safe components, please use namedComponentsSafeByDefault()
      * instead.
+     *
+     * Note that this DOES NOT make the values of either the rows or the columns safe for logging.
      */
     public void allSafeForLoggingByDefault() {
         tableNameLogSafety(LogSafety.SAFE);
@@ -339,6 +345,12 @@ public class TableDefinition extends AbstractDefinition {
         return this.v2TableEnabled;
     }
 
+    /**
+     * Enables generates of a separate set of "v2" tables, with simplified APIs for reading and writing data.
+     *
+     * This is a beta feature. API stability is not guaranteed, and the risk of defects is higher.
+     */
+    @Beta
     public void enableV2Table() {
         this.v2TableEnabled = true;
     }

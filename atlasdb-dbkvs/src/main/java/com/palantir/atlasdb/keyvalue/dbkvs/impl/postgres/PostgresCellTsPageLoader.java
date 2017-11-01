@@ -141,7 +141,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .append("    FROM (")
                         .append("      SELECT row_name, col_name, ts")
                         .append("      FROM ").append(prefixedTableName)
-                        .append("      WHERE ts < ? ", request.sweepTimestamp());
+                        .append("      WHERE ts < ? ", request.maxTimestampExclusive());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
                         .startCellTsInclusive(token.startRowInclusive(),
@@ -165,7 +165,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING_CONSERVATIVE(").append(tableName).append(" */")
                         .append("  SELECT row_name, col_name, ts")
                         .append("  FROM ").append(prefixedTableName)
-                        .append("  WHERE ts < ? ", request.sweepTimestamp());
+                        .append("  WHERE ts < ? ", request.maxTimestampExclusive());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
                         .startCellTsInclusive(token.startRowInclusive(),

@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -1338,6 +1339,7 @@ public class TableRenderer {
         Objects.class,
         ComparisonChain.class,
         Sha256Hash.class,
+        UUID.class,
         EnumSet.class,
         Descending.class,
         AbortingVisitor.class,

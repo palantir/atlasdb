@@ -1803,7 +1803,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
                 gets.size(), tableRef);
-        Map<Long, Long> rawResults = defaultTransactionService.get(gets);
+        Map<Long, Long> rawResults = loadCommitTimestamps(gets);
+
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
             if (e.getValue() != null) {
                 long startTs = e.getKey();
@@ -1813,6 +1814,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
         return result;
+    }
+
+    private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+        // distinguish between a single timestamp and a batch, for more granular metrics
+        if (startTimestamps.size() == 1) {
+            long singleTs = startTimestamps.iterator().next();
+            Long commitTsOrNull = defaultTransactionService.get(singleTs);
+            return commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull);
+        } else {
+            return defaultTransactionService.get(startTimestamps);
+        }
     }
 
     /**

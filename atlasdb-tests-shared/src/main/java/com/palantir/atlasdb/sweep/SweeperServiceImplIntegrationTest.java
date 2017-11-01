@@ -30,7 +30,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
     @Before
     public void setup() {
         super.setup();
-        sweeperService = new SweeperServiceImpl(specificTableSweeper);
+        sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
     }
 
     @Override
