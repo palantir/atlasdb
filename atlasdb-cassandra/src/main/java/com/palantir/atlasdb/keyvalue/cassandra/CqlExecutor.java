@@ -217,12 +217,12 @@ public class CqlExecutor {
             }
         }
 
-        private RuntimeException wrapIfConsistencyAll(UnavailableException e) {
+        private RuntimeException wrapIfConsistencyAll(UnavailableException ex) {
             if (consistency.equals(ConsistencyLevel.ALL)) {
                 throw new InsufficientConsistencyException("This operation requires all Cassandra"
-                        + " nodes to be up and available.", e);
+                        + " nodes to be up and available.", ex);
             } else {
-                throw Throwables.throwUncheckedException(e);
+                throw Throwables.throwUncheckedException(ex);
             }
         }
 
