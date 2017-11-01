@@ -48,8 +48,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Fixed cursor leak when sweeping on oracle/postgres.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2609>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
