@@ -48,8 +48,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - ``AtlasDbHttpClients`` and ``AtlasDbFeignTargetFactory`` now support live reloading of remote URLs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2570>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -65,7 +66,7 @@ v0.64.0
 
     *    - Type
          - Change
-
+           
     *    - |fixed|
          - UUIDs can now be used in schemas again.
            Previously, schemas generated with UUIDs would reference the ``java.util.UUID`` class without importing it.

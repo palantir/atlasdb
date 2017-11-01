@@ -20,6 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import feign.Client;
@@ -46,7 +46,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
-    private final ImmutableList<String> servers;
+    private final Supplier<ImmutableList<String>> serversListSupplier;
     private final Class<T> type;
     private final AtomicInteger failoverCount = new AtomicInteger();
     @VisibleForTesting
@@ -66,13 +66,18 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
-        Preconditions.checkArgument(maxBackoffMillis > 0);
-        this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
+        this(() -> servers, maxBackoffMillis, type);
+    }
+
+    public FailoverFeignTarget(Supplier<Collection<String>> serversListSupplier, int maxBackoffMillis, Class<T> type) {
+        Preconditions.checkArgument(maxBackoffMillis > 0,
+                "maxBackoffMillis should be positive, but found %s", maxBackoffMillis);
+        this.serversListSupplier = () -> ImmutableList.copyOf(serversListSupplier.get());
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;
     }
 
-    public void sucessfulCall() {
+    public void successfulCall() {
         numSwitches.set(0);
         failuresSinceLastSwitch.set(0);
         startTimeOfFastFailover.set(0);
@@ -98,7 +103,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         checkAndHandleFailure(ex);
         if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
             int numFailovers = failoverCount.get();
-            if (numFailovers > 0 && numFailovers % servers.size() == 0) {
+            if (numFailovers > 0 && numFailovers % serversListSupplier.get().size() == 0) {
 
                 // We implement some randomness around the expected value of BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS.
                 // Even though this is not exponential backoff, should be enough to avoid a thundering herd problem.
@@ -146,7 +151,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
                     TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis), ex);
         } else if (failedDueToNumSwitches) {
             log.error("This connection has tried {} hosts rolling across {} servers, each {} times and has failed out.",
-                    numServersToTryBeforeFailing, servers.size(), failuresBeforeSwitching, ex);
+                    numServersToTryBeforeFailing, serversListSupplier.get().size(), failuresBeforeSwitching, ex);
         }
 
         if (failedDueToFastFailover || failedDueToNumSwitches) {
@@ -196,14 +201,18 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public String name() {
-        return "server list: " + servers;
+        return "server list: " + serversListSupplier.get();
     }
 
     @Override
     public String url() {
         int indexToHit = failoverCount.get();
         mostRecentServerIndex.set(indexToHit);
-        return servers.get(indexToHit % servers.size());
+        // Need to materialise a value first, otherwise a poorly timed change could result in an out-of-bounds access
+        // (e.g. list has size 5, indexToHit is 4, but in between parameter evaluation and getting the list it reduces
+        // in size).
+        ImmutableList<String> serversList = serversListSupplier.get();
+        return serversList.get(indexToHit % serversList.size());
     }
 
     @Override
@@ -218,7 +227,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         return (request, options) -> {
             Response response = client.execute(request, options);
             if (response.status() >= 200 && response.status() < 300) {
-                sucessfulCall();
+                successfulCall();
             }
             return response;
         };

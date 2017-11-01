@@ -68,6 +68,9 @@ public class FailoverFeignTargetTest {
     private FailoverFeignTarget<Object> normalTarget;
     private FailoverFeignTarget<Object> spiedTarget;
 
+    private FailoverFeignTarget<Object> liveReloadingTarget;
+    private List<String> collectionOfServersToReturnWhenLiveReloading;
+
     static {
         when(EXCEPTION_WITH_RETRY_AFTER.retryAfter()).thenReturn(Date.valueOf(LocalDate.MAX));
         when(EXCEPTION_WITHOUT_RETRY_AFTER.retryAfter()).thenReturn(null);
@@ -81,6 +84,12 @@ public class FailoverFeignTargetTest {
     public void setup() {
         normalTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
         spiedTarget = spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
+
+        liveReloadingTarget = new FailoverFeignTarget<>(
+                () -> collectionOfServersToReturnWhenLiveReloading,
+                1,
+                Object.class);
+        collectionOfServersToReturnWhenLiveReloading = ImmutableList.of();
     }
 
     @Test
@@ -111,8 +120,7 @@ public class FailoverFeignTargetTest {
     public void rethrowsExceptionWithoutRetryAfterWhenLimitExceeded() {
         assertThatThrownBy(() -> {
             for (int i = 0; i < FAILOVERS; i++) {
-                simulateRequest(normalTarget);
-                normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+                simulateFailure(normalTarget, EXCEPTION_WITHOUT_RETRY_AFTER);
             }
         }).isEqualTo(EXCEPTION_WITHOUT_RETRY_AFTER);
     }
@@ -147,8 +155,7 @@ public class FailoverFeignTargetTest {
     @Test
     public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
         for (int i = 1; i < normalTarget.failuresBeforeSwitching; i++) {
-            simulateRequest(normalTarget);
-            normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+            simulateFailure(normalTarget, EXCEPTION_WITHOUT_RETRY_AFTER);
         }
         String currentUrl = normalTarget.url();
         normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
@@ -160,8 +167,7 @@ public class FailoverFeignTargetTest {
         String currentUrl = normalTarget.url();
         for (int i = 0; i < ITERATIONS; i++) {
             for (int j = 1; j < normalTarget.failuresBeforeSwitching; j++) {
-                simulateRequest(normalTarget);
-                normalTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+                simulateFailure(normalTarget, EXCEPTION_WITHOUT_RETRY_AFTER);
             }
             normalTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
             assertThat(normalTarget.url()).isEqualTo(currentUrl);
@@ -171,8 +177,7 @@ public class FailoverFeignTargetTest {
     @Test
     public void exceptionsWithRetryAfterBacksOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < CLUSTER_SIZE; i++) {
-            simulateRequest(spiedTarget);
-            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+            simulateFailure(spiedTarget, EXCEPTION_WITH_RETRY_AFTER);
         }
 
         verify(spiedTarget, times(1)).pauseForBackoff(any(),
@@ -182,8 +187,7 @@ public class FailoverFeignTargetTest {
     @Test
     public void multipleExceptionsWithRetryAfterBackOffAfterQueryingAllNodesInTheCluster() {
         for (int i = 0; i < 3 * CLUSTER_SIZE; i++) {
-            simulateRequest(spiedTarget);
-            spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+            simulateFailure(spiedTarget, EXCEPTION_WITH_RETRY_AFTER);
         }
 
         verify(spiedTarget, times(3)).pauseForBackoff(any(),
@@ -193,8 +197,7 @@ public class FailoverFeignTargetTest {
     @Test
     public void blockingTimeoutExceptionsDoNotBackoff() {
         for (int i = 0; i < ITERATIONS; i++) {
-            simulateRequest(spiedTarget);
-            spiedTarget.continueOrPropagate(BLOCKING_TIMEOUT_EXCEPTION);
+            simulateFailure(spiedTarget, BLOCKING_TIMEOUT_EXCEPTION);
 
             int expectedNumOfCalls = i + 1;
             verify(spiedTarget, times(expectedNumOfCalls)).pauseForBackoff(any(), eq(0L));
@@ -206,8 +209,7 @@ public class FailoverFeignTargetTest {
         int numIterations = 10;
 
         for (int i = 0; i < numIterations; i++) {
-            simulateRequest(spiedTarget);
-            spiedTarget.continueOrPropagate(EXCEPTION_WITHOUT_RETRY_AFTER);
+            simulateFailure(spiedTarget, EXCEPTION_WITHOUT_RETRY_AFTER);
 
             int expectedNumOfCalls = i + 1;
             long cap = Math.round(Math.pow(GOLDEN_RATIO, expectedNumOfCalls));
@@ -216,9 +218,52 @@ public class FailoverFeignTargetTest {
         }
     }
 
+    @Test
+    public void canLiveReloadRemoteTargets() {
+        collectionOfServersToReturnWhenLiveReloading = ImmutableList.of(SERVER_1);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_1);
+
+        collectionOfServersToReturnWhenLiveReloading = ImmutableList.of(SERVER_2);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_2);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_2);
+    }
+
+    @Test
+    public void canLiveExpandCluster() {
+        collectionOfServersToReturnWhenLiveReloading = ImmutableList.of(SERVER_1);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+
+        collectionOfServersToReturnWhenLiveReloading = ImmutableList.of(SERVER_1, SERVER_2);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_1);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_2);
+    }
+
+    @Test
+    public void canLiveRemoveNodesFromCluster() {
+        collectionOfServersToReturnWhenLiveReloading = ImmutableList.of(SERVER_1, SERVER_2);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_1);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_2);
+
+        collectionOfServersToReturnWhenLiveReloading = ImmutableList.of(SERVER_1);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_1);
+        simulateFailure(liveReloadingTarget, EXCEPTION_WITH_RETRY_AFTER);
+        assertThat(liveReloadingTarget.url()).isEqualTo(SERVER_1);
+    }
+
     private void simulateRequest(FailoverFeignTarget target) {
         // This method is called as a part of a request being invoked.
         // We need to update the mostRecentServerIndex, for the FailoverFeignTarget to track failures properly.
         target.url();
+    }
+
+    private void simulateFailure(FailoverFeignTarget target, RetryableException ex) {
+        simulateRequest(target);
+        target.continueOrPropagate(ex);
     }
 }
