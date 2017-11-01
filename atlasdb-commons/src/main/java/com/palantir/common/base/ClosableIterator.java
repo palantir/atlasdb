@@ -48,7 +48,7 @@ public interface ClosableIterator<T> extends Iterator<T>, Closeable {
 
             @Override
             public boolean hasNext() {
-                return peekingIterator.hasNext() && !shouldStop.test(peekingIterator.next());
+                return peekingIterator.hasNext() && !shouldStop.test(peekingIterator.peek());
             }
 
             @Override
