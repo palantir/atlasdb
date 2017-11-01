@@ -214,6 +214,11 @@ Please note that for Cassandra users this may result in increased Atlas thread c
 <td>Log host names in Cassandra* classes.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2592">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The executors used when async initializing objects are never shutdown anymore.
+You should be affected by this bug only if you had <cite>AtlasDbConfig.initializeAsync = true</cite>. If so, we recommend upgrading to a version of AtlasDB with this fix.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2547">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

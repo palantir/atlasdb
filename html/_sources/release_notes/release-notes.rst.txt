@@ -68,6 +68,11 @@ develop
         - Log host names in Cassandra* classes.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/2592>`__)
 
+    *   - |fixed|
+        - The executors used when async initializing objects are never shutdown anymore.
+          You should be affected by this bug only if you had `AtlasDbConfig.initializeAsync = true`. If so, we recommend upgrading to a version of AtlasDB with this fix.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2547>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
