@@ -79,7 +79,8 @@ v0.64.0
 
     *    - |improved| |metrics|
          - ``BackgroupSweeperImpl`` now records additional metrics on how each run of sweep went.
-           Metrics report the number of occurrences of each outcome in the 1 minute prior to the metrics being gathered, we may change this duration in the future.
+           Metrics report the number of occurrences of each outcome in the 1 minute prior to the metrics being gathered.
+           We may change this duration in the future.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2531>`__)
 
     *    - |improved| |logs|
