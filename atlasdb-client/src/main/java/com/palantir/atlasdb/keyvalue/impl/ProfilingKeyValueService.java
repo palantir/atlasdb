@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.google.common.base.Stopwatch;
@@ -47,6 +48,8 @@ import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public final class ProfilingKeyValueService implements KeyValueService {
@@ -106,14 +109,26 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch));
     }
 
-    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRange(String method,
-            TableReference tableRef,
-            RangeRequest range) {
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRangeOfIterator(String method,
+            TableReference tableRef, RangeRequest range) {
         return (logger, stopwatch) ->
-                logger.log("Call to KVS.{} on table {} with range {} took {} ms.",
+                logger.log("Next calls to KVS.{} iterator on table {} with range {} took {} ms.",
                         LoggingArgs.method(method),
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.range(tableRef, range),
+                        LoggingArgs.durationMillis(stopwatch));
+    }
+
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndCandidateCellForSweepingRequestOfIterator(
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
+        return (logger, stopwatch) ->
+                logger.log("Next calls to KVS.getCandidateCellsForSweeping iterator on table {}"
+                                + " for row {} with batchSize {} for sweep timestamp {} took {} ms.",
+                        LoggingArgs.method("getCandidateCellsForSweeping"),
+                        LoggingArgs.tableRef(tableRef),
+                        UnsafeArg.of("startRow", request.startRowInclusive()),
+                        SafeArg.of("batchSize", request.batchSizeHint()),
+                        SafeArg.of("sweepTimestamp", request.sweepTimestamp()),
                         LoggingArgs.durationMillis(stopwatch));
     }
 
@@ -160,7 +175,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         maybeLog(() -> delegate.deleteRange(tableRef, range),
-                logTimeAndTableRange("deleteRange", tableRef, range));
+                logTimeAndTableRangeOfIterator("deleteRange", tableRef, range));
     }
 
     @Override
@@ -231,22 +246,22 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest,
             long timestamp) {
-        return maybeLog(() -> delegate.getRange(tableRef, rangeRequest, timestamp),
-                logTimeAndTableRange("getRange", tableRef, rangeRequest));
+        return wrapClosableIterator(() -> delegate.getRange(tableRef, rangeRequest, timestamp),
+                logTimeAndTableRangeOfIterator("getRange", tableRef, rangeRequest));
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
             RangeRequest rangeRequest, long timestamp) {
-        return maybeLog(() -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
-                logTimeAndTableRange("getRangeOfTimestamps", tableRef, rangeRequest));
+        return wrapClosableIterator(() -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+                logTimeAndTableRangeOfIterator("getRangeOfTimestamps", tableRef, rangeRequest));
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return maybeLog(() -> delegate.getCandidateCellsForSweeping(tableRef, request),
-                logTime("getCandidateCellsForSweeping"));
+        return wrapClosableIterator(() -> delegate.getCandidateCellsForSweeping(tableRef, request),
+                logTimeAndCandidateCellForSweepingRequestOfIterator(tableRef, request));
     }
 
     @Override
@@ -390,7 +405,39 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch)));
     }
 
-    private  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
+    private <T> ClosableIterator<T> wrapClosableIterator(
+            Supplier<ClosableIterator<T>> closableIteratorSupplier,
+            BiConsumer<LoggingFunction, Stopwatch> logger) {
+        ClosableIterator<T> closableIterator = closableIteratorSupplier.get();
+        return new ClosableIterator<T>() {
+            @Override
+            public void close() {
+                closableIterator.close();
+            }
+
+            @Override
+            public boolean hasNext() {
+                return closableIterator.hasNext();
+            }
+
+            @Override
+            public void remove() {
+                closableIterator.remove();
+            }
+
+            @Override
+            public void forEachRemaining(Consumer<? super T> action) {
+                closableIterator.forEachRemaining(action);
+            }
+
+            @Override
+            public T next() {
+                return maybeLog(closableIterator::next, logger);
+            }
+        };
+    }
+
+    private <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
         return KvsProfilingLogger.maybeLog(action, logger);
     }
 
