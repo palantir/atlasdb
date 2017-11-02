@@ -19,11 +19,16 @@ package com.palantir.atlasdb.http;
 import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.remoting.api.config.service.ProxyConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 import feign.Client;
 import feign.Contract;
@@ -116,6 +121,23 @@ public final class AtlasDbFeignTargetFactory {
                 maxBackoffMillis,
                 type,
                 userAgent);
+    }
+
+    public static <T> T createProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return RecreatingInvocationHandler.create(
+                serverListConfigSupplier,
+                serverListConfig -> createProxyWithFailover(
+                        serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
+                        serverListConfig.proxyConfiguration().map(proxySelectorCreator),
+                        serverListConfig.servers(),
+                        type,
+                        userAgent),
+                type);
     }
 
     private static <T> T createProxyWithFailover(
