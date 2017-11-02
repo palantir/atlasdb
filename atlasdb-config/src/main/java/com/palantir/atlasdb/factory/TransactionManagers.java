@@ -49,9 +49,9 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfigs;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -616,7 +616,7 @@ public abstract class TransactionManagers {
                 "Cannot create raw services from timelock without a timelock block!");
         TimeLockClientConfig clientConfig = config.timelock().get();
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
-        return () -> TimeLockClientConfigs.resolveRuntime(
+        return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,
                 () -> runtimeConfigSupplier.get().timelockRuntime(),
                 resolvedClient);
