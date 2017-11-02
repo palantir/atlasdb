@@ -53,7 +53,8 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
@@ -79,7 +80,8 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
@@ -291,10 +293,17 @@
                 "com.palantir.remoting3:error-handling"
             ]
         },
+        "com.palantir.remoting-api:service-config": {
+            "locked": "1.4.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
+            ]
+        },
         "com.palantir.remoting-api:ssl-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.remoting-api:service-config"
             ]
         },
         "com.palantir.remoting-api:tracing": {
@@ -352,6 +361,12 @@
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing"
+            ]
+        },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -424,7 +439,8 @@
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
@@ -508,6 +524,7 @@
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -582,7 +599,8 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
@@ -608,7 +626,8 @@
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
@@ -820,10 +839,17 @@
                 "com.palantir.remoting3:error-handling"
             ]
         },
+        "com.palantir.remoting-api:service-config": {
+            "locked": "1.4.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
+            ]
+        },
         "com.palantir.remoting-api:ssl-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.remoting-api:service-config"
             ]
         },
         "com.palantir.remoting-api:tracing": {
@@ -881,6 +907,12 @@
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing"
+            ]
+        },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "3.0.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -953,7 +985,8 @@
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api"
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
@@ -1037,6 +1070,7 @@
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
