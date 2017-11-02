@@ -136,6 +136,20 @@ public final class PtBytes {
         return BaseEncoding.base16().lowerCase().decode(hexString.toLowerCase());
     }
 
+    public static String hexToString(@Nullable String hexString) {
+        return toString(decodeHexString(hexString));
+    }
+
+    public static String stringToHex(@Nullable String string) {
+        return encodeHexString(toBytes(string));
+    }
+
+    public static void main(String[] args) {
+        //example
+        System.out.println(hexToString("73"));
+        System.out.println(stringToHex("s"));
+    }
+
     public static final Function<byte[], String> BYTES_TO_HEX_STRING = PtBytes::encodeHexString;
 
     public static void addIfNotEmpty(MoreObjects.ToStringHelper helper, String name, byte[] bytes) {
