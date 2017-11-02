@@ -193,7 +193,7 @@ public class TransactionManagersTest {
 
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
-        when(runtimeConfig.timeLockRuntimeConfig()).thenReturn(Optional.empty());
+        when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
 
         environment = mock(Consumer.class);
 

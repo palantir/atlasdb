@@ -623,7 +623,7 @@ public abstract class TransactionManagers {
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         return () -> TimeLockClientConfigs.resolveRuntime(
                 clientConfig,
-                () -> runtimeConfigSupplier.get().timeLockRuntimeConfig(),
+                () -> runtimeConfigSupplier.get().timelockRuntime(),
                 resolvedClient);
     }
 
