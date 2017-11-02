@@ -16,6 +16,11 @@
 
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 public final class TimeLockClientConfigs {
     private TimeLockClientConfigs() {
         // Utility
@@ -25,6 +30,26 @@ public final class TimeLockClientConfigs {
         return ImmutableTimeLockClientConfig.builder()
                 .from(config)
                 .client(namespace)
+                .build();
+    }
+
+    public static ServerListConfig resolveRuntime(TimeLockClientConfig installClientConfig,
+            Supplier<Optional<TimeLockRuntimeConfig>> runtimeConfig,
+            String namespace) {
+        return runtimeConfig.get()
+                .map(config -> namespaceUris(config.serversList(), namespace))
+                .orElse(namespaceUris(installClientConfig.serversList(), namespace));
+    }
+
+    private static ServerListConfig namespaceUris(ServerListConfig config, String namespace) {
+        Set<String> serversWithNamespaces = config
+                .servers()
+                .stream()
+                .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + namespace)
+                .collect(Collectors.toSet());
+        return ImmutableServerListConfig.builder()
+                .from(config)
+                .servers(serversWithNamespaces)
                 .build();
     }
 }
