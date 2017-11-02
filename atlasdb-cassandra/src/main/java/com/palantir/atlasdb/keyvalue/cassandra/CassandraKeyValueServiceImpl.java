@@ -1439,8 +1439,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef,
             RangeRequest rangeRequest,
-            long timestamp) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor::create);
+            long startTs) {
+        SlicePredicate predicate;
+        if (rangeRequest.getColumnNames().size() == 1) {
+            byte[] colName = rangeRequest.getColumnNames().iterator().next();
+            predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
+        } else {
+            // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
+            // each column. note that if no columns are specified, it's a special case that means all columns
+            predicate = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
+        }
+
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, readConsistency, tableRef);
+        ColumnGetter columnGetter = new ThriftColumnGetter();
+
+        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, ValueExtractor::create,
+                startTs, tableRef, "getRange");
     }
 
     /**
@@ -1463,13 +1477,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        Integer timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
-        return getTimestampsInBatchesWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestampsGetterBatchSize,
-                timestamp,
-                deleteConsistency);
+        int columnBatchSize = configManager.getConfig().timestampsGetterBatchSize();
+        ConsistencyLevel consistency = this.deleteConsistency;
+
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
+        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
+        ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
+        SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
+
+        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, TimestampExtractor::new,
+                timestamp, tableRef, "getRangeOfTimestamps");
     }
 
     @Override
@@ -1478,50 +1495,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
     }
 
-    private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            int columnBatchSize,
-            long timestamp,
-            ConsistencyLevel consistency) {
-        SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
-
-        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
-        ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
-
-        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, TimestampExtractor::new,
-                timestamp);
-    }
-
-    private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long startTs,
-            ConsistencyLevel consistency,
-            Supplier<ResultsExtractor<T>> resultsExtractor) {
-        SlicePredicate predicate;
-        if (rangeRequest.getColumnNames().size() == 1) {
-            byte[] colName = rangeRequest.getColumnNames().iterator().next();
-            predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
-        } else {
-            // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
-            // each column. note that if no columns are specified, it's a special case that means all columns
-            predicate = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
-        }
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
-        ColumnGetter columnGetter = new ThriftColumnGetter();
-
-        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);
-    }
-
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
             RowGetter rowGetter,
             SlicePredicate slicePredicate,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
-            long startTs) {
+            long startTs,
+            TableReference tableRef,
+            String methodName) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
@@ -1535,8 +1517,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 columnGetter,
                 rangeRequest,
                 resultsExtractor,
-                startTs
-        );
+                startTs,
+                tableRef,
+                methodName);
 
         return ClosableIterators.wrap(rowResults.iterator());
     }

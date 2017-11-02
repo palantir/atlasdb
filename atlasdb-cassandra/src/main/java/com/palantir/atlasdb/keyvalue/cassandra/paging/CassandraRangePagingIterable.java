@@ -29,7 +29,10 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.ResultsExtractor;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -39,12 +42,14 @@ public class CassandraRangePagingIterable<T>
     private final ColumnGetter columnGetter;
     private final RangeRequest rangeRequest;
     private final Supplier<ResultsExtractor<T>> resultsExtractor;
-    private final long timestamp;
+    private final long startTs;
 
     private final int batchHint;
     private final ColumnSelection selection;
     private final RowGetter rowGetter;
     private final SlicePredicate slicePredicate;
+    private final TableReference tableRef;
+    private final String methodName;
 
     public CassandraRangePagingIterable(
             RowGetter rowGetter,
@@ -52,13 +57,17 @@ public class CassandraRangePagingIterable<T>
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,
             Supplier<ResultsExtractor<T>> resultsExtractor,
-            long timestamp) {
+            long startTs,
+            TableReference tableRef,
+            String methodName) {
         this.rowGetter = rowGetter;
         this.slicePredicate = slicePredicate;
         this.columnGetter = columnGetter;
         this.rangeRequest = rangeRequest;
         this.resultsExtractor = resultsExtractor;
-        this.timestamp = timestamp;
+        this.startTs = startTs
+        this.tableRef = tableRef;
+        this.methodName = methodName;
 
         batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
         selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
@@ -101,7 +110,7 @@ public class CassandraRangePagingIterable<T>
     private TokenBackedBasicResultsPage<RowResult<T>, byte[]> getPage(
             Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey) {
         return resultsExtractor.get().getPageFromRangeResults(
-                colsByKey, timestamp, selection, rangeRequest.getEndExclusive());
+                colsByKey, startTs, selection, rangeRequest.getEndExclusive());
     }
 
     private boolean pageShouldBeLastPage(List<KeySlice> rows) {
