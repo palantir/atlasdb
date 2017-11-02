@@ -128,7 +128,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.tableRef(tableRef),
                         UnsafeArg.of("startRow", request.startRowInclusive()),
                         SafeArg.of("batchSize", request.batchSizeHint()),
-                        SafeArg.of("sweepTimestamp", request.sweepTimestamp()),
                         LoggingArgs.durationMillis(stopwatch));
     }
 

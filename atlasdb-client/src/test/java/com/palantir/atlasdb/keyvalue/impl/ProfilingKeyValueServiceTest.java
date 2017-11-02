@@ -69,9 +69,8 @@ public class ProfilingKeyValueServiceTest {
             ImmutableCandidateCellForSweepingRequest.builder()
                     .startRowInclusive((byte) 0b00)
                     .batchSizeHint(0)
-                    .sweepTimestamp(0L)
                     .shouldCheckIfLatestValueIsEmpty(false)
-                    .timestampsToIgnore(0L)
+                    .maxTimestampExclusive(0L)
                     .build();
     public static final ColumnRangeSelection COLUMN_RANGE_SELECTION = new ColumnRangeSelection(
             new byte[0], new byte[0]);
