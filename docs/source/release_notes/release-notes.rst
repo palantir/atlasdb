@@ -48,6 +48,9 @@ develop
     *    - Type
          - Change
 
+    *    - |logs|
+         - ``SweeperServiceImpl`` now logs when it starts sweeping make it clear if it is running full sweep or not
+
     *    -
          -
 
