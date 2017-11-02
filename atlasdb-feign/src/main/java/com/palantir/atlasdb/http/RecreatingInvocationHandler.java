@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.google.common.reflect.Reflection;
 
 public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler {
 
@@ -42,10 +43,19 @@ public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler
         activeDelegate = delegateCreator.apply(initialValue);
     }
 
-    public static <T, D> RecreatingInvocationHandler<T, D> create(
+    public static <T, D> D create(
             Supplier<T> supplier,
-            Function<T, D> delegateCreator) {
-        return new RecreatingInvocationHandler<>(wrapInDeltaSupplier(supplier), delegateCreator);
+            Function<T, D> delegateCreator,
+            Class<D> delegateType) {
+        return createWithRawDeltaSupplier(wrapInDeltaSupplier(supplier), delegateCreator, delegateType);
+    }
+
+    @VisibleForTesting
+    static <T, D> D createWithRawDeltaSupplier(
+            Supplier<Optional<T>> supplier,
+            Function<T, D> delegateCreator,
+            Class<D> delegateType) {
+        return Reflection.newProxy(delegateType, new RecreatingInvocationHandler<>(supplier, delegateCreator));
     }
 
     @Override
