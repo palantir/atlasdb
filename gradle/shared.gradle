@@ -128,6 +128,22 @@ task verifyDependencyLocksAreCurrent {
     }
 }
 
+task verifyGeneratedSchemasAreCurrent {
+    new ByteArrayOutputStream().withStream { os ->
+        def result = exec {
+            executable = commandLine "git", "diff-index", "HEAD", "--"
+            standardOutput = os
+        }
+    }
+    if (os.toString() != "") {
+        throw new Exception("After generating schemas, the repository is not clean. "
+                + "Either the repo was not clean to begin with, or the generated schemas have changed."
+                + "Run `./gradlew generateSchema` and commit the updated schema files")
+    }
+}
+
+verifyGeneratedSchemasAreCurrent.dependsOn generateSchemas
+
 check.dependsOn generateLock, verifyDependencyLocksAreCurrent
 
 ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'
