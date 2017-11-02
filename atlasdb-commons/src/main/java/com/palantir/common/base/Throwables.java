@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirInterruptedException;
 
 public final class Throwables {
 
@@ -85,8 +84,8 @@ public final class Throwables {
      * new PalantirRuntimeException(ex)
      */
     public static RuntimeException unwrapAndThrowDependencyUnavailableException(Throwable ex) {
-        if (isInstance(ex, ExecutionException.class) || isInstance(ex, InvocationTargetException.class)) {
-            createAtlasDbDependencyException(ex.getCause());
+        if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
+            throw createAtlasDbDependencyException(ex.getCause());
         }
         throw createAtlasDbDependencyException(ex);
     }
@@ -102,7 +101,7 @@ public final class Throwables {
             Thread.currentThread().interrupt();
         }
         throwIfInstance(ex, AtlasDbDependencyException.class);
-        return new AtlasDbDependencyException("The KVS or Timelock threw an exception.", ex);
+        return new AtlasDbDependencyException("AtlasDB dependency threw an exception.", ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {

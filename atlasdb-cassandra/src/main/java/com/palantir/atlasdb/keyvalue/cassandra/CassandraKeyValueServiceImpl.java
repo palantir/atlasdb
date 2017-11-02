@@ -1733,7 +1733,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
             }
         } catch (Exception e) {
-            Throwables.unwrapAndThrowDependencyUnavailableException(e);
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
         }
 
         return filteredTables;
