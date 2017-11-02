@@ -58,7 +58,6 @@
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
-            "requested": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -139,7 +138,6 @@
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
-            "requested": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]

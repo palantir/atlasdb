@@ -7,7 +7,7 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'org.slf4j', name: 'slf4j-api'
     compile project(":commons-executors")
-    compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'io.dropwizard.metrics', name: 'metrics-core'
     compile group: 'net.jpountz.lz4', name: 'lz4'
