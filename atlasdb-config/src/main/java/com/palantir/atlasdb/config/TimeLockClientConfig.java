@@ -50,6 +50,6 @@ public abstract class TimeLockClientConfig {
     public abstract ServerListConfig serversList();
 
     public ServerListConfig toNamespacedServerList() {
-        return TimeLockClientConfigs.namespaceUris(serversList(), getClientOrThrow());
+        return ServerListConfigs.namespaceUris(serversList(), getClientOrThrow());
     }
 }
