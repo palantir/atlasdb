@@ -569,7 +569,8 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -854,7 +855,8 @@
             "locked": "1.1.0.Final",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
@@ -1640,7 +1642,8 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -1925,7 +1928,8 @@
             "locked": "1.1.0.Final",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
