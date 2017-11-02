@@ -41,7 +41,7 @@ public final class TimeLockClientConfigs {
                 .orElse(namespaceUris(installClientConfig.serversList(), namespace));
     }
 
-    private static ServerListConfig namespaceUris(ServerListConfig config, String namespace) {
+    public static ServerListConfig namespaceUris(ServerListConfig config, String namespace) {
         Set<String> serversWithNamespaces = config
                 .servers()
                 .stream()
