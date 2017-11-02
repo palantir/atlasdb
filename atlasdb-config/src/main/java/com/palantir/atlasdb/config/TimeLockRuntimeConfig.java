@@ -18,6 +18,11 @@ package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
+@JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
 @Value.Immutable
 public abstract class TimeLockRuntimeConfig {
     public abstract ServerListConfig serversList();
