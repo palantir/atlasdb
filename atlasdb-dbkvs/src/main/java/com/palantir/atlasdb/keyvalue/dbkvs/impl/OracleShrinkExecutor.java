@@ -17,16 +17,15 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.sql.SQLException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleStandardEditionShrinkConfiguration;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
@@ -45,8 +44,6 @@ public class OracleShrinkExecutor {
     private final OracleTableNameGetter oracleTableNameGetter;
     private final OracleStandardEditionShrinkConfiguration shrinkConfig;
 
-    private static Future<Boolean> previousShrinkFuture;
-
     public OracleShrinkExecutor(
             SqlConnectionSupplier connectionPool,
             ExecutorService executorService,
@@ -59,39 +56,13 @@ public class OracleShrinkExecutor {
     }
 
     public void shrinkAsync(TableReference tableRef) {
-        final long secondsToWaitBeforeShrink = getSecondsToWaitBeforeShrink();
-        previousShrinkFuture = executorService.submit(
-                () -> shrinkCompactFollowedByShrink(tableRef, secondsToWaitBeforeShrink));
-
+        executorService.submit(() -> shrinkCompactFollowedByShrink(tableRef));
     }
 
-    private long getSecondsToWaitBeforeShrink() {
-        return shouldWaitLonger()
-                ? shrinkConfig.shrinkPauseSeconds() + shrinkConfig.shrinkPauseOnFailureSeconds()
-                : shrinkConfig.shrinkPauseSeconds();
-    }
-
-    private boolean shouldWaitLonger() {
-        if (previousShrinkFuture != null) {
-            try {
-                if (previousShrinkFailed()) {
-                    return true;
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean previousShrinkFailed() throws InterruptedException, ExecutionException {
-        return !previousShrinkFuture.get();
-    }
-
-    private boolean shrinkCompactFollowedByShrink(TableReference tableRef, long secondsToWaitBeforeShrink) {
+    private boolean shrinkCompactFollowedByShrink(TableReference tableRef) {
 
         try {
-            TimeUnit.SECONDS.sleep(secondsToWaitBeforeShrink);
+            TimeUnit.SECONDS.sleep(shrinkConfig.shrinkPauseSeconds());
         } catch (InterruptedException e) {
             log.warn("Skipping Shrink for table: {} because the thread was interrupted.", LoggingArgs.tableRef("tableToShrink", tableRef));
             return false;
@@ -100,22 +71,9 @@ public class OracleShrinkExecutor {
         Stopwatch timer = Stopwatch.createStarted();
         ConnectionSupplier conns = new ConnectionSupplier(connectionPool);
         try {
-            Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
-            getConnectionWithIncreasedTimeout(conns).executeUnregisteredQuery(
-                    "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
-                            + " SHRINK SPACE COMPACT");
-            log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("time taken", shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS)));
+            runShrinkCommandAndLogTime(tableRef, conns, " SHRINK SPACE COMPACT");
+            runShrinkCommandAndLogTime(tableRef, conns, " SHRINK SPACE");
 
-            Stopwatch shrinkTimer = Stopwatch.createStarted();
-            getConnectionWithIncreasedTimeout(conns).executeUnregisteredQuery(
-                    "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
-                            + " SHRINK SPACE");
-            log.info("Call to SHRINK SPACE on table {} took {} ms."
-                            + " This implies that locks on the entire table were held for this period.",
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("time taken", shrinkTimer.elapsed(TimeUnit.MILLISECONDS)));
             return true;
         } catch (PalantirSqlException e) {
             log.error("Tried to clean up {} bloat after a sweep operation via Oracle Shrink, but failed."
@@ -125,7 +83,9 @@ public class OracleShrinkExecutor {
                     + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
                     + " like more information. Underlying error was: {}",
                     LoggingArgs.tableRef("tableToShrink", tableRef),
-                    UnsafeArg.of("exception message", e.getMessage()));
+                    UnsafeArg.of("exception message", e.getMessage()),
+                    e);
+            Uninterruptibles.sleepUninterruptibly(shrinkConfig.shrinkPauseOnFailureSeconds(), TimeUnit.SECONDS);
             return false;
         } catch (TableMappingNotFoundException e) {
             throw new RuntimeException(e);
@@ -136,6 +96,15 @@ public class OracleShrinkExecutor {
                     LoggingArgs.tableRef(tableRef),
                     SafeArg.of("time taken", timer.elapsed(TimeUnit.MILLISECONDS)));
         }
+    }
+
+    private void runShrinkCommandAndLogTime(TableReference tableRef, ConnectionSupplier conns, String command)
+            throws TableMappingNotFoundException {
+        Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
+        getConnectionWithIncreasedTimeout(conns).executeUnregisteredQuery(
+                "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef) + command);
+        log.info("Call to" + command + " on table {} took {} ms.",
+                tableRef, shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private SqlConnection getConnectionWithIncreasedTimeout(ConnectionSupplier conns) {
