@@ -103,11 +103,13 @@ public class CassandraTimestampBackupRunner {
     public synchronized void restoreFromBackup() {
         clientPool().runWithRetry(client -> {
             BoundData boundData = getCurrentBoundData(client);
+            byte[] currentBound = boundData.bound();
             byte[] currentBackupBound = boundData.backupBound();
 
             BoundReadability boundReadability = checkReadability(boundData);
             if (boundReadability == BoundReadability.BOUND) {
-                log.info("[RESTORE] Didn't restore, because the current bound is readable.");
+                log.info("[RESTORE] Didn't restore, because the current bound is readable with the value {}.",
+                        SafeArg.of("currentBound", PtBytes.toLong(currentBound)));
                 return null;
             }
 
