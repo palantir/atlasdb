@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.qos;
 
-public class QosServiceResource {
+public interface QosServiceResource {
     // TODO path stuff
-
-    public int getLimit() {
-        return Integer.MAX_VALUE;
-    }
+    int getLimit();
 }
