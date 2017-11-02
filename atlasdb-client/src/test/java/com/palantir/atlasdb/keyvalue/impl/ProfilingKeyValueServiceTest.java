@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -36,12 +38,19 @@ import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.common.base.ClosableIterator;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -55,6 +64,17 @@ import ch.qos.logback.core.Appender;
 public class ProfilingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("test");
     private static final TableReference TABLE_REF = TableReference.create(NAMESPACE, "testTable");
+    private static final RangeRequest RANGE_REQUEST = RangeRequest.builder().build();
+    private static final CandidateCellForSweepingRequest CANDIDATE_OF_CELLS_FOR_SWEEPING_REQUEST =
+            ImmutableCandidateCellForSweepingRequest.builder()
+                    .startRowInclusive((byte) 0b00)
+                    .batchSizeHint(0)
+                    .sweepTimestamp(0L)
+                    .shouldCheckIfLatestValueIsEmpty(false)
+                    .timestampsToIgnore(0L)
+                    .build();
+    public static final ColumnRangeSelection COLUMN_RANGE_SELECTION = new ColumnRangeSelection(
+            new byte[0], new byte[0]);
 
     private KeyValueService delegate;
     private KeyValueService kvs;
@@ -235,5 +255,71 @@ public class ProfilingKeyValueServiceTest {
         kvs.get(TABLE_REF, timestampByCell);
 
         verifyNoMoreInteractions(mockAppender);
+    }
+
+    @Test
+    public void getRangeLogsWhenIteratorNextIsSlow() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
+        ClosableIterator mockedIterator = buildSlowClosableIterator();
+
+        when(delegate.getRange(any(), any(), anyLong())).thenReturn(mockedIterator);
+        ClosableIterator returnedIterator = kvs.getRange(TABLE_REF, RANGE_REQUEST, 0);
+        returnedIterator.next();
+
+        verify(mockAppender).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void getRangeOfTimestampsLogsWhenIteratorNextIsSlow() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
+        ClosableIterator mockedIterator = buildSlowClosableIterator();
+
+        when(delegate.getRangeOfTimestamps(any(), any(), anyLong())).thenReturn(mockedIterator);
+        ClosableIterator returnedIterator = kvs.getRangeOfTimestamps(TABLE_REF, RANGE_REQUEST, 0);
+        returnedIterator.next();
+
+        verify(mockAppender).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void getCandidateOfCellsForSweepingLogsWhenIteratorNextIsSlow() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
+        ClosableIterator mockedIterator = buildSlowClosableIterator();
+
+        when(delegate.getCandidateCellsForSweeping(any(), any())).thenReturn(mockedIterator);
+        ClosableIterator returnedIterator = kvs.getCandidateCellsForSweeping(TABLE_REF,
+                CANDIDATE_OF_CELLS_FOR_SWEEPING_REQUEST);
+        returnedIterator.next();
+
+        verify(mockAppender).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void getRowsColumnRangeLogsWhenIteratorIsSlow() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
+        RowColumnRangeIterator rowColumnRangeIterator = buildRowColumnRangeIterator();
+
+        when(delegate.getRowsColumnRange(any(), any(), any(), anyInt(), anyLong())).thenReturn(rowColumnRangeIterator);
+        RowColumnRangeIterator returnedIterator = kvs.getRowsColumnRange(TABLE_REF, Lists.newArrayList(),
+                COLUMN_RANGE_SELECTION, 0, 0);
+        returnedIterator.next();
+
+        verify(mockAppender).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    private ClosableIterator buildSlowClosableIterator() {
+        ClosableIterator mockedIterator = mock(ClosableIterator.class);
+        doAnswer(waitASecondAndAHalf).when(mockedIterator).next();
+        return mockedIterator;
+    }
+
+    private RowColumnRangeIterator buildRowColumnRangeIterator() {
+        RowColumnRangeIterator mockedIterator = mock(RowColumnRangeIterator.class);
+        doAnswer(waitASecondAndAHalf).when(mockedIterator).next();
+        return mockedIterator;
     }
 }
