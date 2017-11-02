@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -57,6 +59,14 @@ public abstract class AtlasDbRuntimeConfig {
     public long getTimestampCacheSize() {
         return AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
     }
+
+    /**
+     * Runtime live-reloadable parameters for communicating with TimeLock.
+     *
+     * This value is ignored if the install config does not specify usage of TimeLock.
+     * We do not currently support live reloading from a leader block or using embedded services to using TimeLock.
+     */
+    public abstract Optional<TimeLockRuntimeConfig> timeLockRuntimeConfig();
 
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder().build();
