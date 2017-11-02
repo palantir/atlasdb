@@ -193,6 +193,7 @@ public class TransactionManagersTest {
 
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
+        when(runtimeConfig.timeLockRuntimeConfig()).thenReturn(Optional.empty());
 
         environment = mock(Consumer.class);
 
@@ -487,7 +488,7 @@ public class TransactionManagersTest {
     private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
         return TransactionManagers.createLockAndTimestampServices(
                 config,
-                () -> runtimeConfig.timestampClient(),
+                () -> runtimeConfig,
                 environment,
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
@@ -512,7 +513,7 @@ public class TransactionManagersTest {
         TransactionManagers.LockAndTimestampServices lockAndTimestamp =
                 TransactionManagers.createLockAndTimestampServices(
                         config,
-                        () -> ImmutableTimestampClientConfig.of(false),
+                        () -> runtimeConfig,
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
@@ -544,7 +545,7 @@ public class TransactionManagersTest {
             AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
         return TransactionManagers.createLockAndTimestampServices(
                 atlasDbConfig,
-                atlasDbRuntimeConfig::timestampClient,
+                () -> atlasDbRuntimeConfig,
                 environment,
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
