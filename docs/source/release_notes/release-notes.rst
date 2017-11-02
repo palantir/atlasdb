@@ -48,8 +48,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - kvs.getRanges now also logs ``kvs-slow-log`` if the backing store is being slow to return the requested values.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2617>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
