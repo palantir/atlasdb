@@ -19,13 +19,18 @@ import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.remoting.api.config.service.ProxyConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public final class AtlasDbHttpClients {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
@@ -140,6 +145,19 @@ public final class AtlasDbHttpClients {
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
                         sslSocketFactory, proxySelector, endpointUris, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
+    public static <T> T createProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createProxyWithFailover(
+                        serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
                 MetricRegistry.name(type));
     }
 
