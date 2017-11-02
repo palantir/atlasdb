@@ -64,7 +64,8 @@ public class OracleShrinkExecutor {
         try {
             TimeUnit.SECONDS.sleep(shrinkConfig.shrinkPauseSeconds());
         } catch (InterruptedException e) {
-            log.warn("Skipping Shrink for table: {} because the thread was interrupted.", LoggingArgs.tableRef("tableToShrink", tableRef));
+            log.warn("Skipping Shrink for table: {} because the thread was interrupted.",
+                    LoggingArgs.tableRef("tableToShrink", tableRef));
             return false;
         }
 

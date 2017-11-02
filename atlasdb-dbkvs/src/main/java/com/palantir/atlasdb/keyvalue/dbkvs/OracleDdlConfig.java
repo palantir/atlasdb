@@ -108,10 +108,6 @@ public abstract class OracleDdlConfig extends DdlConfig {
                 overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
                 "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
-        Preconditions.checkState(
-                overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
-                "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
-                AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
     }
 
     @Override
