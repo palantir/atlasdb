@@ -17,18 +17,22 @@
 package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.immutables.value.Value;
 import org.junit.Test;
 
 public class RecreatingInvocationHandlerTest {
     private static final Long FORTY_TWO = 42L;
 
     @Test
-    public void propagatesRepeatedChangesThroughDeltaSupplier() {
+    public void deltaSupplierReturnsValuesSupplied() {
         AtomicLong atomicLong = new AtomicLong();
         Supplier<Optional<Long>> deltaSupplier =
                 RecreatingInvocationHandler.wrapInDeltaSupplier(atomicLong::incrementAndGet);
@@ -50,7 +54,7 @@ public class RecreatingInvocationHandlerTest {
     }
 
     @Test
-    public void deltaSupplierCanReturnNewValuesAfterReturningEmptyIfSupplierChanges() {
+    public void deltaSupplierReturnsNewValuesAfterReturningEmptyIfSupplierChanges() {
         AtomicLong atomicLong = new AtomicLong(FORTY_TWO);
         Supplier<Optional<Long>> deltaSupplier =
                 RecreatingInvocationHandler.wrapInDeltaSupplier(atomicLong::get);
@@ -65,7 +69,7 @@ public class RecreatingInvocationHandlerTest {
     }
 
     @Test
-    public void deltaSupplierSkipsMultipleChanges() {
+    public void deltaSupplierSkipsIntermediateChanges() {
         AtomicLong atomicLong = new AtomicLong(FORTY_TWO);
         Supplier<Optional<Long>> deltaSupplier =
                 RecreatingInvocationHandler.wrapInDeltaSupplier(atomicLong::get);
@@ -77,4 +81,61 @@ public class RecreatingInvocationHandlerTest {
         assertThat(deltaSupplier.get()).isPresent().contains(FORTY_TWO + 3L);
     }
 
+    @Test
+    public void createsNewDelegateIfSupplierReturnsPresent() {
+        Supplier<Optional<Object>> supplier = () -> Optional.of(new Object());
+        Identifiable identifiable = RecreatingInvocationHandler.createWithRawDeltaSupplier(supplier,
+                unused -> ImmutableIdentifiable.of(UUID.randomUUID()),
+                Identifiable.class);
+
+        UUID firstUuid = identifiable.uuid();
+        UUID secondUuid = identifiable.uuid();
+
+        assertThat(firstUuid).isNotEqualTo(secondUuid);
+    }
+
+    @Test
+    public void throwsIfSupplierInitiallyReturnsEmpty() {
+        Supplier<Optional<Object>> supplier = Optional::empty;
+        assertThatThrownBy(
+                () -> RecreatingInvocationHandler.createWithRawDeltaSupplier(supplier, unused -> "", String.class))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void doesNotCreateNewDelegateIfSupplierReturnsEmpty() {
+        AtomicReference<Object> objectRef = new AtomicReference<>(new Object());
+        Supplier<Optional<Object>> supplier = () -> Optional.ofNullable(objectRef.get());
+
+        Identifiable identifiable = RecreatingInvocationHandler.createWithRawDeltaSupplier(supplier,
+                unused -> ImmutableIdentifiable.of(UUID.randomUUID()),
+                Identifiable.class);
+
+        UUID firstUuid = identifiable.uuid();
+        objectRef.set(null);
+        assertThat(identifiable.uuid()).isEqualTo(firstUuid);
+    }
+
+    @Test
+    public void canCreateNewDelegateAfterAnEmptyValue() {
+        AtomicReference<Object> objectRef = new AtomicReference<>(new Object());
+        Supplier<Optional<Object>> supplier = () -> Optional.ofNullable(objectRef.get());
+
+        Identifiable identifiable = RecreatingInvocationHandler.createWithRawDeltaSupplier(supplier,
+                unused -> ImmutableIdentifiable.of(UUID.randomUUID()),
+                Identifiable.class);
+
+        UUID firstUuid = identifiable.uuid();
+        objectRef.set(null);
+        assertThat(identifiable.uuid()).isEqualTo(firstUuid);
+
+        objectRef.set(new Object());
+        assertThat(identifiable.uuid()).isNotEqualTo(firstUuid);
+    }
+
+    @Value.Immutable
+    interface Identifiable {
+        @Value.Parameter
+        UUID uuid();
+    }
 }
