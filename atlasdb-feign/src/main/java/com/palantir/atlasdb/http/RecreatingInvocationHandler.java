@@ -23,11 +23,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.reflect.Reflection;
+import com.palantir.logsafe.UnsafeArg;
 
 public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler {
+    private static final Logger log = LoggerFactory.getLogger(RecreatingInvocationHandler.class);
 
     private final Supplier<Optional<T>> deltaSupplier;
     private final Function<T, D> delegateCreator;
@@ -69,7 +74,11 @@ public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler
     }
 
     private void updateDelegateIfNeeded() {
-        deltaSupplier.get().ifPresent(t -> activeDelegate = delegateCreator.apply(t));
+        deltaSupplier.get().ifPresent(input -> {
+            log.info("Updating delegate because we observed the input change to {}.",
+                    UnsafeArg.of("input", input));
+            activeDelegate = delegateCreator.apply(input);
+        });
     }
 
     @VisibleForTesting
@@ -78,6 +87,8 @@ public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler
     }
 
     private static class DeltaSupplier<T> implements Supplier<Optional<T>> {
+        private static final Logger log = LoggerFactory.getLogger(DeltaSupplier.class);
+
         private final Supplier<T> baseSupplier;
         private final AtomicReference<T> lastSeenValue = new AtomicReference<>();
 
@@ -90,12 +101,19 @@ public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler
             T actualValue = baseSupplier.get();
             T currentLastSeenValue = lastSeenValue.get();
             while (!actualValue.equals(currentLastSeenValue)) {
+                log.info("Attempting to update the value from {} to {}",
+                        UnsafeArg.of("currentValue", currentLastSeenValue),
+                        UnsafeArg.of("targetValue", actualValue));
                 if (lastSeenValue.compareAndSet(currentLastSeenValue, actualValue)) {
+                    log.info("Updated the value to {}",
+                            UnsafeArg.of("updatedValue", actualValue));
                     return Optional.of(actualValue);
                 }
                 currentLastSeenValue = lastSeenValue.get();
             }
             // We didn't change the value.
+            log.debug("Did not update the value from {} because that's also what we got from the delegate.",
+                    UnsafeArg.of("currentValue", currentLastSeenValue));
             return Optional.empty();
         }
     }
