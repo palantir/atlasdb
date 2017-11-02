@@ -221,7 +221,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 new TransactionTask<java.util.Optional<TableToSweep>, RuntimeException>() {
                     @Override
                     public java.util.Optional<TableToSweep> execute(Transaction tx) {
-                        java.util.Optional<SweepProgress> progress = sweepProgressStore.loadProgress();
+                        java.util.Optional<SweepProgress> progress = sweepProgressStore.loadProgress(tx);
                         if (progress.isPresent()) {
                             return java.util.Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
@@ -419,17 +419,17 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         tableToSweep.getTableRef().getQualifiedName());
                 priorityTable.putWriteCount(priorityRow, 0L);
             }
+            SweepProgress newProgress = ImmutableSweepProgress.builder()
+                    .tableRef(tableToSweep.getTableRef())
+                    .staleValuesDeleted(results.getCellsDeleted())
+                    .cellTsPairsExamined(results.getCellsExamined())
+                    //noinspection OptionalGetWithoutIsPresent // covered by precondition above
+                    .startRow(results.getNextStartRow().get())
+                    .minimumSweptTimestamp(results.getSweptTimestamp())
+                    .build();
+            sweepProgressStore.saveProgress(tx, newProgress);
             return null;
         });
-        SweepProgress newProgress = ImmutableSweepProgress.builder()
-                .tableRef(tableToSweep.getTableRef())
-                .staleValuesDeleted(results.getCellsDeleted())
-                .cellTsPairsExamined(results.getCellsExamined())
-                //noinspection OptionalGetWithoutIsPresent // covered by precondition above
-                .startRow(results.getNextStartRow().get())
-                .minimumSweptTimestamp(results.getSweptTimestamp())
-                .build();
-        sweepProgressStore.saveProgress(newProgress);
     }
 
     private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults sweepResults) {
@@ -459,7 +459,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private boolean checkAndRepairTableDrop() {
         try {
             Set<TableReference> tables = kvs.getAllTableNames();
-            java.util.Optional<SweepProgress> progress = sweepProgressStore.loadProgress();
+            java.util.Optional<SweepProgress> progress = txManager.runTaskReadOnly(sweepProgressStore::loadProgress);
             if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
                 return false;
             }
