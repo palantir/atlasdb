@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.qos;
 
+import javax.ws.rs.PathParam;
+
+import com.palantir.logsafe.Safe;
+
 public interface QosServiceResource {
-    // TODO path stuff
-    int getLimit();
+    int getLimit(@Safe @PathParam("client") String client);
 }
