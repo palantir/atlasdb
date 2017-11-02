@@ -424,7 +424,8 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -760,6 +761,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign",
                 "org.glassfish.jersey.core:jersey-server",
                 "org.glassfish.jersey.ext:jersey-bean-validation",
                 "org.hibernate:hibernate-validator"
@@ -1600,7 +1602,8 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -1986,6 +1989,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign",
                 "org.glassfish.jersey.core:jersey-server",
                 "org.glassfish.jersey.ext:jersey-bean-validation",
                 "org.hibernate:hibernate-validator"
