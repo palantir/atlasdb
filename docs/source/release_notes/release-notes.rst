@@ -49,7 +49,7 @@ develop
          - Change
 
     *    - |improved| |metrics|
-         - AtlasDB now depends on Tritium 0.7.0, allowing products to upgrade Tritium without running into `NoClassDefFound` errors.
+         - AtlasDB now depends on Tritium 0.8.0, allowing products to upgrade Tritium without running into `NoClassDefFound` errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
 
     *    - |improved| |logs|
