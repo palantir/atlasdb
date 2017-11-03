@@ -55,7 +55,7 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
     }
 
     private final KeyValueService kvs;
-    private final  SweepTableFactory sweepTableFactory;
+    private final SweepTableFactory sweepTableFactory;
     private InitializingWrapper wrapper = new InitializingWrapper();
 
     private SweepPriorityStoreImpl(KeyValueService kvs, SweepTableFactory sweepTableFactory) {
