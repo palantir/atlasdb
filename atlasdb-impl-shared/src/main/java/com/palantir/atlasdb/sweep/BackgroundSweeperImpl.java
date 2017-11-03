@@ -107,6 +107,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     public void run() {
         try (SweepLocks locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
+            waitUntilSpecificTableSweeperIsInitialized();
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
@@ -115,6 +116,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
+        }
+    }
+
+    private void waitUntilSpecificTableSweeperIsInitialized() throws InterruptedException {
+        while (!specificTableSweeper.isInitialized()) {
+            log.info("Sweep Priority Table and Sweep Progress Table are not initialized yet. If you have enabled "
+                    + "asynchronous initialization, these tables are being initialized asynchronously. Background "
+                    + "sweeper will start once the initialization is complete.");
+            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
         }
     }
 

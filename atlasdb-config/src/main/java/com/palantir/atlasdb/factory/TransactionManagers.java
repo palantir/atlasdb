@@ -446,7 +446,8 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 sweepPerfLogger,
                 sweepBatchConfig,
-                sweepMetrics);
+                sweepMetrics,
+                config.initializeAsync());
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
@@ -465,7 +466,8 @@ public abstract class TransactionManagers {
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig,
-            SweepMetrics sweepMetrics) {
+            SweepMetrics sweepMetrics,
+            boolean initializeAsync) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
                 kvs,
@@ -473,7 +475,8 @@ public abstract class TransactionManagers {
                 sweepBatchConfig,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
-                sweepMetrics);
+                sweepMetrics,
+                initializeAsync);
         env.accept(new SweeperServiceImpl(specificTableSweeper));
         return specificTableSweeper;
     }

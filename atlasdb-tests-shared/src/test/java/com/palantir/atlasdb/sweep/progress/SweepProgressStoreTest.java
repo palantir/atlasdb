@@ -27,7 +27,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTestUtils;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
@@ -60,7 +59,7 @@ public class SweepProgressStoreTest {
         exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
         txManager = SweepTestUtils.setupTxManager(kvs);
-        progressStore = new SweepProgressStore(kvs, SweepTableFactory.of());
+        progressStore = SweepProgressStoreImpl.create(kvs, false);
     }
 
     @After

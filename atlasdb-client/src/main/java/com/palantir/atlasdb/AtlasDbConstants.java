@@ -20,7 +20,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -35,11 +34,10 @@ public final class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.createWithEmptyNamespace("_sweep_progress2");
     public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
-    public static final TableReference SWEEP_PROGRESS_TABLE =
-            SweepTableFactory.of().getSweepProgressTable(null).getTableRef();
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
