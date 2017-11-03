@@ -52,6 +52,14 @@ develop
          - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
 
+    *    - |improved|
+         - Sweep progress is now persisted as a blob and uses a KVS level table.
+           This allows us to use check and set to avoid versioning the entries in the sweep progress table.
+           As a result, loading of the persisted SweepResult which was previously linear in the size of the table being swept can be done in constant time.
+           No migration is necessary as the data is persisted to a new table ``_sweep_progress2``, however, sweep will ignore any previously persisted sweep progress.
+           Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2569>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -155,19 +163,7 @@ Improvements
          - Change
 
     *    - |improved|
-<<<<<<< HEAD
-         - Sweep progress is now persisted as a blob.
-           This allows us to use check and set to avoid versioning the entries in the sweep progress table.
-           As a result, loading of the persisted SweepResult which was previously linear in the size of the table being swept can be done in constant time.
-           No migration is necessary as the data is persisted to a new table, however sweep will ignore any previously persisted sweep progress.
-           Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2569>`__)
-
-    *    - |improved|
-         - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra, if just a single column is requested.
-=======
          - ``getRange`` is now more efficient when scanning over rows with many updates in Cassandra if just a single column is requested.
->>>>>>> f66298fc159ea3f715a3562b4d88f03e59004d9c
            Previously, a range request in Cassandra would always retrieve all columns and all historical versions of each column, regardless of which columns were requested.
            Now, we only request the latest version of the specific column requested, if only one column is requested. Requesting multiple columns still results in the previous behavior, however this will also be optimized in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2480>`__)
