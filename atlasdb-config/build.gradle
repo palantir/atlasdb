@@ -24,6 +24,7 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk7'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
     compile group: 'io.dropwizard', name: 'dropwizard-jackson'
     compile group: 'com.google.code.findbugs', name: 'annotations'
