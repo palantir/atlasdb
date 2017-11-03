@@ -30,8 +30,11 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -53,6 +56,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedExecutorService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -93,6 +97,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -108,25 +113,28 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
+import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -251,8 +259,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig,
                                        boolean initializeAsync) {
-        super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
-                configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
+        super(createExecutor(configManager.getConfig()));
         this.log = log;
         this.configManager = configManager;
         this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
@@ -265,6 +272,35 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
+    }
+
+    /**
+     * Creates a thread pool that maintains between (poolSize * numServers) and (maxConnectionBurstSize * numServers)
+     * threads. When the max pool size is hit, new requests will not be queued but rather will be run in the caller's
+     * thread. Throttling will be taken care of by the underlying client pools.
+     */
+    private static ExecutorService createExecutor(CassandraKeyValueServiceConfig config) {
+        int numServers = config.servers().size();
+        ThreadPoolExecutor executor = PTExecutors.newThreadPoolExecutor(
+                config.poolSize() * numServers,
+                config.maxConnectionBurstSize() * numServers,
+                1,
+                TimeUnit.MINUTES,
+                // When executor grows past its core pool size, we want to reject enqueue operations
+                // so that it will grow to its max pool size before calling its rejection handler.
+                new ArrayBlockingQueue<Runnable>(1) {
+                    @Override
+                    public boolean offer(Runnable runnable) {
+                        return false;
+                    }
+                    @Override
+                    public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
+                        return false;
+                    }
+                },
+                new NamedThreadFactory("Atlas Cassandra KVS", false),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        return new InstrumentedExecutorService(executor, AtlasDbMetrics.getMetricRegistry(), "atlasdb-cassandra-kvs");
     }
 
     @Override
@@ -534,9 +570,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             Long firstTs = timestampByCell.values().iterator().next();
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
-                StartTsResultsCollector collector = new StartTsResultsCollector(firstTs);
-                loadWithTs(tableRef, timestampByCell.keySet(), firstTs, false, collector, readConsistency);
-                return collector.getCollectedResults();
+                return get(tableRef, timestampByCell.keySet(), firstTs);
             }
 
             SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
@@ -551,6 +585,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowUncheckedException(e);
         }
+    }
+
+    private Map<Cell, Value> get(TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
+        StartTsResultsCollector collector = new StartTsResultsCollector(maxTimestampExclusive);
+        loadWithTs(tableRef, cells, maxTimestampExclusive, false, collector, readConsistency);
+        return collector.getCollectedResults();
     }
 
     private void loadWithTs(TableReference tableRef,
@@ -615,7 +655,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             if (columnCells.size() > fetchBatchCount) {
                 log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
                                 + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
-                        SafeArg.of("host", host),
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("rows", columnCells.size()),
                         SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
@@ -640,7 +680,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             LoggingArgs.tableRef(tableRef),
                                             SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
                                             SafeArg.of("startTs", startTs),
-                                            SafeArg.of("host", host));
+                                            SafeArg.of("host", CassandraLogHelper.host(host)));
                                 }
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
@@ -1428,35 +1468,34 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        Integer timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
-        return getTimestampsInBatchesWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestampsGetterBatchSize,
-                timestamp,
-                deleteConsistency);
+        CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
+                .startRowInclusive(rangeRequest.getStartInclusive())
+                .maxTimestampExclusive(timestamp)
+                .addTimestampsToIgnore()
+                .shouldCheckIfLatestValueIsEmpty(false)
+                .build();
+        return getCandidateRowsForSweeping(tableRef, request)
+                .flatMap(rows -> rows)
+                .map(row -> row.toRowResult())
+                .stopWhen(rowResult -> !rangeRequest.inRange(rowResult.getRowName()));
     }
 
     @Override
-    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
+            TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return new GetCandidateCellsForSweepingShim(this).getCandidateCellsForSweeping(tableRef, request);
+        return getCandidateRowsForSweeping(tableRef, request)
+                .map(rows -> rows.stream()
+                        .map(CandidateRowForSweeping::cells)
+                        .flatMap(List::stream)
+                        .collect(Collectors.toList()));
     }
 
-    private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
+    private ClosableIterator<List<CandidateRowForSweeping>> getCandidateRowsForSweeping(
             TableReference tableRef,
-            RangeRequest rangeRequest,
-            int columnBatchSize,
-            long timestamp,
-            ConsistencyLevel consistency) {
-        SlicePredicate predicate = SlicePredicates.create(Range.ALL, Limit.ONE);
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
-
-        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
-        ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
-
-        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, TimestampExtractor::new,
-                timestamp);
+            CandidateCellForSweepingRequest request) {
+        return new CandidateRowsForSweepingIterator(this::get, new CqlExecutor(clientPool, ConsistencyLevel.ALL),
+                tableRef, request);
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(

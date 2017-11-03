@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -31,20 +34,23 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
+    private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     private final Supplier<Boolean> isSweepEnabled;
     private final Supplier<Long> sweepPauseMillis;
     private final PersistentLockManager persistentLockManager;
     private final SpecificTableSweeper specificTableSweeper;
 
-    static volatile double batchSizeMultiplier = 1.0;
+    private final SweepOutcomeMetrics sweepOutcomeMetrics = new SweepOutcomeMetrics();
 
     private Thread daemon;
 
@@ -52,12 +58,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     BackgroundSweeperImpl(
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
         this.lockService = lockService;
         this.nextTableToSweepProvider = nextTableToSweepProvider;
+        this.sweepBatchConfigSource = sweepBatchConfigSource;
         this.isSweepEnabled = isSweepEnabled;
         this.sweepPauseMillis = sweepPauseMillis;
         this.persistentLockManager = persistentLockManager;
@@ -65,6 +73,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     public static BackgroundSweeperImpl create(
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
@@ -74,6 +83,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
+                sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
                 persistentLockManager,
@@ -111,8 +121,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
-                long millisToSleep = checkConfigAndRunSweep(locks);
-                Thread.sleep(millisToSleep);
+                SweepOutcome outcome = checkConfigAndRunSweep(locks);
+
+                log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
+
+                updateBatchSize(outcome);
+                updateMetrics(outcome);
+
+                sleepUntilNextRun(outcome);
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
@@ -129,51 +145,51 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     // Returns milliseconds to sleep
-    @VisibleForTesting
-    long checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
-        if (isSweepEnabled.get()) {
-            return grabLocksAndRun(locks);
-        } else {
-            log.debug("Skipping sweep because it is currently disabled.");
+    private void updateBatchSize(SweepOutcome outcome) {
+        if (outcome == SweepOutcome.SUCCESS) {
+            sweepBatchConfigSource.increaseMultiplier();
         }
-        return getBackoffTimeWhenSweepHasNotRun();
+        if (outcome == SweepOutcome.ERROR) {
+            sweepBatchConfigSource.decreaseMultiplier();
+        }
     }
 
-    private long grabLocksAndRun(SweepLocks locks) throws InterruptedException {
-        boolean sweptSuccessfully = false;
+    private void updateMetrics(SweepOutcome outcome) {
+        sweepOutcomeMetrics.registerOccurrenceOf(outcome);
+    }
+
+    private void sleepUntilNextRun(SweepOutcome outcome) throws InterruptedException {
+        long sleepDurationMillis = getBackoffTimeWhenSweepHasNotRun();
+        if (outcome == SweepOutcome.SUCCESS) {
+            sleepDurationMillis = sweepPauseMillis.get();
+        }
+        Thread.sleep(sleepDurationMillis);
+    }
+
+    @VisibleForTesting
+    SweepOutcome checkConfigAndRunSweep(SweepLocks locks) throws InterruptedException {
+        if (isSweepEnabled.get()) {
+            return grabLocksAndRun(locks);
+        }
+
+        log.debug("Skipping sweep because it is currently disabled.");
+        return SweepOutcome.DISABLED;
+    }
+
+    private SweepOutcome grabLocksAndRun(SweepLocks locks) throws InterruptedException {
         try {
             locks.lockOrRefresh();
             if (locks.haveLocks()) {
-                sweptSuccessfully = runOnce();
+                return runOnce();
             } else {
                 log.debug("Skipping sweep because sweep is running elsewhere.");
+                return SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
             }
-        } catch (InsufficientConsistencyException e) {
-            log.warn("Could not sweep because not all nodes of the database are online.", e);
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
-            if (checkAndRepairTableDrop()) {
-                log.info("The table being swept by the background sweeper was dropped, moving on...");
-            } else {
-                SweepBatchConfig lastBatchConfig = specificTableSweeper.getAdjustedBatchConfig();
-                log.warn("The background sweep job failed unexpectedly with candidate batch size {},"
-                                + " delete batch size {},"
-                                + " and {} cell+timestamp pairs to examine."
-                                + " Attempting to continue with a lower batch size...",
-                        SafeArg.of("candidateBatchSize", lastBatchConfig.candidateBatchSize()),
-                        SafeArg.of("deleteBatchSize", lastBatchConfig.deleteBatchSize()),
-                        SafeArg.of("maxCellTsPairsToExamine", lastBatchConfig.maxCellTsPairsToExamine()),
-                        e);
-                // Cut batch size in half, always sweep at least one row (we round down).
-                batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
-            }
-        }
 
-        if (sweptSuccessfully) {
-            batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
-            return sweepPauseMillis.get();
-        } else {
-            return getBackoffTimeWhenSweepHasNotRun();
+            log.error("Sweep failed", e);
+            return SweepOutcome.ERROR;
         }
     }
 
@@ -182,15 +198,25 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     }
 
     @VisibleForTesting
-    boolean runOnce() {
+    SweepOutcome runOnce() {
         Optional<TableToSweep> tableToSweep = getTableToSweep();
         if (!tableToSweep.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
-            return false;
-        } else {
-            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get());
-            return true;
+            return SweepOutcome.NOTHING_TO_SWEEP;
+        }
+
+        SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig();
+        try {
+            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
+            return SweepOutcome.SUCCESS;
+        } catch (InsufficientConsistencyException e) {
+            log.warn("Could not sweep because not all nodes of the database are online.", e);
+            return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
+        } catch (RuntimeException e) {
+            specificTableSweeper.getSweepMetrics().sweepError();
+
+            return determineCauseOfFailure(e, tableToSweep.get());
         }
     }
 
@@ -217,26 +243,29 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 });
     }
 
-    /**
-     * Check whether the table being swept was dropped. If so, stop sweeping it and move on.
-     *
-     * @return Whether the table being swept was dropped
-     */
-    boolean checkAndRepairTableDrop() {
+    private SweepOutcome determineCauseOfFailure(Exception originalException, TableToSweep tableToSweep) {
         try {
             Set<TableReference> tables = specificTableSweeper.getKvs().getAllTableNames();
-            Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
-            if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
-                return false;
-            } else {
-                specificTableSweeper.getSweepProgressStore().clearProgress();
-                return true;
+
+            if (!tables.contains(tableToSweep.getTableRef())) {
+                clearSweepProgress();
+                log.info("The table being swept by the background sweeper was dropped, moving on...");
+                return SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
             }
-        } catch (RuntimeException e) {
-            log.error("Failed to check whether the table being swept was dropped."
-                    + " Continuing under the assumption that it wasn't...", e);
-            return false;
+
+            log.warn("The background sweep job failed unexpectedly; will retry with a lower batch size...",
+                    originalException);
+            return SweepOutcome.ERROR;
+
+        } catch (RuntimeException newE) {
+            log.error("Sweep failed", originalException);
+            log.error("Failed to check whether the table being swept was dropped. Retrying...", newE);
+            return SweepOutcome.ERROR;
         }
+    }
+
+    private void clearSweepProgress() {
+        specificTableSweeper.getSweepProgressStore().clearProgress();
     }
 
     @VisibleForTesting
@@ -256,6 +285,34 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             daemon = null;
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private enum SweepOutcome {
+        SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
+        NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
+    }
+
+    private class SweepOutcomeMetrics {
+        private final MetricsManager metricsManager = new MetricsManager();
+        private final SlidingTimeWindowReservoir reservoir;
+
+        SweepOutcomeMetrics() {
+            Arrays.stream(SweepOutcome.values()).forEach(outcome ->
+                    metricsManager.registerMetric(BackgroundSweeperImpl.class, outcome.name(),
+                            () -> getOutcomeCount(outcome))
+            );
+            reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
+        }
+
+        private Long getOutcomeCount(SweepOutcome outcome) {
+            return Arrays.stream(reservoir.getSnapshot().getValues())
+                    .filter(l -> l == outcome.ordinal())
+                    .count();
+        }
+
+        void registerOccurrenceOf(SweepOutcome outcome) {
+            reservoir.update(outcome.ordinal());
         }
     }
 }

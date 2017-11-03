@@ -24,10 +24,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.remoting3.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
-    private SpecificTableSweeper specificTableSweeper;
+    private final SpecificTableSweeper specificTableSweeper;
+    private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
-    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper) {
+    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         this.specificTableSweeper = specificTableSweeper;
+        this.sweepBatchConfigSource = sweepBatchConfigSource;
     }
 
     @Override
@@ -63,7 +66,7 @@ public final class SweeperServiceImpl implements SweeperService {
             Optional<Integer> candidateBatchSize,
             Optional<Integer> deleteBatchSize) {
         ImmutableSweepBatchConfig.Builder batchConfigBuilder = ImmutableSweepBatchConfig.builder()
-                .from(specificTableSweeper.getAdjustedBatchConfig());
+                .from(sweepBatchConfigSource.getAdjustedSweepConfig());
 
         maxCellTsPairsToExamine.ifPresent(batchConfigBuilder::maxCellTsPairsToExamine);
         candidateBatchSize.ifPresent(batchConfigBuilder::candidateBatchSize);

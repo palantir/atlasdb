@@ -89,8 +89,12 @@ public class Renderers {
         }
     }
 
-    public static Class<?> getColumnTypeClass(NamedColumnDescription col) {
-        return col.getValue().getValueType().getTypeClass();
+    public static Class<?> getColumnClassForGenericTypeParameter(NamedColumnDescription col) {
+        return col.getValue().getJavaObjectTypeClass();
+    }
+
+    public static Class<?> getColumnClass(NamedColumnDescription col) {
+        return col.getValue().getJavaTypeClass();
     }
 
     public static MethodSpec.Builder addParametersFromRowComponents(
@@ -98,7 +102,7 @@ public class Renderers {
             TableMetadata tableMetadata) {
         for (NameComponentDescription rowPart : getRowComponents(tableMetadata)) {
             methodFactory.addParameter(
-                    rowPart.getType().getTypeClass(),
+                    rowPart.getType().getJavaClass(),
                     rowPart.getComponentName());
         }
         return methodFactory;

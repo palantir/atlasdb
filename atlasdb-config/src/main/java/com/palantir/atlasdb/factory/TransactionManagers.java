@@ -71,6 +71,7 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
@@ -230,6 +231,7 @@ public abstract class TransactionManagers {
                 .registrar(env::register)
                 .lockServerOptions(lockServerOptions)
                 .allowHiddenTableAccess(allowHiddenTableAccess)
+                .userAgent(UserAgents.DEFAULT_USER_AGENT)
                 .buildSerializable();
     }
 
@@ -335,7 +337,8 @@ public abstract class TransactionManagers {
                 registrar(),
                 config.initializeAsync());
 
-        TransactionService transactionService = TransactionServices.createTransactionService(kvs);
+        TransactionService transactionService = AtlasDbMetrics.instrument(TransactionService.class,
+                TransactionServices.createTransactionService(kvs));
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
@@ -434,8 +437,8 @@ public abstract class TransactionManagers {
                 sweepStrategyManager,
                 cellsSweeper);
         BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig = () ->
-                getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService());
+        AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
+                getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
         SweepMetrics sweepMetrics = new SweepMetrics();
 
@@ -445,11 +448,12 @@ public abstract class TransactionManagers {
                 transactionManager,
                 sweepRunner,
                 sweepPerfLogger,
-                sweepBatchConfig,
                 sweepMetrics,
-                config.initializeAsync());
+                config.initializeAsync(),
+                sweepBatchConfigSource);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+                sweepBatchConfigSource,
                 () -> runtimeConfigSupplier.get().sweep().enabled(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 persistentLockManager,
@@ -465,19 +469,18 @@ public abstract class TransactionManagers {
             SerializableTransactionManager transactionManager,
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            com.google.common.base.Supplier<SweepBatchConfig> sweepBatchConfig,
             SweepMetrics sweepMetrics,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
                 kvs,
                 sweepRunner,
-                sweepBatchConfig,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
                 sweepMetrics,
                 initializeAsync);
-        env.accept(new SweeperServiceImpl(specificTableSweeper));
+        env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;
     }
 

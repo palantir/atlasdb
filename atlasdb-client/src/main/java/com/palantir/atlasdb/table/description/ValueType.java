@@ -68,13 +68,13 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "long";
+        public Class getJavaClass() {
+            return long.class;
         }
 
         @Override
-        public String getJavaObjectClassName() {
-            return "Long";
+        public Class getJavaObjectClass() {
+            return Long.class;
         }
 
         @Override
@@ -109,10 +109,6 @@ public enum ValueType {
             return "EncodingUtils.encodeUnsignedVarLong(" + variableName + ")";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return Long.class;
-        }
     },
     /**
      * This value type supports range scans. Neighboring number will be written next to each other.
@@ -153,13 +149,13 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "long";
+        public Class getJavaClass() {
+            return long.class;
         }
 
         @Override
-        public String getJavaObjectClassName() {
-            return "Long";
+        public Class getJavaObjectClass() {
+            return Long.class;
         }
 
         @Override
@@ -194,10 +190,6 @@ public enum ValueType {
             return "EncodingUtils.encodeSignedVarLong(" + variableName + ")";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return Long.class;
-        }
     },
     /**
      * This value type supports range scans.  Sequential numbers will be written next to each other.
@@ -237,13 +229,13 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "long";
+        public Class getJavaClass() {
+            return long.class;
         }
 
         @Override
-        public String getJavaObjectClassName() {
-            return "Long";
+        public Class getJavaObjectClass() {
+            return Long.class;
         }
 
         @Override
@@ -278,10 +270,6 @@ public enum ValueType {
             return "PtBytes.toBytes(Long.MIN_VALUE ^ " + variableName + ")";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return Long.class;
-        }
     },
     /**
      * This value type does NOT support range scans. This encoding is {@link PtBytes#toBytes(long)} but with
@@ -322,13 +310,13 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "long";
+        public Class getJavaClass() {
+            return long.class;
         }
 
         @Override
-        public String getJavaObjectClassName() {
-            return "Long";
+        public Class getJavaObjectClass() {
+            return Long.class;
         }
 
         @Override
@@ -367,10 +355,7 @@ public enum ValueType {
         public boolean supportsRangeScans() {
             return false;
         }
-        @Override
-        public Class<?> getTypeClass() {
-            return Long.class;
-        }
+
     },
     /**
      * This value type supports range scans.  Sequential numbers will be written next to each other.
@@ -413,8 +398,8 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "Sha256Hash";
+        public Class getJavaClass() {
+            return Sha256Hash.class;
         }
 
         @Override
@@ -449,10 +434,6 @@ public enum ValueType {
             return "32";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return Sha256Hash.class;
-        }
     },
     /**
      * This value type DOES NOT support range scans.
@@ -489,8 +470,8 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "String";
+        public Class getJavaClass() {
+            return String.class;
         }
 
         @Override
@@ -530,10 +511,6 @@ public enum ValueType {
             return "EncodingUtils.encodeVarString(" + variableName + ")";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return String.class;
-        }
     },
     STRING {
         @Override
@@ -566,8 +543,8 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "String";
+        public Class getJavaClass() {
+            return String.class;
         }
 
         @Override
@@ -605,10 +582,6 @@ public enum ValueType {
             return "PtBytes.toBytes(" + variableName + ")";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return String.class;
-        }
     },
     BLOB {
         @Override
@@ -639,8 +612,8 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "byte[]";
+        public Class getJavaClass() {
+            return byte[].class;
         }
 
         @Override
@@ -678,10 +651,6 @@ public enum ValueType {
             return "0";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return byte[].class;
-        }
     },
     /**
      * This value type DOES NOT support range scans.
@@ -715,8 +684,8 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "byte[]";
+        public Class getJavaClass() {
+            return byte[].class;
         }
 
         @Override
@@ -756,10 +725,6 @@ public enum ValueType {
             return "EncodingUtils.sizeOfSizedBytes(" + variableName + ")";
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return byte[].class;
-        }
     },
     NULLABLE_FIXED_LONG {
         @Override
@@ -795,8 +760,8 @@ public enum ValueType {
         }
 
         @Override
-        public String getJavaClassName() {
-            return "Long";
+        public Class getJavaClass() {
+            return Long.class;
         }
 
         @Override
@@ -837,10 +802,6 @@ public enum ValueType {
             return String.format("EncodingUtils.encodeNullableFixedLong(%s)", variableName);
         }
 
-        @Override
-        public Class<?> getTypeClass() {
-            return Long.class;
-        }
     },
     UUID {
         @Override
@@ -883,6 +844,11 @@ public enum ValueType {
         }
 
         @Override
+        public Class getJavaClass() {
+            return java.util.UUID.class;
+        }
+
+        @Override
         public String getPersistCode(String variableName) {
             return String.format("EncodingUtils.encodeUUID(%s)", variableName);
         }
@@ -900,16 +866,6 @@ public enum ValueType {
         @Override
         public String getHydrateSizeCode(String variableName) {
             return "16";
-        }
-
-        @Override
-        public String getJavaClassName() {
-            return UUID.class.getName();
-        }
-
-        @Override
-        public Class<?> getTypeClass() {
-            return UUID.class;
         }
 
     }
@@ -935,10 +891,18 @@ public enum ValueType {
         return true;
     }
 
-    public abstract String getJavaClassName();
-    public String getJavaObjectClassName() {
-        return getJavaClassName();
+    public abstract Class getJavaClass();
+    public Class getJavaObjectClass() {
+        return getJavaClass();
     }
+
+    public String getJavaClassName() {
+        return getJavaClass().getSimpleName();
+    }
+    public String getJavaObjectClassName() {
+        return getJavaObjectClass().getSimpleName();
+    }
+
     public abstract String getPersistCode(String variableName);
     public abstract String getHydrateCode(String inputName, String indexName);
     public abstract String getFlippedHydrateCode(String inputName, String indexName);
@@ -957,5 +921,4 @@ public enum ValueType {
         return valueOf(message.name());
     }
 
-    public abstract Class<?> getTypeClass();
 }
