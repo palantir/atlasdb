@@ -88,7 +88,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
 
     private static Cassandra.Client getClient(InetSocketAddress addr,
                                               CassandraKeyValueServiceConfig config) throws Exception {
-        Client ret = getClientInternal(addr, config);
+        Client ret = getWrappedClient(addr, config);
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
@@ -102,6 +102,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
             ret.getOutputProtocol().getTransport().close();
             throw e;
         }
+    }
+
+    private static Client getWrappedClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+            throws TException {
+        return new CassandraClient(getClientInternal(addr, config));
     }
 
     static Cassandra.Client getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
