@@ -16,14 +16,38 @@
 
 package com.palantir.atlasdb.qos;
 
+
+import javax.naming.LimitExceededException;
+
 // TODO this class should use a QosService and update limits
-public class AtlasDbQosClient {
+public final class AtlasDbQosClient {
+    QosServiceResource qosService;
+
+    volatile int credits;
+
+    private AtlasDbQosClient(QosServiceResource qosService) {
+        this.qosService = qosService;
+    }
+
+    public static AtlasDbQosClient create(QosServiceResource qosService,
+            String clientName) {
+        AtlasDbQosClient client = new AtlasDbQosClient(qosService);
+        client.credits = qosService.getLimit(clientName);
+        return client;
+    }
 
     // The KVS layer should call this before every read/write operation
-    public void checkLimit() {
+    // Currently all operations are treated equally; each uses up a unit of credits
+    // TODO use a background thread to refresh this limit
+    public void checkLimit() throws LimitExceededException {
         // always return immediately - i.e. no backoff
-        // TODO this call should "use up" a unit
         // TODO if soft-limited, pause
-        // TODO if hard-limited, throw exception
+        // if hard-limited, throw exception
+        if (credits > 0) {
+            credits--;
+        } else {
+            // TODO is there a more appropriate exception?
+            throw new LimitExceededException("Rate limit exceeded");
+        }
     }
 }

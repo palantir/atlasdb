@@ -16,12 +16,39 @@
 
 package com.palantir.atlasdb.qos;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import javax.naming.LimitExceededException;
+
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class AtlasDbQosClientTest {
+    private QosServiceResource qosService = mock(QosServiceResource.class);
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
+    @Before
+    public void setUp() {
+        when(qosService.getLimit("test-client")).thenReturn(1);
+    }
+
     @Test(timeout = 10) // TODO flaky? how else to verify immediate return?
-    public void doesNotBackOff() {
-        AtlasDbQosClient qosClient = new AtlasDbQosClient();
+    public void doesNotBackOff() throws LimitExceededException {
+        AtlasDbQosClient qosClient = AtlasDbQosClient.create(qosService, "test-client");
+        qosClient.checkLimit();
+    }
+
+    @Test
+    public void throwsAfterLimitExceeded() throws LimitExceededException {
+        AtlasDbQosClient qosClient = AtlasDbQosClient.create(qosService, "test-client");
+        qosClient.checkLimit();
+
+        exception.expect(LimitExceededException.class);
         qosClient.checkLimit();
     }
 
