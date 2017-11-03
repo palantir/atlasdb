@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.qos.AtlasDbQosClient;
@@ -62,4 +63,11 @@ public class CassandraClientTest {
         verifyNoMoreInteractions(qosClient);
     }
 
+    @Test
+    public void batchMutateChecksLimit() throws TException, LimitExceededException {
+        client.batch_mutate(ImmutableMap.of(), ConsistencyLevel.ANY);
+
+        verify(qosClient, times(1)).checkLimit();
+        verifyNoMoreInteractions(qosClient);
+    }
 }

@@ -79,7 +79,12 @@ public class CassandraClient extends AutoDelegate_Client {
     public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        super.batch_mutate(mutation_map, consistency_level);
+        try {
+            qosClient.checkLimit();
+            super.batch_mutate(mutation_map, consistency_level);
+        } catch (LimitExceededException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     @Override
