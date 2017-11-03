@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleShrinkExecutor;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
@@ -46,21 +49,18 @@ public final class OracleDdlTable implements DbDdlTable {
     private final TableReference tableRef;
     private final OracleTableNameGetter oracleTableNameGetter;
     private final TableValueStyleCache valueStyleCache;
-    private OracleShrinkExecutor oracleShrinkExecutor;
 
     private OracleDdlTable(
             OracleDdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
             OracleTableNameGetter oracleTableNameGetter,
-            TableValueStyleCache valueStyleCache,
-            OracleShrinkExecutor oracleShrinkExecutor) {
+            TableValueStyleCache valueStyleCache) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
         this.oracleTableNameGetter = oracleTableNameGetter;
         this.valueStyleCache = valueStyleCache;
-        this.oracleShrinkExecutor = oracleShrinkExecutor;
     }
 
     public static OracleDdlTable create(
@@ -68,10 +68,8 @@ public final class OracleDdlTable implements DbDdlTable {
             ConnectionSupplier conns,
             OracleDdlConfig config,
             OracleTableNameGetter oracleTableNameGetter,
-            TableValueStyleCache valueStyleCache,
-            OracleShrinkExecutor oracleShrinkExecutor) {
-        return new OracleDdlTable(
-                config, conns, tableRef, oracleTableNameGetter, valueStyleCache, oracleShrinkExecutor);
+            TableValueStyleCache valueStyleCache) {
+        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache);
     }
 
     @Override
@@ -244,25 +242,55 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
+        final String compactionFailureTemplate = "Tried to clean up {} bloat after a sweep operation,"
+                + " but underlying Oracle database or configuration does not support this {} feature online. "
+                + " Since this can't be automated in your configuration,"
+                + " good practice would be do to occasional offline manual maintenance of rebuilding"
+                + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
+                + " like more information. Underlying error was: {}";
+
         if (config.enableOracleEnterpriseFeatures()) {
             try {
                 conns.get().executeUnregisteredQuery(
                         "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
                                 + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
-                log.error("Tried to clean up {} bloat after a sweep operation,"
-                        + " but underlying Oracle database or configuration does not support this"
-                        + " (Enterprise Edition that requires this user to be able to perform DDL operations)"
-                        + " feature online. Since this can't be automated in your configuration,"
-                        + " good practice would be do to occasional offline manual maintenance of rebuilding"
-                        + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
-                        + " like more information. Underlying error was: {}",
-                        tableRef.toString(), e.getMessage());
+                log.error(compactionFailureTemplate,
+                        tableRef,
+                        "(Enterprise Edition that requires this user to be able to perform DDL operations)",
+                        e.getMessage());
+            } catch (TableMappingNotFoundException e) {
+                throw Throwables.propagate(e);
+            }
+        } else if (config.enableShrinkOnOracleStandardEdition()) {
+            Stopwatch timer = Stopwatch.createStarted();
+            try {
+                Stopwatch shrinkAndCompactTimer = Stopwatch.createStarted();
+                conns.get().executeUnregisteredQuery(
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                + " SHRINK SPACE COMPACT");
+                log.info("Call to SHRINK SPACE COMPACT on table {} took {} ms.",
+                        tableRef, shrinkAndCompactTimer.elapsed(TimeUnit.MILLISECONDS));
+
+                Stopwatch shrinkTimer = Stopwatch.createStarted();
+                conns.get().executeUnregisteredQuery(
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                + " SHRINK SPACE");
+                log.info("Call to SHRINK SPACE on table {} took {} ms."
+                                + " This implies that locks on the entire table were held for this period.",
+                        tableRef, shrinkTimer.elapsed(TimeUnit.MILLISECONDS));
+            } catch (PalantirSqlException e) {
+                log.error(compactionFailureTemplate,
+                        tableRef,
+                        "(If you are running against Enterprise Edition,"
+                                + " you can set enableOracleEnterpriseFeatures to true in the configuration.)",
+                        e.getMessage());
             } catch (TableMappingNotFoundException e) {
                 throw new RuntimeException(e);
+            } finally {
+                log.info("Call to KVS.compactInternally on table {} took {} ms.",
+                        tableRef, timer.elapsed(TimeUnit.MILLISECONDS));
             }
-        } else if (config.shrinkConfig().enableShrinkOnOracleStandardEdition()) {
-            oracleShrinkExecutor.shrinkAsync(tableRef);
         }
     }
 }

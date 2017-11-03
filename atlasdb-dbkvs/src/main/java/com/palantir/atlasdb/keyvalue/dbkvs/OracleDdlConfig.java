@@ -37,7 +37,6 @@ import com.palantir.db.oracle.JdbcHandler;
 public abstract class OracleDdlConfig extends DdlConfig {
     public static final String TYPE = "oracle";
 
-
     public abstract JdbcHandler jdbcHandler();
 
     @Value.Default
@@ -61,8 +60,8 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Value.Default
-    public OracleStandardEditionShrinkConfiguration shrinkConfig() {
-        return ImmutableOracleStandardEditionShrinkConfiguration.builder().build();
+    public boolean enableShrinkOnOracleStandardEdition() {
+        return true;
     }
 
     @Value.Default

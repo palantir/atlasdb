@@ -32,18 +32,15 @@ public class OracleDbTableFactory implements DbTableFactory {
     private final OracleTableNameGetter oracleTableNameGetter;
     private final OraclePrefixedTableNames oraclePrefixedTableNames;
     private final TableValueStyleCache valueStyleCache;
-    private final OracleShrinkExecutor oracleShrinkExecutor;
 
     public OracleDbTableFactory(OracleDdlConfig config,
-            OracleTableNameGetter oracleTableNameGetter,
-            OraclePrefixedTableNames oraclePrefixedTableNames,
-            TableValueStyleCache valueStyleCache,
-            OracleShrinkExecutor oracleShrinkExecutor) {
+                                OracleTableNameGetter oracleTableNameGetter,
+                                OraclePrefixedTableNames oraclePrefixedTableNames,
+                                TableValueStyleCache valueStyleCache) {
         this.config = config;
         this.oracleTableNameGetter = oracleTableNameGetter;
         this.oraclePrefixedTableNames = oraclePrefixedTableNames;
         this.valueStyleCache = valueStyleCache;
-        this.oracleShrinkExecutor = oracleShrinkExecutor;
     }
 
     @Override
@@ -53,8 +50,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter, valueStyleCache,
-                oracleShrinkExecutor);
+        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter, valueStyleCache);
     }
 
     @Override
