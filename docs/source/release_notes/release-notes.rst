@@ -49,7 +49,8 @@ develop
          - Change
 
     *    - |fixed|
-         - kvs.getRanges now also logs ``kvs-slow-log`` if the backing store is being slow to return the requested values.
+         - ``getRange`` now also logs ``kvs-slow-log`` if the backing store is being slow to return the requested values.
+           Previously it would never trigger, as it would just measure the construction of the iterator, and not the actual calls to the underlying store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2617>`__)
 
 
