@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertEquals;
+public class CassandraClientTest {
 
-import org.junit.Test;
-
-public class QosServiceResourceTest {
-    @Test
-    public void canGetLimit() {
-        QosService resource = new QosServiceResource();
-        assertEquals(Integer.MAX_VALUE, resource.getLimit("test-client"));
-    }
 }
-

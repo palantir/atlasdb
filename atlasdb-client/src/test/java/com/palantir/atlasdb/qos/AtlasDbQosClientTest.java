@@ -27,7 +27,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class AtlasDbQosClientTest {
-    private QosServiceResource qosService = mock(QosServiceResource.class);
+    private QosService qosService = mock(QosService.class);
 
     @Rule
     public ExpectedException exception = ExpectedException.none();

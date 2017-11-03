@@ -21,15 +21,15 @@ import javax.naming.LimitExceededException;
 
 // TODO this class should use a QosService and update limits
 public final class AtlasDbQosClient {
-    QosServiceResource qosService;
+    QosService qosService;
 
     volatile int credits;
 
-    private AtlasDbQosClient(QosServiceResource qosService) {
+    private AtlasDbQosClient(QosService qosService) {
         this.qosService = qosService;
     }
 
-    public static AtlasDbQosClient create(QosServiceResource qosService,
+    public static AtlasDbQosClient create(QosService qosService,
             String clientName) {
         AtlasDbQosClient client = new AtlasDbQosClient(qosService);
         client.credits = qosService.getLimit(clientName);

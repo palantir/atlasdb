@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.qos;
 
-import javax.ws.rs.PathParam;
-
-import com.palantir.logsafe.Safe;
-
-public interface QosServiceResource {
-    int getLimit(@Safe @PathParam("client") String client);
+public class QosServiceResource implements QosService {
+    @Override
+    public int getLimit(String client) {
+        return Integer.MAX_VALUE;
+    }
 }
