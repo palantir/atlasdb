@@ -278,7 +278,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    private enum SweepOutcome {
+    public enum SweepOutcome {
         SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
         NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
     }
