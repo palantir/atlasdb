@@ -48,6 +48,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - AtlasDB now depends on Tritium 0.7.0, allowing products to upgrade Tritium without running into `NoClassDefFound` errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+
     *    - |improved| |logs|
          - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
