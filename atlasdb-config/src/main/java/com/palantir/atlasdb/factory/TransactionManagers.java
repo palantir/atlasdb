@@ -485,17 +485,9 @@ public abstract class TransactionManagers {
         return ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(sweepConfig.readLimit())
                 .candidateBatchSize(sweepConfig.candidateBatchHint()
-                        .orElse(getDefaultSweepCandidateBatchHint(kvsConfig)))
+                        .orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .deleteBatchSize(sweepConfig.deleteBatchHint())
                 .build();
-    }
-
-    // TODO(nziebart): this is a hack until we fix cassandra's getCandidateCellsForSweep to behave like the other KVSs
-    private static int getDefaultSweepCandidateBatchHint(KeyValueServiceConfig kvsConfig) {
-        if (kvsConfig.type().equals("cassandra")) {
-            return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_CASSANDRA;
-        }
-        return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_NON_CASSANDRA;
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(
