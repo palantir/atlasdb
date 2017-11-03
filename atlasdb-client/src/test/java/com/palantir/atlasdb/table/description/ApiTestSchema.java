@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import java.io.File;
+import java.util.stream.Stream;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -65,6 +66,25 @@ public class ApiTestSchema implements AtlasSchema {
                 column("column", "c", ValueType.STRING);
 
                 rangeScanAllowed();
+            }
+        });
+
+        schema.addTableDefinition("AllValueTypesTest", new TableDefinition() {
+            {
+                javaTableName("AllValueTypesTest");
+
+                // This doesn't include STRING, but that is already covered by another table.
+                // STRING or BLOB must be at the end of a row name, so we cannot test both.
+                rowName();
+                Stream.of(ValueType.values())
+                        .filter(type -> type != ValueType.BLOB && type != ValueType.STRING)
+                        .forEachOrdered(type -> rowComponent("component" + type.ordinal(), type));
+
+                rowComponent("blobComponent", ValueType.BLOB); // has to be the last one
+
+                columns();
+                Stream.of(ValueType.values())
+                        .forEachOrdered(type -> column("column" + type.ordinal(), "c" + type.ordinal(), type));
             }
         });
 

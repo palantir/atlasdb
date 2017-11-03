@@ -97,13 +97,12 @@ public class CandidateGroupingIteratorTest {
                                                       String colName,
                                                       long numCellTsPairsExamined,
                                                       boolean latestValEmpty,
-                                                      long... ts) {
+                                                      Long... ts) {
         Arrays.sort(ts);
         return ImmutableCandidateCellForSweeping.builder()
                 .cell(Cell.create(bytes(rowName), bytes(colName)))
                 .isLatestValueEmpty(latestValEmpty)
-                .numCellsTsPairsExamined(numCellTsPairsExamined)
-                .sortedTimestamps(ts)
+                .sortedTimestamps(Arrays.asList(ts))
                 .build();
     }
 
