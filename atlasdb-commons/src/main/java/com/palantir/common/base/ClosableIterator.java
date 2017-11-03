@@ -32,7 +32,7 @@ import com.google.common.collect.PeekingIterator;
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     @Override
-    default void close() { }
+    void close();
 
     default <U> ClosableIterator<U> map(Function<T, U> mapper) {
         return ClosableIterators.wrap(Iterators.transform(this, mapper::apply));
@@ -55,6 +55,9 @@ public interface ClosableIterator<T> extends Iterator<T>, Closeable {
             public T next() {
                 return peekingIterator.next();
             }
+
+            @Override
+            public void close() {}
         };
     }
 

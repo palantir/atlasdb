@@ -66,4 +66,9 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
         return new GetCandidateRowsForSweeping(valuesLoader, cqlExecutor, table,
                 request.withStartRow(nextStartRow)).execute();
     }
+
+    @Override
+    public void close() {
+        // no-op
+    }
 }

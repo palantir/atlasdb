@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.google.common.base.Stopwatch;
@@ -432,11 +431,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
             public void remove() {
                 rowColumnRangeIterator.remove();
             }
-
-            @Override
-            public void forEachRemaining(Consumer<? super Entry<Cell, Value>> action) {
-                maybeLog(() -> rowColumnRangeIterator.forEachRemaining(action), logger);
-            }
         };
     }
 
@@ -462,11 +456,6 @@ public final class ProfilingKeyValueService implements KeyValueService {
             @Override
             public void remove() {
                 closableIterator.remove();
-            }
-
-            @Override
-            public void forEachRemaining(Consumer<? super T> action) {
-                maybeLog(() -> closableIterator.forEachRemaining(action), logger);
             }
         };
     }
