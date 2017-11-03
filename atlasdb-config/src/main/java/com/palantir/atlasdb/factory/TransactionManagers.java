@@ -449,6 +449,7 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 sweepPerfLogger,
                 sweepMetrics,
+                config.initializeAsync(),
                 sweepBatchConfigSource);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
@@ -469,6 +470,7 @@ public abstract class TransactionManagers {
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics,
+            boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
@@ -476,7 +478,8 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
-                sweepMetrics);
+                sweepMetrics,
+                initializeAsync);
         env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;
     }

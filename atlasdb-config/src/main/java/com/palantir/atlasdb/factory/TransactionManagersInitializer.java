@@ -18,11 +18,9 @@ package com.palantir.atlasdb.factory;
 
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
@@ -51,12 +49,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     public synchronized void tryInitialize() {
         TransactionTables.createTables(keyValueService);
 
-        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
-                .add(SweepSchema.INSTANCE.getLatestSchema())
-                .addAll(schemas)
-                .build();
-
-        for (Schema schema : allSchemas) {
+        for (Schema schema : schemas) {
             Schemas.createTablesAndIndexes(schema, keyValueService);
         }
 
