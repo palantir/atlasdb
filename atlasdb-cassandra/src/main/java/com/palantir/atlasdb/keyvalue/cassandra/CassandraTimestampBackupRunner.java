@@ -108,8 +108,12 @@ public class CassandraTimestampBackupRunner {
 
             BoundReadability boundReadability = checkReadability(boundData);
             if (boundReadability == BoundReadability.BOUND) {
-                log.info("[RESTORE] Didn't restore, because the current bound is readable with the value {}.",
-                        SafeArg.of("currentBound", PtBytes.toLong(currentBound)));
+                if (currentBound == null) {
+                    log.info("[RESTORE] Didn't restore, because the current bound is empty (and thus readable).");
+                } else {
+                    log.info("[RESTORE] Didn't restore, because the current bound is readable with the value {}.",
+                            SafeArg.of("currentBound", PtBytes.toLong(currentBound)));
+                }
                 return null;
             }
 
