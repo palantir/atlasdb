@@ -46,6 +46,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.qos.AtlasDbQosClient;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
@@ -65,10 +66,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                 }
             });
 
+    private final AtlasDbQosClient qosClient;
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
 
-    public CassandraClientFactory(InetSocketAddress addr, CassandraKeyValueServiceConfig config) {
+    public CassandraClientFactory(AtlasDbQosClient qosClient,
+            InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config) {
+        this.qosClient = qosClient;
         this.addr = addr;
         this.config = config;
     }
@@ -76,7 +81,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public Client create() throws Exception {
         try {
-            return getClient(addr, config);
+            return getClient(qosClient, addr, config);
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -86,9 +91,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         }
     }
 
-    private static Cassandra.Client getClient(InetSocketAddress addr,
-                                              CassandraKeyValueServiceConfig config) throws Exception {
-        Client ret = getWrappedClient(addr, config);
+    private static Cassandra.Client getClient(AtlasDbQosClient qosClient,
+            InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config) throws Exception {
+        Client ret = getWrappedClient(qosClient, addr, config);
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
             log.debug("Created new client for {}/{}{}{}",
@@ -104,9 +110,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         }
     }
 
-    private static Client getWrappedClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+    private static Client getWrappedClient(AtlasDbQosClient qosClient,
+            InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config)
             throws TException {
-        return new CassandraClient(getClientInternal(addr, config));
+        return new CassandraClient(getClientInternal(addr, config), qosClient);
     }
 
     static Cassandra.Client getClientInternal(InetSocketAddress addr, CassandraKeyValueServiceConfig config)

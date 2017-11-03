@@ -72,6 +72,9 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.QosService;
+import com.palantir.atlasdb.qos.QosServiceResource;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -150,6 +153,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
+    private final AtlasDbQosClient qosClient;
     private final ScheduledExecutorService refreshDaemon;
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
@@ -177,14 +181,20 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+        // TODO eventually we'll want to pass this in from somewhere
+        QosService qosResource = new QosServiceResource();
+
+        AtlasDbQosClient qosClient = AtlasDbQosClient.create(qosResource, config.getKeyspaceOrThrow());
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks, qosClient);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
-    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
+    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks,
+            AtlasDbQosClient qosClient) {
         this.config = config;
         this.startupChecks = startupChecks;
+        this.qosClient = qosClient;
         this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
@@ -287,7 +297,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
+        addPool(server, new CassandraClientPoolingContainer(qosClient, server, config, currentPoolNumber));
     }
 
     @VisibleForTesting

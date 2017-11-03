@@ -37,6 +37,7 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
+import com.palantir.atlasdb.qos.AtlasDbQosClient;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -45,11 +46,13 @@ import com.palantir.processors.AutoDelegate;
 @AutoDelegate(typeToExtend = Cassandra.Client.class)
 @SuppressWarnings({"checkstyle:all", "DuplicateThrows"}) // :'(
 public class CassandraClient extends AutoDelegate_Client {
-    private Cassandra.Client delegate;
+    private final Cassandra.Client delegate;
+    private final AtlasDbQosClient qosClient;
 
-    public CassandraClient(Cassandra.Client delegate) {
+    public CassandraClient(Cassandra.Client delegate, AtlasDbQosClient qosClient) {
         super(delegate.getInputProtocol());
         this.delegate = delegate;
+        this.qosClient = qosClient;
     }
 
     @Override
