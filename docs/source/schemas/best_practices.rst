@@ -37,3 +37,11 @@ Range Scans
    - Range scans inherently lead to hotspotting, because keys that are close to one another in a range will end up on the same Cassandra node.
 - When using dynamic columns for range scans, do not allow the total size of your row to grow above ~100MB.
    - Large rows reduce performance of compactions and create heap pressure in Cassandra
+
+Stream Stores
+=============
+
+The use of ``hashRowComponents`` for stream stores is strongly recommended as this avoids hotspotting.
+This is because the row key of a stream store value table is an ordered pair (stream ID, block ID).
+Hashing the first row component is not enough, because it still means that every block of the same stream will (likely)
+be stored on the same token range, and so loading the stream may heavily load the nodes responsible for that range.
