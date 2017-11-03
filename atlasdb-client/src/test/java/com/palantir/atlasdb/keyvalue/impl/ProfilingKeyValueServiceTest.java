@@ -72,7 +72,7 @@ public class ProfilingKeyValueServiceTest {
                     .shouldCheckIfLatestValueIsEmpty(false)
                     .maxTimestampExclusive(0L)
                     .build();
-    public static final ColumnRangeSelection COLUMN_RANGE_SELECTION = new ColumnRangeSelection(
+    private static final ColumnRangeSelection COLUMN_RANGE_SELECTION = new ColumnRangeSelection(
             new byte[0], new byte[0]);
 
     private KeyValueService delegate;
@@ -259,11 +259,31 @@ public class ProfilingKeyValueServiceTest {
     @Test
     public void getRangeLogsWhenIteratorNextIsSlow() {
         Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
-        ClosableIterator mockedIterator = buildSlowClosableIterator();
+        ClosableIterator returnedIterator = slowGetRangeIterator();
 
-        when(delegate.getRange(any(), any(), anyLong())).thenReturn(mockedIterator);
-        ClosableIterator returnedIterator = kvs.getRange(TABLE_REF, RANGE_REQUEST, 0);
         returnedIterator.next();
+
+        verify(mockAppender).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void getRangeLogsWhenIteratorHasNextIsSlow() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
+        ClosableIterator returnedIterator = slowGetRangeIterator();
+
+        returnedIterator.hasNext();
+
+        verify(mockAppender).doAppend(traceLogMatcher.get());
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void getRangeLogsWhenIteratorForEachRemainingIsSlow() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.TRACE);
+        ClosableIterator returnedIterator = slowGetRangeIterator();
+
+        returnedIterator.forEachRemaining((obj) -> {});
 
         verify(mockAppender).doAppend(traceLogMatcher.get());
         verify(mockAppender).doAppend(slowLogMatcher.get());
@@ -310,9 +330,17 @@ public class ProfilingKeyValueServiceTest {
         verify(mockAppender).doAppend(slowLogMatcher.get());
     }
 
+    private ClosableIterator slowGetRangeIterator() {
+        ClosableIterator mockedIterator = buildSlowClosableIterator();
+        when(delegate.getRange(any(), any(), anyLong())).thenReturn(mockedIterator);
+        return kvs.getRange(TABLE_REF, RANGE_REQUEST, 0);
+    }
+
     private ClosableIterator buildSlowClosableIterator() {
         ClosableIterator mockedIterator = mock(ClosableIterator.class);
         doAnswer(waitASecondAndAHalf).when(mockedIterator).next();
+        doAnswer(waitASecondAndAHalf).when(mockedIterator).hasNext();
+        doAnswer(waitASecondAndAHalf).when(mockedIterator).forEachRemaining(any());
         return mockedIterator;
     }
 
