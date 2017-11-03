@@ -37,7 +37,7 @@ public class AtlasDbQosClientTest {
         when(qosService.getLimit("test-client")).thenReturn(1);
     }
 
-    @Test(timeout = 10) // TODO flaky? how else to verify immediate return?
+    @Test
     public void doesNotBackOff() throws LimitExceededException {
         AtlasDbQosClient qosClient = AtlasDbQosClient.create(qosService, "test-client");
         qosClient.checkLimit();
