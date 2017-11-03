@@ -25,6 +25,8 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
@@ -64,10 +66,24 @@ public final class SweeperServiceImpl implements SweeperService {
         }
 
         if (fullSweep.orElse(true)) {
-            log.info("Running sweep of full table: {}", LoggingArgs.tableRef(tableRef));
+            log.info("Running sweep of full table {}, "
+                            + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
+                            + "starting from row {}",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
+                    SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
+                    UnsafeArg.of("decodedStartRow", decodedStartRow));
             return runFullSweepWithoutSavingResults(tableRef, decodedStartRow, config);
         } else {
-            log.info("Running sweep of a single batch on table: {}", LoggingArgs.tableRef(tableRef));
+            log.info("Running sweep of a single batch on table {}, "
+                            + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
+                            + "starting from row {}",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
+                    SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
+                    UnsafeArg.of("decodedStartRow", decodedStartRow));
             return runOneBatchWithoutSavingResults(tableRef, decodedStartRow, config);
         }
     }
