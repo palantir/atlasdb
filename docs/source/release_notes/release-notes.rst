@@ -53,6 +53,9 @@ develop
            Previously it would never trigger, as it would just measure the construction of the iterator, and not the actual calls to the underlying store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2617>`__)
 
+    *    - |improved| |logs|
+         - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
