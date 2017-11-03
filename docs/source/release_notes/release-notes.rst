@@ -48,6 +48,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - ``getRange`` now also logs ``kvs-slow-log`` if the backing store is being slow to return the requested values.
+           Previously it would never trigger, as it would just measure the construction of the iterator, and not the actual calls to the underlying store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2617>`__)
+
     *    - |improved| |logs|
          - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)

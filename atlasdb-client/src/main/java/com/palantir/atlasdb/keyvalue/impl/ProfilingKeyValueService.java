@@ -47,6 +47,8 @@ import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public final class ProfilingKeyValueService implements KeyValueService {
@@ -114,6 +116,27 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.method(method),
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.range(tableRef, range),
+                        LoggingArgs.durationMillis(stopwatch));
+    }
+
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRangeOfIterator(String method,
+            TableReference tableRef, RangeRequest range) {
+        return (logger, stopwatch) ->
+                logger.log("Call to KVS.{} iterator on table {} with range {} took {} ms.",
+                        LoggingArgs.method(method),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.range(tableRef, range),
+                        LoggingArgs.durationMillis(stopwatch));
+    }
+
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndCandidateCellForSweepingRequestOfIterator(
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
+        return (logger, stopwatch) ->
+                logger.log("Call to KVS.getCandidateCellsForSweeping iterator on table {}"
+                                + " for row {} with batchSize {} took {} ms.",
+                        LoggingArgs.tableRef(tableRef),
+                        UnsafeArg.of("startRow", request.startRowInclusive()),
+                        SafeArg.of("batchSize", request.batchSizeHint()),
                         LoggingArgs.durationMillis(stopwatch));
     }
 
@@ -231,22 +254,22 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest,
             long timestamp) {
-        return maybeLog(() -> delegate.getRange(tableRef, rangeRequest, timestamp),
-                logTimeAndTableRange("getRange", tableRef, rangeRequest));
+        return wrapClosableIteratorWithLogger(delegate.getRange(tableRef, rangeRequest, timestamp),
+                logTimeAndTableRangeOfIterator("getRange", tableRef, rangeRequest));
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
             RangeRequest rangeRequest, long timestamp) {
-        return maybeLog(() -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
-                logTimeAndTableRange("getRangeOfTimestamps", tableRef, rangeRequest));
+        return wrapClosableIteratorWithLogger(delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+                logTimeAndTableRangeOfIterator("getRangeOfTimestamps", tableRef, rangeRequest));
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return maybeLog(() -> delegate.getCandidateCellsForSweeping(tableRef, request),
-                logTime("getCandidateCellsForSweeping"));
+        return wrapClosableIteratorWithLogger(delegate.getCandidateCellsForSweeping(tableRef, request),
+                logTimeAndCandidateCellForSweepingRequestOfIterator(tableRef, request));
     }
 
     @Override
@@ -378,10 +401,10 @@ public final class ProfilingKeyValueService implements KeyValueService {
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
-        return maybeLog(() ->
-                        delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
+        return wrapRowColumnRangeIteratorWithLogger(
+                delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
                 (logger, stopwatch) -> logger.log(
-                        "Call to KVS.getRowsColumnRange - CellBatch on table {} for {} rows with range {} "
+                        "Call to KVS.getRowsColumnRange - CellBatch iterator on table {} for {} rows with range {} "
                                 + "and batch hint {} took {} ms.",
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.rowCount(Iterables.size(rows)),
@@ -390,7 +413,54 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch)));
     }
 
-    private  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
+    private RowColumnRangeIterator wrapRowColumnRangeIteratorWithLogger(
+            RowColumnRangeIterator rowColumnRangeIterator,
+            BiConsumer<LoggingFunction, Stopwatch> logger) {
+        return new RowColumnRangeIterator() {
+            @Override
+            public Entry<Cell, Value> next() {
+                return maybeLog(rowColumnRangeIterator::next, logger);
+            }
+
+            @Override
+            public boolean hasNext() {
+                return maybeLog(rowColumnRangeIterator::hasNext, logger);
+            }
+
+            @Override
+            public void remove() {
+                rowColumnRangeIterator.remove();
+            }
+        };
+    }
+
+    private <T> ClosableIterator<T> wrapClosableIteratorWithLogger(
+            ClosableIterator<T> closableIterator,
+            BiConsumer<LoggingFunction, Stopwatch> logger) {
+        return new ClosableIterator<T>() {
+            @Override
+            public T next() {
+                return maybeLog(closableIterator::next, logger);
+            }
+
+            @Override
+            public void close() {
+                closableIterator.close();
+            }
+
+            @Override
+            public boolean hasNext() {
+                return maybeLog(closableIterator::hasNext, logger);
+            }
+
+            @Override
+            public void remove() {
+                closableIterator.remove();
+            }
+        };
+    }
+
+    private <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
         return KvsProfilingLogger.maybeLog(action, logger);
     }
 
