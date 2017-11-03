@@ -48,6 +48,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |logs|
+         - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+
     *    - |fixed|
          - Fixed cursor leak when sweeping on oracle/postgres.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2609>`__)
