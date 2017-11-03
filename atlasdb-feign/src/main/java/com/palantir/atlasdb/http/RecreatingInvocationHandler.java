@@ -31,7 +31,7 @@ import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.reflect.Reflection;
 import com.palantir.logsafe.UnsafeArg;
 
-public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler {
+public final class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(RecreatingInvocationHandler.class);
 
     private final Supplier<Optional<T>> deltaSupplier;
@@ -86,7 +86,7 @@ public class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler
         return new DeltaSupplier<>(supplier);
     }
 
-    private static class DeltaSupplier<T> implements Supplier<Optional<T>> {
+    private static final class DeltaSupplier<T> implements Supplier<Optional<T>> {
         private static final Logger log = LoggerFactory.getLogger(DeltaSupplier.class);
 
         private final Supplier<T> baseSupplier;
