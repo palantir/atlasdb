@@ -20,7 +20,8 @@ package com.palantir.atlasdb.qos;
 import javax.naming.LimitExceededException;
 
 // TODO this class should use a QosService and update limits
-public final class AtlasDbQosClient {
+@SuppressWarnings("FinalClass")
+public class AtlasDbQosClient {
     QosService qosService;
 
     volatile int credits;

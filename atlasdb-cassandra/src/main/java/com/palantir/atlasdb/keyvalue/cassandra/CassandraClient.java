@@ -20,6 +20,8 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
+import javax.naming.LimitExceededException;
+
 import org.apache.cassandra.thrift.AutoDelegate_Client;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -38,6 +40,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.common.base.Throwables;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -64,7 +67,19 @@ public class CassandraClient extends AutoDelegate_Client {
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return super.multiget_slice(keys, column_parent, predicate, consistency_level);
+        try {
+            qosClient.checkLimit();
+            return super.multiget_slice(keys, column_parent, predicate, consistency_level);
+        } catch (LimitExceededException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    @Override
+    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        super.batch_mutate(mutation_map, consistency_level);
     }
 
     @Override
@@ -79,12 +94,5 @@ public class CassandraClient extends AutoDelegate_Client {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return super.get_range_slices(column_parent, predicate, range, consistency_level);
-    }
-
-    @Override
-    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
-            ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        super.batch_mutate(mutation_map, consistency_level);
     }
 }

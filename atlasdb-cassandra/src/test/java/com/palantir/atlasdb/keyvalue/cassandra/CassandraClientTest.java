@@ -16,6 +16,50 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+
+import java.nio.ByteBuffer;
+
+import javax.naming.LimitExceededException;
+
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.ColumnParent;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.thrift.TException;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.atlasdb.qos.AtlasDbQosClient;
+
 public class CassandraClientTest {
+    private static final ByteBuffer ROW_KEY = ByteBuffer.wrap(PtBytes.toBytes("key"));
+
+    private final Cassandra.Client mockClient = mock(Cassandra.Client.class);
+    private final AtlasDbQosClient qosClient = mock(AtlasDbQosClient.class);
+
+    private CassandraClient client;
+
+    @Before
+    public void setUp() {
+        client = new CassandraClient(mockClient, qosClient);
+    }
+
+    @Test
+    public void multigetSliceChecksLimit() throws TException, LimitExceededException {
+        ColumnParent table = new ColumnParent("table");
+        SlicePredicate predicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ONE);
+
+        client.multiget_slice(ImmutableList.of(ROW_KEY), table, predicate, ConsistencyLevel.ANY);
+
+        verify(qosClient, times(1)).checkLimit();
+        verifyNoMoreInteractions(qosClient);
+    }
 
 }
