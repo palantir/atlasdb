@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +75,7 @@ public final class AdjustableSweepBatchConfigSource {
         SweepBatchConfig lastBatchConfig = getAdjustedSweepConfig();
 
         // Cut batch size in half, always sweep at least one row (we round down).
-        batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
+        reduceBatchSizeMultipler();
 
         log.warn("Sweep failed unexpectedly with candidate batch size {},"
                         + " delete batch size {},"
@@ -84,5 +85,19 @@ public final class AdjustableSweepBatchConfigSource {
                 SafeArg.of("deleteBatchSize", lastBatchConfig.deleteBatchSize()),
                 SafeArg.of("maxCellTsPairsToExamine", lastBatchConfig.maxCellTsPairsToExamine()),
                 SafeArg.of("batchSizeMultiplier", batchSizeMultiplier));
+    }
+
+    private void reduceBatchSizeMultipler() {
+        SweepBatchConfig config = getRawSweepConfig();
+        double smallestSensibleBatchSizeMultiplier =
+                1.0 / NumberUtils.max(
+                        config.maxCellTsPairsToExamine(), config.candidateBatchSize(), config.deleteBatchSize());
+
+        double newBatchSizeMultiplier = batchSizeMultiplier / 2;
+        if (newBatchSizeMultiplier < smallestSensibleBatchSizeMultiplier) {
+            batchSizeMultiplier = smallestSensibleBatchSizeMultiplier;
+        } else {
+            batchSizeMultiplier = newBatchSizeMultiplier;
+        }
     }
 }
