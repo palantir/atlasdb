@@ -26,6 +26,8 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 
 public abstract class AbstractCommand implements Callable<Integer> {
+    public static final String ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH = "/atlas";
+
     @Option(name = {"-c", "--config"},
             title = "CONFIG PATH",
             type = OptionType.GLOBAL,
@@ -57,7 +59,18 @@ public abstract class AbstractCommand implements Callable<Integer> {
         if (config == null) {
             try {
                 if (configFile != null) {
-                    config = AtlasDbConfigs.load(configFile, configRoot);
+                    try {
+                        config = AtlasDbConfigs.load(configFile, configRoot);
+                    } catch (Exception e) {
+                        try {
+                            config = AtlasDbConfigs.load(configFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH);
+                        } catch (Exception ex) {
+                            throw new RuntimeException("Failed to load the atlasdb config. "
+                                    + "One possibility is that the config root in the config is not '/atlasdb'. "
+                                    + "You can specify a different config root by specifying the --config-root option.",
+                                    ex);
+                        }
+                    }
                 } else if (inlineConfig != null) {
                     config = AtlasDbConfigs.loadFromString(inlineConfig, "");
                 } else {
