@@ -279,6 +279,14 @@ public abstract class AtlasDbConfig {
     private void checkLockAndTimestampBlocks() {
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
+        checkServersListHasAtLeastOneServerIfPresent(lock());
+        checkServersListHasAtLeastOneServerIfPresent(timestamp());
+    }
+
+    private static void checkServersListHasAtLeastOneServerIfPresent(Optional<ServerListConfig> serverListOptional) {
+        serverListOptional.ifPresent(
+                serverList -> Preconditions.checkState(serverList.hasAtLeastOneServer(),
+                        "Server list must have at least one server."));
     }
 
     private void checkNamespaceConfig() {
