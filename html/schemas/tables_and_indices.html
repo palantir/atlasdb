@@ -488,13 +488,25 @@ table is used by the partitioner to distribute data across the cluster.
 To avoid hot-spotting, the type of the first row component should NOT be
 a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.</p>
 </div>
-<p>For a safe data distribution it is suggested the usage of
-<code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code>:</p>
+<p>For a safe data distribution the usage of <code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code> is suggested.</p>
 <div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
-    <span class="n">hashFirstRowComponent</span><span class="p">()</span>
+    <span class="n">hashFirstRowComponent</span><span class="p">();</span>
     <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;secondary_row_component_of_any_type&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
 </pre></div>
 </div>
+<p>Also, in the event that the first row component may not be sufficient for even
+distribution (e.g. it has low cardinality and an uneven distribution, but subsequent
+components are more varied), AtlasDB also offers hashing a prefix of the row key, via
+<code class="docutils literal"><span class="pre">hashFirstNRowComponents(int)</span></code>. This is useful, for instance, in stream stores.</p>
+<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
+    <span class="n">hashFirstNRowComponents</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+    <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;first_component_not_evenly_distributed&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">VAR_LONG</span><span class="p">);</span>
+    <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;second_component_fairly_distributed&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">UUID</span><span class="p">);</span>
+    <span class="n">rowComponent</span><span class="p">(</span><span class="s2">&quot;third_component_maybe_expensive_to_hash&quot;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">.</span><span class="n">BLOB</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>This will prepend a hash of the first and second components of each row key to
+the table.</p>
 </div>
 </div>
 <div class="section" id="table-named-columns">

@@ -196,8 +196,21 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>AtlasDB now depends on Tritium 0.8.0, allowing products to upgrade Tritium without running into <cite>NoClassDefFound</cite> errors.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2606">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>AtlasDB tables will now be logged as <cite>ns.tablename</cite> instead of <cite>map[namespace:map[name:ns] tablename:tablename]</cite>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2606">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Sweep progress is now persisted as a blob and uses a KVS level table.
+This allows us to use check and set to avoid versioning the entries in the sweep progress table.
+As a result, loading of the persisted SweepResult which was previously linear in the size of the table being swept can be done in constant time.
+No migration is necessary as the data is persisted to a new table <code class="docutils literal"><span class="pre">_sweep_progress2</span></code>, however, sweep will ignore any previously persisted sweep progress.
+Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2569">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
