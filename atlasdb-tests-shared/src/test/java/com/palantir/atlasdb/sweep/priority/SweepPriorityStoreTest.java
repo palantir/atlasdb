@@ -46,7 +46,7 @@ public class SweepPriorityStoreTest {
         exec = Tracers.wrap(PTExecutors.newCachedThreadPool());
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
         txManager = SweepTestUtils.setupTxManager(kvs);
-        priorityStore = new SweepPriorityStore(SweepTableFactory.of());
+        priorityStore = SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false);
     }
 
     @After
