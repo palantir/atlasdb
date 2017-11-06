@@ -66,7 +66,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
                             config = AtlasDbConfigs.load(configFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH);
                         } catch (Exception ex) {
                             throw new RuntimeException("Failed to load the atlasdb config. "
-                                    + "One possibility is that the AtlasDB config block root in the config is not '/atlasdb' or '/atlas'. "
+                                    + "One possibility is that the AtlasDB config block root in the config is not '/atlasdb' nor '/atlas'. "
                                     + "You can specify a different config root by specifying the --config-root option.",
                                     ex);
                         }
