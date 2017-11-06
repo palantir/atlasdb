@@ -42,7 +42,7 @@ public class AtlasDbQosClient {
             } catch (Exception e) {
                 // do nothing
             }
-        }, 0, 10, TimeUnit.SECONDS);
+        }, 0L, 1L, TimeUnit.SECONDS);
 
         return client;
     }

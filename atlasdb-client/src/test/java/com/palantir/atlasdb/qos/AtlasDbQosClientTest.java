@@ -40,14 +40,14 @@ public class AtlasDbQosClientTest {
     @Test
     public void doesNotBackOff() throws LimitExceededException {
         AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
-        scheduler.tick(1, TimeUnit.MILLISECONDS);
+        scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
     }
 
     @Test
     public void throwsAfterLimitExceeded() throws LimitExceededException {
         AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
-        scheduler.tick(1, TimeUnit.MILLISECONDS);
+        scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
         assertThatThrownBy(qosClient::checkLimit).isInstanceOf(LimitExceededException.class);
@@ -56,12 +56,12 @@ public class AtlasDbQosClientTest {
     @Test
     public void canCheckAgainAfterRefreshPeriod() throws LimitExceededException {
         AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
-        scheduler.tick(1, TimeUnit.MILLISECONDS);
+        scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
         assertThatThrownBy(qosClient::checkLimit).isInstanceOf(LimitExceededException.class);
 
-        scheduler.tick(10L, TimeUnit.SECONDS);
+        scheduler.tick(1L, TimeUnit.SECONDS);
 
         qosClient.checkLimit();
     }
