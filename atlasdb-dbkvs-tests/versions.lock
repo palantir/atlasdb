@@ -27,6 +27,7 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -35,6 +36,7 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -51,6 +53,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
@@ -539,6 +547,7 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
@@ -547,6 +556,7 @@
             "locked": "2.6.7",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
@@ -563,6 +573,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.remoting1:tracing"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {

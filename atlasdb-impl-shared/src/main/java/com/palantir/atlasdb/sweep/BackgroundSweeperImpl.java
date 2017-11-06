@@ -41,26 +41,24 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRow;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
+import com.palantir.atlasdb.sweep.progress.SweepProgress;
+import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
 import com.palantir.common.base.Throwables;
@@ -80,9 +78,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Long> sweepPauseMillis;
     private final Supplier<Integer> sweepRowBatchSize;
     private final Supplier<Integer> sweepCellBatchSize;
+    private final SweepProgressStore sweepProgressStore;
     private final SweepTableFactory tableFactory;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
     private final SweepMetrics sweepMetrics;
+
 
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
@@ -100,6 +100,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
+            SweepProgressStore sweepProgressStore,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics) {
@@ -110,6 +111,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepPauseMillis = sweepPauseMillis;
         this.sweepRowBatchSize = sweepBatchSize;
         this.sweepCellBatchSize = sweepCellBatchSize;
+        this.sweepProgressStore = sweepProgressStore;
         this.tableFactory = tableFactory;
         this.sweepPerfLogger = sweepPerfLogger;
         this.sweepMetrics = sweepMetrics;
@@ -123,6 +125,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
+            SweepProgressStore sweepProgressStore,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger) {
 
@@ -134,6 +137,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepPauseMillis,
                 sweepBatchSize,
                 sweepCellBatchSize,
+                sweepProgressStore,
                 tableFactory,
                 sweepPerfLogger,
                 sweepMetrics);
@@ -199,60 +203,78 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     boolean runOnce() {
-        SweepProgressRowResult progress = txManager.runTaskWithRetry(tx -> {
-            SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-            SweepProgressRowResult result = progressTable.getRow(SweepProgressRow.of(0)).orNull();
-            if (result == null) {
-                result = chooseNextTableToSweep(new SweepTransaction(
-                        tx,
-                        sweepRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)));
-            }
-            return result;
-        });
-        if (progress == null) {
+        java.util.Optional<TableToSweep> tableToSweep = getTableToSweep();
+        if (!tableToSweep.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return false;
+        } else {
+            runOnceAndSaveResults(tableToSweep.get());
+            return true;
         }
+    }
+
+    // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made
+    // and try to lambda refactor this unless you live far enough in the future that this isn't an issue
+    private java.util.Optional<TableToSweep> getTableToSweep() {
+        return txManager.runTaskWithRetry(
+                new TransactionTask<java.util.Optional<TableToSweep>, RuntimeException>() {
+                    @Override
+                    public java.util.Optional<TableToSweep> execute(Transaction tx) {
+                        java.util.Optional<SweepProgress> progress = sweepProgressStore.loadProgress(tx);
+                        if (progress.isPresent()) {
+                            return java.util.Optional.of(new TableToSweep(progress.get().tableRef(), progress));
+                        } else {
+                            TableReference nextTable = chooseNextTableToSweep(new SweepTransaction(tx,
+                                    sweepRunner.getSweepTimestamp(SweepStrategy.CONSERVATIVE)));
+                            if (nextTable != null) {
+                                return java.util.Optional.of(new TableToSweep(nextTable, java.util.Optional.empty()));
+                            } else {
+                                return java.util.Optional.empty();
+                            }
+                        }
+                    }
+                });
+    }
+
+    void runOnceAndSaveResults(TableToSweep tableToSweep) {
         int rowBatchSize = Math.max(1, (int) (sweepRowBatchSize.get() * batchSizeMultiplier));
         int cellBatchSize = sweepCellBatchSize.get();
         Stopwatch watch = Stopwatch.createStarted();
-        String tableName = progress.getFullTableName();
-        sweepMetrics.registerMetricsIfNecessary(TableReference.createUnsafe(tableName));
+        sweepMetrics.registerMetricsIfNecessary(tableToSweep.getTableRef());
         try {
-            SweepResults results = sweepRunner.run(TableReference.createUnsafe(
-                    tableName),
+            SweepResults results = sweepRunner.run(
+                    tableToSweep.getTableRef(),
                     rowBatchSize,
                     cellBatchSize,
-                    progress.getStartRow());
+                    tableToSweep.getStartRow());
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Swept {} unique cells from {} starting at {}"
                             + " and performed {} deletions in {} ms"
                             + " up to timestamp {}.",
-                    results.getCellsExamined(), tableName,
-                    progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()),
+                    results.getCellsExamined(), tableToSweep.getTableRef().getQualifiedName(),
+                    tableToSweep.getStartRow() == null ? "0" : PtBytes.encodeHexString(tableToSweep.getStartRow()),
                     results.getCellsDeleted(), elapsedMillis, results.getSweptTimestamp());
             sweepPerfLogger.logSweepResults(
                     SweepPerformanceResults.builder()
                             .sweepResults(results)
-                            .tableName(tableName)
+                            .tableName(tableToSweep.getTableRef().getQualifiedName())
                             .elapsedMillis(elapsedMillis)
                             .build());
-            saveSweepResults(progress, results);
-            return true;
+            saveSweepResults(tableToSweep, results);
         } catch (RuntimeException e) {
             // Error logged at a higher log level above.
             log.debug("Failed to sweep {} with row batch size {} and cell batch size {} starting from row {}",
-                    tableName,
+                    tableToSweep.getTableRef().getQualifiedName(),
                     rowBatchSize,
                     cellBatchSize,
-                    progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()));
+                    tableToSweep.getStartRow() == null ? "0" : PtBytes.encodeHexString(tableToSweep.getStartRow()));
             throw e;
         }
     }
 
     @Nullable
-    private SweepProgressRowResult chooseNextTableToSweep(SweepTransaction tx) {
+    private TableReference chooseNextTableToSweep(SweepTransaction tx) {
         Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
         SweepPriorityTable oldPriorityTable = tableFactory.getSweepPriorityTable(tx);
         SweepPriorityTable newPriorityTable = tableFactory.getSweepPriorityTable(tx.delegate());
@@ -269,22 +291,17 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                                 Function.identity()
                         )
                 );
-        TableReference tableRef = getTableToSweep(tx, allTables, oldPriorities, newPrioritiesByTableName);
+        TableReference tableRef = oldGetTableToSweep(tx, allTables, oldPriorities, newPrioritiesByTableName);
         if (tableRef == null) {
             return null;
         }
-        RowResult<byte[]> rawResult = RowResult.create(SweepProgressRow.of(0).persistToBytes(),
-                ImmutableSortedMap.<byte[], byte[]>orderedBy(UnsignedBytes.lexicographicalComparator())
-                        .put(SweepProgressTable.SweepProgressNamedColumn.FULL_TABLE_NAME.getShortName(),
-                                SweepProgressTable.FullTableName.of(tableRef.getQualifiedName()).persistValue())
-                        .build());
 
         log.debug("Now starting to sweep {}.", tableRef);
-        return SweepProgressRowResult.of(rawResult);
+        return tableRef;
     }
 
     @Nullable
-    private TableReference getTableToSweep(SweepTransaction tx,
+    private TableReference oldGetTableToSweep(SweepTransaction tx,
             Set<TableReference> allTables,
             List<SweepPriorityRowResult> oldPriorities,
             Map<TableReference, SweepPriorityRowResult> newPrioritiesByTableName) {
@@ -350,11 +367,13 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         return estimatedCellsToSweep + millisSinceSweep * MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT;
     }
 
-    private void saveSweepResults(final SweepProgressRowResult progress,
+    private void saveSweepResults(final TableToSweep tableToSweep,
             final SweepResults currentIteration) {
-        final long cellsDeleted = fromNullable(progress.getCellsDeleted()) + currentIteration.getCellsDeleted();
-        final long cellsExamined = fromNullable(progress.getCellsExamined()) + currentIteration.getCellsExamined();
-        final long minimumSweptTimestamp = currentIteration.getSweptTimestamp();
+        final long cellsDeleted = tableToSweep.getStaleValuesDeletedPreviously() + currentIteration.getCellsDeleted();
+        final long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellsExamined();
+        final long minimumSweptTimestamp = Math.min(
+                tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
+                currentIteration.getSweptTimestamp());
         final SweepResults results = SweepResults.builder()
                 .cellsDeleted(cellsDeleted)
                 .cellsExamined(cellsExamined)
@@ -362,75 +381,75 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 .nextStartRow(currentIteration.getNextStartRow())
                 .build();
         if (currentIteration.getNextStartRow().isPresent()) {
-            saveIntermediateSweepResults(progress, results);
+            saveIntermediateSweepResults(tableToSweep, results);
             return;
         }
 
-        saveFinalSweepResults(progress, results);
+        saveFinalSweepResults(tableToSweep, results);
 
         log.debug("Finished sweeping {}, examined {} unique cells, deleted {} cells.",
-                progress.getFullTableName(), cellsExamined, cellsDeleted);
+                tableToSweep.getTableRef().getQualifiedName(), cellsExamined, cellsDeleted);
 
         if (cellsDeleted > 0) {
             Stopwatch watch = Stopwatch.createStarted();
-            kvs.compactInternally(TableReference.createUnsafe(progress.getFullTableName()));
+            kvs.compactInternally(tableToSweep.getTableRef());
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Finished performing compactInternally on {} in {} ms.",
-                    progress.getFullTableName(), elapsedMillis);
+                    tableToSweep.getTableRef().getQualifiedName(), elapsedMillis);
             sweepPerfLogger.logInternalCompaction(
                     SweepCompactionPerformanceResults.builder()
-                            .tableName(progress.getFullTableName())
+                            .tableName(tableToSweep.getTableRef().getQualifiedName())
                             .cellsDeleted(cellsDeleted)
                             .cellsExamined(cellsExamined)
                             .elapsedMillis(elapsedMillis)
                             .build());
         }
 
-        clearSweepProgressTable();
+        sweepProgressStore.clearProgress();
     }
 
-    private void saveIntermediateSweepResults(final SweepProgressRowResult progress,
-            final SweepResults results) {
+    private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
         Preconditions.checkArgument(results.getNextStartRow().isPresent(),
                 "Next start row should be present when saving intermediate results!");
         txManager.runTaskWithRetry((TxTask) tx -> {
-            SweepProgressTable progressTable = tableFactory.getSweepProgressTable(tx);
-            SweepProgressRow row = SweepProgressRow.of(0);
-            progressTable.putFullTableName(row, progress.getFullTableName());
-            //noinspection OptionalGetWithoutIsPresent // covered by precondition above
-            progressTable.putStartRow(row, results.getNextStartRow().get());
-            progressTable.putCellsDeleted(row, results.getCellsDeleted());
-            progressTable.putCellsExamined(row, results.getCellsExamined());
-            if (!progress.hasStartRow()) {
+            if (!tableToSweep.hasPreviousProgress()) {
                 // This is the first set of results being written for this table.
-                progressTable.putMinimumSweptTimestamp(row, results.getSweptTimestamp());
-
                 SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
-                SweepPriorityRow priorityRow = SweepPriorityRow.of(progress.getFullTableName());
+                SweepPriorityRow priorityRow = SweepPriorityRow.of(
+                        tableToSweep.getTableRef().getQualifiedName());
                 priorityTable.putWriteCount(priorityRow, 0L);
             }
+            SweepProgress newProgress = ImmutableSweepProgress.builder()
+                    .tableRef(tableToSweep.getTableRef())
+                    .staleValuesDeleted(results.getCellsDeleted())
+                    .cellTsPairsExamined(results.getCellsExamined())
+                    //noinspection OptionalGetWithoutIsPresent // covered by precondition above
+                    .startRow(results.getNextStartRow().get())
+                    .minimumSweptTimestamp(results.getSweptTimestamp())
+                    .build();
+            sweepProgressStore.saveProgress(tx, newProgress);
             return null;
         });
     }
 
-    private void saveFinalSweepResults(SweepProgressRowResult progress, SweepResults sweepResults) {
+    private void saveFinalSweepResults(TableToSweep tableToSweep, SweepResults sweepResults) {
         txManager.runTaskWithRetry((TxTask) tx -> {
             SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
-            SweepPriorityRow row = SweepPriorityRow.of(progress.getFullTableName());
+            SweepPriorityRow row = SweepPriorityRow.of(tableToSweep.getTableRef().getQualifiedName());
             priorityTable.putCellsDeleted(row, sweepResults.getCellsDeleted());
             priorityTable.putCellsExamined(row, sweepResults.getCellsExamined());
             priorityTable.putLastSweepTime(row, System.currentTimeMillis());
-            if (!progress.hasStartRow()) {
+            if (!tableToSweep.hasPreviousProgress()) {
                 // This is the first (and only) set of results being written for this table.
                 priorityTable.putWriteCount(row, 0L);
                 priorityTable.putMinimumSweptTimestamp(row, sweepResults.getSweptTimestamp());
             } else {
-                priorityTable.putMinimumSweptTimestamp(row, fromNullable(progress.getMinimumSweptTimestamp()));
+                priorityTable.putMinimumSweptTimestamp(row, tableToSweep.getPreviousMinimumSweptTimestamp().orElse(0L));
             }
             return null;
         });
 
-        sweepMetrics.recordMetrics(TableReference.createUnsafe(progress.getFullTableName()), sweepResults);
+        sweepMetrics.recordMetrics(tableToSweep.getTableRef(), sweepResults);
     }
 
     /**
@@ -439,35 +458,18 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
      */
     private boolean checkAndRepairTableDrop() {
         try {
-            Set<String> tables = kvs.getAllTableNames().stream()
-                    .map(tableRef -> tableRef.getQualifiedName()).collect(Collectors.toSet());
-            SweepProgressRowResult result = txManager.runTaskReadOnly(t ->
-                    tableFactory.getSweepProgressTable(t).getRow(SweepProgressRow.of(0L)).orNull());
-            if (result == null || tables.contains(result.getFullTableName())) {
+            Set<TableReference> tables = kvs.getAllTableNames();
+            java.util.Optional<SweepProgress> progress = txManager.runTaskReadOnly(sweepProgressStore::loadProgress);
+            if (!progress.isPresent() || tables.contains(progress.get().tableRef())) {
                 return false;
             }
-            clearSweepProgressTable();
+            sweepProgressStore.clearProgress();
             return true;
         } catch (RuntimeException e) {
             log.error("Failed to check whether the table being swept was dropped."
                     + " Continuing under the assumption that it wasn't...", e);
             return false;
         }
-    }
-
-    /**
-     * Fully remove the contents of the sweep progress table.
-     */
-    private void clearSweepProgressTable() {
-        // Use deleteRange instead of truncate
-        // 1) The table should be small, performance difference should be negligible.
-        // 2) Truncate takes an exclusive lock in Postgres, which can interfere
-        // with concurrently running backups.
-        kvs.deleteRange(tableFactory.getSweepProgressTable(null).getTableRef(), RangeRequest.all());
-    }
-
-    private long fromNullable(Long num) {
-        return num == null ? 0L : num.longValue();
     }
 
     private Optional<LockRefreshToken> lockOrRefresh(Optional<LockRefreshToken> previousLocks)
