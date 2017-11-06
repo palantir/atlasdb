@@ -196,8 +196,10 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">CassandraTimestampBackupRunner</span></code> now logs the backup bound correctly when performing a backup as part of TimeLock migration.
+Previously, the bound logged would have been logged as <code class="docutils literal"><span class="pre">null</span></code> or as a relatively arbitrary byte array, depending on the content of the timestamp table when performing migration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2585">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
