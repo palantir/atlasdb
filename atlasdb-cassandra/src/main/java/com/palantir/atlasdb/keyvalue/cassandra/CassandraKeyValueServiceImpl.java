@@ -1385,7 +1385,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
             });
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.");
+            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
+                    e);
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowUncheckedException(e);
         }

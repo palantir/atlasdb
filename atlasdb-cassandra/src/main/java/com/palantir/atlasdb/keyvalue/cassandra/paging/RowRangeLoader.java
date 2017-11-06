@@ -63,8 +63,8 @@ public class RowRangeLoader {
                             return queryRunner.run(client, tableRef,
                                     () -> client.get_range_slices(colFam, slicePredicate, keyRange, consistency));
                         } catch (UnavailableException e) {
-                                throw new InsufficientConsistencyException("get_range_slices requires all Cassandra"
-                                        + " nodes to be up and available.", e);
+                                throw new InsufficientConsistencyException("get_range_slices requires " + consistency
+                                        + " Cassandra nodes to be up and available.", e);
                         } catch (TException e) {
                             throw new RuntimeException(e);
                         }
