@@ -46,7 +46,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
- * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.remoting2.tracing.Tracer}
+ * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.remoting3.tracing.Tracer}
  * instrumentation.
  */
 public final class TracingKeyValueService extends ForwardingObject implements KeyValueService {
@@ -244,32 +244,23 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRange({}, ts {})",
-                tableRef, timestamp)) {
-            return delegate().getRange(tableRef, rangeRequest, timestamp);
-        }
+        return wrapClosableIteratorWithLogger(delegate().getRange(tableRef, rangeRequest, timestamp),
+                "getRange", tableRef, timestamp);
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRangeOfTimestamps({}, ts {})",
-                tableRef, timestamp)) {
-            return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-        }
+        return wrapClosableIteratorWithLogger(delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+                "getRangeOfTimestamps", tableRef, timestamp);
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getCandidateCellsForSweeping({}, ts {})",
-                tableRef, request.maxTimestampExclusive())) {
-            return delegate().getCandidateCellsForSweeping(tableRef, request);
-        }
+        return wrapClosableIteratorWithLogger(delegate().getCandidateCellsForSweeping(tableRef, request),
+                "getCandidateCellsForSweeping", tableRef, request.maxTimestampExclusive());
     }
 
     @Override
@@ -302,11 +293,9 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, {} hint, ts {})",
-                tableRef, Iterables.size(rows), cellBatchHint, timestamp)) {
-            return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-        }
+        return wrapRowColumnRangeIteratorWithLogger(
+                delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
+                tableRef, rows, cellBatchHint, timestamp);
     }
 
     @Override
@@ -385,5 +374,72 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
+    private RowColumnRangeIterator wrapRowColumnRangeIteratorWithLogger(RowColumnRangeIterator rowColumnRangeIterator,
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            int cellBatchHint,
+            long timestamp) {
+
+        return new RowColumnRangeIterator() {
+            @Override
+            public Map.Entry<Cell, Value> next() {
+                //noinspection unused - try-with-resources closes trace
+                try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, {} hint, ts {}).next()",
+                        tableRef, Iterables.size(rows), cellBatchHint, timestamp)) {
+                    return rowColumnRangeIterator.next();
+                }
+            }
+
+            @Override
+            public boolean hasNext() {
+                //noinspection unused - try-with-resources closes trace
+                try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, {} hint, ts {}).hasNext()",
+                        tableRef, Iterables.size(rows), cellBatchHint, timestamp)) {
+                    return rowColumnRangeIterator.hasNext();
+                }
+            }
+
+            @Override
+            public void remove() {
+                rowColumnRangeIterator.remove();
+            }
+        };
+    }
+
+    private <T> ClosableIterator<T> wrapClosableIteratorWithLogger(ClosableIterator<T> closableIterator,
+            String methodName,
+            TableReference tableRef,
+            long timestamp) {
+
+        return new ClosableIterator<T>() {
+            @Override
+            public T next() {
+                //noinspection unused - try-with-resources closes trace
+                try (CloseableTrace trace = startLocalTrace("{}({}, ts {}).next()",
+                        methodName, tableRef, timestamp)) {
+                    return closableIterator.next();
+                }
+            }
+
+            @Override
+            public void close() {
+                closableIterator.close();
+            }
+
+            @Override
+            public boolean hasNext() {
+                //noinspection unused - try-with-resources closes trace
+                try (CloseableTrace trace = startLocalTrace("{}({}, ts {}).hasNext()",
+                        methodName, tableRef, timestamp)) {
+                    return closableIterator.hasNext();
+                }
+            }
+
+            @Override
+            public void remove() {
+                closableIterator.remove();
+            }
+        };
+    }
 }
 
