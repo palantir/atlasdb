@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
@@ -15,10 +15,21 @@
  */
 package com.palantir.atlasdb.qos;
 
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
+@Path("/{client: [a-zA-Z0-9_-]+}")
 public interface QosService {
+    @Path("/get-limit")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     int getLimit(@Safe @PathParam("client") String client);
 }
