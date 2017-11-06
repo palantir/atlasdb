@@ -93,8 +93,15 @@ public final class AdjustableSweepBatchConfigSource {
                 1.0 / NumberUtils.max(
                         config.maxCellTsPairsToExamine(), config.candidateBatchSize(), config.deleteBatchSize());
 
+        if (batchSizeMultiplier == smallestSensibleBatchSizeMultiplier) {
+            return;
+        }
+
         double newBatchSizeMultiplier = batchSizeMultiplier / 2;
         if (newBatchSizeMultiplier < smallestSensibleBatchSizeMultiplier) {
+            log.info("batchSizeMultiplier reached the smallest sensible value for the current sweep config ({}), "
+                            + "will not reduce further.",
+                    SafeArg.of("batchSizeMultiplier", smallestSensibleBatchSizeMultiplier));
             batchSizeMultiplier = smallestSensibleBatchSizeMultiplier;
         } else {
             batchSizeMultiplier = newBatchSizeMultiplier;
