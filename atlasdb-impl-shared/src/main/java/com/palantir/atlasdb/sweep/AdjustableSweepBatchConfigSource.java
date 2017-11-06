@@ -30,6 +30,7 @@ public final class AdjustableSweepBatchConfigSource {
     private final Supplier<SweepBatchConfig> rawSweepBatchConfig;
 
     private static volatile double batchSizeMultiplier = 1.0;
+    private int successiveIncreases = 0;
 
     private AdjustableSweepBatchConfigSource(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         this.rawSweepBatchConfig = rawSweepBatchConfig;
@@ -68,14 +69,22 @@ public final class AdjustableSweepBatchConfigSource {
     }
 
     public void increaseMultiplier() {
-        batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
+        if (batchSizeMultiplier == 1.0) {
+            return;
+        }
+
+        successiveIncreases++;
+        if (successiveIncreases > 25) {
+            batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 2);
+        }
     }
 
     public void decreaseMultiplier() {
+        successiveIncreases = 0;
         SweepBatchConfig lastBatchConfig = getAdjustedSweepConfig();
 
-        // Cut batch size in half, always sweep at least one row (we round down).
-        reduceBatchSizeMultipler();
+        // Cut batch size in half, always sweep at least one row.
+        reduceBatchSizeMultiplier();
 
         log.warn("Sweep failed unexpectedly with candidate batch size {},"
                         + " delete batch size {},"
@@ -87,7 +96,7 @@ public final class AdjustableSweepBatchConfigSource {
                 SafeArg.of("batchSizeMultiplier", batchSizeMultiplier));
     }
 
-    private void reduceBatchSizeMultipler() {
+    private void reduceBatchSizeMultiplier() {
         SweepBatchConfig config = getRawSweepConfig();
         double smallestSensibleBatchSizeMultiplier =
                 1.0 / NumberUtils.max(
