@@ -449,6 +449,7 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 sweepPerfLogger,
                 sweepMetrics,
+                config.initializeAsync(),
                 sweepBatchConfigSource);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
@@ -469,6 +470,7 @@ public abstract class TransactionManagers {
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics,
+            boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
@@ -476,7 +478,8 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
-                sweepMetrics);
+                sweepMetrics,
+                initializeAsync);
         env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;
     }
@@ -485,17 +488,9 @@ public abstract class TransactionManagers {
         return ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(sweepConfig.readLimit())
                 .candidateBatchSize(sweepConfig.candidateBatchHint()
-                        .orElse(getDefaultSweepCandidateBatchHint(kvsConfig)))
+                        .orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .deleteBatchSize(sweepConfig.deleteBatchHint())
                 .build();
-    }
-
-    // TODO(nziebart): this is a hack until we fix cassandra's getCandidateCellsForSweep to behave like the other KVSs
-    private static int getDefaultSweepCandidateBatchHint(KeyValueServiceConfig kvsConfig) {
-        if (kvsConfig.type().equals("cassandra")) {
-            return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_CASSANDRA;
-        }
-        return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_NON_CASSANDRA;
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(
