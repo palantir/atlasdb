@@ -51,13 +51,37 @@ develop
     *    - |improved| |logs|
          - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
 
-    *    - |improved| |metrics|
-         - AtlasDB now depends on Tritium 0.8.0, allowing products to upgrade Tritium without running into `NoClassDefFound` errors.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+    *    -
+         -
 
-    *    - |improved| |logs|
-         - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.65.1
+=======
+
+4 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.0, allowing products to upgrade Tritium without running into ``NoClassDefFound`` errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2628>`__)
+
+    *    - |improved|
+         - Sweep is now more efficient and less susceptible to OOMs on Cassandra.
+           Also, the default value for the sweep batch config parameter ``candidateBatchSize`` has been bumped up from ``1`` from ``1024``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2546>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2610>`__)
+
+    *    - |fixed|
+         - Fixed cursor leak when sweeping on oracle/postgres.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2609>`__)
 
     *    - |improved|
          - Sweep progress is now persisted as a blob and uses a KVS level table.
@@ -66,6 +90,18 @@ develop
            No migration is necessary as the data is persisted to a new table ``_sweep_progress2``, however, sweep will ignore any previously persisted sweep progress.
            Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2569>`__)
+
+    *    - |improved| |logs|
+         - AtlasDB tables will now be logged as ``ns.tablename`` instead of ``map[namespace:map[name:ns] tablename:tablename]``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.65.0
+=======
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
