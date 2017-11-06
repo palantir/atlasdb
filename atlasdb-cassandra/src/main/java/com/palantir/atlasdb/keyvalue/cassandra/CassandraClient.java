@@ -19,8 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
-import javax.naming.LimitExceededException;
+import java.util.concurrent.Callable;
 
 import org.apache.cassandra.thrift.AutoDelegate_Client;
 import org.apache.cassandra.thrift.Cassandra;
@@ -67,37 +66,39 @@ public class CassandraClient extends AutoDelegate_Client {
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        try {
-            qosClient.checkLimit();
-            return super.multiget_slice(keys, column_parent, predicate, consistency_level);
-        } catch (LimitExceededException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        return checkLimitAndCall(() -> super.multiget_slice(keys, column_parent, predicate, consistency_level));
     }
 
     @Override
     public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        try {
-            qosClient.checkLimit();
+        checkLimitAndCall(() -> {
             super.batch_mutate(mutation_map, consistency_level);
-        } catch (LimitExceededException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+            return null;
+        });
     }
 
     @Override
     public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
-        return super.execute_cql3_query(query, compression, consistency);
+        return checkLimitAndCall(() -> super.execute_cql3_query(query, compression, consistency));
     }
 
     @Override
     public List<KeySlice> get_range_slices(ColumnParent column_parent, SlicePredicate predicate, KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return super.get_range_slices(column_parent, predicate, range, consistency_level);
+        return checkLimitAndCall(() -> super.get_range_slices(column_parent, predicate, range, consistency_level));
+    }
+
+    private <T> T checkLimitAndCall(Callable<T> callable) {
+        try {
+            qosClient.checkLimit();
+            return callable.call();
+        } catch (Exception ex) {
+            throw Throwables.throwUncheckedException(ex);
+        }
     }
 }

@@ -30,8 +30,7 @@ public class AtlasDbQosClient {
         this.qosService = qosService;
     }
 
-    public static AtlasDbQosClient create(QosService qosService,
-            String clientName) {
+    public static AtlasDbQosClient create(QosService qosService, String clientName) {
         AtlasDbQosClient client = new AtlasDbQosClient(qosService);
         client.credits = qosService.getLimit(clientName);
         return client;
