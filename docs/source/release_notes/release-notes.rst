@@ -311,11 +311,6 @@ Logs and Metrics
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
 Bug fixes
-=======
-    *   - |fixed|
-        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
-          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
 .. list-table::
     :widths: 5 40
@@ -323,6 +318,11 @@ Bug fixes
 
     *    - Type
          - Change
+
+    *   - |fixed|
+        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
     *    - |fixed|
          - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".
