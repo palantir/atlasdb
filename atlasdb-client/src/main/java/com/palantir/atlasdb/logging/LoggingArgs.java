@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -82,11 +83,26 @@ public final class LoggingArgs {
                 .build();
     }
 
+    public static List<String> tableRefValues(Collection<TableReference> tables) {
+        return tables.stream().map(LoggingArgs::tableRefValue).collect(Collectors.toList());
+    }
+
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
     public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
+    }
+
+    /**
+     * If safe, returns the table name. If unsafe, returns {table}.
+     */
+    public static String tableRefValue(TableReference tableReference) {
+        if (logArbitrator.isTableReferenceSafe(tableReference)) {
+            return tableReference.toString();
+        } else {
+            return "{table}";
+        }
     }
 
     public static Arg<String> tableRef(String argName, TableReference tableReference) {
