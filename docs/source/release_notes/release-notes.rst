@@ -48,8 +48,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed| |metrics|
+         - ``MetricsManager`` now logs failures to register metrics at ``WARN`` instead of ``ERROR``, as failure to do so is not necessarily a systemic failure.
+           Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2636>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
