@@ -61,6 +61,10 @@ develop
          - AtlasDB now depends on Tritium 0.8.1, allowing products to upgrade Tritium without running into ``NoClassDefFound`` errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2639>`__)
 
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.2, allowing products to upgrade Tritium without running into ``NoSuchFieldError`` errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
