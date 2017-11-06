@@ -53,6 +53,11 @@ develop
            Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2636>`__)
 
+    *    - |fixed| |logs|
+         - ``CassandraTimestampBackupRunner`` now logs the backup bound correctly when performing a backup as part of TimeLock migration.
+           Previously, the bound logged would have been logged as ``null`` or as a relatively arbitrary byte array, depending on the content of the timestamp table when performing migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2585>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
