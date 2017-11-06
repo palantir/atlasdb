@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
@@ -85,27 +86,6 @@ public class AdjustableSweepBatchConfigSourceTest {
         assertThat(adjustableConfig.getBatchSizeMultiplier(), is(1.0));
     }
 
-    private void whenIncreasingTheMultiplier_thenAdjustedConfigValuesIncrease() {
-        for (int i = 0; i < 1_000; i++) {
-            // When
-            adjustableConfig.increaseMultiplier();
-
-            // Then
-            batchSizeMultiplierIncreases();
-            batchSizeMultiplierDoesNotExceedOne();
-
-            maxCellTsPairsToExamineDoesNotDecrease();
-            candidateBatchSizeDoesNotDecrease();
-            deleteBatchSizeDoesNotDecrease();
-
-            maxCellTsPairsToExamineDoesNotExceedBaseConfig();
-            candidateBatchSizeDoesNotExceedBaseConfig();
-            deleteBatchSizeDoesNotExceedBaseConfig();
-
-            updatePreviousValues();
-        }
-    }
-
     private void whenDecreasingTheMultiplier_thenAdjustedConfigValuesDecrease() {
         for (int i = 0; i < 10_000; i++) {
             // When
@@ -116,6 +96,23 @@ public class AdjustableSweepBatchConfigSourceTest {
             maxCellTsPairsToExamineDecreasesToAMinimumOfOne();
             candidateBatchSizeDecreasesToAMinimumOfOne();
             deleteBatchSizeDecreasesToAMinimumOfOne();
+
+            updatePreviousValues();
+        }
+    }
+
+    private void whenIncreasingTheMultiplier_thenAdjustedConfigValuesIncrease() {
+        for (int i = 0; i < 1_000; i++) {
+            // When
+            adjustableConfig.increaseMultiplier();
+
+            // Then
+            batchSizeMultiplierIncreases();
+            batchSizeMultiplierDoesNotExceedOne();
+
+            maxCellTsPairsToExamineIncreasesBackUpToBaseConfig();
+            candidateBatchSizeIncreasesBackUpToBaseConfig();
+            deleteBatchSizeIncreasesBackUpToBaseConfig();
 
             updatePreviousValues();
         }
@@ -164,37 +161,24 @@ public class AdjustableSweepBatchConfigSourceTest {
         assertThat(adjustableConfig.getBatchSizeMultiplier(), is(lessThanOrEqualTo(1.0)));
     }
 
-    private void maxCellTsPairsToExamineDoesNotDecrease() {
-        assertThat(adjustableConfig.getAdjustedSweepConfig().maxCellTsPairsToExamine(),
-                is(greaterThanOrEqualTo(previousConfig.maxCellTsPairsToExamine())));
+    private void maxCellTsPairsToExamineIncreasesBackUpToBaseConfig() {
+        increasesBackUpToBaseConfig(SweepBatchConfig::maxCellTsPairsToExamine);
     }
 
-    private void candidateBatchSizeDoesNotDecrease() {
-        assertThat(adjustableConfig.getAdjustedSweepConfig().candidateBatchSize(),
-                is(greaterThanOrEqualTo(previousConfig.candidateBatchSize())));
-
+    private void candidateBatchSizeIncreasesBackUpToBaseConfig() {
+        increasesBackUpToBaseConfig(SweepBatchConfig::candidateBatchSize);
     }
 
-    private void deleteBatchSizeDoesNotDecrease() {
-        assertThat(adjustableConfig.getAdjustedSweepConfig().deleteBatchSize(),
-                is(greaterThanOrEqualTo(previousConfig.deleteBatchSize())));
+    private void deleteBatchSizeIncreasesBackUpToBaseConfig() {
+        increasesBackUpToBaseConfig(SweepBatchConfig::deleteBatchSize);
     }
 
-    private void maxCellTsPairsToExamineDoesNotExceedBaseConfig() {
-        doesNotExceedBaseConfig(SweepBatchConfig::maxCellTsPairsToExamine);
-    }
-
-    private void candidateBatchSizeDoesNotExceedBaseConfig() {
-        doesNotExceedBaseConfig(SweepBatchConfig::candidateBatchSize);
-    }
-
-    private void deleteBatchSizeDoesNotExceedBaseConfig() {
-        doesNotExceedBaseConfig(SweepBatchConfig::deleteBatchSize);
-    }
-
-    private void doesNotExceedBaseConfig(Function<SweepBatchConfig, Integer> getValue) {
+    private void increasesBackUpToBaseConfig(Function<SweepBatchConfig, Integer> getValue) {
         assertThat(getValue.apply(adjustableConfig.getAdjustedSweepConfig()),
-                is(lessThanOrEqualTo(getValue.apply(adjustableConfig.getRawSweepConfig()))));
+                is(anyOf(
+                        greaterThan(getValue.apply(previousConfig)),
+                        lessThanOrEqualTo(getValue.apply(adjustableConfig.getRawSweepConfig()))
+                )));
     }
 
     private void updatePreviousValues() {
