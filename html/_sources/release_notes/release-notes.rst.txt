@@ -56,6 +56,10 @@ develop
          - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
 
+    *    - |fixed|
+         - Fixed cursor leak when sweeping on oracle/postgres.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2609>`__)
+
     *    - |improved|
          - Sweep progress is now persisted as a blob and uses a KVS level table.
            This allows us to use check and set to avoid versioning the entries in the sweep progress table.

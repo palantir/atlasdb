@@ -204,7 +204,11 @@
 <td>AtlasDB tables will now be logged as <cite>ns.tablename</cite> instead of <cite>map[namespace:map[name:ns] tablename:tablename]</cite>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2606">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed cursor leak when sweeping on oracle/postgres.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2609">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Sweep progress is now persisted as a blob and uses a KVS level table.
 This allows us to use check and set to avoid versioning the entries in the sweep progress table.
 As a result, loading of the persisted SweepResult which was previously linear in the size of the table being swept can be done in constant time.
