@@ -49,6 +49,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Reverted the Cassandra KVS executor PR (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__) that caused a performance regression.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2637>`__)
+
+    *    - |fixed|
          - ``CassandraTimestampBackupRunner`` now logs the backup bound correctly when performing a backup as part of TimeLock migration.
            Previously, the bound logged would have been logged as ``null`` or as a relatively arbitrary byte array, depending on the content of the timestamp table when performing migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2585>`__)
@@ -307,6 +311,11 @@ Logs and Metrics
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2467>`__)
 
 Bug fixes
+=======
+    *   - |fixed|
+        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
 .. list-table::
     :widths: 5 40
