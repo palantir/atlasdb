@@ -197,6 +197,10 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Reverted the Cassandra KVS executor PR (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2534">Pull Request</a>) that caused a performance regression.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2637">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">CassandraTimestampBackupRunner</span></code> now logs the backup bound correctly when performing a backup as part of TimeLock migration.
 Previously, the bound logged would have been logged as <code class="docutils literal"><span class="pre">null</span></code> or as a relatively arbitrary byte array, depending on the content of the timestamp table when performing migration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2585">Pull Request</a>)</td>
@@ -478,39 +482,44 @@ Previously, this would crash with a <code class="docutils literal"><span class="
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">ProfilingKeyValueService</span></code> now logs correctly when logging a message for <code class="docutils literal"><span class="pre">getRange</span></code>, <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code> and <code class="docutils literal"><span class="pre">DeleteRange</span></code>.
+Previously, the table reference was omitted, such that one might receive lines of the form <code class="docutils literal"><span class="pre">Call</span> <span class="pre">to</span> <span class="pre">KVS.getRange</span> <span class="pre">on</span> <span class="pre">table</span> <span class="pre">RangeRequest{reverse=false}</span> <span class="pre">with</span> <span class="pre">range</span> <span class="pre">1504</span> <span class="pre">took</span> <span class="pre">{}</span> <span class="pre">ms.</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2474">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing “There are no known live hosts in the connection pool … We’re choosing one at random …”.
 The level of this log was reduced from ERROR to WARN, as it was spammy in periods of a Cassandra outage.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2543">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Timelock server will try to gain leadership synchronously when the first time a new client namespace is requested. Previously, the first request would always return 503.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2503">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">SerializableErrorDecoder</span></code> will decode errors properly instead of throwing <code class="docutils literal"><span class="pre">NullPointerException</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2446">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Async Initialization now works with TimeLock Server.
 Previously, for Cassandra we would attempt to immediately migrate the timestamp bound from Cassandra to TimeLock on startup, which would fail if either of them was unavailable.
 For DBKVS or other key-value services, we would attempt to ping TimeLock on startup, which would fail if TimeLock was unavailable (though the KVS need not be available).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2520">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">AsyncInitializer</span></code> now shuts down its executor after initialization has completed.
 Previously, the executor service wasn’t shut down, which could lead to the initializer thread hanging around unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2520">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue where a <code class="docutils literal"><span class="pre">waitForLocks</span></code> request could retry unnecessarily.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2491">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">InMemoryAtlasDbConfig</span></code> now has an empty namespace, instead of “test”.
 This means that internal products will no longer have to set their root-level namespace to “test” in order to use <code class="docutils literal"><span class="pre">InMemoryKeyValueService</span></code> for testing.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2541">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
 <td>Move <code class="docutils literal"><span class="pre">&#64;CancelableServerCall</span></code> to a more fitting package that matches internal codebase.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2562">Pull Request</a>)</td>
 </tr>
