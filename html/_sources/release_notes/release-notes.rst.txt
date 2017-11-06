@@ -57,6 +57,10 @@ develop
            Previously, the bound logged would have been logged as ``null`` or as a relatively arbitrary byte array, depending on the content of the timestamp table when performing migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2585>`__)
 
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.1, allowing products to upgrade Tritium without running into ``NoClassDefFound`` errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2639>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
