@@ -120,6 +120,15 @@ public class CassandraClient extends AutoDelegate_Client {
     public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
+
+        // This could be used for updating the schema mutation lock,
+        //  "UPDATE "%s" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;"
+
+        // or to read the timestamp bound
+        // SELECT %s, %s FROM %s WHERE key=%s;
+
+        // Or for sweep?
+        // Should we consider all of these reads when recording metrics?
         return checkLimitAndCall(() -> super.execute_cql3_query(query, compression, consistency));
     }
 
