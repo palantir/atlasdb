@@ -36,6 +36,7 @@ import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.qos.AtlasDbQosClient;
@@ -50,11 +51,13 @@ import com.palantir.processors.AutoDelegate;
 public class CassandraClient extends AutoDelegate_Client {
     private final Cassandra.Client delegate;
     private final AtlasDbQosClient qosClient;
+    private final QosMetrics qosMetrics;
 
     public CassandraClient(Cassandra.Client delegate, AtlasDbQosClient qosClient) {
         super(delegate.getInputProtocol());
         this.delegate = delegate;
         this.qosClient = qosClient;
+        this.qosMetrics = new QosMetrics();
     }
 
     @Override
@@ -66,7 +69,22 @@ public class CassandraClient extends AutoDelegate_Client {
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return checkLimitAndCall(() -> super.multiget_slice(keys, column_parent, predicate, consistency_level));
+        return checkLimitAndCall(() -> {
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> result = super.multiget_slice(keys, column_parent,
+                    predicate, consistency_level);
+
+            qosMetrics.updateReadCount();
+            qosMetrics.updateBytesRead(getApproximateReadByteCount(result));
+            return result;
+        });
+    }
+
+    private int getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
+        return result.entrySet().stream()
+                .mapToInt((entry) -> entry.getKey().array().length + entry.getValue().stream()
+                        .mapToInt(columnOrSuperColumn -> SerializationUtils.serialize(columnOrSuperColumn).length)
+                        .sum())
+                .sum();
     }
 
     @Override
@@ -75,8 +93,27 @@ public class CassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         checkLimitAndCall(() -> {
             super.batch_mutate(mutation_map, consistency_level);
+
+            qosMetrics.updateWriteCount();
+            qosMetrics.updateBytesWritten(getApproximateWriteByteCount(mutation_map));
             return null;
         });
+    }
+
+    private int getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map) {
+        int approxBytesForKeys = mutation_map.keySet().stream().mapToInt(e -> e.array().length).sum();
+        int approxBytesForValues = mutation_map.values().stream()
+                .mapToInt(singleMap -> {
+                    int approximateBytesInStrings = singleMap.keySet().stream().mapToInt(String::length).sum();
+                    int approximateBytesInMutations = singleMap.values().stream()
+                            .mapToInt(listOfMutations -> listOfMutations.stream()
+                                    .mapToInt(mutation -> SerializationUtils.serialize(mutation).length)
+                                    .sum())
+                            .sum();
+                    return approximateBytesInStrings + approximateBytesInMutations;
+                })
+                .sum();
+        return approxBytesForKeys + approxBytesForValues;
     }
 
     @Override
@@ -90,7 +127,15 @@ public class CassandraClient extends AutoDelegate_Client {
     public List<KeySlice> get_range_slices(ColumnParent column_parent, SlicePredicate predicate, KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return checkLimitAndCall(() -> super.get_range_slices(column_parent, predicate, range, consistency_level));
+        return checkLimitAndCall(() -> {
+            qosMetrics.updateReadCount();
+            List<KeySlice> range_slices = super.get_range_slices(column_parent, predicate, range, consistency_level);
+            int approximateBytesRead = range_slices.stream()
+                    .mapToInt(keySlice -> SerializationUtils.serialize(keySlice).length)
+                    .sum();
+            qosMetrics.updateBytesRead(approximateBytesRead);
+            return range_slices;
+        });
     }
 
     private <T> T checkLimitAndCall(Callable<T> callable) {

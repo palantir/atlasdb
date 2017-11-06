@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
@@ -65,6 +66,16 @@ public class MetricsManager {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
     }
 
+    public Histogram registerHistogram(Class clazz, String metricName) {
+        return registerHistogram(MetricRegistry.name(clazz, metricName));
+    }
+
+    private Histogram registerHistogram(String fullyQualifiedHistogramName) {
+        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
+        registeredMetrics.add(fullyQualifiedHistogramName);
+        return histogram;
+    }
+
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
         try {
             metricRegistry.register(fullyQualifiedMetricName, metric);
@@ -73,6 +84,10 @@ public class MetricsManager {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
             log.error("Unable to register metric {}", fullyQualifiedMetricName, e);
         }
+    }
+
+    public Meter registerMeter(Class clazz, String meterName) {
+        return registerMeter(MetricRegistry.name(clazz, "", meterName));
     }
 
     public Meter registerMeter(Class clazz, String metricPrefix, String meterName) {
