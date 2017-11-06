@@ -31,6 +31,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
@@ -50,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -75,6 +77,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCrea
 import com.palantir.atlasdb.qos.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.QosServiceResource;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -184,7 +187,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         // TODO eventually we'll want to pass this in from somewhere
         QosService qosResource = new QosServiceResource();
 
-        AtlasDbQosClient qosClient = AtlasDbQosClient.create(qosResource, config.getKeyspaceOrThrow());
+        ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
+                Executors.newSingleThreadScheduledExecutor(),
+                AtlasDbMetrics.getMetricRegistry(),
+                "qos-client-executor");
+        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosResource, config.getKeyspaceOrThrow());
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks, qosClient);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;

@@ -16,21 +16,21 @@
 
 package com.palantir.atlasdb.qos;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.naming.LimitExceededException;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AtlasDbQosClientTest {
     private QosService qosService = mock(QosService.class);
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+    private DeterministicScheduler scheduler = new DeterministicScheduler();
 
     @Before
     public void setUp() {
@@ -39,16 +39,30 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void doesNotBackOff() throws LimitExceededException {
-        AtlasDbQosClient qosClient = AtlasDbQosClient.create(qosService, "test-client");
+        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
+        scheduler.tick(1, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
     }
 
     @Test
     public void throwsAfterLimitExceeded() throws LimitExceededException {
-        AtlasDbQosClient qosClient = AtlasDbQosClient.create(qosService, "test-client");
+        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
+        scheduler.tick(1, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
-        exception.expect(LimitExceededException.class);
+        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(LimitExceededException.class);
+    }
+
+    @Test
+    public void canCheckAgainAfterRefreshPeriod() throws LimitExceededException {
+        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
+        scheduler.tick(1, TimeUnit.MILLISECONDS);
+        qosClient.checkLimit();
+
+        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(LimitExceededException.class);
+
+        scheduler.tick(10L, TimeUnit.SECONDS);
+
         qosClient.checkLimit();
     }
 

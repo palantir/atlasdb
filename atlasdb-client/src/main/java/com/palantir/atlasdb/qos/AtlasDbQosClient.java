@@ -17,9 +17,11 @@
 package com.palantir.atlasdb.qos;
 
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import javax.naming.LimitExceededException;
 
-// TODO this class should use a QosService and update limits
 @SuppressWarnings("FinalClass")
 public class AtlasDbQosClient {
     QosService qosService;
@@ -30,15 +32,23 @@ public class AtlasDbQosClient {
         this.qosService = qosService;
     }
 
-    public static AtlasDbQosClient create(QosService qosService, String clientName) {
+    public static AtlasDbQosClient create(ScheduledExecutorService scheduler, QosService qosService,
+            String clientName) {
         AtlasDbQosClient client = new AtlasDbQosClient(qosService);
-        client.credits = qosService.getLimit(clientName);
+
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                client.credits = qosService.getLimit(clientName);
+            } catch (Exception e) {
+                // do nothing
+            }
+        }, 0, 10, TimeUnit.SECONDS);
+
         return client;
     }
 
     // The KVS layer should call this before every read/write operation
     // Currently all operations are treated equally; each uses up a unit of credits
-    // TODO use a background thread to refresh this limit
     public void checkLimit() throws LimitExceededException {
         // always return immediately - i.e. no backoff
         // TODO if soft-limited, pause
