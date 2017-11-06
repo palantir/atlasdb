@@ -31,5 +31,5 @@ public interface QosService {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    int getLimit(@Safe @PathParam("client") String client);
+    long getLimit(@Safe @PathParam("client") String client);
 }

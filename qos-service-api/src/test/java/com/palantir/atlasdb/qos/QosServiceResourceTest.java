@@ -23,7 +23,7 @@ import org.junit.Test;
 public class QosServiceResourceTest {
     @Test
     public void canGetLimit() {
-        QosService resource = new QosServiceResource();
+        QosService resource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
         assertEquals(Integer.MAX_VALUE, resource.getLimit("test-client"));
     }
 }

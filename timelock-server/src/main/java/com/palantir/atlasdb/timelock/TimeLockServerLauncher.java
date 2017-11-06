@@ -52,7 +52,6 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module());
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
-        environment.jersey().register(new QosServiceResource());
 
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);

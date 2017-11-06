@@ -16,16 +16,16 @@
 
 package com.palantir.atlasdb.qos;
 
-public class QosServiceResource implements QosService {
+import java.util.Map;
 
-    private QosServiceRuntimeConfig config;
+import org.immutables.value.Value;
 
-    public QosServiceResource(QosServiceRuntimeConfig config) {
-        this.config = config;
-    }
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-    @Override
-    public long getLimit(String client) {
-        return config.clientLimits().get(client);
-    }
+@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
+@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
+@Value.Immutable
+public abstract class QosServiceRuntimeConfig {
+    abstract Map<String, Long> clientLimits();
 }
