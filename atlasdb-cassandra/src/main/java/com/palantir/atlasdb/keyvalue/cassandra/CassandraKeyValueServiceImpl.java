@@ -1739,7 +1739,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
                             && !thriftException.getMessage().contains("already existing table")) {
-                        Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
+                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
                     }
                 }
             }
@@ -1981,7 +1981,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 

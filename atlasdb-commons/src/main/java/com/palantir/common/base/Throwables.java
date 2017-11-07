@@ -84,17 +84,11 @@ public final class Throwables {
      * InvocationTargetException, extract the cause and process it. Else, throw a
      * new PalantirRuntimeException(ex)
      */
-    public static RuntimeException unwrapAndThrowAtlasDbDependencyException(Throwable ex) {
+    public static AtlasDbDependencyException unwrapAndThrowAtlasDbDependencyException(Throwable ex) {
         if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
             throw createAtlasDbDependencyException(ex.getCause());
         }
         throw createAtlasDbDependencyException(ex);
-    }
-
-    public static RuntimeException throwUncheckedException(Throwable ex) {
-        throwIfInstance(ex, RuntimeException.class);
-        throwIfInstance(ex, Error.class);
-        throw createPalantirRuntimeException(ex);
     }
 
     private static RuntimeException createAtlasDbDependencyException(Throwable ex) {
@@ -103,6 +97,12 @@ public final class Throwables {
         }
         throwIfInstance(ex, AtlasDbDependencyException.class);
         return new AtlasDbDependencyException(ex);
+    }
+
+    public static RuntimeException throwUncheckedException(Throwable ex) {
+        throwIfInstance(ex, RuntimeException.class);
+        throwIfInstance(ex, Error.class);
+        throw createPalantirRuntimeException(ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {
