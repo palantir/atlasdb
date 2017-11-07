@@ -86,9 +86,9 @@ public final class LoggingArgs {
                 .build();
     }
 
-    public static Iterable<TableReference> tableRefValues(Collection<TableReference> tables) {
+    public static Iterable<TableReference> safeTablesOrPlaceholder(Collection<TableReference> tables) {
         //noinspection StaticPseudoFunctionalStyleMethod - Use lazy iterator.
-        return Iterables.transform(tables, LoggingArgs::tableRefValue);
+        return Iterables.transform(tables, LoggingArgs::safeTableOrPlaceholder);
     }
 
     /**
@@ -99,9 +99,9 @@ public final class LoggingArgs {
     }
 
     /**
-     * If safe, returns the table name. If unsafe, returns {table}.
+     * If table is safe, returns the table. If unsafe, returns {table}.
      */
-    public static TableReference tableRefValue(TableReference tableReference) {
+    public static TableReference safeTableOrPlaceholder(TableReference tableReference) {
         if (logArbitrator.isTableReferenceSafe(tableReference)) {
             return tableReference;
         } else {
