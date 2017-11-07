@@ -86,7 +86,7 @@ public final class Throwables {
      */
     public static RuntimeException unwrapAndThrowUncheckedException(Throwable ex) {
         if (isInstance(ex, ExecutionException.class) || isInstance(ex, InvocationTargetException.class)) {
-            throwUncheckedException(ex.getCause());
+            throw throwUncheckedException(ex.getCause());
         }
         throw throwUncheckedException(ex);
     }

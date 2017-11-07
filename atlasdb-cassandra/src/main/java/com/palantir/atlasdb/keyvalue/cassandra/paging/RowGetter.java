@@ -25,7 +25,6 @@ import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
