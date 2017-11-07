@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.priority;
+package com.palantir.common.exception;
 
-import java.util.Collection;
-import java.util.List;
+public class AtlasDbDependencyException extends RuntimeException {
+    private static final String EXCEPTION_MESSAGE = "AtlasDB dependency threw an exception.";
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.Transaction;
+    public AtlasDbDependencyException(String msg) {
+        super(msg);
+    }
 
-public interface SweepPriorityStore {
-    void delete(Transaction tx, Collection<TableReference> tableRefs);
-    void update(Transaction tx, TableReference tableRef, UpdateSweepPriority update);
-    List<SweepPriority> loadNewPriorities(Transaction tx);
-    List<SweepPriority> loadOldPriorities(Transaction tx, long sweepTimestamp);
+    public AtlasDbDependencyException(String msg, Throwable throwable) {
+        super(msg, throwable);
+    }
 
-    default boolean isInitialized() {
-        return true;
+    public AtlasDbDependencyException(Throwable throwable) {
+        super(EXCEPTION_MESSAGE, throwable);
     }
 }

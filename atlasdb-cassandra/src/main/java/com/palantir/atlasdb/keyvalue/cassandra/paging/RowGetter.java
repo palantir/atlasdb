@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 
 public class RowGetter {
     private CassandraClientPool clientPool;
@@ -62,12 +63,10 @@ public class RowGetter {
                             return queryRunner.run(client, tableRef,
                                     () -> client.get_range_slices(colFam, slicePredicate, keyRange, consistency));
                         } catch (UnavailableException e) {
-                            if (consistency.equals(ConsistencyLevel.ALL)) {
-                                throw new InsufficientConsistencyException("This operation requires all Cassandra"
-                                        + " nodes to be up and available.", e);
-                            } else {
-                                throw e;
-                            }
+                            throw new InsufficientConsistencyException("get_range_slices requires " + consistency
+                                    + " Cassandra nodes to be up and available.", e);
+                        } catch (Exception e) {
+                            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
                         }
                     }
 
@@ -77,5 +76,4 @@ public class RowGetter {
                     }
                 });
     }
-
 }

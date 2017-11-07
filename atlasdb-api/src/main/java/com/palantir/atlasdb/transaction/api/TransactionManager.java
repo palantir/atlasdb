@@ -15,13 +15,15 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.exception.NotInitializedException;
+
 public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
      * and is ready to service transactions.
      *
      * If an attempt is made to execute a transaction when this method returns {@code false}, a
-     * {@link com.palantir.exception.NotInitializedException} will be thrown.
+     * {@link NotInitializedException} will be thrown.
      *
      * This method is used for TransactionManagers that can be initialized asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default

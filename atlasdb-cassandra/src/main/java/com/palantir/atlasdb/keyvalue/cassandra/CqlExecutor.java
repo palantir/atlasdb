@@ -185,7 +185,7 @@ public class CqlExecutor {
 
         @Override
         public String toString() {
-            return String.format(queryFormat, queryArgs);
+            return String.format(queryFormat, (Object[]) queryArgs);
         }
     }
 

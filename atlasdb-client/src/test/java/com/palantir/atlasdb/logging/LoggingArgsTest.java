@@ -106,9 +106,9 @@ public class LoggingArgsTest {
 
     @Test
     public void propagatesNameAndTableReferenceIfSafe() {
-        Arg<TableReference> tableReferenceArg = LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE);
+        Arg<String> tableReferenceArg = LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE);
         assertThat(tableReferenceArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(tableReferenceArg.getValue()).isEqualTo(SAFE_TABLE_REFERENCE);
+        assertThat(tableReferenceArg.getValue()).isEqualTo(SAFE_TABLE_REFERENCE.toString());
     }
 
     @Test

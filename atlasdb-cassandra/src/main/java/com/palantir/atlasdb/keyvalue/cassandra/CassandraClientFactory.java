@@ -47,6 +47,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
@@ -196,7 +197,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                 SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
     }
 
-    static class ClientCreationFailedException extends RuntimeException {
+    static class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
 
         ClientCreationFailedException(String message, Exception cause) {
