@@ -68,6 +68,7 @@ public class AtlasDbConfigTest {
             .client(OTHER_CLIENT)
             .serversList(DEFAULT_SERVER_LIST)
             .build();
+    private static final String CLIENT_NAMESPACE = "client";
 
     @BeforeClass
     public static void setUp() {
@@ -366,5 +367,36 @@ public class AtlasDbConfigTest {
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, NO_SSL_CONFIG);
         assertThat(withSsl.leader().get().sslConfiguration(), is(NO_SSL_CONFIG));
+    }
+
+    @Test
+    public void cannotSpecifyZeroServersIfUsingTimestampBlock() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .namespace(CLIENT_NAMESPACE)
+                .timestamp(ImmutableServerListConfig.builder().build())
+                .lock(DEFAULT_SERVER_LIST)
+                .build()).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void cannotSpecifyZeroServersIfUsingLockBlock() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .namespace(CLIENT_NAMESPACE)
+                .timestamp(DEFAULT_SERVER_LIST)
+                .lock(ImmutableServerListConfig.builder().build())
+                .build()).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void canSpecifyZeroServersIfUsingTimelockBlock() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                .namespace(CLIENT_NAMESPACE)
+                .timelock(ImmutableTimeLockClientConfig.builder()
+                        .serversList(ImmutableServerListConfig.builder().build())
+                        .build())
+                .build();
     }
 }
