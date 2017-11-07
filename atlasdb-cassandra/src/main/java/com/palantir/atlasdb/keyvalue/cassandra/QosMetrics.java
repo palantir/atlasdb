@@ -21,7 +21,6 @@ import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public class QosMetrics {
-
     private final MetricsManager metricsManager = new MetricsManager();
 
     private final Meter readRequestCount;
@@ -37,7 +36,6 @@ public class QosMetrics {
         bytesRead = metricsManager.registerHistogram(QosMetrics.class, "bytesRead");
         bytesWritten = metricsManager.registerHistogram(QosMetrics.class, "bytesWritten");
     }
-
 
     public void updateReadCount() {
         readRequestCount.mark();

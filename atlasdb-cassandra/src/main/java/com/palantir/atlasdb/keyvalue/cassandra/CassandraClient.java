@@ -37,6 +37,8 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.qos.AtlasDbQosClient;
 import com.palantir.processors.AutoDelegate;
@@ -47,6 +49,8 @@ import com.palantir.processors.AutoDelegate;
 @AutoDelegate(typeToExtend = Cassandra.Client.class)
 @SuppressWarnings({"checkstyle:all", "DuplicateThrows"}) // :'(
 public class CassandraClient extends AutoDelegate_Client {
+    private final Logger log = LoggerFactory.getLogger(CassandraClient.class);
+
     private final Cassandra.Client delegate;
     private final AtlasDbQosClient qosClient;
     private final QosMetrics qosMetrics;
@@ -70,16 +74,27 @@ public class CassandraClient extends AutoDelegate_Client {
         qosClient.checkLimit();
         Map<ByteBuffer, List<ColumnOrSuperColumn>> result = delegate.multiget_slice(keys, column_parent,
                 predicate, consistency_level);
-        qosMetrics.updateReadCount();
-        qosMetrics.updateBytesRead(getApproximateReadByteCount(result));
+        try {
+            recordBytesRead(getApproximateReadByteCount(result));
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording write metrics for multiget_slice.", e);
+        }
         return result;
     }
 
     private int getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
         return result.entrySet().stream()
-                .mapToInt((entry) -> entry.getKey().array().length + entry.getValue().stream()
-                        .mapToInt(columnOrSuperColumn -> SerializationUtils.serialize(columnOrSuperColumn).length)
-                        .sum())
+                .mapToInt((entry) -> getRowKeySize(entry) + totalColumnOrSuperColumnSize(entry))
+                .sum();
+    }
+
+    private int getRowKeySize(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
+        return entry.getKey().array().length;
+    }
+
+    private int totalColumnOrSuperColumnSize(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
+        return entry.getValue().stream()
+                .mapToInt(columnOrSuperColumn -> SerializationUtils.serialize(columnOrSuperColumn).length)
                 .sum();
     }
 
@@ -89,8 +104,11 @@ public class CassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
         delegate.batch_mutate(mutation_map, consistency_level);
-        qosMetrics.updateWriteCount();
-        qosMetrics.updateBytesWritten(getApproximateWriteByteCount(mutation_map));
+        try {
+            recordBytesWritten(getApproximateWriteByteCount(mutation_map));
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording write metrics for batch_mutate.", e);
+        }
     }
 
     private int getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map) {
@@ -114,7 +132,13 @@ public class CassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
         qosClient.checkLimit();
-        return delegate.execute_cql3_query(query, compression, consistency);
+        CqlResult cqlResult = delegate.execute_cql3_query(query, compression, consistency);
+        try {
+            recordBytesRead(SerializationUtils.serialize(cqlResult).length);
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording read metrics for execute_cql3_query.", e);
+        }
+        return cqlResult;
     }
 
     @Override
@@ -126,7 +150,21 @@ public class CassandraClient extends AutoDelegate_Client {
         int approximateBytesRead = result.stream()
                 .mapToInt(keySlice -> SerializationUtils.serialize(keySlice).length)
                 .sum();
-        qosMetrics.updateBytesRead(approximateBytesRead);
+        try {
+            recordBytesRead(approximateBytesRead);
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording read metrics for get_range_slices.", e);
+        }
         return result;
+    }
+
+    private void recordBytesRead(int numBytesRead) {
+        qosMetrics.updateReadCount();
+        qosMetrics.updateBytesRead(numBytesRead);
+    }
+
+    private void recordBytesWritten(int numBytesWitten) {
+        qosMetrics.updateWriteCount();
+        qosMetrics.updateBytesWritten(numBytesWitten);
     }
 }
