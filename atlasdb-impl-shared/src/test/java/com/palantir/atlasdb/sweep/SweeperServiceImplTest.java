@@ -60,15 +60,15 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Rule
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
-            new SweeperServiceImpl(getSpecificTableSweeperService()),
+            new SweeperServiceImpl(getSpecificTableSweeperService(), sweepBatchConfigSource),
             new CheckAndSetExceptionMapper(),
             HttpRemotingJerseyFeature.INSTANCE);
 
-    // This method overrides the SweeperTestSetup method. Not sure if this is the intention, but leaving
-    // as such for now.
     @Override
     @Before
     public void setup() {
+        super.setup();
+
         sweeperService = TestJaxRsClientFactory.createJaxRsClientForTest(
                 SweeperService.class,
                 SweeperServiceImplTest.class,
@@ -183,7 +183,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     }
 
     private void verifyNoSweepResultsSaved() {
-        verify(progressStore, never()).saveProgress(any(), any());
+        verify(progressStore, never()).saveProgress(any());
         verify(priorityStore, never()).update(any(), any(), any());
     }
 

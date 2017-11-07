@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
@@ -1469,6 +1470,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 || conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
                 || conflictHandler == ConflictHandler.SERIALIZABLE) {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
+                getTransactionConflictsMeter().mark();
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
                         dominatingWrites, System.currentTimeMillis() - timeCreated);
             }
@@ -1536,6 +1538,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Predicate<CellConflict> conflicting = Predicates.compose(
                 Predicates.in(conflictingCells),
                 CellConflict.getCellFunction());
+        getTransactionConflictsMeter().mark();
         throw TransactionConflictException.create(table,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
@@ -1800,7 +1803,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
                 gets.size(), tableRef);
-        Map<Long, Long> rawResults = defaultTransactionService.get(gets);
+        Map<Long, Long> rawResults = loadCommitTimestamps(gets);
+
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
             if (e.getValue() != null) {
                 long startTs = e.getKey();
@@ -1810,6 +1814,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
         return result;
+    }
+
+    private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+        // distinguish between a single timestamp and a batch, for more granular metrics
+        if (startTimestamps.size() == 1) {
+            long singleTs = startTimestamps.iterator().next();
+            Long commitTsOrNull = defaultTransactionService.get(singleTs);
+            return commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull);
+        } else {
+            return defaultTransactionService.get(startTimestamps);
+        }
     }
 
     /**
@@ -1940,6 +1955,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Histogram getHistogram(String name) {
         return metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name));
     }
+
+    private Meter getTransactionConflictsMeter() {
+        // TODO(hsaraogi): add table names as a tag
+        return metricRegistry.meter(MetricRegistry.name(SnapshotTransaction.class, "SnapshotTransactionConflict"));
+    }
+
 }
 
 

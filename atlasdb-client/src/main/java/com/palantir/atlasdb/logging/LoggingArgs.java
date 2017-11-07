@@ -85,12 +85,12 @@ public final class LoggingArgs {
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
-    public static Arg<TableReference> tableRef(TableReference tableReference) {
+    public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
     }
 
-    public static Arg<TableReference> tableRef(String argName, TableReference tableReference) {
-        return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
+    public static Arg<String> tableRef(String argName, TableReference tableReference) {
+        return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
 
     public static Arg<String> customTableName(TableReference tableReference, String tableName) {

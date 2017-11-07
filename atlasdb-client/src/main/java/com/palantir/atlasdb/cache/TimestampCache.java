@@ -21,34 +21,18 @@ import javax.annotation.Nullable;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 /**
  * This class just here for readability and not directly leaking / tying us down to a Guava class in our API.
  */
 public class TimestampCache {
+    private final Supplier<Long> size;
 
     private volatile Cache<Long, Long> startToCommitTimestampCache;
-
-    public TimestampCache() {
-        startToCommitTimestampCache = createCache(AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
-        AtlasDbMetrics.registerCache(startToCommitTimestampCache,
-                MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
-    }
-
-    public void resize(long newSize) {
-        ConcurrentMap<Long, Long> existing = startToCommitTimestampCache.asMap();
-        startToCommitTimestampCache = createCache(newSize);
-        startToCommitTimestampCache.putAll(existing);
-    }
-
-    @VisibleForTesting
-    TimestampCache(Cache<Long, Long> cache) {
-        this.startToCommitTimestampCache = cache;
-    }
 
     @VisibleForTesting
     static Cache<Long, Long> createCache(long size) {
@@ -56,6 +40,19 @@ public class TimestampCache {
                 .maximumSize(size)
                 .recordStats()
                 .build();
+    }
+
+    public TimestampCache(Supplier<Long> size) {
+        this.size = size;
+        startToCommitTimestampCache = createCache(size.get());
+        AtlasDbMetrics.registerCache(startToCommitTimestampCache,
+                MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
+    }
+
+    @VisibleForTesting
+    TimestampCache(Cache<Long, Long> cache) {
+        this.size = null;
+        this.startToCommitTimestampCache = cache;
     }
 
     /**
@@ -85,5 +82,13 @@ public class TimestampCache {
      */
     public void clear() {
         startToCommitTimestampCache.invalidateAll();
+    }
+
+    // TODO(2565): create a background thread periodically polls the supplier to look for a change and
+    // resizes accordingly.
+    private void resize(long newSize) {
+        ConcurrentMap<Long, Long> existing = startToCommitTimestampCache.asMap();
+        startToCommitTimestampCache = createCache(newSize);
+        startToCommitTimestampCache.putAll(existing);
     }
 }

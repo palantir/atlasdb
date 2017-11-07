@@ -356,14 +356,29 @@ better idea for your table.
    To avoid hot-spotting, the type of the first row component should NOT be
    a VAR\_LONG, a VAR\_SIGNED\_LONG, or a SIZED\_BLOB.
 
-For a safe data distribution it is suggested the usage of
-``hashFirstRowComponent()``:
+For a safe data distribution the usage of ``hashFirstRowComponent()`` is suggested.
 
 .. code:: java
 
     rowName();
-        hashFirstRowComponent()
+        hashFirstRowComponent();
         rowComponent("secondary_row_component_of_any_type", ValueType.VAR_LONG);
+
+Also, in the event that the first row component may not be sufficient for even
+distribution (e.g. it has low cardinality and an uneven distribution, but subsequent
+components are more varied), AtlasDB also offers hashing a prefix of the row key, via
+``hashFirstNRowComponents(int)``. This is useful, for instance, in stream stores.
+
+.. code:: java
+
+    rowName();
+        hashFirstNRowComponents(2);
+        rowComponent("first_component_not_evenly_distributed", ValueType.VAR_LONG);
+        rowComponent("second_component_fairly_distributed", ValueType.UUID);
+        rowComponent("third_component_maybe_expensive_to_hash", ValueType.BLOB);
+
+This will prepend a hash of the first and second components of each row key to
+the table.
 
 Table Named Columns
 -------------------

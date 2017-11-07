@@ -15,11 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Arrays;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,17 +35,45 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 
+@RunWith(Parameterized.class)
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(
                 CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class)
             .with(new CassandraContainer());
 
+    @Parameterized.Parameter
+    public boolean useColumnBatchSize;
+
+    @Parameterized.Parameters(name = "Use column batch size parameter = {0}")
+    public static Iterable<?> parameters() {
+        return Arrays.asList(true, false);
+    }
+
+
     @Override
     protected KeyValueService getKeyValueService() {
+        CassandraKeyValueServiceConfig config = useColumnBatchSize
+                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+                        .withTimestampsGetterBatchSize(10)
+                : CassandraContainer.KVS_CONFIG;
+
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        CassandraContainer.KVS_CONFIG), CassandraContainer.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraContainer.LEADER_CONFIG);
+    }
+
+    @Test
+    public void should_not_oom_when_there_are_many_large_values_to_sweep() {
+        Assume.assumeTrue("should_not_oom test will always fail if column batch size is not set!", useColumnBatchSize);
+
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        long numInsertions = 100;
+        insertMultipleValues(numInsertions);
+
+        long sweepTimestamp = numInsertions + 1;
+        SweepResults results = completeSweep(sweepTimestamp);
+        Assert.assertEquals(numInsertions - 1, results.getStaleValuesDeleted());
     }
 
     @Test
@@ -53,4 +89,14 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         Assert.assertEquals(28, results.getStaleValuesDeleted());
     }
 
+    private void insertMultipleValues(long numInsertions) {
+        for (int ts = 1; ts <= numInsertions; ts++) {
+            System.out.println("putting with ts = " + ts);
+            putIntoDefaultColumn("row", makeLongRandomString(), ts);
+        }
+    }
+
+    private String makeLongRandomString() {
+        return RandomStringUtils.random(1_000_000);
+    }
 }

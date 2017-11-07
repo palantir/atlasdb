@@ -32,6 +32,8 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -66,6 +68,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
@@ -97,6 +100,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             columnRangeEndsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
+    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
 
     public SerializableTransaction(KeyValueService keyValueService,
                                    TimelockService timelockService,
@@ -480,10 +484,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
 
                 if (currentRow == null) {
-                    throw TransactionSerializableConflictException.create(
-                            table,
-                            getTimestamp(),
-                            System.currentTimeMillis() - timeCreated);
+                    handleTransactionConflict(table);
                 }
 
                 Map<Cell, byte[]> currentCells = Maps2.fromEntries(currentRow.getCells());
@@ -497,10 +498,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                             Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
                 }
                 if (!areMapsEqual(orignalReads, currentCells)) {
-                    throw TransactionSerializableConflictException.create(
-                            table,
-                            getTimestamp(),
-                            System.currentTimeMillis() - timeCreated);
+                    handleTransactionConflict(table);
                 }
             }
         }
@@ -539,10 +537,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         Sets.intersection(batchWithoutWritesSet, readsForTable.keySet()),
                         Functions.forMap(readsForTable));
                 if (!areMapsEqual(currentBatch, originalReads)) {
-                    throw TransactionSerializableConflictException.create(
-                            table,
-                            getTimestamp(),
-                            System.currentTimeMillis() - timeCreated);
+                    handleTransactionConflict(table);
                 }
             }
         }
@@ -571,10 +566,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         getReadsInRange(table, range),
                         ByteBuffer::wrap);
                 if (!bv.transformBatch(input -> filterWritesFromRows(input, writes)).isEqual(readsInRange.entrySet())) {
-                    throw TransactionSerializableConflictException.create(
-                            table,
-                            getTimestamp(),
-                            System.currentTimeMillis() - timeCreated);
+                    handleTransactionConflict(table);
                 }
             }
         }
@@ -650,10 +642,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     boolean isEqual = bv.transformBatch(input -> filterWritesFromCells(input, writes))
                             .isEqual(readsInRange.entrySet());
                     if (!isEqual) {
-                        throw TransactionSerializableConflictException.create(
-                                table,
-                                getTimestamp(),
-                                System.currentTimeMillis() - timeCreated);
+                        handleTransactionConflict(table);
                     }
                 }
             }
@@ -753,6 +742,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         // If we do not get back all these results we may be in the deadlock case so we should just
                         // fail out early.  It may be the case that abort more transactions than needed to break the
                         // deadlock cycle, but this should be pretty rare.
+                        getTransactionConflictsMeter().mark();
                         throw new TransactionSerializableConflictException("An uncommitted conflicting read was "
                                 + "written after our start timestamp for table " + tableRef + ".  "
                                 + "This case can cause deadlock and is very likely to be a read write conflict.");
@@ -769,5 +759,17 @@ public class SerializableTransaction extends SnapshotTransaction {
                 return ret;
             }
         };
+    }
+
+    private void handleTransactionConflict(TableReference tableRef) {
+        getTransactionConflictsMeter().mark();
+        throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
+                System.currentTimeMillis() - timeCreated);
+    }
+
+    private Meter getTransactionConflictsMeter() {
+        // TODO(hsaraogi): add table names as a tag
+        return metricRegistry.meter(
+                MetricRegistry.name(SerializableTransaction.class, "SerializableTransactionConflict"));
     }
 }

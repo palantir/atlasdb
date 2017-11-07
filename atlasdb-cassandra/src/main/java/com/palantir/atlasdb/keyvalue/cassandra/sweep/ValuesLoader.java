@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.marathon.util.spring;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
+import java.util.Map;
+import java.util.Set;
 
-/**
- * Marks a server call cancelable - the server call can now throw interrupted exceptions on the client,
- * and interrupting on the client will propagate to the server
- *
- * @author kbrainard
- */
-@Retention(RetentionPolicy.RUNTIME)
-public @interface CancelableServerCall {
-    //marker interface used in spring
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+
+public interface ValuesLoader {
+
+    Map<Cell, Value> getValues(TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive);
+
 }

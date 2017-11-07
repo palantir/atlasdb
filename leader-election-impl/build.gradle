@@ -1,5 +1,6 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply plugin: 'org.inferred.processors'
 
 dependencies {
   compile project(":leader-election-api")
@@ -10,6 +11,8 @@ dependencies {
   compile group: "commons-io", name: "commons-io"
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'com.palantir.remoting3', name: 'tracing'
+  
+  processor group: 'org.immutables', name: 'value'
 
   testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
     exclude group: 'org.hamcrest'

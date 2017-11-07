@@ -35,6 +35,7 @@ import com.palantir.atlasdb.table.description.generated.HashComponentsTestTable;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRow;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable.SchemaApiTestRowResult;
+import com.palantir.atlasdb.table.description.test.StringValue;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.BatchingVisitables;
@@ -79,7 +80,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, StringValue> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 
         ColumnSelection secondColSelection = SchemaApiTestTable.getColumnSelection(
@@ -100,7 +101,7 @@ public class SchemaApiTestImpl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected Map<String,String> getRangeSecondColumnOnlyFirstTwoResults(
+    protected Map<String, StringValue> getRangeSecondColumnOnlyFirstTwoResults(
             Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestTable table = tableFactory.getSchemaApiTestTable(transaction);
 

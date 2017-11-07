@@ -33,14 +33,15 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 
-public class RowRangeLoader {
+public class RowGetter {
     private CassandraClientPool clientPool;
     private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
     private TableReference tableRef;
 
-    public RowRangeLoader(
+    public RowGetter(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel consistency,
@@ -51,22 +52,22 @@ public class RowRangeLoader {
         this.tableRef = tableRef;
     }
 
-    public List<KeySlice> getRows(KeyRange keyRange, SlicePredicate slicePredicate) {
+    public List<KeySlice> getRows(KeyRange keyRange, SlicePredicate slicePredicate) throws Exception {
         ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
-                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, RuntimeException>() {
+                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
                     @Override
-                    public List<KeySlice> apply(Cassandra.Client client) throws RuntimeException {
+                    public List<KeySlice> apply(Cassandra.Client client) throws Exception {
                         try {
                             return queryRunner.run(client, tableRef,
                                     () -> client.get_range_slices(colFam, slicePredicate, keyRange, consistency));
                         } catch (UnavailableException e) {
-                                throw new InsufficientConsistencyException("get_range_slices requires " + consistency
-                                        + " Cassandra nodes to be up and available.", e);
-                        } catch (TException e) {
-                            throw new RuntimeException(e);
+                            throw new InsufficientConsistencyException("get_range_slices requires " + consistency
+                                    + " Cassandra nodes to be up and available.", e);
+                        } catch (Exception e) {
+                            throw Throwables.unwrapAndThrowUncheckedException(e);
                         }
                     }
 
@@ -76,5 +77,4 @@ public class RowRangeLoader {
                     }
                 });
     }
-
 }
