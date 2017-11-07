@@ -110,7 +110,25 @@ possibly empty).
 Semantics for Live Reloading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO jkong
+Feign and OkHttp do not appear to come with out-of-the-box for live reloading of proxy endpoints. Thus, when we
+detect that the runtime config has changed, we create a new dynamic proxy.
+
+Creating this proxy is a two step process. We first *resolve* the ``serversList`` configuration to be used - if there
+is one present in the ``timelockRuntime`` block, then we use it. Otherwise we use the ``serversList`` configuration
+from the ``timelock`` block in the install configuration.
+
+What happens next depends on the size of the ``serversList`` used:
+
+1. If the ``serversList`` appears to have zero nodes, we create a proxy that always throws a
+   ``ServiceNotAvailableException``. Note that this functionality is important; we internally have scenarios
+   where user services are initially completely unaware of TimeLock nodes.
+2. If the ``serversList`` has one or more nodes, we create a proxy that delegates requests to those nodes, failing over
+   to others if requests fail.
+
+The above mechanisms have a few implications. Most significantly, if the relevant ``serversList`` block is changed,
+requests that are in-flight will still be on the old Feign proxy. These may continue retrying until failure if,
+for example, the older configuration was unaware of the TimeLock cluster leader. Similarly, these requests may also
+continue to retry on nodes which have been removed from the cluster owing to traffic or other limitations.
 
 .. _timelock-config-examples:
 
