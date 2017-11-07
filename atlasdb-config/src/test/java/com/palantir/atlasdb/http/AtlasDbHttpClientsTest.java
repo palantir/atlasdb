@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -27,6 +28,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.GET;
@@ -43,8 +45,12 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
 public class AtlasDbHttpClientsTest {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
@@ -136,6 +142,37 @@ public class AtlasDbHttpClientsTest {
         proxyServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT))
                 .withHeader(FeignOkHttpClients.USER_AGENT_HEADER, WireMock.equalTo(defaultUserAgent)));
         availableServer.verify(0, getRequestedFor(urlMatching(TEST_ENDPOINT)));
+    }
+
+    @Test
+    public void httpProxyThrowsServiceNotAvailableExceptionIfConfiguredWithZeroNodes() {
+        TestResource testResource = AtlasDbHttpClients.createProxyWithFailover(
+                () -> ImmutableServerListConfig.builder().build(),
+                SslSocketFactories::createSslSocketFactory,
+                proxyConfiguration -> ProxySelector.getDefault(),
+                TestResource.class,
+                UserAgents.DEFAULT_VALUE);
+
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+    }
+
+    @Test
+    public void httpProxyCanBeCommissionedAndDecommissionedIfNodesBecomeUnavailable() {
+        AtomicReference<ServerListConfig> config = new AtomicReference<>(ImmutableServerListConfig.builder().build());
+
+        TestResource testResource = AtlasDbHttpClients.createProxyWithFailover(
+                config::get,
+                SslSocketFactories::createSslSocketFactory,
+                proxyConfiguration -> ProxySelector.getDefault(),
+                TestResource.class,
+                UserAgents.DEFAULT_VALUE);
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+
+        config.set(ImmutableServerListConfig.builder().addServers(getUriForPort(availablePort)).build());
+        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER));
+
+        config.set(ImmutableServerListConfig.builder().build());
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
     }
 
     private static String getUriForPort(int port) {
