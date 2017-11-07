@@ -130,6 +130,7 @@
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.tritium:tritium-api",
@@ -257,6 +258,12 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.atlasdb:qos-service-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
@@ -348,6 +355,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers",
@@ -434,6 +442,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling"
@@ -659,6 +668,7 @@
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.tritium:tritium-api",
@@ -786,6 +796,12 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
+        "com.palantir.atlasdb:qos-service-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
@@ -877,6 +893,7 @@
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers",
@@ -963,6 +980,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling"
