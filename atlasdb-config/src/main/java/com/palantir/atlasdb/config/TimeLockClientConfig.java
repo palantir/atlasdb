@@ -47,7 +47,10 @@ public abstract class TimeLockClientConfig {
      * for connecting to TimeLock.
      */
     @Deprecated
-    public abstract ServerListConfig serversList();
+    @Value.Default
+    public ServerListConfig serversList() {
+        return ImmutableServerListConfig.builder().build();
+    }
 
     public ServerListConfig toNamespacedServerList() {
         return ServerListConfigs.namespaceUris(serversList(), getClientOrThrow());
