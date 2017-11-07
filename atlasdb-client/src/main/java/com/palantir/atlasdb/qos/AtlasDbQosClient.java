@@ -20,8 +20,6 @@ package com.palantir.atlasdb.qos;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.naming.LimitExceededException;
-
 @SuppressWarnings("FinalClass")
 public class AtlasDbQosClient {
     QosService qosService;
@@ -49,7 +47,7 @@ public class AtlasDbQosClient {
 
     // The KVS layer should call this before every read/write operation
     // Currently all operations are treated equally; each uses up a unit of credits
-    public void checkLimit() throws LimitExceededException {
+    public void checkLimit() {
         // always return immediately - i.e. no backoff
         // TODO if soft-limited, pause
         // if hard-limited, throw exception
@@ -57,7 +55,7 @@ public class AtlasDbQosClient {
             credits--;
         } else {
             // TODO is there a more appropriate exception?
-            throw new LimitExceededException("Rate limit exceeded");
+            throw new RuntimeException("Rate limit exceeded");
         }
     }
 }

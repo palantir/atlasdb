@@ -22,8 +22,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.naming.LimitExceededException;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,28 +36,28 @@ public class AtlasDbQosClientTest {
     }
 
     @Test
-    public void doesNotBackOff() throws LimitExceededException {
+    public void doesNotBackOff() {
         AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
     }
 
     @Test
-    public void throwsAfterLimitExceeded() throws LimitExceededException {
+    public void throwsAfterLimitExceeded() {
         AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
-        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(LimitExceededException.class);
+        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    public void canCheckAgainAfterRefreshPeriod() throws LimitExceededException {
+    public void canCheckAgainAfterRefreshPeriod() {
         AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
-        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(LimitExceededException.class);
+        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(RuntimeException.class);
 
         scheduler.tick(1L, TimeUnit.SECONDS);
 
