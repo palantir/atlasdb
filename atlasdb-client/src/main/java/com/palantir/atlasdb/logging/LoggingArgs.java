@@ -44,6 +44,10 @@ import com.palantir.logsafe.UnsafeArg;
  * Always returns unsafe, until hydrated.
  */
 public final class LoggingArgs {
+
+    private static final TableReference PLACEHOLDER_TABLE_REFERENCE =
+            TableReference.createWithEmptyNamespace("{table}");
+
     @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
         SafeArg<List<TableReference>> safeTableRefs();
@@ -83,8 +87,9 @@ public final class LoggingArgs {
                 .build();
     }
 
-    public static List<String> tableRefValues(Collection<TableReference> tables) {
-        return tables.stream().map(LoggingArgs::tableRefValue).collect(Collectors.toList());
+    public static Iterable<TableReference> tableRefValues(Collection<TableReference> tables) {
+        //noinspection StaticPseudoFunctionalStyleMethod - Use lazy iterator.
+        return Iterables.transform(tables, LoggingArgs::tableRefValue);
     }
 
     /**
@@ -97,11 +102,11 @@ public final class LoggingArgs {
     /**
      * If safe, returns the table name. If unsafe, returns {table}.
      */
-    public static String tableRefValue(TableReference tableReference) {
+    public static TableReference tableRefValue(TableReference tableReference) {
         if (logArbitrator.isTableReferenceSafe(tableReference)) {
-            return tableReference.toString();
+            return tableReference;
         } else {
-            return "{table}";
+            return PLACEHOLDER_TABLE_REFERENCE;
         }
     }
 
