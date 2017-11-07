@@ -60,7 +60,7 @@ public interface SweeperService {
     SweepTableResponse sweepTable(
             @QueryParam("tablename") String tableName,
             @QueryParam("startRow") Optional<String> startRow,
-            @Safe @QueryParam("fullSweep") @DefaultValue("true") Optional<Boolean> fullSweep,
+            @Safe @QueryParam("fullSweep") Optional<Boolean> fullSweep,
             @Safe @QueryParam("maxCellTsPairsToExamine") Optional<Integer> maxCellTsPairsToExamine,
             @Safe @QueryParam("candidateBatchSize") Optional<Integer> candidateBatchSize,
             @Safe @QueryParam("deleteBatchSize") Optional<Integer> deleteBatchSize);
