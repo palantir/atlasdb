@@ -26,6 +26,8 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 
 public abstract class AbstractCommand implements Callable<Integer> {
+    public static final String ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH = "/atlas";
+
     @Option(name = {"-c", "--config"},
             title = "CONFIG PATH",
             type = OptionType.GLOBAL,
@@ -57,7 +59,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
         if (config == null) {
             try {
                 if (configFile != null) {
-                    config = AtlasDbConfigs.load(configFile, configRoot);
+                    config = parseAtlasDbConfig();
                 } else if (inlineConfig != null) {
                     config = AtlasDbConfigs.loadFromString(inlineConfig, "");
                 } else {
@@ -73,6 +75,22 @@ public abstract class AbstractCommand implements Callable<Integer> {
         }
 
         return config;
+    }
+
+    private AtlasDbConfig parseAtlasDbConfig() {
+        try {
+            return AtlasDbConfigs.load(configFile, configRoot);
+        } catch (Exception e) {
+            try {
+                return AtlasDbConfigs.load(configFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH);
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to load the atlasdb config. One possibility"
+                        + " is that the AtlasDB block root in the config is not '/atlasdb' nor '/atlas'."
+                        + " You can specify a different config root by specifying the --config-root option"
+                        + " before the command (i.e. sweep, migrate).",
+                        ex);
+            }
+        }
     }
 
     protected boolean isOffline() {

@@ -30,11 +30,8 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -56,7 +53,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.InstrumentedExecutorService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -127,14 +123,11 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -259,7 +252,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig,
                                        boolean initializeAsync) {
-        super(createExecutor(configManager.getConfig()));
+        super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
+                configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
         this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
@@ -272,35 +266,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
-    }
-
-    /**
-     * Creates a thread pool that maintains between (poolSize * numServers) and (maxConnectionBurstSize * numServers)
-     * threads. When the max pool size is hit, new requests will not be queued but rather will be run in the caller's
-     * thread. Throttling will be taken care of by the underlying client pools.
-     */
-    private static ExecutorService createExecutor(CassandraKeyValueServiceConfig config) {
-        int numServers = config.servers().size();
-        ThreadPoolExecutor executor = PTExecutors.newThreadPoolExecutor(
-                config.poolSize() * numServers,
-                config.maxConnectionBurstSize() * numServers,
-                1,
-                TimeUnit.MINUTES,
-                // When executor grows past its core pool size, we want to reject enqueue operations
-                // so that it will grow to its max pool size before calling its rejection handler.
-                new ArrayBlockingQueue<Runnable>(1) {
-                    @Override
-                    public boolean offer(Runnable runnable) {
-                        return false;
-                    }
-                    @Override
-                    public boolean offer(Runnable runnable, long timeout, TimeUnit unit) {
-                        return false;
-                    }
-                },
-                new NamedThreadFactory("Atlas Cassandra KVS", false),
-                new ThreadPoolExecutor.CallerRunsPolicy());
-        return new InstrumentedExecutorService(executor, AtlasDbMetrics.getMetricRegistry(), "atlasdb-cassandra-kvs");
     }
 
     @Override
