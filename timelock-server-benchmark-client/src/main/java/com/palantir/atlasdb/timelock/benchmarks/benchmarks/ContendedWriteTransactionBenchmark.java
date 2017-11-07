@@ -19,35 +19,35 @@ package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 import java.util.Arrays;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
+import com.palantir.atlasdb.timelock.benchmarks.config.BenchmarkSettings;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable.BlobsSerializableRow;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public final class ContendedWriteTransactionBenchmark extends AbstractBenchmark {
-
-    private static final Logger log = LoggerFactory.getLogger(ContendedWriteTransactionBenchmark.class);
+public final class ContendedWriteTransactionBenchmark extends AbstractBenchmark<ContendedWriteTransactionBenchmark.Settings> {
 
     private static final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
+
+    @Value.Immutable
+    public interface Settings extends BenchmarkSettings { }
 
     private final TransactionManager txnManager;
     private final Map<byte[], byte[]> originalValuesByKey = ImmutableMap.of(
             RandomBytes.ofLength(16), RandomBytes.ofLength(16),
             RandomBytes.ofLength(16), RandomBytes.ofLength(16));
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
-            int requestsPerClient) {
-        return new ContendedWriteTransactionBenchmark(txnManager, numClients, requestsPerClient).execute();
+    public static Map<String, Object> execute(SerializableTransactionManager txnManager, Settings settings) {
+        return new ContendedWriteTransactionBenchmark(txnManager, settings).execute();
     }
 
-    private ContendedWriteTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient) {
-        super(numClients, requestsPerClient);
+    private ContendedWriteTransactionBenchmark(TransactionManager txnManager, Settings settings) {
+        super(settings);
 
         this.txnManager = txnManager;
     }

@@ -11,6 +11,8 @@ dependencies {
         exclude group:'com.codahale.metrics'
     }
 
+    processor group: 'org.immutables', name: 'value'
+
     compile group: 'junit', name: 'junit'
     compile group: 'org.assertj', name: 'assertj-core'
 

@@ -71,12 +71,12 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void readTransactionRows() {
-        runAndPrintResults(() -> client.readTransactionRows(1, 50, 100, 100, 1));
+        runAndPrintResults(() -> client.readTransactionRows(100, 100, 100, 100, 1));
     }
 
     @Test
     public void rowsRangeScan() {
-        runAndPrintResults(() -> client.rangeScanRows(1, 50, 100, 100, 1, 0));
+        runAndPrintResults(() -> client.rangeScanRows(100, 100, 100, 100, 1, 0));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void sweep() {
-        sweeper.sweepTableFromStartRow("benchmarks.Blobs", "a2c1c18906749d46b4594ea5790b34e5".toUpperCase());
+        sweeper.sweepTableFrom("benchmarks.Blobs", "a2c1c18906749d46b4594ea5790b34e5".toUpperCase());
     }
 
 }

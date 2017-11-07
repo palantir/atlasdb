@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.immutables.value.Value;
+
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsColumn;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumnsTable.KvDynamicColumnsColumnValue;
@@ -27,18 +29,18 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public final class DynamicColumnsWriteTransactionBenchmark extends AbstractWriteTransactionBenchmark {
+public final class DynamicColumnsWriteTransactionBenchmark
+        extends AbstractWriteTransactionBenchmark<DynamicColumnsWriteTransactionBenchmark.Settings> {
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
-            int requestsPerClient, int numRows, int dataSize) {
-        return new DynamicColumnsWriteTransactionBenchmark(txnManager, numClients, requestsPerClient, numRows,
-                dataSize).execute();
+    @Value.Immutable
+    public interface Settings extends AbstractWriteTransactionBenchmark.Settings {}
+
+    public static Map<String, Object> execute(SerializableTransactionManager txnManager, Settings settings) {
+        return new DynamicColumnsWriteTransactionBenchmark(txnManager, settings).execute();
     }
 
-    private DynamicColumnsWriteTransactionBenchmark(TransactionManager txnManager, int numClients,
-            int requestsPerClient,
-            int numRows, int dataSize) {
-        super(txnManager, numClients, requestsPerClient, numRows, dataSize);
+    private DynamicColumnsWriteTransactionBenchmark(TransactionManager txnManager, Settings settings) {
+        super(txnManager, settings);
     }
 
     @Override

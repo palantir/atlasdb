@@ -19,29 +19,35 @@ package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 import java.util.Map;
 import java.util.UUID;
 
+import org.immutables.value.Value;
+
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.timelock.benchmarks.config.BenchmarkSettings;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public final class KvsWriteBenchmark extends AbstractBenchmark {
+public final class KvsWriteBenchmark extends AbstractBenchmark<KvsWriteBenchmark.Settings> {
 
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
 
+    @Value.Immutable
+    public interface Settings extends BenchmarkSettings { }
+
     private final KeyValueService keyValueService;
 
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
-            int requestsPerClient) {
+    public static Map<String, Object> execute(SerializableTransactionManager txnManager, Settings settings) {
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        return new KvsWriteBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient).execute();
+        return new KvsWriteBenchmark(txnManager.getKeyValueService(), settings).execute();
     }
 
-    private KvsWriteBenchmark(KeyValueService keyValueService, int numClients, int numRequestsPerClient) {
-        super(numClients, numRequestsPerClient);
+    private KvsWriteBenchmark(KeyValueService keyValueService, Settings settings) {
+        super(settings);
+
         this.keyValueService = keyValueService;
     }
 

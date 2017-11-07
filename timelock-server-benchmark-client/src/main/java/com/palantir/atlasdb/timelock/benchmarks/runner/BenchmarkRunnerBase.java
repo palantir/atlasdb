@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -42,8 +43,8 @@ public class BenchmarkRunnerBase {
 
     private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-    protected static final BenchmarksService client = createClient();
-    protected static final SweeperService sweeper = createSweeper();
+    protected static final BenchmarksService client = createClient(BENCHMARK_SERVER);
+    protected static final SweeperService sweeper = createSweeper(BENCHMARK_SERVER);
 
     protected void runAndPrintResults(BiFunction<Integer, Integer, Map<String, Object>> test, int numClients,
             int numRequestsPerClient) {
@@ -64,19 +65,23 @@ public class BenchmarkRunnerBase {
         }
     }
 
-    protected static final BenchmarksService createClient() {
-        return createProxyWithLargeTimeout(BenchmarksService.class);
+    protected static final BenchmarksService createClient(String uri) {
+        return createProxyWithLargeTimeout(BenchmarksService.class, uri);
+    }
+
+    protected static SweeperService createSweeper(String uri) {
+        return createProxyWithLargeTimeout(SweeperService.class, uri);
     }
 
     private static SweeperService createSweeper() {
-        return createProxyWithLargeTimeout(SweeperService.class);
+        return createProxyWithLargeTimeout(SweeperService.class, uri);
     }
 
-    private static <T> T createProxyWithLargeTimeout(Class<T> type) {
+    private static <T> T createProxyWithLargeTimeout(Class<T> type, String uri) {
         return AtlasDbFeignTargetFactory.createProxyWithFailover(
                 Optional.empty(),
                 Optional.empty(),
-                ImmutableSet.of(BENCHMARK_SERVER),
+                ImmutableSet.of(uri),
                 10_000,
                 1_000_000,
                 1_000,
@@ -85,6 +90,9 @@ public class BenchmarkRunnerBase {
     }
 
     private static String readBenchmarkServerUri() {
+        if (true) {
+            return "http://localhost:9425";
+        }
         try {
             for (String line : Files.readLines(new File("../scripts/benchmarks/servers.txt"),
                     Charset.forName("UTF-8"))) {
