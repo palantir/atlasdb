@@ -1,4 +1,4 @@
-    /*
+/*
  * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.qos;
-
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
