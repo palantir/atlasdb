@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,7 @@ public final class AdjustableSweepBatchConfigSource {
     private final Supplier<SweepBatchConfig> rawSweepBatchConfig;
 
     private static volatile double batchSizeMultiplier = 1.0;
-    private int successiveIncreases = 0;
+    private final AtomicInteger successiveIncreases = new AtomicInteger(0);
 
     private AdjustableSweepBatchConfigSource(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         this.rawSweepBatchConfig = rawSweepBatchConfig;
@@ -73,14 +75,13 @@ public final class AdjustableSweepBatchConfigSource {
             return;
         }
 
-        successiveIncreases++;
-        if (successiveIncreases > 25) {
+        if (successiveIncreases.incrementAndGet() > 25) {
             batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 2);
         }
     }
 
     public void decreaseMultiplier() {
-        successiveIncreases = 0;
+        successiveIncreases.set(0);
         SweepBatchConfig lastBatchConfig = getAdjustedSweepConfig();
 
         // Cut batch size in half, always sweep at least one row.
