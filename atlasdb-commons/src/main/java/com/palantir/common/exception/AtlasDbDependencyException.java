@@ -23,6 +23,10 @@ public class AtlasDbDependencyException extends RuntimeException {
         super(EXCEPTION_MESSAGE + msg);
     }
 
+    public AtlasDbDependencyException(String msg, Throwable throwable) {
+        super(EXCEPTION_MESSAGE + msg, throwable);
+    }
+
     public AtlasDbDependencyException(Throwable throwable) {
         super(EXCEPTION_MESSAGE, throwable);
     }
