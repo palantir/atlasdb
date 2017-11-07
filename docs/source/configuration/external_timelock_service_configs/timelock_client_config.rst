@@ -7,12 +7,14 @@ You will need to update your AtlasDB configuration in order to have said clients
 external Timelock Servers as opposed to their embedded services. This is an extension of the leader block configuration
 options discussed at :ref:`leader-config`.
 
+TimeLock client configuration spans both ``install`` and ``runtime`` configuration.
+
+Install-Time Configuration
+--------------------------
+
 Instead of configuring a ``leader`` block, or both a ``timestamp`` and ``lock`` block, one must instead specify a
 single ``timelock`` block if your product uses the Timelock Server. The ``leader`` block and the ``timestamp``/``lock``
 blocks must be absent from the config if you are using the Timelock Server.
-
-Timelock
---------
 
 .. danger::
 
@@ -38,12 +40,13 @@ Required parameters:
            Note that client names must be non-empty and consist of only alphanumeric characters, dashes and
            underscores (succinctly, ``[a-zA-Z0-9_-]+``) and for backwards compatibility cannot be the reserved word ``leader``.
 
-    *    - serversList::servers
-         - A list of all hosts. The hosts must be specified as addresses, i.e. ``https://host:port``.
-           At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
-           are part of the same Timelock cluster.
-
 Optional parameters:
+
+.. note::
+
+    Specifying the ``serversList`` (a ``ServerListConfig``) in the install configuration has been deprecated, but is
+    maintained for backward compatibility. Please switch to declaring the ``ServerListConfig`` in the runtime
+    configuration as soon as possible.
 
 .. list-table::
     :widths: 5 40
@@ -52,10 +55,62 @@ Optional parameters:
     *    - Property
          - Description
 
+    *    - serversList::servers
+         - A list of all hosts. The hosts must be specified as addresses, i.e. ``https://host:port``.
+           AtlasDB assumes that the Timelock Servers being pointed at are part of the same Timelock cluster.
+           If this is not provided, it defaults to the empty list.
+
     *    - serversList::sslConfiguration
          - The SSL configuration of the service. This should follow the
-           `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java>`__
+           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/ssl-config/src/main/java/com/palantir/remoting/api/config/ssl/SslConfiguration.java>`__
            library. This should also be in alignment with the protocol used when configuring the servers.
+
+    *    - serversList::proxyConfiguration
+         - The proxy configuration of the service. This should follow the
+           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__
+           library.
+
+Runtime Configuration
+---------------------
+
+We support live reloading of the ``ServerListConfiguration`` for TimeLock. This can be optionally configured in the
+``timelockRuntime`` block under AtlasDB's runtime configuration root.
+
+Note that if this block is present, then the ``ServerListConfiguration`` in the install configuration will be ignored.
+
+Also, although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
+should talk to TimeLock - thus, the install configuration must contain a ``timelock`` block (even if said block is
+possibly empty).
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Property
+         - Description
+
+    *    - serversList::servers
+         - A list of all hosts. The hosts must be specified as addresses, i.e. ``https://host:port``.
+           AtlasDB assumes that the Timelock Servers being pointed at are part of the same Timelock cluster.
+           If this is not provided, it defaults to the empty list.
+
+    *    - serversList::sslConfiguration
+         - The SSL configuration of the service. This should follow the
+           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/ssl-config/src/main/java/com/palantir/remoting/api/config/ssl/SslConfiguration.java>`__
+           library. This should also be in alignment with the protocol used when configuring the servers.
+
+    *    - serversList::proxyConfiguration
+         - The proxy configuration of the service. This should follow the
+           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__
+           library.
+
+
+.. _semantics-for-live-reloading:
+
+Semantics for Live Reloading
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO jkong
 
 .. _timelock-config-examples:
 
