@@ -102,7 +102,7 @@ public final class Throwables {
             Thread.currentThread().interrupt();
         }
         throwIfInstance(ex, AtlasDbDependencyException.class);
-        return new AtlasDbDependencyException("AtlasDB dependency threw an exception.", ex);
+        return new AtlasDbDependencyException(ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {

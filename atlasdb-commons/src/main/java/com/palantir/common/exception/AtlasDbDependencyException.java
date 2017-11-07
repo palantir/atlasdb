@@ -17,13 +17,13 @@
 package com.palantir.common.exception;
 
 public class AtlasDbDependencyException extends RuntimeException {
+    private static final String EXCEPTION_MESSAGE = "AtlasDB dependency threw an exception.";
 
     public AtlasDbDependencyException(String msg) {
-        super(msg);
+        super(EXCEPTION_MESSAGE + msg);
     }
 
-    public AtlasDbDependencyException(String msg, Throwable throwable) {
-        super(msg, throwable);
+    public AtlasDbDependencyException(Throwable throwable) {
+        super(EXCEPTION_MESSAGE, throwable);
     }
-
 }
