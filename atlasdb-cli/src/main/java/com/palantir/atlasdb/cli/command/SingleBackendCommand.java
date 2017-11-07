@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
@@ -44,12 +45,14 @@ public abstract class SingleBackendCommand extends AbstractCommand {
     }
 
     private AtlasDbServices connect() throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(getAtlasDbConfig());
+        ServicesConfigModule scm = ServicesConfigModule.create(
+                getAtlasDbConfig(), AtlasDbRuntimeConfig.defaultRuntimeConfig());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     public <T extends AtlasDbServices> T connect(AtlasDbServicesFactory factory) throws IOException {
-        return factory.connect(ServicesConfigModule.create(getAtlasDbConfig()));
+        return factory.connect(ServicesConfigModule.create(
+                getAtlasDbConfig(), AtlasDbRuntimeConfig.defaultRuntimeConfig()));
     }
 
     public abstract int execute(AtlasDbServices services);

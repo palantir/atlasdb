@@ -102,7 +102,7 @@ class Heartbeat implements Runnable {
                             writeConsistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
-                    "CAS for the heartbeat requires " + writeConsistency + "Casandra nodes to be available.", e);
+                    "CAS for the heartbeat requires " + writeConsistency + "Cassandra nodes to be available.", e);
         }
     }
 

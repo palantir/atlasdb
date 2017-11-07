@@ -42,6 +42,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.junit.After;
 import org.junit.Before;
@@ -58,6 +59,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -71,11 +73,13 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
@@ -125,6 +129,11 @@ public class TransactionManagersTest {
             = "/" + CLIENT + "/timestamp-management/fast-forward?currentTimestamp=" + EMBEDDED_BOUND;
     private static final MappingBuilder TIMELOCK_FF_MAPPING = post(urlEqualTo(TIMELOCK_FF_PATH));
 
+    private static final AtlasDbConfig REAL_CONFIG = ImmutableAtlasDbConfig.builder()
+            .keyValueService(new InMemoryAtlasDbConfig())
+            .defaultLockTimeoutSeconds(62)
+            .build();
+
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
     private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
             TransactionManagers.LockAndTimestampServices.class);
@@ -138,6 +147,8 @@ public class TransactionManagersTest {
     private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
+    private Supplier<Optional<AtlasDbRuntimeConfig>> configSupplier;
+    private TransactionManagers.Environment env;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -193,6 +204,8 @@ public class TransactionManagersTest {
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .build();
+        configSupplier = () -> Optional.of(runtimeConfig);
+        env = mock(TransactionManagers.Environment.class);
     }
 
     @After
@@ -262,12 +275,12 @@ public class TransactionManagersTest {
     @Test
     public void setsGlobalDefaultLockTimeout() {
         TimeDuration expectedTimeout = SimpleTimeDuration.of(47, TimeUnit.SECONDS);
-        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
         TransactionManagers.builder()
-                .config(realConfig)
+                .config(atlasDbConfig)
                 .registrar(environment)
                 .userAgent("test")
                 .buildSerializable();
@@ -278,6 +291,46 @@ public class TransactionManagersTest {
                 .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"),
                         LockMode.WRITE)).build();
         assertEquals(expectedTimeout, lockRequest.getLockTimeout());
+    }
+
+    @Test
+    public void canCreateInMemory() {
+        TransactionManagers.createInMemory(GenericTestSchema.getSchema());
+    }
+
+    @Test
+    public void canCreateInMemoryWithSetOfSchemas() {
+        TransactionManagers.createInMemory(ImmutableSet.of(
+                GenericTestSchema.getSchema()));
+    }
+
+    // TODO (tpetracca): remove the deprecated methods (and tests) by November 15th, 2017
+    @Test
+    public void canCreateUsingDeprecatedMethodWithSingleSchema() {
+        TransactionManagers.create(REAL_CONFIG, configSupplier, GenericTestSchema.getSchema(), env, false);
+    }
+
+    @Test
+    public void canCreateUsingDeprecatedMethodWithSetOfSchemas() {
+        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, false);
+    }
+
+    @Test
+    public void canCreateUsingDeprecatedMethodWithLockServerOptions() {
+        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, LockServerOptions.DEFAULT,
+                false);
+    }
+
+    @Test
+    public void canCreateUsingDeprecatedMethodWithCallingClass() {
+        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, LockServerOptions.DEFAULT,
+                false, this.getClass());
+    }
+
+    @Test
+    public void canCreateUsingDeprecatedMethodWithUserAgent() {
+        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, LockServerOptions.DEFAULT,
+                false, "test-user-agent");
     }
 
     @Test
@@ -302,7 +355,7 @@ public class TransactionManagersTest {
 
     @Test
     public void runsClosingCallbackOnShutdown() throws Exception {
-        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds(120)
                 .build();
@@ -310,7 +363,7 @@ public class TransactionManagersTest {
         Runnable callback = mock(Runnable.class);
 
         SerializableTransactionManager manager = TransactionManagers.builder()
-                .config(realConfig)
+                .config(atlasDbConfig)
                 .registrar(environment)
                 .userAgent("test")
                 .buildSerializable();
@@ -321,12 +374,12 @@ public class TransactionManagersTest {
 
     @Test
     public void keyValueServiceMetricsDoNotContainUserAgent() {
-        AtlasDbConfig realConfig = ImmutableAtlasDbConfig.builder()
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .build();
 
         TransactionManagers.builder()
-                .config(realConfig)
+                .config(atlasDbConfig)
                 .registrar(environment)
                 .userAgent("test")
                 .buildSerializable();

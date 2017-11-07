@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra.paging;
+package com.palantir.atlasdb.monitoring;
 
-import org.apache.cassandra.thrift.Column;
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface CassandraRawCellValue {
-
-    byte[] getRowKey();
-
-    Column getColumn();
-
+public interface TimestampTracker extends AutoCloseable {
+    void close();
 }

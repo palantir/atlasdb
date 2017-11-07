@@ -27,6 +27,7 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -95,9 +96,9 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                     .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
                     .batchSizeHint(1000)
-                    .sweepTimestamp(Long.MAX_VALUE)
+                    .maxTimestampExclusive(Long.MAX_VALUE)
                     .shouldCheckIfLatestValueIsEmpty(thorough)
-                    .timestampsToIgnore(thorough ? new long[] {} : new long[] { Value.INVALID_VALUE_TIMESTAMP })
+                    .timestampsToIgnore(thorough ? ImmutableSet.of() : ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP))
                     .build();
         try (ClosableIterator<List<CandidateCellForSweeping>> iter = kvs.getCandidateCellsForSweeping(
                     tableRef, request)) {

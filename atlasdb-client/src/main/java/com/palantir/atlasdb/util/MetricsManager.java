@@ -17,6 +17,7 @@ package com.palantir.atlasdb.util;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 
 public class MetricsManager {
 
@@ -34,7 +36,12 @@ public class MetricsManager {
     private final Set<String> registeredMetrics;
 
     public MetricsManager() {
-        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+        this(AtlasDbMetrics.getMetricRegistry());
+    }
+
+    @VisibleForTesting
+    MetricsManager(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
         this.registeredMetrics = new HashSet<>();
     }
 
@@ -89,9 +96,12 @@ public class MetricsManager {
     }
 
     public void deregisterMetricsWithPrefix(Class clazz, String prefix) {
-        String fqnPrefix = MetricRegistry.name(clazz, prefix);
-        registeredMetrics.stream()
+        // isEmpty() check required because MetricRegistry.name skips missing components.
+        // See MetricsManagerTest#doesNotDeregisterMetricsFromOtherClassesEvenIfStringPrefixesMatch.
+        String fqnPrefix = prefix.isEmpty() ? clazz.getName() + "." : MetricRegistry.name(clazz, prefix);
+        Set<String> relevantMetrics = registeredMetrics.stream()
                 .filter(metricName -> metricName.startsWith(fqnPrefix))
-                .forEach(this::deregisterMetric);
+                .collect(Collectors.toSet());
+        relevantMetrics.forEach(this::deregisterMetric);
     }
 }

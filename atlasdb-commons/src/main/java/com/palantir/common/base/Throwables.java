@@ -80,7 +80,8 @@ public final class Throwables {
     }
 
     /**
-     * If Throwable is a RuntimeException or Error, rethrow it. If not, throw a
+     * If Throwable is a RuntimeException or Error, rethrow it. If its an ExecutionException or
+     * InvocationTargetException, extract the cause and process it. Else, throw a
      * new PalantirRuntimeException(ex)
      */
     public static RuntimeException unwrapAndThrowDependencyUnavailableException(Throwable ex) {

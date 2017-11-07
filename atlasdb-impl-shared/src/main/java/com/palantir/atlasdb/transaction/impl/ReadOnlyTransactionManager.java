@@ -52,10 +52,11 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     final int defaultGetRangesConcurrency;
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
-                                      TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                      int concurrentGetRangesThreadPoolSize,
-                                      int defaultGetRangesConcurrency) {
+            TransactionService transactionService,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            Supplier<Long> timestampCacheSize) {
         this(
                 keyValueService,
                 transactionService,
@@ -64,16 +65,18 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
-                                      TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                      Supplier<Long> startTimestamp,
-                                      TransactionReadSentinelBehavior readSentinelBehavior,
-                                      int concurrentGetRangesThreadPoolSize,
-                                      int defaultGetRangesConcurrency) {
+            TransactionService transactionService,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Supplier<Long> startTimestamp,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            Supplier<Long> timestampCacheSize) {
         this(
                 keyValueService,
                 transactionService,
@@ -82,17 +85,20 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 readSentinelBehavior,
                 false,
                 concurrentGetRangesThreadPoolSize,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
     }
 
     public ReadOnlyTransactionManager(KeyValueService keyValueService,
-                                      TransactionService transactionService,
-                                      AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                      Supplier<Long> startTimestamp,
-                                      TransactionReadSentinelBehavior readSentinelBehavior,
-                                      boolean allowHiddenTableAccess,
-                                      int concurrentGetRangesThreadPoolSize,
-                                      int defaultGetRangesConcurrency) {
+            TransactionService transactionService,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Supplier<Long> startTimestamp,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            Supplier<Long> timestampCacheSize) {
+        super(timestampCacheSize::get);
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
         this.constraintCheckingMode = constraintCheckingMode;
@@ -181,6 +187,11 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     @Override
     public long getUnreadableTimestamp() {
         return Long.MAX_VALUE;
+    }
+
+    @Override
+    public void clearTimestampCache() {
+
     }
 
     @Override

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -39,6 +40,8 @@ public class SweeperTestSetup {
     protected static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName(
             "backgroundsweeper.fasttest");
 
+    protected static AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+
     protected SpecificTableSweeper specificTableSweeper;
     protected BackgroundSweeperImpl backgroundSweeper;
     protected KeyValueService kvs = Mockito.mock(KeyValueService.class);
@@ -50,12 +53,25 @@ public class SweeperTestSetup {
     protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
     protected long currentTimeMillis = 1000200300L;
 
+    @BeforeClass
+    public static void initialiseConfig() {
+        ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
+                .deleteBatchSize(100)
+                .candidateBatchSize(200)
+                .maxCellTsPairsToExamine(1000)
+                .build();
+
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
+    }
+
     @Before
     public void setup() {
         specificTableSweeper = getSpecificTableSweeperService();
+
         backgroundSweeper = new BackgroundSweeperImpl(
                 Mockito.mock(LockService.class),
                 nextTableToSweepProvider,
+                sweepBatchConfigSource,
                 () -> sweepEnabled,
                 () -> 0L, // pauseMillis
                 Mockito.mock(PersistentLockManager.class),
@@ -63,17 +79,10 @@ public class SweeperTestSetup {
     }
 
     protected SpecificTableSweeper getSpecificTableSweeperService() {
-        ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
-                .deleteBatchSize(100)
-                .candidateBatchSize(200)
-                .maxCellTsPairsToExamine(1000)
-                .build();
-
         return new SpecificTableSweeper(
                 SweeperTestSetup.mockTxManager(),
                 kvs,
                 sweepTaskRunner,
-                () -> sweepBatchConfig,
                 priorityStore,
                 progressStore,
                 Mockito.mock(BackgroundSweeperPerformanceLogger.class),
@@ -94,11 +103,11 @@ public class SweeperTestSetup {
     }
 
     protected void setNoProgress() {
-        Mockito.doReturn(Optional.empty()).when(progressStore).loadProgress(Mockito.any());
+        Mockito.doReturn(Optional.empty()).when(progressStore).loadProgress();
     }
 
     protected void setProgress(SweepProgress progress) {
-        Mockito.doReturn(Optional.of(progress)).when(progressStore).loadProgress(Mockito.any());
+        Mockito.doReturn(Optional.of(progress)).when(progressStore).loadProgress();
     }
 
     protected void setNextTableToSweep(TableReference tableRef) {
