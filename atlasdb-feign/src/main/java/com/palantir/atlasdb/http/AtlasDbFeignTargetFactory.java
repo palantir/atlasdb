@@ -26,7 +26,9 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.reflect.Reflection;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
@@ -131,13 +133,25 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent) {
         return RecreatingInvocationHandler.create(
                 serverListConfigSupplier,
-                serverListConfig -> createProxyWithFailover(
-                        serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
-                        serverListConfig.proxyConfiguration().map(proxySelectorCreator),
-                        serverListConfig.servers(),
-                        type,
-                        userAgent),
+                serverListConfig -> {
+                    if (serverListConfig.hasAtLeastOneServer()) {
+                        return createProxyWithFailover(
+                                serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
+                                serverListConfig.proxyConfiguration().map(proxySelectorCreator),
+                                serverListConfig.servers(),
+                                type,
+                                userAgent);
+                    }
+                    return createProxyForZeroNodes(type);
+                },
                 type);
+    }
+
+    private static <T> T createProxyForZeroNodes(Class<T> type) {
+        return Reflection.newProxy(type, (unused1, unused2, unused3) -> {
+            throw new ServiceNotAvailableException("The " + type.getSimpleName() + " is currently unavailable,"
+                    + " because we don't know how to talk to it (we think there are zero nodes).");
+        });
     }
 
     private static <T> T createProxyWithFailover(
