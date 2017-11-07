@@ -26,6 +26,10 @@ public class QosServiceResource implements QosService {
 
     @Override
     public long getLimit(String client) {
-        return config.clientLimits().get(client);
+        Long currentClientLimit = config.clientLimits().get(client);
+        if (currentClientLimit == null) {
+            currentClientLimit = Long.MAX_VALUE;
+        }
+        return currentClientLimit;
     }
 }
