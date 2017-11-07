@@ -89,7 +89,7 @@ public class UpdateExecutor {
                 cell.getColumnName(),
                 ts)) {
             List<byte[]> actualValues = Lists.newArrayList();
-            results.forEach(row -> actualValues.add(row.getBlob(DbKvs.VAL)));
+            results.forEach(row -> actualValues.add(row.getBytes(DbKvs.VAL)));
             return actualValues;
         }
     }
