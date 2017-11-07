@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.GET;
@@ -49,7 +50,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
@@ -170,6 +173,41 @@ public class AtlasDbHttpClientsTest {
         int response = client.getTestNumber();
         assertThat(response, equalTo(TEST_NUMBER));
         unavailableServer.verify(getRequestedFor(urlMatching(TEST_ENDPOINT)));
+    }
+
+    @Test
+    public void httpProxyThrowsServiceNotAvailableExceptionIfConfiguredWithZeroNodes() {
+        TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
+                () -> ImmutableServerListConfig.builder().build(),
+                SslSocketFactories::createSslSocketFactory,
+                proxyConfiguration -> ProxySelector.getDefault(),
+                TestResource.class,
+                UserAgents.DEFAULT_VALUE);
+
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+    }
+
+    @Test
+    public void httpProxyCanBeCommissionedAndDecommissionedIfNodesBecomeUnavailable() {
+        AtomicReference<ServerListConfig> config = new AtomicReference<>(ImmutableServerListConfig.builder().build());
+
+        TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
+                config::get,
+                SslSocketFactories::createSslSocketFactory,
+                proxyConfiguration -> ProxySelector.getDefault(),
+                TestResource.class,
+                UserAgents.DEFAULT_VALUE);
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+
+        config.set(ImmutableServerListConfig.builder().addServers(getUriForPort(availablePort)).build());
+        Uninterruptibles.sleepUninterruptibly(
+                PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
+        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER));
+
+        config.set(ImmutableServerListConfig.builder().build());
+        Uninterruptibles.sleepUninterruptibly(
+                PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
     }
 
     private static String getUriForPort(int port) {
