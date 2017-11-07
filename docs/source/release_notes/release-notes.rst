@@ -50,9 +50,9 @@ develop
 
     *    - |new|
          - AtlasDB clients are now able to live reload TimeLock URLs.
-           This is required for internal work on running products in Kubernetes.
+           This is required for internal work on running services in Kubernetes.
            We still require that clients are configured to use TimeLock (as opposed to a leader, remote timestamp/lock or embedded service) at install time.
-           Note that this change does not affect TimeLock Server, which currently requires knowledge of the entire cluster as well.
+           Note that this change does not affect TimeLock Server, which still requires knowledge of the entire cluster as well.
            Please consult TODO for more detail regarding the config changes needed.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/XXXX>`__ and
             `Pull Request 2 <https://github.com/palantir/atlasdb/pull/XXXX>`__)
