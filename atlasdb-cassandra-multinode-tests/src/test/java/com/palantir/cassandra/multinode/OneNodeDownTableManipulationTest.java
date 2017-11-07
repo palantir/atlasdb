@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class OneNodeDownTableManipulationTest {
     private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
@@ -54,7 +55,8 @@ public class OneNodeDownTableManipulationTest {
     public void dropTableThrows() {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
-                .isExactlyInstanceOf(IllegalStateException.class);
+                .isExactlyInstanceOf(AtlasDbDependencyException.class)
+                .hasCauseInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
@@ -65,7 +67,8 @@ public class OneNodeDownTableManipulationTest {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTables(
                 ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
-                .isExactlyInstanceOf(IllegalStateException.class);
+                .isExactlyInstanceOf(AtlasDbDependencyException.class)
+                .hasCauseInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames())
