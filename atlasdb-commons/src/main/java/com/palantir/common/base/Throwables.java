@@ -29,8 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirInterruptedException;
 
 public final class Throwables {
 
@@ -84,17 +84,25 @@ public final class Throwables {
      * InvocationTargetException, extract the cause and process it. Else, throw a
      * new PalantirRuntimeException(ex)
      */
-    public static RuntimeException unwrapAndThrowUncheckedException(Throwable ex) {
-        if (isInstance(ex, ExecutionException.class) || isInstance(ex, InvocationTargetException.class)) {
-            throw throwUncheckedException(ex.getCause());
+    public static RuntimeException unwrapAndThrowDependencyUnavailableException(Throwable ex) {
+        if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
+            throw createAtlasDbDependencyException(ex.getCause());
         }
-        throw throwUncheckedException(ex);
+        throw createAtlasDbDependencyException(ex);
     }
 
     public static RuntimeException throwUncheckedException(Throwable ex) {
         throwIfInstance(ex, RuntimeException.class);
         throwIfInstance(ex, Error.class);
         throw createPalantirRuntimeException(ex);
+    }
+
+    private static RuntimeException createAtlasDbDependencyException(Throwable ex) {
+        if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
+            Thread.currentThread().interrupt();
+        }
+        throwIfInstance(ex, AtlasDbDependencyException.class);
+        return new AtlasDbDependencyException("AtlasDB dependency threw an exception.", ex);
     }
 
     private static RuntimeException createPalantirRuntimeException(Throwable ex) {
@@ -104,10 +112,8 @@ public final class Throwables {
     private static RuntimeException createPalantirRuntimeException(String newMessage, Throwable ex) {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
-            return new PalantirInterruptedException(newMessage, ex);
-        } else {
-            return new PalantirRuntimeException(newMessage, ex);
         }
+        return new PalantirRuntimeException(newMessage, ex);
     }
 
     /**
