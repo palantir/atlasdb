@@ -169,7 +169,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("dropTables({})", tableRefs)) {
+        try (CloseableTrace trace = startLocalTrace("dropTables({})", LoggingArgs.safeTablesOrPlaceholder(tableRefs))) {
             delegate().dropTables(tableRefs);
         }
     }
