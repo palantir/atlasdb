@@ -53,26 +53,26 @@ develop
            This is required for internal work on running services in Kubernetes.
            We still require that clients are configured to use TimeLock (as opposed to a leader, remote timestamp/lock or embedded service) at install time.
            Note that this change does not affect TimeLock Server, which still requires knowledge of the entire cluster as well.
-           Please consult TODO for more detail regarding the config changes needed.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/XXXX>`__ and
-            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/XXXX>`__)
+           Please consult the :ref:`documentation <timelock-client-configuration>` for more detail regarding the config changes needed.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2621>`__ and
+            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2622>`__)
 
     *    - |deprecated|
          - The ``servers`` block within an AtlasDB ``timelock`` block is now deprecated.
            Please use the live-reloadable ``servers`` block within the ``timelockRuntime`` block of the runtime configuration instead.
-           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/XXXX>`__)
+           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/2622>`__)
 
     *    - |improved|
          - AtlasDB clients using TimeLock can now start up with knowledge of zero TimeLock nodes.
            Requests to TimeLock will throw ``ServiceUnavailableException`` until the config is live reloaded with one or more nodes.
            If live reloading causes the number of nodes to fall to zero, we also fail gracefully; ``ServiceUnavailableException`` will be thrown until the config is live reloaded with one or more nodes.
            Note that this does not affect remote timestamp, lock or leader configurations; those still require at least one server.
-           (`Pull Request 3 <https://github.com/palantir/atlasdb/pull/XXXX>`__)
+           (`Pull Request 3 <https://github.com/palantir/atlasdb/pull/2647>`__)
 
     *    - |improved| |devbreak|
          - ``ServerListConfig`` can now be created with zero servers, as part of work supporting Atlas clients starting up without knowing TimeLock nodes.
            This is strictly more permissive, but may affect developers that use ``ServerListConfig`` directly, especially if it is being serialized.
-           (`Pull Request 3 <https://github.com/palantir/atlasdb/pull/XXXX>`__)
+           (`Pull Request 3 <https://github.com/palantir/atlasdb/pull/2647>`__)
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
