@@ -25,5 +25,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
 @Value.Immutable
 public abstract class TimeLockRuntimeConfig {
-    public abstract ServerListConfig serversList();
+    @Value.Default
+    public ServerListConfig serversList() {
+        return ImmutableServerListConfig.builder().build();
+    }
 }
