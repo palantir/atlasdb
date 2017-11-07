@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.qos;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +26,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.google.common.collect.ImmutableMap;
 
 public class QosRuntimeConfigDeserializationTest {
 
@@ -39,8 +39,8 @@ public class QosRuntimeConfigDeserializationTest {
         File testConfigFile = new File(QosServiceRuntimeConfig.class.getResource("/qos.yml").getPath());
         QosServiceRuntimeConfig configuration = OBJECT_MAPPER.readValue(testConfigFile, QosServiceRuntimeConfig.class);
 
-        assertThat(configuration.clientLimits()).hasSize(2);
-
-        assertThat(configuration.clientLimits()).containsOnly(entry("test", 10L), entry("test2", 20L));
+        assertThat(configuration).isEqualTo(ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test", 10L, "test2", 20L))
+                .build());
     }
 }

@@ -16,34 +16,27 @@
 
 package com.palantir.atlasdb.qos;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 public class QosServiceRuntimeConfigTest {
     @Test
     public void canBuildFromEmptyClientLimits() {
-        assertThat(ImmutableQosServiceRuntimeConfig.builder().clientLimits(new HashMap<>()).build())
-                .isInstanceOf(QosServiceRuntimeConfig.class);
+        ImmutableQosServiceRuntimeConfig.builder().clientLimits(ImmutableMap.of()).build();
     }
 
     @Test
     public void canBuildFromSingleClientLimit() {
-        Map<String, Long> clientLimits = new HashMap<>(1);
-        clientLimits.put("test_client", 10L);
-        assertThat(ImmutableQosServiceRuntimeConfig.builder().clientLimits(clientLimits).build())
-                .isInstanceOf(QosServiceRuntimeConfig.class);
+        ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test_client", 10L))
+                .build();
     }
 
     @Test
     public void canBuildFromMultipleClientLimits() {
-        Map<String, Long> clientLimits = new HashMap<>(1);
-        clientLimits.put("test_client", 10L);
-        clientLimits.put("test_client2", 100L);
-        assertThat(ImmutableQosServiceRuntimeConfig.builder().clientLimits(clientLimits).build())
-                .isInstanceOf(QosServiceRuntimeConfig.class);
+        ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test_client", 10L, "test_client2", 100L))
+                .build();
     }
 }
