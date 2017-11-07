@@ -119,9 +119,14 @@ Timelock Configuration Examples
 
 Here is an example of an AtlasDB configuration with the ``timelock`` block.
 
-If you are using Cassandra, then automated migration will be performed when starting up your AtlasDB clients.
-If you are using another key-value-service, then you MUST ensure that you have migrated to the Timelock Server before
-adding a ``timelock`` block to the config.
+.. warning::
+
+    If you are using Cassandra, then automated migration will be performed when starting up your AtlasDB clients.
+    If you are using another key-value-service, then you MUST ensure that you have migrated to the Timelock Server before
+    adding a ``timelock`` block to the config.
+
+Install Configuration
+~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: yaml
 
@@ -144,13 +149,32 @@ adding a ``timelock`` block to the config.
         fetchBatchCount: 1000
         autoRefreshNodes: false
 
-      timelock:
-        serversList:
-          servers:
-            - palantir-1.com:8080
-            - palantir-2.com:8080
-            - palantir-3.com:8080
-          sslConfiguration:
-            trustStorePath: var/security/truststore.jks
+      timelock: {}
 
 The example above uses the ``namespace`` parameter; the ``client`` we will use when connecting to TimeLock will be ``yourapp``.
+We don't know the URLs of the TimeLock servers nor how we will talk to them, but that is okay.
+
+Runtime Configuration
+~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+    timelockRuntime:
+      serversList:
+        servers:
+          - "https://foo1:12345"
+          - "https://foo2:8421"
+          - "https://foo3:9421"
+        sslConfiguration:
+          trustStorePath: var/security/trustStore.jks
+          keyStorePath: var/security/keyStore.jks
+          keyStorePassword: 0987654321
+
+AtlasDB will at runtime determine that the ``client`` to be used is ``yourapp`` and the servers are as indicated above,
+and it will be able to route requests to TimeLock correctly.
+
+Note that even if the ``timelock`` block in the install configuration included a ``serversList`` block, it would be
+ignored, because we consider the ``serversList`` block in the runtime configuration to take precedence.
+
+Also, note that if the ``timelock`` block was absent in the install configuration, then this block would be ignored,
+and AtlasDB would start up using embedded timestamp and lock services.
