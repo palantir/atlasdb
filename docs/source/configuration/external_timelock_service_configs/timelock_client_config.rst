@@ -73,6 +73,12 @@ Optional parameters:
 Runtime Configuration
 ---------------------
 
+.. warning::
+
+    Although we support starting up without knowledge of any TimeLock nodes, note that if you are using TimeLock
+    your service will fail to start if asynchronous initialization (``initializeAsync``) is set to ``false``, as
+    initializing a ``TransactionManager`` requires communication with TimeLock.
+
 We support live reloading of the ``ServerListConfiguration`` for TimeLock. This can be optionally configured in the
 ``timelockRuntime`` block under AtlasDB's runtime configuration root.
 
@@ -167,6 +173,8 @@ Install Configuration
         fetchBatchCount: 1000
         autoRefreshNodes: false
 
+      initializeAsync: true
+
       timelock: {}
 
 The example above uses the ``namespace`` parameter; the ``client`` we will use when connecting to TimeLock will be ``yourapp``.
@@ -193,6 +201,10 @@ and it will be able to route requests to TimeLock correctly.
 
 Note that even if the ``timelock`` block in the install configuration included a ``serversList`` block, it would be
 ignored, because we consider the ``serversList`` block in the runtime configuration to take precedence.
+
+It is permitted for the ``serversList`` block here to be absent as well. In this case, AtlasDB will start up with
+knowledge of zero TimeLock nodes. Attempts to initialize a ``TransactionManager`` will fail, but will continue
+asynchronously in the background. Once the ``serversList`` block has been populated, initialization can proceed.
 
 Also, note that if the ``timelock`` block was absent in the install configuration, then this block would be ignored,
 and AtlasDB would start up using embedded timestamp and lock services.
