@@ -44,7 +44,8 @@ import com.palantir.logsafe.UnsafeArg;
  */
 public final class LoggingArgs {
 
-    private static final TableReference PLACEHOLDER_TABLE_REFERENCE =
+    @VisibleForTesting
+    static final TableReference PLACEHOLDER_TABLE_REFERENCE =
             TableReference.createWithEmptyNamespace("{table}");
 
     @Value.Immutable
@@ -99,7 +100,7 @@ public final class LoggingArgs {
     }
 
     /**
-     * If table is safe, returns the table. If unsafe, returns {table}.
+     * If table is safe, returns the table. If unsafe, returns a placeholder.
      */
     public static TableReference safeTableOrPlaceholder(TableReference tableReference) {
         if (logArbitrator.isTableReferenceSafe(tableReference)) {

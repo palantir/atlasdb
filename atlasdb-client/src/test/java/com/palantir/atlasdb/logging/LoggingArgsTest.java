@@ -234,4 +234,25 @@ public class LoggingArgsTest {
         assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_TABLE_REFERENCE, MIXED_BATCH_COLUMN_RANGE))
                 .isInstanceOf(UnsafeArg.class);
     }
+
+    @Test
+    public void returnsSafeTableWhenTableIsSafe() {
+        assertThat(LoggingArgs.safeTableOrPlaceholder(SAFE_TABLE_REFERENCE)).isEqualTo(SAFE_TABLE_REFERENCE);
+    }
+
+    @Test
+    public void returnsPlaceholderWhenTableIsUnsafe() {
+        assertThat(LoggingArgs.safeTableOrPlaceholder(UNSAFE_TABLE_REFERENCE))
+                .isEqualTo(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+    }
+
+    @Test
+    public void returnsTablesAndPlaceholderWhenTablesAreSafeAndUnsafe() {
+        List<TableReference> tables = ImmutableList.of(SAFE_TABLE_REFERENCE, UNSAFE_TABLE_REFERENCE);
+        List<TableReference> returnedList = Lists.newArrayList(LoggingArgs.safeTablesOrPlaceholder(tables));
+        List<TableReference> expectedList = Lists.newArrayList(SAFE_TABLE_REFERENCE,
+                LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+
+        assertThat(returnedList).containsOnly((TableReference[]) expectedList.toArray());
+    }
 }

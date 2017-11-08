@@ -169,7 +169,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("dropTables({})", LoggingArgs.safeTablesOrPlaceholder(tableRefs))) {
+        try (CloseableTrace trace = startLocalTrace("dropTables({})",
+                LoggingArgs.safeTablesOrPlaceholder(tableRefs))) {
             delegate().dropTables(tableRefs);
         }
     }
@@ -251,6 +252,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
+        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
         return delegate().getRange(tableRef, rangeRequest, timestamp);
     }
 
@@ -258,12 +260,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
+        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
         return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
             CandidateCellForSweepingRequest request) {
+        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
         return delegate().getCandidateCellsForSweeping(tableRef, request);
     }
 
@@ -297,6 +301,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
+        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
     }
 
@@ -364,7 +369,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void truncateTable(TableReference tableRef) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("truncateTable({})", LoggingArgs.safeTableOrPlaceholder(tableRef))) {
+        try (CloseableTrace trace = startLocalTrace("truncateTable({})",
+                LoggingArgs.safeTableOrPlaceholder(tableRef))) {
             delegate().truncateTable(tableRef);
         }
     }
@@ -372,7 +378,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void truncateTables(Set<TableReference> tableRefs) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("truncateTables({})", LoggingArgs.safeTablesOrPlaceholder(tableRefs))) {
+        try (CloseableTrace trace = startLocalTrace("truncateTables({})",
+                LoggingArgs.safeTablesOrPlaceholder(tableRefs))) {
             delegate().truncateTables(tableRefs);
         }
     }
