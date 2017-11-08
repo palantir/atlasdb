@@ -20,11 +20,21 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class QosServiceResourceTest {
     @Test
-    public void canGetLimit() {
+    public void canGetUnspecifiedLimit() {
         QosService resource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
-        assertEquals(Integer.MAX_VALUE, resource.getLimit("test-client"));
+        assertEquals(Long.MAX_VALUE, resource.getLimit("test-client"));
     }
+
+    @Test
+    public void canGetSpecifiedLimit() {
+        QosService resource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test", 10L)).build());
+        assertEquals(10L, resource.getLimit("test"));
+    }
+
 }
 
