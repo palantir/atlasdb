@@ -253,6 +253,6 @@ public class LoggingArgsTest {
         List<TableReference> expectedList = Lists.newArrayList(SAFE_TABLE_REFERENCE,
                 LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
 
-        assertThat(returnedList).containsOnly((TableReference[]) expectedList.toArray());
+        assertThat(returnedList).containsOnly(expectedList.toArray(new TableReference[expectedList.size()]));
     }
 }
