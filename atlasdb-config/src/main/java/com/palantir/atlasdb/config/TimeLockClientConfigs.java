@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 public final class TimeLockClientConfigs {
     private TimeLockClientConfigs() {
         // Utility
