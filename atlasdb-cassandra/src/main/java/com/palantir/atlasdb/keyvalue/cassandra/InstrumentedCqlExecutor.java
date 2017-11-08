@@ -35,9 +35,9 @@ public class InstrumentedCqlExecutor extends AutoDelegate_CqlExecutor {
     private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
 
     private static final Timer GET_TIMESTAMPS_TIMER = METRIC_REGISTRY.timer(
-            MetricRegistry.name(InstrumentedCqlExecutor.class, "getTimestamps"));
+            MetricRegistry.name(CqlExecutor.class, "getTimestamps"));
     private static final Timer GET_TIMESTAMPS_WITHIN_ROW_TIMER = METRIC_REGISTRY.timer(
-            MetricRegistry.name(InstrumentedCqlExecutor.class, "getTimestampsWithinRow"));
+            MetricRegistry.name(CqlExecutor.class, "getTimestampsWithinRow"));
 
     private CqlExecutor delegate;
 
