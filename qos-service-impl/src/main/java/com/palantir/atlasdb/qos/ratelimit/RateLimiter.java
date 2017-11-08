@@ -15,6 +15,7 @@
  */
 
 package com.palantir.atlasdb.qos.ratelimit;
+// CHECKSTYLE:OFF
 
 import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -23,120 +24,25 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import com.google.common.annotations.Beta;
-import com.google.common.annotations.GwtIncompatible;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 /**
- * A rate limiter. Conceptually, a rate limiter distributes permits at a configurable rate. Each
- * {@link #acquire()} blocks if necessary until a permit is available, and then takes it. Once
- * acquired, permits need not be released.
+ * Copied from Guava, because {@link com.palantir.atlasdb.qos.ratelimit.SmoothRateLimiter.SmoothBursty} is a package
+ * private class.
  *
- * <p>Rate limiters are often used to restrict the rate at which some physical or logical resource
- * is accessed. This is in contrast to {@link java.util.concurrent.Semaphore} which restricts the
- * number of concurrent accesses instead of the rate (note though that concurrency and rate are
- * closely related, e.g. see <a href="http://en.wikipedia.org/wiki/Little%27s_law">Little's
- * Law</a>).
- *
- * <p>A {@code RateLimiter} is defined primarily by the rate at which permits are issued. Absent
- * additional configuration, permits will be distributed at a fixed rate, defined in terms of
- * permits per second. Permits will be distributed smoothly, with the delay between individual
- * permits being adjusted to ensure that the configured rate is maintained.
- *
- * <p>It is possible to configure a {@code RateLimiter} to have a warmup period during which time
- * the permits issued each second steadily increases until it hits the stable rate.
- *
- * <p>As an example, imagine that we have a list of tasks to execute, but we don't want to submit
- * more than 2 per second: <pre>   {@code
- *  final RateLimiter rateLimiter = RateLimiter.create(2.0); // rate is "2 permits per second"
- *  void submitTasks(List<Runnable> tasks, Executor executor) {
- *    for (Runnable task : tasks) {
- *      rateLimiter.acquire(); // may wait
- *      executor.execute(task);
- *    }
- *  }}</pre>
- *
- * <p>As another example, imagine that we produce a stream of data, and we want to cap it at 5kb per
- * second. This could be accomplished by requiring a permit per byte, and specifying a rate of 5000
- * permits per second: <pre>   {@code
- *  final RateLimiter rateLimiter = RateLimiter.create(5000.0); // rate = 5000 permits per second
- *  void submitPacket(byte[] packet) {
- *    rateLimiter.acquire(packet.length);
- *    networkService.send(packet);
- *  }}</pre>
- *
- * <p>It is important to note that the number of permits requested <i>never</i> affects the
- * throttling of the request itself (an invocation to {@code acquire(1)} and an invocation to
- * {@code acquire(1000)} will result in exactly the same throttling, if any), but it affects the
- * throttling of the <i>next</i> request. I.e., if an expensive task arrives at an idle RateLimiter,
- * it will be granted immediately, but it is the <i>next</i> request that will experience extra
- * throttling, thus paying for the cost of the expensive task.
- *
- * <p>Note: {@code RateLimiter} does not provide fairness guarantees.
- *
- * @author Dimitris Andreou
- * @since 13.0
- */
-// TODO(user): switch to nano precision. A natural unit of cost is "bytes", and a micro precision
-// would mean a maximum rate of "1MB/s", which might be small in some cases.
-@ThreadSafe
-@Beta
-@GwtIncompatible
+ * There are also a few minor but notable modifications:
+ * 1) {@link #tryAcquire(int, long, TimeUnit)} returns an optional duration rather than a boolean. This is analogous
+ *    to the return value of {@link #acquire()}.
+ * 2) A new method {@link #steal(int)} was added, to support taking permits without waiting
+ * 3) Some static constructors were removed.
+ **/
 public abstract class RateLimiter {
-    /**
-     * Creates a {@code RateLimiter} with the specified stable throughput, given as
-     * "permits per second" (commonly referred to as <i>QPS</i>, queries per second).
-     *
-     * <p>The returned {@code RateLimiter} ensures that on average no more than {@code
-     * permitsPerSecond} are issued during any given second, with sustained requests being smoothly
-     * spread over each second. When the incoming request rate exceeds {@code permitsPerSecond} the
-     * rate limiter will release one permit every {@code
-     * (1.0 / permitsPerSecond)} seconds. When the rate limiter is unused, bursts of up to
-     * {@code permitsPerSecond} permits will be allowed, with subsequent requests being smoothly
-     * limited at the stable rate of {@code permitsPerSecond}.
-     *
-     * @param permitsPerSecond the rate of the returned {@code RateLimiter}, measured in how many
-     *     permits become available per second
-     * @throws IllegalArgumentException if {@code permitsPerSecond} is negative or zero
-     */
-    // TODO(user): "This is equivalent to
-    // {@code createWithCapacity(permitsPerSecond, 1, TimeUnit.SECONDS)}".
-    public static RateLimiter create(double permitsPerSecond) {
-    /*
-     * The default RateLimiter configuration can save the unused permits of up to one second. This
-     * is to avoid unnecessary stalls in situations like this: A RateLimiter of 1qps, and 4 threads,
-     * all calling acquire() at these moments:
-     *
-     * T0 at 0 seconds
-     * T1 at 1.05 seconds
-     * T2 at 2 seconds
-     * T3 at 3 seconds
-     *
-     * Due to the slight delay of T1, T2 would have to sleep till 2.05 seconds, and T3 would also
-     * have to sleep till 3.05 seconds.
-     */
-        return create(SleepingStopwatch.createFromSystemTimer(), permitsPerSecond);
-    }
-
-    /*
-     * TODO(cpovirk): make SleepingStopwatch the last parameter throughout the class so that the
-     * overloads follow the usual convention: Foo(int), Foo(int, SleepingStopwatch)
-     */
-    @VisibleForTesting
-    static RateLimiter create(
-            SleepingStopwatch stopwatch, double permitsPerSecond) {
-        RateLimiter rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, 1.0 /* maxBurstSeconds */);
-        rateLimiter.setRate(permitsPerSecond);
-        return rateLimiter;
-    }
 
     /**
      * The underlying timer; used both to measure elapsed time and sleep as necessary. A separate
@@ -306,10 +212,10 @@ public abstract class RateLimiter {
      * @param permits the number of permits to acquire
      * @param timeout the maximum time to wait for the permits. Negative values are treated as zero.
      * @param unit the time unit of the timeout argument
-     * @return {@code true} if the permits were acquired, {@code false} otherwise
+     * @return amount of time waited, if the permits were acquired, empty otherwise
      * @throws IllegalArgumentException if the requested number of permits is negative or zero
      */
-    public Optional<Long> tryAcquire(int permits, long timeout, TimeUnit unit) {
+    public Optional<Duration> tryAcquire(int permits, long timeout, TimeUnit unit) {
         long timeoutMicros = max(unit.toMicros(timeout), 0);
         checkPermits(permits);
         long microsToWait;
@@ -322,7 +228,7 @@ public abstract class RateLimiter {
             }
         }
         stopwatch.sleepMicrosUninterruptibly(microsToWait);
-        return Optional.of(microsToWait);
+        return Optional.of(Duration.ofNanos(TimeUnit.MICROSECONDS.toNanos(microsToWait)));
     }
 
     private boolean canAcquire(long nowMicros, long timeoutMicros) {

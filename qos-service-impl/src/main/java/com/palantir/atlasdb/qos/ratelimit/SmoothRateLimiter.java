@@ -15,14 +15,17 @@
  */
 
 package com.palantir.atlasdb.qos.ratelimit;
+// CHECKSTYLE:OFF
 
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.common.math.LongMath;
 
+/**
+ * Copied from Guava, because {@link SmoothBursty} is a package private class.
+ **/
 abstract class SmoothRateLimiter extends RateLimiter {
-
     /**
      * This implements a "bursty" RateLimiter, where storedPermits are translated to zero throttling.
      * The maximum number of permits that can be saved (when the RateLimiter is unused) is defined in

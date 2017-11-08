@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -40,17 +41,17 @@ public class QosRateLimiterTest {
 
     @Test
     public void doesNotLimitIfNoLimitIsSet() {
-        assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(0);
-        assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(0);
-        assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(0);
+        assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
     }
 
     @Test
     public void limitsBySleepingIfTimeIsReasonable() {
         limiter.updateRate(10);
 
-        assertThat(limiter.consumeWithBackoff(100)).isEqualTo(0);
-        assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(0);
+        assertThat(limiter.consumeWithBackoff(100)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
     }
 
     @Test
@@ -69,7 +70,7 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(1);
         limiter.recordAdditionalConsumption(100);
 
-        assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(0);
+        assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
     }
 
     @Test
@@ -80,9 +81,9 @@ public class QosRateLimiterTest {
         // simulate 30 seconds passing with no consumption
         when(stopwatch.readMicros()).thenReturn(TimeUnit.SECONDS.toMicros(30));
 
-        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(0);
-        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(0);
-        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(0);
+        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
     }
 
     @Test
@@ -90,12 +91,21 @@ public class QosRateLimiterTest {
         limiter.updateRate(10);
         limiter.consumeWithBackoff(100);
 
-        long microsToWait = limiter.consumeWithBackoff(20);
-        assertThat(microsToWait).isGreaterThan(0L);
+        Duration timeToWait = limiter.consumeWithBackoff(20);
+        assertThat(timeToWait).isGreaterThan(Duration.ZERO);
 
-        when(stopwatch.readMicros()).thenReturn(microsToWait * 2);
+        when(stopwatch.readMicros()).thenReturn(2 * TimeUnit.NANOSECONDS.toMicros(timeToWait.toNanos()));
 
-        assertThat(limiter.consumeWithBackoff(20)).isEqualTo(0);
+        assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ZERO);
+    }
+
+    @Test
+    public void sleepTimeIsSensible() {
+        limiter.updateRate(10);
+        limiter.consumeWithBackoff(100);
+
+        assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(5));
+        assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(7));
     }
 
 }

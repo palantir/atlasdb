@@ -16,11 +16,20 @@
 
 package com.palantir.atlasdb.qos.ratelimit;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 
+/**
+ * A rate limiter for database queries, based on "units" of expense. This limiter strives to maintain an upper limit on
+ * throughput in terms of units per second, but allows for bursts in excess of the maximum that follow periods of low
+ * inactivity.
+ * <p>
+ * Rate limiting is achieved by sleeping prior to performing a request, or in extreme cases, throwing rate limiting
+ * exceptions.
+ */
 public class QosRateLimiter {
 
     private static final double MAX_BURST_SECONDS = 5;
@@ -42,21 +51,40 @@ public class QosRateLimiter {
         rateLimiter.setRate(UNLIMITED_RATE);
     }
 
+    /**
+     * Update the allowed rate, in units per second.
+     */
     public void updateRate(int unitsPerSecond) {
         rateLimiter.setRate(unitsPerSecond);
     }
 
-    public long consumeWithBackoff(int estimatedNumUnits) {
-        Optional<Long> microsWaited = rateLimiter.tryAcquire(estimatedNumUnits, MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS);
-        if (!microsWaited.isPresent()) {
+    /**
+     * Consumes the given {@code estimatedNumUnits}, and potentially sleeps or throws an exception if backoff is
+     * required. This should be called prior to executing a query.
+     */
+    public Duration consumeWithBackoff(int estimatedNumUnits) {
+        Optional<Duration> waitTime = rateLimiter.tryAcquire(
+                estimatedNumUnits,
+                MAX_WAIT_TIME_SECONDS,
+                TimeUnit.SECONDS);
+
+        if (!waitTime.isPresent()) {
             throw new RuntimeException("rate limited");
         }
 
-        return microsWaited.get();
+        return waitTime.get();
     }
 
-    public void recordAdditionalConsumption(int additionalUnits) {
-        rateLimiter.steal(additionalUnits);
+    /**
+     * Records an adjustment to the original estimate of units consumed passed to {@link #consumeWithBackoff(int)}. This
+     * should be called after a query returns, when the exact number of units consumed is known. This value may be
+     * positive (if the original estimate was too small) or negative (if the original estimate was too large.
+     */
+    public void recordAdjustment(int adjustmentUnits) {
+        if (adjustmentUnits > 0) {
+            rateLimiter.steal(adjustmentUnits);
+        }
+        // TODO(nziebart): handle negative case
     }
 
 }
