@@ -6,7 +6,7 @@ source scripts/benchmarks/servers.txt
 ./scripts/benchmarks/render-configs.sh
 
 SERVER_SIDE_SCRIPT="run-on-il.sh"
-SERVER="$CLIENT"
+SERVER="$CLIENT1"
 YML_FILE="benchmark-server.yml"
 REMOTE_DIR="/opt/palantir/timelock"
 

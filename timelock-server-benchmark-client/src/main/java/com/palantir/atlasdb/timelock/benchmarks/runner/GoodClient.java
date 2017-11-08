@@ -22,17 +22,84 @@ public class GoodClient extends BenchmarkRunnerBase {
 
     @Test
     public void readTransactionRows() {
-        runAndPrintResults(() -> client.readTransactionRows(100, 100, 100, 100, 1));
+        runAndPrintResults(() -> client1.readTransactionRows(4, 100, 100, 100, 0));
     }
 
     @Test
     public void rowsRangeScan() {
-        runAndPrintResults(() -> client.rangeScanRows(100, 100, 100, 100, 1, 0));
+        runAndPrintResults(() -> client1.rangeScanRows(1, 100, 100, 100, 0, 0));
     }
 
     @Test
     public void dynamicColumnsRangeScan() {
-        runAndPrintResults(() -> client.rangeScanDynamicColumns(64, 50, 100, 100, 1, 0));
+        runAndPrintResults(() -> client1.rangeScanDynamicColumns(1, 100, 100, 100, 0, 0));
+    }
+
+    @Test
+    public void writeTransactionRows() {
+        runAndPrintResults(() -> client1.writeTransactionRows(1, 10, 10, 100));
     }
 
 }
+
+/*
+{
+  "average" : 5.9344725,
+  "p99" : 16.867851,
+  "numRows" : 100,
+  "totalTime" : 593.86237,
+  "name" : "RowsReadTransactionBenchmark",
+  "requestsPerClient" : 100,
+  "dataSize" : 100,
+  "p50" : 5.603871,
+  "numClients" : 1,
+  "throughput" : 168.38918418083975,
+  "numUpdatesPerCell" : 0,
+  "p95" : 7.831217
+}
+
+{
+  "average" : 5.73880764,
+  "numRows" : 100,
+  "totalTime" : 574.399449,
+  "dataSize" : 100,
+  "p50" : 5.624224,
+  "numDeleted" : 0,
+  "p95" : 6.702651,
+  "numUpdates" : 0,
+  "p99" : 7.43809,
+  "name" : "RowsRangeScanBenchmark",
+  "requestsPerClient" : 100,
+  "numClients" : 1,
+  "throughput" : 174.0948745234608
+}
+
+{
+  "average" : 4.419869940000001,
+  "numRows" : 100,
+  "totalTime" : 442.431899,
+  "dataSize" : 100,
+  "p50" : 4.317984,
+  "numDeleted" : 0,
+  "p95" : 5.167763,
+  "numUpdates" : 0,
+  "p99" : 6.277169,
+  "name" : "DynamicColumnsRangeScanBenchmark",
+  "requestsPerClient" : 100,
+  "numClients" : 1,
+  "throughput" : 226.02348570711897
+}
+
+{
+  "average" : 35.786848,
+  "p99" : 39.818042,
+  "totalTime" : 358.095898,
+  "name" : "RowsWriteTransactionBenchmark",
+  "requestsPerClient" : 10,
+  "p50" : 35.439482,
+  "numClients" : 1,
+  "throughput" : 27.92548045328349,
+  "p95" : 39.818042
+}
+
+ */

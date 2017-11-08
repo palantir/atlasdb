@@ -32,11 +32,11 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
-import com.palantir.atlasdb.timelock.benchmarks.config.BenchmarkSettings;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.MetadataTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -48,7 +48,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
  * read the same data rather than writing new data for each benchmarks. Besides optimizing the time taken, this
  * allows us to run compactions the KVS before reading the data.
  */
-public abstract class AbstractRangeScanBenchmark<S extends AbstractRangeScanBenchmark.Settings> extends AbstractBenchmark<S> {
+public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractRangeScanBenchmark.class);
 
@@ -58,26 +58,24 @@ public abstract class AbstractRangeScanBenchmark<S extends AbstractRangeScanBenc
 
     private static final int MAX_BYTES_PER_WRITE = (int) (10_000_000 * 0.9);
 
+    private final int dataSize;
+    private final int numRows;
+
     protected volatile String bucket;
     protected final int batchSize;
+    private final int numDeleted;
+    private final int numUpdates;
 
-    public interface Settings extends BenchmarkSettings {
-
-        int numRows();
-
-        int dataSizeBytes();
-
-        int numOverwritesPerRow();
-
-        int numDeletedRows();
-
-    }
-
-    public AbstractRangeScanBenchmark(S settings, SerializableTransactionManager txnManager) {
-        super(settings);
-
+    public AbstractRangeScanBenchmark(int numClients, int requestsPerClient,
+            SerializableTransactionManager txnManager, int numRows, int dataSize,
+            int numUpdates, int numDeleted) {
+        super(numClients, requestsPerClient);
         this.txnManager = txnManager;
-        this.batchSize = Math.max(1, MAX_BYTES_PER_WRITE / settings.dataSizeBytes());
+        this.dataSize = dataSize;
+        this.numRows = numRows;
+        this.batchSize = Math.max(1, MAX_BYTES_PER_WRITE / dataSize);
+        this.numUpdates = numUpdates;
+        this.numDeleted = numDeleted;
     }
 
     @Override
@@ -99,13 +97,13 @@ public abstract class AbstractRangeScanBenchmark<S extends AbstractRangeScanBenc
     }
 
     private void writeData() {
-        for (int update = 0; update < settings.numOverwritesPerRow(); update++) {
+        for (int update = 0; update < numUpdates + 1; update++) {
             int numWritten = 0;
             AtomicLong key = new AtomicLong(0);
-            byte[] data = RandomBytes.ofLength(settings.dataSizeBytes());
+            byte[] data = RandomBytes.ofLength(dataSize);
 
-            while (numWritten < settings.numRows()) {
-                int numToWrite = Math.min(settings.numRows() - numWritten, batchSize);
+            while (numWritten < numRows) {
+                int numToWrite = Math.min(numRows - numWritten, batchSize);
 
                 txnManager.runTaskWithRetry(txn -> {
                     Map<Long, byte[]> values = Maps.newHashMapWithExpectedSize(numToWrite);
@@ -124,12 +122,12 @@ public abstract class AbstractRangeScanBenchmark<S extends AbstractRangeScanBenc
 
     private void deleteData() {
         List<Long> allKeys = Lists.newArrayList();
-        for (long i = 0; i < settings.numRows(); i++) {
+        for (long i = 0; i < numRows; i++) {
             allKeys.add(i);
         }
         Collections.shuffle(allKeys);
 
-        int totalToKeep = settings.numRows() - settings.numDeletedRows();
+        int totalToKeep = numRows - numDeleted;
         List<Long> keysToDelete = allKeys.subList(0, allKeys.size() - totalToKeep);
 
         for (List<Long> batch : Iterables.partition(keysToDelete, 5_000)) {
@@ -144,9 +142,9 @@ public abstract class AbstractRangeScanBenchmark<S extends AbstractRangeScanBenc
 
     @Override
     protected final void performOneCall() {
-        long numResults = txnManager.runTaskReadOnly(txn -> getRange(txn, 0L, settings.numRows()));
+        long numResults = txnManager.runTaskReadOnly(txn -> getRange(txn, 0L, numRows));
 
-        Preconditions.checkState(numResults == settings.numRows() - settings.numDeletedRows());
+        Preconditions.checkState(numResults == numRows - numDeleted);
     }
 
     protected abstract long getRange(Transaction txn, long startInclusive, long endExclusive);
@@ -154,6 +152,11 @@ public abstract class AbstractRangeScanBenchmark<S extends AbstractRangeScanBenc
     protected abstract void writeValues(Transaction txn, Map<Long, byte[]> valuesByKey);
 
     protected abstract void deleteValues(Transaction txn, Set<Long> keys);
+
+    @Override
+    public Map<String, Object> getExtraParameters() {
+        return ImmutableMap.of("numRows", numRows, "dataSize", dataSize, "numUpdates", numUpdates, "numDeleted", numDeleted);
+    }
 
     private void recordMetadata() {
         txnManager.runTaskWithRetry(txn -> {
@@ -194,10 +197,10 @@ public abstract class AbstractRangeScanBenchmark<S extends AbstractRangeScanBenc
 
     private String getKeyForParameters() {
         return getClass().getSimpleName() + "."
-                + settings.dataSizeBytes() + "."
-                + settings.numRows() + "."
-                + settings.numOverwritesPerRow() + "."
-                + settings.numDeletedRows();
+                + dataSize + "."
+                + numRows + "."
+                + numUpdates + "."
+                + numDeleted;
 
     }
 

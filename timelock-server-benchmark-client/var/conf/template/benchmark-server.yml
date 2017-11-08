@@ -4,8 +4,6 @@ atlas:
     serversList:
       servers:
         - https://SERVER1:9421
-        - https://SERVER2:9421
-        - https://SERVER3:9421
       sslConfiguration:
         keyStorePath: var/security/keyStore.jks
         keyStorePassword: keystore

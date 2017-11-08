@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -35,17 +33,18 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.KvDynamicColumn
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
-public final class DynamicColumnsRangeScanBenchmark extends AbstractRangeScanBenchmark<AbstractRangeScanBenchmark.Settings> {
+public final class DynamicColumnsRangeScanBenchmark extends AbstractRangeScanBenchmark {
 
-    @Value.Immutable
-    public interface Settings extends AbstractRangeScanBenchmark.Settings { }
-
-    public static Map<String, Object> execute(SerializableTransactionManager txnManager, Settings settings) {
-        return new DynamicColumnsRangeScanBenchmark(txnManager, Settings settings).execute();
+    public static Map<String, Object> execute(SerializableTransactionManager txnManager, int numClients,
+            int requestsPerClient, int numRows, int dataSize, int numUpdates, int numDeleted) {
+        return new DynamicColumnsRangeScanBenchmark(txnManager, numClients, requestsPerClient, numRows,
+                dataSize, numUpdates, numDeleted).execute();
     }
 
-    private DynamicColumnsRangeScanBenchmark(SerializableTransactionManager txnManager, Settings settings) {
-        super(settings, txnManager);
+    private DynamicColumnsRangeScanBenchmark(SerializableTransactionManager txnManager, int numClients,
+            int requestsPerClient,
+            int numRows, int dataSize, int numUpdates, int numDeleted) {
+        super(numClients, requestsPerClient, txnManager, numRows, dataSize, numUpdates, numDeleted);
     }
 
     @Override

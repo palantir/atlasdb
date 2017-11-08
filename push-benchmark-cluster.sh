@@ -6,7 +6,7 @@ source scripts/benchmarks/servers.txt
 ./scripts/benchmarks/render-configs.sh
 
 SERVER_SIDE_SCRIPT="run-on-il.sh"
-declare -a SERVERS=("$SERVER1" "$SERVER2" "$SERVER3")
+declare -a SERVERS=("$SERVER1")
 
 rm -rf timelock-server-benchmark-cluster/build/distributions/
 ./gradlew --parallel timelock-server-benchmark-cluster:distTar

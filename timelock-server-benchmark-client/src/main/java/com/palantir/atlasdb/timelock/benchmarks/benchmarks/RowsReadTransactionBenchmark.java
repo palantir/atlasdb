@@ -75,16 +75,6 @@ public final class RowsReadTransactionBenchmark extends AbstractBenchmark {
             this.keys = existingBucket.get();
             log.info("found existing test data");
             log.info("first key is {}", PtBytes.encodeHexString(BlobsRow.of(keys.get(0)).persistToBytes()));
-
-            for (int i = 0 ; i < 1; i++) {
-                txnManager.runTaskWithRetry(txn -> {
-                    BlobsTable table = BenchmarksTableFactory.of().getBlobsTable(txn);
-                    for (byte[] key : keys) {
-                        table.putData(BlobsRow.of(key), RandomBytes.ofLength(dataSize));
-                    }
-                    return null;
-                });
-            }
             return;
         }
 
@@ -99,7 +89,7 @@ public final class RowsReadTransactionBenchmark extends AbstractBenchmark {
     }
 
     private void writeData() {
-        for (int i = 0 ; i < numUpdatesPerCell; i++) {
+        for (int i = 0 ; i < numUpdatesPerCell + 1; i++) {
             txnManager.runTaskWithRetry(txn -> {
                 BlobsTable table = BenchmarksTableFactory.of().getBlobsTable(txn);
                 for (byte[] key : keys) {
@@ -168,7 +158,7 @@ public final class RowsReadTransactionBenchmark extends AbstractBenchmark {
     }
 
     private String getKeyForParameters() {
-        return "v1."
+        return "v2."
                 + getClass().getSimpleName() + "."
                 + dataSize + "."
                 + numRows + "."

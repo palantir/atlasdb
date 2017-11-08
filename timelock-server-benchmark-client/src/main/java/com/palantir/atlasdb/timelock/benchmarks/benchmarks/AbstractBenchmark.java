@@ -29,14 +29,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.timelock.benchmarks.config.BenchmarkSettings;
 
-public abstract class AbstractBenchmark<S extends BenchmarkSettings> {
+public abstract class AbstractBenchmark {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractBenchmark.class);
 
-    protected final S settings;
+    private final int numClients;
+    private final int requestsPerClient;
 
     private final ExecutorService executor;
     private final AtomicLongArray times;
@@ -46,12 +47,13 @@ public abstract class AbstractBenchmark<S extends BenchmarkSettings> {
     private final AtomicInteger counter = new AtomicInteger(0);
     private final CountDownLatch completionLatch;
 
-    protected AbstractBenchmark(S settings) {
-        this.settings = settings;
+    protected AbstractBenchmark(int numClients, int requestsPerClient) {
+        this.numClients = numClients;
+        this.requestsPerClient = requestsPerClient;
 
-        executor = Executors.newFixedThreadPool(settings.numThreads());
+        executor = Executors.newFixedThreadPool(numClients);
 
-        int totalNumberOfRequests = settings.numThreads() * settings.numRequestsPerThread();
+        int totalNumberOfRequests = numClients * requestsPerClient;
         times = new AtomicLongArray(totalNumberOfRequests);
         completionLatch = new CountDownLatch(totalNumberOfRequests);
     }
@@ -79,7 +81,7 @@ public abstract class AbstractBenchmark<S extends BenchmarkSettings> {
     }
 
     private void scheduleTests() {
-        for (int i = 0; i < settings.numThreads(); i++) {
+        for (int i = 0; i < numClients; i++) {
             executor.submit(this::runTestForSingleClient);
         }
     }
@@ -93,7 +95,7 @@ public abstract class AbstractBenchmark<S extends BenchmarkSettings> {
     }
 
     private void recordTimesForSingleClient() {
-        for (int i = 0; i < settings.numRequestsPerThread() && error == null; i++) {
+        for (int i = 0; i < requestsPerClient && error == null; i++) {
             long duration = timeOneCall();
             times.set(counter.getAndIncrement(), duration);
             completionLatch.countDown();
@@ -129,11 +131,16 @@ public abstract class AbstractBenchmark<S extends BenchmarkSettings> {
 
     protected void setup() { }
 
+    protected Map<String, Object> getExtraParameters() {
+        return ImmutableMap.of();
+    }
+
     private Map<String, Object> getStatistics() {
         sortTimes();
 
         Map<String, Object> result = Maps.newHashMap();
-        result.put("settings", settings);
+        result.put("numClients", numClients);
+        result.put("requestsPerClient", requestsPerClient);
         result.put("average", getAverageTimeInMillis());
         result.put("p50", getPercentile(0.5));
         result.put("p95", getPercentile(0.95));
@@ -141,6 +148,7 @@ public abstract class AbstractBenchmark<S extends BenchmarkSettings> {
         result.put("totalTime", totalTime / 1_000_000.0);
         result.put("throughput", getThroughput());
         result.put("name", getClass().getSimpleName());
+        result.putAll(getExtraParameters());
 
         return result;
     }
@@ -166,7 +174,7 @@ public abstract class AbstractBenchmark<S extends BenchmarkSettings> {
     }
 
     public double getThroughput() {
-        return (double) (settings.numThreads() * settings.numRequestsPerThread()) / (totalTime / 1_000_000_000.0);
+        return (double) (numClients * requestsPerClient) / (totalTime / 1_000_000_000.0);
     }
 
 }

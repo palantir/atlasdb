@@ -21,34 +21,25 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
-import com.palantir.atlasdb.timelock.benchmarks.config.BenchmarkSettings;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public abstract class AbstractWriteTransactionBenchmark<S extends AbstractWriteTransactionBenchmark.Settings>
-        extends AbstractBenchmark<S> {
+public abstract class AbstractWriteTransactionBenchmark extends AbstractBenchmark {
 
     private final TransactionManager txnManager;
     private final List<byte[]> allValues;
 
-    public interface Settings extends BenchmarkSettings {
-
-        int numRows();
-
-        int dataSizeBytes();
-
-    }
-
     protected final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
 
-    protected AbstractWriteTransactionBenchmark(TransactionManager txnManager, Settings settings) {
-        super(settings);
+    protected AbstractWriteTransactionBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient,
+            int numRows, int dataSize) {
+        super(numClients, requestsPerClient);
 
         this.txnManager = txnManager;
 
-        this.allValues = IntStream.range(0, settings.numRows())
-                .mapToObj(i -> RandomBytes.ofLength(settings.dataSizeBytes()))
+        this.allValues = IntStream.range(0, numRows)
+                .mapToObj(i -> RandomBytes.ofLength(dataSize))
                 .collect(Collectors.toList());
     }
 

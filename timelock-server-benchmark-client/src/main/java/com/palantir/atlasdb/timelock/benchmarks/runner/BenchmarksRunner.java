@@ -26,67 +26,67 @@ public class BenchmarksRunner extends BenchmarkRunnerBase {
 
     @Test
     public void timestamp() {
-        runAndPrintResults(client::timestamp, 4, 1000);
+        runAndPrintResults(client1::timestamp, 4, 1000);
     }
 
     @Test
     public void lockAndUnlockUncontended() {
-        runAndPrintResults(client::lockAndUnlockUncontended, 4, 500);
+        runAndPrintResults(client1::lockAndUnlockUncontended, 4, 500);
     }
 
     @Test
     public void lockAndUnlockContended() {
-        runAndPrintResults(() -> client.lockAndUnlockContended(8, 1000, 2));
+        runAndPrintResults(() -> client1.lockAndUnlockContended(8, 1000, 2));
     }
 
     @Test
     public void writeTransactionRows() {
-        runAndPrintResults(() -> client.writeTransactionRows(1, 20, 1000, 500));
+        runAndPrintResults(() -> client1.writeTransactionRows(1, 20, 1000, 500));
     }
 
     @Test
     public void writeTransactionDynamicColumns() {
-        runAndPrintResults(() -> client.writeTransactionDynamicColumns(1, 20, 1000, 500));
+        runAndPrintResults(() -> client1.writeTransactionDynamicColumns(1, 20, 1000, 500));
     }
 
     @Test
     public void kvsCas() {
-        runAndPrintResults(client::kvsCas, 1, 5000);
+        runAndPrintResults(client1::kvsCas, 1, 5000);
     }
 
     @Test
     public void kvsWrite() {
-        runAndPrintResults(client::kvsWrite, 1, 1000);
+        runAndPrintResults(client1::kvsWrite, 1, 1000);
     }
 
     @Test
     public void kvsRead() {
-        runAndPrintResults(client::kvsRead, 1, 5000);
+        runAndPrintResults(client1::kvsRead, 1, 5000);
     }
 
     @Test
     public void contendedWriteTransaction() {
-        runAndPrintResults(client::contendedWriteTransaction, 2000, 1);
+        runAndPrintResults(client1::contendedWriteTransaction, 2000, 1);
     }
 
     @Test
     public void readTransactionRows() {
-        runAndPrintResults(() -> client.readTransactionRows(100, 100, 100, 100, 1));
+        runAndPrintResults(() -> client1.readTransactionRows(100, 100, 100, 100, 1));
     }
 
     @Test
     public void rowsRangeScan() {
-        runAndPrintResults(() -> client.rangeScanRows(100, 100, 100, 100, 1, 0));
+        runAndPrintResults(() -> client1.rangeScanRows(100, 100, 100, 100, 1, 0));
     }
 
     @Test
     public void dynamicColumnsRangeScan() {
-        runAndPrintResults(() -> client.rangeScanDynamicColumns(64, 50, 100, 100, 1, 0));
+        runAndPrintResults(() -> client1.rangeScanDynamicColumns(64, 50, 100, 100, 1, 0));
     }
 
     @Test
     public void sweep() {
-        sweeper.sweepTableFrom("benchmarks.Blobs", "a2c1c18906749d46b4594ea5790b34e5".toUpperCase());
+        sweeper1.sweepTableFrom("benchmarks.Blobs", "a2c1c18906749d46b4594ea5790b34e5".toUpperCase());
     }
 
 }

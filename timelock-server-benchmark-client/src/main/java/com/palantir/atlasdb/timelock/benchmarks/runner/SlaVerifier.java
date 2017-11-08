@@ -34,41 +34,41 @@ public class SlaVerifier extends BenchmarkRunnerBase {
 
     @BeforeClass
     public static void warmUp() {
-        client.timestamp(1, 20_000);
-        client.timestamp(16, 2_000);
-        client.writeTransactionRows(1, 100, 1, 100);
+        client1.timestamp(1, 20_000);
+        client1.timestamp(16, 2_000);
+        client1.writeTransactionRows(1, 100, 1, 100);
     }
 
     @Test
     public void timestampSingleThread() {
-        Map<String, Object> results = client.timestamp(1, 10_000);
+        Map<String, Object> results = client1.timestamp(1, 10_000);
         assertThat((Double) results.get("throughput")).isGreaterThan(500);
         assertThat((Double) results.get("average")).isLessThan(2.0);
     }
 
     @Test
     public void timestampMediumLoad() {
-        Map<String, Object> results = client.timestamp(16, 5_000);
+        Map<String, Object> results = client1.timestamp(16, 5_000);
         assertThat((Double) results.get("throughput")).isGreaterThan(4_000);
         assertThat((Double) results.get("average")).isLessThan(3.5);
     }
 
     @Test
     public void timestampHighLoad() {
-        Map<String, Object> results = client.timestamp(32, 3_000);
+        Map<String, Object> results = client1.timestamp(32, 3_000);
         assertThat((Double) results.get("throughput")).isGreaterThan(7_500);
         assertThat((Double) results.get("average")).isLessThan(5.0);
     }
 
     @Test
     public void timestampBurst() {
-        Map<String, Object> results = client.timestamp(4096, 10);
+        Map<String, Object> results = client1.timestamp(4096, 10);
         assertThat((Double) results.get("totalTime")).isLessThan(60_000);
     }
 
     @Test
     public void writeTransactionHighContentionBurst() {
-        Map<String, Object> results = client.contendedWriteTransaction(4096, 1);
+        Map<String, Object> results = client1.contendedWriteTransaction(4096, 1);
         assertThat((Double) results.get("totalTime")).isLessThan(60_000);
     }
 
@@ -77,7 +77,7 @@ public class SlaVerifier extends BenchmarkRunnerBase {
         ExecutorService executor = Executors.newFixedThreadPool(8);
         List<Future<Map<String, Object>>> futures = IntStream.range(0, 8)
                 .mapToObj(i -> executor.submit(
-                        () -> client.contendedWriteTransaction(512, 1)))
+                        () -> client1.contendedWriteTransaction(512, 1)))
                 .collect(Collectors.toList());
 
         futures.stream()

@@ -10,8 +10,6 @@ install:
         trustStorePath: ./var/security/truststore.jks
       uris:
       - SERVER1:9421
-      - SERVER2:9421
-      - SERVER3:9421
 runtime: {}
 
 server:

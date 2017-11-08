@@ -16,9 +16,28 @@
 
 package com.palantir.atlasdb.timelock.benchmarks.runner;
 
+import org.junit.Test;
+
 public class AbusiveClient extends BenchmarkRunnerBase {
 
+    @Test
+    public void readTransactionRows() {
+        runAndPrintResults(() -> client2.readTransactionRows(32, 100, 1000, 10_000, 50));
+    }
 
+    @Test
+    public void rowsRangeScan() {
+        runAndPrintResults(() -> client2.rangeScanRows(1, 100, 1000, 10_000, 50, 250));
+    }
 
+    @Test
+    public void dynamicColumnsRangeScan() {
+        runAndPrintResults(() -> client2.rangeScanDynamicColumns(4, 100, 500, 10_000, 50, 250));
+    }
+
+    @Test
+    public void writeTransactionRows() {
+        runAndPrintResults(() -> client2.writeTransactionRows(32, 100, 500, 10_000));
+    }
 
 }
