@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.thrift.AutoDelegate_Client;
@@ -39,7 +40,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.common.base.CallableCheckedException;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = Cassandra.Client.class)
@@ -105,7 +105,7 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
         }
     }
 
-    private <T> T registerDuration(CallableCheckedException<T, TException> callable, Timer timer) throws TException {
+    private <T> T registerDuration(CallableTException<T> callable, Timer timer) throws TException {
         long startTime = System.nanoTime();
         T ret = callable.call();
         long endTime = System.nanoTime();
@@ -145,5 +145,9 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
         }
 
         return "unknown";
+    }
+
+    private interface CallableTException<T> extends Callable<T> {
+        T call() throws TException;
     }
 }
