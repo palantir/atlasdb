@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.config;
 
-import static org.junit.Assert.assertEquals;
+import java.util.Map;
 
-import org.junit.Test;
+import org.immutables.value.Value;
 
-public class QosServiceResourceTest {
-    @Test
-    public void canGetLimit() {
-        QosService resource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
-        assertEquals(Integer.MAX_VALUE, resource.getLimit("test-client"));
-    }
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
+@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
+@Value.Immutable
+public abstract class QosServiceRuntimeConfig {
+    public abstract Map<String, Long> clientLimits();
 }
-

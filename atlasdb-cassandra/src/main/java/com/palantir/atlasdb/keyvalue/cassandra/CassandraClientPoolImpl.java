@@ -75,9 +75,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.qos.AtlasDbQosClient;
-import com.palantir.atlasdb.qos.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.QosService;
-import com.palantir.atlasdb.qos.QosServiceResource;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -186,7 +184,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks, boolean initializeAsync) {
         // TODO eventually we'll want to pass this in from somewhere
-        QosService qosResource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
+        QosService qosResource = client -> Long.MAX_VALUE;
 
         ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
                 Executors.newSingleThreadScheduledExecutor(),
