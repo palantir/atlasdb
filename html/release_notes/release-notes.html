@@ -196,6 +196,17 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>AtlasDB will now consistently throw a <code class="docutils literal"><span class="pre">InsufficientConsistencyException</span></code> if Cassandra reports an <code class="docutils literal"><span class="pre">UnavailableException</span></code>.
+Also, all Cassandra KVS exceptions like <code class="docutils literal"><span class="pre">KeyAlreadyExists</span></code> or <code class="docutils literal"><span class="pre">TTransportException</span></code> as well as <code class="docutils literal"><span class="pre">NotInitializedException</span></code> will get wrapped into <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> in the interest of consistent exceptions.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2558">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> values are now decayed correctly when there’s an error.
+<code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> should be decreased until sweep succeeds, however the config actually oscillated between values, these were normally small but could be larger than the original config.  This was caused by us fixing one of the values at 1.
+<code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2630">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Reverted the Cassandra KVS executor PR (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2534">Pull Request</a>) that caused a performance regression.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2637">Pull Request</a>)</td>
