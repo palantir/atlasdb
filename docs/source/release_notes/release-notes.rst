@@ -124,6 +124,10 @@ v0.65.1
          - AtlasDB tables will now be logged as ``ns.tablename`` instead of ``map[namespace:map[name:ns] tablename:tablename]``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
 
+    *    - |fixed|
+         - TracingKVS now has spans with safe names.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2643>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
