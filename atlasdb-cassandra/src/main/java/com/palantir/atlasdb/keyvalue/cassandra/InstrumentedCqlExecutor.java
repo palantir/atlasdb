@@ -56,7 +56,8 @@ public class InstrumentedCqlExecutor extends AutoDelegate_CqlExecutor {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestamps(table {}, limit {})",
                 LoggingArgs.safeTableOrPlaceholder(tableRef), limit)) {
-            return registerDuration(() -> delegate.getTimestamps(tableRef, startRowInclusive, limit), GET_TIMESTAMPS_TIMER);
+            return registerDuration(() ->
+                    delegate.getTimestamps(tableRef, startRowInclusive, limit), GET_TIMESTAMPS_TIMER);
         }
     }
 

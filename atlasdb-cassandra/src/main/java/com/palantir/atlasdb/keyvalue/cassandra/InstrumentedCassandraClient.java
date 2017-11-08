@@ -44,6 +44,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = Cassandra.Client.class)
+@SuppressWarnings({"all"}) // thrift variable names
 public class InstrumentedCassandraClient extends AutoDelegate_Client {
     private static final String SERVICE_NAME = "cassandra-thrift-client";
     private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
@@ -87,7 +88,8 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace(
-                "client.multiget_slice(number of keys {}, number of columns {}, consistency {})",
+                "client.multiget_slice(table {}, number of keys {}, number of columns {}, consistency {})",
+                LoggingArgs.safeInternalTableNameOrPlaceholder(column_parent.column_family),
                 keys.size(), predicate.slice_range.count, toString(consistency_level))) {
             return registerDuration(
                     () -> delegate.multiget_slice(keys, column_parent, predicate, consistency_level),
@@ -102,8 +104,8 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace(
                 "client.get_range_slices(table {}, number of keys {}, number of columns {}, consistency {})",
-                LoggingArgs.safeInternalTableNameOrPlaceholder(column_parent.column_family), predicate.slice_range.count,
-                range.count, toString(consistency_level))) {
+                LoggingArgs.safeInternalTableNameOrPlaceholder(column_parent.column_family),
+                predicate.slice_range.count, range.count, toString(consistency_level))) {
             return registerDuration(
                     () -> delegate.get_range_slices(column_parent, predicate, range, consistency_level),
                     GET_RANGE_SLICE_TIMER);
