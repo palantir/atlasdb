@@ -16,33 +16,31 @@
 
 package com.palantir.atlasdb.qos;
 
-import java.util.function.Supplier;
-
 import org.junit.rules.ExternalResource;
 
-import com.palantir.atlasdb.qos.config.QosServerConfig;
+import com.palantir.atlasdb.qos.server.QosServerConfig;
 import com.palantir.atlasdb.qos.server.QosServerLauncher;
 
 import io.dropwizard.testing.DropwizardTestSupport;
+import io.dropwizard.testing.ResourceHelpers;
 
 public class QosServerHolder extends ExternalResource {
 
-    private Supplier<String> configFilePathSupplier;
-    private DropwizardTestSupport<QosServerConfig> qosServer;
+    private final DropwizardTestSupport<QosServerConfig> testSupport;
 
-    QosServerHolder(Supplier<String> configFilePathSupplier) {
-        this.configFilePathSupplier = configFilePathSupplier;
+    QosServerHolder(String configFileName) {
+        this.testSupport = new DropwizardTestSupport<>(
+                QosServerLauncher.class, ResourceHelpers.resourceFilePath(configFileName));
     }
 
     @Override
     protected void before() throws Exception {
-        qosServer = new DropwizardTestSupport<>(QosServerLauncher.class, configFilePathSupplier.get());
-        qosServer.before();
+        testSupport.before();
     }
 
     @Override
     protected void after() {
-        qosServer.after();
+        testSupport.after();
     }
 
 }

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos.config;
+package com.palantir.atlasdb.qos.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 import io.dropwizard.Configuration;
 

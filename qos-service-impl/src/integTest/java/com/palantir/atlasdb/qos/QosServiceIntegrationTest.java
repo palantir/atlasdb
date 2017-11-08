@@ -16,21 +16,31 @@
 
 package com.palantir.atlasdb.qos;
 
-import org.junit.Rule;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Optional;
+
+import org.junit.ClassRule;
 import org.junit.Test;
+
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 
 public class QosServiceIntegrationTest {
 
-    protected static final String LOCALHOST = "https://localhost";
+    protected static final String SERVER_URI = "http://localhost:5080";
 
-    @Rule
-    public QosServerHolder server = new QosServerHolder(() -> "resources/qos.yml");
-    public TestableQosServer testableQosServer = new TestableQosServer(LOCALHOST, "test", server);
-    public QosService client = testableQosServer.service();
+    @ClassRule
+    public static QosServerHolder serverHolder = new QosServerHolder("qos.yml");
+    public static QosService service = AtlasDbHttpClients.createProxy(
+            Optional.empty(),
+            SERVER_URI,
+            QosService.class,
+            "integration tests");
 
     @Test
-    public void test() {
-        client.getLimit("test");
+    public void returnsConfiguredLimits() {
+        assertThat(service.getLimit("test")).isEqualTo(10);
+        assertThat(service.getLimit("test2")).isEqualTo(20);
     }
 
 }

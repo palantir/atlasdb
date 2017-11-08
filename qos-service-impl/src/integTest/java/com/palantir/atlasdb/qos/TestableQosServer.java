@@ -26,12 +26,12 @@ public class TestableQosServer {
     private final String defaultClient;
     private final QosService service;
 
-    public TestableQosServer(String baseUri, String defaultClient, QosServerHolder serverHolder) {
+    public TestableQosServer(String uri, String defaultClient, QosServerHolder serverHolder) {
         this.defaultClient = defaultClient;
         this.serverHolder = serverHolder;
         this.service = AtlasDbHttpClients.createProxy(
                 Optional.empty(),
-                baseUri,
+                uri,
                 QosService.class,
                 getClass().toString());
     }
