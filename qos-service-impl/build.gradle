@@ -10,10 +10,21 @@ repositories {
 libsDirName = file('build/artifacts')
 
 dependencies {
+    compile project(':qos-service-api')
+
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
 
     processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
+    testCompile group: 'com.google.guava', name: 'guava'
+    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+        exclude group: 'org.hamcrest'
+        exclude group: 'org.ow2.asm'
+    }
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }
 

@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.timelock;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.ClassRule;
+import org.junit.rules.RuleChain;
 
-import org.junit.Test;
+public class QosServiceIntegrationTest {
 
-public class QosServiceResourceTest {
-    @Test
-    public void canGetLimit() {
-        QosService resource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
-        assertEquals(Integer.MAX_VALUE, resource.getLimit("test-client"));
-    }
+    protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC_CHECK_DISABLED = new TestableTimelockCluster(
+            LOCALHOST,
+            CLIENT,
+
+    @ClassRule
+    public static final RuleChain ASYNC_RULE_CHAIN = SERVER.getRuleChain();
+
 }
-

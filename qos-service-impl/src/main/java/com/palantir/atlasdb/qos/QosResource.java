@@ -16,20 +16,18 @@
 
 package com.palantir.atlasdb.qos;
 
-public class QosServiceResource implements QosService {
+import java.util.function.Supplier;
 
-    private QosServiceRuntimeConfig config;
+public class QosResource implements QosService {
 
-    public QosServiceResource(QosServiceRuntimeConfig config) {
+    private Supplier<QosServiceRuntimeConfig> config;
+
+    public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
     }
 
     @Override
     public long getLimit(String client) {
-        Long currentClientLimit = config.clientLimits().get(client);
-        if (currentClientLimit == null) {
-            currentClientLimit = Long.MAX_VALUE;
-        }
-        return currentClientLimit;
+        return config.get().clientLimits().getOrDefault(client, Long.MAX_VALUE);
     }
 }
