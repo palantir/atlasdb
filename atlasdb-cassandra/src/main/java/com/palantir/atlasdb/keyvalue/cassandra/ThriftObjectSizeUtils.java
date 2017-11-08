@@ -17,20 +17,27 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CounterColumn;
 import org.apache.cassandra.thrift.CounterSuperColumn;
+import org.apache.cassandra.thrift.Deletion;
+import org.apache.cassandra.thrift.Mutation;
+import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.SuperColumn;
 
 public class ThriftObjectSizeUtils {
+
+    private static final long ONE_BYTE = 1L;
 
     private ThriftObjectSizeUtils() {
         // utility class
     }
 
-    public static long getSizeOfColumnOrSuperColumn(ColumnOrSuperColumn columnOrSuperColumn) {
+    public static long getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {
         return getColumnSize(columnOrSuperColumn.getColumn())
                 + getSuperColumnSize(columnOrSuperColumn.getSuper_column())
                 + getCounterColumnSize(columnOrSuperColumn.getCounter_column())
@@ -56,7 +63,8 @@ public class ThriftObjectSizeUtils {
     }
 
     public static long getByteBufferSize(ByteBuffer byteBuffer) {
-        return getByteArraySize(byteBuffer.array());
+        // Position is the size unless something has been read from the ByteBuffer
+        return byteBuffer.position();
     }
 
     public static long getByteArraySize(byte[] byteArray) {
@@ -76,6 +84,41 @@ public class ThriftObjectSizeUtils {
     }
 
     public static long getCounterValueSize() {
-        return Long.SIZE;
+        return Long.BYTES;
+    }
+
+    public static long getMutationSize(Mutation mutation) {
+        return getColumnOrSuperColumnSize(mutation.getColumn_or_supercolumn()) + getDeletionSize(mutation.getDeletion());
+    }
+
+    public static long getDeletionSize(Deletion deletion) {
+        return getTimestampSize()
+                + getByteArraySize(deletion.getSuper_column())
+                + getSlicePredicateSize(deletion.getPredicate());
+    }
+
+    private static long getSlicePredicateSize(SlicePredicate predicate) {
+        return getByteBufferCollectionSize(predicate.getColumn_names()) + getSliceRangeSize(predicate.getSlice_range());
+    }
+
+    private static long getSliceRangeSize(SliceRange sliceRange) {
+        return getByteArraySize(sliceRange.getStart())
+                + getByteArraySize(sliceRange.getFinish())
+                + getReversedBooleanSize()
+                + getSliceRangeCountSize();
+    }
+
+    private static long getReversedBooleanSize() {
+        return ONE_BYTE;
+    }
+
+    private static int getSliceRangeCountSize() {
+        return Integer.BYTES;
+    }
+
+    public static long getByteBufferCollectionSize(Collection<ByteBuffer> byteBufferList) {
+        return byteBufferList.stream()
+                .mapToLong(ThriftObjectSizeUtils::getByteBufferSize)
+                .sum();
     }
 }

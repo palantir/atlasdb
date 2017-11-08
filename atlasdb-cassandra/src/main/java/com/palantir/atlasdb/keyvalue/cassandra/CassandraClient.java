@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.cassandra.thrift.AutoDelegate_Client;
 import org.apache.cassandra.thrift.Cassandra;
@@ -83,48 +85,43 @@ public class CassandraClient extends AutoDelegate_Client {
     }
 
     private long getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
-        return result.entrySet().stream()
-                .mapToLong((entry) -> getRowKeySize(entry) + totalSizeOfValues(entry))
-                .sum();
-    }
-
-    private long getRowKeySize(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
-        return ThriftObjectSizeUtils.getByteBufferSize(entry.getKey());
-    }
-
-    private long totalSizeOfValues(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
-        return entry.getValue().stream()
-                .mapToLong(ThriftObjectSizeUtils::getSizeOfColumnOrSuperColumn)
-                .sum();
+        return getCollectionSize(result.entrySet(),
+                rowResult ->
+                    ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
+                    + getCollectionSize(rowResult.getValue(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
     }
 
     @Override
-    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
-        delegate.batch_mutate(mutation_map, consistency_level);
+        delegate.batch_mutate(mutationMap, consistency_level);
         try {
-            recordBytesWritten(getApproximateWriteByteCount(mutation_map));
+            recordBytesWritten(getApproximateWriteByteCount(mutationMap));
         } catch (Exception e) {
             log.warn("Encountered an exception when recording write metrics for batch_mutate.", e);
         }
     }
 
-    private int getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map) {
-        int approxBytesForKeys = mutation_map.keySet().stream().mapToInt(e -> e.array().length).sum();
-        int approxBytesForValues = mutation_map.values().stream()
-                .mapToInt(singleMap -> {
-                    int approximateBytesInStrings = singleMap.keySet().stream().mapToInt(String::length).sum();
-                    int approximateBytesInMutations = singleMap.values().stream()
-                            .mapToInt(listOfMutations -> listOfMutations.stream()
-                                    .mapToInt(mutation -> SerializationUtils.serialize(mutation).length)
-                                    .sum())
-                            .sum();
-                    return approximateBytesInStrings + approximateBytesInMutations;
-                })
-                .sum();
+    private long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> mutationResultMap) {
+        long approxBytesForKeys = getCollectionSize(mutationResultMap.keySet(),
+                ThriftObjectSizeUtils::getByteBufferSize);
+        long approxBytesForValues = getCollectionSize(mutationResultMap.values(), currentMap ->
+                getCollectionSize(currentMap.keySet(),
+                        this::getStringSize)
+                + getCollectionSize(currentMap.values(),
+                        mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
         return approxBytesForKeys + approxBytesForValues;
+    }
+
+
+    private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
+        return collection.stream().mapToLong(sizeFunction::apply).sum();
+    }
+
+    private long getStringSize(String string) {
+        return string.length() * Character.SIZE;
     }
 
     @Override
