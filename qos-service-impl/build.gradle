@@ -17,24 +17,12 @@ check.dependsOn integTest
 dependencies {
     compile (project(":qos-service-api"));
 
-    compile group: 'com.palantir.remoting-api', name: 'ssl-config'
     compile group: 'com.palantir.remoting3', name: 'tracing'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
-
-    compile (group: 'com.palantir.remoting3', name: 'jersey-servers')
+    compile group: 'com.palantir.remoting3', name: 'jersey-servers'
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile (project(":atlasdb-tests-shared")) {
-        exclude group: 'com.fasterxml.jackson.jaxrs'
-    }
-
-    testCompile project(":atlasdb-tests-shared")
-    testCompile project(":atlasdb-dbkvs")
-    testCompile (project(":atlasdb-cassandra")) {
-        exclude(module:'log4j-over-slf4j')
-        exclude(module:'jcl-over-slf4j')
-    }
     testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
@@ -42,7 +30,6 @@ dependencies {
         exclude group: 'org.ow2.asm'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
-    testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
 	integTestCompile (project(":atlasdb-config"));
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
@@ -56,6 +43,7 @@ dependencies {
 configurations.all {
      resolutionStrategy {
          force 'io.dropwizard.metrics:metrics-core:3.2.5'
+         force 'org.hamcrest:hamcrest-core:1.3'
          force 'org.slf4j:slf4j-api:1.7.21'
          force 'org.hdrhistogram:HdrHistogram:2.1.10'
          dependencySubstitution {

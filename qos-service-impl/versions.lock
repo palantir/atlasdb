@@ -31,7 +31,6 @@
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting-api:ssl-config",
                 "com.palantir.remoting-api:tracing",
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
@@ -134,9 +133,6 @@
             "transitive": [
                 "com.palantir.remoting3:error-handling"
             ]
-        },
-        "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.4.0"
         },
         "com.palantir.remoting-api:tracing": {
             "locked": "1.4.0",
@@ -412,7 +408,6 @@
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting-api:ssl-config",
                 "com.palantir.remoting-api:tracing",
                 "com.palantir.remoting3:jackson-support",
                 "com.palantir.remoting3:tracing"
@@ -515,9 +510,6 @@
             "transitive": [
                 "com.palantir.remoting3:error-handling"
             ]
-        },
-        "com.palantir.remoting-api:ssl-config": {
-            "locked": "1.4.0"
         },
         "com.palantir.remoting-api:tracing": {
             "locked": "1.4.0",
