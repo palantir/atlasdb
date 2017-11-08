@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.util.MetricsManager;
 
@@ -25,16 +24,15 @@ public class QosMetrics {
 
     private final Meter readRequestCount;
     private final Meter writeRequestCount;
-    private final Histogram bytesRead;
-    private final Histogram bytesWritten;
+    private final Meter bytesRead;
+    private final Meter bytesWritten;
 
     public QosMetrics() {
         readRequestCount = metricsManager.registerMeter(QosMetrics.class, "numReadRequests");
         writeRequestCount = metricsManager.registerMeter(QosMetrics.class, "numWriteRequests");
 
-        //TODO: The histogram should have a sliding window reservoir.
-        bytesRead = metricsManager.registerHistogram(QosMetrics.class, "bytesRead");
-        bytesWritten = metricsManager.registerHistogram(QosMetrics.class, "bytesWritten");
+        bytesRead = metricsManager.registerMeter(QosMetrics.class, "bytesRead");
+        bytesWritten = metricsManager.registerMeter(QosMetrics.class, "bytesWritten");
     }
 
     public void updateReadCount() {
@@ -46,10 +44,10 @@ public class QosMetrics {
     }
 
     public void updateBytesRead(int numBytes) {
-        bytesRead.update(numBytes);
+        bytesRead.mark(numBytes);
     }
 
     public void updateBytesWritten(int numBytes) {
-        bytesWritten.update(numBytes);
+        bytesWritten.mark(numBytes);
     }
 }
