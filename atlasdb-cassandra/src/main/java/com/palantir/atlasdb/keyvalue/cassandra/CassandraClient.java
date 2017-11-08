@@ -104,12 +104,10 @@ public class CassandraClient extends AutoDelegate_Client {
         }
     }
 
-    private long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> mutationResultMap) {
-        long approxBytesForKeys = getCollectionSize(mutationResultMap.keySet(),
-                ThriftObjectSizeUtils::getByteBufferSize);
-        long approxBytesForValues = getCollectionSize(mutationResultMap.values(), currentMap ->
-                getCollectionSize(currentMap.keySet(),
-                        this::getStringSize)
+    private long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
+        long approxBytesForKeys = getCollectionSize(batchMutateMap.keySet(), ThriftObjectSizeUtils::getByteBufferSize);
+        long approxBytesForValues = getCollectionSize(batchMutateMap.values(), currentMap ->
+                getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
                 + getCollectionSize(currentMap.values(),
                         mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
         return approxBytesForKeys + approxBytesForValues;
@@ -120,10 +118,6 @@ public class CassandraClient extends AutoDelegate_Client {
         return collection.stream().mapToLong(sizeFunction::apply).sum();
     }
 
-    private long getStringSize(String string) {
-        return string.length() * Character.SIZE;
-    }
-
     @Override
     public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
@@ -131,7 +125,7 @@ public class CassandraClient extends AutoDelegate_Client {
         qosClient.checkLimit();
         CqlResult cqlResult = delegate.execute_cql3_query(query, compression, consistency);
         try {
-            recordBytesRead(SerializationUtils.serialize(cqlResult).length);
+            recordBytesRead(ThriftObjectSizeUtils.getCqlResultSize(cqlResult));
         } catch (Exception e) {
             log.warn("Encountered an exception when recording read metrics for execute_cql3_query.", e);
         }

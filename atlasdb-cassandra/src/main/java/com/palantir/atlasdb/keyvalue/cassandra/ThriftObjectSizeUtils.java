@@ -18,18 +18,23 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CounterColumn;
 import org.apache.cassandra.thrift.CounterSuperColumn;
+import org.apache.cassandra.thrift.CqlMetadata;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.SuperColumn;
 
-public class ThriftObjectSizeUtils {
+public final class ThriftObjectSizeUtils {
 
     private static final long ONE_BYTE = 1L;
 
@@ -45,10 +50,8 @@ public class ThriftObjectSizeUtils {
     }
 
     private static long getCounterSuperColumnSize(CounterSuperColumn counterSuperColumn) {
-        return getByteArraySize(counterSuperColumn.getName()) +
-                counterSuperColumn.getColumns().stream()
-                        .mapToLong(ThriftObjectSizeUtils::getCounterColumnSize)
-                        .sum();
+        return getByteArraySize(counterSuperColumn.getName())
+                + getCollectionSize(counterSuperColumn.getColumns(), ThriftObjectSizeUtils::getCounterColumnSize);
     }
 
     public static long getCounterColumnSize(CounterColumn counterColumn) {
@@ -56,10 +59,8 @@ public class ThriftObjectSizeUtils {
     }
 
     public static long getSuperColumnSize(SuperColumn superColumn) {
-        return getByteBufferSize(superColumn.name) +
-                superColumn.getColumns().stream()
-                        .mapToLong(ThriftObjectSizeUtils::getColumnSize)
-                        .sum();
+        return getByteBufferSize(superColumn.name)
+                + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
     public static long getByteBufferSize(ByteBuffer byteBuffer) {
@@ -98,7 +99,7 @@ public class ThriftObjectSizeUtils {
     }
 
     private static long getSlicePredicateSize(SlicePredicate predicate) {
-        return getByteBufferCollectionSize(predicate.getColumn_names()) + getSliceRangeSize(predicate.getSlice_range());
+        return getCollectionSize(predicate.getColumn_names(), ThriftObjectSizeUtils::getByteBufferSize) + getSliceRangeSize(predicate.getSlice_range());
     }
 
     private static long getSliceRangeSize(SliceRange sliceRange) {
@@ -116,9 +117,44 @@ public class ThriftObjectSizeUtils {
         return Integer.BYTES;
     }
 
-    public static long getByteBufferCollectionSize(Collection<ByteBuffer> byteBufferList) {
-        return byteBufferList.stream()
-                .mapToLong(ThriftObjectSizeUtils::getByteBufferSize)
-                .sum();
+
+    public static long getCqlResultSize(CqlResult cqlResult) {
+        return getThriftEnumSize()
+                + getCollectionSize(cqlResult.getRows(), ThriftObjectSizeUtils::getCqlRowSize)
+                + Integer.BYTES
+                + getCqlMetadataSize(cqlResult.getSchema());
+    }
+
+    private static long getCqlMetadataSize(CqlMetadata schema) {
+        if (schema == null) {
+            return Integer.BYTES;
+        }
+        return getByteBufferStringMapSize(schema.getName_types())
+                + getByteBufferStringMapSize(schema.getValue_types())
+                + getStringSize(schema.getDefault_name_type())
+                + getStringSize(schema.getDefault_value_type());
+    }
+
+    private static long getByteBufferStringMapSize(Map<ByteBuffer, String> nameTypes) {
+        return getCollectionSize(nameTypes.entrySet(),
+                entry -> ThriftObjectSizeUtils.getByteBufferSize(entry.getKey()) +
+                        ThriftObjectSizeUtils.getStringSize(entry.getValue()));
+    }
+
+    private static Long getCqlRowSize(CqlRow cqlRow) {
+        return getByteArraySize(cqlRow.getKey())
+                + getCollectionSize(cqlRow.getColumns(), ThriftObjectSizeUtils::getColumnSize);
+    }
+
+    public static long getThriftEnumSize() {
+        return Integer.BYTES;
+    }
+
+    private static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
+        return collection.stream().mapToLong(sizeFunction::apply).sum();
+    }
+
+    public static long getStringSize(String string) {
+        return string.length() * Character.SIZE;
     }
 }
