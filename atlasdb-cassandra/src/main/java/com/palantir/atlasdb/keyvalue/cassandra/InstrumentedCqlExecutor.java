@@ -63,6 +63,7 @@ public class InstrumentedCqlExecutor extends AutoDelegate_CqlExecutor {
     @Override
     public List<CellWithTimestamp> getTimestampsWithinRow(TableReference tableRef, byte[] row,
             byte[] startColumnInclusive, long startTimestampExclusive, int limit) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestampsWithinRow(table {}, ts {}, limit {})",
                 LoggingArgs.safeTableOrPlaceholder(tableRef), startTimestampExclusive, limit)) {
             return registerDuration(() -> delegate.getTimestampsWithinRow(
