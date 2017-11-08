@@ -47,9 +47,12 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
     private static final String SERVICE_NAME = "cassandra-thrift-client";
     private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
 
-    private static final Timer MULTIGET_SLICE_TIMER = METRIC_REGISTRY.timer("cassandra.multiget_slice");
-    private static final Timer BATCH_MUTATE_TIMER = METRIC_REGISTRY.timer("cassandra.batch_mutate");
-    private static final Timer GET_RANGE_SLICE_TIMER = METRIC_REGISTRY.timer("cassandra.get_range_slice");
+    private static final Timer MULTIGET_SLICE_TIMER = METRIC_REGISTRY.timer(
+            MetricRegistry.name(InstrumentedCassandraClient.class, "multiget_slice"));
+    private static final Timer BATCH_MUTATE_TIMER = METRIC_REGISTRY.timer(
+            MetricRegistry.name(InstrumentedCassandraClient.class, "batch_mutate"));
+    private static final Timer GET_RANGE_SLICE_TIMER = METRIC_REGISTRY.timer(
+            MetricRegistry.name(InstrumentedCassandraClient.class, "get_range"));
 
     private Cassandra.Client delegate;
 
