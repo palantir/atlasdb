@@ -54,7 +54,7 @@ public class AtlasDbQosClient {
         if (credits > 0) {
             credits--;
         } else {
-            // TODO is there a more appropriate exception?
+            // TODO This should be a ThrottleException?
             throw new RuntimeException("Rate limit exceeded");
         }
     }
