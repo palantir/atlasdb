@@ -57,6 +57,7 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.keyvalue.api.ImmutableQosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -304,9 +305,18 @@ public abstract class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
+        ImmutableQosClientBuilder qosServiceClientBuilder = ImmutableQosClientBuilder.builder()
+                .qosServiceConfiguration(config.getQosServiceConfiguration())
+                .qosUserAgent(userAgent())
+                .build();
+
         ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader(), config.namespace(),
-                        config.initializeAsync());
+                new ServiceDiscoveringAtlasSupplier(
+                        config.keyValueService(),
+                        config.leader(),
+                        config.namespace(),
+                        config.initializeAsync(),
+                        qosServiceClientBuilder);
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
         LockRequest.setDefaultLockTimeout(

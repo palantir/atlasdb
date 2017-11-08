@@ -36,6 +36,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
+import com.palantir.atlasdb.keyvalue.api.ImmutableQosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -68,7 +69,7 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
         super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig,
-                initializeAsync);
+                initializeAsync, ImmutableQosClientBuilder.builder().build());
     }
 
     @Override

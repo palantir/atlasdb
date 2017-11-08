@@ -33,6 +33,7 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.QosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -107,7 +108,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClientBuilder unusedQosClientBuilder) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }

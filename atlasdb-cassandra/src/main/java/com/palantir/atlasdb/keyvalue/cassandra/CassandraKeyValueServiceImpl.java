@@ -31,7 +31,9 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -53,6 +55,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -94,8 +97,10 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
+import com.palantir.atlasdb.keyvalue.api.ImmutableQosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.QosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -121,8 +126,12 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -132,6 +141,8 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.remoting3.clients.ClientConfigurations;
+import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -222,8 +233,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
+        return create(configManager, leaderConfig, initializeAsync, ImmutableQosClientBuilder.builder().build());
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync,
+            QosClientBuilder qosClientBuilder) {
         return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class),
-                initializeAsync);
+                initializeAsync, qosClientBuilder);
     }
 
     @VisibleForTesting
@@ -231,18 +250,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
-        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                ImmutableQosClientBuilder.builder().build());
     }
 
     private static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClientBuilder qosClientBuilder) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl keyValueService =
-                new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
+                new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync,
+                        qosClientBuilder);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
@@ -251,12 +273,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                        CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig,
-                                       boolean initializeAsync) {
+                                       boolean initializeAsync,
+                                       QosClientBuilder qosClientBuilder) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
+        QosClient qosClient = getQosClient(qosClientBuilder);
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync, qosClient);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -266,6 +290,27 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
+    }
+
+    private QosClient getQosClient(QosClientBuilder qosClientBuilder) {
+        if (qosClientBuilder.qosServiceConfiguration().isPresent()) {
+            return createAtlasDbQosClient(qosClientBuilder);
+        } else {
+            return new FakeQosClient();
+        }
+    }
+
+    private QosClient createAtlasDbQosClient(QosClientBuilder qosClientBuilder) {
+        Preconditions.checkState(qosClientBuilder.qosServiceConfiguration().isPresent(),
+                "Qos Service Config is required to create a AtlasDBQosClient.");
+        QosService qosService = JaxRsClient.create(QosService.class,
+                qosClientBuilder.qosUserAgent(),
+                ClientConfigurations.of(qosClientBuilder.qosServiceConfiguration().get()));
+        ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
+                Executors.newSingleThreadScheduledExecutor(),
+                AtlasDbMetrics.getMetricRegistry(),
+                "qos-client-executor");
+        return new AtlasDbQosClient(qosService, scheduler, configManager.getConfig().getKeyspaceOrThrow());
     }
 
     @Override

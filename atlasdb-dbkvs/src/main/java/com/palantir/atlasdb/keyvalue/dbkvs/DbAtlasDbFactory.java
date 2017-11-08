@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.QosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
@@ -57,7 +58,8 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClientBuilder unusedQosClientBuilder) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }

@@ -35,7 +35,9 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.api.ImmutableQosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.QosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -54,9 +56,11 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
+    private final QosClientBuilder qosClientBuilder;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        this(config, leaderConfig, Optional.empty(), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        this(config, leaderConfig, Optional.empty(), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                ImmutableQosClientBuilder.builder().build());
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -64,15 +68,17 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable) {
-        this(config, leaderConfig, namespace, timestampTable, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        this(config, leaderConfig, namespace, timestampTable, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                ImmutableQosClientBuilder.builder().build());
     }
 
     public ServiceDiscoveringAtlasSupplier(
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            boolean initializeAsync) {
-        this(config, leaderConfig, namespace, Optional.empty(), initializeAsync);
+            boolean initializeAsync,
+            QosClientBuilder qosClientBuilder) {
+        this(config, leaderConfig, namespace, Optional.empty(), initializeAsync, qosClientBuilder);
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -80,9 +86,11 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClientBuilder qosClientBuilderPassed) {
         this.config = config;
         this.leaderConfig = leaderConfig;
+        this.qosClientBuilder = qosClientBuilderPassed;
 
         AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
@@ -92,7 +100,12 @@ public class ServiceDiscoveringAtlasSupplier {
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
         keyValueService = Suppliers.memoize(
-                () -> atlasFactory.createRawKeyValueService(config, leaderConfig, namespace, initializeAsync));
+                () -> atlasFactory.createRawKeyValueService(
+                        config,
+                        leaderConfig,
+                        namespace,
+                        initializeAsync,
+                        qosClientBuilder));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());

@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.QosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -43,13 +44,15 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClientBuilder qosClientBuilder) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
         return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(preprocessedConfig),
                 leaderConfig,
-                initializeAsync);
+                initializeAsync,
+                qosClientBuilder);
     }
 
     @VisibleForTesting
