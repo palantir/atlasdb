@@ -27,6 +27,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 public class QosRuntimeConfigDeserializationTest {
 

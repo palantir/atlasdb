@@ -14,26 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent;
+package com.palantir.atlasdb.qos.config;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.palantir.atlasdb.qos.QosResource;
-import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import io.dropwizard.Configuration;
 
-public class QosAgent {
+public class QosServerConfig extends Configuration {
 
-    private final Supplier<QosServiceRuntimeConfig> config;
-    private final Consumer<Object> registrar;
+    private final QosServiceRuntimeConfig runtime;
 
-    public QosAgent(Supplier<QosServiceRuntimeConfig> config, Consumer<Object> registrar) {
-        this.config = config;
-        this.registrar = registrar;
+    public QosServerConfig(@JsonProperty("runtime") QosServiceRuntimeConfig runtime) {
+        this.runtime = runtime;
     }
 
-    public void createAndRegisterResources() {
-        registrar.accept(new QosResource(config));
+    public QosServiceRuntimeConfig runtime() {
+        return runtime;
     }
-
 }

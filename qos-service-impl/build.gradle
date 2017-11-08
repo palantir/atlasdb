@@ -1,30 +1,63 @@
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/timelock.gradle"
 
-apply plugin: 'org.inferred.processors'
-
-repositories {
-    mavenCentral()
+testSets {
+    integTest
 }
 
-libsDirName = file('build/artifacts')
+jacocoTestReport {
+    executionData test, integTest
+}
 
+check.dependsOn integTest
 dependencies {
-    compile project(':qos-service-api')
+    compile (project(":qos-service-api"));
 
-    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
-    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
+    compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
+    compile group: 'com.palantir.remoting-api', name: 'ssl-config'
+    compile group: 'com.palantir.remoting3', name: 'tracing'
+    compile group: 'com.palantir.tritium', name: 'tritium-lib'
+
+    compile (group: 'com.palantir.remoting3', name: 'jersey-servers')
 
     processor group: 'org.immutables', name: 'value'
 
+    testCompile (project(":atlasdb-tests-shared")) {
+        exclude group: 'com.fasterxml.jackson.jaxrs'
+    }
+
+    testCompile project(":atlasdb-tests-shared")
+    testCompile project(":atlasdb-dbkvs")
+    testCompile (project(":atlasdb-cassandra")) {
+        exclude(module:'log4j-over-slf4j')
+        exclude(module:'jcl-over-slf4j')
+    }
     testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
-    testCompile group: 'com.google.guava', name: 'guava'
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
+
+	integTestCompile (project(":atlasdb-config"));
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+    integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
 }
+
+configurations.all {
+     resolutionStrategy {
+         force 'io.dropwizard.metrics:metrics-core:3.2.5'
+         force 'io.dropwizard.jackson:dropwizard-jackson:0.9.3'
+         force 'org.slf4j:slf4j-api:1.7.21'
+         force 'org.hdrhistogram:HdrHistogram:2.1.10'
+     }
+ }
 

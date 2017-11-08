@@ -14,9 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.qos.config;
 
-public class QosServiceIntegrationTest {
+import java.util.Map;
 
+import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
+@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
+@Value.Immutable
+public abstract class QosServiceRuntimeConfig {
+    public abstract Map<String, Long> clientLimits();
 }

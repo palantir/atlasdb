@@ -18,6 +18,8 @@ package com.palantir.atlasdb.qos;
 
 import java.util.function.Supplier;
 
+import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+
 public class QosResource implements QosService {
 
     private Supplier<QosServiceRuntimeConfig> config;

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.qos;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 
 public class QosServiceRuntimeConfigTest {
     @Test

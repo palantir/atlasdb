@@ -16,16 +16,21 @@
 
 package com.palantir.atlasdb.qos;
 
-import java.util.Map;
+import org.junit.Rule;
+import org.junit.Test;
 
-import org.immutables.value.Value;
+public class QosServiceIntegrationTest {
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+    protected static final String LOCALHOST = "https://localhost";
 
-@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
-@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
-@Value.Immutable
-public abstract class QosServiceRuntimeConfig {
-    abstract Map<String, Long> clientLimits();
+    @Rule
+    public QosServerHolder server = new QosServerHolder(() -> "resources/qos.yml");
+    public TestableQosServer testableQosServer = new TestableQosServer(LOCALHOST, "test", server);
+    public QosService client = testableQosServer.service();
+
+    @Test
+    public void test() {
+        client.getLimit("test");
+    }
+
 }

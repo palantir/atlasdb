@@ -27,6 +27,8 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 public class QosServiceTest {
 
