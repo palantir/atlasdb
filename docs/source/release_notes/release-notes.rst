@@ -77,6 +77,12 @@ develop
          - AtlasDB can now tag RC releases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
 
+    *    - |improved| |logs|
+         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
+
+    *    -
+         -
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
