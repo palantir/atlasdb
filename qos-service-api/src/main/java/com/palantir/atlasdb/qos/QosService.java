@@ -24,9 +24,9 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
-@Path("/{client: [a-zA-Z0-9_-]+}")
+@Path("/qos")
 public interface QosService {
-    @Path("/get-limit")
+    @Path("{client: [a-zA-Z0-9_-]+}/get-limit")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
