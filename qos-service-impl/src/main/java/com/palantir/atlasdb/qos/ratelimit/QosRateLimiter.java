@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.ratelimit;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class QosRateLimiter {
 
@@ -27,9 +29,14 @@ public class QosRateLimiter {
 
     private RateLimiter rateLimiter;
 
-    public QosRateLimiter() {
+    public static QosRateLimiter create() {
+        return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer());
+    }
+
+    @VisibleForTesting
+    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch) {
         rateLimiter = new SmoothRateLimiter.SmoothBursty(
-                RateLimiter.SleepingStopwatch.createFromSystemTimer(),
+                stopwatch,
                 MAX_BURST_SECONDS);
 
         rateLimiter.setRate(UNLIMITED_RATE);
@@ -39,13 +46,13 @@ public class QosRateLimiter {
         rateLimiter.setRate(unitsPerSecond);
     }
 
-    public double consumeWithBackoff(int estimatedNumUnits) {
-        Optional<Double> secondsWaited = rateLimiter.tryAcquire(estimatedNumUnits, MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS);
-        if (!secondsWaited.isPresent()) {
+    public long consumeWithBackoff(int estimatedNumUnits) {
+        Optional<Long> microsWaited = rateLimiter.tryAcquire(estimatedNumUnits, MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS);
+        if (!microsWaited.isPresent()) {
             throw new RuntimeException("rate limited");
         }
 
-        return secondsWaited.get();
+        return microsWaited.get();
     }
 
     public void recordAdditionalConsumption(int additionalUnits) {

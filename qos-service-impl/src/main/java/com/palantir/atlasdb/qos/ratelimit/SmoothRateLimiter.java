@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.ratelimit;
 
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.SECONDS;

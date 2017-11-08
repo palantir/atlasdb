@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.ratelimit;
 
 import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -215,7 +215,6 @@ public abstract class RateLimiter {
      * @return time spent sleeping to enforce rate, in seconds; 0.0 if not rate-limited
      * @since 16.0 (present in 13.0 with {@code void} return type})
      */
-    @CanIgnoreReturnValue
     public double acquire() {
         return acquire(1);
     }
@@ -229,7 +228,6 @@ public abstract class RateLimiter {
      * @throws IllegalArgumentException if the requested number of permits is negative or zero
      * @since 16.0 (present in 13.0 with {@code void} return type})
      */
-    @CanIgnoreReturnValue
     public double acquire(int permits) {
         long microsToWait = reserve(permits);
         stopwatch.sleepMicrosUninterruptibly(microsToWait);
@@ -311,7 +309,7 @@ public abstract class RateLimiter {
      * @return {@code true} if the permits were acquired, {@code false} otherwise
      * @throws IllegalArgumentException if the requested number of permits is negative or zero
      */
-    public Optional<Double> tryAcquire(int permits, long timeout, TimeUnit unit) {
+    public Optional<Long> tryAcquire(int permits, long timeout, TimeUnit unit) {
         long timeoutMicros = max(unit.toMicros(timeout), 0);
         checkPermits(permits);
         long microsToWait;
@@ -324,7 +322,7 @@ public abstract class RateLimiter {
             }
         }
         stopwatch.sleepMicrosUninterruptibly(microsToWait);
-        return Optional.of(1.0 * microsToWait / SECONDS.toMicros(1L));
+        return Optional.of(microsToWait);
     }
 
     private boolean canAcquire(long nowMicros, long timeoutMicros) {
