@@ -37,7 +37,6 @@ import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,11 +112,6 @@ public class CassandraClient extends AutoDelegate_Client {
         return approxBytesForKeys + approxBytesForValues;
     }
 
-
-    private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
-        return collection.stream().mapToLong(sizeFunction::apply).sum();
-    }
-
     @Override
     public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
@@ -138,11 +132,8 @@ public class CassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
         List<KeySlice> result = super.get_range_slices(column_parent, predicate, range, consistency_level);
-        int approximateBytesRead = result.stream()
-                .mapToInt(keySlice -> SerializationUtils.serialize(keySlice).length)
-                .sum();
         try {
-            recordBytesRead(approximateBytesRead);
+            recordBytesRead(getCollectionSize(result, ThriftObjectSizeUtils::getKeySliceSize));
         } catch (Exception e) {
             log.warn("Encountered an exception when recording read metrics for get_range_slices.", e);
         }
@@ -157,5 +148,9 @@ public class CassandraClient extends AutoDelegate_Client {
     private void recordBytesWritten(long numBytesWitten) {
         qosMetrics.updateWriteCount();
         qosMetrics.updateBytesWritten(numBytesWitten);
+    }
+
+    private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> singleObjectSizeFunction) {
+        return collection.stream().mapToLong(singleObjectSizeFunction::apply).sum();
     }
 }

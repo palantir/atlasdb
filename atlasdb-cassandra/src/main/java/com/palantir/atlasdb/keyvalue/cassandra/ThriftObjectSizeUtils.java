@@ -29,6 +29,7 @@ import org.apache.cassandra.thrift.CqlMetadata;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.Deletion;
+import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
@@ -49,86 +50,117 @@ public final class ThriftObjectSizeUtils {
                 + getCounterSuperColumnSize(columnOrSuperColumn.getCounter_super_column());
     }
 
-    private static long getCounterSuperColumnSize(CounterSuperColumn counterSuperColumn) {
-        return getByteArraySize(counterSuperColumn.getName())
-                + getCollectionSize(counterSuperColumn.getColumns(), ThriftObjectSizeUtils::getCounterColumnSize);
-    }
-
-    public static long getCounterColumnSize(CounterColumn counterColumn) {
-        return getByteArraySize(counterColumn.getName()) + getCounterValueSize();
-    }
-
-    public static long getSuperColumnSize(SuperColumn superColumn) {
-        return getByteBufferSize(superColumn.name)
-                + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
-    }
-
     public static long getByteBufferSize(ByteBuffer byteBuffer) {
-        // Position is the size unless something has been read from the ByteBuffer
+        if (byteBuffer == null) {
+            getNullSize();
+        }
+
         return byteBuffer.position();
     }
 
-    public static long getByteArraySize(byte[] byteArray) {
-        return byteArray.length;
-    }
-
-    public static long getColumnSize(Column column) {
-        return column.getValue().length + column.getName().length + getTtlSize() + getTimestampSize();
-    }
-
-    public static long getTimestampSize() {
-        return Long.BYTES;
-    }
-
-    public static long getTtlSize() {
-        return Integer.BYTES;
-    }
-
-    public static long getCounterValueSize() {
-        return Long.BYTES;
-    }
-
     public static long getMutationSize(Mutation mutation) {
+        if (mutation == null) {
+            return getNullSize();
+        }
         return getColumnOrSuperColumnSize(mutation.getColumn_or_supercolumn()) + getDeletionSize(mutation.getDeletion());
     }
 
-    public static long getDeletionSize(Deletion deletion) {
-        return getTimestampSize()
-                + getByteArraySize(deletion.getSuper_column())
-                + getSlicePredicateSize(deletion.getPredicate());
-    }
-
-    private static long getSlicePredicateSize(SlicePredicate predicate) {
-        return getCollectionSize(predicate.getColumn_names(), ThriftObjectSizeUtils::getByteBufferSize) + getSliceRangeSize(predicate.getSlice_range());
-    }
-
-    private static long getSliceRangeSize(SliceRange sliceRange) {
-        return getByteArraySize(sliceRange.getStart())
-                + getByteArraySize(sliceRange.getFinish())
-                + getReversedBooleanSize()
-                + getSliceRangeCountSize();
-    }
-
-    private static long getReversedBooleanSize() {
-        return ONE_BYTE;
-    }
-
-    private static int getSliceRangeCountSize() {
-        return Integer.BYTES;
-    }
-
-
     public static long getCqlResultSize(CqlResult cqlResult) {
+        if (cqlResult == null) {
+            return getNullSize();
+        }
         return getThriftEnumSize()
                 + getCollectionSize(cqlResult.getRows(), ThriftObjectSizeUtils::getCqlRowSize)
                 + Integer.BYTES
                 + getCqlMetadataSize(cqlResult.getSchema());
     }
 
+    public static long getKeySliceSize(KeySlice keySlice) {
+        if (keySlice == null) {
+            return getNullSize();
+        }
+
+        return getByteArraySize(keySlice.getKey())
+                + getCollectionSize(keySlice.getColumns(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize);
+    }
+
+    public static long getStringSize(String string) {
+        if (string == null) {
+            return getNullSize();
+        }
+
+        return string.length() * Character.SIZE;
+    }
+
+    private static long getCounterSuperColumnSize(CounterSuperColumn counterSuperColumn) {
+        if (counterSuperColumn == null) {
+            return getNullSize();
+        }
+
+        return getByteArraySize(counterSuperColumn.getName())
+                + getCollectionSize(counterSuperColumn.getColumns(), ThriftObjectSizeUtils::getCounterColumnSize);
+    }
+
+    private static long getCounterColumnSize(CounterColumn counterColumn) {
+        if (counterColumn == null) {
+            return getNullSize();
+        }
+
+        return getByteArraySize(counterColumn.getName()) + getCounterValueSize();
+    }
+
+    private static long getSuperColumnSize(SuperColumn superColumn) {
+        if (superColumn == null) {
+            return getNullSize();
+        }
+
+        return getByteBufferSize(superColumn.name)
+                + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
+    }
+
+
+    private static long getColumnSize(Column column) {
+        if (column == null) {
+            return getNullSize();
+        }
+
+        return column.getValue().length + column.getName().length + getTtlSize() + getTimestampSize();
+    }
+
+    private static long getDeletionSize(Deletion deletion) {
+        if (deletion == null) {
+            return getNullSize();
+        }
+
+        return getTimestampSize()
+                + getByteArraySize(deletion.getSuper_column())
+                + getSlicePredicateSize(deletion.getPredicate());
+    }
+
+    private static long getSlicePredicateSize(SlicePredicate predicate) {
+        if (predicate == null) {
+            return getNullSize();
+        }
+
+        return getCollectionSize(predicate.getColumn_names(), ThriftObjectSizeUtils::getByteBufferSize) + getSliceRangeSize(predicate.getSlice_range());
+    }
+
+    private static long getSliceRangeSize(SliceRange sliceRange) {
+        if (sliceRange == null) {
+            return getNullSize();
+        }
+
+        return getByteArraySize(sliceRange.getStart())
+                + getByteArraySize(sliceRange.getFinish())
+                + getReversedBooleanSize()
+                + getSliceRangeCountSize();
+    }
+
     private static long getCqlMetadataSize(CqlMetadata schema) {
         if (schema == null) {
-            return Integer.BYTES;
+            return getNullSize();
         }
+
         return getByteBufferStringMapSize(schema.getName_types())
                 + getByteBufferStringMapSize(schema.getValue_types())
                 + getStringSize(schema.getDefault_name_type())
@@ -142,19 +174,47 @@ public final class ThriftObjectSizeUtils {
     }
 
     private static Long getCqlRowSize(CqlRow cqlRow) {
+        if (cqlRow == null) {
+            return getNullSize();
+        }
+
         return getByteArraySize(cqlRow.getKey())
                 + getCollectionSize(cqlRow.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
-    public static long getThriftEnumSize() {
+    private static long getThriftEnumSize() {
+        return Integer.BYTES;
+    }
+
+    private static long getByteArraySize(byte[] byteArray) {
+        return byteArray.length;
+    }
+
+    private static long getTimestampSize() {
+        return Long.BYTES;
+    }
+
+    private static long getTtlSize() {
+        return Integer.BYTES;
+    }
+
+    private static long getCounterValueSize() {
+        return Long.BYTES;
+    }
+
+    private static long getReversedBooleanSize() {
+        return ONE_BYTE;
+    }
+
+    private static long getSliceRangeCountSize() {
+        return Integer.BYTES;
+    }
+
+    private static long getNullSize() {
         return Integer.BYTES;
     }
 
     private static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
         return collection.stream().mapToLong(sizeFunction::apply).sum();
-    }
-
-    public static long getStringSize(String string) {
-        return string.length() * Character.SIZE;
     }
 }
