@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -83,6 +84,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 public abstract class AbstractKeyValueServiceTest {
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
@@ -1149,9 +1151,10 @@ public abstract class AbstractKeyValueServiceTest {
         putTestDataForSingleTimestamp();
         try {
             putTestDataForSingleTimestamp();
-            // Legal
-        } catch (KeyAlreadyExistsException e) {
-            Assert.fail("Must not throw when overwriting with same value!");
+        } catch (AtlasDbDependencyException e) {
+            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+                Assert.fail("Must not throw when overwriting with same value!");
+            }
         }
 
         keyValueService.putWithTimestamps(
@@ -1165,16 +1168,17 @@ public abstract class AbstractKeyValueServiceTest {
                     ImmutableMultimap.of(
                             TEST_CELL,
                             Value.create(value00, TEST_TIMESTAMP + 1)));
-            // Legal
-        } catch (KeyAlreadyExistsException e) {
-            Assert.fail("Must not throw when overwriting with same value!");
+        } catch (AtlasDbDependencyException e) {
+            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+                Assert.fail("Must not throw when overwriting with same value!");
+            }
         }
 
         try {
             keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
                     TEST_CELL, Value.create(value01, TEST_TIMESTAMP + 1)));
             // Legal
-        } catch (KeyAlreadyExistsException e) {
+        } catch (AtlasDbDependencyException e) {
             // Legal
         }
 
@@ -1182,16 +1186,13 @@ public abstract class AbstractKeyValueServiceTest {
         try {
             keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00));
             // Legal
-        } catch (KeyAlreadyExistsException e) {
+        } catch (AtlasDbDependencyException e) {
             // Legal
         }
 
-        try {
-            keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00));
-            Assert.fail("putUnlessExists must throw when overwriting the same cell!");
-        } catch (KeyAlreadyExistsException e) {
-            // Legal
-        }
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00)))
+                .isInstanceOf(AtlasDbDependencyException.class)
+                .as("putUnlessExists must throw when overwriting the same cell!");
     }
 
     @Test

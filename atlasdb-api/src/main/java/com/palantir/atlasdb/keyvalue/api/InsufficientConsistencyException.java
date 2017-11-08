@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 /**
  * Thrown by a key value service when an operation could not be performed
  * because the required consistency could not be met.
  */
-public class InsufficientConsistencyException extends PalantirRuntimeException {
+public class InsufficientConsistencyException extends AtlasDbDependencyException {
     private static final long serialVersionUID = 1L;
 
     public InsufficientConsistencyException(String msg) {

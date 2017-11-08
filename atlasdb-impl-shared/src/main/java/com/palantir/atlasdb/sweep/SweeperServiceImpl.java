@@ -17,13 +17,21 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
+    private static final Logger log = LoggerFactory.getLogger(SweeperServiceImpl.class);
+
     private final SpecificTableSweeper specificTableSweeper;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
@@ -48,17 +56,36 @@ public final class SweeperServiceImpl implements SweeperService {
         SweepBatchConfig config = buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize,
                 deleteBatchSize);
 
-        SweepResults sweepResults = fullSweep.orElse(true)
-                ? runFullSweepWithoutSavingResults(
-                        tableRef,
-                        decodedStartRow,
-                        config)
-                : runOneBatchWithoutSavingResults(
-                        tableRef,
-                        decodedStartRow,
-                        config);
+        return SweepTableResponse.from(runSweep(fullSweep, tableRef, decodedStartRow, config));
+    }
 
-        return SweepTableResponse.from(sweepResults);
+    private SweepResults runSweep(Optional<Boolean> fullSweep, TableReference tableRef, byte[] decodedStartRow,
+            SweepBatchConfig config) {
+        if (!fullSweep.isPresent()) {
+            log.warn("fullSweep parameter was not specified, defaulting to true");
+        }
+
+        if (fullSweep.orElse(true)) {
+            log.info("Running sweep of full table {}, "
+                            + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
+                            + "starting from row {}",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
+                    SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
+                    UnsafeArg.of("decodedStartRow", decodedStartRow));
+            return runFullSweepWithoutSavingResults(tableRef, decodedStartRow, config);
+        } else {
+            log.info("Running sweep of a single batch on table {}, "
+                            + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
+                            + "starting from row {}",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),
+                    SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
+                    SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
+                    UnsafeArg.of("decodedStartRow", decodedStartRow));
+            return runOneBatchWithoutSavingResults(tableRef, decodedStartRow, config);
+        }
     }
 
     private SweepBatchConfig buildConfigWithOverrides(

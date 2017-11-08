@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMultimap;
-import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class OneNodeDownDeleteTest {
 
@@ -28,6 +28,6 @@ public class OneNodeDownDeleteTest {
     public void deletingThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.delete(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)))
-                .isInstanceOf(PalantirRuntimeException.class);
+                .isInstanceOf(AtlasDbDependencyException.class);
     }
 }

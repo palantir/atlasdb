@@ -48,6 +48,17 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |devbreak|
+         - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
+           Also, all Cassandra KVS exceptions like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
+
+    *    - |fixed|
+         - ``SweepBatchConfig`` values are now decayed correctly when there's an error.
+           ``SweepBatchConfig`` should be decreased until sweep succeeds, however the config actually oscillated between values, these were normally small but could be larger than the original config.  This was caused by us fixing one of the values at 1.
+           ``SweepBatchConfig`` values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2630>`__)
+
     *    - |fixed|
          - Reverted the Cassandra KVS executor PR (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__) that caused a performance regression.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2637>`__)
@@ -65,6 +76,12 @@ develop
     *    - |improved|
          - AtlasDB can now tag RC releases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
+
+    *    - |improved| |logs|
+         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
+
+    *    -
+         -
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -106,6 +123,10 @@ v0.65.1
     *    - |improved| |logs|
          - AtlasDB tables will now be logged as ``ns.tablename`` instead of ``map[namespace:map[name:ns] tablename:tablename]``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+
+    *    - |fixed|
+         - TracingKVS now has spans with safe names.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2643>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

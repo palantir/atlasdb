@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.exception;
+package com.palantir.common.exception;
 
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.logsafe.SafeArg;
+public class AtlasDbDependencyException extends RuntimeException {
+    private static final String EXCEPTION_MESSAGE = "AtlasDB dependency threw an exception.";
 
-public class NotInitializedException extends AtlasDbDependencyException {
-    public NotInitializedException(String objectNotInitialized) {
-        super(String.format("The %s is not initialized yet", SafeArg.of("objectName", objectNotInitialized)));
+    public AtlasDbDependencyException(String msg) {
+        super(msg);
+    }
+
+    public AtlasDbDependencyException(String msg, Throwable throwable) {
+        super(msg, throwable);
+    }
+
+    public AtlasDbDependencyException(Throwable throwable) {
+        super(EXCEPTION_MESSAGE, throwable);
     }
 }
