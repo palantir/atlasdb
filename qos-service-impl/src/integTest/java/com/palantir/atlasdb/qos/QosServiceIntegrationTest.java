@@ -30,7 +30,7 @@ public class QosServiceIntegrationTest {
     protected static final String SERVER_URI = "http://localhost:5080";
 
     @ClassRule
-    public static QosServerHolder serverHolder = new QosServerHolder("qos.yml");
+    public static QosServerHolder serverHolder = new QosServerHolder("server.yml");
     public static QosService service = AtlasDbHttpClients.createProxy(
             Optional.empty(),
             SERVER_URI,
