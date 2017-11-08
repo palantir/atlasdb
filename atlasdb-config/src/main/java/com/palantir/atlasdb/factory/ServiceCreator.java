@@ -61,7 +61,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
                 ServiceCreator::createProxySelector,
                 serviceClass,
                 userAgent);
-   }
+    }
 
     /**
      * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
