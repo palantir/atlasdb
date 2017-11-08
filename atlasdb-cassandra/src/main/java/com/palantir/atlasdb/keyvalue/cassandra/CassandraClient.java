@@ -82,19 +82,19 @@ public class CassandraClient extends AutoDelegate_Client {
         return result;
     }
 
-    private int getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
+    private long getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
         return result.entrySet().stream()
-                .mapToInt((entry) -> getRowKeySize(entry) + totalColumnOrSuperColumnSize(entry))
+                .mapToLong((entry) -> getRowKeySize(entry) + totalSizeOfValues(entry))
                 .sum();
     }
 
-    private int getRowKeySize(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
-        return entry.getKey().array().length;
+    private long getRowKeySize(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
+        return ThriftObjectSizeUtils.getByteBufferSize(entry.getKey());
     }
 
-    private int totalColumnOrSuperColumnSize(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
+    private long totalSizeOfValues(Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> entry) {
         return entry.getValue().stream()
-                .mapToInt(columnOrSuperColumn -> SerializationUtils.serialize(columnOrSuperColumn).length)
+                .mapToLong(ThriftObjectSizeUtils::getSizeOfColumnOrSuperColumn)
                 .sum();
     }
 
@@ -158,12 +158,12 @@ public class CassandraClient extends AutoDelegate_Client {
         return result;
     }
 
-    private void recordBytesRead(int numBytesRead) {
+    private void recordBytesRead(long numBytesRead) {
         qosMetrics.updateReadCount();
         qosMetrics.updateBytesRead(numBytesRead);
     }
 
-    private void recordBytesWritten(int numBytesWitten) {
+    private void recordBytesWritten(long numBytesWitten) {
         qosMetrics.updateWriteCount();
         qosMetrics.updateBytesWritten(numBytesWitten);
     }

@@ -43,11 +43,11 @@ public class QosMetrics {
         writeRequestCount.mark();
     }
 
-    public void updateBytesRead(int numBytes) {
+    public void updateBytesRead(long numBytes) {
         bytesRead.mark(numBytes);
     }
 
-    public void updateBytesWritten(int numBytes) {
+    public void updateBytesWritten(long numBytes) {
         bytesWritten.mark(numBytes);
     }
 }
