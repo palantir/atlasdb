@@ -13,22 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.qos;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import java.util.Map;
 
-import com.palantir.logsafe.Safe;
+import org.immutables.value.Value;
 
-@Path("/qos")
-public interface QosService {
-    @Path("{client: [a-zA-Z0-9_-]+}/get-limit")
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    long getLimit(@Safe @PathParam("client") String client);
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
+@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
+@Value.Immutable
+public abstract class QosServiceRuntimeConfig {
+    abstract Map<String, Long> clientLimits();
 }

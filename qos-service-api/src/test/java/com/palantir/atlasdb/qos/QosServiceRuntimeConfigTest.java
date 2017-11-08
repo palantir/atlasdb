@@ -16,15 +16,27 @@
 
 package com.palantir.atlasdb.qos;
 
-import static org.junit.Assert.assertEquals;
-
 import org.junit.Test;
 
-public class QosServiceResourceTest {
+import com.google.common.collect.ImmutableMap;
+
+public class QosServiceRuntimeConfigTest {
     @Test
-    public void canGetLimit() {
-        QosService resource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
-        assertEquals(Integer.MAX_VALUE, resource.getLimit("test-client"));
+    public void canBuildFromEmptyClientLimits() {
+        ImmutableQosServiceRuntimeConfig.builder().clientLimits(ImmutableMap.of()).build();
+    }
+
+    @Test
+    public void canBuildFromSingleClientLimit() {
+        ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test_client", 10L))
+                .build();
+    }
+
+    @Test
+    public void canBuildFromMultipleClientLimits() {
+        ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test_client", 10L, "test_client2", 100L))
+                .build();
     }
 }
-

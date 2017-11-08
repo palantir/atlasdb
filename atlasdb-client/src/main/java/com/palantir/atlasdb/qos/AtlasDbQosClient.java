@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public class AtlasDbQosClient {
     QosService qosService;
 
-    volatile int credits;
+    volatile long credits;
 
     private AtlasDbQosClient(QosService qosService) {
         this.qosService = qosService;

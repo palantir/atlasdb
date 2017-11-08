@@ -1,0 +1,3 @@
+clientLimits:
+  test: 10
+  test2: 20

@@ -32,7 +32,7 @@ public class AtlasDbQosClientTest {
 
     @Before
     public void setUp() {
-        when(qosService.getLimit("test-client")).thenReturn(1);
+        when(qosService.getLimit("test-client")).thenReturn(1L);
     }
 
     @Test
