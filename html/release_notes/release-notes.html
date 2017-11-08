@@ -225,6 +225,12 @@ Previously, the bound logged would have been logged as <code class="docutils lit
 <td>AtlasDB can now tag RC releases.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2641">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td><code class="docutils literal"><span class="pre">SweeperServiceImpl</span></code> now logs when it starts sweeping and makes it clear if it is running full sweep or not</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -267,6 +273,10 @@ Note that this in particular means that any in-progress sweep will be abandoned 
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>AtlasDB tables will now be logged as <code class="docutils literal"><span class="pre">ns.tablename</span></code> instead of <code class="docutils literal"><span class="pre">map[namespace:map[name:ns]</span> <span class="pre">tablename:tablename]</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2606">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>TracingKVS now has spans with safe names.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2643">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
