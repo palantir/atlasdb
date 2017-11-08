@@ -38,6 +38,7 @@ import org.apache.thrift.TException;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.processors.AutoDelegate;
@@ -100,8 +101,9 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace(
-                "client.get_range_slices(number of keys {}, number of columns {}, consistency {})",
-                predicate.slice_range.count, range.count, toString(consistency_level))) {
+                "client.get_range_slices(table {}, number of keys {}, number of columns {}, consistency {})",
+                LoggingArgs.safeInternalTableNameOrPlaceholder(column_parent.column_family), predicate.slice_range.count,
+                range.count, toString(consistency_level))) {
             return registerDuration(
                     () -> delegate.get_range_slices(column_parent, predicate, range, consistency_level),
                     GET_RANGE_SLICE_TIMER);
