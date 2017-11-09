@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.util;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -27,21 +28,25 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class MetricsManager {
 
     private static final Logger log = LoggerFactory.getLogger(MetricsManager.class);
 
     private final MetricRegistry metricRegistry;
+    private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
 
     public MetricsManager() {
-        this(AtlasDbMetrics.getMetricRegistry());
+        this(AtlasDbMetrics.getMetricRegistry(), AtlasDbMetrics.getTaggedMetricRegistry());
     }
 
     @VisibleForTesting
-    MetricsManager(MetricRegistry metricRegistry) {
+    MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry) {
         this.metricRegistry = metricRegistry;
+        this.taggedMetricRegistry = taggedMetricRegistry;
         this.registeredMetrics = new HashSet<>();
     }
 
@@ -63,6 +68,14 @@ public class MetricsManager {
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
+    }
+
+    public void registerTaggedGauge(Class clazz, String metricName, Map<String, String> tag, Gauge gauge) {
+        taggedMetricRegistry.gauge(MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build(),
+                gauge);
     }
 
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
