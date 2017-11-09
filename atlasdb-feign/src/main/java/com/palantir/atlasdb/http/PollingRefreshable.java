@@ -22,12 +22,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.remoting3.ext.refresh.Refreshable;
 
 public final class PollingRefreshable<T> implements AutoCloseable {
     // TODO (jkong): Should this be configurable?
-    private static final Duration POLL_INTERVAL = Duration.ofSeconds(5L);
+    @VisibleForTesting
+    static final Duration POLL_INTERVAL = Duration.ofSeconds(5L);
 
     private final Supplier<T> supplier;
     private final ScheduledExecutorService poller;
@@ -46,9 +48,13 @@ public final class PollingRefreshable<T> implements AutoCloseable {
     }
 
     public static <T> PollingRefreshable<T> create(Supplier<T> supplier) {
-        PollingRefreshable<T> pollingRefreshable = new PollingRefreshable<>(
-                supplier,
+        return createWithSpecificPoller(supplier,
                 Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("polling-refreshable", true)));
+    }
+
+    @VisibleForTesting
+    static <T> PollingRefreshable<T> createWithSpecificPoller(Supplier<T> supplier, ScheduledExecutorService poller) {
+        PollingRefreshable<T> pollingRefreshable = new PollingRefreshable<>(supplier, poller);
         pollingRefreshable.scheduleUpdates();
         return pollingRefreshable;
     }
@@ -58,7 +64,7 @@ public final class PollingRefreshable<T> implements AutoCloseable {
     }
 
     private void scheduleUpdates() {
-        poller.scheduleWithFixedDelay(() -> {
+        poller.scheduleAtFixedRate(() -> {
             T value = supplier.get();
             if (!value.equals(lastSeenValue)) {
                 lastSeenValue = value;
@@ -68,7 +74,7 @@ public final class PollingRefreshable<T> implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         poller.shutdown();
     }
 }
