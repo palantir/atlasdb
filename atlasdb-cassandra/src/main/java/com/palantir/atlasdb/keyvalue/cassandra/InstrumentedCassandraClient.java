@@ -76,10 +76,10 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
     public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        //noinspection unused - try-with-resources closes trace
         // TODO(ssouza): also log the row key names when they can be marked as safe for logging.
         int numberOfMutations = mutation_map.size();
 
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("client.batch_mutate(number of mutations {}, consistency {})",
                 numberOfMutations, consistency_level)) {
             registerDuration(() -> {
@@ -96,12 +96,12 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        //noinspection unused - try-with-resources closes trace
         // TODO(ssouza): also log the row key names when they can be marked as safe for logging.
         String internalTableReference = column_parent.column_family;
         int numberOfKeys = keys.size();
         int numberOfColumns = predicate.slice_range.count;
 
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace(
                 "client.multiget_slice(table {}, number of keys {}, number of columns {}, consistency {})",
                 LoggingArgs.safeInternalTableNameOrPlaceholder(internalTableReference),

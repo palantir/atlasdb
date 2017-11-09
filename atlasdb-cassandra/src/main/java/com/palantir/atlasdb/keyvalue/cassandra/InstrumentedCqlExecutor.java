@@ -18,15 +18,20 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = CqlExecutor.class)
@@ -53,31 +58,49 @@ public class InstrumentedCqlExecutor extends AutoDelegate_CqlExecutor {
 
     @Override
     public List<CellWithTimestamp> getTimestamps(TableReference tableRef, byte[] startRowInclusive, int limit) {
-        //noinspection unused - try-with-resources closes trace
+        // TODO(ssouza): also log the row key names when they can be marked as safe for logging.
+
+        // noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestamps(table {}, limit {})",
                 LoggingArgs.safeTableOrPlaceholder(tableRef), limit)) {
             return registerDuration(() ->
-                    delegate.getTimestamps(tableRef, startRowInclusive, limit), GET_TIMESTAMPS_TIMER);
+                    delegate.getTimestamps(tableRef, startRowInclusive, limit), GET_TIMESTAMPS_TIMER,
+                    logger -> logger.warn("cqlExecutor.getTimestamps({}, {})",
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("limit", limit)));
         }
     }
 
     @Override
     public List<CellWithTimestamp> getTimestampsWithinRow(TableReference tableRef, byte[] row,
             byte[] startColumnInclusive, long startTimestampExclusive, int limit) {
+        // TODO(ssouza): also log the row key names when they can be marked as safe for logging.
+
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestampsWithinRow(table {}, ts {}, limit {})",
                 LoggingArgs.safeTableOrPlaceholder(tableRef), startTimestampExclusive, limit)) {
             return registerDuration(() -> delegate.getTimestampsWithinRow(
                     tableRef, row, startColumnInclusive, startTimestampExclusive, limit),
-                    GET_TIMESTAMPS_WITHIN_ROW_TIMER);
+                    GET_TIMESTAMPS_WITHIN_ROW_TIMER,
+                    logger -> logger.warn("cqlExecutor.getTimestampsWithinRow({}, {}, {})",
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("sweepTs", startTimestampExclusive),
+                            SafeArg.of("limit", limit)));
         }
     }
 
-    private <T> T registerDuration(Supplier<T> callable, Timer timer) {
+    private <T> T registerDuration(Supplier<T> callable, Timer timer, Consumer<Logger> loggerFunction) {
         long startTime = System.nanoTime();
         T ret = callable.get();
         long endTime = System.nanoTime();
-        timer.update(endTime - startTime, TimeUnit.NANOSECONDS);
+        long duration = endTime - startTime;
+        timer.update(duration, TimeUnit.NANOSECONDS);
+
+        long slowLogThreshold = TimeUnit.MILLISECONDS.toNanos(KvsProfilingLogger.DEFAULT_THRESHOLD_MILLIS);
+        Logger slowlogger = KvsProfilingLogger.slowlogger;
+        if (duration > slowLogThreshold && slowlogger.isWarnEnabled()) {
+            loggerFunction.accept(slowlogger);
+        }
 
         return ret;
     }
