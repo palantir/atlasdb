@@ -310,7 +310,7 @@ public final class CassandraVerifier {
         sanityCheckReplicationFactor(ks, config, dcs);
     }
 
-    static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config)
+    static void currentRfOnKeyspaceMatchesDesiredRf(Cassandra.Client client, CassandraKeyValueServiceConfig config)
             throws TException {
         KsDef ks = client.describe_keyspace(config.getKeyspaceOrThrow());
         Set<String> dcs = sanityCheckDatacenters(client, config);

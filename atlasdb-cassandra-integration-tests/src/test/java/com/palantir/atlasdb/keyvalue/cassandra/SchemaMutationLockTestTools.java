@@ -19,7 +19,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -106,7 +105,7 @@ public final class SchemaMutationLockTestTools {
         return CassandraKeyValueServices.encodeAsHex(str.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static CqlResult runCqlQuery(String query, Cassandra.Client client, ConsistencyLevel consistency)
+    private static CqlResult runCqlQuery(String query, CassandraClient client, ConsistencyLevel consistency)
             throws TException {
         ByteBuffer queryBuffer = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
         return client.execute_cql3_query(queryBuffer, Compression.NONE, consistency);
