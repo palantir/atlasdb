@@ -48,6 +48,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed| |metrics|
+         - ``MetricsManager`` now logs failures to register metrics at ``WARN`` instead of ``ERROR``, as failure to do so is not necessarily a systemic failure.
+           Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2636>`__)
+
     *    - |improved| |devbreak|
          - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
            Also, all Cassandra KVS exceptions like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
@@ -79,9 +84,6 @@ develop
 
     *    - |improved| |logs|
          - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
-
-    *    -
-         -
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
