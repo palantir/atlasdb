@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Dropwizard Metrics &mdash; OSS AtlasDB develop documentation</title>
+  <title>AtlasDB Metrics &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -107,7 +107,7 @@
 <li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing to AtlasDB</a></li>
 <li class="toctree-l2"><a class="reference internal" href="doc/adr/index.html">Architecture Decision Records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kvs-status-check.html">KeyValueService Status</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Dropwizard Metrics</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">AtlasDB Metrics</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../troubleshooting/index.html">Troubleshooting</a></li>
@@ -158,7 +158,7 @@
         
           <li><a href="index.html">Miscellaneous</a> &raquo;</li>
         
-      <li>Dropwizard Metrics</li>
+      <li>AtlasDB Metrics</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -179,108 +179,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="dropwizard-metrics">
-<span id="id1"></span><h1>Dropwizard Metrics<a class="headerlink" href="#dropwizard-metrics" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="atlasdb-metrics">
+<span id="dropwizard-metrics"></span><h1>AtlasDB Metrics<a class="headerlink" href="#atlasdb-metrics" title="Permalink to this headline">¶</a></h1>
 <p>AtlasDB makes use of the Dropwizard <a class="reference external" href="http://metrics.dropwizard.io/">Metrics library</a> to
 expose a global <code class="docutils literal"><span class="pre">MetricRegistry</span></code> called <code class="docutils literal"><span class="pre">AtlasDbRegistry</span></code>. Users of AtlasDB should use <code class="docutils literal"><span class="pre">AtlasDbMetrics.setMetricRegistry</span></code>
 to inject their own <code class="docutils literal"><span class="pre">MetricRegistry</span></code> for their application prior to initializing the AtlasDB transaction manager.</p>
-<p>Each AtlasDB client will expose their own KeyValueService metrics, as well as CassandraClientPool metrics
-for every Cassandra host.
-We expose sweep metrics specific to every table that has been swept, as well as aggregate metrics.</p>
-<p>For more details on what information each type of metric provides, we recommend reading
-the Metrics <a class="reference external" href="http://metrics.dropwizard.io/3.1.0/getting-started/#">Getting Started Guide</a>.</p>
-<p>A reasonably comprehensive list of metrics exposed by AtlasDB can be found below.</p>
-<p><strong>Gauges</strong></p>
-<blockquote>
-<div><ul class="simple">
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.numBlacklistedHosts</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestConnectionExceptionProportion</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestFailureProportion</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.approximatePoolSize</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanActiveTimeMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanBorrowWaitTimeMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.meanIdleTimeMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.numIdle</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.numActive</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.proportionDestroyedByBorrower</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer.proportionDestroyedByEvictor</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.estimated.size</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.eviction.count</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.hit.count</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.hit.ratio</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.load.average.millis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.load.failure.count</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.load.success.count</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.miss.count</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.miss.ratio</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.cache.TimestampCache.startToCommitTimestamp.cache.request.count</span></code></li>
-</ul>
-</div></blockquote>
-<p><strong>Histograms</strong></p>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.byteSizeTx</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.sweep.SweepMetrics.cellTimestampPairsExamined</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.sweep.SweepMetrics.staleValuesDeleted</span></code></li>
-</ul>
-<p><strong>Meters</strong></p>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestConnectionExceptions</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requestExceptions</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.requests</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskReadOnly.failures</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry.failures</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry.failures.&lt;exception&gt;</span></code></li>
-</ul>
-<p>Additional failure counts will be dynamically generated based on the returned exceptions, so you may see metrics like
-the following:</p>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.api.LockAwareTransactionManager.runTaskWithRetry.failures.java.lang.IllegalStateException</span></code></li>
-</ul>
-<p><strong>Timers</strong></p>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.addGarbageCollectionSentinelValues</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.checkAndSet</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.close</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.compactInternally</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.createTable</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.createTables</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.delete</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.deleteRange</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.dropTable</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.dropTables</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.get</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getAllTableNames</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getAllTimestamps</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getDelegates</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getFirstBatchForRanges</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getLatestTimestamps</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getMetadataForTable</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getMetadataForTables</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getRange</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getRangeOfTimestamps</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getRows</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.getRowsColumnRange</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.multiPut</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.put</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.putMetadataForTable</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.putMetadataForTables</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.putUnlessExists</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.putWithTimestamps</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.supportsCheckAndSet</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.truncateTable</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.api.KeyValueService.truncateTables</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitAcquireLocks</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitCheckingForConflicts</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitPutCommitTs</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTotalTimeSinceTxCreation</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitWrite</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.get</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.getRows</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.millisForPunch</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.processedRangeMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.transactionMillis</span></code></li>
-<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.waitForCommitTsMillis</span></code></li>
-</ul>
 </div>
 
 
