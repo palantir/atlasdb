@@ -31,6 +31,22 @@ import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.reflect.Reflection;
 import com.palantir.logsafe.UnsafeArg;
 
+/**
+ * This class servers as a wrapper for a dynamic proxy of type D; typically T is a configuration type
+ * used for D. This works by detecting changes in values supplied from a {@link Supplier} of type T, and
+ * re-creating the object of type D if a change in the value supplied is detected.
+ *
+ * This class should NOT be used when D itself accepts live-reloadable configuration, as it incurs overhead
+ * in creating a new instance of type D.
+ *
+ * This class uses a pull-based model, where the underlying Supplier is called every time a request to this
+ * dynamic proxy is made. If making such requests is expensive, it is suggested that users provide
+ * suppliers that memoize these values appropriately.
+ *
+ * @param <T> type of the input to create a delegate
+ * @param <D> type of the delegate
+ */
+
 public final class RecreatingInvocationHandler<T, D> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(RecreatingInvocationHandler.class);
 
@@ -53,6 +69,11 @@ public final class RecreatingInvocationHandler<T, D> extends AbstractInvocationH
             Function<T, D> delegateCreator,
             Class<D> delegateType) {
         return createWithRawDeltaSupplier(wrapInDeltaSupplier(supplier), delegateCreator, delegateType);
+    }
+
+    @VisibleForTesting
+    static <T> Supplier<Optional<T>> wrapInDeltaSupplier(Supplier<T> supplier) {
+        return new DeltaSupplier<>(supplier);
     }
 
     @VisibleForTesting
@@ -81,11 +102,16 @@ public final class RecreatingInvocationHandler<T, D> extends AbstractInvocationH
         });
     }
 
-    @VisibleForTesting
-    static <T> Supplier<Optional<T>> wrapInDeltaSupplier(Supplier<T> supplier) {
-        return new DeltaSupplier<>(supplier);
-    }
-
+    /**
+     * A DeltaSupplier wraps a {@link Supplier} and stores its last known value.
+     * {@link this::get()} returns Optional.empty() if and only if the value returned from the base Supplier
+     * is the same as the value obtained when it was last called.
+     *
+     * In the event of multiple concurrent calls.
+     * However, if a supplier
+     *
+     * @param <T> the type of the underlying supplier
+     */
     private static final class DeltaSupplier<T> implements Supplier<Optional<T>> {
         private static final Logger log = LoggerFactory.getLogger(DeltaSupplier.class);
 
