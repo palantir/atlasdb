@@ -71,6 +71,7 @@ dependencies {
 
   processor group: 'org.immutables', name: 'value'
 
+  testCompile group: 'com.jayway.awaitility', name: 'awaitility'
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock

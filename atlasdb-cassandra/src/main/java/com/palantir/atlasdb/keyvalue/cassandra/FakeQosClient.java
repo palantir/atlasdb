@@ -23,4 +23,9 @@ public class FakeQosClient implements QosClient {
     public void checkLimit() {
         // no op
     }
+
+    @Override
+    public boolean isInitialized() {
+        return true;
+    }
 }

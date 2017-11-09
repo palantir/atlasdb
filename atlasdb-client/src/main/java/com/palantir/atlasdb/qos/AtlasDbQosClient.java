@@ -61,7 +61,8 @@ public class AtlasDbQosClient implements QosClient {
         return qosClient.wrapper.isInitialized() ? qosClient : qosClient.wrapper;
     }
 
-    public AtlasDbQosClient(QosService qosService,
+    @VisibleForTesting
+    AtlasDbQosClient(QosService qosService,
             ScheduledExecutorService limitRefresher,
             String clientName) {
         this.qosService = qosService;
@@ -74,6 +75,11 @@ public class AtlasDbQosClient implements QosClient {
                 // do nothing
             }
         }, 0L, 60L, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
     }
 
     private void tryInitialize() {
