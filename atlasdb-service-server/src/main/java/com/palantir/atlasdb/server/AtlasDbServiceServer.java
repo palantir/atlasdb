@@ -22,6 +22,7 @@ import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
@@ -41,7 +42,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
 
     @Override
     public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
-        AtlasDbMetrics.setMetricRegistry(environment.metrics());
+        AtlasDbMetrics.setMetricRegistries(environment.metrics(), DefaultTaggedMetricRegistry.getDefault());
 
         SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config.getConfig())

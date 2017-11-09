@@ -49,14 +49,6 @@ public final class AtlasDbMetrics {
 
     private AtlasDbMetrics() {}
 
-    /*
-     * @deprecated Use setMetricRegistries instead
-     */
-    @Deprecated
-    public static synchronized void setMetricRegistry(MetricRegistry metricRegistry) {
-        metrics.set(Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null"));
-    }
-
     public static synchronized void setMetricRegistries(MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry) {
         metrics.set(Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null"));
