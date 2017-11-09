@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.sweep;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -100,7 +100,7 @@ public class ExaminedCellLimitTest {
     }
 
     @Test
-    public void whenNextRowAndAtLimit_thenExaminedEnoughIsFalse() {
+    public void whenNextRowAndAtLimit_thenExaminedEnoughIsTrue() {
         //Given
         startingOn("row1");
         maxCellsToExamineIs(10);
@@ -165,7 +165,7 @@ public class ExaminedCellLimitTest {
         CellsToSweepPartitioningIterator.ExaminedCellLimit limit
                 = new CellsToSweepPartitioningIterator.ExaminedCellLimit(startingRow.getBytes(), maxCellsToExamine);
 
-        assertThat(limit.examinedEnoughCells(cellsExamined, cell()), Matchers.is(expected));
+        assertThat(limit.examinedEnoughCells(cellsExamined, cell()), is(expected));
     }
 
     private Cell cell() {
