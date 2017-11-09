@@ -44,6 +44,9 @@ public final class ThriftObjectSizeUtils {
     }
 
     public static long getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {
+        if (columnOrSuperColumn == null) {
+            return getNullSize();
+        }
         return getColumnSize(columnOrSuperColumn.getColumn())
                 + getSuperColumnSize(columnOrSuperColumn.getSuper_column())
                 + getCounterColumnSize(columnOrSuperColumn.getCounter_column())
@@ -62,6 +65,7 @@ public final class ThriftObjectSizeUtils {
         if (mutation == null) {
             return getNullSize();
         }
+
         return getColumnOrSuperColumnSize(mutation.getColumn_or_supercolumn()) + getDeletionSize(mutation.getDeletion());
     }
 
@@ -114,7 +118,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
 
-        return getByteBufferSize(superColumn.name)
+        return getByteArraySize(superColumn.getName())
                 + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
@@ -124,7 +128,10 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
 
-        return column.getValue().length + column.getName().length + getTtlSize() + getTimestampSize();
+        return getByteArraySize(column.getValue())
+                + getByteArraySize(column.getName())
+                + getTtlSize()
+                + getTimestampSize();
     }
 
     private static long getDeletionSize(Deletion deletion) {
@@ -177,7 +184,6 @@ public final class ThriftObjectSizeUtils {
         if (cqlRow == null) {
             return getNullSize();
         }
-
         return getByteArraySize(cqlRow.getKey())
                 + getCollectionSize(cqlRow.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
@@ -187,6 +193,9 @@ public final class ThriftObjectSizeUtils {
     }
 
     private static long getByteArraySize(byte[] byteArray) {
+        if (byteArray == null) {
+            return getNullSize();
+        }
         return byteArray.length;
     }
 

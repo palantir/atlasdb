@@ -145,9 +145,9 @@ public class CassandraClient extends AutoDelegate_Client {
         qosMetrics.updateBytesRead(numBytesRead);
     }
 
-    private void recordBytesWritten(long numBytesWitten) {
+    private void recordBytesWritten(long numBytesWritten) {
         qosMetrics.updateWriteCount();
-        qosMetrics.updateBytesWritten(numBytesWitten);
+        qosMetrics.updateBytesWritten(numBytesWritten);
     }
 
     private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> singleObjectSizeFunction) {
