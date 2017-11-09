@@ -336,10 +336,10 @@ public final class CassandraVerifier {
         }
     }
 
-    static final FunctionCheckedException<Cassandra.Client, Boolean, UnsupportedOperationException>
+    static final FunctionCheckedException<CassandraClient, Boolean, UnsupportedOperationException>
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
+                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.rawClient().describe_version());
                     log.debug("Connected cassandra thrift version is: {}",
                             SafeArg.of("cassandraVersion", serverVersion));
                     return serverVersion.supportsCheckAndSet();

@@ -20,7 +20,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -45,5 +47,9 @@ public interface CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
     void batch_mutate(Map<ByteBuffer,Map<String,List<Mutation>>> mutation_map, ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+
+    CASResult cas(ByteBuffer key, String column_family, List<Column> expected, List<Column> updates,
+            ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 }

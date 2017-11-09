@@ -43,7 +43,7 @@ public class TracingQueryRunner {
         V run() throws TException;
     }
 
-    public <V> V run(Cassandra.Client client, Set<TableReference> tableRefs, Action<V> action) throws TException {
+    public <V> V run(CassandraClient client, Set<TableReference> tableRefs, Action<V> action) throws TException {
         if (shouldTraceQuery(tableRefs)) {
             return trace(action, client, tableRefs);
         } else {
@@ -56,12 +56,12 @@ public class TracingQueryRunner {
         }
     }
 
-    public <V> V run(Cassandra.Client client, TableReference tableRef, Action<V> action) throws TException {
+    public <V> V run(CassandraClient client, TableReference tableRef, Action<V> action) throws TException {
         return run(client, ImmutableSet.of(tableRef), action);
     }
 
-    private <V> V trace(Action<V> action, Cassandra.Client client, Set<TableReference> tableRefs) throws TException {
-        ByteBuffer traceId = client.trace_next_query();
+    private <V> V trace(Action<V> action, CassandraClient client, Set<TableReference> tableRefs) throws TException {
+        ByteBuffer traceId = client.rawClient().trace_next_query();
         Stopwatch stopwatch = Stopwatch.createStarted();
         boolean failed = false;
         try {

@@ -316,7 +316,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final Collection<CfDef> updatedCfs = Lists.newArrayListWithExpectedSize(metadataForTables.size());
 
             List<CfDef> knownCfs = clientPool.runWithRetry(client ->
-                    client.describe_keyspace(configManager.getConfig().getKeyspaceOrThrow()).getCf_defs());
+                    client.rawClient().describe_keyspace(configManager.getConfig().getKeyspaceOrThrow()).getCf_defs());
 
             for (CfDef clusterSideCf : knownCfs) {
                 TableReference tableRef = tableReferenceFromCfDef(clusterSideCf);
@@ -363,10 +363,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             dcs = clientPool.runWithRetry(client ->
                     CassandraVerifier.sanityCheckDatacenters(
-                            client,
+                            client.rawClient(),
                             config));
             KsDef ksDef = clientPool.runWithRetry(client ->
-                    client.describe_keyspace(config.getKeyspaceOrThrow()));
+                    client.rawClient().describe_keyspace(config.getKeyspaceOrThrow()));
             strategyOptions = Maps.newHashMap(ksDef.getStrategy_options());
 
             if (dcs.size() == 1) {
@@ -441,9 +441,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
                 result.putAll(clientPool.runWithRetryOnHost(host,
-                        new FunctionCheckedException<Client, Map<Cell, Value>, Exception>() {
+                        new FunctionCheckedException<CassandraClient, Map<Cell, Value>, Exception>() {
                             @Override
-                            public Map<Cell, Value> apply(Client client) throws Exception {
+                            public Map<Cell, Value> apply(CassandraClient client) throws Exception {
                                 // We want to get all the columns in the row so set start and end to empty.
                                 SlicePredicate pred = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
 
@@ -627,9 +627,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             for (final List<Cell> partition : Lists.partition(ImmutableList.copyOf(columnCells), fetchBatchCount)) {
                 Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(host,
-                        new FunctionCheckedException<Client, Void, Exception>() {
+                        new FunctionCheckedException<CassandraClient, Void, Exception>() {
                             @Override
-                            public Void apply(Client client) throws Exception {
+                            public Void apply(CassandraClient client) throws Exception {
                                 Range range = Range.singleColumn(col, startTs);
                                 Limit limit = loadAllTs ? Limit.NO_LIMIT : Limit.ONE;
                                 SlicePredicate predicate = SlicePredicates.create(range, limit);
@@ -782,9 +782,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                              long startTs) {
         try {
             return clientPool.runWithRetryOnHost(host,
-                    new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
+                    new FunctionCheckedException<CassandraClient, RowColumnRangeExtractor.RowColumnRangeResult,
+                            Exception>() {
                         @Override
-                        public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
+                        public RowColumnRangeExtractor.RowColumnRangeResult apply(CassandraClient client)
+                                throws Exception {
                             Range range = createColumnRange(
                                     batchColumnRangeSelection.getStartCol(),
                                     batchColumnRangeSelection.getEndCol(), startTs);
@@ -836,11 +838,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> page(final byte[] startCol) throws Exception {
                 return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<
-                        Client,
+                        CassandraClient,
                         TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>,
                         Exception>() {
                     @Override
-                    public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(Client client)
+                    public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(CassandraClient client)
                             throws Exception {
                         Range range = createColumnRange(startCol, batchColumnRangeSelection.getEndCol(), startTs);
                         Limit limit = Limit.of(batchColumnRangeSelection.getBatchHint());
@@ -1005,9 +1007,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                           final TableReference tableRef,
                                           final Iterable<Map.Entry<Cell, Value>> values,
                                           final int ttl) throws Exception {
-        clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+        clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
-            public Void apply(Client client) throws Exception {
+            public Void apply(CassandraClient client) throws Exception {
                 final CassandraKeyValueServiceConfig config = configManager.getConfig();
                 int mutationBatchCount = config.mutationBatchCount();
                 int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
@@ -1110,9 +1112,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                final List<TableCellAndValue> batch,
                                                long timestamp) throws Exception {
         final Map<ByteBuffer, Map<String, List<Mutation>>> map = convertToMutations(batch, timestamp);
-        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
-            public Void apply(Client client) throws Exception {
+            public Void apply(CassandraClient client) throws Exception {
                 return batchMutateInternal(client, tableRefs, map, writeConsistency);
             }
 
@@ -1172,14 +1174,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return col;
     }
 
-    private void batchMutateInternal(Client client,
+    private void batchMutateInternal(CassandraClient client,
                                      TableReference tableRef,
                                      Map<ByteBuffer, Map<String, List<Mutation>>> map,
                                      ConsistencyLevel consistency) throws TException {
         batchMutateInternal(client, ImmutableSet.of(tableRef), map, consistency);
     }
 
-    private Void batchMutateInternal(Client client,
+    private Void batchMutateInternal(CassandraClient client,
                                      Set<TableReference> tableRefs,
                                      Map<ByteBuffer, Map<String, List<Mutation>>> map,
                                      ConsistencyLevel consistency) throws TException {
@@ -1196,7 +1198,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(
-            Client client,
+            CassandraClient client,
             TableReference tableRef,
             List<ByteBuffer> rowNames,
             ColumnParent colFam,
@@ -1255,9 +1257,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void runTruncateInternal(final Set<TableReference> tablesToTruncate) throws TException {
-        clientPool.run(new FunctionCheckedException<Client, Void, TException>() {
+        clientPool.run(new FunctionCheckedException<CassandraClient, Void, TException>() {
             @Override
-            public Void apply(Client client) throws TException {
+            public Void apply(CassandraClient client) throws TException {
                 for (TableReference tableRef : tablesToTruncate) {
                     truncateInternal(client, tableRef);
                 }
@@ -1271,12 +1273,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         });
     }
 
-    private void truncateInternal(Client client, TableReference tableRef) throws TException {
+    private void truncateInternal(CassandraClient client, TableReference tableRef) throws TException {
         for (int tries = 1; tries <= CassandraConstants.MAX_TRUNCATION_ATTEMPTS; tries++) {
             boolean successful = true;
             try {
                 queryRunner.run(client, tableRef, () -> {
-                    client.truncate(internalTableName(tableRef));
+                    client.rawClient().truncate(internalTableName(tableRef));
                     return true;
                 });
             } catch (TException e) {
@@ -1324,11 +1326,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     final TableReference tableRef,
                                     final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
-            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
+            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                 private int numVersions = 0;
 
                 @Override
-                public Void apply(Client client) throws Exception {
+                public Void apply(CassandraClient client) throws Exception {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
                     // atomically so we have to potentially do many deletes if there are many timestamps for the
                     // same key.
@@ -1564,8 +1566,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private void dropTablesInternal(final Set<TableReference> tablesToDrop) {
         try {
-            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
-                KsDef ks = client.describe_keyspace(configManager.getConfig().getKeyspaceOrThrow());
+            clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
+                KsDef ks = client.rawClient().describe_keyspace(configManager.getConfig().getKeyspaceOrThrow());
                 Set<TableReference> existingTables = Sets.newHashSet();
 
                 existingTables.addAll(ks.getCf_defs().stream()
@@ -1575,7 +1577,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 for (TableReference table : tablesToDrop) {
                     CassandraVerifier.sanityCheckTableName(table);
                     if (existingTables.contains(table)) {
-                        client.system_drop_column_family(internalTableName(table));
+                        client.rawClient().system_drop_column_family(internalTableName(table));
                         putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                     } else {
                         log.warn("Ignored call to drop a table ({}) that did not exist.",
@@ -1584,7 +1586,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
                 CassandraKeyValueServices.waitForSchemaVersions(
                         configManager.getConfig(),
-                        client,
+                        client.rawClient(),
                         "(all tables in a call to dropTables)");
                 return null;
             });
@@ -1728,7 +1730,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
-                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
+                    client.rawClient().system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().getKeyspaceOrThrow(),
                             tableEntry.getKey(),
                             configManager.getConfig().gcGraceSeconds(),
@@ -1746,7 +1748,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             CassandraKeyValueServices.waitForSchemaVersions(
                     configManager.getConfig(),
-                    client,
+                    client.rawClient(),
                     "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
                     true);
             return null;
@@ -1968,12 +1970,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             clientPool.runWithRetry(client -> {
                 if (possiblyNeedToPerformSettingsChanges) {
                     for (CfDef cf : updatedCfs) {
-                        client.system_update_column_family(cf);
+                        client.rawClient().system_update_column_family(cf);
                     }
 
                     CassandraKeyValueServices.waitForSchemaVersions(
                             configManager.getConfig(),
-                            client,
+                            client.rawClient(),
                             "(all tables in a call to putMetadataForTables)");
                 }
                 // Done with actual schema mutation, push the metadata
@@ -2142,7 +2144,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private CASResult executeCheckAndSet(Client client, CheckAndSetRequest request)
+    private CASResult executeCheckAndSet(CassandraClient client, CheckAndSetRequest request)
             throws TException {
         try {
             TableReference table = request.table();
@@ -2242,7 +2244,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private boolean doesConfigReplicationFactorMatchWithCluster() {
         return clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, configManager.getConfig());
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(), configManager.getConfig());
                 return true;
             } catch (Exception e) {
                 log.warn("The config and Cassandra cluster do not agree on the replication factor.", e);
@@ -2314,8 +2316,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int gcGraceSeconds,
             float tombstoneThresholdRatio) {
         try {
-            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
-                KsDef ks = client.describe_keyspace(keyspace);
+            clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
+                KsDef ks = client.rawClient().describe_keyspace(keyspace);
                 List<CfDef> cfs = ks.getCf_defs();
                 for (CfDef cf : cfs) {
                     if (cf.getName().equalsIgnoreCase(internalTableName(tableRef))) {
@@ -2323,10 +2325,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         cf.setCompaction_strategy_options(ImmutableMap.of(
                                 "tombstone_threshold",
                                 String.valueOf(tombstoneThresholdRatio)));
-                        client.system_update_column_family(cf);
+                        client.rawClient().system_update_column_family(cf);
                         CassandraKeyValueServices.waitForSchemaVersions(
                                 configManager.getConfig(),
-                                client,
+                                client.rawClient(),
                                 tableRef.getQualifiedName());
                         log.trace("gc_grace_seconds is set to {} for {}.{}",
                                 SafeArg.of("gcGraceSeconds", gcGraceSeconds), UnsafeArg.of("keyspace", keyspace),
