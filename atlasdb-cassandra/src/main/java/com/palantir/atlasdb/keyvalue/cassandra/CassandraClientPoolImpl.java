@@ -286,8 +286,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void addPool(InetSocketAddress server) {
-        int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
+        addPool(server, new CassandraClientPoolingContainer(server, config));
     }
 
     @VisibleForTesting
