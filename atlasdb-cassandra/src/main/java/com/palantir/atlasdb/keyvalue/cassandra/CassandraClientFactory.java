@@ -77,7 +77,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     @Override
     public Client create() throws Exception {
         try {
-            return wrapClient(getClient(addr, config));
+            return instrumentClient(getRawClient(addr, config));
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -87,11 +87,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         }
     }
 
-    private InstrumentedCassandraClient wrapClient(Cassandra.Client client) throws Exception {
+    private InstrumentedCassandraClient instrumentClient(Cassandra.Client client) throws Exception {
         return new InstrumentedCassandraClient(client);
     }
 
-    private static Cassandra.Client getClient(InetSocketAddress addr,
+    private static Cassandra.Client getRawClient(InetSocketAddress addr,
                                               CassandraKeyValueServiceConfig config) throws Exception {
         Client ret = getClientInternal(addr, config);
         try {

@@ -1471,10 +1471,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private ClosableIterator<List<CandidateRowForSweeping>> getCandidateRowsForSweeping(
             TableReference tableRef,
             CandidateCellForSweepingRequest request) {
-        return new CandidateRowsForSweepingIterator(this::get, newWrappedExecutor(), tableRef, request);
+        return new CandidateRowsForSweepingIterator(this::get, newInstrumentedExecutor(), tableRef, request);
     }
 
-    private CqlExecutor newWrappedExecutor() {
+    private CqlExecutor newInstrumentedExecutor() {
         return new InstrumentedCqlExecutor(new CqlExecutor(clientPool, ConsistencyLevel.ALL));
     }
 

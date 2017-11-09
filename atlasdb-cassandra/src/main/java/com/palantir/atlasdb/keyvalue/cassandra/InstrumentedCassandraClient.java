@@ -74,7 +74,7 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("client.batch_mutate(number of rows {}, consistency {})",
-                mutation_map.size(), toString(consistency_level))) {
+                mutation_map.size(), consistency_level)) {
             registerDuration(() -> {
                 delegate.batch_mutate(mutation_map, consistency_level);
                 return null;
@@ -90,7 +90,7 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
         try (CloseableTrace trace = startLocalTrace(
                 "client.multiget_slice(table {}, number of keys {}, number of columns {}, consistency {})",
                 LoggingArgs.safeInternalTableNameOrPlaceholder(column_parent.column_family),
-                keys.size(), predicate.slice_range.count, toString(consistency_level))) {
+                keys.size(), predicate.slice_range.count, consistency_level)) {
             return registerDuration(
                     () -> delegate.multiget_slice(keys, column_parent, predicate, consistency_level),
                     MULTIGET_SLICE_TIMER);
@@ -105,7 +105,7 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
         try (CloseableTrace trace = startLocalTrace(
                 "client.get_range_slices(table {}, number of keys {}, number of columns {}, consistency {})",
                 LoggingArgs.safeInternalTableNameOrPlaceholder(column_parent.column_family),
-                predicate.slice_range.count, range.count, toString(consistency_level))) {
+                predicate.slice_range.count, range.count, consistency_level)) {
             return registerDuration(
                     () -> delegate.get_range_slices(column_parent, predicate, range, consistency_level),
                     GET_RANGE_SLICE_TIMER);
@@ -123,35 +123,6 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
 
     private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
         return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
-    }
-
-    private static String toString(ConsistencyLevel consistency) {
-        switch (consistency) {
-            case ONE:
-                return "one";
-            case QUORUM:
-                return "quorum";
-            case LOCAL_QUORUM:
-                return "local_quorum";
-            case EACH_QUORUM:
-                return "each_quorum";
-            case ALL:
-                return "all";
-            case ANY:
-                return "any";
-            case TWO:
-                return "two";
-            case THREE:
-                return "three";
-            case SERIAL:
-                return "serial";
-            case LOCAL_SERIAL:
-                return "local_serial";
-            case LOCAL_ONE:
-                return "local_one";
-        }
-
-        return "unknown";
     }
 
     private interface CallableTException<T> extends Callable<T> {
