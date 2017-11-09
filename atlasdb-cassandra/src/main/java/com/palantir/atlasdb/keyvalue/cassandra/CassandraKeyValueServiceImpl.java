@@ -279,7 +279,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        QosClient qosClient = getQosClient(qosClientBuilder);
+        QosClient qosClient = getQosClient(qosClientBuilder, initializeAsync);
         this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync, qosClient);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
@@ -292,15 +292,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, configManager);
     }
 
-    private QosClient getQosClient(QosClientBuilder qosClientBuilder) {
+    private QosClient getQosClient(QosClientBuilder qosClientBuilder, boolean initializeAsync) {
         if (qosClientBuilder.qosServiceConfiguration().isPresent()) {
-            return createAtlasDbQosClient(qosClientBuilder);
+            return createAtlasDbQosClient(qosClientBuilder, initializeAsync);
         } else {
             return new FakeQosClient();
         }
     }
 
-    private QosClient createAtlasDbQosClient(QosClientBuilder qosClientBuilder) {
+    private QosClient createAtlasDbQosClient(QosClientBuilder qosClientBuilder, boolean initializeAsync) {
         Preconditions.checkState(qosClientBuilder.qosServiceConfiguration().isPresent(),
                 "Qos Service Config is required to create a AtlasDBQosClient.");
         QosService qosService = JaxRsClient.create(QosService.class,
@@ -310,7 +310,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 Executors.newSingleThreadScheduledExecutor(),
                 AtlasDbMetrics.getMetricRegistry(),
                 "qos-client-executor");
-        return new AtlasDbQosClient(qosService, scheduler, configManager.getConfig().getKeyspaceOrThrow());
+        return AtlasDbQosClient.create(
+                qosService,
+                scheduler,
+                configManager.getConfig().getKeyspaceOrThrow(),
+                initializeAsync);
     }
 
     @Override
