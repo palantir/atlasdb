@@ -66,16 +66,16 @@ public class MetricsManager {
         registerMetric(clazz, metricName, (Metric) gauge);
     }
 
-    public void registerMetric(Class clazz, String metricName, Metric metric) {
-        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
+    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+        taggedMetricRegistry.gauge(MetricName.builder()
+                        .safeName(MetricRegistry.name(clazz, metricName))
+                        .safeTags(tag)
+                        .build(),
+                gauge);
     }
 
-    public void registerTaggedGauge(Class clazz, String metricName, Map<String, String> tag, Gauge gauge) {
-        taggedMetricRegistry.gauge(MetricName.builder()
-                .safeName(MetricRegistry.name(clazz, metricName))
-                .safeTags(tag)
-                .build(),
-                gauge);
+    public void registerMetric(Class clazz, String metricName, Metric metric) {
+        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
     }
 
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {

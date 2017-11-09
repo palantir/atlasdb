@@ -280,9 +280,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     }
 
     private void registerMetric(String metricName, String hostName, Gauge gauge) {
-        metricsManager.registerTaggedGauge(CassandraClientPoolingContainer.class,
+        metricsManager.registerMetric(CassandraClientPoolingContainer.class,
                 metricName,
-                ImmutableMap.of("cassandra-host", hostName),
-                gauge);
+                gauge,
+                ImmutableMap.of("cassandra-host", hostName));
     }
 }
