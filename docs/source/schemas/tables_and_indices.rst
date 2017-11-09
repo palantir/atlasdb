@@ -503,7 +503,7 @@ Table Rows.
     one may encounter multiple values that appear to be the same). The standard workaround is to use
     a ``Set`` to deduplicate the results.
 
-    Please see discussion on `issue 604<https://github.com/palantir/atlasdb/issues/604>`__ for more details
+    Please see discussion on `issue 604 <https://github.com/palantir/atlasdb/issues/604>`__ for more details
     regarding this behaviour.
 
 Constraints
