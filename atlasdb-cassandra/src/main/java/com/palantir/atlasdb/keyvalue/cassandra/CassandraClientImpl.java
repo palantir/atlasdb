@@ -25,11 +25,16 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
+import org.apache.cassandra.thrift.ColumnPath;
+import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
@@ -70,9 +75,22 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public ColumnOrSuperColumn get(ByteBuffer key, ColumnPath column_path, ConsistencyLevel consistency_level)
+            throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
+        return client.get(key, column_path, consistency_level);
+    }
+
+    @Override
     public CASResult cas(ByteBuffer key, String column_family, List<Column> expected, List<Column> updates,
             ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return client.cas(key, column_family, expected, updates, serial_consistency_level, commit_consistency_level);
+    }
+
+    @Override
+    public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
+            TException {
+        return client.execute_cql3_query(query, compression, consistency);
     }
 }

@@ -20,8 +20,6 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
 
-import org.apache.cassandra.thrift.Cassandra;
-
 import com.palantir.common.base.FunctionCheckedException;
 
 public interface CassandraClientPool {

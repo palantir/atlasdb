@@ -152,7 +152,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         }
     }
 
-    private static void eagerlyCleanupReadBuffersFromIdleConnection(CassandraClient idleClient, InetSocketAddress host) {
+    private static void eagerlyCleanupReadBuffersFromIdleConnection(CassandraClient idleClient,
+            InetSocketAddress host) {
         // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
         try {
             TTransport transport = idleClient.rawClient().getInputProtocol().getTransport();
