@@ -27,8 +27,8 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.QosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
@@ -53,7 +53,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             boolean initializeAsync,
-            QosClientBuilder unusedQosClientBuilder) {
+            QosClient unusedQosClient) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }

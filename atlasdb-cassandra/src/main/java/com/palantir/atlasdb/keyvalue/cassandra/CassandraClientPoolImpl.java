@@ -72,6 +72,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -164,11 +165,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, new FakeQosClient());
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.getDefault());
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, new FakeQosClient());
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.getDefault());
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync,

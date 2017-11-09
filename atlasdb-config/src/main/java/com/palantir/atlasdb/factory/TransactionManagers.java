@@ -18,6 +18,8 @@ package com.palantir.atlasdb.factory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -28,6 +30,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
@@ -57,7 +60,6 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
-import com.palantir.atlasdb.keyvalue.api.ImmutableQosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -69,6 +71,10 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.FakeQosClient;
+import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -109,6 +115,9 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
+import com.palantir.remoting3.clients.ClientConfigurations;
+import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
@@ -305,10 +314,8 @@ public abstract class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        ImmutableQosClientBuilder qosServiceClientBuilder = ImmutableQosClientBuilder.builder()
-                .qosServiceConfiguration(config.getQosServiceConfiguration())
-                .qosUserAgent(userAgent())
-                .build();
+
+        QosClient qosClient = getQosClient(runtimeConfigSupplier.get().getQosServiceConfiguration(), userAgent());
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
@@ -316,7 +323,7 @@ public abstract class TransactionManagers {
                         config.leader(),
                         config.namespace(),
                         config.initializeAsync(),
-                        qosServiceClientBuilder);
+                        qosClient);
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
         LockRequest.setDefaultLockTimeout(
@@ -400,6 +407,23 @@ public abstract class TransactionManagers {
                 persistentLockManager);
 
         return transactionManager;
+    }
+
+    private QosClient getQosClient(Optional<ServiceConfiguration> serviceConfiguration, String userAgent) {
+        return serviceConfiguration
+                .map(config -> createAtlasDbQosClient(config, userAgent))
+                .orElseGet(FakeQosClient::new);
+    }
+
+    private QosClient createAtlasDbQosClient(ServiceConfiguration serviceConfiguration, String userAgent) {
+        QosService qosService = JaxRsClient.create(QosService.class,
+                userAgent,
+                ClientConfigurations.of(serviceConfiguration));
+        ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
+                Executors.newSingleThreadScheduledExecutor(),
+                AtlasDbMetrics.getMetricRegistry(),
+                "qos-client-executor");
+        return new AtlasDbQosClient(qosService, scheduler, config().getNamespaceString());
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(

@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api;
+package com.palantir.atlasdb.qos;
 
-import java.util.Optional;
+public class FakeQosClient implements QosClient {
 
-import org.immutables.value.Value;
+    private static final FakeQosClient DEFAULT = new FakeQosClient();
 
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
+    public static FakeQosClient getDefault() {
+        return DEFAULT;
+    }
 
-@Value.Immutable
-public abstract class QosClientBuilder {
-    public abstract Optional<ServiceConfiguration> qosServiceConfiguration();
-
-    @Value.Default
-    public String qosUserAgent() {
-        return "unknown-qos-agent";
+    @Override
+    public void checkLimit() {
+        // no op
     }
 }

@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
-import com.palantir.atlasdb.keyvalue.api.ImmutableQosClientBuilder;
+import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.table.description.Schema;
 
 @Value.Immutable
@@ -43,9 +43,7 @@ public abstract class ServicesConfig {
                 atlasDbConfig().leader(),
                 atlasDbConfig().namespace(),
                 atlasDbConfig().initializeAsync(),
-                ImmutableQosClientBuilder.builder()
-                        .qosServiceConfiguration(atlasDbConfig().getQosServiceConfiguration())
-                        .build());
+                FakeQosClient.getDefault());
     }
 
     @Value.Default

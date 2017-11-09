@@ -29,7 +29,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
@@ -258,8 +257,6 @@ public abstract class AtlasDbConfig {
     public int getDefaultLockTimeoutSeconds() {
         return AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS;
     }
-
-    public abstract Optional<ServiceConfiguration> getQosServiceConfiguration();
 
     @Value.Check
     protected final void check() {

@@ -25,10 +25,10 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.QosClientBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
@@ -51,6 +51,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
      * @param leaderConfig unused.
      * @param namespace unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
+     * @param unusedQosClientBuilder
      * @return The requested KeyValueService instance
      */
     @Override
@@ -59,7 +60,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             boolean initializeAsync,
-            QosClientBuilder unusedQosClientBuilder) {
+            QosClient unusedQosClient) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }
