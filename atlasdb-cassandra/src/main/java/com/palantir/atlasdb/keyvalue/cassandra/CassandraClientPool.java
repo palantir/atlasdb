@@ -25,14 +25,14 @@ import org.apache.cassandra.thrift.Cassandra;
 import com.palantir.common.base.FunctionCheckedException;
 
 public interface CassandraClientPool {
-    FunctionCheckedException<Cassandra.Client, Void, Exception> getValidatePartitioner();
+    FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner();
     <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K;
-    <V, K extends Exception> V run(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K;
+            FunctionCheckedException<CassandraClient, V, K> fn) throws K;
+    <V, K extends Exception> V run(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
     <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K;
-    <V, K extends Exception> V runWithRetry(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K;
+            FunctionCheckedException<CassandraClient, V, K> fn) throws K;
+    <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
     InetSocketAddress getAddressForHost(String host) throws UnknownHostException;
     InetSocketAddress getRandomHostForKey(byte[] key);
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
