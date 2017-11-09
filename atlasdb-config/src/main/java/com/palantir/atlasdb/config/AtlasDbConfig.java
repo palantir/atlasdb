@@ -36,6 +36,8 @@ import com.palantir.remoting.api.config.service.ServiceConfiguration;
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
+    static final String UNSPECIFIED_NAMESPACE = "unspecifed";
+
     public abstract KeyValueServiceConfig keyValueService();
 
     public abstract Optional<LeaderConfig> leader();
@@ -286,6 +288,11 @@ public abstract class AtlasDbConfig {
     }
 
     private void checkNamespaceConfig() {
+        getNamespaceString();
+    }
+
+    @Value.Derived
+    public String getNamespaceString() {
         if (namespace().isPresent()) {
             String namespace = namespace().get();
 
@@ -298,12 +305,13 @@ public abstract class AtlasDbConfig {
                     Preconditions.checkState(client.equals(namespace),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config.")));
+            return namespace;
         } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"
                             + " or the keyspace/dbName/sid config needs to be set.");
 
-            Optional<String> keyValueServiceNamespace = keyValueService().namespace();
+            String keyValueServiceNamespace = keyValueService().namespace().get();
 
             if (timelock().isPresent()) {
                 TimeLockClientConfig timeLockConfig = timelock().get();
@@ -316,17 +324,19 @@ public abstract class AtlasDbConfig {
                 // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
                 // will return the timestamp bound store to 0, so we also need to fast forward the new client bound
                 // to a value above of the original bound.
-                Preconditions.checkState(timeLockConfig.client().equals(keyValueServiceNamespace),
+                Preconditions.checkState(timeLockConfig.client().equals(Optional.of(keyValueServiceNamespace)),
                         "AtlasDB refused to start, in order to avoid potential data corruption."
                                 + " Please contact AtlasDB support to remediate this. Specific steps are required;"
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
+            return keyValueServiceNamespace;
         } else if (timelock().isPresent()) {
             // Special case - empty timelock and empty namespace/keyspace does not make sense
-            boolean timelockClientNonEmpty = !timelock().get().client().orElse("").isEmpty();
-            Preconditions.checkState(timelockClientNonEmpty,
+            Preconditions.checkState(timelock().get().client().isPresent(),
                     "For InMemoryKVS, the TimeLock client should not be empty");
+            return timelock().get().client().get();
         }
+        return UNSPECIFIED_NAMESPACE;
     }
 
     private boolean areTimeAndLockConfigsAbsent() {
