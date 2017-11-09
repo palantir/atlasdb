@@ -86,7 +86,7 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
                         delegate.batch_mutate(mutation_map, consistency_level);
                         return null;
                     }, BATCH_MUTATE_TIMER,
-                    logger -> logger.warn("client.batch_mutate(number of rows {}, consistency {}",
+                    logger -> logger.warn("client.batch_mutate({}, {})",
                             SafeArg.of("number of mutations", numberOfMutations),
                             SafeArg.of("consistency", consistency_level.toString())));
         }
@@ -134,7 +134,7 @@ public class InstrumentedCassandraClient extends AutoDelegate_Client {
             return registerDuration(
                     () -> delegate.get_range_slices(column_parent, predicate, range, consistency_level),
                     GET_RANGE_SLICE_TIMER,
-                    logger -> logger.warn("client.get_range_slices({}, {}, {}, {}",
+                    logger -> logger.warn("client.get_range_slices({}, {}, {}, {})",
                             LoggingArgs.safeInternalTableNameOrPlaceholder(internalTableRef),
                             SafeArg.of("number of keys", numberOfKeys),
                             SafeArg.of("number of columns", numberOfColumns),
