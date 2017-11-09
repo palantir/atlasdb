@@ -42,9 +42,13 @@ public final class PollingRefreshable<T> implements AutoCloseable {
         this.supplier = supplier;
         this.poller = poller;
 
-        T initialValue = supplier.get();
-        refreshable = Refreshable.of(initialValue);
-        lastSeenValue = initialValue;
+        try {
+            lastSeenValue = supplier.get();
+        } catch (Exception e) {
+            lastSeenValue = null;
+        }
+
+        refreshable = lastSeenValue == null ? Refreshable.empty() : Refreshable.of(lastSeenValue);
     }
 
     public static <T> PollingRefreshable<T> create(Supplier<T> supplier) {

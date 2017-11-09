@@ -90,6 +90,42 @@ public class PollingRefreshableTest {
     }
 
     @Test
+    public void canRecoverFromSupplierThrowingExceptionsInitially() {
+        Refreshable<Long> refreshable = getIncrementingLongRefreshableThrowingOnSpecificValue(1L);
+
+        assertThat(refreshable.getAndClear()).isEmpty();
+        scheduler.tick(PollingRefreshable.POLL_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
+        assertThat(refreshable.getAndClear()).isPresent().contains(2L);
+    }
+
+    @Test
+    public void canRecoverFromSupplierThrowingExceptionsLater() {
+        Refreshable<Long> refreshable = getIncrementingLongRefreshableThrowingOnSpecificValue(2L);
+
+        assertThat(refreshable.getAndClear()).isPresent().contains(1L);
+
+        // This execution will throw a RuntimeException.
+        scheduler.tick(PollingRefreshable.POLL_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
+        assertThat(refreshable.getAndClear()).isEmpty();
+
+        scheduler.tick(PollingRefreshable.POLL_INTERVAL.toMillis() + 1, TimeUnit.MILLISECONDS);
+        assertThat(refreshable.getAndClear()).isPresent().contains(3L);
+    }
+
+    private Refreshable<Long> getIncrementingLongRefreshableThrowingOnSpecificValue(long badValue) {
+        AtomicLong atomicLong = new AtomicLong();
+        PollingRefreshable<Long> pollingRefreshable = PollingRefreshable.createWithSpecificPoller(
+                () -> {
+                    long newValue = atomicLong.incrementAndGet();
+                    if (newValue == badValue) {
+                        throw new RuntimeException(badValue + " is illegal");
+                    }
+                    return newValue;
+                }, scheduler);
+        return pollingRefreshable.getRefreshable();
+    }
+
+    @Test
     public void shutsDownExecutorWhenClosed() {
         ScheduledExecutorService scheduledExecutor = mock(ScheduledExecutorService.class);
         PollingRefreshable<Long> pollingRefreshable = PollingRefreshable.createWithSpecificPoller(
