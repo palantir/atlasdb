@@ -228,7 +228,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-processors": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
         },
         "com.palantir.atlasdb:commons-annotations": {
             "project": true,
@@ -866,7 +869,10 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-processors": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
         },
         "com.palantir.atlasdb:commons-annotations": {
             "project": true,

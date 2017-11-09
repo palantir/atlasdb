@@ -84,6 +84,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
@@ -110,6 +111,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients",
                 "com.palantir.remoting3:keystores",
@@ -196,6 +198,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
+            "project": true,
+            "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
@@ -401,7 +409,8 @@
         "com.squareup:javapoet": {
             "locked": "1.9.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "commons-lang:commons-lang": {
@@ -575,6 +584,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-client-protobufs",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.atlasdb:commons-executors",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
@@ -601,6 +611,7 @@
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:atlasdb-processors",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:jaxrs-clients",
                 "com.palantir.remoting3:keystores",
@@ -687,6 +698,12 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-processors": {
+            "project": true,
+            "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
@@ -892,7 +909,8 @@
         "com.squareup:javapoet": {
             "locked": "1.9.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-processors"
             ]
         },
         "commons-lang:commons-lang": {
