@@ -130,11 +130,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             @Override
             public Long apply(CassandraClient client) {
                 ByteBuffer rowName = getRowName();
-                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
-                columnPath.setColumn(getColumnName());
                 ColumnOrSuperColumn result;
                 try {
-                    result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
+                    result = client.get(AtlasDbConstants.TIMESTAMP_TABLE, rowName, getColumnName(),
+                            ConsistencyLevel.LOCAL_QUORUM);
                 } catch (NotFoundException e) {
                     result = null;
                 } catch (Exception e) {
@@ -190,8 +189,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         try {
             DebugLogger.logger.info("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
             result = client.cas(
+                    AtlasDbConstants.TIMESTAMP_TABLE,
                     getRowName(),
-                    AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
                     oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
                     ImmutableList.of(makeColumn(newVal)),
                     ConsistencyLevel.SERIAL,

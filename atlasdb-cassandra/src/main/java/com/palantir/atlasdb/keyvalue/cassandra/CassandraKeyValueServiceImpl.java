@@ -448,12 +448,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                                 List<ByteBuffer> rowNames = wrap(batch);
 
-                                ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(
                                         client,
                                         tableRef,
                                         rowNames,
-                                        colFam,
                                         pred,
                                         readConsistency);
                                 Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(batch.size());
@@ -648,7 +646,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 }
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
-                                        multigetInternal(client, tableRef, rowNames, colFam, predicate, consistency);
+                                        multigetInternal(client, tableRef, rowNames, predicate, consistency);
                                 visitor.visit(results);
                                 return null;
                             }
@@ -792,9 +790,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             Limit limit = Limit.of(batchColumnRangeSelection.getBatchHint());
                             SlicePredicate pred = SlicePredicates.create(range, limit);
 
-                            ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
-                                    multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
+                                    multigetInternal(client, tableRef, wrap(rows), pred, readConsistency);
 
                             RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
                             extractor.extractResults(rows, results, startTs);
@@ -849,9 +846,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         ByteBuffer rowByteBuffer = ByteBuffer.wrap(row);
 
-                        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
                         Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef,
-                                ImmutableList.of(rowByteBuffer), colFam, pred, readConsistency);
+                                ImmutableList.of(rowByteBuffer), pred, readConsistency);
 
                         if (results.isEmpty()) {
                             return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
@@ -1200,11 +1196,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClient client,
             TableReference tableRef,
             List<ByteBuffer> rowNames,
-            ColumnParent colFam,
             SlicePredicate pred,
             ConsistencyLevel consistency) throws TException {
         try {
-            return queryRunner.run(client, tableRef, () -> client.multiget_slice(rowNames, colFam, pred, consistency));
+            return queryRunner.run(client, tableRef, () -> client.multiget_slice(tableRef, rowNames, pred,
+                    consistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
                     "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
@@ -2165,8 +2161,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Column newColumn = makeColumn(colName, request.newValue(), timestamp);
             return queryRunner.run(client, table, () -> client.cas(
+                    table,
                     rowName,
-                    internalTableName(table),
                     oldColumns,
                     ImmutableList.of(newColumn),
                     ConsistencyLevel.SERIAL,

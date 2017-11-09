@@ -344,13 +344,12 @@ final class SchemaMutationLock {
 
     private Optional<Column> queryExistingLockColumn(CassandraClient client) throws TException {
         TableReference lockTableRef = lockTable.getOnlyTable();
-        ColumnPath columnPath = new ColumnPath(lockTableRef.getQualifiedName());
-        columnPath.setColumn(getGlobalDdlLockColumnName());
         Column existingColumn = null;
         ConsistencyLevel localQuorum = ConsistencyLevel.LOCAL_QUORUM;
         try {
             ColumnOrSuperColumn result = queryRunner.run(client, lockTableRef,
-                    () -> client.get(getGlobalDdlLockRowName(), columnPath, localQuorum));
+                    () -> client.get(lockTableRef, getGlobalDdlLockRowName(), getGlobalDdlLockColumnName(),
+                            localQuorum));
             existingColumn = result.getColumn();
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
@@ -372,8 +371,8 @@ final class SchemaMutationLock {
         TableReference lockTableRef = lockTable.getOnlyTable();
         return queryRunner.run(client, lockTableRef,
                 () -> client.cas(
+                        lockTableRef,
                         getGlobalDdlLockRowName(),
-                        lockTableRef.getQualifiedName(),
                         expectedLockValue,
                         ImmutableList.of(newLockValue),
                         ConsistencyLevel.SERIAL,

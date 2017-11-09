@@ -486,15 +486,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    //todo dedupe this into a name-demangling class that everyone can access
-    protected static String internalTableName(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
-        if (tableName.startsWith("_")) {
-            return tableName;
-        }
-        return tableName.replaceFirst("\\.", "__");
-    }
-
     private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
         try {
             return getAddressForHost(host);

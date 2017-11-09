@@ -52,7 +52,6 @@ public class RowGetter {
     }
 
     public List<KeySlice> getRows(KeyRange keyRange, SlicePredicate slicePredicate) throws Exception {
-        ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
@@ -61,7 +60,7 @@ public class RowGetter {
                     public List<KeySlice> apply(CassandraClient client) throws Exception {
                         try {
                             return queryRunner.run(client, tableRef,
-                                    () -> client.get_range_slices(colFam, slicePredicate, keyRange, consistency));
+                                    () -> client.get_range_slices(tableRef, slicePredicate, keyRange, consistency));
                         } catch (UnavailableException e) {
                             throw new InsufficientConsistencyException("get_range_slices requires " + consistency
                                     + " Cassandra nodes to be up and available.", e);
@@ -72,7 +71,7 @@ public class RowGetter {
 
                     @Override
                     public String toString() {
-                        return "get_range_slices(" + colFam + ")";
+                        return "get_range_slices(" + tableRef + ")";
                     }
                 });
     }

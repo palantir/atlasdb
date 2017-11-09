@@ -94,8 +94,8 @@ class Heartbeat implements Runnable {
         try {
             return queryRunner.run(client, lockTable,
                     () -> client.cas(
+                            lockTable,
                             SchemaMutationLock.getGlobalDdlLockRowName(),
-                            lockTable.getQualifiedName(),
                             expected,
                             ImmutableList.of(ourUpdate),
                             ConsistencyLevel.SERIAL,
