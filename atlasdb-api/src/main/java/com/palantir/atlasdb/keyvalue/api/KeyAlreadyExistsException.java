@@ -18,9 +18,9 @@ package com.palantir.atlasdb.keyvalue.api;
 import java.util.Collection;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
-public class KeyAlreadyExistsException extends PalantirRuntimeException {
+public class KeyAlreadyExistsException extends AtlasDbDependencyException {
     private static final long serialVersionUID = 1L;
 
     private final ImmutableList<Cell> existingKeys;
