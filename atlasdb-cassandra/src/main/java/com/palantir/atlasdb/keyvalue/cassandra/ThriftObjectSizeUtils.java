@@ -224,6 +224,9 @@ public final class ThriftObjectSizeUtils {
     }
 
     private static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
+        if (collection == null) {
+            return getNullSize();
+        }
         return collection.stream().mapToLong(sizeFunction::apply).sum();
     }
 }
