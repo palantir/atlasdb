@@ -433,7 +433,8 @@
         "com.palantir.atlasdb:atlasdb-processors": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-cassandra"
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-service": {
@@ -1872,7 +1873,8 @@
         "com.palantir.atlasdb:atlasdb-processors": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-cassandra"
+                "com.palantir.atlasdb:atlasdb-cassandra",
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.atlasdb:atlasdb-service": {

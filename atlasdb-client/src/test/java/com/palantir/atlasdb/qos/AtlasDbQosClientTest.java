@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.qos;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.jayway.awaitility.Awaitility;
+import com.palantir.exception.NotInitializedException;
 
 public class AtlasDbQosClientTest {
     private QosService qosService = mock(QosService.class);
@@ -62,6 +66,31 @@ public class AtlasDbQosClientTest {
 
         scheduler.tick(60L, TimeUnit.SECONDS);
 
+        qosClient.checkLimit();
+    }
+
+    @Test
+    public void throwsIfSchedulerNotInitializedYet() {
+        when(qosService.getLimit("test-client")).thenThrow(new IllegalStateException("boo"));
+        QosClient qosClient = AtlasDbQosClient.create(qosService, scheduler, "test-client", true);
+        scheduler.tick(1L, TimeUnit.MILLISECONDS);
+        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(NotInitializedException.class);
+    }
+
+    @Test
+    public void canInitializeAsynchronously() {
+        doThrow(new IllegalStateException("boo"))
+                .doReturn(1L)
+                .when(qosService)
+                .getLimit("test-client");
+        QosClient qosClient = AtlasDbQosClient.create(qosService, scheduler, "test-client", true);
+
+        Awaitility.await()
+                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .atMost(12, TimeUnit.SECONDS)
+                .until(qosClient::isInitialized);
+
+        scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
     }
 }

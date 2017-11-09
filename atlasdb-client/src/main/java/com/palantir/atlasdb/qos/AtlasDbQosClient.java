@@ -20,19 +20,74 @@ package com.palantir.atlasdb.qos;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.common.base.Throwables;
+import com.palantir.processors.AutoDelegate;
+
+@AutoDelegate(typeToExtend = QosClient.class)
 public class AtlasDbQosClient implements QosClient {
+    @VisibleForTesting
+    class InitializingWrapper extends AsyncInitializer implements AutoDelegate_QosClient {
+        @Override
+        public QosClient delegate() {
+            checkInitialized();
+            return AtlasDbQosClient.this;
+        }
+
+        @Override
+        protected void tryInitialize() {
+            AtlasDbQosClient.this.tryInitialize();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return QosClient.class.getSimpleName();
+        }
+    }
+
+    private final InitializingWrapper wrapper = new InitializingWrapper();
+    private final QosService qosService;
+    private final String clientName;
+
     private volatile long credits;
 
-    public AtlasDbQosClient(QosService qosService,
+    public static QosClient create(QosService qosService,
+            ScheduledExecutorService limitRefresher,
+            String clientName,
+            boolean initializeAsync) {
+        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, limitRefresher, clientName);
+        qosClient.wrapper.initialize(initializeAsync);
+        return qosClient.wrapper.isInitialized() ? qosClient : qosClient.wrapper;
+    }
+
+    @VisibleForTesting
+    AtlasDbQosClient(QosService qosService,
             ScheduledExecutorService limitRefresher,
             String clientName) {
+        this.qosService = qosService;
+        this.clientName = clientName;
+
         limitRefresher.scheduleAtFixedRate(() -> {
             try {
-                credits = qosService.getLimit(clientName);
+                refreshLimit();
             } catch (Exception e) {
                 // do nothing
             }
         }, 0L, 60L, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
+    }
+
+    private void tryInitialize() {
+        try {
+            refreshLimit();
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
     }
 
     // The KVS layer should call this before every read/write operation
@@ -48,5 +103,9 @@ public class AtlasDbQosClient implements QosClient {
             // TODO This should be a ThrottleException?
             throw new RuntimeException("Rate limit exceeded");
         }
+    }
+
+    private void refreshLimit() {
+        credits = qosService.getLimit(clientName);
     }
 }
