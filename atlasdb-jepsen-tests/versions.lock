@@ -195,7 +195,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
@@ -992,7 +992,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
