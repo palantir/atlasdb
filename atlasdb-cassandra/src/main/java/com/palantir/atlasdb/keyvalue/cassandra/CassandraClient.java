@@ -75,11 +75,7 @@ public class CassandraClient extends AutoDelegate_Client {
         qosClient.checkLimit();
         Map<ByteBuffer, List<ColumnOrSuperColumn>> result = delegate.multiget_slice(keys, column_parent,
                 predicate, consistency_level);
-        try {
-            recordBytesRead(getApproximateReadByteCount(result));
-        } catch (Exception e) {
-            log.warn("Encountered an exception when recording write metrics for multiget_slice.", e);
-        }
+        recordBytesRead(getApproximateReadByteCount(result));
         return result;
     }
 
@@ -96,11 +92,7 @@ public class CassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
         delegate.batch_mutate(mutationMap, consistency_level);
-        try {
-            recordBytesWritten(getApproximateWriteByteCount(mutationMap));
-        } catch (Exception e) {
-            log.warn("Encountered an exception when recording write metrics for batch_mutate.", e);
-        }
+        recordBytesWritten(getApproximateWriteByteCount(mutationMap));
     }
 
     private long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
@@ -118,11 +110,7 @@ public class CassandraClient extends AutoDelegate_Client {
             TException {
         qosClient.checkLimit();
         CqlResult cqlResult = delegate.execute_cql3_query(query, compression, consistency);
-        try {
-            recordBytesRead(ThriftObjectSizeUtils.getCqlResultSize(cqlResult));
-        } catch (Exception e) {
-            log.warn("Encountered an exception when recording read metrics for execute_cql3_query.", e);
-        }
+        recordBytesRead(ThriftObjectSizeUtils.getCqlResultSize(cqlResult));
         return cqlResult;
     }
 
@@ -132,22 +120,26 @@ public class CassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
         List<KeySlice> result = super.get_range_slices(column_parent, predicate, range, consistency_level);
-        try {
-            recordBytesRead(getCollectionSize(result, ThriftObjectSizeUtils::getKeySliceSize));
-        } catch (Exception e) {
-            log.warn("Encountered an exception when recording read metrics for get_range_slices.", e);
-        }
+        recordBytesRead(getCollectionSize(result, ThriftObjectSizeUtils::getKeySliceSize));
         return result;
     }
 
     private void recordBytesRead(long numBytesRead) {
-        qosMetrics.updateReadCount();
-        qosMetrics.updateBytesRead(numBytesRead);
+        try {
+            qosMetrics.updateReadCount();
+            qosMetrics.updateBytesRead(numBytesRead);
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording read metrics.", e);
+        }
     }
 
     private void recordBytesWritten(long numBytesWritten) {
-        qosMetrics.updateWriteCount();
-        qosMetrics.updateBytesWritten(numBytesWritten);
+        try {
+            qosMetrics.updateWriteCount();
+            qosMetrics.updateBytesWritten(numBytesWritten);
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording write metrics.", e);
+        }
     }
 
     private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> singleObjectSizeFunction) {

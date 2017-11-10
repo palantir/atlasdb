@@ -58,7 +58,7 @@ public final class ThriftObjectSizeUtils {
             getNullSize();
         }
 
-        return byteBuffer.position();
+        return byteBuffer.remaining();
     }
 
     public static long getMutationSize(Mutation mutation) {

@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
 
@@ -25,6 +25,10 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlResultType;
 import org.apache.cassandra.thrift.CqlRow;
+import org.apache.cassandra.thrift.Deletion;
+import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.Mutation;
+import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SuperColumn;
 import org.junit.Test;
 
@@ -38,7 +42,8 @@ public class ThriftObjectSizeUtilsTest {
 
 
     private static final long TEST_COLUMN_SIZE = 4L + TEST_MAME.getBytes().length + 4L + 8L;
-
+    private static final ColumnOrSuperColumn EMPTY_COLUMN_OR_SUPERCOLUMN = new ColumnOrSuperColumn();
+    private static final long EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE = Integer.BYTES * 4;
 
     @Test
     public void returnEightForNullColumnOrSuperColumn() {
@@ -47,16 +52,14 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForEmptyColumnOrSuperColumn() {
-        assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(new ColumnOrSuperColumn())).isEqualTo(
-                Integer.BYTES * 4);
+        assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(EMPTY_COLUMN_OR_SUPERCOLUMN))
+                .isEqualTo(EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
     }
 
     @Test
     public void getSizeForColumnOrSuperColumnWithAnEmptyColumn() {
-        ColumnOrSuperColumn columnOrSuperColumn = new ColumnOrSuperColumn();
-        columnOrSuperColumn.setColumn(new Column());
-        assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(columnOrSuperColumn)).isEqualTo(
-                Integer.BYTES * 8);
+        assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(new ColumnOrSuperColumn().setColumn(new Column())))
+                .isEqualTo(Integer.BYTES * 8);
     }
 
     @Test
@@ -67,11 +70,11 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForColumnOrSuperColumnWithANonEmptyColumnAndSuperColumn() {
-        ColumnOrSuperColumn columnOrSuperColumn = new ColumnOrSuperColumn();
-        columnOrSuperColumn.setColumn(TEST_COLUMN);
-        columnOrSuperColumn.setSuper_column(new SuperColumn(ByteBuffer.wrap(TEST_MAME.getBytes()), ImmutableList.of(TEST_COLUMN)));
-        assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(columnOrSuperColumn)).isEqualTo(
-                Integer.BYTES * 2 + TEST_COLUMN_SIZE + TEST_MAME.getBytes().length + TEST_COLUMN_SIZE);
+        assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(new ColumnOrSuperColumn()
+                .setColumn(TEST_COLUMN)
+                .setSuper_column(new SuperColumn(ByteBuffer.wrap(TEST_MAME.getBytes()),
+                        ImmutableList.of(TEST_COLUMN)))))
+                .isEqualTo(Integer.BYTES * 2 + TEST_COLUMN_SIZE + TEST_MAME.getBytes().length + TEST_COLUMN_SIZE);
     }
 
     @Test
@@ -90,5 +93,92 @@ public class ThriftObjectSizeUtilsTest {
         assertThat(ThriftObjectSizeUtils.getCqlResultSize(
                 new CqlResult(CqlResultType.ROWS).setRows(ImmutableList.of(new CqlRow()))))
                 .isEqualTo(Integer.BYTES * 5);
+    }
+
+    @Test
+    public void getSizeForNullMutation() {
+        assertThat(ThriftObjectSizeUtils.getMutationSize(null)).isEqualTo(Integer.BYTES);
+    }
+
+    @Test
+    public void getSizeForEmptyMutation() {
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation())).isEqualTo(Integer.BYTES * 2);
+    }
+
+    @Test
+    public void getSizeForMutationWithColumnOrSuperColumn() {
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
+                .setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN)))
+                .isEqualTo(Integer.BYTES + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+    }
+
+    @Test
+    public void getSizeForMutationWithEmptyDeletion() {
+        long emptyDeletionSize = Long.BYTES + 2 * Integer.BYTES;
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
+                .setDeletion(new Deletion())))
+                .isEqualTo(Integer.BYTES + emptyDeletionSize);
+    }
+
+    @Test
+    public void getSizeForMutationWithDeletionContainingSuperColumn() {
+        long nonEmptyDeletionSize = Long.BYTES + TEST_MAME.getBytes().length + Integer.BYTES;
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
+                .setDeletion(new Deletion().setSuper_column(TEST_MAME.getBytes()))))
+                .isEqualTo(Integer.BYTES + nonEmptyDeletionSize);
+    }
+
+    @Test
+    public void getSizeForMutationWithDeletionContainingEmptySlicePredicate() {
+        long deletionSize = Long.BYTES + Integer.BYTES + Integer.BYTES * 2;
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
+                .setDeletion(new Deletion().setPredicate(new SlicePredicate()))))
+                .isEqualTo(Integer.BYTES + deletionSize);
+    }
+
+    @Test
+    public void getSizeForMutationWithDeletionContainingNonEmptySlicePredicate() {
+        long deletionSize = (Long.BYTES) + (Integer.BYTES) + (TEST_MAME.getBytes().length + Integer.BYTES);
+        assertThat(ThriftObjectSizeUtils.
+                getMutationSize(new Mutation()
+                        .setDeletion(new Deletion()
+                                .setPredicate(new SlicePredicate()
+                                        .setColumn_names(ImmutableList.of(ByteBuffer.wrap(TEST_MAME.getBytes())))))))
+                .isEqualTo(Integer.BYTES + deletionSize);
+    }
+
+    @Test
+    public void getSizeForMutationWithColumnOrSuperColumnAndDeletion() {
+        long emptyDeletionSize = Long.BYTES + 2 * Integer.BYTES;
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
+                .setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN)
+                .setDeletion(new Deletion())))
+                .isEqualTo(EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE + emptyDeletionSize);
+    }
+
+    @Test
+    public void getSizeForNullKeySlice() {
+        assertThat(ThriftObjectSizeUtils.getKeySliceSize(null)).isEqualTo(Integer.BYTES);
+    }
+
+    @Test
+    public void getSizeForKeySliceWithKeyNotSetButColumnsSet() {
+        assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice()
+                .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
+                .isEqualTo(Integer.BYTES + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+    }
+
+    @Test
+    public void getSizeForKeySliceWithKeySetSetButColumnsNotSet() {
+        assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice().setKey(TEST_MAME.getBytes())))
+                .isEqualTo(Integer.BYTES + TEST_MAME.getBytes().length);
+    }
+
+    @Test
+    public void getSizeForKeySliceWithKeyAndColumns() {
+        assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice()
+                .setKey(TEST_MAME.getBytes())
+                .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
+                .isEqualTo(TEST_MAME.getBytes().length + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
     }
 }
