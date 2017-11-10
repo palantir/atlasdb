@@ -19,8 +19,6 @@ Throughout this document, we assume the AtlasDB client you are trying to reverse
 #. Shut down your AtlasDB clients for ``client`` .
 #. Take a restore timestamp.
 #. Revert your AtlasDB client configuration.
-#. Remove your client from the list of TimeLock clients.
-#. Restart the TimeLock servers.
 #. Update your key-value service to the restore timestamp.
 #. Start your AtlasDB clients.
 
@@ -53,29 +51,7 @@ Step 3: Revert AtlasDB Client Configurations
 Remove the ``timelock`` block from your AtlasDB client configurations. For more detail on options
 for using embedded timestamp and lock services, please consult :ref:`Leader Config<leader-config>`.
 
-Step 4: Reconfigure TimeLock
-----------------------------
-
-Remove ``client`` from the ``clients`` block of your TimeLock server configuration.
-
-Step 5: Start your TimeLock Servers
------------------------------------
-
-Start your TimeLock servers. Other services that were still dependent on TimeLock (if any) should now
-work normally. To verify that your client no longer uses TimeLock, it may be useful to curl the fresh-timestamp
-endpoint for your node, expecting a ``NotFoundException`` :
-
-.. code-block:: none
-
-   $ curl -XPOST https://<timelock-host>:8421/client/timestamp/fresh-timestamp
-   {
-     "message" : "d37a5956-c492-4a3b-a057-b7b4ea557043",
-     "exceptionClass" : "javax.ws.rs.NotFoundException",
-     "stackTrace" : null
-   }
-
-
-Step 6: Update your Key-Value Service
+Step 4: Update your Key-Value Service
 -------------------------------------
 
 Update the timestamp table in your key value service, such that it is valid and has the bound set to ``TS`` .
@@ -117,6 +93,7 @@ This will vary depending on your choice of key-value service:
      $ echo $((0x0000000006d30af4)) # old
      114494196
 
+     cqlsh:client> CONSISTENCY ALL;
      cqlsh:client> INSERT INTO "_timestamp" (key, column1, column2, value) VALUES (0x7473, 0x7473, -1, 0x00000000075bcd15);
      cqlsh:client> SELECT * FROM "_timestamp" ;
 
@@ -131,7 +108,7 @@ This will vary depending on your choice of key-value service:
 
      ALTER TABLE atlasdb_timestamp RENAME LEGACY_last_allocated TO last_allocated;
 
-Step 7: Start your AtlasDB Clients
+Step 5: Start your AtlasDB Clients
 ----------------------------------
 
 Finally, start your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
