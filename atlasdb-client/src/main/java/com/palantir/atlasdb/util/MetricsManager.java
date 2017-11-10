@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
@@ -64,16 +63,6 @@ public class MetricsManager {
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
-    }
-
-    public Histogram registerHistogram(Class clazz, String metricName) {
-        return registerHistogram(MetricRegistry.name(clazz, metricName));
-    }
-
-    private Histogram registerHistogram(String fullyQualifiedHistogramName) {
-        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
-        registeredMetrics.add(fullyQualifiedHistogramName);
-        return histogram;
     }
 
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
