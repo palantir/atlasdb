@@ -27,7 +27,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
@@ -175,7 +174,7 @@ final class SchemaMutationLock {
         final long perOperationNodeId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
-            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
+            clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
                 Column ourUpdate = lockColumnFromIdAndHeartbeat(perOperationNodeId, 0);
 
                 List<Column> expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
@@ -343,7 +342,7 @@ final class SchemaMutationLock {
         }
     }
 
-    private Optional<Column> queryExistingLockColumn(Client client) throws TException {
+    private Optional<Column> queryExistingLockColumn(CassandraClient client) throws TException {
         TableReference lockTableRef = lockTable.getOnlyTable();
         ColumnPath columnPath = new ColumnPath(lockTableRef.getQualifiedName());
         columnPath.setColumn(getGlobalDdlLockColumnName());
@@ -367,7 +366,7 @@ final class SchemaMutationLock {
     }
 
     private CASResult writeDdlLockWithCas(
-            Client client,
+            CassandraClient client,
             List<Column> expectedLockValue,
             Column newLockValue) throws TException {
         TableReference lockTableRef = lockTable.getOnlyTable();

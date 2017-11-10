@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.paging;
 import java.net.InetSocketAddress;
 import java.util.List;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyRange;
@@ -28,6 +27,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
@@ -56,9 +56,9 @@ public class RowGetter {
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
-                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
+                new FunctionCheckedException<CassandraClient, List<KeySlice>, Exception>() {
                     @Override
-                    public List<KeySlice> apply(Cassandra.Client client) throws Exception {
+                    public List<KeySlice> apply(CassandraClient client) throws Exception {
                         try {
                             return queryRunner.run(client, tableRef,
                                     () -> client.get_range_slices(colFam, slicePredicate, keyRange, consistency));
