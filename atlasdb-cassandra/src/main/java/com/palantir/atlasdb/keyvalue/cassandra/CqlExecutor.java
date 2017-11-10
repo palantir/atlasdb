@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
@@ -226,12 +225,12 @@ public class CqlExecutor {
             }
         }
 
-        private FunctionCheckedException<Cassandra.Client, CqlResult, TException> createCqlFunction(String query) {
+        private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(String query) {
             ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
 
-            return new FunctionCheckedException<Cassandra.Client, CqlResult, TException>() {
+            return new FunctionCheckedException<CassandraClient, CqlResult, TException>() {
                 @Override
-                public CqlResult apply(Cassandra.Client client) throws TException {
+                public CqlResult apply(CassandraClient client) throws TException {
                     return client.execute_cql3_query(queryBytes, Compression.NONE, consistency);
                 }
 

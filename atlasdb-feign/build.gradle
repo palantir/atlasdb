@@ -27,6 +27,7 @@ configurations {
 dependencies {
   explicitShadow project(':lock-api')
   explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
+  explicitShadow group: 'com.palantir.remoting3', name: 'refresh-utils'
 
   toBeShaded group: 'com.palantir.remoting2', name: 'error-handling'
   toBeShaded group: 'com.palantir.remoting2', name: 'jackson-support'

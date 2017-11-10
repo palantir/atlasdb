@@ -197,6 +197,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
+                "com.palantir.remoting3:refresh-utils",
                 "io.dropwizard:dropwizard-util"
             ]
         },
@@ -211,6 +212,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:keystores",
+                "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -447,6 +449,12 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.remoting3:refresh-utils": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting3:tracing": {
@@ -878,6 +886,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
+                "com.palantir.remoting3:refresh-utils",
                 "io.dropwizard:dropwizard-util"
             ]
         },
@@ -892,6 +901,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:keystores",
+                "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -1128,6 +1138,12 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.remoting3:refresh-utils": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting3:tracing": {

@@ -51,7 +51,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
-public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
+public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
 
     private static final LoadingCache<InetSocketAddress, SSLSocketFactory> sslSocketFactories =
@@ -75,9 +75,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     }
 
     @Override
-    public Client create() throws Exception {
+    public CassandraClient create() throws Exception {
         try {
-            return getClient(addr, config);
+            return instrumentClient(getClient(addr, config));
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -85,6 +85,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
             }
             throw new ClientCreationFailedException(message, e);
         }
+    }
+
+    private CassandraClient instrumentClient(Client client) {
+        return new CassandraClientImpl(client);
     }
 
     private static Cassandra.Client getClient(InetSocketAddress addr,
@@ -167,18 +171,18 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     }
 
     @Override
-    public boolean validateObject(PooledObject<Client> client) {
-        return client.getObject().getOutputProtocol().getTransport().isOpen();
+    public boolean validateObject(PooledObject<CassandraClient> client) {
+        return client.getObject().rawClient().getOutputProtocol().getTransport().isOpen();
     }
 
     @Override
-    public PooledObject<Client> wrap(Client client) {
-        return new DefaultPooledObject<Client>(client);
+    public PooledObject<CassandraClient> wrap(CassandraClient client) {
+        return new DefaultPooledObject<>(client);
     }
 
     @Override
-    public void destroyObject(PooledObject<Client> client) {
-        client.getObject().getOutputProtocol().getTransport().close();
+    public void destroyObject(PooledObject<CassandraClient> client) {
+        client.getObject().rawClient().getOutputProtocol().getTransport().close();
         log.debug("Closed transport for client {} of host {}",
                 UnsafeArg.of("client", client),
                 SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));

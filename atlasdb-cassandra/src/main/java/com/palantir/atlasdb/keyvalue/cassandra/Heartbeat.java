@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.List;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.UnavailableException;
@@ -68,7 +67,7 @@ class Heartbeat implements Runnable {
         }
     }
 
-    private Void beat(Client client) throws TException {
+    private Void beat(CassandraClient client) throws TException {
         Column ourUpdate = SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount + 1);
 
         List<Column> expected = ImmutableList.of(
@@ -90,7 +89,8 @@ class Heartbeat implements Runnable {
         return null;
     }
 
-    private CASResult writeDdlLockWithCas(Client client, Column ourUpdate, List<Column> expected) throws TException {
+    private CASResult writeDdlLockWithCas(CassandraClient client, Column ourUpdate, List<Column> expected)
+            throws TException {
         try {
             return queryRunner.run(client, lockTable,
                     () -> client.cas(

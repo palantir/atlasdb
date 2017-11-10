@@ -56,8 +56,8 @@ public final class CassandraVerifier {
         // Utility class
     }
 
-    static final FunctionCheckedException<Cassandra.Client, Void, Exception> healthCheck = client -> {
-        client.describe_version();
+    static final FunctionCheckedException<CassandraClient, Void, Exception> healthCheck = client -> {
+        client.rawClient().describe_version();
         return null;
     };
 
@@ -243,13 +243,13 @@ public final class CassandraVerifier {
 
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
-        clientPool.runWithRetry((FunctionCheckedException<Client, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(config.getKeyspaceOrThrow());
+        clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
+            KsDef originalKsDef = client.rawClient().describe_keyspace(config.getKeyspaceOrThrow());
             // there was an existing keyspace
             // check and make sure it's definition is up to date with our config
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             checkAndSetReplicationFactor(
-                    client,
+                    client.rawClient(),
                     modifiedKsDef,
                     false,
                     config);
@@ -257,10 +257,10 @@ public final class CassandraVerifier {
             if (!modifiedKsDef.equals(originalKsDef)) {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
-                client.system_update_keyspace(modifiedKsDef);
+                client.rawClient().system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
                         config,
-                        client,
+                        client.rawClient(),
                         "(updating the existing keyspace)");
             }
 
@@ -310,7 +310,7 @@ public final class CassandraVerifier {
         sanityCheckReplicationFactor(ks, config, dcs);
     }
 
-    static void currentRfOnKeyspaceMatchesDesiredRf(Client client, CassandraKeyValueServiceConfig config)
+    static void currentRfOnKeyspaceMatchesDesiredRf(Cassandra.Client client, CassandraKeyValueServiceConfig config)
             throws TException {
         KsDef ks = client.describe_keyspace(config.getKeyspaceOrThrow());
         Set<String> dcs = sanityCheckDatacenters(client, config);
@@ -336,10 +336,10 @@ public final class CassandraVerifier {
         }
     }
 
-    static final FunctionCheckedException<Cassandra.Client, Boolean, UnsupportedOperationException>
+    static final FunctionCheckedException<CassandraClient, Boolean, UnsupportedOperationException>
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
+                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.rawClient().describe_version());
                     log.debug("Connected cassandra thrift version is: {}",
                             SafeArg.of("cassandraVersion", serverVersion));
                     return serverVersion.supportsCheckAndSet();

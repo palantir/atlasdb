@@ -64,6 +64,88 @@ develop
            ``SweepBatchConfig`` values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2630>`__)
 
+    *    - |improved| |logs|
+         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.66.0
+=======
+
+7 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+<<<<<<< HEAD
+         - AtlasDB now depends on Tritium 0.8.4, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
+||||||| merged common ancestors
+         - AtlasDB now depends on Tritium 0.8.3, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
+=======
+         - AtlasDB now depends on Tritium 0.8.3, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2642>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+===========
+v0.66.0-rc2
+===========
+
+6 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.1.
+>>>>>>> develop
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2639>`__)
+<<<<<<< HEAD
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2662>`__)
+||||||| merged common ancestors
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
+=======
+>>>>>>> develop
+
+    *    - |improved|
+         - AtlasDB can now tag RC releases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+===========
+v0.66.0-rc1
+===========
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.65.2
+=======
+
+6 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - Reverted the Cassandra KVS executor PR (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__) that caused a performance regression.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2637>`__)
@@ -72,19 +154,6 @@ develop
          - ``CassandraTimestampBackupRunner`` now logs the backup bound correctly when performing a backup as part of TimeLock migration.
            Previously, the bound logged would have been logged as ``null`` or as a relatively arbitrary byte array, depending on the content of the timestamp table when performing migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2585>`__)
-
-    *    - |improved|
-         - AtlasDB now depends on Tritium 0.8.4, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2639>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2662>`__)
-
-    *    - |improved|
-         - AtlasDB can now tag RC releases.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
-
-    *    - |improved| |logs|
-         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
