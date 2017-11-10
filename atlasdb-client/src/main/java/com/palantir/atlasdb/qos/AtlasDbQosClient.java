@@ -20,33 +20,24 @@ package com.palantir.atlasdb.qos;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-@SuppressWarnings("FinalClass")
-public class AtlasDbQosClient {
-    QosService qosService;
+public class AtlasDbQosClient implements QosClient {
+    private volatile long credits;
 
-    volatile long credits;
-
-    private AtlasDbQosClient(QosService qosService) {
-        this.qosService = qosService;
-    }
-
-    public static AtlasDbQosClient create(ScheduledExecutorService scheduler, QosService qosService,
+    public AtlasDbQosClient(QosService qosService,
+            ScheduledExecutorService limitRefresher,
             String clientName) {
-        AtlasDbQosClient client = new AtlasDbQosClient(qosService);
-
-        scheduler.scheduleAtFixedRate(() -> {
+        limitRefresher.scheduleAtFixedRate(() -> {
             try {
-                client.credits = qosService.getLimit(clientName);
+                credits = qosService.getLimit(clientName);
             } catch (Exception e) {
                 // do nothing
             }
-        }, 0L, 1L, TimeUnit.SECONDS);
-
-        return client;
+        }, 0L, 60L, TimeUnit.SECONDS);
     }
 
     // The KVS layer should call this before every read/write operation
     // Currently all operations are treated equally; each uses up a unit of credits
+    @Override
     public void checkLimit() {
         // always return immediately - i.e. no backoff
         // TODO if soft-limited, pause

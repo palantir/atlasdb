@@ -46,7 +46,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -67,11 +67,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
                 }
             });
 
-    private final AtlasDbQosClient qosClient;
+    private final QosClient qosClient;
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
 
-    public CassandraClientFactory(AtlasDbQosClient qosClient,
+    public CassandraClientFactory(QosClient qosClient,
             InetSocketAddress addr,
             CassandraKeyValueServiceConfig config) {
         this.qosClient = qosClient;
@@ -92,7 +92,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         }
     }
 
-    private static Cassandra.Client getClient(AtlasDbQosClient qosClient,
+    private static Cassandra.Client getClient(QosClient qosClient,
             InetSocketAddress addr,
             CassandraKeyValueServiceConfig config) throws Exception {
         Client ret = getWrappedClient(qosClient, addr, config);
@@ -111,7 +111,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         }
     }
 
-    private static Client getWrappedClient(AtlasDbQosClient qosClient,
+    private static Client getWrappedClient(QosClient qosClient,
             InetSocketAddress addr,
             CassandraKeyValueServiceConfig config)
             throws TException {

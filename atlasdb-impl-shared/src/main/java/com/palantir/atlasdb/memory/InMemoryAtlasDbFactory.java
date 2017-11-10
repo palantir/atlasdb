@@ -35,6 +35,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -100,6 +101,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      * @param leaderConfig unused.
      * @param unused unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
+     * @param unusedQosClient unused.
      * @return The requested KeyValueService instance
      */
     @Override
@@ -107,7 +109,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClient unusedQosClient) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
         }

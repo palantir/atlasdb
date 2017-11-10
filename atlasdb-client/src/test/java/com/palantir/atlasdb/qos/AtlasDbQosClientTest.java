@@ -37,14 +37,14 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void doesNotBackOff() {
-        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
+        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client");
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
     }
 
     @Test
     public void throwsAfterLimitExceeded() {
-        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
+        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client");
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
@@ -53,15 +53,15 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void canCheckAgainAfterRefreshPeriod() {
-        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosService, "test-client");
+        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client");
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
-        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(qosClient::checkLimit)
+                .isInstanceOf(RuntimeException.class).hasMessage("Rate limit exceeded");
 
-        scheduler.tick(1L, TimeUnit.SECONDS);
+        scheduler.tick(60L, TimeUnit.SECONDS);
 
         qosClient.checkLimit();
     }
-
 }
