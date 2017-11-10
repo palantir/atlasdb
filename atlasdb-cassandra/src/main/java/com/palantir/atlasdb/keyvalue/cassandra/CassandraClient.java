@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.cassandra.thrift.AutoDelegate_Client;
 import org.apache.cassandra.thrift.Cassandra;
@@ -36,6 +38,8 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.processors.AutoDelegate;
@@ -46,13 +50,17 @@ import com.palantir.processors.AutoDelegate;
 @AutoDelegate(typeToExtend = Cassandra.Client.class)
 @SuppressWarnings({"checkstyle:all", "DuplicateThrows"}) // :'(
 public class CassandraClient extends AutoDelegate_Client {
+    private final Logger log = LoggerFactory.getLogger(CassandraClient.class);
+
     private final Cassandra.Client delegate;
+    private final QosMetrics qosMetrics;
     private final QosClient qosClient;
 
     public CassandraClient(Cassandra.Client delegate, QosClient qosClient) {
         super(delegate.getInputProtocol());
         this.delegate = delegate;
         this.qosClient = qosClient;
+        this.qosMetrics = new QosMetrics();
     }
 
     @Override
@@ -65,15 +73,35 @@ public class CassandraClient extends AutoDelegate_Client {
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
-        return delegate.multiget_slice(keys, column_parent, predicate, consistency_level);
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> result = delegate.multiget_slice(keys, column_parent,
+                predicate, consistency_level);
+        recordBytesRead(getApproximateReadByteCount(result));
+        return result;
+    }
+
+    private long getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
+        return getCollectionSize(result.entrySet(),
+                rowResult ->
+                    ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
+                    + getCollectionSize(rowResult.getValue(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
     }
 
     @Override
-    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
-        delegate.batch_mutate(mutation_map, consistency_level);
+        delegate.batch_mutate(mutationMap, consistency_level);
+        recordBytesWritten(getApproximateWriteByteCount(mutationMap));
+    }
+
+    private long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
+        long approxBytesForKeys = getCollectionSize(batchMutateMap.keySet(), ThriftObjectSizeUtils::getByteBufferSize);
+        long approxBytesForValues = getCollectionSize(batchMutateMap.values(), currentMap ->
+                getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
+                + getCollectionSize(currentMap.values(),
+                        mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
+        return approxBytesForKeys + approxBytesForValues;
     }
 
     @Override
@@ -81,7 +109,9 @@ public class CassandraClient extends AutoDelegate_Client {
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
         qosClient.checkLimit();
-        return delegate.execute_cql3_query(query, compression, consistency);
+        CqlResult cqlResult = delegate.execute_cql3_query(query, compression, consistency);
+        recordBytesRead(ThriftObjectSizeUtils.getCqlResultSize(cqlResult));
+        return cqlResult;
     }
 
     @Override
@@ -89,6 +119,30 @@ public class CassandraClient extends AutoDelegate_Client {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.checkLimit();
-        return delegate.get_range_slices(column_parent, predicate, range, consistency_level);
+        List<KeySlice> result = super.get_range_slices(column_parent, predicate, range, consistency_level);
+        recordBytesRead(getCollectionSize(result, ThriftObjectSizeUtils::getKeySliceSize));
+        return result;
+    }
+
+    private void recordBytesRead(long numBytesRead) {
+        try {
+            qosMetrics.updateReadCount();
+            qosMetrics.updateBytesRead(numBytesRead);
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording read metrics.", e);
+        }
+    }
+
+    private void recordBytesWritten(long numBytesWritten) {
+        try {
+            qosMetrics.updateWriteCount();
+            qosMetrics.updateBytesWritten(numBytesWritten);
+        } catch (Exception e) {
+            log.warn("Encountered an exception when recording write metrics.", e);
+        }
+    }
+
+    private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> singleObjectSizeFunction) {
+        return collection.stream().mapToLong(singleObjectSizeFunction::apply).sum();
     }
 }

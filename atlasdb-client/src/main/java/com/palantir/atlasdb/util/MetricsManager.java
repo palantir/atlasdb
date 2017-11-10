@@ -75,6 +75,10 @@ public class MetricsManager {
         }
     }
 
+    public Meter registerMeter(Class clazz, String meterName) {
+        return registerMeter(MetricRegistry.name(clazz, "", meterName));
+    }
+
     public Meter registerMeter(Class clazz, String metricPrefix, String meterName) {
         return registerMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
     }

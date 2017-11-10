@@ -14,10 +14,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
-                "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations"
+                "com.fasterxml.jackson.module:jackson-module-afterburner"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
@@ -26,10 +23,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.remoting-api:errors",
@@ -44,7 +38,6 @@
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
             "locked": "2.6.7",
             "transitive": [
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.palantir.remoting3:jackson-support"
             ]
         },
@@ -69,49 +62,17 @@
                 "com.palantir.remoting3:jackson-support"
             ]
         },
-        "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
-            "locked": "2.6.7",
-            "transitive": [
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
-            ]
-        },
-        "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider": {
-            "locked": "2.6.7",
-            "transitive": [
-                "com.palantir.remoting3:jersey-servers"
-            ]
-        },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing"
-            ]
-        },
-        "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.6.7",
-            "transitive": [
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
             ]
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
             "transitive": [
-                "com.palantir.atlasdb:qos-service-api",
-                "com.palantir.tritium:tritium-api",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.1",
-            "transitive": [
-                "com.palantir.remoting-api:errors",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:qos-service-api"
             ]
         },
         "com.google.guava:guava": {
@@ -123,16 +84,7 @@
                 "com.palantir.remoting3:keystores",
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:refresh-utils",
-                "com.palantir.remoting3:tracing",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics"
-            ]
-        },
-        "com.jcraft:jzlib": {
-            "locked": "1.1.3",
-            "transitive": [
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.netflix.feign:feign-core": {
@@ -200,7 +152,6 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:okhttp-clients"
             ]
         },
@@ -225,9 +176,6 @@
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
-        "com.palantir.remoting3:jersey-servers": {
-            "locked": "3.5.1"
-        },
         "com.palantir.remoting3:keystores": {
             "locked": "3.5.1",
             "transitive": [
@@ -250,9 +198,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing-okhttp3",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:tracing-okhttp3"
             ]
         },
         "com.palantir.remoting3:tracing-okhttp3": {
@@ -267,65 +213,13 @@
             "transitive": [
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.tokens:auth-tokens": {
             "locked": "3.0.0",
             "transitive": [
                 "com.palantir.remoting-api:service-config"
-            ]
-        },
-        "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
-            ]
-        },
-        "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
-            ]
-        },
-        "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.3"
-        },
-        "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
-            ]
-        },
-        "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
-            ]
-        },
-        "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
-            ]
-        },
-        "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.squareup.okhttp3:logging-interceptor": {
@@ -335,31 +229,9 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.2.5",
+            "locked": "3.2.3",
             "transitive": [
-                "com.palantir.remoting3:okhttp-clients",
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "javax.annotation:javax.annotation-api": {
-            "locked": "1.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "javax.inject:javax.inject": {
-            "locked": "1",
-            "transitive": [
-                "org.glassfish.hk2:hk2-api",
-                "org.glassfish.hk2:hk2-utils"
-            ]
-        },
-        "javax.validation:validation-api": {
-            "locked": "1.1.0.Final",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-server"
+                "com.palantir.remoting3:okhttp-clients"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
@@ -368,105 +240,7 @@
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling",
-                "com.palantir.remoting3:jaxrs-clients",
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "org.glassfish.hk2.external:aopalliance-repackaged": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-api",
-                "org.glassfish.hk2:hk2-locator"
-            ]
-        },
-        "org.glassfish.hk2.external:javax.inject": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-locator",
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.hk2:hk2-api": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-locator",
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.hk2:hk2-locator": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.hk2:hk2-utils": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-api",
-                "org.glassfish.hk2:hk2-locator"
-            ]
-        },
-        "org.glassfish.hk2:osgi-resource-locator": {
-            "locked": "1.0.1",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.jersey.bundles.repackaged:jersey-guava": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-common"
-            ]
-        },
-        "org.glassfish.jersey.core:jersey-client": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "org.glassfish.jersey.core:jersey-common": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.jersey.core:jersey-server": {
-            "locked": "2.23.2",
-            "transitive": [
-                "com.palantir.remoting3:jersey-servers"
-            ]
-        },
-        "org.glassfish.jersey.media:jersey-media-jaxb": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
-            "transitive": [
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "org.javassist:javassist": {
-            "locked": "3.20.0-GA",
-            "transitive": [
-                "org.glassfish.hk2:hk2-locator"
+                "com.palantir.remoting3:jaxrs-clients"
             ]
         },
         "org.jvnet:animal-sniffer-annotation": {
@@ -475,14 +249,8 @@
                 "com.netflix.feign:feign-core"
             ]
         },
-        "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
-            "locked": "1.1.2",
-            "transitive": [
-                "com.palantir.tritium:tritium-metrics"
-            ]
-        },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.remoting3:error-handling",
@@ -490,11 +258,6 @@
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing",
                 "io.dropwizard.metrics:metrics-core"
             ]
         }
@@ -514,10 +277,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
-                "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations"
+                "com.fasterxml.jackson.module:jackson-module-afterburner"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
@@ -526,10 +286,7 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-guava",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base",
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.remoting-api:errors",
@@ -544,7 +301,6 @@
         "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
             "locked": "2.6.7",
             "transitive": [
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.palantir.remoting3:jackson-support"
             ]
         },
@@ -569,49 +325,17 @@
                 "com.palantir.remoting3:jackson-support"
             ]
         },
-        "com.fasterxml.jackson.jaxrs:jackson-jaxrs-base": {
-            "locked": "2.6.7",
-            "transitive": [
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
-            ]
-        },
-        "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider": {
-            "locked": "2.6.7",
-            "transitive": [
-                "com.palantir.remoting3:jersey-servers"
-            ]
-        },
         "com.fasterxml.jackson.module:jackson-module-afterburner": {
             "locked": "2.6.7",
             "transitive": [
                 "com.palantir.remoting3:jackson-support",
-                "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:tracing"
-            ]
-        },
-        "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.6.7",
-            "transitive": [
-                "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider"
             ]
         },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.3",
             "transitive": [
-                "com.palantir.atlasdb:qos-service-api",
-                "com.palantir.tritium:tritium-api",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
-            ]
-        },
-        "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.1",
-            "transitive": [
-                "com.palantir.remoting-api:errors",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:qos-service-api"
             ]
         },
         "com.google.guava:guava": {
@@ -623,16 +347,7 @@
                 "com.palantir.remoting3:keystores",
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:refresh-utils",
-                "com.palantir.remoting3:tracing",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics"
-            ]
-        },
-        "com.jcraft:jzlib": {
-            "locked": "1.1.3",
-            "transitive": [
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.netflix.feign:feign-core": {
@@ -700,7 +415,6 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:jersey-servers",
                 "com.palantir.remoting3:okhttp-clients"
             ]
         },
@@ -725,9 +439,6 @@
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
-        "com.palantir.remoting3:jersey-servers": {
-            "locked": "3.5.1"
-        },
         "com.palantir.remoting3:keystores": {
             "locked": "3.5.1",
             "transitive": [
@@ -750,9 +461,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing-okhttp3",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:tracing-okhttp3"
             ]
         },
         "com.palantir.remoting3:tracing-okhttp3": {
@@ -767,65 +476,13 @@
             "transitive": [
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:tracing"
             ]
         },
         "com.palantir.tokens:auth-tokens": {
             "locked": "3.0.0",
             "transitive": [
                 "com.palantir.remoting-api:service-config"
-            ]
-        },
-        "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
-            ]
-        },
-        "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing"
-            ]
-        },
-        "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.3"
-        },
-        "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
-            ]
-        },
-        "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
-            ]
-        },
-        "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
-            ]
-        },
-        "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.3",
-            "transitive": [
-                "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.squareup.okhttp3:logging-interceptor": {
@@ -835,31 +492,9 @@
             ]
         },
         "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.2.5",
+            "locked": "3.2.3",
             "transitive": [
-                "com.palantir.remoting3:okhttp-clients",
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "javax.annotation:javax.annotation-api": {
-            "locked": "1.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "javax.inject:javax.inject": {
-            "locked": "1",
-            "transitive": [
-                "org.glassfish.hk2:hk2-api",
-                "org.glassfish.hk2:hk2-utils"
-            ]
-        },
-        "javax.validation:validation-api": {
-            "locked": "1.1.0.Final",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-server"
+                "com.palantir.remoting3:okhttp-clients"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
@@ -868,105 +503,7 @@
                 "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:error-handling",
-                "com.palantir.remoting3:jaxrs-clients",
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "org.glassfish.hk2.external:aopalliance-repackaged": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-api",
-                "org.glassfish.hk2:hk2-locator"
-            ]
-        },
-        "org.glassfish.hk2.external:javax.inject": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-locator",
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.hk2:hk2-api": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-locator",
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.hk2:hk2-locator": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.hk2:hk2-utils": {
-            "locked": "2.5.0-b05",
-            "transitive": [
-                "org.glassfish.hk2:hk2-api",
-                "org.glassfish.hk2:hk2-locator"
-            ]
-        },
-        "org.glassfish.hk2:osgi-resource-locator": {
-            "locked": "1.0.1",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-common",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.jersey.bundles.repackaged:jersey-guava": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-common"
-            ]
-        },
-        "org.glassfish.jersey.core:jersey-client": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "org.glassfish.jersey.core:jersey-common": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-client",
-                "org.glassfish.jersey.core:jersey-server",
-                "org.glassfish.jersey.media:jersey-media-jaxb"
-            ]
-        },
-        "org.glassfish.jersey.core:jersey-server": {
-            "locked": "2.23.2",
-            "transitive": [
-                "com.palantir.remoting3:jersey-servers"
-            ]
-        },
-        "org.glassfish.jersey.media:jersey-media-jaxb": {
-            "locked": "2.23.2",
-            "transitive": [
-                "org.glassfish.jersey.core:jersey-server"
-            ]
-        },
-        "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
-            "transitive": [
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
-            ]
-        },
-        "org.javassist:javassist": {
-            "locked": "3.20.0-GA",
-            "transitive": [
-                "org.glassfish.hk2:hk2-locator"
+                "com.palantir.remoting3:jaxrs-clients"
             ]
         },
         "org.jvnet:animal-sniffer-annotation": {
@@ -975,14 +512,8 @@
                 "com.netflix.feign:feign-core"
             ]
         },
-        "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir": {
-            "locked": "1.1.2",
-            "transitive": [
-                "com.palantir.tritium:tritium-metrics"
-            ]
-        },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.21",
+            "locked": "1.7.25",
             "transitive": [
                 "com.netflix.feign:feign-slf4j",
                 "com.palantir.remoting3:error-handling",
@@ -990,11 +521,6 @@
                 "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens",
-                "com.palantir.tritium:tritium-core",
-                "com.palantir.tritium:tritium-lib",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j",
-                "com.palantir.tritium:tritium-tracing",
                 "io.dropwizard.metrics:metrics-core"
             ]
         }
