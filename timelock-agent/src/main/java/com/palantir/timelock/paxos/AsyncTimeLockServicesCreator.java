@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
@@ -83,12 +83,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static AsyncTimelockService createRawAsyncTimelockService(
             String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
-        ScheduledExecutorService reaperExecutor = (ScheduledExecutorService) new InstrumentedExecutorService(
+        ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-reaper-" + client + "-%d")
                         .setDaemon(true)
                         .build()), AtlasDbMetrics.getMetricRegistry(), "async-lock-reaper");
-        ScheduledExecutorService timeoutExecutor = (ScheduledExecutorService) new InstrumentedExecutorService(
+        ScheduledExecutorService timeoutExecutor = new InstrumentedScheduledExecutorService(
                 Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
