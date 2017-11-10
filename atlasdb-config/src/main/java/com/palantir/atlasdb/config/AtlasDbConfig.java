@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
@@ -35,7 +36,8 @@ import com.palantir.exception.NotInitializedException;
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
-    static final String UNSPECIFIED_NAMESPACE = "unspecifed";
+    @VisibleForTesting
+    static final String UNSPECIFIED_NAMESPACE = "unspecified";
 
     public abstract KeyValueServiceConfig keyValueService();
 
@@ -327,13 +329,18 @@ public abstract class AtlasDbConfig {
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
             return keyValueServiceNamespace;
-        } else if (timelock().isPresent()) {
-            // Special case - empty timelock and empty namespace/keyspace does not make sense
-            Preconditions.checkState(timelock().get().client().isPresent(),
-                    "For InMemoryKVS, the TimeLock client should not be empty");
-            return timelock().get().client().get();
+        } else {
+            Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
+                "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
+                    keyValueService().getClass());
+            if (timelock().isPresent()) {
+                // Special case - empty timelock and empty namespace/keyspace does not make sense
+                Preconditions.checkState(timelock().get().client().isPresent(),
+                        "For InMemoryKVS, the TimeLock client should not be empty");
+                return timelock().get().client().get();
+            }
+            return UNSPECIFIED_NAMESPACE;
         }
-        return UNSPECIFIED_NAMESPACE;
     }
 
     private boolean areTimeAndLockConfigsAbsent() {
