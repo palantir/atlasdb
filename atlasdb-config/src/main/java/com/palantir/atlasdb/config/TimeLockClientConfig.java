@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 
 @JsonSerialize(as = ImmutableTimeLockClientConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
@@ -54,5 +55,11 @@ public abstract class TimeLockClientConfig {
                 .collect(Collectors.toSet());
         return ImmutableServerListConfig.copyOf(serversList())
                 .withServers(serversWithNamespaces);
+    }
+
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkArgument(!client().isPresent() || !client().get().isEmpty(),
+                "Timelock client string cannot be empty");
     }
 }

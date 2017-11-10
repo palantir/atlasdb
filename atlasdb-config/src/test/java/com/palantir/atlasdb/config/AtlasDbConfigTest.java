@@ -58,7 +58,7 @@ public class AtlasDbConfigTest {
     private static final String TEST_NAMESPACE = "client";
     private static final String OTHER_CLIENT = "other-client";
 
-    private static final TimeLockClientConfig TIMELOCK_CONFIG_WITH_EMPTY_CLIENT = ImmutableTimeLockClientConfig
+    private static final TimeLockClientConfig TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT = ImmutableTimeLockClientConfig
             .builder()
             .client(Optional.empty())
             .serversList(DEFAULT_SERVER_LIST)
@@ -200,7 +200,7 @@ public class AtlasDbConfigTest {
     public void absentNamespaceRequiresTimelockClient() {
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                 .build())
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies((exception) ->
@@ -220,7 +220,7 @@ public class AtlasDbConfigTest {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace("a client")
                 .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                 .build();
         assertThat(config.getNamespaceString(), equalTo("a client"));
     }
@@ -257,7 +257,7 @@ public class AtlasDbConfigTest {
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .namespace(Optional.empty())
                 .keyValueService(kvsConfig)
-                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                 .build())
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies((exception) ->
@@ -294,7 +294,7 @@ public class AtlasDbConfigTest {
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                 .namespace(TEST_NAMESPACE)
                 .keyValueService(KVS_CONFIG_WITH_OTHER_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG_WITH_EMPTY_CLIENT)
+                .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                 .build())
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies((exception) ->
