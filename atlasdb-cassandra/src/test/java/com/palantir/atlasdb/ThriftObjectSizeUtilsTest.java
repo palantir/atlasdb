@@ -78,6 +78,23 @@ public class ThriftObjectSizeUtilsTest {
     }
 
     @Test
+    public void getSizeForNullByteBuffer() {
+        assertThat(ThriftObjectSizeUtils.getByteBufferSize(null)).isEqualTo(Integer.BYTES);
+    }
+
+    @Test
+    public void getSizeForEmptyByteBuffer() {
+        assertThat(ThriftObjectSizeUtils.getByteBufferSize(ByteBuffer.wrap(new byte[]{})))
+                .isEqualTo(0L);
+    }
+
+    @Test
+    public void getSizeForNonEmptyByteBuffer() {
+        assertThat(ThriftObjectSizeUtils.getByteBufferSize(ByteBuffer.wrap(TEST_MAME.getBytes())))
+                .isEqualTo(TEST_MAME.getBytes().length);
+    }
+
+    @Test
     public void getSizeForNullCqlResult() {
         assertThat(ThriftObjectSizeUtils.getCqlResultSize(null)).isEqualTo(Integer.BYTES);
     }

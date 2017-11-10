@@ -55,9 +55,8 @@ public final class ThriftObjectSizeUtils {
 
     public static long getByteBufferSize(ByteBuffer byteBuffer) {
         if (byteBuffer == null) {
-            getNullSize();
+            return getNullSize();
         }
-
         return byteBuffer.remaining();
     }
 
