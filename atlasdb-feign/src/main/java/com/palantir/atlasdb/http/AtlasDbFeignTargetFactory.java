@@ -131,6 +131,26 @@ public final class AtlasDbFeignTargetFactory {
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
+        return createLiveReloadingProxyWithFailover(
+                serverListConfigSupplier,
+                sslSocketFactoryCreator,
+                proxySelectorCreator,
+                DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
+                DEFAULT_FEIGN_OPTIONS.readTimeoutMillis(),
+                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
+                type,
+                userAgent);
+    }
+
+    public static <T> T createLiveReloadingProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            int feignConnectTimeout,
+            int feignReadTimeout,
+            int maxBackoffMillis,
+            Class<T> type,
+            String userAgent) {
         PollingRefreshable<ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
         return Reflection.newProxy(
@@ -141,6 +161,9 @@ public final class AtlasDbFeignTargetFactory {
                                 serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
                                 serverListConfig.proxyConfiguration().map(proxySelectorCreator),
                                 serverListConfig.servers(),
+                                feignConnectTimeout,
+                                feignReadTimeout,
+                                maxBackoffMillis,
                                 type,
                                 userAgent)));
     }

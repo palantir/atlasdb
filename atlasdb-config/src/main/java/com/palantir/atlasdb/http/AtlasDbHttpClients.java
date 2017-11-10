@@ -33,8 +33,8 @@ import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public final class AtlasDbHttpClients {
-    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
-    private static final int QUICK_MAX_BACKOFF_MILLIS = 1000;
+    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
+    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -158,6 +158,27 @@ public final class AtlasDbHttpClients {
                 type,
                 AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
+    @VisibleForTesting
+    static <T> T createLiveReloadingProxyWithQuickFailoverForTesting(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier,
+                        sslSocketFactoryCreator,
+                        proxySelectorCreator,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_MAX_BACKOFF_MILLIS,
+                        type,
+                        userAgent),
                 MetricRegistry.name(type));
     }
 
