@@ -315,7 +315,7 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
 
-        QosClient qosClient = getQosClient(runtimeConfigSupplier.get().getQosServiceConfiguration(), userAgent());
+        QosClient qosClient = getQosClient(runtimeConfigSupplier.get().getQosServiceConfiguration());
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
@@ -409,15 +409,13 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    private QosClient getQosClient(Optional<ServiceConfiguration> serviceConfiguration, String userAgent) {
-        return serviceConfiguration
-                .map(config -> createAtlasDbQosClient(config, userAgent))
-                .orElseGet(FakeQosClient::new);
+    private QosClient getQosClient(Optional<ServiceConfiguration> serviceConfiguration) {
+        return serviceConfiguration.map(this::createAtlasDbQosClient).orElseGet(FakeQosClient::getDefault);
     }
 
-    private QosClient createAtlasDbQosClient(ServiceConfiguration serviceConfiguration, String userAgent) {
+    private QosClient createAtlasDbQosClient(ServiceConfiguration serviceConfiguration) {
         QosService qosService = JaxRsClient.create(QosService.class,
-                userAgent,
+                userAgent(),
                 ClientConfigurations.of(serviceConfiguration));
         ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
                 Executors.newSingleThreadScheduledExecutor(),
