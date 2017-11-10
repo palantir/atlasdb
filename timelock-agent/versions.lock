@@ -170,8 +170,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting2:error-handling",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.remoting2:error-handling"
             ]
         },
         "com.google.guava:guava": {
@@ -447,8 +446,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timelock-impl",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -611,9 +609,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
@@ -829,8 +825,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting2:error-handling",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.remoting2:error-handling"
             ]
         },
         "com.google.guava:guava": {
@@ -1106,8 +1101,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timelock-impl",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -1270,9 +1264,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {

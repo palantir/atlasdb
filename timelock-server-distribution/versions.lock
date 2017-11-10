@@ -266,8 +266,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
-                "io.dropwizard:dropwizard-util",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "io.dropwizard:dropwizard-util"
             ]
         },
         "com.google.guava:guava": {
@@ -835,8 +834,7 @@
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics",
-                "io.dropwizard:dropwizard-servlets",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "io.dropwizard:dropwizard-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
@@ -1372,8 +1370,7 @@
             "locked": "2.1.10",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "org.hibernate:hibernate-validator": {
