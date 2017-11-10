@@ -123,7 +123,7 @@ public final class AtlasDbFeignTargetFactory {
                 userAgent);
     }
 
-    public static <T> T createProxyWithFailover(
+    public static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,

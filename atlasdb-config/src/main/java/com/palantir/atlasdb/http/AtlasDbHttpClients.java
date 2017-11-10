@@ -156,7 +156,7 @@ public final class AtlasDbHttpClients {
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 type,
-                AtlasDbFeignTargetFactory.createProxyWithFailover(
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
                 MetricRegistry.name(type));
     }

@@ -27,5 +27,4 @@ public final class TimeLockClientConfigs {
                 .client(namespace)
                 .build();
     }
-
 }
