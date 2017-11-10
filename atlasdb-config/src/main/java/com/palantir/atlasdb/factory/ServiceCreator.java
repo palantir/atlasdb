@@ -76,7 +76,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
             java.util.function.Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
-        return AtlasDbHttpClients.createProxyWithFailover(
+        return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
     }
 

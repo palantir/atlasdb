@@ -26,9 +26,11 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.reflect.Reflection;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.remoting3.ext.refresh.RefreshableProxyInvocationHandler;
 
 import feign.Client;
 import feign.Contract;
@@ -129,15 +131,18 @@ public final class AtlasDbFeignTargetFactory {
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
-        return RecreatingInvocationHandler.create(
-                serverListConfigSupplier,
-                serverListConfig -> createProxyWithFailover(
-                        serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
-                        serverListConfig.proxyConfiguration().map(proxySelectorCreator),
-                        serverListConfig.servers(),
-                        type,
-                        userAgent),
-                type);
+        PollingRefreshable<ServerListConfig> configPollingRefreshable =
+                PollingRefreshable.create(serverListConfigSupplier);
+        return Reflection.newProxy(
+                type,
+                RefreshableProxyInvocationHandler.create(
+                        configPollingRefreshable.getRefreshable(),
+                        serverListConfig -> createProxyWithFailover(
+                                serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
+                                serverListConfig.proxyConfiguration().map(proxySelectorCreator),
+                                serverListConfig.servers(),
+                                type,
+                                userAgent)));
     }
 
     private static <T> T createProxyWithFailover(
