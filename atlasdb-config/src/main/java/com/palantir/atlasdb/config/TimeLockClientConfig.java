@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.config;
 
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -45,16 +43,15 @@ public abstract class TimeLockClientConfig {
                 "Tried to read a client from a TimeLockClientConfig, but it hadn't been initialised."));
     }
 
+    /**
+     * @deprecated Please use {@link TimeLockRuntimeConfig} to specify the {@link ServerListConfig} to be used
+     * for connecting to TimeLock.
+     */
+    @Deprecated
     public abstract ServerListConfig serversList();
 
     public ServerListConfig toNamespacedServerList() {
-        Set<String> serversWithNamespaces = serversList()
-                .servers()
-                .stream()
-                .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + getClientOrThrow())
-                .collect(Collectors.toSet());
-        return ImmutableServerListConfig.copyOf(serversList())
-                .withServers(serversWithNamespaces);
+        return ServerListConfigs.namespaceUris(serversList(), getClientOrThrow());
     }
 
     @Value.Check
