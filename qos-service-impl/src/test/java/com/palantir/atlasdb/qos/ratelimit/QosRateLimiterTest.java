@@ -68,7 +68,7 @@ public class QosRateLimiterTest {
         limiter.updateRate(10);
 
         limiter.consumeWithBackoff(1);
-        limiter.recordAdditionalConsumption(100);
+        limiter.recordAdjustment(100);
 
         assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
     }
@@ -91,10 +91,10 @@ public class QosRateLimiterTest {
         limiter.updateRate(10);
         limiter.consumeWithBackoff(100);
 
-        Duration timeToWait = limiter.consumeWithBackoff(20);
-        assertThat(timeToWait).isGreaterThan(Duration.ZERO);
+        Duration timeWaited = limiter.consumeWithBackoff(20);
+        assertThat(timeWaited).isGreaterThan(Duration.ZERO);
 
-        when(stopwatch.readMicros()).thenReturn(2 * TimeUnit.NANOSECONDS.toMicros(timeToWait.toNanos()));
+        when(stopwatch.readMicros()).thenReturn(2 * TimeUnit.NANOSECONDS.toMicros(timeWaited.toNanos()));
 
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ZERO);
     }
