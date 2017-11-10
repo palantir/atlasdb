@@ -68,6 +68,10 @@ develop
          - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
 
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.4, which depends on the same version of ``com.palantir.remoting3`` and ``HdrHistogram`` as AtlasDB.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2662>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -84,11 +88,6 @@ v0.66.0
          - Change
 
     *    - |improved|
-<<<<<<< HEAD
-         - AtlasDB now depends on Tritium 0.8.4, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
-||||||| merged common ancestors
-         - AtlasDB now depends on Tritium 0.8.3, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
-=======
          - AtlasDB now depends on Tritium 0.8.3, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2642>`__)
 
@@ -109,15 +108,7 @@ v0.66.0-rc2
 
     *    - |improved|
          - AtlasDB now depends on Tritium 0.8.1.
->>>>>>> develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2639>`__)
-<<<<<<< HEAD
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2662>`__)
-||||||| merged common ancestors
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
-=======
->>>>>>> develop
 
     *    - |improved|
          - AtlasDB can now tag RC releases.
