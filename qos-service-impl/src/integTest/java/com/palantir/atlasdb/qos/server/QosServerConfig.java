@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.server;
 
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
-import org.immutables.value.Value;
+import io.dropwizard.Configuration;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+public class QosServerConfig extends Configuration {
 
-@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
-@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
-@Value.Immutable
-public abstract class QosServiceRuntimeConfig {
-    abstract Map<String, Long> clientLimits();
+    private final QosServiceRuntimeConfig runtime;
+
+    public QosServerConfig(@JsonProperty("runtime") QosServiceRuntimeConfig runtime) {
+        this.runtime = runtime;
+    }
+
+    public QosServiceRuntimeConfig runtime() {
+        return runtime;
+    }
 }

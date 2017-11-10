@@ -28,18 +28,15 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 public class QosRuntimeConfigDeserializationTest {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
-            .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
-
-    static {
-        OBJECT_MAPPER.registerModule(new GuavaModule());
-        OBJECT_MAPPER.registerModule(new Jdk8Module());
-    }
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory())
+            .registerModule(new GuavaModule());
 
     @Test
     public void canDeserializeQosServerConfiguration() throws IOException {
