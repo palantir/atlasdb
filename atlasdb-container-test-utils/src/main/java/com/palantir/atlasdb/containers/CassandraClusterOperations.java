@@ -16,34 +16,45 @@
 package com.palantir.atlasdb.containers;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
-public class ThreeNodeCassandraClusterOperations {
-    private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
+public class CassandraClusterOperations {
+    private static final Logger log = LoggerFactory.getLogger(CassandraClusterOperations.class);
+    private static final int NODETOOL_DISABLEAUTOCOMPACTION_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 60;
 
     private final DockerComposeRule dockerComposeRule;
     private final CassandraCliParser cassandraCliParser;
     private final CassandraVersion cassandraVersion;
+    private final List<String> containerNames;
+    private final String cliContainerName;
 
-    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, CassandraVersion version) {
+    public CassandraClusterOperations(DockerComposeRule dockerComposeRule,
+            CassandraVersion version,
+            List<String> containerNames,
+            String cliContainerName) {
+        Preconditions.checkArgument(!containerNames.isEmpty(), "Must have at least one node!");
         this.dockerComposeRule = dockerComposeRule;
         this.cassandraVersion = version;
         this.cassandraCliParser = new CassandraCliParser(version);
+        this.containerNames = containerNames;
+        this.cliContainerName = cliContainerName;
     }
 
-    public boolean nodetoolShowsThreeCassandraNodesUp() {
+    public boolean nodetoolShowsAllCassandraNodesUp() {
         try {
             String output = runNodetoolCommand("status", NODETOOL_STATUS_TIMEOUT_SECONDS);
             int numberNodesUp = cassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(output);
-            return numberNodesUp == 3;
+            return numberNodesUp == containerNames.size();
         } catch (Exception e) {
             log.warn("Failed while running nodetool status", e);
             return false;
@@ -56,6 +67,10 @@ public class ThreeNodeCassandraClusterOperations {
             setReplicationFactorOfSystemAuthenticationKeyspaceToThree();
             runNodetoolRepair();
         }
+    }
+
+    public void disableAutoCompaction() throws IOException, InterruptedException {
+        runNodetoolCommandOnAllContainers("disableautocompaction", NODETOOL_DISABLEAUTOCOMPACTION_TIMEOUT_SECONDS);
     }
 
     private void runNodetoolRepair() throws IOException, InterruptedException {
@@ -81,17 +96,29 @@ public class ThreeNodeCassandraClusterOperations {
                 "cqlsh",
                 "--username", CassandraContainer.USERNAME,
                 "--password", CassandraContainer.PASSWORD,
-                ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
+                containerNames.get(0),
                 "--execute", cql);
     }
 
     private String runNodetoolCommand(String nodetoolCommand, int timeoutSeconds) throws IOException,
             InterruptedException {
+        return runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds, containerNames.get(0));
+    }
+
+    private void runNodetoolCommandOnAllContainers(String nodetoolCommand, int timeoutSeconds)
+            throws IOException, InterruptedException {
+        for (String containerName : containerNames) {
+            runNodetoolCommandOnContainer(nodetoolCommand, timeoutSeconds, containerName);
+        }
+    }
+
+    private String runNodetoolCommandOnContainer(String nodetoolCommand, int timeoutSeconds, String container)
+            throws IOException, InterruptedException {
         return runCommandInCliContainer(
                 "timeout",
                 Integer.toString(timeoutSeconds),
                 "nodetool",
-                "--host", ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
+                "--host", container,
                 nodetoolCommand);
     }
 
@@ -99,7 +126,7 @@ public class ThreeNodeCassandraClusterOperations {
             InterruptedException {
         return dockerComposeRule.run(
                 DockerComposeRunOption.options("-T"),
-                ThreeNodeCassandraCluster.CLI_CONTAINER_NAME,
+                cliContainerName,
                 DockerComposeRunArgument.arguments(arguments));
     }
 }

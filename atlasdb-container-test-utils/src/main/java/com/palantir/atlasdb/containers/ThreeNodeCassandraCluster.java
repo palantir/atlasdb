@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -82,16 +83,21 @@ public class ThreeNodeCassandraCluster extends Container {
         return SuccessOrFailure.onResultOf(() -> {
 
             try {
-                ThreeNodeCassandraClusterOperations cassandraOperations =
-                        new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION);
+                CassandraClusterOperations cassandraOperations =
+                        new CassandraClusterOperations(rule, CASSANDRA_VERSION,
+                                ImmutableList.of(FIRST_CASSANDRA_CONTAINER_NAME,
+                                        SECOND_CASSANDRA_CONTAINER_NAME,
+                                        THIRD_CASSANDRA_CONTAINER_NAME),
+                                CLI_CONTAINER_NAME);
 
-                if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
+                if (!cassandraOperations.nodetoolShowsAllCassandraNodesUp()) {
                     return false;
                 }
 
                 // slightly hijacking the isReady function here - using it
                 // to actually modify the cluster
                 cassandraOperations.replicateSystemAuthenticationDataOnAllNodes();
+                cassandraOperations.disableAutoCompaction();
 
                 return canCreateCassandraKeyValueService();
             } catch (Exception e) {
