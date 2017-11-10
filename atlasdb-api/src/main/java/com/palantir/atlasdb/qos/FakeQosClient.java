@@ -16,15 +16,16 @@
 
 package com.palantir.atlasdb.qos;
 
-import static org.junit.Assert.assertEquals;
+public class FakeQosClient implements QosClient {
 
-import org.junit.Test;
+    private static final FakeQosClient DEFAULT = new FakeQosClient();
 
-public class QosServiceResourceTest {
-    @Test
-    public void canGetLimit() {
-        QosService resource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
-        assertEquals(Integer.MAX_VALUE, resource.getLimit("test-client"));
+    public static FakeQosClient getDefault() {
+        return DEFAULT;
+    }
+
+    @Override
+    public void checkLimit() {
+        // no op
     }
 }
-

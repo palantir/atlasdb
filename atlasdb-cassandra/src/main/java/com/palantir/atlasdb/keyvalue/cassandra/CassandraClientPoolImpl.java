@@ -31,7 +31,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
@@ -51,7 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
-import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -74,11 +72,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
-import com.palantir.atlasdb.qos.AtlasDbQosClient;
-import com.palantir.atlasdb.qos.ImmutableQosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.QosService;
-import com.palantir.atlasdb.qos.QosServiceResource;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.qos.FakeQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -157,7 +152,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
-    private final AtlasDbQosClient qosClient;
+    private final QosClient qosClient;
     private final ScheduledExecutorService refreshDaemon;
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
@@ -170,36 +165,29 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.getDefault());
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.getDefault());
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = create(config,
-                StartupChecks.RUN, initializeAsync);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync,
+            QosClient qosClient) {
+        CassandraClientPoolImpl cassandraClientPool = create(config, StartupChecks.RUN, initializeAsync, qosClient);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks, boolean initializeAsync) {
-        // TODO eventually we'll want to pass this in from somewhere
-        QosService qosResource = new QosServiceResource(ImmutableQosServiceRuntimeConfig.builder().build());
-
-        ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
-                Executors.newSingleThreadScheduledExecutor(),
-                AtlasDbMetrics.getMetricRegistry(),
-                "qos-client-executor");
-        AtlasDbQosClient qosClient = AtlasDbQosClient.create(scheduler, qosResource, config.getKeyspaceOrThrow());
+            StartupChecks startupChecks, boolean initializeAsync, QosClient qosClient) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks, qosClient);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
+
     private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks,
-            AtlasDbQosClient qosClient) {
+            QosClient qosClient) {
         this.config = config;
         this.startupChecks = startupChecks;
         this.qosClient = qosClient;

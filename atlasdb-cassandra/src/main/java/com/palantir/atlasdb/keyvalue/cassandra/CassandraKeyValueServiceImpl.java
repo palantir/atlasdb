@@ -121,6 +121,8 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.qos.FakeQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.annotation.Idempotent;
@@ -222,8 +224,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
-        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class),
-                initializeAsync);
+        return create(configManager, leaderConfig, initializeAsync, FakeQosClient.getDefault());
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync,
+            QosClient qosClient) {
+        return create(configManager,
+                leaderConfig,
+                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                initializeAsync,
+                qosClient);
     }
 
     @VisibleForTesting
@@ -231,18 +244,25 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
-        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                FakeQosClient.getDefault());
     }
 
     private static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClient qosClient) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraKeyValueServiceImpl keyValueService =
-                new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
+        CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
+                log,
+                configManager,
+                compactionManager,
+                leaderConfig,
+                initializeAsync,
+                qosClient);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
@@ -251,12 +271,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                        CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig,
-                                       boolean initializeAsync) {
+                                       boolean initializeAsync,
+                                       QosClient qosClient) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync, qosClient);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();

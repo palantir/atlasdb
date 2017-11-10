@@ -14,22 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent;
 
-public class QosServiceResource implements QosService {
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-    private QosServiceRuntimeConfig config;
+import com.palantir.atlasdb.qos.QosResource;
+import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
-    public QosServiceResource(QosServiceRuntimeConfig config) {
+public class QosAgent {
+
+    private final Supplier<QosServiceRuntimeConfig> config;
+    private final Consumer<Object> registrar;
+
+    public QosAgent(Supplier<QosServiceRuntimeConfig> config, Consumer<Object> registrar) {
         this.config = config;
+        this.registrar = registrar;
     }
 
-    @Override
-    public long getLimit(String client) {
-        Long currentClientLimit = config.clientLimits().get(client);
-        if (currentClientLimit == null) {
-            currentClientLimit = Long.MAX_VALUE;
-        }
-        return currentClientLimit;
+    public void createAndRegisterResources() {
+        registrar.accept(new QosResource(config));
     }
+
 }

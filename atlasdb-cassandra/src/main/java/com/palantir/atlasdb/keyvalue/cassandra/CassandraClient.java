@@ -41,7 +41,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.processors.AutoDelegate;
 
 /**
@@ -53,10 +53,10 @@ public class CassandraClient extends AutoDelegate_Client {
     private final Logger log = LoggerFactory.getLogger(CassandraClient.class);
 
     private final Cassandra.Client delegate;
-    private final AtlasDbQosClient qosClient;
     private final QosMetrics qosMetrics;
+    private final QosClient qosClient;
 
-    public CassandraClient(Cassandra.Client delegate, AtlasDbQosClient qosClient) {
+    public CassandraClient(Cassandra.Client delegate, QosClient qosClient) {
         super(delegate.getInputProtocol());
         this.delegate = delegate;
         this.qosClient = qosClient;

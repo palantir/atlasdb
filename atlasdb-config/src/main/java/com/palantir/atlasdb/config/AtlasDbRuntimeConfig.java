@@ -16,11 +16,14 @@
 
 package com.palantir.atlasdb.config;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -57,6 +60,8 @@ public abstract class AtlasDbRuntimeConfig {
     public long getTimestampCacheSize() {
         return AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
     }
+
+    public abstract Optional<ServiceConfiguration> getQosServiceConfiguration();
 
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder().build();

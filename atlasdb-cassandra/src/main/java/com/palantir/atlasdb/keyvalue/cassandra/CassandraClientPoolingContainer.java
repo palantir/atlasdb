@@ -40,7 +40,7 @@ import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
@@ -50,7 +50,7 @@ import com.palantir.logsafe.UnsafeArg;
 public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
-    private final AtlasDbQosClient qosClient;
+    private final QosClient qosClient;
     private final InetSocketAddress host;
     private final CassandraKeyValueServiceConfig config;
     private final MetricsManager metricsManager = new MetricsManager();
@@ -58,7 +58,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<Client> clientPool;
 
-    public CassandraClientPoolingContainer(AtlasDbQosClient qosClient,
+    public CassandraClientPoolingContainer(QosClient qosClient,
             InetSocketAddress host,
             CassandraKeyValueServiceConfig config,
             int poolNumber) {
