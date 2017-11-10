@@ -49,7 +49,7 @@ public final class PollingRefreshable<T> implements AutoCloseable {
 
     private final Refreshable<T> refreshable = Refreshable.empty();
 
-    private volatile T lastSeenValue;
+    private T lastSeenValue;
 
     private PollingRefreshable(Supplier<T> supplier,
             Duration refreshInterval,
