@@ -39,6 +39,8 @@ public abstract class AtlasDbConfig {
     @VisibleForTesting
     static final String UNSPECIFIED_NAMESPACE = "unspecified";
 
+    private String namespace;
+
     public abstract KeyValueServiceConfig keyValueService();
 
     public abstract Optional<LeaderConfig> leader();
@@ -264,7 +266,7 @@ public abstract class AtlasDbConfig {
     protected final void check() {
         checkLeaderAndTimelockBlocks();
         checkLockAndTimestampBlocks();
-        checkNamespaceConfig();
+        checkNamespaceConfigAndGetNamespace();
     }
 
     private void checkLeaderAndTimelockBlocks() {
@@ -286,25 +288,19 @@ public abstract class AtlasDbConfig {
                 "Lock and timestamp server blocks must either both be present or both be absent.");
     }
 
-    private void checkNamespaceConfig() {
-        getNamespaceString();
-    }
-
-    @Value.Derived
-    public String getNamespaceString() {
+    private String checkNamespaceConfigAndGetNamespace() {
         if (namespace().isPresent()) {
-            String namespace = namespace().get();
-
+            String namespaceConfigValue = namespace().get();
             keyValueService().namespace().ifPresent(kvsNamespace ->
-                    Preconditions.checkState(kvsNamespace.equals(namespace),
+                    Preconditions.checkState(kvsNamespace.equals(namespaceConfigValue),
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
             timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
-                    Preconditions.checkState(client.equals(namespace),
+                    Preconditions.checkState(client.equals(namespaceConfigValue),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config.")));
-            return namespace;
+            return namespaceConfigValue;
         } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"
@@ -331,16 +327,24 @@ public abstract class AtlasDbConfig {
             return keyValueServiceNamespace;
         } else {
             Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
-                "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
+                    "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
                     keyValueService().getClass());
             if (timelock().isPresent()) {
-                // Special case - empty timelock and empty namespace/keyspace does not make sense
-                Preconditions.checkState(timelock().get().client().isPresent(),
-                        "For InMemoryKVS, the TimeLock client should not be empty");
-                return timelock().get().client().get();
+                return timelock().get().client()
+                        .orElseThrow(() ->
+                                new IllegalStateException("For InMemoryKVS, the TimeLock client should not be empty"));
             }
             return UNSPECIFIED_NAMESPACE;
         }
+    }
+
+    @Value.Derived
+    @JsonIgnore
+    public String getNamespaceString() {
+        if (namespace == null) {
+            namespace = checkNamespaceConfigAndGetNamespace();
+        }
+        return namespace;
     }
 
     private boolean areTimeAndLockConfigsAbsent() {
