@@ -84,7 +84,7 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForEmptyByteBuffer() {
-        assertThat(ThriftObjectSizeUtils.getByteBufferSize(ByteBuffer.wrap(new byte[]{})))
+        assertThat(ThriftObjectSizeUtils.getByteBufferSize(ByteBuffer.wrap(new byte[] {})))
                 .isEqualTo(0L);
     }
 
@@ -156,8 +156,8 @@ public class ThriftObjectSizeUtilsTest {
     @Test
     public void getSizeForMutationWithDeletionContainingNonEmptySlicePredicate() {
         long deletionSize = (Long.BYTES) + (Integer.BYTES) + (TEST_MAME.getBytes().length + Integer.BYTES);
-        assertThat(ThriftObjectSizeUtils.
-                getMutationSize(new Mutation()
+        assertThat(ThriftObjectSizeUtils
+                .getMutationSize(new Mutation()
                         .setDeletion(new Deletion()
                                 .setPredicate(new SlicePredicate()
                                         .setColumn_names(ImmutableList.of(ByteBuffer.wrap(TEST_MAME.getBytes())))))))
