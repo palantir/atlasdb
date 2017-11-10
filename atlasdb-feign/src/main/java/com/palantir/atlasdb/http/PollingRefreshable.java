@@ -37,21 +37,24 @@ import com.palantir.remoting3.ext.refresh.Refreshable;
  * @param <T> type of the value supplied / pushed to the Refreshable
  */
 public final class PollingRefreshable<T> implements AutoCloseable {
-    // TODO (jkong): Should this be configurable?
     @VisibleForTesting
-    static final Duration POLL_INTERVAL = Duration.ofSeconds(5L);
+    static final Duration DEFAULT_REFRESH_INTERVAL = Duration.ofSeconds(5L);
 
     private static final Logger log = LoggerFactory.getLogger(PollingRefreshable.class);
 
     private final Supplier<T> supplier;
+    private final Duration refreshInterval;
     private final ScheduledExecutorService poller;
 
     private final Refreshable<T> refreshable = Refreshable.empty();
 
     private volatile T lastSeenValue;
 
-    private PollingRefreshable(Supplier<T> supplier, ScheduledExecutorService poller) {
+    private PollingRefreshable(Supplier<T> supplier,
+            Duration refreshInterval,
+            ScheduledExecutorService poller) {
         this.supplier = supplier;
+        this.refreshInterval = refreshInterval;
         this.poller = poller;
 
         try {
@@ -64,13 +67,21 @@ public final class PollingRefreshable<T> implements AutoCloseable {
     }
 
     public static <T> PollingRefreshable<T> create(Supplier<T> supplier) {
+        return create(supplier, DEFAULT_REFRESH_INTERVAL);
+    }
+
+    public static <T> PollingRefreshable<T> create(Supplier<T> supplier, Duration refreshInterval) {
         return createWithSpecificPoller(supplier,
+                refreshInterval,
                 Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("polling-refreshable", true)));
     }
 
     @VisibleForTesting
-    static <T> PollingRefreshable<T> createWithSpecificPoller(Supplier<T> supplier, ScheduledExecutorService poller) {
-        PollingRefreshable<T> pollingRefreshable = new PollingRefreshable<>(supplier, poller);
+    static <T> PollingRefreshable<T> createWithSpecificPoller(
+            Supplier<T> supplier,
+            Duration refreshInterval,
+            ScheduledExecutorService poller) {
+        PollingRefreshable<T> pollingRefreshable = new PollingRefreshable<>(supplier, refreshInterval, poller);
         pollingRefreshable.scheduleUpdates();
         return pollingRefreshable;
     }
@@ -93,7 +104,7 @@ public final class PollingRefreshable<T> implements AutoCloseable {
                         UnsafeArg.of("currentValue", lastSeenValue),
                         e);
             }
-        }, POLL_INTERVAL.getSeconds(), POLL_INTERVAL.getSeconds(), TimeUnit.SECONDS);
+        }, refreshInterval.getSeconds(), refreshInterval.getSeconds(), TimeUnit.SECONDS);
     }
 
     @Override
