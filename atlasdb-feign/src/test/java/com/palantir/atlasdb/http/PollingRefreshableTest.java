@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -148,6 +149,18 @@ public class PollingRefreshableTest {
         // But now we cumulatively have ticked by 2*REFRESH_INTERVAL + 1, so we should have polled
         scheduler.tick(REFRESH_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
         assertRefreshableContainsAndClear(refreshable, 2L);
+    }
+
+    @Test
+    public void cannotSetRefreshIntervalToZero() {
+        assertThatThrownBy(() -> PollingRefreshable.create(() -> 1L, Duration.ZERO))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void cannotSetNegativeRefreshInterval() {
+        assertThatThrownBy(() -> PollingRefreshable.create(() -> 1L, Duration.of(-1, ChronoUnit.SECONDS)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private <T> PollingRefreshable<T> createPollingRefreshableWithTestScheduler(Supplier<T> supplier) {

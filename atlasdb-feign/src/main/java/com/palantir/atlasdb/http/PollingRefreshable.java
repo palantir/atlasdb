@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.ext.refresh.Refreshable;
@@ -53,6 +54,9 @@ public final class PollingRefreshable<T> implements AutoCloseable {
     private PollingRefreshable(Supplier<T> supplier,
             Duration refreshInterval,
             ScheduledExecutorService poller) {
+        Preconditions.checkArgument(!refreshInterval.isNegative() && !refreshInterval.isZero(),
+                "Refresh interval must be positive, but found %s", refreshInterval);
+
         this.supplier = supplier;
         this.refreshInterval = refreshInterval;
         this.poller = poller;
