@@ -125,6 +125,28 @@ public final class AtlasDbFeignTargetFactory {
                 userAgent);
     }
 
+    private static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
+            Collection<String> endpointUris,
+            Request.Options feignOptions,
+            int maxBackoffMillis,
+            Class<T> type,
+            String userAgent) {
+        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
+        Client client = failoverFeignTarget.wrapClient(
+                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .errorDecoder(errorDecoder)
+                .client(client)
+                .retryer(failoverFeignTarget)
+                .options(feignOptions)
+                .target(failoverFeignTarget);
+    }
+
     public static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
@@ -167,27 +189,4 @@ public final class AtlasDbFeignTargetFactory {
                                 type,
                                 userAgent)));
     }
-
-    private static <T> T createProxyWithFailover(
-            Optional<SSLSocketFactory> sslSocketFactory,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            Request.Options feignOptions,
-            int maxBackoffMillis,
-            Class<T> type,
-            String userAgent) {
-        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
-        Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .client(client)
-                .retryer(failoverFeignTarget)
-                .options(feignOptions)
-                .target(failoverFeignTarget);
-    }
-
 }
