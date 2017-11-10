@@ -17,5 +17,5 @@
 package com.palantir.atlasdb.qos;
 
 public interface QosClient {
-   void checkLimit();
+    void checkLimit();
 }

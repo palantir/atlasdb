@@ -289,6 +289,7 @@ public abstract class AtlasDbConfig {
     }
 
     @Value.Derived
+    @JsonIgnore
     public String getNamespaceString() {
         if (namespace().isPresent()) {
             String namespace = namespace().get();
