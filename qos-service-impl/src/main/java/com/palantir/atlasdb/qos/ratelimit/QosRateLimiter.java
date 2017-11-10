@@ -62,7 +62,7 @@ public class QosRateLimiter {
      * Consumes the given {@code estimatedNumUnits}, and potentially sleeps or throws an exception if backoff is
      * required. This should be called prior to executing a query.
      *
-     * @return the amount of time slept for, if any.
+     * @return the amount of time slept for, if any
      */
     public Duration consumeWithBackoff(int estimatedNumUnits) {
         Optional<Duration> waitTime = rateLimiter.tryAcquire(

@@ -1,3 +1,4 @@
+// CHECKSTYLE:OFF
 /*
  * Copyright (C) 2012 The Guava Authors
  *
@@ -15,7 +16,6 @@
  */
 
 package com.palantir.atlasdb.qos.ratelimit;
-// CHECKSTYLE:OFF
 
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.SECONDS;
