@@ -101,7 +101,8 @@ public class CassandraClientImpl implements CassandraClient {
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return client.cas(key, tableReference.getQualifiedName(), expected, updates, serial_consistency_level,
+        String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
+        return client.cas(key, internalTableName, expected, updates, serial_consistency_level,
                 commit_consistency_level);
     }
 
