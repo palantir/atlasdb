@@ -39,7 +39,6 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
-import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
