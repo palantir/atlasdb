@@ -23,6 +23,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
@@ -47,13 +48,14 @@ public class AtlasDbServicesConnector implements Closeable {
         DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
         KeyValueServiceConfig config = dburi.getKeyValueServiceInstrumentation()
                 .getKeyValueServiceConfig(dburi.getAddress());
+        ImmutableAtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder().keyValueService(config).build();
+        ImmutableAtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.defaultRuntimeConfig();
+        ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(atlasDbConfig, runtimeConfig);
+
         services = DaggerAtlasDbServices.builder()
-                .servicesConfigModule(
-                        ServicesConfigModule.create(
-                                ImmutableAtlasDbConfig.builder()
-                                        .keyValueService(config)
-                                        .build()))
+                .servicesConfigModule(servicesConfigModule)
                 .build();
+
         return services;
     }
 

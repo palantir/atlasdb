@@ -44,6 +44,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PaxosTimestampCreator implements TimestampCreator {
@@ -114,11 +115,12 @@ public class PaxosTimestampCreator implements TimestampCreator {
                         ImmutableList.copyOf(learners),
                         paxosRuntime.get().maximumWaitBeforeProposalMs()),
                 client);
-        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(boundStore);
+        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
         return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
     }
 
     private static <T> T instrument(Class<T> serviceClass, T service, String client) {
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass, client));
+        // TODO(nziebart): tag with the client name, when tritium supports it
+        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
     }
 }

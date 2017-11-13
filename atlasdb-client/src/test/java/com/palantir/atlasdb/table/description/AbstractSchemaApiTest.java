@@ -47,13 +47,16 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
+import com.palantir.atlasdb.table.description.test.StringValue;
+import com.palantir.atlasdb.table.description.test.StringValuePersister;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 
 public abstract class AbstractSchemaApiTest {
     private static final TableReference tableRef =
-            TableReference.create(Namespace.DEFAULT_NAMESPACE, "SchemaApiTest");
+            TableReference.create(Namespace.DEFAULT_NAMESPACE, SchemaApiTestTable.getRawTableName());
 
     protected static final String TEST_ROW_KEY = "testRowKey";
     protected static final String TEST_ROW_KEY2 = "testRowKey2";
@@ -61,9 +64,11 @@ public abstract class AbstractSchemaApiTest {
     protected static final String RANGE_END_ROW_KEY = "testRowKeyEndRange";
     protected static final long TEST_VALUE_LONG = 2L;
     protected static final long TEST_VALUE_LONG2 = 3L;
-    protected static final String TEST_VALUE_STRING = "value1";
-    protected static final String TEST_VALUE_STRING2 = "value2";
-    protected static final String TEST_VALUE_STRING3 = "value3";
+    protected static final StringValue TEST_VALUE_STRING = StringValue.of("value1");
+    protected static final StringValue TEST_VALUE_STRING2 = StringValue.of("value2");
+    protected static final StringValue TEST_VALUE_STRING3 = StringValue.of("value3");
+
+    protected static final StringValuePersister STRING_VALUE_PERSISTER = new StringValuePersister();
 
     protected static final String FIRST_COL_SHORT_NAME = "c";
     protected static final String SECOND_COL_SHORT_NAME = "d";
@@ -76,8 +81,10 @@ public abstract class AbstractSchemaApiTest {
     protected abstract void putSingleRowFirstColumn(Transaction transaction, String roWKey, long value);
     protected abstract Long getSingleRowFirstColumn(Transaction transaction, String rowKey);
     protected abstract Map<String, Long> getMultipleRowsFirstColumn(Transaction transaction, List<String> rowKey);
-    protected abstract Map<String, String> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey);
-    protected abstract Map<String,String> getRangeSecondColumnOnlyFirstTwoResults(Transaction transaction, String testRowKey,
+    protected abstract Map<String, StringValue> getRangeSecondColumn(Transaction transaction, String startRowKey,
+            String endRowKey);
+    protected abstract Map<String, StringValue> getRangeSecondColumnOnlyFirstTwoResults(Transaction transaction,
+            String testRowKey,
             String rangeEndRowKey);
     protected abstract void deleteWholeRow(Transaction transaction, String rowKey);
     protected abstract void deleteFirstColumn(Transaction transaction, String rowKey);
@@ -156,12 +163,12 @@ public abstract class AbstractSchemaApiTest {
                 .build();
         when(transaction.getRange(tableRef, expectedRange)).thenReturn(
                 BatchingVisitableFromIterable.create(Arrays.asList(
-                        RowResult.of(expectedCell, TEST_VALUE_STRING.getBytes()),
-                        RowResult.of(anotherExpectedCell, TEST_VALUE_STRING2.getBytes())
+                        RowResult.of(expectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING)),
+                        RowResult.of(anotherExpectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING2))
                 ))
         );
 
-        Map<String, String> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
+        Map<String, StringValue> result = getRangeSecondColumn(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
 
         assertThat(result)
                 .isEqualTo(ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_STRING, TEST_ROW_KEY2, TEST_VALUE_STRING2));
@@ -182,13 +189,14 @@ public abstract class AbstractSchemaApiTest {
                 .build();
         when(transaction.getRange(tableRef, expectedRange)).thenReturn(
                 BatchingVisitableFromIterable.create(Arrays.asList(
-                        RowResult.of(expectedCell, TEST_VALUE_STRING.getBytes()),
-                        RowResult.of(anotherExpectedCell, TEST_VALUE_STRING2.getBytes()),
-                        RowResult.of(cellToBeDroppedFromResults, TEST_VALUE_STRING3.getBytes())
+                        RowResult.of(expectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING)),
+                        RowResult.of(anotherExpectedCell, STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING2)),
+                        RowResult.of(cellToBeDroppedFromResults,
+                                STRING_VALUE_PERSISTER.persistToBytes(TEST_VALUE_STRING3))
                 ))
         );
 
-        Map<String, String> result =
+        Map<String, StringValue> result =
                 getRangeSecondColumnOnlyFirstTwoResults(transaction, TEST_ROW_KEY, RANGE_END_ROW_KEY);
 
         assertThat(result)

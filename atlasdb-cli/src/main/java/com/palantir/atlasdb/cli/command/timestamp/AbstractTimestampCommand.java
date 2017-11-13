@@ -30,6 +30,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.logsafe.SafeArg;
 
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
@@ -78,7 +79,8 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
         try {
             timestampString = StringUtils.strip(Iterables.getOnlyElement(Files.readAllLines(file.toPath())));
         } catch (IOException e) {
-            printer.error("IOException thrown reading timestamp from file: {}", file.getPath());
+            printer.error("IOException thrown reading timestamp from file: {}",
+                    SafeArg.of("file path", file.getPath()));
             throw Throwables.propagate(e);
         }
         return Long.parseLong(timestampString);
@@ -92,7 +94,7 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
             }
             Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            printer.error("IOException thrown writing timestamp to file: {}", file.getPath());
+            printer.error("IOException thrown writing timestamp to file: {}", SafeArg.of("file path", file.getPath()));
             Throwables.propagate(e);
         }
     }

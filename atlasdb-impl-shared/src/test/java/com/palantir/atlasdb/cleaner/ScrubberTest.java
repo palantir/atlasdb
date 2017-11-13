@@ -16,6 +16,11 @@
 
 package com.palantir.atlasdb.cleaner;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.List;
 import java.util.SortedMap;
 
@@ -50,23 +55,49 @@ public class ScrubberTest {
         kvs.createTable(TransactionConstants.TRANSACTION_TABLE, new byte[] {});
         transactions = new SimpleTransactionService(kvs);
         scrubStore = KeyValueServiceScrubberStore.create(kvs);
-        scrubber = Scrubber.create(kvs, scrubStore,
-                () -> Long.MAX_VALUE, // background scrub frequency millis
-                () -> true, // scrub enabled
-                () -> 100L, // unreadable timestamp
-                () -> 100L, // immutable timestamp
-                transactions,
-                false, // is aggressive
-                () -> 100, //  batch size
-                1, // thread count
-                1, // read thread count
-                ImmutableList.of()); // followers
+        scrubber = getScrubber(kvs, scrubStore, transactions);
     }
 
     @After
     public void after() {
         scrubber.shutdown();
         kvs.close();
+    }
+
+    @Test
+    public void isInitializedWhenPrerequisitesAreInitialized() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        ScrubberStore mockStore = mock(ScrubberStore.class);
+        when(mockKvs.isInitialized()).thenReturn(true);
+        when(mockStore.isInitialized()).thenReturn(true);
+
+        Scrubber theScrubber = getScrubber(mockKvs, mockStore, transactions);
+
+        assertTrue(theScrubber.isInitialized());
+    }
+
+    @Test
+    public void isNotInitializedWhenKvsIsNotInitialized() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        ScrubberStore mockStore = mock(ScrubberStore.class);
+        when(mockKvs.isInitialized()).thenReturn(false);
+        when(mockStore.isInitialized()).thenReturn(true);
+
+        Scrubber theScrubber = getScrubber(mockKvs, mockStore, transactions);
+
+        assertFalse(theScrubber.isInitialized());
+    }
+
+    @Test
+    public void isNotInitializedWhenScrubberStoreIsNotInitialized() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        ScrubberStore mockStore = mock(ScrubberStore.class);
+        when(mockKvs.isInitialized()).thenReturn(true);
+        when(mockStore.isInitialized()).thenReturn(false);
+
+        Scrubber theScrubber = getScrubber(mockKvs, mockStore, transactions);
+
+        assertFalse(theScrubber.isInitialized());
     }
 
     @Test
@@ -99,5 +130,20 @@ public class ScrubberTest {
         List<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue = BatchingVisitables.copyToList(
                 scrubStore.getBatchingVisitableScrubQueue(Long.MAX_VALUE, null, null));
         Assert.assertEquals(ImmutableList.of(), scrubQueue);
+    }
+
+    private Scrubber getScrubber(KeyValueService keyValueService, ScrubberStore scrubberStore,
+            TransactionService transactionService) {
+        return Scrubber.create(keyValueService, scrubberStore,
+                () -> Long.MAX_VALUE, // background scrub frequency millis
+                () -> true, // scrub enabled
+                () -> 100L, // unreadable timestamp
+                () -> 100L, // immutable timestamp
+                transactionService,
+                false, // is aggressive
+                () -> 100, //  batch size
+                1, // thread count
+                1, // read thread count
+                ImmutableList.of()); // followers
     }
 }

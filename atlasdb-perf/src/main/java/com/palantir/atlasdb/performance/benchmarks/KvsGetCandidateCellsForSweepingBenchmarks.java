@@ -27,13 +27,17 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
+import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
 import com.palantir.common.base.ClosableIterator;
 
 @State(Scope.Benchmark)
@@ -71,20 +75,36 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
         return fullTableScan(table, true);
     }
 
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
+    public Object fullTableScanOneWideRowThorough(VeryWideRowTable table) {
+        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumCols(), true);
+    }
+
     private int fullTableScan(ConsecutiveNarrowTable table, boolean thorough) {
+        // TODO(gsheasby): consider extracting a common interface for WideRowTable and ConsecutiveNarrowTable
+        // to avoid unpacking here
+        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumRows(), thorough);
+    }
+
+    private int fullTableScan(TableReference tableRef,
+                              KeyValueService kvs,
+                              int numCellsExpected,
+                              boolean thorough) {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                     .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
                     .batchSizeHint(1000)
-                    .minUncommittedStartTimestamp(Long.MIN_VALUE)
-                    .sweepTimestamp(Long.MAX_VALUE)
+                    .maxTimestampExclusive(Long.MAX_VALUE)
                     .shouldCheckIfLatestValueIsEmpty(thorough)
-                    .timestampsToIgnore(thorough ? new long[] {} : new long[] { Value.INVALID_VALUE_TIMESTAMP })
+                    .timestampsToIgnore(thorough ? ImmutableSet.of() : ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP))
                     .build();
-        try (ClosableIterator<List<CandidateCellForSweeping>> iter = table.getKvs().getCandidateCellsForSweeping(
-                    table.getTableRef(), request)) {
+        try (ClosableIterator<List<CandidateCellForSweeping>> iter = kvs.getCandidateCellsForSweeping(
+                    tableRef, request)) {
             int numCandidates = Iterators.size(Iterators.concat(Iterators.transform(iter, List::iterator)));
-            Preconditions.checkState(numCandidates == table.getNumRows(),
-                    "Number of candidates %s != %s", numCandidates, table.getNumRows());
+            Preconditions.checkState(numCandidates == numCellsExpected,
+                    "Number of candidates %s != %s", numCandidates, numCellsExpected);
             return numCandidates;
         }
     }

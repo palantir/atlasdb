@@ -27,12 +27,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +45,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 
 final class SchemaMutationLock {
     public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
@@ -74,6 +76,7 @@ final class SchemaMutationLock {
     private final int deadHeartbeatTimeoutThreshold;
 
     SchemaMutationLock(
+            // TODO(ssouza): get rid of non-cas, since we've dropped support for Cassandra 1.2.
             boolean supportsCas,
             CassandraKeyValueServiceConfigManager configManager,
             CassandraClientPool clientPool,
@@ -103,7 +106,7 @@ final class SchemaMutationLock {
         }
     }
 
-    void runWithLock(Action action) {
+    synchronized void runWithLock(Action action) {
         if (!supportsCas) {
             runWithLockWithoutCas(action);
             return;
@@ -171,7 +174,7 @@ final class SchemaMutationLock {
         final long perOperationNodeId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
-            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
+            clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
                 Column ourUpdate = lockColumnFromIdAndHeartbeat(perOperationNodeId, 0);
 
                 List<Column> expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
@@ -214,7 +217,8 @@ final class SchemaMutationLock {
                     // lock holder taking unreasonable amount of time, signal something's wrong
                     if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis) {
                         TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
-                        log.error("Schema lock timeout", schemaLockTimeoutError);
+                        log.error("Timed out after waiting for {} milliseconds for the schema mutation lock",
+                                SafeArg.of("wait duration", stopwatch.elapsed(TimeUnit.MILLISECONDS)));
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 
@@ -226,7 +230,8 @@ final class SchemaMutationLock {
                 }
 
                 // we won the lock!
-                log.info("Successfully acquired schema mutation lock with id [{}]", perOperationNodeId);
+                log.info("Successfully acquired schema mutation lock with id [{}]",
+                        SafeArg.of("lockId", perOperationNodeId));
                 return null;
             });
         } catch (InterruptedException e) {
@@ -327,7 +332,8 @@ final class SchemaMutationLock {
                 List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
                 CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
                 if (casResult.isSuccess()) {
-                    log.info("Successfully released schema mutation lock with id [{}]", existingLockId);
+                    log.info("Successfully released schema mutation lock with id [{}]",
+                            SafeArg.of("lockId", existingLockId));
                 }
                 return casResult.isSuccess();
             });
@@ -336,17 +342,21 @@ final class SchemaMutationLock {
         }
     }
 
-    private Optional<Column> queryExistingLockColumn(Client client) throws TException {
+    private Optional<Column> queryExistingLockColumn(CassandraClient client) throws TException {
         TableReference lockTableRef = lockTable.getOnlyTable();
         ColumnPath columnPath = new ColumnPath(lockTableRef.getQualifiedName());
         columnPath.setColumn(getGlobalDdlLockColumnName());
         Column existingColumn = null;
+        ConsistencyLevel localQuorum = ConsistencyLevel.LOCAL_QUORUM;
         try {
             ColumnOrSuperColumn result = queryRunner.run(client, lockTableRef,
-                    () -> client.get(getGlobalDdlLockRowName(), columnPath, ConsistencyLevel.LOCAL_QUORUM));
+                    () -> client.get(getGlobalDdlLockRowName(), columnPath, localQuorum));
             existingColumn = result.getColumn();
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "Checking the schema lock requires " + localQuorum + " Cassandra nodes to be up and available.", e);
         } catch (NotFoundException e) {
-            log.debug("No existing schema lock found in table [{}]", lockTableRef);
+            log.debug("No existing schema lock found in table [{}]", SafeArg.of("tableName", lockTableRef));
         }
         return Optional.ofNullable(existingColumn);
     }
@@ -356,7 +366,7 @@ final class SchemaMutationLock {
     }
 
     private CASResult writeDdlLockWithCas(
-            Client client,
+            CassandraClient client,
             List<Column> expectedLockValue,
             Column newLockValue) throws TException {
         TableReference lockTableRef = lockTable.getOnlyTable();

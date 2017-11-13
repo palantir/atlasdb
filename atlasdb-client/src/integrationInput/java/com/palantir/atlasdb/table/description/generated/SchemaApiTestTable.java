@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -292,18 +293,18 @@ public final class SchemaApiTestTable implements
     /**
      * <pre>
      * Column value description {
-     *   type: String;
+     *   type: com.palantir.atlasdb.table.description.test.StringValue;
      * }
      * </pre>
      */
-    public static final class Column2 implements SchemaApiTestNamedColumnValue<String> {
-        private final String value;
+    public static final class Column2 implements SchemaApiTestNamedColumnValue<com.palantir.atlasdb.table.description.test.StringValue> {
+        private final com.palantir.atlasdb.table.description.test.StringValue value;
 
-        public static Column2 of(String value) {
+        public static Column2 of(com.palantir.atlasdb.table.description.test.StringValue value) {
             return new Column2(value);
         }
 
-        private Column2(String value) {
+        private Column2(com.palantir.atlasdb.table.description.test.StringValue value) {
             this.value = value;
         }
 
@@ -318,13 +319,13 @@ public final class SchemaApiTestTable implements
         }
 
         @Override
-        public String getValue() {
+        public com.palantir.atlasdb.table.description.test.StringValue getValue() {
             return value;
         }
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(value);
+            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(new com.palantir.atlasdb.table.description.test.StringValuePersister().persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
@@ -337,7 +338,7 @@ public final class SchemaApiTestTable implements
             @Override
             public Column2 hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(PtBytes.toString(bytes, 0, bytes.length-0));
+                return of(new com.palantir.atlasdb.table.description.test.StringValuePersister().hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
         };
 
@@ -404,7 +405,7 @@ public final class SchemaApiTestTable implements
             return value.getValue();
         }
 
-        public String getColumn2() {
+        public com.palantir.atlasdb.table.description.test.StringValue getColumn2() {
             byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("d"));
             if (bytes == null) {
                 return null;
@@ -422,10 +423,10 @@ public final class SchemaApiTestTable implements
             };
         }
 
-        public static Function<SchemaApiTestRowResult, String> getColumn2Fun() {
-            return new Function<SchemaApiTestRowResult, String>() {
+        public static Function<SchemaApiTestRowResult, com.palantir.atlasdb.table.description.test.StringValue> getColumn2Fun() {
+            return new Function<SchemaApiTestRowResult, com.palantir.atlasdb.table.description.test.StringValue>() {
                 @Override
-                public String apply(SchemaApiTestRowResult rowResult) {
+                public com.palantir.atlasdb.table.description.test.StringValue apply(SchemaApiTestRowResult rowResult) {
                     return rowResult.getColumn2();
                 }
             };
@@ -495,15 +496,15 @@ public final class SchemaApiTestTable implements
         return ret;
     }
 
-    public Map<SchemaApiTestRow, String> getColumn2s(Collection<SchemaApiTestRow> rows) {
+    public Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> getColumn2s(Collection<SchemaApiTestRow> rows) {
         Map<Cell, SchemaApiTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (SchemaApiTestRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("d")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<SchemaApiTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            String val = Column2.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            com.palantir.atlasdb.table.description.test.StringValue val = Column2.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
@@ -533,25 +534,25 @@ public final class SchemaApiTestTable implements
         putUnlessExists(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2(SchemaApiTestRow row, String value) {
+    public void putColumn2(SchemaApiTestRow row, com.palantir.atlasdb.table.description.test.StringValue value) {
         put(ImmutableMultimap.of(row, Column2.of(value)));
     }
 
-    public void putColumn2(Map<SchemaApiTestRow, String> map) {
+    public void putColumn2(Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> map) {
         Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SchemaApiTestRow, String> e : map.entrySet()) {
+        for (Entry<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> e : map.entrySet()) {
             toPut.put(e.getKey(), Column2.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2UnlessExists(SchemaApiTestRow row, String value) {
+    public void putColumn2UnlessExists(SchemaApiTestRow row, com.palantir.atlasdb.table.description.test.StringValue value) {
         putUnlessExists(ImmutableMultimap.of(row, Column2.of(value)));
     }
 
-    public void putColumn2UnlessExists(Map<SchemaApiTestRow, String> map) {
+    public void putColumn2UnlessExists(Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> map) {
         Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SchemaApiTestRow, String> e : map.entrySet()) {
+        for (Entry<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> e : map.entrySet()) {
             toPut.put(e.getKey(), Column2.of(e.getValue()));
         }
         putUnlessExists(Multimaps.forMap(toPut));
@@ -749,6 +750,12 @@ public final class SchemaApiTestTable implements
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of)));
     }
 
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   BiFunction<RangeRequest, BatchingVisitable<SchemaApiTestRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of)));
+    }
+
     public Stream<BatchingVisitable<SchemaApiTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
         Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SchemaApiTestRowResult::of));
@@ -866,8 +873,9 @@ public final class SchemaApiTestTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "naMZHA9IbuXS7r60a/1+gQ==";
+    static String __CLASS_HASH = "Zz41MJU+YZOGsjp4b1BexQ==";
 }

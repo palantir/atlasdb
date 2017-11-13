@@ -27,6 +27,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresGetCandidateCellsForSweepingTest;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -96,7 +97,8 @@ public final class DbkvsPostgresTestSuite {
                 kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
                 return kvs.getConnectionManager().getConnection().isValid(5);
             } catch (Exception ex) {
-                if (ex.getMessage().contains("The connection attempt failed.")) {
+                if (ex.getMessage().contains("The connection attempt failed.")
+                        || ex.getMessage().contains("the database system is starting up")) {
                     return false;
                 } else {
                     throw ex;

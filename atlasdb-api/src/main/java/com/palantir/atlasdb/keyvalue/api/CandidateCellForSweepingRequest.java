@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.OptionalInt;
+import java.util.Set;
 
 import org.immutables.value.Value;
 
@@ -26,22 +27,9 @@ public interface CandidateCellForSweepingRequest {
     OptionalInt batchSizeHint();
 
     /**
-     * This can be used in the future when we implement the 'transaction table sweeping' feature.
-     * This should be set to the timestamp T such that all transactions with start timestamps less than T that
-     * appear in the given table are known to be committed. The number T can come from the previous run of sweep
-     * for the table.
-     *
-     * This enables in-database pre-filtering of cells that should be considered for sweeping.
-     * For example, if a cell has exactly one timestamp and this timestamp is known to belong to a committed
-     * transaction, then the cell doesn't need to be swept, and therefore we can avoid sending it over the network
-     * from the DB to the sweeper process.
+     *  The maximum timestamp to be returned in the resulting {@link CandidateCellForSweeping} objects.
      */
-    long minUncommittedStartTimestamp();
-
-    /**
-     *  Only start timestamps that are strictly below this number will be considered.
-     */
-    long sweepTimestamp();
+    long maxTimestampExclusive();
 
     /**
      *  In practice, this is true for the THOROUGH sweep strategy and false for CONSERVATIVE.
@@ -51,6 +39,13 @@ public interface CandidateCellForSweepingRequest {
     /*
      *  In practice, this is the empty set if for the THOROUGH sweep strategy and { -1 } for CONSERVATIVE.
      */
-    long[] timestampsToIgnore();
+    Set<Long> timestampsToIgnore();
+
+    default CandidateCellForSweepingRequest withStartRow(byte[] startRow) {
+        return ImmutableCandidateCellForSweepingRequest.builder()
+                .from(this)
+                .startRowInclusive(startRow)
+                .build();
+    }
 
 }

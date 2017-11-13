@@ -152,6 +152,12 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
     }
 
     @Override
+    protected boolean getBoolean(int col) throws PalantirSqlException {
+        Boolean obj = (Boolean) columns.get(col);
+        return obj == null ? false : obj.booleanValue();
+    }
+
+    @Override
     @Deprecated // use the get by colname variant instead
     protected int getInteger(int col) throws PalantirSqlException {
         if(columns.get(col) == null) {
