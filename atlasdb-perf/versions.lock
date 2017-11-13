@@ -954,18 +954,23 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.awaitility:awaitility": {
+            "locked": "3.0.0"
+        },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
+                "org.awaitility:awaitility",
                 "org.hamcrest:hamcrest-library"
             ]
         },
         "org.hamcrest:hamcrest-library": {
             "locked": "1.3",
             "transitive": [
-                "com.jayway.awaitility:awaitility"
+                "com.jayway.awaitility:awaitility",
+                "org.awaitility:awaitility"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -1003,7 +1008,8 @@
         "org.objenesis:objenesis": {
             "locked": "2.2",
             "transitive": [
-                "com.jayway.awaitility:awaitility"
+                "com.jayway.awaitility:awaitility",
+                "org.awaitility:awaitility"
             ]
         },
         "org.openjdk.jmh:jmh-core": {
@@ -2027,18 +2033,23 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.awaitility:awaitility": {
+            "locked": "3.0.0"
+        },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
+                "org.awaitility:awaitility",
                 "org.hamcrest:hamcrest-library"
             ]
         },
         "org.hamcrest:hamcrest-library": {
             "locked": "1.3",
             "transitive": [
-                "com.jayway.awaitility:awaitility"
+                "com.jayway.awaitility:awaitility",
+                "org.awaitility:awaitility"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -2076,7 +2087,8 @@
         "org.objenesis:objenesis": {
             "locked": "2.2",
             "transitive": [
-                "com.jayway.awaitility:awaitility"
+                "com.jayway.awaitility:awaitility",
+                "org.awaitility:awaitility"
             ]
         },
         "org.openjdk.jmh:jmh-core": {
