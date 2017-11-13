@@ -170,6 +170,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
+                "com.palantir.remoting3:refresh-utils",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
@@ -184,6 +185,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:keystores",
+                "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -373,7 +375,8 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -425,6 +428,12 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.remoting3:refresh-utils": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting3:tracing": {
@@ -557,7 +566,8 @@
             "locked": "1.1.0.Final",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {
@@ -815,6 +825,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
+                "com.palantir.remoting3:refresh-utils",
                 "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
             ]
         },
@@ -829,6 +840,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
                 "com.palantir.remoting3:keystores",
+                "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -1018,7 +1030,8 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -1070,6 +1083,12 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
+        "com.palantir.remoting3:refresh-utils": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.palantir.remoting3:tracing": {
@@ -1202,7 +1221,8 @@
             "locked": "1.1.0.Final",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "javax.ws.rs:javax.ws.rs-api": {

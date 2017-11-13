@@ -23,14 +23,21 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-public class AtlasDbRuntimeConfigSerializationTest {
+public class AtlasDbRuntimeConfigDeserializationTest {
     private static final File TEST_RUNTIME_CONFIG_FILE = new File(
-            AtlasDbConfigDeserializationTest.class.getResource("/runtime-config-block.yml").getPath());
+            AtlasDbRuntimeConfigDeserializationTest.class.getResource("/runtime-config-block.yml").getPath());
 
     @Test
-    public void canDeserializeAtlasDbConfig() throws IOException {
+    public void canDeserializeRuntimeConfig() throws IOException {
         AtlasDbRuntimeConfig runtimeConfig =
                 AtlasDbConfigs.OBJECT_MAPPER.readValue(TEST_RUNTIME_CONFIG_FILE, AtlasDbRuntimeConfig.class);
         assertThat(runtimeConfig.timestampClient().enableTimestampBatching()).isTrue();
+
+        assertThat(runtimeConfig.timelockRuntime()).isPresent();
+        assertThat(runtimeConfig.timelockRuntime().get().serversList().servers())
+                .containsExactlyInAnyOrder(
+                        "https://foo1:12345",
+                        "https://foo2:8421",
+                        "https://foo3:9421");
     }
 }

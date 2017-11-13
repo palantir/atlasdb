@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
@@ -34,6 +35,11 @@ import com.palantir.exception.NotInitializedException;
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
 @Value.Immutable
 public abstract class AtlasDbConfig {
+
+    @VisibleForTesting
+    static final String UNSPECIFIED_NAMESPACE = "unspecified";
+
+    private String namespace;
 
     public abstract KeyValueServiceConfig keyValueService();
 
@@ -260,7 +266,7 @@ public abstract class AtlasDbConfig {
     protected final void check() {
         checkLeaderAndTimelockBlocks();
         checkLockAndTimestampBlocks();
-        checkNamespaceConfig();
+        checkNamespaceConfigAndGetNamespace();
     }
 
     private void checkLeaderAndTimelockBlocks() {
@@ -282,25 +288,25 @@ public abstract class AtlasDbConfig {
                 "Lock and timestamp server blocks must either both be present or both be absent.");
     }
 
-    private void checkNamespaceConfig() {
+    private String checkNamespaceConfigAndGetNamespace() {
         if (namespace().isPresent()) {
-            String namespace = namespace().get();
-
+            String namespaceConfigValue = namespace().get();
             keyValueService().namespace().ifPresent(kvsNamespace ->
-                    Preconditions.checkState(kvsNamespace.equals(namespace),
+                    Preconditions.checkState(kvsNamespace.equals(namespaceConfigValue),
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
             timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
-                    Preconditions.checkState(client.equals(namespace),
+                    Preconditions.checkState(client.equals(namespaceConfigValue),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config.")));
+            return namespaceConfigValue;
         } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"
                             + " or the keyspace/dbName/sid config needs to be set.");
 
-            Optional<String> keyValueServiceNamespace = keyValueService().namespace();
+            String keyValueServiceNamespace = keyValueService().namespace().get();
 
             if (timelock().isPresent()) {
                 TimeLockClientConfig timeLockConfig = timelock().get();
@@ -313,17 +319,32 @@ public abstract class AtlasDbConfig {
                 // (C* keyspace / Postgres dbName / Oracle sid). But changing the name of the TimeLock client
                 // will return the timestamp bound store to 0, so we also need to fast forward the new client bound
                 // to a value above of the original bound.
-                Preconditions.checkState(timeLockConfig.client().equals(keyValueServiceNamespace),
+                Preconditions.checkState(timeLockConfig.client().equals(Optional.of(keyValueServiceNamespace)),
                         "AtlasDB refused to start, in order to avoid potential data corruption."
                                 + " Please contact AtlasDB support to remediate this. Specific steps are required;"
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
-        } else if (timelock().isPresent()) {
-            // Special case - empty timelock and empty namespace/keyspace does not make sense
-            boolean timelockClientNonEmpty = !timelock().get().client().orElse("").isEmpty();
-            Preconditions.checkState(timelockClientNonEmpty,
-                    "For InMemoryKVS, the TimeLock client should not be empty");
+            return keyValueServiceNamespace;
+        } else {
+            Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
+                    "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
+                    keyValueService().getClass());
+            if (timelock().isPresent()) {
+                return timelock().get().client()
+                        .orElseThrow(() ->
+                                new IllegalStateException("For InMemoryKVS, the TimeLock client should not be empty"));
+            }
+            return UNSPECIFIED_NAMESPACE;
         }
+    }
+
+    @Value.Derived
+    @JsonIgnore
+    public String getNamespaceString() {
+        if (namespace == null) {
+            namespace = checkNamespaceConfigAndGetNamespace();
+        }
+        return namespace;
     }
 
     private boolean areTimeAndLockConfigsAbsent() {
