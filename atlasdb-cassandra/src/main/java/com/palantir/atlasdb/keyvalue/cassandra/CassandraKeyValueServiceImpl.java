@@ -452,7 +452,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                         client,
                                         tableRef,
                                         rowNames,
-                                        pred, readConsistency);
+                                        pred,
+                                        readConsistency);
                                 Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(batch.size());
                                 new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                                 return ret;
