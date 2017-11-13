@@ -552,6 +552,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
@@ -821,7 +822,8 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.jboss.marshalling:jboss-marshalling": {
@@ -1439,6 +1441,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
@@ -1707,7 +1710,8 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.jboss.marshalling:jboss-marshalling": {

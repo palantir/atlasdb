@@ -451,6 +451,7 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
@@ -619,7 +620,8 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
@@ -1116,6 +1118,7 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
@@ -1284,7 +1287,8 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
