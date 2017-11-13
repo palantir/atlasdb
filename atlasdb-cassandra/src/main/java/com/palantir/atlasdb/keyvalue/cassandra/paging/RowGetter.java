@@ -49,7 +49,9 @@ public class RowGetter {
         this.tableRef = tableRef;
     }
 
-    public List<KeySlice> getRows(KeyRange keyRange, SlicePredicate slicePredicate) throws Exception {
+    public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate)
+            throws Exception {
+
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
@@ -58,7 +60,11 @@ public class RowGetter {
                     public List<KeySlice> apply(CassandraClient client) throws Exception {
                         try {
                             return queryRunner.run(client, tableRef,
-                                    () -> client.get_range_slices(tableRef, slicePredicate, keyRange, consistency));
+                                    () -> client.get_range_slices(kvsMethodName,
+                                            tableRef,
+                                            slicePredicate,
+                                            keyRange,
+                                            consistency));
                         } catch (UnavailableException e) {
                             throw new InsufficientConsistencyException("get_range_slices requires " + consistency
                                     + " Cassandra nodes to be up and available.", e);

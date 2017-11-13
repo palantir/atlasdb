@@ -43,28 +43,42 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public interface CassandraClient {
     Cassandra.Client rawClient();
 
-    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(TableReference tableRef,
+    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
+            TableReference tableRef,
             List<ByteBuffer> keys,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    List<KeySlice> get_range_slices(TableReference tableRef, SlicePredicate predicate, KeyRange range,
+    List<KeySlice> get_range_slices(String kvsMethodName,
+            TableReference tableRef,
+            SlicePredicate predicate,
+            KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    void batch_mutate(Map<ByteBuffer,Map<String,List<Mutation>>> mutation_map, ConsistencyLevel consistency_level)
+    void batch_mutate(String kvsMethodName,
+            Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    ColumnOrSuperColumn get(TableReference tableReference, ByteBuffer key,
-            byte[] column, ConsistencyLevel consistency_level)
+    ColumnOrSuperColumn get(TableReference tableReference,
+            ByteBuffer key,
+            byte[] column,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException,
             org.apache.thrift.TException;
 
-    CASResult cas(TableReference tableReference, ByteBuffer key, List<Column> expected, List<Column> updates,
-            ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
+    CASResult cas(TableReference tableReference,
+            ByteBuffer key,
+            List<Column> expected,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
+    CqlResult execute_cql3_query(ByteBuffer query,
+            Compression compression,
+            ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             org.apache.thrift.TException;
 }
