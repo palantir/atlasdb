@@ -46,6 +46,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -88,7 +89,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private CassandraClient instrumentClient(Client client) {
-        return new CassandraClientImpl(client);
+        return AtlasDbMetrics.instrument(CassandraClient.class, new CassandraClientImpl(client));
     }
 
     private static Cassandra.Client getClient(InetSocketAddress addr,
