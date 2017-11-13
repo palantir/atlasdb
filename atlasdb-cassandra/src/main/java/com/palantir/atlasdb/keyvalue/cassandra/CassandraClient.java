@@ -43,7 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public interface CassandraClient {
     Cassandra.Client rawClient();
 
-    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(TableReference tableRef,
+    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName, TableReference tableRef,
             List<ByteBuffer> keys,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;

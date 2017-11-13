@@ -58,7 +58,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
-            TableReference tableRef, List<ByteBuffer> keys,
+            String kvsMethodName, TableReference tableRef, List<ByteBuffer> keys,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         ColumnParent colFam = getColumnParent(tableRef);
