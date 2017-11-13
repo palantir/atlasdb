@@ -188,7 +188,7 @@ public class AtlasDbHttpClientsTest {
     }
 
     @Test
-    public void httpProxyCanBeCommissionedAndDecommissionedIfNodesBecomeUnavailable() {
+    public void httpProxyCanBeCommissionedAndDecommissionedIfNodeAvailabilityChanges() {
         AtomicReference<ServerListConfig> config = new AtomicReference<>(ImmutableServerListConfig.builder().build());
 
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
@@ -197,6 +197,8 @@ public class AtlasDbHttpClientsTest {
                 proxyConfiguration -> ProxySelector.getDefault(),
                 TestResource.class,
                 UserAgents.DEFAULT_VALUE);
+
+        // At this point, there are zero nodes in the config, so we should get ServiceNotAvailable.
         assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
 
         config.set(ImmutableServerListConfig.builder().addServers(getUriForPort(availablePort)).build());
