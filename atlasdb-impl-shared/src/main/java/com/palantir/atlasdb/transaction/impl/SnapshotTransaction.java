@@ -789,11 +789,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
 
-        // This filters out empty values.
         ImmutableList<Entry<Cell, byte[]>> result = ImmutableList.copyOf(mergeInLocalWrites(
                 postFilteredCells.iterator(),
                 localWritesInRange.iterator(),
                 rangeRequest.isReverse()));
+
         getPostFilteredCellsMeter().mark(postFilteredCells.size() + localWritesInRange.size() - result.size());
 
         return result;
