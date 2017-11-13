@@ -1107,8 +1107,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     }
                 }
             }
-            getPostFilteredCellsMeter().mark(keysToReload.size());
         }
+
+        getPostFilteredCellsMeter().mark(keysToReload.size());
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
