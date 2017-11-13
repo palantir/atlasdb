@@ -61,7 +61,7 @@ public class CassandraClientImpl implements CassandraClient {
             TableReference tableRef, List<ByteBuffer> keys,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        ColumnParent colFam = new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
+        ColumnParent colFam = getColumnParent(tableRef);
         return client.multiget_slice(keys, colFam, predicate, consistency_level);
     }
 
@@ -71,7 +71,7 @@ public class CassandraClientImpl implements CassandraClient {
             KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        ColumnParent colFam = new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
+        ColumnParent colFam = getColumnParent(tableRef);
         return client.get_range_slices(colFam, predicate, range, consistency_level);
     }
 
@@ -110,5 +110,9 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
         return client.execute_cql3_query(query, compression, consistency);
+    }
+
+    private ColumnParent getColumnParent(TableReference tableRef) {
+        return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
     }
 }
