@@ -276,6 +276,7 @@ public abstract class AtlasDbConfig {
             Preconditions.checkState(!timelock().isPresent(),
                     "If the leader block is present, then the timelock block must be absent.");
         }
+        checkLeaderBlockHasAtLeastOneServerIfPresent(leader());
 
         if (timelock().isPresent()) {
             Preconditions.checkState(areTimeAndLockConfigsAbsent(),
@@ -294,6 +295,12 @@ public abstract class AtlasDbConfig {
         serverListOptional.ifPresent(
                 serverList -> Preconditions.checkState(serverList.hasAtLeastOneServer(),
                         "Server list must have at least one server."));
+    }
+
+    private static void checkLeaderBlockHasAtLeastOneServerIfPresent(Optional<LeaderConfig> leaderConfigOptional) {
+        leaderConfigOptional.ifPresent(
+                leaderConfig -> Preconditions.checkState(!leaderConfig.leaders().isEmpty(),
+                        "Leader config must have at least one server."));
     }
 
     private String checkNamespaceConfigAndGetNamespace() {

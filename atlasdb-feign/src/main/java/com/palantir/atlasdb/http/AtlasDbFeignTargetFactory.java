@@ -199,7 +199,7 @@ public final class AtlasDbFeignTargetFactory {
     private static <T> T createProxyForZeroNodes(Class<T> type) {
         return Reflection.newProxy(type, (unused1, unused2, unused3) -> {
             throw new ServiceNotAvailableException("The " + type.getSimpleName() + " is currently unavailable,"
-                    + " because we don't know how to talk to it (we think there are zero nodes).");
+                    + " because configuration contains zero servers.");
         });
     }
 }
