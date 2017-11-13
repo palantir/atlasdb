@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.UnavailableException;
