@@ -71,10 +71,11 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.qos.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QosService;
+import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -421,7 +422,7 @@ public abstract class TransactionManagers {
                 Executors.newSingleThreadScheduledExecutor(),
                 AtlasDbMetrics.getMetricRegistry(),
                 "qos-client-executor");
-        return new AtlasDbQosClient(qosService, scheduler, config().getNamespaceString());
+        return new AtlasDbQosClient(qosService, scheduler, config().getNamespaceString(), QosRateLimiter.create());
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(

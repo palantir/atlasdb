@@ -40,13 +40,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 
 public class CassandraClientTest {
     private static final ByteBuffer ROW_KEY = ByteBuffer.wrap(PtBytes.toBytes("key"));
 
     private final Cassandra.Client mockClient = mock(Cassandra.Client.class);
-    private final AtlasDbQosClient qosClient = mock(AtlasDbQosClient.class);
+    private final QosClient qosClient = mock(QosClient.class);
 
     private static final ColumnParent TEST_TABLE = new ColumnParent("table");
     private static final SlicePredicate SLICE_PREDICATE = SlicePredicates.create(SlicePredicates.Range.ALL,

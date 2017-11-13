@@ -22,7 +22,10 @@ dependencies {
     testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
-
+    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+        exclude group: 'org.hamcrest'
+        exclude group: 'org.ow2.asm'
+    }
 	integTestCompile (project(":atlasdb-config"));
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard

@@ -23,7 +23,6 @@ import com.palantir.atlasdb.qos.QosResource;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 public class QosAgent {
-
     private final Supplier<QosServiceRuntimeConfig> config;
     private final Consumer<Object> registrar;
 
@@ -35,5 +34,4 @@ public class QosAgent {
     public void createAndRegisterResources() {
         registrar.accept(new QosResource(config));
     }
-
 }
