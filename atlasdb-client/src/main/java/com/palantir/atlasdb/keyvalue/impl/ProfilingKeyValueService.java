@@ -231,14 +231,15 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest,
             long timestamp) {
-        return maybeLog(() -> delegate.getRange(tableRef, rangeRequest, timestamp),
-                logTimeAndTableRange("getRange", tableRef, rangeRequest));
+        return maybeLog(() -> ProfilingIterator.wrap(delegate.getRange(tableRef, rangeRequest, timestamp),
+                "getRange", tableRef, rangeRequest), logTimeAndTableRange("getRange", tableRef, rangeRequest));
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
             RangeRequest rangeRequest, long timestamp) {
-        return maybeLog(() -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+        return maybeLog(() -> ProfilingIterator.wrap(delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+                "getRangeOfTimestamps", tableRef, rangeRequest),
                 logTimeAndTableRange("getRangeOfTimestamps", tableRef, rangeRequest));
     }
 
@@ -390,7 +391,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch)));
     }
 
-    private  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
+    private <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
         return KvsProfilingLogger.maybeLog(action, logger);
     }
 

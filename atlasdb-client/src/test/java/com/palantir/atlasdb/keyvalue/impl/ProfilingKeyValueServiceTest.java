@@ -25,8 +25,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -39,9 +42,13 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -58,9 +65,16 @@ public class ProfilingKeyValueServiceTest {
 
     private KeyValueService delegate;
     private KeyValueService kvs;
+    private ClosableIterator<RowResult<Value>> closableIterator;
+    private Iterator<RowResult<Value>> iterator;
 
     private static final Answer<Void> waitASecondAndAHalf = any -> {
         Thread.sleep(1500);
+        return (Void) null;
+    };
+
+    private static final Answer<Void> waitHalfASecond = any -> {
+        Thread.sleep(500);
         return (Void) null;
     };
 
@@ -96,6 +110,8 @@ public class ProfilingKeyValueServiceTest {
     public void before() throws Exception {
         delegate = mock(KeyValueService.class);
         kvs = ProfilingKeyValueService.create(delegate);
+        iterator = mock(Iterator.class);
+        closableIterator = mock(ClosableIterator.class);
     }
 
     @After
@@ -235,5 +251,116 @@ public class ProfilingKeyValueServiceTest {
         kvs.get(TABLE_REF, timestampByCell);
 
         verifyNoMoreInteractions(mockAppender);
+    }
+
+    @Test
+    public void slowNextOnIteratorGetsLoggedForGetRange() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
+
+        when(delegate.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE)).thenReturn(closableIterator);
+        when(closableIterator.next()).thenReturn(null).then(waitASecondAndAHalf);
+
+        ClosableIterator<RowResult<Value>> results = kvs.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE);
+        verifyNoMoreInteractions(mockAppender);
+
+        results.next();
+        verifyNoMoreInteractions(mockAppender);
+        results.next();
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void slowNextOnIteratorGetsLoggedForGetRangeOfTimestamps() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
+
+        ClosableIterator<RowResult<Set<Long>>> timestampIterator = mock(ClosableIterator.class);
+        when(delegate.getRangeOfTimestamps(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE))
+                .thenReturn(timestampIterator);
+        when(timestampIterator.next()).thenReturn(null).then(waitASecondAndAHalf);
+
+        ClosableIterator<RowResult<Set<Long>>> results = kvs.getRangeOfTimestamps(
+                TABLE_REF, RangeRequest.all(), Long.MAX_VALUE);
+        verifyNoMoreInteractions(mockAppender);
+
+        results.next();
+        verifyNoMoreInteractions(mockAppender);
+        results.next();
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void fastNextOnIteratorDoesNotGetLogged() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
+
+        when(delegate.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE)).thenReturn(closableIterator);
+        when(closableIterator.next()).then(waitHalfASecond);
+
+        ClosableIterator<RowResult<Value>> results = kvs.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE);
+        verifyNoMoreInteractions(mockAppender);
+
+        results.next();
+        verifyNoMoreInteractions(mockAppender);
+        results.next();
+        verifyNoMoreInteractions(mockAppender);
+        results.next();
+        verifyNoMoreInteractions(mockAppender);
+    }
+
+    @Test
+    public void slowIteratorGetsLoggedWhenUsedWithForEachRemaining() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
+
+        when(iterator.next()).thenReturn(null).then(waitASecondAndAHalf);
+        when(iterator.hasNext()).thenReturn(true, true, false);
+
+        when(delegate.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE)).thenReturn(ClosableIterators.wrap(
+                iterator));
+
+        ClosableIterator<RowResult<Value>> results = kvs.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE);
+        verifyNoMoreInteractions(mockAppender);
+
+        results.forEachRemaining( any -> {});
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void slowIteratorGetsLoggedWhenMapped() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
+
+        when(iterator.next()).thenReturn(null).then(waitASecondAndAHalf);
+
+        when(delegate.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE)).thenReturn(ClosableIterators.wrap(
+                iterator));
+
+        ClosableIterator<RowResult<Value>> results = kvs.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE);
+        verifyNoMoreInteractions(mockAppender);
+
+        ClosableIterator<Integer> transformed = results.map(any -> null);
+        verifyNoMoreInteractions(mockAppender);
+
+        transformed.next();
+        verifyNoMoreInteractions(mockAppender);
+        transformed.next();
+        verify(mockAppender).doAppend(slowLogMatcher.get());
+    }
+
+    @Test
+    public void slowIteratorGetsLoggedWhenStreaming() {
+        Appender mockAppender = setLogLevelAndGetAppender(Level.INFO);
+
+        when(iterator.next()).thenReturn(null).then(waitASecondAndAHalf);
+        when(iterator.hasNext()).thenReturn(true, true, false);
+
+        when(delegate.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE)).thenReturn(ClosableIterators.wrap(
+                iterator));
+
+        ClosableIterator<RowResult<Value>> results = kvs.getRange(TABLE_REF, RangeRequest.all(), Long.MAX_VALUE);
+        verifyNoMoreInteractions(mockAppender);
+
+        Stream<RowResult<Value>> stream = results.stream();
+        verifyNoMoreInteractions(mockAppender);
+
+        stream.count();
+        verify(mockAppender).doAppend(slowLogMatcher.get());
     }
 }
