@@ -606,6 +606,16 @@ code expression, where <code class="docutils literal"><span class="pre">_value</
 succeeded by a <code class="docutils literal"><span class="pre">partitioner()</span></code> call, in the exact same manner as for
 table rows. For more information, see the Partitioners subsection of
 Table Rows.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Internally, index rows are stored including a reference to the source column,
+but this is stripped out in the generated code before being returned to the user.
+Thus, if one uses a <code class="docutils literal"><span class="pre">List</span></code> of results returned from an index table (e.g. through <code class="docutils literal"><span class="pre">getRowColumns</span></code>,
+one may encounter multiple values that appear to be the same). The standard workaround is to use
+a <code class="docutils literal"><span class="pre">Set</span></code> to deduplicate the results.</p>
+<p class="last">Please see discussion on <a class="reference external" href="https://github.com/palantir/atlasdb/issues/604">issue 604</a> for more details
+regarding this behaviour.</p>
+</div>
 </div>
 <div class="section" id="constraints">
 <h3>Constraints<a class="headerlink" href="#constraints" title="Permalink to this headline">¶</a></h3>
