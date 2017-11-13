@@ -17,7 +17,6 @@ package com.palantir.atlasdb.ete;
 
 import java.util.List;
 
-import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
