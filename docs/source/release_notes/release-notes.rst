@@ -68,6 +68,11 @@ develop
          - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
 
+    *    - |fixed|
+         - Check that immutable timestamp is locked on write transactions with no writes.
+           This could cause long-running readers to read an incorrect empty value when using the ``Sweep.THOROUGH`` strategy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2406>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
