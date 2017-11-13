@@ -182,7 +182,10 @@
             ]
         },
         "com.palantir.atlasdb:qos-service-api": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
+            ]
         },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
@@ -632,7 +635,10 @@
             ]
         },
         "com.palantir.atlasdb:qos-service-api": {
-            "project": true
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api"
+            ]
         },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,

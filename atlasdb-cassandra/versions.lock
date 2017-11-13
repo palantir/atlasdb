@@ -248,6 +248,7 @@
         "com.palantir.atlasdb:qos-service-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
@@ -886,6 +887,7 @@
         "com.palantir.atlasdb:qos-service-api": {
             "project": true,
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
