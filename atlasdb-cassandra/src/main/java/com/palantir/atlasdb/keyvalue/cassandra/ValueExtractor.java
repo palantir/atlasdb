@@ -45,6 +45,8 @@ class ValueExtractor extends ResultsExtractor<Value> {
             if (!collector.containsKey(cell)) {
                 collector.put(cell, Value.create(val, ts));
             }
+        } else {
+            getPostFilteredCellsMeter(ValueExtractor.class).mark();
         }
     }
 

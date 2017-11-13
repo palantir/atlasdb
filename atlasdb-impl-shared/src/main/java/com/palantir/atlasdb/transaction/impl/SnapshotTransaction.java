@@ -426,6 +426,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
             return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
         });
+
         return Iterators.concat(postFiltered);
     }
 
@@ -785,10 +786,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 tableRef,
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
-        return ImmutableList.copyOf(mergeInLocalWrites(
+
+        // This filters out empty values.
+        ImmutableList<Entry<Cell, byte[]>> result = ImmutableList.copyOf(mergeInLocalWrites(
                 postFilteredCells.iterator(),
                 localWritesInRange.iterator(),
                 rangeRequest.isReverse()));
+        getPostFilteredCellsMeter().mark(postFilteredCells.size() + localWritesInRange.size() - result.size());
+
+        return result;
     }
 
     @Override
@@ -1024,6 +1030,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 log.debug("The first 10 results of your request were {}.", Iterables.limit(rawResults.entrySet(), 10),
                         new RuntimeException("This exception and stack trace are provided for debugging purposes."));
             }
+            // TODO(hsaraogi): add table names as a tag
+            metricRegistry.meter("tooManyBytesRead").mark(bytes);
         }
 
         if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
@@ -1061,6 +1069,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Value value = e.getValue();
 
             if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
+                getPostFilteredCellsMeter().mark(1);
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
                 switch (getReadSentinelBehavior()) {
@@ -1096,6 +1105,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     }
                 }
             }
+            getPostFilteredCellsMeter().mark(keysToReload.size());
         }
 
         if (!keysToDelete.isEmpty()) {
@@ -1958,7 +1968,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Meter getTransactionConflictsMeter() {
         // TODO(hsaraogi): add table names as a tag
-        return metricRegistry.meter(MetricRegistry.name(SnapshotTransaction.class, "SnapshotTransactionConflict"));
+        return getMeter("SnapshotTransactionConflict");
+    }
+
+    public Meter getPostFilteredCellsMeter() {
+        // TODO(hsaraogi): add table names as a tag
+        return getMeter("PostFilteredCellCount");
+    }
+
+    private Meter getMeter(String name) {
+        return metricRegistry.meter(MetricRegistry.name(SnapshotTransaction.class, name));
     }
 
 }

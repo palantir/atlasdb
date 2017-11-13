@@ -24,6 +24,7 @@ import java.util.SortedMap;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
+import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -31,11 +32,15 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class ResultsExtractor<T> {
+
+    protected MetricsManager metricsManager = new MetricsManager();
+
     @SuppressWarnings("VisibilityModifier")
     public final byte[] extractResults(
             Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
@@ -48,11 +53,14 @@ public abstract class ResultsExtractor<T> {
                 maxRow = row;
             } else {
                 maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, row);
+                if (!Arrays.equals(row, maxRow)) {
+                    getPostFilteredRowsMeter().mark(1);
+                }
             }
 
             for (ColumnOrSuperColumn c : colEntry.getValue()) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
-                internalExtractResult(startTs, selection, row, pair.lhSide, c.column.getValue(), pair.rhSide);
+                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
+                internalExtractResult(startTs, selection, row, pair.lhSide, c.getColumn().getValue(), pair.rhSide);
             }
         }
         return maxRow;
@@ -91,4 +99,14 @@ public abstract class ResultsExtractor<T> {
                                                long ts);
 
     public abstract Map<Cell, T> asMap();
+
+    private Meter getPostFilteredRowsMeter() {
+        // TODO(hsaraogi): add table names as a tag
+        return metricsManager.registerMeter(ResultsExtractor.class, "PostFilteredRowCount");
+    }
+
+    protected Meter getPostFilteredCellsMeter(Class clazz) {
+        // TODO(hsaraogi): add table names as a tag
+        return metricsManager.registerMeter(clazz, "PostFilteredCellCount");
+    }
 }
