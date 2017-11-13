@@ -70,7 +70,6 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -484,15 +483,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         } else {
             throw new RuntimeException(errorBuilderForEntireCluster.toString());
         }
-    }
-
-    //todo dedupe this into a name-demangling class that everyone can access
-    protected static String internalTableName(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
-        if (tableName.startsWith("_")) {
-            return tableName;
-        }
-        return tableName.replaceFirst("\\.", "__");
     }
 
     private InetSocketAddress getAddressForHostThrowUnchecked(String host) {

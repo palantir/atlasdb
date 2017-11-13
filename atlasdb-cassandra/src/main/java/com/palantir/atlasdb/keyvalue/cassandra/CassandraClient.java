@@ -24,8 +24,6 @@ import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnParent;
-import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
@@ -39,30 +37,48 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 @SuppressWarnings({"all"}) // thrift variable names.
 public interface CassandraClient {
     Cassandra.Client rawClient();
 
-    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent,
+    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
+            TableReference tableRef,
+            List<ByteBuffer> keys,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    List<KeySlice> get_range_slices(ColumnParent column_parent, SlicePredicate predicate, KeyRange range,
+    List<KeySlice> get_range_slices(String kvsMethodName,
+            TableReference tableRef,
+            SlicePredicate predicate,
+            KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    void batch_mutate(Map<ByteBuffer,Map<String,List<Mutation>>> mutation_map, ConsistencyLevel consistency_level)
+    void batch_mutate(String kvsMethodName,
+            Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    public ColumnOrSuperColumn get(ByteBuffer key, ColumnPath column_path, ConsistencyLevel consistency_level)
+    ColumnOrSuperColumn get(TableReference tableReference,
+            ByteBuffer key,
+            byte[] column,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException,
             org.apache.thrift.TException;
 
-    CASResult cas(ByteBuffer key, String column_family, List<Column> expected, List<Column> updates,
-            ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
+    CASResult cas(TableReference tableReference,
+            ByteBuffer key,
+            List<Column> expected,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
+    CqlResult execute_cql3_query(ByteBuffer query,
+            Compression compression,
+            ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             org.apache.thrift.TException;
 }

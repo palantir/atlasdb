@@ -495,6 +495,17 @@ succeeded by a ``partitioner()`` call, in the exact same manner as for
 table rows. For more information, see the Partitioners subsection of
 Table Rows.
 
+.. note::
+
+    Internally, index rows are stored including a reference to the source column,
+    but this is stripped out in the generated code before being returned to the user.
+    Thus, if one uses a ``List`` of results returned from an index table (e.g. through ``getRowColumns``,
+    one may encounter multiple values that appear to be the same). The standard workaround is to use
+    a ``Set`` to deduplicate the results.
+
+    Please see discussion on `issue 604 <https://github.com/palantir/atlasdb/issues/604>`__ for more details
+    regarding this behaviour.
+
 Constraints
 -----------
 

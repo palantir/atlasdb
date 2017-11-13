@@ -18,8 +18,6 @@ package com.palantir.atlasdb.config;
 import java.util.Optional;
 import java.util.Set;
 
-import javax.validation.constraints.Size;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -31,11 +29,13 @@ import com.palantir.remoting.api.config.ssl.SslConfiguration;
 @JsonSerialize(as = ImmutableServerListConfig.class)
 @Value.Immutable
 public interface ServerListConfig {
-
-    @Size(min = 1)
     Set<String> servers();
 
     Optional<SslConfiguration> sslConfiguration();
 
     Optional<ProxyConfiguration> proxyConfiguration();
+
+    default boolean hasAtLeastOneServer() {
+        return servers().size() >= 1;
+    }
 }

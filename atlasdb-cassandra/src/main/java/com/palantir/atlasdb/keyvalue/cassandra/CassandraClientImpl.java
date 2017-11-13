@@ -40,6 +40,9 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
     private Cassandra.Client client;
@@ -54,37 +57,58 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent,
-            SlicePredicate predicate, ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return client.multiget_slice(keys, column_parent, predicate, consistency_level);
-    }
-
-    @Override
-    public List<KeySlice> get_range_slices(ColumnParent column_parent, SlicePredicate predicate, KeyRange range,
+    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
+            String kvsMethodName,
+            TableReference tableRef,
+            List<ByteBuffer> keys,
+            SlicePredicate predicate,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return client.get_range_slices(column_parent, predicate, range, consistency_level);
+        ColumnParent colFam = getColumnParent(tableRef);
+        return client.multiget_slice(keys, colFam, predicate, consistency_level);
     }
 
     @Override
-    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+    public List<KeySlice> get_range_slices(String kvsMethodName,
+            TableReference tableRef,
+            SlicePredicate predicate,
+            KeyRange range,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        ColumnParent colFam = getColumnParent(tableRef);
+        return client.get_range_slices(colFam, predicate, range, consistency_level);
+    }
+
+    @Override
+    public void batch_mutate(String kvsMethodName,
+            Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         client.batch_mutate(mutation_map, consistency_level);
     }
 
     @Override
-    public ColumnOrSuperColumn get(ByteBuffer key, ColumnPath column_path, ConsistencyLevel consistency_level)
+    public ColumnOrSuperColumn get(TableReference tableReference,
+            ByteBuffer key,
+            byte[] column,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
-        return client.get(key, column_path, consistency_level);
+        ColumnPath columnPath = new ColumnPath(tableReference.getQualifiedName());
+        columnPath.setColumn(column);
+        return client.get(key, columnPath, consistency_level);
     }
 
     @Override
-    public CASResult cas(ByteBuffer key, String column_family, List<Column> expected, List<Column> updates,
-            ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
+    public CASResult cas(TableReference tableReference,
+            ByteBuffer key,
+            List<Column> expected,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return client.cas(key, column_family, expected, updates, serial_consistency_level, commit_consistency_level);
+        String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
+        return client.cas(key, internalTableName, expected, updates, serial_consistency_level,
+                commit_consistency_level);
     }
 
     @Override
@@ -92,5 +116,9 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
         return client.execute_cql3_query(query, compression, consistency);
+    }
+
+    private ColumnParent getColumnParent(TableReference tableRef) {
+        return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
     }
 }

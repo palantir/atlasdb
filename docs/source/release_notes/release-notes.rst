@@ -72,6 +72,11 @@ develop
          - AtlasDB now depends on Tritium 0.8.4, which depends on the same version of ``com.palantir.remoting3`` and ``HdrHistogram`` as AtlasDB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2662>`__)
 
+    *    - |fixed|
+         - Check that immutable timestamp is locked on write transactions with no writes.
+           This could cause long-running readers to read an incorrect empty value when using the ``Sweep.THOROUGH`` strategy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2406>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
