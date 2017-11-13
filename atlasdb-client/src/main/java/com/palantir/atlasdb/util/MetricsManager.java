@@ -23,9 +23,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
 
@@ -81,6 +83,26 @@ public class MetricsManager {
                     SafeArg.of("metricName", fullyQualifiedMetricName),
                     e);
         }
+    }
+
+    public Histogram registerHistogram(Class clazz, String metricName) {
+        return registerHistogram(MetricRegistry.name(clazz, metricName));
+    }
+
+    private Histogram registerHistogram(String fullyQualifiedHistogramName) {
+        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
+        registeredMetrics.add(fullyQualifiedHistogramName);
+        return histogram;
+    }
+
+    public Timer registerTimer(Class clazz, String metricName) {
+        return registerTimer(MetricRegistry.name(clazz, metricName));
+    }
+
+    private Timer registerTimer(String fullyQualifiedHistogramName) {
+        Timer timer = metricRegistry.timer(fullyQualifiedHistogramName);
+        registeredMetrics.add(fullyQualifiedHistogramName);
+        return timer;
     }
 
     public Meter registerMeter(Class clazz, String meterName) {

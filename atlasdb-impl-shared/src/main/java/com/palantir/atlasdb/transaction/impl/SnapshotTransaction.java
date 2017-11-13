@@ -113,6 +113,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbstractBatchingVisitable;
@@ -178,6 +179,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
+    private final MetricsManager metricsManager = new MetricsManager();
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
@@ -1959,11 +1961,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Timer getTimer(String name) {
-        return metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name));
+        return metricsManager.registerTimer(SnapshotTransaction.class, name);
     }
 
     private Histogram getHistogram(String name) {
-        return metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name));
+        return metricsManager.registerHistogram(SnapshotTransaction.class, name);
     }
 
     private Meter getTransactionConflictsMeter() {
@@ -1977,7 +1979,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Meter getMeter(String name) {
-        return metricRegistry.meter(MetricRegistry.name(SnapshotTransaction.class, name));
+        return metricsManager.registerMeter(SnapshotTransaction.class, name);
     }
 
 }
