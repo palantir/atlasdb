@@ -123,9 +123,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.lockImmutableTimestamp(any())).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
 
-        assertThatThrownBy(() ->
-        txnManagerWithMocks.runTaskThrowOnConflict(txn -> { return null; })).isInstanceOf(
-                TransactionFailedRetriableException.class);
+        assertThatThrownBy(() -> txnManagerWithMocks.runTaskThrowOnConflict(txn -> null))
+                .isInstanceOf(TransactionFailedRetriableException.class);
     }
 
     @Override
