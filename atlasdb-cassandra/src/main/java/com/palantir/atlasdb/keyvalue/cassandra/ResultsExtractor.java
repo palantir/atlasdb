@@ -49,14 +49,7 @@ public abstract class ResultsExtractor<T> {
         byte[] maxRow = null;
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
-            if (maxRow == null) {
-                maxRow = row;
-            } else {
-                maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, row);
-                if (!Arrays.equals(row, maxRow)) {
-                    getPostFilteredRowsMeter().mark(1);
-                }
-            }
+            maxRow = updatedMaxRow(maxRow, row);
 
             for (ColumnOrSuperColumn c : colEntry.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
@@ -64,6 +57,14 @@ public abstract class ResultsExtractor<T> {
             }
         }
         return maxRow;
+    }
+
+    private byte[] updatedMaxRow(byte[] previousMaxRow, byte[] row) {
+        if (previousMaxRow == null) {
+            return row;
+        } else {
+            return PtBytes.BYTES_COMPARATOR.max(previousMaxRow, row);
+        }
     }
 
     public TokenBackedBasicResultsPage<RowResult<T>, byte[]> getPageFromRangeResults(
@@ -99,11 +100,6 @@ public abstract class ResultsExtractor<T> {
                                                long ts);
 
     public abstract Map<Cell, T> asMap();
-
-    private Meter getPostFilteredRowsMeter() {
-        // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerMeter(ResultsExtractor.class, "PostFilteredRowCount");
-    }
 
     protected Meter getPostFilteredCellsMeter(Class clazz) {
         // TODO(hsaraogi): add table names as a tag
