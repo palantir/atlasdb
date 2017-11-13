@@ -13,19 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package com.palantir.atlasdb.qos;
-
-
+package com.palantir.atlasdb.qos.client;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.QosService;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
+
 public class AtlasDbQosClient implements QosClient {
+    private final QosService qosService;
+    private final String clientName;
+    private final QosRateLimiter rateLimiter;
+
     private volatile long credits;
 
     public AtlasDbQosClient(QosService qosService,
             ScheduledExecutorService limitRefresher,
-            String clientName) {
+            String clientName,
+            QosRateLimiter rateLimiter) {
+        this.qosService = qosService;
+        this.clientName = clientName;
+        this.rateLimiter = rateLimiter;
         limitRefresher.scheduleAtFixedRate(() -> {
             try {
                 credits = qosService.getLimit(clientName);

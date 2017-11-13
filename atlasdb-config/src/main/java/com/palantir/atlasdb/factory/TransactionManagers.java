@@ -39,6 +39,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -71,7 +72,7 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.qos.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QosService;
@@ -421,7 +422,7 @@ public abstract class TransactionManagers {
                 Executors.newSingleThreadScheduledExecutor(),
                 AtlasDbMetrics.getMetricRegistry(),
                 "qos-client-executor");
-        return new AtlasDbQosClient(qosService, scheduler, config().getNamespaceString());
+        return new AtlasDbQosClient(qosService, scheduler, config().getNamespaceString(), QosRateLimiter.create());
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(

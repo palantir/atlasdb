@@ -25,7 +25,6 @@ import io.dropwizard.testing.DropwizardTestSupport;
 import io.dropwizard.testing.ResourceHelpers;
 
 public class QosServerHolder extends ExternalResource {
-
     private final DropwizardTestSupport<QosServerConfig> testSupport;
 
     QosServerHolder(String configFileName) {
@@ -42,5 +41,4 @@ public class QosServerHolder extends ExternalResource {
     protected void after() {
         testSupport.after();
     }
-
 }

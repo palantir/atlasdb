@@ -27,11 +27,11 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 
 public class QosServiceIntegrationTest {
 
-    protected static final String SERVER_URI = "http://localhost:5080";
+    private static final String SERVER_URI = "http://localhost:5080";
 
     @ClassRule
     public static QosServerHolder serverHolder = new QosServerHolder("server.yml");
-    public static QosService service = AtlasDbHttpClients.createProxy(
+    private static QosService service = AtlasDbHttpClients.createProxy(
             Optional.empty(),
             SERVER_URI,
             QosService.class,
@@ -39,8 +39,8 @@ public class QosServiceIntegrationTest {
 
     @Test
     public void returnsConfiguredLimits() {
-        assertThat(service.getLimit("test")).isEqualTo(10);
-        assertThat(service.getLimit("test2")).isEqualTo(20);
+        assertThat(service.getLimit("test")).isEqualTo(10L);
+        assertThat(service.getLimit("test2")).isEqualTo(20L);
     }
 
 }

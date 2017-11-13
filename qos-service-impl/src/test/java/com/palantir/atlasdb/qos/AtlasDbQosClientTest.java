@@ -26,9 +26,13 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
+
 public class AtlasDbQosClientTest {
     private QosService qosService = mock(QosService.class);
     private DeterministicScheduler scheduler = new DeterministicScheduler();
+    private QosRateLimiter rateLimiter = mock(QosRateLimiter.class);
 
     @Before
     public void setUp() {
@@ -37,14 +41,14 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void doesNotBackOff() {
-        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client");
+        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client", rateLimiter);
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
     }
 
     @Test
     public void throwsAfterLimitExceeded() {
-        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client");
+        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client", rateLimiter);
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
@@ -53,7 +57,7 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void canCheckAgainAfterRefreshPeriod() {
-        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client");
+        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client", rateLimiter);
         scheduler.tick(1L, TimeUnit.MILLISECONDS);
         qosClient.checkLimit();
 
