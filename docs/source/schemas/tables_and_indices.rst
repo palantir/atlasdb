@@ -499,7 +499,7 @@ Table Rows.
 
     Internally, index rows are stored including a reference to the source column,
     but this is stripped out in the generated code before being returned to the user.
-    Thus, if one uses a List of results returned from an index table (e.g. through ``getRowColumns``,
+    Thus, if one uses a ``List`` of results returned from an index table (e.g. through ``getRowColumns``,
     one may encounter multiple values that appear to be the same). The standard workaround is to use
     a ``Set`` to deduplicate the results.
 
