@@ -950,7 +950,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
         try {
-            putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
+            putInternal("put", tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
@@ -970,7 +970,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         try {
-            putInternal(tableRef, values.entries());
+            putInternal("putWithTimestamps", tableRef, values.entries());
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
@@ -981,14 +981,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return configManager.getConfig().mutationBatchCount();
     }
 
-    private void putInternal(final TableReference tableRef,
-                             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        putInternal(tableRef, values, CassandraConstants.NO_TTL);
+    private void putInternal(final String kvsMethodName,
+            final TableReference tableRef,
+            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+        putInternal(kvsMethodName, tableRef, values, CassandraConstants.NO_TTL);
     }
 
-    protected void putInternal(final TableReference tableRef,
-                               Iterable<Map.Entry<Cell, Value>> values,
-                               final int ttl) throws Exception {
+    protected void putInternal(String kvsMethodName,
+            final TableReference tableRef,
+            Iterable<Entry<Cell, Value>> values,
+            final int ttl) throws Exception {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
@@ -996,17 +998,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     "Atlas putInternal " + entry.getValue().size()
                             + " cell values to " + tableRef + " on " + entry.getKey(),
                     () -> {
-                        putForSingleHostInternal(entry.getKey(), tableRef, entry.getValue().entrySet(), ttl);
+                        putForSingleHostInternal(kvsMethodName,
+                                entry.getKey(),
+                                tableRef,
+                                entry.getValue().entrySet(),
+                                ttl);
                         return null;
                     }));
         }
         runAllTasksCancelOnFailure(tasks);
     }
 
-    private void putForSingleHostInternal(final InetSocketAddress host,
-                                          final TableReference tableRef,
-                                          final Iterable<Map.Entry<Cell, Value>> values,
-                                          final int ttl) throws Exception {
+    private void putForSingleHostInternal(String kvsMethodName,
+            final InetSocketAddress host,
+            final TableReference tableRef,
+            final Iterable<Entry<Cell, Value>> values,
+            final int ttl) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
@@ -1035,7 +1042,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         tableMutations.add(mutation);
                     }
-                    batchMutateInternal(client, tableRef, map, writeConsistency);
+                    batchMutateInternal(kvsMethodName, client, tableRef, map, writeConsistency);
                 }
                 return null;
             }
@@ -1115,7 +1122,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
-                return batchMutateInternal(client, tableRefs, map, writeConsistency);
+                return batchMutateInternal("multiPut", client, tableRefs, map, writeConsistency);
             }
 
             @Override
@@ -1174,20 +1181,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return col;
     }
 
-    private void batchMutateInternal(CassandraClient client,
-                                     TableReference tableRef,
-                                     Map<ByteBuffer, Map<String, List<Mutation>>> map,
-                                     ConsistencyLevel consistency) throws TException {
-        batchMutateInternal(client, ImmutableSet.of(tableRef), map, consistency);
+    private void batchMutateInternal(String kvsMethodName,
+            CassandraClient client,
+            TableReference tableRef,
+            Map<ByteBuffer, Map<String, List<Mutation>>> map,
+            ConsistencyLevel consistency) throws TException {
+        batchMutateInternal(kvsMethodName, client, ImmutableSet.of(tableRef), map, consistency);
     }
 
-    private Void batchMutateInternal(CassandraClient client,
+    private Void batchMutateInternal(String kvsMethodName,
+                                     CassandraClient client,
                                      Set<TableReference> tableRefs,
                                      Map<ByteBuffer, Map<String, List<Mutation>>> map,
                                      ConsistencyLevel consistency) throws TException {
         try {
             return queryRunner.run(client, tableRefs, () -> {
-                client.batch_mutate(map, consistency);
+                client.batch_mutate(kvsMethodName, map, consistency);
                 return null;
             });
         } catch (UnavailableException e) {
@@ -1369,7 +1378,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     for (Map<ByteBuffer, Map<String, List<Mutation>>> map : maps.values()) {
                         // NOTE: we run with ConsistencyLevel.ALL here instead of ConsistencyLevel.QUORUM
                         // because we want to remove all copies of this data
-                        batchMutateInternal(client, tableRef, map, deleteConsistency);
+                        batchMutateInternal("delete", client, tableRef, map, deleteConsistency);
                     }
                     return null;
                 }
@@ -2050,7 +2059,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            putInternal(tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
+            putInternal("addGarbageCollectionSentinelValues",
+                    tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
