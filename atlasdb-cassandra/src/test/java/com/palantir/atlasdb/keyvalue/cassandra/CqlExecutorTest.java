@@ -34,8 +34,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CqlExecutorTest {
 
-    private final CqlExecutor.QueryExecutor queryExecutor = mock(CqlExecutor.QueryExecutor.class);
-    private final CqlExecutor executor = new CqlExecutor(queryExecutor);
+    private final CqlExecutorImpl.QueryExecutor queryExecutor = mock(CqlExecutorImpl.QueryExecutor.class);
+    private final CqlExecutor executor = new CqlExecutorImpl(queryExecutor);
 
     private long queryDelayMillis = 0L;
 
