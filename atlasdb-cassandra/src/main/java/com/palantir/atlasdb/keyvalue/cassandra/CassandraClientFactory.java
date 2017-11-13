@@ -89,6 +89,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private CassandraClient instrumentClient(Client client) {
+        // TODO(ssouza): use the kvsMethodName to tag the timers.
         return AtlasDbMetrics.instrument(CassandraClient.class, new CassandraClientImpl(client));
     }
 
