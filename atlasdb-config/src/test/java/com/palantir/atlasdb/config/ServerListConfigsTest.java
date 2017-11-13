@@ -34,6 +34,8 @@ public class ServerListConfigsTest {
     private static final ImmutableServerListConfig SERVERS_LIST_3 = ImmutableServerListConfig.builder()
             .addServers("three/")
             .build();
+    private static final ImmutableServerListConfig SERVERS_LIST_EMPTY = ImmutableServerListConfig.builder()
+            .build();
 
     private static final TimeLockClientConfig INSTALL_CONFIG = ImmutableTimeLockClientConfig.builder()
             .serversList(SERVERS_LIST_1)
@@ -61,12 +63,27 @@ public class ServerListConfigsTest {
     }
 
     @Test
+    public void namespacingCanDealWithServerListConfigsWithZeroNodes() {
+        ServerListConfig namespacedServersList = ServerListConfigs.namespaceUris(SERVERS_LIST_EMPTY, CLIENT);
+        assertThat(namespacedServersList.servers()).isEmpty();
+    }
+
+    @Test
     public void prioritisesRuntimeConfigIfAvailable() {
         ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
                 INSTALL_CONFIG,
                 () -> Optional.of(RUNTIME_CONFIG),
                 CLIENT);
         assertThat(resolvedConfig.servers()).containsExactlyInAnyOrder("one/client", "two/client");
+    }
+
+    @Test
+    public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
+        ServerListConfig resolvedConfig = ServerListConfigs.parseInstallAndRuntimeConfigs(
+                INSTALL_CONFIG,
+                () -> Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()),
+                CLIENT);
+        assertThat(resolvedConfig.servers()).isEmpty();
     }
 
     @Test
