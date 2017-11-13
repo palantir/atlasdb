@@ -179,7 +179,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     final TransactionService defaultTransactionService;
     private final Cleaner cleaner;
     private final Supplier<Long> startTimestamp;
-    private final MetricsManager metricsManager = new MetricsManager();
+    private static final MetricsManager metricsManager = new MetricsManager();
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
@@ -789,14 +789,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
 
-        ImmutableList<Entry<Cell, byte[]>> result = ImmutableList.copyOf(mergeInLocalWrites(
+        return mergeInLocalWrites(
                 postFilteredCells.iterator(),
                 localWritesInRange.iterator(),
-                rangeRequest.isReverse()));
-
-        getPostFilteredCellsMeter().mark(postFilteredCells.size() + localWritesInRange.size() - result.size());
-
-        return result;
+                rangeRequest.isReverse());
     }
 
     @Override
@@ -877,17 +873,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return RowResults.filterDeletedColumnsAndEmptyRows(mergeIterators);
     }
 
-    private static Iterator<Entry<Cell, byte[]>> mergeInLocalWrites(
+    private static ImmutableList<Entry<Cell, byte[]>> mergeInLocalWrites(
             Iterator<Entry<Cell, byte[]>> postFilterIterator,
             Iterator<Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
         Ordering<Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
-        Iterator<Entry<Cell, byte[]>> mergeIterators = IteratorUtils.mergeIterators(
+        ImmutableList<Entry<Cell, byte[]>> mergeList = ImmutableList.copyOf(IteratorUtils.mergeIterators(
                 postFilterIterator, localWritesInRange,
                 isReverse ? ordering.reverse() : ordering,
-                from -> from.rhSide); // always override their value with written values
-        return Iterators.filter(mergeIterators,
-            Predicates.compose(Predicates.not(Value.IS_EMPTY), MapEntries.getValueFunction()));
+                from -> from.rhSide)); // always override their value with written values
+        ImmutableList<Entry<Cell, byte[]>> emptyValueFilteredEntries = ImmutableList.copyOf(Iterators.filter(mergeList.iterator(),
+                Predicates.compose(Predicates.not(Value.IS_EMPTY), MapEntries.getValueFunction())));
+        getEmptyValuesCountMeter().mark(mergeList.size() - emptyValueFilteredEntries.size());
+        return emptyValueFilteredEntries;
     }
 
     protected <T> ClosableIterator<RowResult<T>> postFilterIterator(
@@ -1059,19 +1057,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * postFiltered keys to the results output param.
      */
     private <T> Map<Cell, Value> getWithPostFilteringInternal(TableReference tableRef,
-                                                              Map<Cell, Value> rawResults,
-                                                              @Output Map<Cell, T> results,
-                                                              Function<Value, T> transformer) {
+            Map<Cell, Value> rawResults,
+            @Output Map<Cell, T> results,
+            Function<Value, T> transformer) {
         Set<Long> startTimestampsForValues = getStartTimestampsForValues(rawResults.values());
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
-        for (Map.Entry<Cell, Value> e :  rawResults.entrySet()) {
+        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
 
             if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
-                getPostFilteredCellsMeter().mark(1);
+                getInvalidStartTsTsCellFilterCount().mark();
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
                 switch (getReadSentinelBehavior()) {
@@ -1093,6 +1091,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
                         keysToDelete.put(key, value.getTimestamp());
+                        getInvalidCommitTsCellFilterCount().mark();
                     }
                 } else if (theirCommitTimestamp > getStartTimestamp()) {
                     // The value's commit timestamp is after our start timestamp.
@@ -1100,6 +1099,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
+                    getGreaterCommitTsCellFilterCount().mark();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
@@ -1109,7 +1109,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        getPostFilteredCellsMeter().mark(keysToReload.size());
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
@@ -1970,16 +1969,27 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Meter getTransactionConflictsMeter() {
-        // TODO(hsaraogi): add table names as a tag
         return getMeter("SnapshotTransactionConflict");
     }
 
-    public Meter getPostFilteredCellsMeter() {
-        // TODO(hsaraogi): add table names as a tag
-        return getMeter("PostFilteredCellCount");
+    private Meter getGreaterCommitTsCellFilterCount() {
+        return getMeter("commitTsGreaterThatTxTsCellFilterCount");
     }
 
-    private Meter getMeter(String name) {
+    private Meter getInvalidStartTsTsCellFilterCount() {
+        return getMeter("invalidStartTsTsCellFilterCount");
+    }
+
+    private Meter getInvalidCommitTsCellFilterCount() {
+        return getMeter("invalidCommitTsCellFilterCount");
+    }
+
+    private static Meter getEmptyValuesCountMeter() {
+        return getMeter("emptyValuesCount");
+    }
+
+    private static Meter getMeter(String name) {
+        // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerMeter(SnapshotTransaction.class, name);
     }
 
