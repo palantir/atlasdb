@@ -33,12 +33,12 @@ public class KvsBackedPersistentLockServiceTest {
     private static final String TEST_REASON = "for-test";
 
     private PersistentLockService service;
-    private LockStore lockStore;
+    private LockStoreImpl lockStore;
 
     @Before
     public void setUp() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
-        lockStore = spy(LockStore.create(kvs));
+        lockStore = spy(LockStoreImpl.createImplForTest(kvs));
         service = new KvsBackedPersistentLockService(lockStore);
     }
 

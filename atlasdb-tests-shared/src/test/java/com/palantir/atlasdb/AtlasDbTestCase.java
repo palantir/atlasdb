@@ -31,7 +31,6 @@ import org.junit.Rule;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
@@ -124,8 +123,7 @@ public class AtlasDbTestCase {
         ExecutorService executor = Tracers.wrap(PTExecutors.newSingleThreadExecutor(
                 PTExecutors.newNamedThreadFactory(true)));
         InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
-        KeyValueService namespacedKvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(inMemoryKvs);
-        KeyValueService tracingKvs = TracingKeyValueService.create(namespacedKvs);
+        KeyValueService tracingKvs = TracingKeyValueService.create(inMemoryKvs);
         return AtlasDbMetrics.instrument(KeyValueService.class, tracingKvs);
     }
 

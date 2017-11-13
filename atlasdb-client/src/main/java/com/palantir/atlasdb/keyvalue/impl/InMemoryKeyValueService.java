@@ -167,11 +167,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
+        boolean reversed = range.isReverse();
         return getRangeInternal(tableRef, range, entries -> {
             Entry<Key, byte[]> lastEntry = null;
             while (entries.hasNext()) {
                 Entry<Key, byte[]> entry = entries.next();
-                if (entry.getKey().ts >= timestamp) {
+                if (reversed && entry.getKey().ts < timestamp) {
+                    lastEntry = entry;
+                    break;
+                } else if (!reversed && entry.getKey().ts >= timestamp) {
                     break;
                 }
                 lastEntry = entry;

@@ -66,6 +66,11 @@ public final class AsyncPuncher implements Puncher {
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate.isInitialized();
+    }
+
+    @Override
     public void punch(long timestamp) {
         lastTimestamp.set(timestamp);
     }

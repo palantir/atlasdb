@@ -16,16 +16,23 @@
 
 package com.palantir.atlasdb.factory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.exception.NotInitializedException;
 
 public final class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
     private final T decoratedService;
     private final T defaultService;
     private final Supplier<Boolean> shouldDecorate;
+
+    private static final Logger log = LoggerFactory.getLogger(DynamicDecoratingProxy.class);
 
     private DynamicDecoratingProxy(T decoratedService, T defaultService, Supplier<Boolean> shouldDecorate) {
         this.decoratedService = decoratedService;
@@ -46,6 +53,13 @@ public final class DynamicDecoratingProxy<T> extends AbstractInvocationHandler {
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         Object target = shouldDecorate.get() ? decoratedService : defaultService;
-        return method.invoke(target, args);
+        try {
+            return method.invoke(target, args);
+        } catch (InvocationTargetException e) {
+            if (e.getTargetException() instanceof NotInitializedException) {
+                log.warn("Resource is not initialized yet!");
+            }
+            throw e.getTargetException();
+        }
     }
 }

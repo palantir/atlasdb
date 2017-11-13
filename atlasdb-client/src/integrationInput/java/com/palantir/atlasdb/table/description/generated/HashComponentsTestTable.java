@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -653,6 +654,12 @@ public final class HashComponentsTestTable implements
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, HashComponentsTestRowResult::of)));
     }
 
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   BiFunction<RangeRequest, BatchingVisitable<HashComponentsTestRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, HashComponentsTestRowResult::of)));
+    }
+
     public Stream<BatchingVisitable<HashComponentsTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
         Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, HashComponentsTestRowResult::of));
@@ -770,8 +777,9 @@ public final class HashComponentsTestTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BLuA/sgNj9y8Q8N7EQdI2Q==";
+    static String __CLASS_HASH = "k+qBtTVmxN5wvhS0X+lMIQ==";
 }

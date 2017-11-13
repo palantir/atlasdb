@@ -25,6 +25,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.jetty.HttpConnectorFactory;
@@ -41,14 +43,17 @@ public class TimeLockServerConfiguration extends Configuration {
     private final AsyncLockConfiguration asyncLockConfiguration;
     private final boolean useClientRequestLimit;
     private final TimeLimiterConfiguration timeLimiterConfiguration;
+    private final TsBoundPersisterConfiguration tsBoundPersisterConfiguration;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
             @JsonProperty(value = "asyncLock", required = false) AsyncLockConfiguration asyncLockConfiguration,
-            @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit,
-            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration) {
+            @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration,
+            @JsonProperty(value = "timestampBoundPersister", required = false)
+                    TsBoundPersisterConfiguration tsBoundPersisterConfiguration,
+            @JsonProperty(value = "useClientRequestLimit", required = false) Boolean useClientRequestLimit) {
         checkClientNames(clients);
         if (Boolean.TRUE.equals(useClientRequestLimit)) {
             Preconditions.checkState(computeNumberOfAvailableThreads() > 0,
@@ -63,11 +68,17 @@ public class TimeLockServerConfiguration extends Configuration {
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
+        this.tsBoundPersisterConfiguration = MoreObjects.firstNonNull(tsBoundPersisterConfiguration,
+                getPaxosTsBoundPersisterConfiguration());
 
         if (clients.isEmpty()) {
             log.warn("TimeLockServer initialised with an empty list of 'clients'."
                     + " When adding clients, you will need to amend the config and restart TimeLock.");
         }
+    }
+
+    private TsBoundPersisterConfiguration getPaxosTsBoundPersisterConfiguration() {
+        return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
     }
 
     private void checkClientNames(Set<String> clientNames) {
@@ -111,6 +122,10 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public AsyncLockConfiguration asyncLockConfiguration() {
         return asyncLockConfiguration;
+    }
+
+    public TsBoundPersisterConfiguration getTsBoundPersisterConfiguration() {
+        return tsBoundPersisterConfiguration;
     }
 
     public int availableThreads() {

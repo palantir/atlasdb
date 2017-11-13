@@ -53,6 +53,6 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     @Override
     @JsonIgnore
     public Optional<String> namespace() {
-        return Optional.of("test");
+        return Optional.empty();
     }
 }

@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.table.description.Schema;
 
@@ -32,12 +33,15 @@ public abstract class ServicesConfig {
 
     public abstract AtlasDbConfig atlasDbConfig();
 
+    public abstract AtlasDbRuntimeConfig atlasDbRuntimeConfig();
+
     @Value.Derived
     public ServiceDiscoveringAtlasSupplier atlasDbSupplier() {
         return new ServiceDiscoveringAtlasSupplier(
                 atlasDbConfig().keyValueService(),
                 atlasDbConfig().leader(),
-                atlasDbConfig().namespace());
+                atlasDbConfig().namespace(),
+                atlasDbConfig().initializeAsync());
     }
 
     @Value.Default

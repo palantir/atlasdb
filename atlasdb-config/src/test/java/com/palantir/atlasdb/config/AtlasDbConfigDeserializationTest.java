@@ -37,7 +37,7 @@ public class AtlasDbConfigDeserializationTest {
     @Test
     public void canDeserializeAtlasDbConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(TEST_CONFIG_FILE);
-        assertThat(config.namespace().get()).isEqualTo("test");
+        assertThat(config.namespace().get()).isEqualTo("brian");
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
         assertThat(config.timelock().isPresent()).isTrue();
@@ -60,7 +60,7 @@ public class AtlasDbConfigDeserializationTest {
     }
 
     private void assertTimeLockConfigDeserializedCorrectly(TimeLockClientConfig timeLockClientConfig) {
-        assertThat(timeLockClientConfig.getClientOrThrow()).isEqualTo("test");
+        assertThat(timeLockClientConfig.getClientOrThrow()).isEqualTo("brian");
         assertThat(timeLockClientConfig.serversList().servers()).containsExactlyInAnyOrder(
                 "timelock1:8080", "timelock2:8080", "timelock3:8080");
         assertThat(timeLockClientConfig.serversList().sslConfiguration().isPresent()).isTrue();

@@ -39,12 +39,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeBoundPredicates;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
@@ -273,26 +274,27 @@ public class PostgresGetRange implements DbKvsGetRange {
         }
 
         private FullQuery getRangeQuery() {
-            RangeBoundPredicates bounds = RangeBoundPredicates.builder(reverse)
+            String direction = reverse ? "DESC" : "ASC";
+            FullQuery.Builder queryBuilder = FullQuery.builder()
+                    .append("/* GET_RANGE(").append(tableName).append(") */")
+                    .append("SELECT wrap.row_name, wrap.col_name, wrap.ts, wrap.val")
+                    .append("  FROM ").append(prefixedTableName).append(" wrap, (")
+                    .append("    SELECT row_name, col_name, MAX(ts) AS ts FROM ").append(prefixedTableName)
+                    .append("    WHERE ts < ? ", ts);
+            RangePredicateHelper.create(reverse, DBType.POSTGRESQL, queryBuilder)
                     .startCellInclusive(currentRowName, firstRowStartColumnInclusive)
                     .endRowExclusive(endExclusive)
-                    .columnSelection(columnSelection)
-                    .build();
-            String direction = reverse ? "DESC" : "ASC";
-            String query = "/* GET_RANGE(" + tableName + ") */"
-                    + "  SELECT wrap.row_name, wrap.col_name, wrap.ts, wrap.val"
-                    + "  FROM " + prefixedTableName + " wrap, ("
-                    + "    SELECT row_name, col_name, MAX(ts) AS ts FROM " + prefixedTableName
-                    + "    WHERE ts < ? " + bounds.predicates
-                    + "    GROUP BY row_name, col_name"
-                    + "    ORDER BY row_name " + direction + ", col_name " + direction
-                    + "    LIMIT " + maxCellsPerPage
-                    + "  ) i"
-                    + "  WHERE wrap.row_name = i.row_name"
-                    + "    AND wrap.col_name = i.col_name"
-                    + "    AND wrap.ts = i.ts"
-                    + "  ORDER BY row_name " + direction + ", col_name " + direction;
-            return new FullQuery(query).withArg(ts).withArgs(bounds.args);
+                    .columnSelection(columnSelection);
+            queryBuilder
+                    .append("    GROUP BY row_name, col_name")
+                    .append("    ORDER BY row_name ").append(direction).append(", col_name ").append(direction)
+                    .append("    LIMIT ").append(maxCellsPerPage)
+                    .append("  ) i")
+                    .append("  WHERE wrap.row_name = i.row_name")
+                    .append("    AND wrap.col_name = i.col_name")
+                    .append("    AND wrap.ts = i.ts")
+                    .append("  ORDER BY row_name ").append(direction).append(", col_name ").append(direction);
+            return queryBuilder.build();
         }
     }
 

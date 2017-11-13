@@ -95,9 +95,8 @@ public class SweepableCellFilterTest {
         List<CandidateCellForSweeping> candidate = ImmutableList.of(
                 ImmutableCandidateCellForSweeping.builder()
                     .cell(SINGLE_CELL)
-                    .sortedTimestamps(new long[] {LOW_START_TS})
+                    .sortedTimestamps(ImmutableList.of(LOW_START_TS))
                     .isLatestValueEmpty(false)
-                    .numCellsTsPairsExamined(0L)
                     .build());
         when(mockTransactionService.get(anyCollection()))
                 .thenReturn(ImmutableMap.of(LOW_START_TS, TransactionConstants.FAILED_COMMIT_TS));
@@ -114,9 +113,8 @@ public class SweepableCellFilterTest {
         List<CandidateCellForSweeping> candidate = ImmutableList.of(
                 ImmutableCandidateCellForSweeping.builder()
                     .cell(SINGLE_CELL)
-                    .sortedTimestamps(new long[] {LOW_START_TS})
+                    .sortedTimestamps(ImmutableList.of(LOW_START_TS))
                     .isLatestValueEmpty(true)
-                    .numCellsTsPairsExamined(0)
                     .build());
         when(mockTransactionService.get(anyCollection()))
                 .thenReturn(ImmutableMap.of(LOW_START_TS, LOW_COMMIT_TS));
@@ -132,9 +130,8 @@ public class SweepableCellFilterTest {
         List<CandidateCellForSweeping> ret = ImmutableList.of(
                 ImmutableCandidateCellForSweeping.builder()
                     .cell(SINGLE_CELL)
-                    .sortedTimestamps(new long[] {LOW_START_TS, HIGH_START_TS})
+                    .sortedTimestamps(ImmutableList.of(LOW_START_TS, HIGH_START_TS))
                     .isLatestValueEmpty(false)
-                    .numCellsTsPairsExamined(0)
                     .build());
         when(mockTransactionService.get(anyCollection()))
                 .thenReturn(ImmutableMap.of(

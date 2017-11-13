@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.protocol.TProtocolException;
@@ -43,8 +42,10 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
-public class CassandraClientPoolingContainer implements PoolingContainer<Client> {
+public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
     private final InetSocketAddress host;
@@ -52,12 +53,15 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final MetricsManager metricsManager = new MetricsManager();
     private final AtomicLong count = new AtomicLong();
     private final AtomicInteger openRequests = new AtomicInteger();
-    private final GenericObjectPool<Client> clientPool;
+    private final GenericObjectPool<CassandraClient> clientPool;
 
-    public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
+    public CassandraClientPoolingContainer(
+            InetSocketAddress host,
+            CassandraKeyValueServiceConfig config,
+            int poolNumber) {
         this.host = host;
         this.config = config;
-        this.clientPool = createClientPool();
+        this.clientPool = createClientPool(poolNumber);
     }
 
     public InetSocketAddress getHost() {
@@ -85,7 +89,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     }
 
     @Override
-    public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<Client, V, K> fn)
+    public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
         final String origName = Thread.currentThread().getName();
         Thread.currentThread().setName(origName
@@ -96,7 +100,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
             openRequests.getAndIncrement();
             return runWithGoodResource(fn);
         } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}': {}", host, t.toString());
+            log.warn("Error occurred talking to host '{}': {}",
+                    SafeArg.of("host", CassandraLogHelper.host(host)), UnsafeArg.of("exception", t.toString()));
             throw t;
         } finally {
             openRequests.getAndDecrement();
@@ -105,22 +110,25 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     }
 
     @Override
-    public <V> V runWithPooledResource(Function<Client, V> fn) {
+    public <V> V runWithPooledResource(Function<CassandraClient, V> fn) {
         throw new UnsupportedOperationException("you should use FunctionCheckedException<?, ?, Exception> "
                 + "to ensure the TTransportException type is propagated correctly.");
     }
 
     @SuppressWarnings("unchecked")
-    private <V, K extends Exception> V runWithGoodResource(FunctionCheckedException<Client, V, K> fn)
+    private <V, K extends Exception> V runWithGoodResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
         boolean shouldReuse = true;
-        Client resource = null;
+        CassandraClient resource = null;
         try {
             resource = clientPool.borrowObject();
             return fn.apply(resource);
         } catch (Exception e) {
             if (isInvalidClientConnection(e)) {
-                log.warn("Not reusing resource {} due to {}", resource, e.toString(), e);
+                log.warn("Not reusing resource {} due to {} of host {}",
+                        UnsafeArg.of("resource", resource),
+                        UnsafeArg.of("exception", e.toString()),
+                        SafeArg.of("host", CassandraLogHelper.host(host)), e);
                 shouldReuse = false;
             }
             if (e instanceof TTransportException
@@ -132,8 +140,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         } finally {
             if (resource != null) {
                 if (shouldReuse) {
-                    log.debug("Returning {} to pool", resource);
-                    eagerlyCleanupReadBuffersFromIdleConnection(resource);
+                    log.debug("Returning {} to pool of host {}",
+                            UnsafeArg.of("resource", resource),
+                            SafeArg.of("host", CassandraLogHelper.host(host)));
+                    eagerlyCleanupReadBuffersFromIdleConnection(resource, host);
                     clientPool.returnObject(resource);
                 } else {
                     invalidateQuietly(resource);
@@ -142,18 +152,21 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         }
     }
 
-    private static void eagerlyCleanupReadBuffersFromIdleConnection(Client idleClient) {
+    private static void eagerlyCleanupReadBuffersFromIdleConnection(CassandraClient idleClient,
+            InetSocketAddress host) {
         // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
         try {
-            TTransport transport = idleClient.getInputProtocol().getTransport();
+            TTransport transport = idleClient.rawClient().getInputProtocol().getTransport();
             if (transport instanceof TFramedTransport) {
                 Field readBuffer = ((TFramedTransport) transport).getClass().getDeclaredField("readBuffer_");
                 readBuffer.setAccessible(true);
                 TMemoryInputTransport memoryInputTransport = (TMemoryInputTransport) readBuffer.get(transport);
                 byte[] underlyingBuffer = memoryInputTransport.getBuffer();
                 if (underlyingBuffer != null) {
-                    log.debug("During {} check-in, cleaned up a read buffer of {} bytes",
-                            idleClient, underlyingBuffer.length);
+                    log.debug("During {} check-in, cleaned up a read buffer of {} bytes of host {}",
+                            UnsafeArg.of("pool", idleClient),
+                            SafeArg.of("bufferLength", underlyingBuffer.length),
+                            SafeArg.of("host", CassandraLogHelper.host(host)));
                     memoryInputTransport.clear();
                 }
             }
@@ -168,9 +181,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 || ex instanceof NoSuchElementException;
     }
 
-    private void invalidateQuietly(Client resource) {
+    private void invalidateQuietly(CassandraClient resource) {
         try {
-            log.debug("Discarding: {}", resource);
+            log.debug("Discarding {} of host {}",
+                    UnsafeArg.of("pool", resource),
+                    SafeArg.of("host", CassandraLogHelper.host(host)));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             // Ignore
@@ -217,8 +232,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      *
+     * @param poolNumber number of the pool for metric registration.
      */
-    private GenericObjectPool<Client> createClientPool() {
+    private GenericObjectPool<CassandraClient> createClientPool(int poolNumber) {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
@@ -244,23 +260,27 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         poolConfig.setNumTestsPerEvictionRun(-(int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 
-        poolConfig.setJmxNamePrefix(host.getHostString());
-        GenericObjectPool<Client> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
-        registerMetrics(pool);
+        poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
+        GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
+        registerMetrics(pool, poolNumber);
         return pool;
     }
 
-    private void registerMetrics(GenericObjectPool<Client> pool) {
-        registerMetric("meanActiveTimeMillis", pool::getMeanActiveTimeMillis);
-        registerMetric("meanIdleTimeMillis", pool::getMeanIdleTimeMillis);
-        registerMetric("meanBorrowWaitTimeMillis", pool::getMeanBorrowWaitTimeMillis);
-        registerMetric("numIdle", pool::getNumIdle);
-        registerMetric("numActive", pool::getNumActive);
-        registerMetric("approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
-        registerMetric("proportionDestroyedByEvictor",
+    private void registerMetrics(GenericObjectPool<CassandraClient> pool, int poolNumber) {
+        registerMetric(getMetricName("meanActiveTimeMillis", poolNumber), pool::getMeanActiveTimeMillis);
+        registerMetric(getMetricName("meanIdleTimeMillis", poolNumber), pool::getMeanIdleTimeMillis);
+        registerMetric(getMetricName("meanBorrowWaitTimeMillis", poolNumber), pool::getMeanBorrowWaitTimeMillis);
+        registerMetric(getMetricName("numIdle", poolNumber), pool::getNumIdle);
+        registerMetric(getMetricName("numActive", poolNumber), pool::getNumActive);
+        registerMetric(getMetricName("approximatePoolSize", poolNumber), () -> pool.getNumIdle() + pool.getNumActive());
+        registerMetric(getMetricName("proportionDestroyedByEvictor", poolNumber),
                 () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
-        registerMetric("proportionDestroyedByBorrower",
+        registerMetric(getMetricName("proportionDestroyedByBorrower", poolNumber),
                 () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
+    }
+
+    private String getMetricName(String metric, int poolNumber) {
+        return "pool" + poolNumber + "." + metric;
     }
 
     private void registerMetric(String metricName, Gauge gauge) {

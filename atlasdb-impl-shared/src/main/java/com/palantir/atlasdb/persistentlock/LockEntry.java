@@ -48,7 +48,7 @@ public abstract class LockEntry {
         return deserialize(valueOfColumnInRow(LOCK_COLUMN, rowResult));
     }
 
-    static LockEntry fromStoredValue(byte[] value) {
+    public static LockEntry fromStoredValue(byte[] value) {
         return deserialize(asString(value));
     }
 

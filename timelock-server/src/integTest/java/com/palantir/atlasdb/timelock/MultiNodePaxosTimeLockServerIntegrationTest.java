@@ -227,6 +227,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void clientsCreatedDynamicallyOnLeaderAreFunctionalImmediately() {
+        String client = UUID.randomUUID().toString();
+
+        CLUSTER.currentLeader()
+                .timelockServiceForClient(client)
+                .getFreshTimestamp();
+    }
+
+    @Test
     public void noConflictIfLeaderAndNonLeadersSeparatelyInitializeClient() {
         String client = UUID.randomUUID().toString();
         CLUSTER.nonLeaders().forEach(server -> {

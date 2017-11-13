@@ -1,2 +1,9 @@
 timestampClient:
   enableTimestampBatching: true
+
+timelockRuntime:
+  serversList:
+    servers:
+      - "https://foo1:12345"
+      - "https://foo2:8421"
+      - "https://foo3:9421"

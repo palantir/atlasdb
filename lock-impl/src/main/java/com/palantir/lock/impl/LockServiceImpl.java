@@ -1045,7 +1045,7 @@ public final class LockServiceImpl
         logString.append("maxAllowedLockTimeout = ").append(maxAllowedLockTimeout).append("\n");
         logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
         logString.append("descriptorToLockMap.size = ").append(descriptorToLockMap.size()).append("\n");
-        logString.append("outstandingLockRequestMultimap.size = ").append(descriptorToLockMap.size()).append("\n");
+        logString.append("outstandingLockRequestMultimap.size = ").append(outstandingLockRequestMultimap.size()).append("\n");
         logString.append("heldLocksTokenMap.size = ").append(heldLocksTokenMap.size()).append("\n");
         logString.append("heldLocksGrantMap.size = ").append(heldLocksGrantMap.size()).append("\n");
         logString.append("lockTokenReaperQueue.size = ").append(lockTokenReaperQueue.size()).append("\n");

@@ -30,10 +30,12 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -187,7 +189,7 @@ public abstract class ConsecutiveNarrowTable {
                 .collect(Collectors.toSet());
     }
 
-    public Iterable<RangeRequest> getRangeRequests(int numRequests, int sliceSize) {
+    public Iterable<RangeRequest> getRangeRequests(int numRequests, int sliceSize, boolean allColumns) {
         List<RangeRequest> requests = Lists.newArrayList();
         Set<Integer> used = Sets.newHashSet();
         for (int i = 0; i < numRequests; i++) {
@@ -200,6 +202,9 @@ public abstract class ConsecutiveNarrowTable {
                     .batchHint(1 + sliceSize)
                     .startRowInclusive(Ints.toByteArray(startRow))
                     .endRowExclusive(Ints.toByteArray(endRow))
+                    .retainColumns(allColumns
+                            ? ColumnSelection.all()
+                            : ColumnSelection.create(ImmutableList.of(Tables.COLUMN_NAME_IN_BYTES.array())))
                     .build();
             requests.add(request);
             used.add(startRow);

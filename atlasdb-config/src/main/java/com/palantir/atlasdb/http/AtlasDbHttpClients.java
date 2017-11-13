@@ -15,20 +15,26 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.remoting.api.config.service.ProxyConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public final class AtlasDbHttpClients {
-    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
-    private static final int QUICK_MAX_BACKOFF_MILLIS = 1000;
+    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
+    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -74,20 +80,56 @@ public final class AtlasDbHttpClients {
         return ret;
     }
 
-
     /**
-     * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
-     * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
-     * present.
-     * <p>
-     * Failover will continue to cycle through the supplied endpoint list indefinitely.
+     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class)}, which requires
+     * you to specify the ProxySelector parameter.
      */
+    @Deprecated
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
             Collection<String> endpointUris,
             Class<T> type) {
         return createProxyWithFailover(
                 sslSocketFactory,
+                Optional.empty(),
+                endpointUris,
+                type,
+                UserAgents.DEFAULT_USER_AGENT);
+    }
+
+    /**
+     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class, String)}, which
+     * requires you to specify the ProxySelector parameter.
+     */
+    @Deprecated
+    public static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            Class<T> type,
+            String userAgent) {
+        return createProxyWithFailover(
+                sslSocketFactory,
+                Optional.empty(),
+                endpointUris,
+                type,
+                userAgent);
+    }
+
+    /**
+     * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
+     * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
+     * present. Also use the supplied the proxy selector to set the proxy on the clients if present.
+     * <p>
+     * Failover will continue to cycle through the supplied endpoint list indefinitely.
+     */
+    public static <T> T createProxyWithFailover(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
+            Collection<String> endpointUris,
+            Class<T> type) {
+        return createProxyWithFailover(
+                sslSocketFactory,
+                proxySelector,
                 endpointUris,
                 type,
                 UserAgents.DEFAULT_USER_AGENT);
@@ -95,22 +137,60 @@ public final class AtlasDbHttpClients {
 
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 type,
-                AtlasDbFeignTargetFactory.createProxyWithFailover(sslSocketFactory, endpointUris, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxyWithFailover(
+                        sslSocketFactory, proxySelector, endpointUris, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
+    public static <T> T createLiveReloadingProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
+    @VisibleForTesting
+    static <T> T createLiveReloadingProxyWithQuickFailoverForTesting(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier,
+                        sslSocketFactoryCreator,
+                        proxySelectorCreator,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_MAX_BACKOFF_MILLIS,
+                        type,
+                        userAgent),
                 MetricRegistry.name(type));
     }
 
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
-            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector, Collection<String> endpointUris, Class<T> type) {
         return AtlasDbMetrics.instrument(
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
                         sslSocketFactory,
+                        proxySelector,
                         endpointUris,
                         QUICK_FEIGN_TIMEOUT_MILLIS,
                         QUICK_FEIGN_TIMEOUT_MILLIS,

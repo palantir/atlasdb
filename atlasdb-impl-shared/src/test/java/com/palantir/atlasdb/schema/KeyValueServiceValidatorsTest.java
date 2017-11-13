@@ -27,14 +27,11 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
-import com.palantir.atlasdb.schema.generated.SweepProgressTable;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class KeyValueServiceValidatorsTest {
     private static final TableReference SWEEP_PRIORITY = TableReference.create(
             SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
-    private static final TableReference SWEEP_PROGRESS = TableReference.create(
-            SweepSchema.INSTANCE.getNamespace(), SweepProgressTable.getRawTableName());
     private static final TableReference OTHER_PRIORITY = TableReference.create(
             Namespace.create("foo"), SweepPriorityTable.getRawTableName());
 
@@ -46,11 +43,6 @@ public class KeyValueServiceValidatorsTest {
     }
 
     @Test
-    public void sweepProgressTableIsASweepTable() {
-        assertThat(KeyValueServiceValidators.isSweepTableReference(SWEEP_PROGRESS)).isTrue();
-    }
-
-    @Test
     public void otherPriorityTableIsNotASweepTable() {
         assertThat(KeyValueServiceValidators.isSweepTableReference(OTHER_PRIORITY)).isFalse();
     }
@@ -58,12 +50,6 @@ public class KeyValueServiceValidatorsTest {
     @Test
     public void sweepPriorityTableNotValidated() {
         kvs.createTable(SWEEP_PRIORITY, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of())).isEmpty();
-    }
-
-    @Test
-    public void sweepProgressTableNotValidated() {
-        kvs.createTable(SWEEP_PROGRESS, AtlasDbConstants.EMPTY_TABLE_METADATA);
         assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of())).isEmpty();
     }
 
