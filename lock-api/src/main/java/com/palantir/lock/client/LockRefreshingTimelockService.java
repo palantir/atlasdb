@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.net.ConnectException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -117,7 +118,11 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
         try {
             return callable.call();
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+            if (e.getCause() instanceof ConnectException) {
+                throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+            } else {
+                throw Throwables.throwUncheckedException(e);
+            }
         }
     }
 
