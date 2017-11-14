@@ -22,6 +22,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -89,7 +90,7 @@ public class TimeLockMigrator extends AsyncInitializer {
         try {
             destination.ping();
         } catch (Exception e) {
-            throw new IllegalStateException("Could not contact the Timelock Server.", e);
+            throw new AtlasDbDependencyException("Could not contact the Timelock Server.", e);
         }
         long currentTimestamp = source.backupAndInvalidate();
         destination.fastForwardTimestamp(currentTimestamp);
