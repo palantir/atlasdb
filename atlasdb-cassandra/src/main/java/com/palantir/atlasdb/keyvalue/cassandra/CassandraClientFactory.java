@@ -88,9 +88,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    private CassandraClient instrumentClient(Client client) {
+    private CassandraClient instrumentClient(Client rawClient) {
+        CassandraClient client = new CassandraClientImpl(rawClient);
+        client = new ProfilingCassandraClient(client);
+        client = new TracingCassandraClient(client);
         // TODO(ssouza): use the kvsMethodName to tag the timers.
-        return AtlasDbMetrics.instrument(CassandraClient.class, new CassandraClientImpl(client));
+        client = AtlasDbMetrics.instrument(CassandraClient.class, client);
+        client = new QosCassandraClient(client);
+        return client;
     }
 
     private static Cassandra.Client getRawClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)

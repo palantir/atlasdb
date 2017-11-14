@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -25,8 +24,6 @@ import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnParent;
-import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
@@ -42,32 +39,40 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-public class CassandraClientImpl implements CassandraClient {
-    private final Cassandra.Client client;
+public class TracingCassandraClient implements CassandraClient {
+    private static final String SERVICE_NAME = "cassandra-thrift-client";
 
-    public CassandraClientImpl(Cassandra.Client client) {
+    private final CassandraClient client;
+
+    public TracingCassandraClient(CassandraClient client) {
         this.client = client;
     }
 
     @Override
     public Cassandra.Client rawClient() {
-        return client;
+        return client.rawClient();
     }
 
     @Override
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
-            String kvsMethodName,
+    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,
             SlicePredicate predicate,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        ColumnParent colFam = getColumnParent(tableRef);
+        int numberOfKeys = keys.size();
+        int numberOfColumns = predicate.slice_range.count;
 
-        return client.multiget_slice(keys, colFam, predicate, consistency_level);
+        try (CloseableTrace trace = startLocalTrace(
+                "client.multiget_slice(table {}, number of keys {}, number of columns {}, consistency {}) on kvs.{}",
+                LoggingArgs.safeTableOrPlaceholder(tableRef),
+                numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
+            return client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level);
+        }
     }
 
     @Override
@@ -77,9 +82,15 @@ public class CassandraClientImpl implements CassandraClient {
             KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        ColumnParent colFam = getColumnParent(tableRef);
+        int numberOfKeys = predicate.slice_range.count;
+        int numberOfColumns = range.count;
 
-        return client.get_range_slices(colFam, predicate, range, consistency_level);
+        try (CloseableTrace trace = startLocalTrace(
+                "client.get_range_slices(table {}, number of keys {}, number of columns {}, consistency {}) on kvs.{}",
+                LoggingArgs.safeTableOrPlaceholder(tableRef),
+                numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
+            return client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level);
+        }
     }
 
     @Override
@@ -87,7 +98,13 @@ public class CassandraClientImpl implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        client.batch_mutate(mutation_map, consistency_level);;
+        int numberOfRowsMutated = mutation_map.size();
+
+        try (CloseableTrace trace = startLocalTrace("client.batch_mutate(number of mutations {}, consistency {})"
+                        + " on kvs.{}",
+                numberOfRowsMutated, consistency_level, kvsMethodName)) {
+            client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
+        }
     }
 
     @Override
@@ -96,10 +113,10 @@ public class CassandraClientImpl implements CassandraClient {
             byte[] column,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
-        ColumnPath columnPath = new ColumnPath(tableReference.getQualifiedName());
-        columnPath.setColumn(column);
-
-        return client.get(key, columnPath, consistency_level);
+        try (CloseableTrace trace = startLocalTrace("client.get(table {}, consistency {})",
+                LoggingArgs.safeTableOrPlaceholder(tableReference), consistency_level)) {
+            return client.get(tableReference, key, column, consistency_level);
+        }
     }
 
     @Override
@@ -110,10 +127,11 @@ public class CassandraClientImpl implements CassandraClient {
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
-
-        return client.cas(key, internalTableName, expected, updates, serial_consistency_level,
-                commit_consistency_level);
+        try (CloseableTrace trace = startLocalTrace("client.cas(table {})",
+                LoggingArgs.safeTableOrPlaceholder(tableReference))) {
+            return client.cas(tableReference, key, expected, updates, serial_consistency_level,
+                    commit_consistency_level);
+        }
     }
 
     @Override
@@ -122,12 +140,12 @@ public class CassandraClientImpl implements CassandraClient {
             ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
-        ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.toString().getBytes(StandardCharsets.UTF_8));
-
-        return client.execute_cql3_query(queryBytes, compression, consistency);
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})", cqlQuery)) {
+            return client.execute_cql3_query(cqlQuery, compression, consistency);
+        }
     }
 
-    private ColumnParent getColumnParent(TableReference tableRef) {
-        return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
+    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
+        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
     }
 }
