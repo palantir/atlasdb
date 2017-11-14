@@ -119,7 +119,7 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
             return callable.call();
         } catch (Exception e) {
             if (e.getCause() instanceof ConnectException) {
-                throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             } else {
                 throw Throwables.throwUncheckedException(e);
             }
