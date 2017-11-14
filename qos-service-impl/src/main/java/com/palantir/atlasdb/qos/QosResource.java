@@ -18,18 +18,48 @@ package com.palantir.atlasdb.qos;
 
 import java.util.function.Supplier;
 
+import com.codahale.metrics.Counter;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
+import com.palantir.remoting3.clients.ClientConfigurations;
+import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public class QosResource implements QosService {
 
+    private final CassandraMetricsService cassandraMetricClient;
     private Supplier<QosServiceRuntimeConfig> config;
+    private static final String COUNTER_SCOPE = "Count";
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
+        this.cassandraMetricClient = JaxRsClient.create(
+                CassandraMetricsService.class,
+                "qos-service",
+                ClientConfigurations.of(config.get().cassandraServiceConfig()));
     }
 
     @Override
     public long getLimit(String client) {
+        checkCassandraHealth();
         return config.get().clientLimits().getOrDefault(client, Long.MAX_VALUE);
+    }
+
+    private void checkCassandraHealth() {
+        // type=ClientRequest
+        // scope=Read,RangeSlice,Write
+        // name=Timeouts/Failures//
+        Counter readTimeoutCounter = getTimeoutCounter("Read");
+        Counter writeTimeoutCounter = getTimeoutCounter("Write");
+        Counter rangeSliceTimeoutCounter = getTimeoutCounter("RangeSlice");
+        long totalTimeouts = rangeSliceTimeoutCounter.getCount() + writeTimeoutCounter.getCount() + readTimeoutCounter.getCount();
+
+        System.out.println("totalTimeouts :" + totalTimeouts);
+
+    }
+
+    private Counter getTimeoutCounter(String operation) {
+        return (Counter) cassandraMetricClient
+                .getMetric("ClientRequest", "Timeouts", COUNTER_SCOPE, ImmutableMap.of("scope", operation));
     }
 }
