@@ -122,7 +122,7 @@ public class KvsProfilingLogger {
                 return res;
             } catch (Exception ex) {
                 monitor.registerException(ex);
-                throw Throwables.throwUncheckedException(ex);
+                throw ex;
             } finally {
                 monitor.log();
             }
