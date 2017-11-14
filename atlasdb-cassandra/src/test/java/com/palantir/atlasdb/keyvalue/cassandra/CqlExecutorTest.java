@@ -85,7 +85,7 @@ public class CqlExecutorTest {
                     return false;
                 }
 
-                String actualQuery = ((CqlQuery) argument).fullQuery();
+                String actualQuery = ((CqlQuery) argument).toString();
                 return expected.equals(actualQuery);
             }
         };

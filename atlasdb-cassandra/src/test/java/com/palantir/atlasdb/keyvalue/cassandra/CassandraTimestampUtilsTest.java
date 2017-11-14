@@ -71,7 +71,7 @@ public class CassandraTimestampUtilsTest {
     @Test
     public void canGetSelectQuery() {
         CqlQuery query = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
-        assertThat(query.fullQuery()).isEqualTo("SELECT column1, value FROM \"_timestamp\" WHERE key=0x7473;");
+        assertThat(query.toString()).isEqualTo("SELECT column1, value FROM \"_timestamp\" WHERE key=0x7473;");
     }
 
     @Test
@@ -106,14 +106,14 @@ public class CassandraTimestampUtilsTest {
     public void checkAndSetIsInsertIfNotExistsIfExpectedIsNull() {
         CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                 ImmutableMap.of(COLUMN_NAME_1, Pair.create(null, VALUE_1)));
-        assertThat(query.fullQuery()).contains("INSERT").contains("IF NOT EXISTS;");
+        assertThat(query.toString()).contains("INSERT").contains("IF NOT EXISTS;");
     }
 
     @Test
     public void checkAndSetIsUpdateIfEqualIfExpectedIsNotNull() {
         CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                 ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2)));
-        assertThat(query.fullQuery()).contains("UPDATE").contains("IF " + CassandraTimestampUtils.VALUE_COLUMN + "=");
+        assertThat(query.toString()).contains("UPDATE").contains("IF " + CassandraTimestampUtils.VALUE_COLUMN + "=");
     }
 
     @Test
@@ -121,7 +121,7 @@ public class CassandraTimestampUtilsTest {
         CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                 ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2),
                         COLUMN_NAME_2, Pair.create(VALUE_2, VALUE_1)));
-        assertThat(query.fullQuery()).contains("BEGIN UNLOGGED BATCH").contains("APPLY BATCH;");
+        assertThat(query.toString()).contains("BEGIN UNLOGGED BATCH").contains("APPLY BATCH;");
     }
 
     @Test
