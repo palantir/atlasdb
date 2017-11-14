@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -153,7 +154,17 @@ public class LockRefreshingTimelockServiceTest {
     @Test
     @SuppressWarnings("ThrowableNotThrown")
     public void throwsDependencyUnavailableWhenConnectionToDelegateFails() {
-        Throwable cause = new ConnectException("test says we're down, so I guess we're down");
+        Throwable cause = new ConnectException("I couldn't connect to TimeLock");
+        Throwable exceptionToThrow = new RuntimeException(cause);
+        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
+
+        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    @Test
+    @SuppressWarnings("ThrowableNotThrown")
+    public void throwsDependencyUnavailableWhenDelegateIsUnknown() {
+        Throwable cause = new UnknownHostException("I don't know how to talk to TimeLock");
         Throwable exceptionToThrow = new RuntimeException(cause);
         when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
 

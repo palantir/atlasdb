@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -118,7 +119,8 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
         try {
             return callable.call();
         } catch (Exception e) {
-            if (e.getCause() instanceof ConnectException) {
+            if (e.getCause() instanceof ConnectException
+                    || e.getCause() instanceof UnknownHostException) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             } else {
                 throw Throwables.throwUncheckedException(e);
