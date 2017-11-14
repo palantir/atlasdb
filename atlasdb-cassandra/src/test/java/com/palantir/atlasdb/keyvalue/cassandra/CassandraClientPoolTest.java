@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
@@ -258,7 +257,7 @@ public class CassandraClientPoolTest {
             int numAttempts) {
         Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
                 .runWithPooledResource(
-                        Mockito.<FunctionCheckedException<Cassandra.Client, Object, RuntimeException>>any());
+                        Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
     }
 
     @Test
@@ -338,7 +337,7 @@ public class CassandraClientPoolTest {
     private void setFailureModeForHost(CassandraClientPoolingContainer poolingContainer, Exception failureMode) {
         try {
             when(poolingContainer.runWithPooledResource(
-                    Mockito.<FunctionCheckedException<Cassandra.Client, Object, Exception>>any()))
+                    Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()))
                     .thenThrow(failureMode);
         } catch (Exception e) {
             throw Throwables.propagate(e);
@@ -371,10 +370,10 @@ public class CassandraClientPoolTest {
         }
     }
 
-    private FunctionCheckedException<Cassandra.Client, Void, RuntimeException> noOp() {
-        return new FunctionCheckedException<Cassandra.Client, Void, RuntimeException>() {
+    private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {
+        return new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
             @Override
-            public Void apply(Cassandra.Client input) throws RuntimeException {
+            public Void apply(CassandraClient input) throws RuntimeException {
                 return null;
             }
 

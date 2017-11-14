@@ -21,10 +21,8 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.slf4j.Logger;
@@ -124,16 +122,17 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
-        Long upperLimit = clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
+        Long upperLimit = clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Long,
+                RuntimeException>() {
+
             @GuardedBy("CassandraTimestampBoundStore.this")
             @Override
-            public Long apply(Client client) {
+            public Long apply(CassandraClient client) {
                 ByteBuffer rowName = getRowName();
-                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
-                columnPath.setColumn(getColumnName());
                 ColumnOrSuperColumn result;
                 try {
-                    result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
+                    result = client.get(AtlasDbConstants.TIMESTAMP_TABLE, rowName, getColumnName(),
+                            ConsistencyLevel.LOCAL_QUORUM);
                 } catch (NotFoundException e) {
                     result = null;
                 } catch (Exception e) {
@@ -173,10 +172,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     public synchronized void storeUpperLimit(final long limit) {
         DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
 
-        clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
+        clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
             @GuardedBy("CassandraTimestampBoundStore.this")
             @Override
-            public Void apply(Client client) {
+            public Void apply(CassandraClient client) {
                 cas(client, currentLimit, limit);
                 return null;
             }
@@ -184,13 +183,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     @GuardedBy("this")
-    private void cas(Client client, Long oldVal, long newVal) {
+    private void cas(CassandraClient client, Long oldVal, long newVal) {
         final CASResult result;
         try {
             DebugLogger.logger.info("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
             result = client.cas(
+                    AtlasDbConstants.TIMESTAMP_TABLE,
                     getRowName(),
-                    AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
                     oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
                     ImmutableList.of(makeColumn(newVal)),
                     ConsistencyLevel.SERIAL,

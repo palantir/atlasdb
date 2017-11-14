@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
@@ -35,7 +36,10 @@ import com.palantir.exception.NotInitializedException;
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
-    static final String UNSPECIFIED_NAMESPACE = "unspecifed";
+    @VisibleForTesting
+    static final String UNSPECIFIED_NAMESPACE = "unspecified";
+
+    private String namespace;
 
     public abstract KeyValueServiceConfig keyValueService();
 
@@ -262,7 +266,7 @@ public abstract class AtlasDbConfig {
     protected final void check() {
         checkLeaderAndTimelockBlocks();
         checkLockAndTimestampBlocks();
-        checkNamespaceConfig();
+        checkNamespaceConfigAndGetNamespace();
     }
 
     private void checkLeaderAndTimelockBlocks() {
@@ -271,6 +275,8 @@ public abstract class AtlasDbConfig {
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
             Preconditions.checkState(!timelock().isPresent(),
                     "If the leader block is present, then the timelock block must be absent.");
+            Preconditions.checkState(!leader().get().leaders().isEmpty(),
+                    "Leader config must have at least one server.");
         }
 
         if (timelock().isPresent()) {
@@ -282,28 +288,24 @@ public abstract class AtlasDbConfig {
     private void checkLockAndTimestampBlocks() {
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
+        checkServersListHasAtLeastOneServerIfPresent(lock());
+        checkServersListHasAtLeastOneServerIfPresent(timestamp());
     }
 
-    private void checkNamespaceConfig() {
-        getNamespaceString();
-    }
-
-    @Value.Derived
-    @JsonIgnore
-    public String getNamespaceString() {
+    private String checkNamespaceConfigAndGetNamespace() {
         if (namespace().isPresent()) {
-            String namespace = namespace().get();
-
+            String namespaceConfigValue = namespace().get();
             keyValueService().namespace().ifPresent(kvsNamespace ->
-                    Preconditions.checkState(kvsNamespace.equals(namespace),
+                    Preconditions.checkState(kvsNamespace.equals(namespaceConfigValue),
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
             timelock().ifPresent(timelock -> timelock.client().ifPresent(client ->
-                    Preconditions.checkState(client.equals(namespace),
+                    Preconditions.checkState(client.equals(namespaceConfigValue),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config.")));
-            return namespace;
+
+            return namespaceConfigValue;
         } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
                     "Either the atlas root-level namespace"
@@ -333,12 +335,36 @@ public abstract class AtlasDbConfig {
             Preconditions.checkState(timelock().get().client().isPresent(),
                     "For InMemoryKVS, the TimeLock client should not be empty");
             return timelock().get().client().get();
+        } else {
+            Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
+                    "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
+                    keyValueService().getClass());
+            if (timelock().isPresent()) {
+                return timelock().get().client()
+                        .orElseThrow(() ->
+                                new IllegalStateException("For InMemoryKVS, the TimeLock client should not be empty"));
+            }
+            return UNSPECIFIED_NAMESPACE;
         }
-        return UNSPECIFIED_NAMESPACE;
+    }
+
+    @Value.Derived
+    @JsonIgnore
+    public String getNamespaceString() {
+        if (namespace == null) {
+            namespace = checkNamespaceConfigAndGetNamespace();
+        }
+        return namespace;
     }
 
     private boolean areTimeAndLockConfigsAbsent() {
         return !lock().isPresent() && !timestamp().isPresent();
+    }
+
+    private static void checkServersListHasAtLeastOneServerIfPresent(Optional<ServerListConfig> serverListOptional) {
+        serverListOptional.ifPresent(
+                serverList -> Preconditions.checkState(serverList.hasAtLeastOneServer(),
+                        "Server list must have at least one server."));
     }
 
     @JsonIgnore
