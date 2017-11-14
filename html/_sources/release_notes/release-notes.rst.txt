@@ -77,6 +77,10 @@ develop
            This could cause long-running readers to read an incorrect empty value when using the ``Sweep.THOROUGH`` strategy.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2406>`__)
 
+    *    - |fixed|
+         - Paxos value information is now correctly being logged when applicable leader events are happening.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2674>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
