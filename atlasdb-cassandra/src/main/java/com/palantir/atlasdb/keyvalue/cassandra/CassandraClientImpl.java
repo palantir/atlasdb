@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -42,10 +43,16 @@ import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.tracing.CloseableTrace;
+import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
-    private Cassandra.Client client;
+    private static final String SERVICE_NAME = "cassandra-thrift-client";
+
+    private final Cassandra.Client client;
 
     public CassandraClientImpl(Cassandra.Client client) {
         this.client = client;
@@ -64,8 +71,25 @@ public class CassandraClientImpl implements CassandraClient {
             SlicePredicate predicate,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        ColumnParent colFam = getColumnParent(tableRef);
-        return client.multiget_slice(keys, colFam, predicate, consistency_level);
+        int numberOfKeys = keys.size();
+        int numberOfColumns = predicate.slice_range.count;
+
+        try (CloseableTrace trace = startLocalTrace(
+                "client.multiget_slice(table {}, number of keys {}, number of columns {}, consistency {}) on kvs.{}",
+                LoggingArgs.safeTableOrPlaceholder(tableRef),
+                numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
+            ColumnParent colFam = getColumnParent(tableRef);
+
+            return KvsProfilingLogger.maybeLog(
+                    (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
+                            () -> client.multiget_slice(keys, colFam, predicate, consistency_level),
+                    (logger, timer) -> logger.log("client.multiget_slice({}, {}, {}, {}) on kvs.{}",
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("number of keys", numberOfKeys),
+                            SafeArg.of("number of columns", numberOfColumns),
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            SafeArg.of("kvsMethodName", kvsMethodName)));
+        }
     }
 
     @Override
@@ -75,8 +99,25 @@ public class CassandraClientImpl implements CassandraClient {
             KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        ColumnParent colFam = getColumnParent(tableRef);
-        return client.get_range_slices(colFam, predicate, range, consistency_level);
+        int numberOfKeys = predicate.slice_range.count;
+        int numberOfColumns = range.count;
+
+        try (CloseableTrace trace = startLocalTrace(
+                "client.get_range_slices(table {}, number of keys {}, number of columns {}, consistency {}) on kvs.{}",
+                LoggingArgs.safeTableOrPlaceholder(tableRef),
+                numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
+            ColumnParent colFam = getColumnParent(tableRef);
+
+            return KvsProfilingLogger.maybeLog(
+                    (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
+                            () -> client.get_range_slices(colFam, predicate, range, consistency_level),
+                    (logger, timer) -> logger.log("client.get_range_slices({}, {}, {}, {}) on kvs.{}",
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("number of keys", numberOfKeys),
+                            SafeArg.of("number of columns", numberOfColumns),
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            SafeArg.of("kvsMethodName", kvsMethodName)));
+        }
     }
 
     @Override
@@ -84,7 +125,22 @@ public class CassandraClientImpl implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        client.batch_mutate(mutation_map, consistency_level);
+        int numberOfRowsMutated = mutation_map.size();
+
+        try (CloseableTrace trace = startLocalTrace("client.batch_mutate(number of rows mutated {}, consistency {})"
+                        + " on kvs.{}",
+                numberOfRowsMutated, consistency_level, kvsMethodName)) {
+            KvsProfilingLogger.maybeLog(
+                    (KvsProfilingLogger.CallableCheckedException<Void, TException>)
+                            () -> {
+                                client.batch_mutate(mutation_map, consistency_level);
+                                return null;
+                            },
+                    (logger, timer) -> logger.log("client.batch_mutate({}, {}) on kvs.{}",
+                            SafeArg.of("number of mutations", numberOfRowsMutated),
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            SafeArg.of("kvsMethodName", kvsMethodName)));
+        }
     }
 
     @Override
@@ -95,7 +151,17 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
         ColumnPath columnPath = new ColumnPath(tableReference.getQualifiedName());
         columnPath.setColumn(column);
-        return client.get(key, columnPath, consistency_level);
+
+        try (CloseableTrace trace = startLocalTrace("client.get(table {}, consistency {})",
+                LoggingArgs.safeTableOrPlaceholder(tableReference), consistency_level)) {
+            return KvsProfilingLogger.maybeLog(
+                    (KvsProfilingLogger.CallableCheckedException<ColumnOrSuperColumn, TException>)
+                        () -> client.get(key, columnPath, consistency_level),
+                    (logger, timer) -> logger.log("client.get({}, {}) took {} ms",
+                            LoggingArgs.tableRef(tableReference),
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            LoggingArgs.durationMillis(timer)));
+        }
     }
 
     @Override
@@ -107,18 +173,49 @@ public class CassandraClientImpl implements CassandraClient {
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
-        return client.cas(key, internalTableName, expected, updates, serial_consistency_level,
-                commit_consistency_level);
+
+        try (CloseableTrace trace = startLocalTrace("client.cas(table {})",
+                LoggingArgs.safeTableOrPlaceholder(tableReference))) {
+            return KvsProfilingLogger.maybeLog(
+                    (KvsProfilingLogger.CallableCheckedException<CASResult, TException>)
+                            () -> client.cas(key, internalTableName, expected, updates, serial_consistency_level,
+                                    commit_consistency_level),
+                    (logger, timer) -> logger.log("client.cas({}) took {} ms",
+                            LoggingArgs.tableRef(tableReference),
+                            LoggingArgs.durationMillis(timer)));
+        }
     }
 
     @Override
-    public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
+    public CqlResult execute_cql3_query(CqlQuery cqlQuery,
+            Compression compression,
+            ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
-        return client.execute_cql3_query(query, compression, consistency);
+        ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.toString().getBytes(StandardCharsets.UTF_8));
+
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})",
+                cqlQuery.getLazySafeLoggableObject())) {
+            return KvsProfilingLogger.maybeLog(
+                    (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
+                            () -> client.execute_cql3_query(queryBytes, compression, consistency),
+                    (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
+                    this::logResultSize);
+        }
+    }
+
+
+
+    private void logResultSize(KvsProfilingLogger.LoggingFunction log, CqlResult result) {
+        log.log("and returned {} rows",
+                SafeArg.of("numRows", result.getRows().size()));
     }
 
     private ColumnParent getColumnParent(TableReference tableRef) {
         return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
+    }
+
+    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
+        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
     }
 }

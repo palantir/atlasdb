@@ -18,11 +18,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -32,25 +29,17 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Stopwatch;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
-import com.palantir.atlasdb.logging.KvsProfilingLogger;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.Arg;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private QueryExecutor queryExecutor;
 
     public interface QueryExecutor {
-        CqlResult execute(byte[] rowHintForHostSelection, String query);
+        CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
     }
 
     CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
@@ -71,12 +60,14 @@ public class CqlExecutorImpl implements CqlExecutor {
             TableReference tableRef,
             byte[] startRowInclusive,
             int limit) {
+        String selQuery = "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
-                "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;",
-                quotedTableName(tableRef),
-                key(startRowInclusive),
-                limit(limit));
-        return query.executeAndGetCells(startRowInclusive, this::getCellFromRow);
+                selQuery,
+                CqlQueryUtils.quotedTableName(tableRef),
+                CqlQueryUtils.key(startRowInclusive),
+                CqlQueryUtils.limit(limit));
+
+        return executeAndGetCells(query, startRowInclusive, CqlQueryUtils::getCellFromRow);
     }
 
     /**
@@ -91,103 +82,25 @@ public class CqlExecutorImpl implements CqlExecutor {
             long startTimestampExclusive,
             int limit) {
         long invertedTimestamp = ~startTimestampExclusive;
+        String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;",
-                quotedTableName(tableRef),
-                key(row),
-                column1(startColumnInclusive),
-                column2(invertedTimestamp),
-                limit(limit));
-        return query.executeAndGetCells(row, result -> getCellFromKeylessRow(result, row));
+                selQuery,
+                CqlQueryUtils.quotedTableName(tableRef),
+                CqlQueryUtils.key(row),
+                CqlQueryUtils.column1(startColumnInclusive),
+                CqlQueryUtils.column2(invertedTimestamp),
+                CqlQueryUtils.limit(limit));
+
+        return executeAndGetCells(query, row,
+                result -> CqlQueryUtils.getCellFromKeylessRow(result, row));
     }
 
-    private CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
-        byte[] rowName = key;
-        byte[] columnName = row.getColumns().get(0).getValue();
-        long timestamp = extractTimestamp(row, 1);
-
-        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
-    }
-
-    private CellWithTimestamp getCellFromRow(CqlRow row) {
-        byte[] rowName = row.getColumns().get(0).getValue();
-        byte[] columnName = row.getColumns().get(1).getValue();
-        long timestamp = extractTimestamp(row, 2);
-
-        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
-    }
-
-    private long extractTimestamp(CqlRow row, int columnIndex) {
-        byte[] flippedTimestampAsBytes = row.getColumns().get(columnIndex).getValue();
-        return ~PtBytes.toLong(flippedTimestampAsBytes);
-    }
-
-    private Arg<String> key(byte[] row) {
-        return UnsafeArg.of("key", CassandraKeyValueServices.encodeAsHex(row));
-    }
-
-    private Arg<String> column1(byte[] column) {
-        return UnsafeArg.of("column1", CassandraKeyValueServices.encodeAsHex(column));
-    }
-
-    private Arg<Long> column2(long invertedTimestamp) {
-        return SafeArg.of("column2", invertedTimestamp);
-    }
-
-    private Arg<Long> limit(long limit) {
-        return SafeArg.of("limit", limit);
-    }
-
-    private Arg<String> quotedTableName(TableReference tableRef) {
-        String tableNameWithQuotes = "\"" + CassandraKeyValueServiceImpl.internalTableName(tableRef) + "\"";
-        return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
-    }
-
-    private List<CellWithTimestamp> getCells(Function<CqlRow, CellWithTimestamp> cellTsExtractor, CqlResult cqlResult) {
-        return cqlResult.getRows()
-                .stream()
-                .map(cellTsExtractor)
-                .collect(Collectors.toList());
-    }
-
-    private final class CqlQuery {
-        private final String queryFormat;
-        private final Arg<?>[] queryArgs;
-
-        CqlQuery(String queryFormat, Arg<?>... args) {
-            this.queryFormat = queryFormat;
-            this.queryArgs = args;
-        }
-
-        public List<CellWithTimestamp> executeAndGetCells(
-                byte[] rowHintForHostSelection,
-                Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
-            CqlResult cqlResult = KvsProfilingLogger.maybeLog(
-                    () -> queryExecutor.execute(rowHintForHostSelection, toString()),
-                    this::logSlowResult,
-                    this::logResultSize);
-            return getCells(cellTsExtractor, cqlResult);
-        }
-
-        private void logSlowResult(KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
-            Object[] allArgs = new Object[queryArgs.length + 3];
-            allArgs[0] = SafeArg.of("queryFormat", queryFormat);
-            allArgs[1] = UnsafeArg.of("fullQuery", toString());
-            allArgs[2] = LoggingArgs.durationMillis(timer);
-            System.arraycopy(queryArgs, 0, allArgs, 3, queryArgs.length);
-
-            log.log("A CQL query was slow: queryFormat = [{}], fullQuery = [{}], durationMillis = {}", allArgs);
-        }
-
-        private void logResultSize(KvsProfilingLogger.LoggingFunction log, CqlResult result) {
-            log.log("and returned {} rows",
-                    SafeArg.of("numRows", result.getRows().size()));
-        }
-
-        @Override
-        public String toString() {
-            return String.format(queryFormat, (Object[]) queryArgs);
-        }
+    private List<CellWithTimestamp> executeAndGetCells(
+            CqlQuery query,
+            byte[] rowHintForHostSelection,
+            Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
+        CqlResult cqlResult = queryExecutor.execute(query, rowHintForHostSelection);
+        return CqlQueryUtils.getCells(cellTsExtractor, cqlResult);
     }
 
     private static class QueryExecutorImpl implements QueryExecutor {
@@ -200,17 +113,17 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
 
         @Override
-        public CqlResult execute(byte[] rowHintForHostSelection, String query) {
-            return executeQueryOnHost(query, getHostForRow(rowHintForHostSelection));
+        public CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection) {
+            return executeQueryOnHost(cqlQuery, getHostForRow(rowHintForHostSelection));
         }
 
         private InetSocketAddress getHostForRow(byte[] row) {
             return clientPool.getRandomHostForKey(row);
         }
 
-        private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
+        private CqlResult executeQueryOnHost(CqlQuery cqlQuery, InetSocketAddress host) {
             try {
-                return clientPool.runWithRetryOnHost(host, createCqlFunction(query));
+                return clientPool.runWithRetryOnHost(host, createCqlFunction(cqlQuery));
             } catch (UnavailableException e) {
                 throw wrapIfConsistencyAll(e);
             } catch (TException e) {
@@ -227,18 +140,16 @@ public class CqlExecutorImpl implements CqlExecutor {
             }
         }
 
-        private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(String query) {
-            ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-
+        private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(CqlQuery cqlQuery) {
             return new FunctionCheckedException<CassandraClient, CqlResult, TException>() {
                 @Override
                 public CqlResult apply(CassandraClient client) throws TException {
-                    return client.execute_cql3_query(queryBytes, Compression.NONE, consistency);
+                    return client.execute_cql3_query(cqlQuery, Compression.NONE, consistency);
                 }
 
                 @Override
                 public String toString() {
-                    return query;
+                    return cqlQuery.toString();
                 }
             };
         }
