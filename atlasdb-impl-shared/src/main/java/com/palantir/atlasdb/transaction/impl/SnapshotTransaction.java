@@ -1990,7 +1990,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private static Meter getMeter(String name) {
         // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerMeter(SnapshotTransaction.class, name);
+        return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
     }
 
 }

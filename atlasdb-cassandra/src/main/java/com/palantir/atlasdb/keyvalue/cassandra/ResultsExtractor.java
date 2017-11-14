@@ -103,6 +103,6 @@ public abstract class ResultsExtractor<T> {
 
     protected Meter getPostFilteredCellsMeter(Class clazz) {
         // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerMeter(clazz, "startTsCellFilterCount");
+        return metricsManager.registerOrGetMeter(clazz, "startTsCellFilterCount");
     }
 }

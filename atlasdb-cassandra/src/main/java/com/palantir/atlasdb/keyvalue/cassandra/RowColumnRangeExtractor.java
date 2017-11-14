@@ -122,7 +122,7 @@ class RowColumnRangeExtractor {
 
     private Meter getPostFilteredCellsMeter() {
         // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerMeter(RowColumnRangeExtractor.class, "startTsCellFilterCount");
+        return metricsManager.registerOrGetMeter(RowColumnRangeExtractor.class, "startTsCellFilterCount");
     }
 
 }

@@ -105,15 +105,15 @@ public class MetricsManager {
         return timer;
     }
 
-    public Meter registerMeter(Class clazz, String meterName) {
-        return registerMeter(MetricRegistry.name(clazz, "", meterName));
+    public Meter registerOrGetMeter(Class clazz, String meterName) {
+        return registerOrGetMeter(MetricRegistry.name(clazz, "", meterName));
     }
 
-    public Meter registerMeter(Class clazz, String metricPrefix, String meterName) {
-        return registerMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
+    public Meter registerOrGetMeter(Class clazz, String metricPrefix, String meterName) {
+        return registerOrGetMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
     }
 
-    private synchronized Meter registerMeter(String fullyQualifiedMeterName) {
+    private synchronized Meter registerOrGetMeter(String fullyQualifiedMeterName) {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
         return meter;
