@@ -41,14 +41,12 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
-import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
@@ -194,26 +192,19 @@ public class CassandraClientImpl implements CassandraClient {
             ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
-        ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.fullQuery().getBytes(StandardCharsets.UTF_8));
+        ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.toString().getBytes(StandardCharsets.UTF_8));
 
-        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})", cqlQuery)) {
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})",
+                cqlQuery.getLazySafeLoggableObject())) {
             return KvsProfilingLogger.maybeLog(
                     (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
                             () -> client.execute_cql3_query(queryBytes, compression, consistency),
-                    (logger, timer) -> this.logSlowResult(cqlQuery, logger, timer),
+                    (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
                     this::logResultSize);
         }
     }
 
-    private void logSlowResult(CqlQuery cqlQuery, KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
-        Object[] allArgs = new Object[cqlQuery.queryArgs.length + 3];
-        allArgs[0] = SafeArg.of("queryFormat", cqlQuery.queryFormat);
-        allArgs[1] = UnsafeArg.of("fullQuery", cqlQuery.fullQuery());
-        allArgs[2] = LoggingArgs.durationMillis(timer);
-        System.arraycopy(cqlQuery.queryArgs, 0, allArgs, 3, cqlQuery.queryArgs.length);
 
-        log.log("A CQL query was slow: queryFormat = [{}], fullQuery = [{}], durationMillis = {}", allArgs);
-    }
 
     private void logResultSize(KvsProfilingLogger.LoggingFunction log, CqlResult result) {
         log.log("and returned {} rows",

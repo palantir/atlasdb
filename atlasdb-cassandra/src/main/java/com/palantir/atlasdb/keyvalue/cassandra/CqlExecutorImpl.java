@@ -19,10 +19,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.function.Function;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
@@ -65,7 +67,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 CqlQueryUtils.key(startRowInclusive),
                 CqlQueryUtils.limit(limit));
 
-        return query.executeAndGetCells(queryExecutor, startRowInclusive, CqlQueryUtils::getCellFromRow);
+        return executeAndGetCells(query, startRowInclusive, CqlQueryUtils::getCellFromRow);
     }
 
     /**
@@ -89,8 +91,16 @@ public class CqlExecutorImpl implements CqlExecutor {
                 CqlQueryUtils.column2(invertedTimestamp),
                 CqlQueryUtils.limit(limit));
 
-        return query.executeAndGetCells(queryExecutor, row,
+        return executeAndGetCells(query, row,
                 result -> CqlQueryUtils.getCellFromKeylessRow(result, row));
+    }
+
+    private List<CellWithTimestamp> executeAndGetCells(
+            CqlQuery query,
+            byte[] rowHintForHostSelection,
+            Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
+        CqlResult cqlResult = queryExecutor.execute(query, rowHintForHostSelection);
+        return CqlQueryUtils.getCells(cellTsExtractor, cqlResult);
     }
 
     private static class QueryExecutorImpl implements QueryExecutor {
@@ -139,7 +149,7 @@ public class CqlExecutorImpl implements CqlExecutor {
 
                 @Override
                 public String toString() {
-                    return cqlQuery.fullQuery();
+                    return cqlQuery.toString();
                 }
             };
         }
