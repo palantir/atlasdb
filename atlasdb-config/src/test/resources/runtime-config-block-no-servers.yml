@@ -1,0 +1,6 @@
+timestampClient:
+  enableTimestampBatching: true
+
+timelockRuntime:
+  serversList:
+    servers: []

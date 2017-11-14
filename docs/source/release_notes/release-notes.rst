@@ -48,13 +48,133 @@ develop
     *    - Type
          - Change
 
-    *    - |improved| |metrics|
-         - AtlasDB now depends on Tritium 0.7.0, allowing products to upgrade Tritium without running into `NoClassDefFound` errors.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+    *    - |fixed| |metrics|
+         - ``MetricsManager`` now logs failures to register metrics at ``WARN`` instead of ``ERROR``, as failure to do so is not necessarily a systemic failure.
+           Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2636>`__)
+
+    *    - |improved| |devbreak|
+         - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
+           Also, all Cassandra KVS exceptions like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
+
+    *    - |fixed|
+         - ``SweepBatchConfig`` values are now decayed correctly when there's an error.
+           ``SweepBatchConfig`` should be decreased until sweep succeeds, however the config actually oscillated between values, these were normally small but could be larger than the original config.  This was caused by us fixing one of the values at 1.
+           ``SweepBatchConfig`` values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2630>`__)
 
     *    - |improved| |logs|
-         - AtlasDB tables will now be logged as `ns.tablename` instead of `map[namespace:map[name:ns] tablename:tablename]`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
+
+    *    - |fixed|
+         - Check that immutable timestamp is locked on write transactions with no writes.
+           This could cause long-running readers to read an incorrect empty value when using the ``Sweep.THOROUGH`` strategy.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2406>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.66.0
+=======
+
+7 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.3, allowing products to upgrade Tritium without running into ``NoClassDefFound`` and ``NoSuchField`` errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2642>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+===========
+v0.66.0-rc2
+===========
+
+6 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.1.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2639>`__)
+
+    *    - |improved|
+         - AtlasDB can now tag RC releases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2641>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+===========
+v0.66.0-rc1
+===========
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.65.2
+=======
+
+6 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Reverted the Cassandra KVS executor PR (`Pull Request <https://github.com/palantir/atlasdb/pull/2534>`__) that caused a performance regression.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2637>`__)
+
+    *    - |fixed|
+         - ``CassandraTimestampBackupRunner`` now logs the backup bound correctly when performing a backup as part of TimeLock migration.
+           Previously, the bound logged would have been logged as ``null`` or as a relatively arbitrary byte array, depending on the content of the timestamp table when performing migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2585>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.65.1
+=======
+
+4 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - AtlasDB now depends on Tritium 0.8.0, allowing products to upgrade Tritium without running into ``NoClassDefFound`` errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2628>`__)
+
+    *    - |improved|
+         - Sweep is now more efficient and less susceptible to OOMs on Cassandra.
+           Also, the default value for the sweep batch config parameter ``candidateBatchSize`` has been bumped up from ``1`` from ``1024``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2546>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2610>`__)
+
+    *    - |fixed|
+         - Fixed cursor leak when sweeping on oracle/postgres.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2609>`__)
 
     *    - |improved|
          - Sweep progress is now persisted as a blob and uses a KVS level table.
@@ -63,6 +183,22 @@ develop
            No migration is necessary as the data is persisted to a new table ``_sweep_progress2``, however, sweep will ignore any previously persisted sweep progress.
            Note that this in particular means that any in-progress sweep will be abandoned and background sweep will choose a new table to sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2569>`__)
+
+    *    - |improved| |logs|
+         - AtlasDB tables will now be logged as ``ns.tablename`` instead of ``map[namespace:map[name:ns] tablename:tablename]``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2606>`__)
+
+    *    - |fixed|
+         - TracingKVS now has spans with safe names.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2643>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.65.0
+=======
+
+This version was skipped due to issues on release. No artifacts with this version were ever published.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -276,6 +412,11 @@ Bug fixes
 
     *    - Type
          - Change
+
+    *   - |fixed|
+        - ``ProfilingKeyValueService`` now logs correctly when logging a message for ``getRange``, ``getRangeOfTimestamps`` and ``DeleteRange``.
+          Previously, the table reference was omitted, such that one might receive lines of the form ``Call to KVS.getRange on table RangeRequest{reverse=false} with range 1504 took {} ms.``.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/2474>`__)
 
     *    - |fixed|
          - When AtlasDB thinks all Cassandra nodes are non-healthy, it logs a message containing "There are no known live hosts in the connection pool ... We're choosing one at random ...".

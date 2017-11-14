@@ -70,7 +70,6 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -486,15 +485,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    //todo dedupe this into a name-demangling class that everyone can access
-    protected static String internalTableName(TableReference tableRef) {
-        String tableName = tableRef.getQualifiedName();
-        if (tableName.startsWith("_")) {
-            return tableName;
-        }
-        return tableName.replaceFirst("\\.", "__");
-    }
-
     private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
         try {
             return getAddressForHost(host);
@@ -561,23 +551,23 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing =
-            new FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception>() {
+    private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
+            new FunctionCheckedException<CassandraClient, List<TokenRange>, Exception>() {
                 @Override
-                public List<TokenRange> apply(Cassandra.Client client) throws Exception {
-                    return client.describe_ring(config.getKeyspaceOrThrow());
+                public List<TokenRange> apply(CassandraClient client) throws Exception {
+                    return client.rawClient().describe_ring(config.getKeyspaceOrThrow());
                 }
             };
 
     @Override
-    public <V, K extends Exception> V runWithRetry(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+    public <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         return runWithRetryOnHost(getRandomGoodHost().getHost(), fn);
     }
 
     @Override
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+            FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
         Set<InetSocketAddress> triedHosts = Sets.newHashSet();
@@ -630,20 +620,20 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @Override
-    public <V, K extends Exception> V run(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+    public <V, K extends Exception> V run(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         return runOnHost(getRandomGoodHost().getHost(), fn);
     }
 
     @Override
     public <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+            FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
         return runWithPooledResourceRecordingMetrics(hostPool, fn);
     }
 
     private <V, K extends Exception> V runWithPooledResourceRecordingMetrics(
             CassandraClientPoolingContainer hostPool,
-            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+            FunctionCheckedException<CassandraClient, V, K> fn) throws K {
 
         recordRequestOnHost(hostPool);
         try {
@@ -823,17 +813,17 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 || isFastFailoverException(ex.getCause()));
     }
 
-    private final FunctionCheckedException<Cassandra.Client, Void, Exception> validatePartitioner =
-            new FunctionCheckedException<Cassandra.Client, Void, Exception>() {
+    private final FunctionCheckedException<CassandraClient, Void, Exception> validatePartitioner =
+            new FunctionCheckedException<CassandraClient, Void, Exception>() {
                 @Override
-                public Void apply(Cassandra.Client client) throws Exception {
-                    CassandraVerifier.validatePartitioner(client.describe_partitioner(), config);
+                public Void apply(CassandraClient client) throws Exception {
+                    CassandraVerifier.validatePartitioner(client.rawClient().describe_partitioner(), config);
                     return null;
                 }
             };
 
     @Override
-    public FunctionCheckedException<Cassandra.Client, Void, Exception> getValidatePartitioner() {
+    public FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner() {
         return validatePartitioner;
     }
 

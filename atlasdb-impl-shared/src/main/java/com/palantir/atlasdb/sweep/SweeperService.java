@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -60,7 +59,7 @@ public interface SweeperService {
     SweepTableResponse sweepTable(
             @QueryParam("tablename") String tableName,
             @QueryParam("startRow") Optional<String> startRow,
-            @Safe @QueryParam("fullSweep") @DefaultValue("true") Optional<Boolean> fullSweep,
+            @Safe @QueryParam("fullSweep") Optional<Boolean> fullSweep,
             @Safe @QueryParam("maxCellTsPairsToExamine") Optional<Integer> maxCellTsPairsToExamine,
             @Safe @QueryParam("candidateBatchSize") Optional<Integer> candidateBatchSize,
             @Safe @QueryParam("deleteBatchSize") Optional<Integer> deleteBatchSize);
