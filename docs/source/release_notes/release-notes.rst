@@ -48,6 +48,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Applications can now easily determine whether their AtlasDB cluster is healthy by querying either
+           ``TransactionManager.getKeyValueServiceStatus().isHealthy()`` or ``KeyValueService.getClusterAvailabilityStatus.isHealthy()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2678>`__)
+
     *    - |fixed| |metrics|
          - ``MetricsManager`` now logs failures to register metrics at ``WARN`` instead of ``ERROR``, as failure to do so is not necessarily a systemic failure.
            Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
