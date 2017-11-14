@@ -48,6 +48,10 @@ Optional parameters:
     maintained for backward compatibility. Please switch to declaring the ``ServerListConfig`` in the runtime
     configuration as soon as possible.
 
+    Also, note that we internally select ``serverList`` blocks as a whole, prioritising the block in the runtime
+    configuration if it exists. In other words, if you want to specify a dynamic list of TimeLock nodes but a static
+    security configuration, the static security configuration **must** be placed in the runtime configuration block.
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -76,8 +80,9 @@ Runtime Configuration
 .. warning::
 
     Although we support starting up without knowledge of any TimeLock nodes, note that if you are using TimeLock
-    your service will fail to start if asynchronous initialization (``initializeAsync``) is set to ``false``, as
-    initializing a ``TransactionManager`` requires communication with TimeLock.
+    your service will fail to start if there are no TimeLock nodes and asynchronous initialization
+    (``initializeAsync``) is set to ``false``, as initializing a ``TransactionManager`` requires communication with
+    TimeLock.
 
 We support live reloading of the ``ServerListConfiguration`` for TimeLock. This can be optionally configured in the
 ``timelockRuntime`` block under AtlasDB's runtime configuration root.
@@ -86,7 +91,8 @@ Note that if this block is present, then the ``ServerListConfiguration`` in the 
 
 Also, although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
 should talk to TimeLock - thus, the install configuration must contain a ``timelock`` block (even if said block is
-possibly empty).
+possibly empty). Specifying an empty block in the configuration is done in the same way as specifying an empty block in
+YAML i.e. ``{}``.
 
 .. list-table::
     :widths: 5 40
