@@ -34,8 +34,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 public class CqlExecutorImpl implements CqlExecutor {
-    private static final String SERVICE_NAME = "cassandra-thrift-client";
-
     private QueryExecutor queryExecutor;
 
     public interface QueryExecutor {
