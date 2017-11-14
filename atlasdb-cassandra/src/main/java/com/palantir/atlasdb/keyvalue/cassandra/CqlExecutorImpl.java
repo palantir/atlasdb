@@ -77,14 +77,14 @@ public class CqlExecutorImpl implements CqlExecutor {
         String selQuery = "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
                 selQuery,
-                quotedTableName(tableRef),
-                key(startRowInclusive),
-                limit(limit));
+                CqlQueryUtils.quotedTableName(tableRef),
+                CqlQueryUtils.key(startRowInclusive),
+                CqlQueryUtils.limit(limit));
 
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestamps(query {}, tableRef {}, limit {})",
                 selQuery, LoggingArgs.safeTableOrPlaceholder(tableRef), limit)) {
-            return query.executeAndGetCells(startRowInclusive, this::getCellFromRow);
+            return query.executeAndGetCells(queryExecutor, startRowInclusive, CqlQueryUtils::getCellFromRow);
         }
     }
 
@@ -103,111 +103,23 @@ public class CqlExecutorImpl implements CqlExecutor {
         String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
                 selQuery,
-                quotedTableName(tableRef),
-                key(row),
-                column1(startColumnInclusive),
-                column2(invertedTimestamp),
-                limit(limit));
+                CqlQueryUtils.quotedTableName(tableRef),
+                CqlQueryUtils.key(row),
+                CqlQueryUtils.column1(startColumnInclusive),
+                CqlQueryUtils.column2(invertedTimestamp),
+                CqlQueryUtils.limit(limit));
 
         //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestampsWithinRow("
                         + "query {}, table {}, ts {}, limit {})",
                 selQuery, LoggingArgs.safeTableOrPlaceholder(tableRef), startTimestampExclusive, limit)) {
-            return query.executeAndGetCells(row, result -> getCellFromKeylessRow(result, row));
+            return query.executeAndGetCells(queryExecutor, row,
+                    result -> CqlQueryUtils.getCellFromKeylessRow(result, row));
         }
-    }
-
-    private CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
-        byte[] rowName = key;
-        byte[] columnName = row.getColumns().get(0).getValue();
-        long timestamp = extractTimestamp(row, 1);
-
-        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
-    }
-
-    private CellWithTimestamp getCellFromRow(CqlRow row) {
-        byte[] rowName = row.getColumns().get(0).getValue();
-        byte[] columnName = row.getColumns().get(1).getValue();
-        long timestamp = extractTimestamp(row, 2);
-
-        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
-    }
-
-    private long extractTimestamp(CqlRow row, int columnIndex) {
-        byte[] flippedTimestampAsBytes = row.getColumns().get(columnIndex).getValue();
-        return ~PtBytes.toLong(flippedTimestampAsBytes);
-    }
-
-    private Arg<String> key(byte[] row) {
-        return UnsafeArg.of("key", CassandraKeyValueServices.encodeAsHex(row));
-    }
-
-    private Arg<String> column1(byte[] column) {
-        return UnsafeArg.of("column1", CassandraKeyValueServices.encodeAsHex(column));
-    }
-
-    private Arg<Long> column2(long invertedTimestamp) {
-        return SafeArg.of("column2", invertedTimestamp);
-    }
-
-    private Arg<Long> limit(long limit) {
-        return SafeArg.of("limit", limit);
-    }
-
-    private Arg<String> quotedTableName(TableReference tableRef) {
-        String tableNameWithQuotes = "\"" + CassandraKeyValueServiceImpl.internalTableName(tableRef) + "\"";
-        return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
-    }
-
-    private List<CellWithTimestamp> getCells(Function<CqlRow, CellWithTimestamp> cellTsExtractor, CqlResult cqlResult) {
-        return cqlResult.getRows()
-                .stream()
-                .map(cellTsExtractor)
-                .collect(Collectors.toList());
     }
 
     private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
         return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
-    }
-
-    private final class CqlQuery {
-        private final String queryFormat;
-        private final Arg<?>[] queryArgs;
-
-        CqlQuery(String queryFormat, Arg<?>... args) {
-            this.queryFormat = queryFormat;
-            this.queryArgs = args;
-        }
-
-        public List<CellWithTimestamp> executeAndGetCells(
-                byte[] rowHintForHostSelection,
-                Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
-            CqlResult cqlResult = KvsProfilingLogger.maybeLog(
-                    () -> queryExecutor.execute(rowHintForHostSelection, toString()),
-                    this::logSlowResult,
-                    this::logResultSize);
-            return getCells(cellTsExtractor, cqlResult);
-        }
-
-        private void logSlowResult(KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
-            Object[] allArgs = new Object[queryArgs.length + 3];
-            allArgs[0] = SafeArg.of("queryFormat", queryFormat);
-            allArgs[1] = UnsafeArg.of("fullQuery", toString());
-            allArgs[2] = LoggingArgs.durationMillis(timer);
-            System.arraycopy(queryArgs, 0, allArgs, 3, queryArgs.length);
-
-            log.log("A CQL query was slow: queryFormat = [{}], fullQuery = [{}], durationMillis = {}", allArgs);
-        }
-
-        private void logResultSize(KvsProfilingLogger.LoggingFunction log, CqlResult result) {
-            log.log("and returned {} rows",
-                    SafeArg.of("numRows", result.getRows().size()));
-        }
-
-        @Override
-        public String toString() {
-            return String.format(queryFormat, (Object[]) queryArgs);
-        }
     }
 
     private static class QueryExecutorImpl implements QueryExecutor {
