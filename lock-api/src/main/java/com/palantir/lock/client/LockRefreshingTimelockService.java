@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -62,96 +63,59 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
 
     @Override
     public long getFreshTimestamp() {
-        try {
-            return delegate.getFreshTimestamp();
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
+        return executeOnTimeLock(delegate::getFreshTimestamp);
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        try {
-            return delegate.getFreshTimestamps(numTimestampsRequested);
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
+        return executeOnTimeLock(() -> delegate.getFreshTimestamps(numTimestampsRequested));
     }
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
-        LockImmutableTimestampResponse response = wrapOrLockImmutableTimestamp(request);
+        LockImmutableTimestampResponse response = executeOnTimeLock(() -> delegate.lockImmutableTimestamp(request));
         lockRefresher.registerLock(response.getLock());
         return response;
     }
 
-    private LockImmutableTimestampResponse wrapOrLockImmutableTimestamp(LockImmutableTimestampRequest request) {
-        try {
-            return delegate.lockImmutableTimestamp(request);
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
-    }
-
     @Override
     public long getImmutableTimestamp() {
-        try {
-            return delegate.getImmutableTimestamp();
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
+        return executeOnTimeLock(delegate::getImmutableTimestamp);
     }
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponse response = wrapOrLock(request);
+        LockResponse response = executeOnTimeLock(() -> delegate.lock(request));
         if (response.wasSuccessful()) {
             lockRefresher.registerLock(response.getToken());
         }
         return response;
     }
 
-    private LockResponse wrapOrLock(LockRequest request) {
-        try {
-            return delegate.lock(request);
-        } catch (Exception e) {
-
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
-    }
-
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        try {
-            return delegate.waitForLocks(request);
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
+        return executeOnTimeLock(() -> delegate.waitForLocks(request));
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        try {
-            return delegate.refreshLockLeases(tokens);
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
+        return executeOnTimeLock(() -> delegate.refreshLockLeases(tokens));
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         lockRefresher.unregisterLocks(tokens);
-        try {
-            return delegate.unlock(tokens);
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
-        }
+        return executeOnTimeLock(() -> delegate.unlock(tokens));
     }
 
     @Override
     public long currentTimeMillis() {
+        return executeOnTimeLock(delegate::currentTimeMillis);
+    }
+
+    private <T> T executeOnTimeLock(Callable<T> callable) {
         try {
-            return delegate.currentTimeMillis();
+            return callable.call();
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
         }
