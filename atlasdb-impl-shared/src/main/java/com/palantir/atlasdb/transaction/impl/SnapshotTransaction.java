@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -870,21 +871,33 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return RowResults.filterDeletedColumnsAndEmptyRows(mergeIterators);
     }
 
-    private static ImmutableList<Entry<Cell, byte[]>> mergeInLocalWrites(
+    private static List<Entry<Cell, byte[]>> mergeInLocalWrites(
             Iterator<Entry<Cell, byte[]>> postFilterIterator,
             Iterator<Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
         Ordering<Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
-        ImmutableList<Entry<Cell, byte[]>> mergedList = ImmutableList.copyOf(IteratorUtils.mergeIterators(
+        Iterator<Entry<Cell, byte[]>> mergeIterators = IteratorUtils.mergeIterators(
                 postFilterIterator, localWritesInRange,
                 isReverse ? ordering.reverse() : ordering,
-                from -> from.rhSide)); // always override their value with written values
-        ImmutableList<Entry<Cell, byte[]>> mergedListWithoutEmptyValues = ImmutableList.copyOf(Iterators.filter(
-                mergedList.iterator(),
-                Predicates.compose(Predicates.not(Value.IS_EMPTY), MapEntries.getValueFunction())));
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE)
-                .mark(mergedList.size() - mergedListWithoutEmptyValues.size());
-        return mergedListWithoutEmptyValues;
+                from -> from.rhSide); // always override their value with written values
+
+        return postFilterEmptyValues(mergeIterators);
+    }
+
+    private static List<Entry<Cell, byte[]>> postFilterEmptyValues(
+            Iterator<Entry<Cell, byte[]>> mergeIterators) {
+        List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
+        Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value.IS_EMPTY),
+                MapEntries.getValueFunction());
+        while (mergeIterators.hasNext()) {
+            Entry<Cell, byte[]> next = mergeIterators.next();
+            if (nonEmptyValuePredicate.apply(next)) {
+                mergedWritesWithoutEmptyValues.add(next);
+            } else {
+                getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE).mark();
+            }
+        }
+        return mergedWritesWithoutEmptyValues;
     }
 
     protected <T> ClosableIterator<RowResult<T>> postFilterIterator(
