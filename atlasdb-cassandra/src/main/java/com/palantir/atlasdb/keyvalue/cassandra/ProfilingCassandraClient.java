@@ -105,6 +105,7 @@ public class ProfilingCassandraClient implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        // TODO(ssouza): log more info than just the numberOfRowsMutated.
         int numberOfRowsMutated = mutation_map.size();
 
         KvsProfilingLogger.maybeLog(

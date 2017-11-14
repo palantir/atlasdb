@@ -65,8 +65,6 @@ public class CassandraClientImpl implements CassandraClient {
             SlicePredicate predicate,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        int numberOfKeys = keys.size();
-        int numberOfColumns = predicate.slice_range.count;
         ColumnParent colFam = getColumnParent(tableRef);
 
         return client.multiget_slice(keys, colFam, predicate, consistency_level);
@@ -79,8 +77,6 @@ public class CassandraClientImpl implements CassandraClient {
             KeyRange range,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        int numberOfKeys = predicate.slice_range.count;
-        int numberOfColumns = range.count;
         ColumnParent colFam = getColumnParent(tableRef);
 
         return client.get_range_slices(colFam, predicate, range, consistency_level);
@@ -91,7 +87,6 @@ public class CassandraClientImpl implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        int numberOfRowsMutated = mutation_map.size();
         client.batch_mutate(mutation_map, consistency_level);;
     }
 
