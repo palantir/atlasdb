@@ -42,7 +42,6 @@ public class QosServiceIntegrationTest {
             .addUris(SERVER_URI)
             .build();
 
-
     private static QosService service = JaxRsClient.create(
             QosService.class,
             "integration tests",
