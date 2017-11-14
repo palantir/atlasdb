@@ -82,11 +82,12 @@ public class CassandraClientImpl implements CassandraClient {
             return KvsProfilingLogger.maybeLog(
                     (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
                             () -> client.multiget_slice(keys, colFam, predicate, consistency_level),
-                    (logger, timer) -> logger.log("client.multiget_slice({}, {}, {}, {})",
+                    (logger, timer) -> logger.log("client.multiget_slice({}, {}, {}, {}) on kvs.{}",
                             LoggingArgs.tableRef(tableRef),
                             SafeArg.of("number of keys", numberOfKeys),
                             SafeArg.of("number of columns", numberOfColumns),
-                            SafeArg.of("consistency", consistency_level.toString())));
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            SafeArg.of("kvsMethodName", kvsMethodName)));
         }
     }
 
@@ -109,11 +110,12 @@ public class CassandraClientImpl implements CassandraClient {
             return KvsProfilingLogger.maybeLog(
                     (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
                             () -> client.get_range_slices(colFam, predicate, range, consistency_level),
-                    (logger, timer) -> logger.log("client.get_range_slices({}, {}, {}, {})",
+                    (logger, timer) -> logger.log("client.get_range_slices({}, {}, {}, {}) on kvs.{}",
                             LoggingArgs.tableRef(tableRef),
                             SafeArg.of("number of keys", numberOfKeys),
                             SafeArg.of("number of columns", numberOfColumns),
-                            SafeArg.of("consistency", consistency_level.toString())));
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            SafeArg.of("kvsMethodName", kvsMethodName)));
         }
     }
 
@@ -133,9 +135,10 @@ public class CassandraClientImpl implements CassandraClient {
                                 client.batch_mutate(mutation_map, consistency_level);
                                 return null;
                             },
-                    (logger, timer) -> logger.log("client.batch_mutate({}, {})",
+                    (logger, timer) -> logger.log("client.batch_mutate({}, {}) on kvs.{}",
                             SafeArg.of("number of mutations", numberOfMutations),
-                            SafeArg.of("consistency", consistency_level.toString())));
+                            SafeArg.of("consistency", consistency_level.toString()),
+                            SafeArg.of("kvsMethodName", kvsMethodName)));
         }
     }
 
