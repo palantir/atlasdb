@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -61,54 +62,99 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
 
     @Override
     public long getFreshTimestamp() {
-        return delegate.getFreshTimestamp();
+        try {
+            return delegate.getFreshTimestamp();
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return delegate.getFreshTimestamps(numTimestampsRequested);
+        try {
+            return delegate.getFreshTimestamps(numTimestampsRequested);
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
     }
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
-        LockImmutableTimestampResponse response = delegate.lockImmutableTimestamp(request);
+        LockImmutableTimestampResponse response = wrapOrLockImmutableTimestamp(request);
         lockRefresher.registerLock(response.getLock());
         return response;
     }
 
+    private LockImmutableTimestampResponse wrapOrLockImmutableTimestamp(LockImmutableTimestampRequest request) {
+        try {
+            return delegate.lockImmutableTimestamp(request);
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
+    }
+
     @Override
     public long getImmutableTimestamp() {
-        return delegate.getImmutableTimestamp();
+        try {
+            return delegate.getImmutableTimestamp();
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
     }
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponse response = delegate.lock(request);
+        LockResponse response = wrapOrLock(request);
         if (response.wasSuccessful()) {
             lockRefresher.registerLock(response.getToken());
         }
         return response;
     }
 
+    private LockResponse wrapOrLock(LockRequest request) {
+        try {
+            return delegate.lock(request);
+        } catch (Exception e) {
+
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
+    }
+
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return delegate.waitForLocks(request);
+        try {
+            return delegate.waitForLocks(request);
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return delegate.refreshLockLeases(tokens);
+        try {
+            return delegate.refreshLockLeases(tokens);
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         lockRefresher.unregisterLocks(tokens);
-        return delegate.unlock(tokens);
+        try {
+            return delegate.unlock(tokens);
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
     }
 
     @Override
     public long currentTimeMillis() {
-        return delegate.currentTimeMillis();
+        try {
+            return delegate.currentTimeMillis();
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowDependencyUnavailableException(e);
+        }
     }
 
     @Override
