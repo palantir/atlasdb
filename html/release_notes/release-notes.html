@@ -196,6 +196,33 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB clients are now able to live reload TimeLock URLs.
+This is required for internal work on running services in Kubernetes.
+We still require that clients are configured to use TimeLock (as opposed to a leader, remote timestamp/lock or embedded service) at install time.
+Note that this change does not affect TimeLock Server, which still requires knowledge of the entire cluster as well.
+Please consult the <a class="reference internal" href="../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">documentation</span></a> for more detail regarding the config changes needed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2621">Pull Request 1</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2622">Pull Request 2</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>The <code class="docutils literal"><span class="pre">servers</span></code> block within an AtlasDB <code class="docutils literal"><span class="pre">timelock</span></code> block is now deprecated.
+Please use the live-reloadable <code class="docutils literal"><span class="pre">servers</span></code> block within the <code class="docutils literal"><span class="pre">timelockRuntime</span></code> block of the runtime configuration instead.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2622">Pull Request 2</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB clients using TimeLock can now start up with knowledge of zero TimeLock nodes.
+Requests to TimeLock will throw <code class="docutils literal"><span class="pre">ServiceUnavailableException</span></code> until the config is live reloaded with one or more nodes.
+If live reloading causes the number of nodes to fall to zero, we also fail gracefully; <code class="docutils literal"><span class="pre">ServiceUnavailableException</span></code> will be thrown until the config is live reloaded with one or more nodes.
+Note that this does not affect remote timestamp, lock or leader configurations; those still require at least one server.
+Also, note that if one is using TimeLock without async initialization, then one still needs to provide information about the TimeLock cluster on startup.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2647">Pull Request 3</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal"><span class="pre">ServerListConfig</span></code> can now be created with zero servers, as part of work supporting Atlas clients starting up without knowing TimeLock nodes.
+This is strictly more permissive, but may affect developers that use <code class="docutils literal"><span class="pre">ServerListConfig</span></code> directly, especially if it is being serialized.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2647">Pull Request 3</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td><code class="docutils literal"><span class="pre">MetricsManager</span></code> now logs failures to register metrics at <code class="docutils literal"><span class="pre">WARN</span></code> instead of <code class="docutils literal"><span class="pre">ERROR</span></code>, as failure to do so is not necessarily a systemic failure.
 Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
