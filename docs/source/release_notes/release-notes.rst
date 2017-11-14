@@ -79,7 +79,7 @@ develop
 
     *    - |fixed|
          - Paxos value information is now correctly being logged when applicable leader events are happening.
-
+         (`Pull Request <https://github.com/palantir/atlasdb/pull/2674>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
