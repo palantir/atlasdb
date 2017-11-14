@@ -60,8 +60,6 @@ license {
 
     include '**/*.java'
     exclude '**/generated/**/*.java'
-    exclude '**/RateLimiter.java'
-    exclude '**/SmoothRateLimiter.java'
 }
 
 ext {
