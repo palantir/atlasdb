@@ -31,7 +31,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.exception.PalantirRuntimeException;
 
 public class KvsProfilingLogger {
 

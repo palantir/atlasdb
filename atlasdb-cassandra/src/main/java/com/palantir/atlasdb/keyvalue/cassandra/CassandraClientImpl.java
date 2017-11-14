@@ -40,14 +40,12 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
-import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
