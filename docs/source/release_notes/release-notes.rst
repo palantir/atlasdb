@@ -54,6 +54,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2636>`__)
 
     *    - |improved| |devbreak|
+         - AtlasDB will now consistently throw an ``AtlasDbDependencyException`` when requests fail due to TimeLock being unavailable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2677>`__)
+
+    *    - |improved| |devbreak|
          - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
            Also, all Cassandra KVS exceptions like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
