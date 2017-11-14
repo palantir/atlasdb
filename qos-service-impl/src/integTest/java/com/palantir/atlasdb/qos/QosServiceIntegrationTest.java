@@ -30,14 +30,15 @@ import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public class QosServiceIntegrationTest {
 
-    private static final String SERVER_URI = "http://localhost:5080";
-
-    public static final SslConfiguration TEST_SSL_CONFIG =
-            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
-
     @ClassRule
     public static QosServerHolder serverHolder = new QosServerHolder("server.yml");
-    private static ServiceConfiguration configuration = ServiceConfiguration.builder()
+
+    private static final String SERVER_URI = "http://localhost:5080";
+
+    private static final SslConfiguration TEST_SSL_CONFIG =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+
+    private static final ServiceConfiguration SERVICE_CONFIGURATION = ServiceConfiguration.builder()
             .security(TEST_SSL_CONFIG)
             .addUris(SERVER_URI)
             .build();
@@ -45,7 +46,7 @@ public class QosServiceIntegrationTest {
     private static QosService service = JaxRsClient.create(
             QosService.class,
             "integration tests",
-            ClientConfigurations.of(configuration));
+            ClientConfigurations.of(SERVICE_CONFIGURATION));
 
     @Test
     public void returnsConfiguredLimits() {
