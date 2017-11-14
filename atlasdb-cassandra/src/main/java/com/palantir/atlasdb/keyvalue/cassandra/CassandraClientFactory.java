@@ -78,7 +78,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @Override
     public CassandraClient create() throws Exception {
         try {
-            return instrumentClient(getClient(addr, config));
+            return instrumentClient(getRawClient(addr, config));
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -93,8 +93,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return AtlasDbMetrics.instrument(CassandraClient.class, new CassandraClientImpl(client));
     }
 
-    private static Cassandra.Client getClient(InetSocketAddress addr,
-                                              CassandraKeyValueServiceConfig config) throws Exception {
+    private static Cassandra.Client getRawClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+            throws Exception {
+
         Client ret = getClientInternal(addr, config);
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
