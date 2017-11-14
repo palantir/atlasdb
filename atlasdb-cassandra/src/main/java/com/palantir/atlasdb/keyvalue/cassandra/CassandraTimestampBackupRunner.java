@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 
 import javax.annotation.Nullable;

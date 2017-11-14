@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -28,7 +27,6 @@ import org.apache.thrift.TException;
 
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 
 public final class SchemaMutationLockTestTools {

@@ -75,7 +75,9 @@ public class CqlQueryUtils {
         return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
     }
 
-    public static List<CellWithTimestamp> getCells(Function<CqlRow, CellWithTimestamp> cellTsExtractor, CqlResult cqlResult) {
+    public static List<CellWithTimestamp> getCells(Function<CqlRow,
+            CellWithTimestamp> cellTsExtractor,
+            CqlResult cqlResult) {
         return cqlResult.getRows()
                 .stream()
                 .map(cellTsExtractor)
