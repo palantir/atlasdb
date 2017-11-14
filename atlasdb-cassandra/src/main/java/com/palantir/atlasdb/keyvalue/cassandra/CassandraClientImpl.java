@@ -127,11 +127,11 @@ public class CassandraClientImpl implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        int numberOfMutations = mutation_map.size();
+        int numberOfRowsMutated = mutation_map.size();
 
-        try (CloseableTrace trace = startLocalTrace("client.batch_mutate(number of mutations {}, consistency {})"
+        try (CloseableTrace trace = startLocalTrace("client.batch_mutate(number of rows mutated {}, consistency {})"
                         + " on kvs.{}",
-                numberOfMutations, consistency_level, kvsMethodName)) {
+                numberOfRowsMutated, consistency_level, kvsMethodName)) {
             KvsProfilingLogger.maybeLog(
                     (KvsProfilingLogger.CallableCheckedException<Void, TException>)
                             () -> {
@@ -139,7 +139,7 @@ public class CassandraClientImpl implements CassandraClient {
                                 return null;
                             },
                     (logger, timer) -> logger.log("client.batch_mutate({}, {}) on kvs.{}",
-                            SafeArg.of("number of mutations", numberOfMutations),
+                            SafeArg.of("number of mutations", numberOfRowsMutated),
                             SafeArg.of("consistency", consistency_level.toString()),
                             SafeArg.of("kvsMethodName", kvsMethodName)));
         }
