@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -77,6 +76,7 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
@@ -112,7 +112,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
@@ -208,7 +207,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
 
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
 
     /**
@@ -884,7 +882,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         ImmutableList<Entry<Cell, byte[]>> mergedListWithoutEmptyValues = ImmutableList.copyOf(Iterators.filter(
                 mergedList.iterator(),
                 Predicates.compose(Predicates.not(Value.IS_EMPTY), MapEntries.getValueFunction())));
-        getEmptyValuesCountMeter().mark(mergedList.size() - mergedListWithoutEmptyValues.size());
+        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE)
+                .mark(mergedList.size() - mergedListWithoutEmptyValues.size());
         return mergedListWithoutEmptyValues;
     }
 
@@ -1030,9 +1029,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 log.debug("The first 10 results of your request were {}.", Iterables.limit(rawResults.entrySet(), 10),
                         new RuntimeException("This exception and stack trace are provided for debugging purposes."));
             }
-            // TODO(hsaraogi): add table names as a tag
-            metricRegistry.meter("tooManyBytesRead").mark(bytes);
+            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ).update(bytes);
         }
+        // TODO(hsaraogi): add table names as a tag
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ).mark(rawResults.size());
 
         if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
@@ -1050,6 +1050,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             remainingResultsToPostfilter = getWithPostFilteringInternal(
                     tableRef, remainingResultsToPostfilter, results, transformer);
         }
+
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(results.size());
     }
 
     /**
@@ -1069,7 +1071,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Value value = e.getValue();
 
             if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
-                getInvalidStartTsTsCellFilterCount().mark();
+                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS).mark();
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
                 switch (getReadSentinelBehavior()) {
@@ -1091,7 +1093,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
                         keysToDelete.put(key, value.getTimestamp());
-                        getInvalidCommitTsCellFilterCount().mark();
+                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS).mark();
                     }
                 } else if (theirCommitTimestamp > getStartTimestamp()) {
                     // The value's commit timestamp is after our start timestamp.
@@ -1099,7 +1101,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
-                    getGreaterCommitTsCellFilterCount().mark();
+                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS).mark();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
@@ -1361,8 +1363,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             long millisSinceCreation = System.currentTimeMillis() - timeCreated;
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
-            Histogram byteSizeTx = getHistogram("byteSizeTx");
-            byteSizeTx.update(byteCount.get());
+            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
             if (perfLogger.isDebugEnabled()) {
                 perfLogger.debug("Committed {} bytes with locks, start ts {}, commit ts {}, "
                         + "acquiring locks took {} ms, checking for conflicts took {} ms, "
@@ -1961,31 +1962,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Timer getTimer(String name) {
-        return metricsManager.registerTimer(SnapshotTransaction.class, name);
+        return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
     }
 
     private Histogram getHistogram(String name) {
-        return metricsManager.registerHistogram(SnapshotTransaction.class, name);
+        return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
     }
 
     private Meter getTransactionConflictsMeter() {
         return getMeter("SnapshotTransactionConflict");
-    }
-
-    private Meter getGreaterCommitTsCellFilterCount() {
-        return getMeter("commitTsGreaterThatTxTsCellFilterCount");
-    }
-
-    private Meter getInvalidStartTsTsCellFilterCount() {
-        return getMeter("invalidStartTsTsCellFilterCount");
-    }
-
-    private Meter getInvalidCommitTsCellFilterCount() {
-        return getMeter("invalidCommitTsCellFilterCount");
-    }
-
-    private static Meter getEmptyValuesCountMeter() {
-        return getMeter("emptyValuesCellFilterCount");
     }
 
     private static Meter getMeter(String name) {

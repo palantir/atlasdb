@@ -27,6 +27,7 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -74,7 +75,7 @@ class RowColumnRangeExtractor {
     private final Set<byte[]> emptyRows = Sets.newHashSet();
     private final MetricsManager metricsManager = new MetricsManager();
     private final Meter postFilteredCellsMeter = metricsManager.registerOrGetMeter(RowColumnRangeExtractor.class,
-            "startTsCellFilterCount");
+            AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VALUE);
 
     public void extractResults(Iterable<byte[]> canonicalRows,
                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,

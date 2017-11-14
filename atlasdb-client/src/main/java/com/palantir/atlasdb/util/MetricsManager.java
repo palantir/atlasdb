@@ -85,21 +85,21 @@ public class MetricsManager {
         }
     }
 
-    public Histogram registerHistogram(Class clazz, String metricName) {
-        return registerHistogram(MetricRegistry.name(clazz, metricName));
+    public Histogram registerOrGetHistogram(Class clazz, String metricName) {
+        return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
     }
 
-    private Histogram registerHistogram(String fullyQualifiedHistogramName) {
+    private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
         Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
         registeredMetrics.add(fullyQualifiedHistogramName);
         return histogram;
     }
 
-    public Timer registerTimer(Class clazz, String metricName) {
-        return registerTimer(MetricRegistry.name(clazz, metricName));
+    public Timer registerOrGetTimer(Class clazz, String metricName) {
+        return registerOrGetTimer(MetricRegistry.name(clazz, metricName));
     }
 
-    private Timer registerTimer(String fullyQualifiedHistogramName) {
+    private Timer registerOrGetTimer(String fullyQualifiedHistogramName) {
         Timer timer = metricRegistry.timer(fullyQualifiedHistogramName);
         registeredMetrics.add(fullyQualifiedHistogramName);
         return timer;

@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
 import com.codahale.metrics.Meter;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -103,6 +104,6 @@ public abstract class ResultsExtractor<T> {
 
     protected Meter getPostFilteredCellsMeter(Class clazz) {
         // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerOrGetMeter(clazz, "startTsCellFilterCount");
+        return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VALUE);
     }
 }

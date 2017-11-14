@@ -48,6 +48,15 @@ develop
     *    - Type
          - Change
 
+    *    - |new| |metrics|
+         - We now record metrics for most cases where cells fetched from Cassandra are post-filtered before returning to the client.
+           The new metrics are called ``notLatestVisibleValueCellFilterCount``, ``commitTsGreaterThatTxTsCellFilterCount``,
+           ``invalidStartTsTsCellFilterCount``, ``invalidCommitTsCellFilterCount`` and ``emptyValuesCellFilterCount``
+           each indicating the cause for the cells being post-filtered.
+           There are also new metrics ``numCellsRead`` and ``numCellsReturnedAfterFiltering`` to measure how many cells were
+           filtered at the transaction level before returning to the client.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
+
     *    - |fixed| |metrics|
          - ``MetricsManager`` now logs failures to register metrics at ``WARN`` instead of ``ERROR``, as failure to do so is not necessarily a systemic failure.
            Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
