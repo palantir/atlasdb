@@ -34,17 +34,16 @@ public class ScheduledRefreshingClient implements AutoDelegate_Client {
     private static final Logger log = LoggerFactory.getLogger(ScheduledRefreshingClient.class);
     private static final Duration STANDARD_REFRESH_INTERVAL = Duration.ofDays(1L);
 
-    private final Supplier<Client> refreshingSupplier;
+    private final com.google.common.base.Supplier<Client> refreshingSupplier;
 
     private ScheduledRefreshingClient(Supplier<Client> baseClientSupplier, Duration refreshInterval) {
-        refreshingSupplier =
-                () -> Suppliers.memoizeWithExpiration(
-                        () -> {
-                            log.info("Creating a new Feign client, as we believe a day has passed.");
-                            return baseClientSupplier.get();
-                        },
-                        refreshInterval.toMillis(),
-                        TimeUnit.MILLISECONDS).get();
+        refreshingSupplier = Suppliers.memoizeWithExpiration(
+                () -> {
+                    log.info("Creating a new Feign client, as we believe a day has passed.");
+                    return baseClientSupplier.get();
+                },
+                refreshInterval.toMillis(),
+                TimeUnit.MILLISECONDS);
     }
 
     public static Client createRefreshingClient(Supplier<Client> baseClientSupplier) {
