@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.PalantirRuntimeException;
 
 public class KvsProfilingLogger {
 
@@ -91,36 +93,42 @@ public class KvsProfilingLogger {
         slowLogPredicate = createLogPredicateForThresholdMillis(thresholdMillis);
     }
 
-    public static <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        return maybeLog(action, logger, (loggingFunction, result) -> { });
-    }
-
     public static void maybeLog(Runnable runnable, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        maybeLog(() -> {
+        maybeLog((Supplier<Object>) () -> {
             runnable.run();
             return null;
         }, logger);
     }
 
-    public static  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
-            BiConsumer<LoggingFunction, T> additonalLoggerWithAccessToResult) {
+    public static <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
+        return maybeLog(action::get, logger, (loggingFunction, result) -> {});
+    }
+
+    public static <T, E extends Exception> T maybeLog(CallableCheckedException<T, E> action,
+            BiConsumer<LoggingFunction, Stopwatch> primaryLogger) throws E {
+        return maybeLog(action, primaryLogger, ((loggingFunction, result) -> {}));
+    }
+
+    public static <T, E extends Exception> T maybeLog(CallableCheckedException<T, E> action,
+            BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
+            BiConsumer<LoggingFunction, T> additonalLoggerWithAccessToResult) throws E {
         if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
             Monitor<T> monitor = Monitor.createMonitor(
                     primaryLogger,
                     additonalLoggerWithAccessToResult,
                     slowLogPredicate);
             try {
-                T res = action.get();
+                T res = action.call();
                 monitor.registerResult(res);
                 return res;
             } catch (Exception ex) {
                 monitor.registerException(ex);
-                throw ex;
+                throw Throwables.throwUncheckedException(ex);
             } finally {
                 monitor.log();
             }
         } else {
-            return action.get();
+            return action.call();
         }
     }
 
@@ -187,4 +195,7 @@ public class KvsProfilingLogger {
         return stopwatch -> stopwatch.elapsed(TimeUnit.MILLISECONDS) > thresholdMillis;
     }
 
+    public interface CallableCheckedException<T, E extends Exception>  {
+        T call() throws E;
+    }
 }
