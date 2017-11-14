@@ -32,7 +32,11 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class CqlQueryUtils {
+public final class CqlQueryUtils {
+    private CqlQueryUtils() {
+        // utility class
+    }
+
     public static CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
         byte[] rowName = key;
         byte[] columnName = row.getColumns().get(0).getValue();
