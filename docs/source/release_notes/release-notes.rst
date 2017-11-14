@@ -523,6 +523,9 @@ v0.60.1
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Paxos value information is now correctly being logged when applicable leader events are happening.
+
     *    - |new| |improved|
          - AtlasDB now supports asynchronous initialization, where ``TransactionManagers.create()`` creates a ``SerializableTransactionManager`` even when initialization fails, for instance because the KVS is not up yet.
 
