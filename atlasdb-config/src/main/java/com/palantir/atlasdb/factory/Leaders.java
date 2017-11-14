@@ -186,7 +186,7 @@ public final class Leaders {
             Class<T> clazz,
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, true, clazz, userAgent),
                 ImmutableList.of(localObject)));
     }
 
