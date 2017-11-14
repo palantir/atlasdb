@@ -216,7 +216,11 @@ Also, all Cassandra KVS exceptions like <code class="docutils literal"><span cla
 <td><code class="docutils literal"><span class="pre">SweeperServiceImpl</span></code> now logs when it starts sweeping and makes it clear if it is running full sweep or not
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2618">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB now depends on Tritium 0.8.4, which depends on the same version of <code class="docutils literal"><span class="pre">com.palantir.remoting3</span></code> and <code class="docutils literal"><span class="pre">HdrHistogram</span></code> as AtlasDB.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2662">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Check that immutable timestamp is locked on write transactions with no writes.
 This could cause long-running readers to read an incorrect empty value when using the <code class="docutils literal"><span class="pre">Sweep.THOROUGH</span></code> strategy.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2406">Pull Request</a>)</td>
