@@ -102,8 +102,8 @@ public abstract class ResultsExtractor<T> {
 
     public abstract Map<Cell, T> asMap();
 
-    protected Meter getNotlatestValueCellFilterMeter(Class clazz) {
+    protected Meter getNotlatestVisibleValueCellFilterMeter(Class clazz) {
         // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VALUE);
+        return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
     }
 }

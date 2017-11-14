@@ -25,7 +25,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 
 class ValueExtractor extends ResultsExtractor<Value> {
     private final Map<Cell, Value> collector;
-    private final Meter notLatestValueCellFilterMeter = getNotlatestValueCellFilterMeter(ValueExtractor.class);
+    private final Meter notLatestVisibleValueCellFilterMeter =
+            getNotlatestVisibleValueCellFilterMeter(ValueExtractor.class);
 
     ValueExtractor(Map<Cell, Value> collector) {
         this.collector = collector;
@@ -47,10 +48,10 @@ class ValueExtractor extends ResultsExtractor<Value> {
             if (!collector.containsKey(cell)) {
                 collector.put(cell, Value.create(val, ts));
             } else {
-                notLatestValueCellFilterMeter.mark();
+                notLatestVisibleValueCellFilterMeter.mark();
             }
         } else {
-            notLatestValueCellFilterMeter.mark();
+            notLatestVisibleValueCellFilterMeter.mark();
         }
     }
 

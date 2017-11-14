@@ -26,7 +26,7 @@ public final class AtlasDbMetricNames {
             // Utility
         }
 
-        public static final String NOT_LATEST_VALUE = "notLatestVisibleValueCellFilterCount";
+        public static final String NOT_LATEST_VISIBLE_VALUE = "notLatestVisibleValueCellFilterCount";
         public static final String COMMIT_TS_GREATER_THAN_TRANSACTION_TS = "commitTsGreaterThatTxTsCellFilterCount";
         public static final String INVALID_START_TS = "invalidStartTsTsCellFilterCount";
         public static final String INVALID_COMMIT_TS = "invalidCommitTsCellFilterCount";
