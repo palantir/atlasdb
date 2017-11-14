@@ -1111,7 +1111,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
             if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {

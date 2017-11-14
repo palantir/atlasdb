@@ -102,7 +102,7 @@ public abstract class ResultsExtractor<T> {
 
     public abstract Map<Cell, T> asMap();
 
-    protected Meter getPostFilteredCellsMeter(Class clazz) {
+    protected Meter getNotlatestValueCellFilterMeter(Class clazz) {
         // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VALUE);
     }
