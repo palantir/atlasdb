@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.ConnectException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,6 +35,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -145,5 +148,23 @@ public class LockRefreshingTimelockServiceTest {
         when(delegate.getImmutableTimestamp()).thenReturn(immutableTs);
 
         assertThat(timelock.getImmutableTimestamp()).isEqualTo(immutableTs);
+    }
+
+    @Test
+    @SuppressWarnings("ThrowableNotThrown")
+    public void throwsDependencyUnavailableWhenConnectionToDelegateFails() {
+        Throwable cause = new ConnectException("test says we're down, so I guess we're down");
+        Throwable exceptionToThrow = new RuntimeException(cause);
+        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
+
+        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    @Test
+    public void doesNotThrowDependencyExceptionWhenDelegateFailsForSomeOtherReason() {
+        when(delegate.getFreshTimestamp()).thenThrow(new RuntimeException("something else happened"));
+
+        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(RuntimeException.class)
+            .isNotInstanceOf(AtlasDbDependencyException.class);
     }
 }
