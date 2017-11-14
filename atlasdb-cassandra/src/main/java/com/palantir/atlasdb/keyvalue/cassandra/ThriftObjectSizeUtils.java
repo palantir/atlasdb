@@ -223,7 +223,7 @@ public final class ThriftObjectSizeUtils {
         return Integer.BYTES;
     }
 
-    private static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
+    public static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
         if (collection == null) {
             return getNullSize();
         }
