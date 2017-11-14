@@ -54,4 +54,8 @@ public final class TableToSweep {
     byte[] getStartRow() {
         return progress.map(SweepProgress::startRow).orElse(PtBytes.EMPTY_BYTE_ARRAY);
     }
+
+    long getTimeInMillisPreviously() {
+        return progress.map(SweepProgress::timeInMillis).orElse(0L);
+    }
 }

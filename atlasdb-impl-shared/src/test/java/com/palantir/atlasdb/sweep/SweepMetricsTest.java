@@ -50,7 +50,7 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsDeletedAreRecorded() {
-        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.examinedCellsOneIteration(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
 
         assertValuesRecorded("staleValuesDeleted", DELETED);
@@ -58,10 +58,10 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsDeletedAreAggregated() {
-        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.examinedCellsOneIteration(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
 
-        sweepMetrics.examinedCells(OTHER_EXAMINED);
+        sweepMetrics.examinedCellsOneIteration(OTHER_EXAMINED);
         sweepMetrics.deletedCells(OTHER_DELETED);
 
         assertValuesRecorded("staleValuesDeleted", DELETED, OTHER_DELETED);
@@ -69,7 +69,7 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsExaminedAreRecorded() {
-        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.examinedCellsOneIteration(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
 
         assertValuesRecorded("cellTimestampPairsExamined", EXAMINED);
@@ -77,10 +77,10 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsExaminedAreAggregated() {
-        sweepMetrics.examinedCells(EXAMINED);
+        sweepMetrics.examinedCellsOneIteration(EXAMINED);
         sweepMetrics.deletedCells(DELETED);
 
-        sweepMetrics.examinedCells(OTHER_EXAMINED);
+        sweepMetrics.examinedCellsOneIteration(OTHER_EXAMINED);
         sweepMetrics.deletedCells(OTHER_DELETED);
 
         assertValuesRecorded("cellTimestampPairsExamined", EXAMINED, OTHER_EXAMINED);

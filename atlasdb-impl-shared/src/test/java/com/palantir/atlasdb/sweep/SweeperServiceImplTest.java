@@ -140,7 +140,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void testWriteProgressAndPriorityNotUpdatedAfterSweepRunsSuccessfully_butMetricsAre() {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
-        Mockito.verify(sweepMetrics, times(1)).examinedCells(eq(0L));
+        Mockito.verify(sweepMetrics, times(1)).examinedCellsOneIteration(eq(0L));
         Mockito.verify(sweepMetrics, times(1)).deletedCells(eq(0L));
     }
 

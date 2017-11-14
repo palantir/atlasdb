@@ -130,7 +130,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verify(sweepMetrics).deletedCells(2);
-        Mockito.verify(sweepMetrics).examinedCells(10);
+        Mockito.verify(sweepMetrics).examinedCellsOneIteration(10);
     }
 
     @Test
@@ -151,7 +151,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verify(sweepMetrics).deletedCells(2);
-        Mockito.verify(sweepMetrics).examinedCells(10);
+        Mockito.verify(sweepMetrics).examinedCellsOneIteration(10);
     }
 
     @Test

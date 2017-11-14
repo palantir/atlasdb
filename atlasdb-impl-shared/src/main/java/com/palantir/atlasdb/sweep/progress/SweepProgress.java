@@ -39,4 +39,5 @@ public interface SweepProgress {
 
     long minimumSweptTimestamp();
 
+    long timeInMillis();
 }

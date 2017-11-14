@@ -19,12 +19,14 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -113,6 +115,8 @@ public class SweepTaskRunner {
             SweepBatchConfig batchConfig,
             byte[] startRow,
             RunType runType) {
+        Stopwatch watch = Stopwatch.createStarted();
+
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
@@ -134,14 +138,15 @@ public class SweepTaskRunner {
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResult();
         }
-        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
+        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get(), watch);
     }
 
     private SweepResults doRun(TableReference tableRef,
                                SweepBatchConfig batchConfig,
                                byte[] startRow,
                                RunType runType,
-                               Sweeper sweeper) {
+                               Sweeper sweeper,
+                               Stopwatch watch) {
         log.info("Beginning iteration of sweep for table {} starting at row {}",
                 LoggingArgs.tableRef(tableRef),
                 UnsafeArg.of("startRow", PtBytes.encodeHexString(startRow)));
@@ -197,6 +202,7 @@ public class SweepTaskRunner {
                     .cellTsPairsExamined(totalCellTsPairsExamined)
                     .staleValuesDeleted(totalCellTsPairsDeleted)
                     .sweptTimestamp(sweepTs)
+                    .timeInMillis(watch.elapsed(TimeUnit.MILLISECONDS))
                     .build();
         }
     }

@@ -34,17 +34,20 @@ public abstract class SweepResults {
 
     /**
      * The approximate number of (cell, timestamp) pairs examined.
-     * TODO: we should rename this method to something like getCellTsPairsExamined()
      */
     public abstract long getCellTsPairsExamined();
 
     /**
      * The number of (cell, timestamp) pairs deleted.
-     * TODO: we should rename this method to something like getCellTsPairsDeleted() or staleValuesDeleted()
      */
     public abstract long getStaleValuesDeleted();
 
     public abstract long getSweptTimestamp();
+
+    /**
+     * Time spent sweeping this iteration in milliseconds.
+     */
+    public abstract long getTimeInMillis();
 
     /**
      * Returns a new {@link SweepResults} representing cumulative results from this instance and {@code other}. Assumes
@@ -57,6 +60,7 @@ public abstract class SweepResults {
                 .staleValuesDeleted(getStaleValuesDeleted() + other.getStaleValuesDeleted())
                 .sweptTimestamp(other.getSweptTimestamp())
                 .nextStartRow(other.getNextStartRow())
+                .timeInMillis(other.getTimeInMillis())
                 .build();
     }
 
@@ -74,6 +78,7 @@ public abstract class SweepResults {
                 .staleValuesDeleted(0)
                 .sweptTimestamp(0)
                 .nextStartRow(startRow)
+                .timeInMillis(0)
                 .build();
     }
 

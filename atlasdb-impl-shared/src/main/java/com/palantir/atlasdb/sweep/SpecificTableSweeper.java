@@ -129,10 +129,9 @@ public class SpecificTableSweeper {
     }
 
     SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
-        Stopwatch watch = Stopwatch.createStarted();
         try {
             SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
-            logSweepPerformance(tableRef, startRow, results, watch);
+            logSweepPerformance(tableRef, startRow, results);
 
             reportSweepMetrics(results);
 
@@ -144,9 +143,7 @@ public class SpecificTableSweeper {
         }
     }
 
-    private void logSweepPerformance(TableReference tableRef, byte[] startRow, SweepResults results, Stopwatch watch) {
-        long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
-
+    private void logSweepPerformance(TableReference tableRef, byte[] startRow, SweepResults results) {
         log.info("Analyzed {} cell+timestamp pairs"
                         + " from table {}"
                         + " starting at row {}"
@@ -157,13 +154,13 @@ public class SpecificTableSweeper {
                 LoggingArgs.tableRef("tableRef", tableRef),
                 UnsafeArg.of("startRow", startRowToHex(startRow)),
                 SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()),
-                SafeArg.of("time taken", elapsedMillis),
+                SafeArg.of("time taken", results.getTimeInMillis()),
                 SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
 
         SweepPerformanceResults performanceResults = SweepPerformanceResults.builder()
                 .sweepResults(results)
                 .tableName(tableRef.getQualifiedName())
-                .elapsedMillis(elapsedMillis)
+                .elapsedMillis(results.getTimeInMillis())
                 .build();
 
         sweepPerfLogger.logSweepResults(performanceResults);
@@ -201,12 +198,14 @@ public class SpecificTableSweeper {
         long minimumSweptTimestamp = Math.min(
                 tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
                 currentIteration.getSweptTimestamp());
+        long timeInMillis = tableToSweep.getTimeInMillisPreviously() + currentIteration.getTimeInMillis();
 
         return SweepResults.builder()
                 .staleValuesDeleted(staleValuesDeleted)
                 .cellTsPairsExamined(cellsExamined)
                 .sweptTimestamp(minimumSweptTimestamp)
                 .nextStartRow(currentIteration.getNextStartRow())
+                .timeInMillis(timeInMillis)
                 .build();
     }
 
@@ -238,10 +237,13 @@ public class SpecificTableSweeper {
     private void processFinishedSweep(TableToSweep tableToSweep, SweepResults cumulativeResults) {
         saveFinalSweepResults(tableToSweep, cumulativeResults);
         performInternalCompactionIfNecessary(tableToSweep.getTableRef(), cumulativeResults);
-        log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values.",
+        log.info("Finished sweeping table {}. Examined {} cell+timestamp pairs, deleted {} stale values. Time taken "
+                        + "sweeping: {} ms.",
                 LoggingArgs.tableRef("tableRef", tableToSweep.getTableRef()),
                 SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),
-                SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()));
+                SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
+                SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()));
+        updateMetrics(cumulativeResults, tableToSweep.getTableRef());
         sweepProgressStore.clearProgress();
     }
 
@@ -280,8 +282,15 @@ public class SpecificTableSweeper {
     }
 
     private void reportSweepMetrics(SweepResults sweepResults) {
-        sweepMetrics.examinedCells(sweepResults.getCellTsPairsExamined());
-        sweepMetrics.deletedCells(sweepResults.getStaleValuesDeleted());
+        sweepMetrics.examinedCellsOneIteration(sweepResults.getCellTsPairsExamined());
+        sweepMetrics.deletedCellsOneIteration(sweepResults.getStaleValuesDeleted());
+        sweepMetrics.sweepTimeOneIteration(sweepResults.getTimeInMillis());
+    }
+
+    private void updateMetrics(SweepResults cumulativeResults, TableReference tableRef) {
+        sweepMetrics.examinedCellsFullTable(cumulativeResults.getCellTsPairsExamined(), tableRef);
+        sweepMetrics.deletedCellsFullTable(cumulativeResults.getStaleValuesDeleted(), tableRef);
+        sweepMetrics.sweepTimeForTable(cumulativeResults.getTimeInMillis(), tableRef);
     }
 
     private static String startRowToHex(@Nullable byte[] row) {
