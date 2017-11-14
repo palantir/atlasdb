@@ -72,7 +72,9 @@ class RowColumnRangeExtractor {
     private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
     private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
-    private MetricsManager metricsManager = new MetricsManager();
+    private final MetricsManager metricsManager = new MetricsManager();
+    private final Meter postFilteredCellsMeter = metricsManager.registerOrGetMeter(RowColumnRangeExtractor.class,
+            "startTsCellFilterCount");
 
     public void extractResults(Iterable<byte[]> canonicalRows,
                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
@@ -84,22 +86,17 @@ class RowColumnRangeExtractor {
             byte[] row = canonicalRowsByHash.get(Sha256Hash.computeHash(rawRow));
             List<ColumnOrSuperColumn> columns = colEntry.getValue();
 
-            updateAppropriateDataStructures(row, columns);
-
+            if (!columns.isEmpty()) {
+                rowsToLastCompositeColumns.put(row, columns.get(columns.size() - 1).getColumn());
+            } else {
+                emptyRows.add(row);
+            }
+            rowsToRawColumnCount.put(row, columns.size());
             for (ColumnOrSuperColumn c : columns) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
                 internalExtractResult(startTs, row, pair.lhSide, c.getColumn().getValue(), pair.rhSide);
             }
         }
-    }
-
-    private void updateAppropriateDataStructures(byte[] row, List<ColumnOrSuperColumn> columns) {
-        if (!columns.isEmpty()) {
-            rowsToLastCompositeColumns.put(row, columns.get(columns.size() - 1).getColumn());
-        } else {
-            emptyRows.add(row);
-        }
-        rowsToRawColumnCount.put(row, columns.size());
     }
 
     private void internalExtractResult(long startTs, byte[] row, byte[] col, byte[] val, long ts) {
@@ -110,19 +107,16 @@ class RowColumnRangeExtractor {
                 collector.get(row).put(cell, Value.create(val, ts));
             } else if (!collector.get(row).containsKey(cell)) {
                 collector.get(row).put(cell, Value.create(val, ts));
+            } else {
+                postFilteredCellsMeter.mark();
             }
         } else {
-            getPostFilteredCellsMeter().mark();
+            postFilteredCellsMeter.mark();
         }
     }
 
     public RowColumnRangeResult getRowColumnRangeResult() {
         return new RowColumnRangeResult(collector, rowsToLastCompositeColumns, emptyRows, rowsToRawColumnCount);
-    }
-
-    private Meter getPostFilteredCellsMeter() {
-        // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerOrGetMeter(RowColumnRangeExtractor.class, "startTsCellFilterCount");
     }
 
 }

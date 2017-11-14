@@ -788,7 +788,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 tableRef,
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
-
         return mergeInLocalWrites(
                 postFilteredCells.iterator(),
                 localWritesInRange.iterator(),
@@ -878,14 +877,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterator<Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
         Ordering<Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
-        ImmutableList<Entry<Cell, byte[]>> mergeList = ImmutableList.copyOf(IteratorUtils.mergeIterators(
+        ImmutableList<Entry<Cell, byte[]>> mergedList = ImmutableList.copyOf(IteratorUtils.mergeIterators(
                 postFilterIterator, localWritesInRange,
                 isReverse ? ordering.reverse() : ordering,
                 from -> from.rhSide)); // always override their value with written values
-        ImmutableList<Entry<Cell, byte[]>> emptyValueFilteredEntries = ImmutableList.copyOf(Iterators.filter(mergeList.iterator(),
+        ImmutableList<Entry<Cell, byte[]>> mergedListWithoutEmptyValues = ImmutableList.copyOf(Iterators.filter(
+                mergedList.iterator(),
                 Predicates.compose(Predicates.not(Value.IS_EMPTY), MapEntries.getValueFunction())));
-        getEmptyValuesCountMeter().mark(mergeList.size() - emptyValueFilteredEntries.size());
-        return emptyValueFilteredEntries;
+        getEmptyValuesCountMeter().mark(mergedList.size() - mergedListWithoutEmptyValues.size());
+        return mergedListWithoutEmptyValues;
     }
 
     protected <T> ClosableIterator<RowResult<T>> postFilterIterator(
@@ -1985,7 +1985,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private static Meter getEmptyValuesCountMeter() {
-        return getMeter("emptyValuesCount");
+        return getMeter("emptyValuesCellFilterCount");
     }
 
     private static Meter getMeter(String name) {
