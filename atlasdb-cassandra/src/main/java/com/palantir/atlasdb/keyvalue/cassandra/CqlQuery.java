@@ -16,57 +16,49 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 
-import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
-import com.palantir.atlasdb.logging.KvsProfilingLogger;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Arg;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class CqlQuery {
-    private final String queryFormat;
-    private final Arg<?>[] queryArgs;
+    final String queryFormat;
+    final Arg<?>[] queryArgs;
 
-    public CqlQuery(String queryFormat, Arg<?>... args) {
+    CqlQuery(String queryFormat, Arg<?>... args) {
         this.queryFormat = queryFormat;
         this.queryArgs = args;
     }
 
-    public List<CellWithTimestamp> executeAndGetCells(
+    List<CellWithTimestamp> executeAndGetCells(
             CqlExecutorImpl.QueryExecutor queryExecutor,
             byte[] rowHintForHostSelection,
             Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
-        CqlResult cqlResult = KvsProfilingLogger.maybeLog(
-                () -> queryExecutor.execute(rowHintForHostSelection, toString()),
-                this::logSlowResult,
-                this::logResultSize);
+        CqlResult cqlResult = queryExecutor.execute(this, rowHintForHostSelection);
         return CqlQueryUtils.getCells(cellTsExtractor, cqlResult);
     }
 
-    private void logSlowResult(KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
-        Object[] allArgs = new Object[queryArgs.length + 3];
-        allArgs[0] = SafeArg.of("queryFormat", queryFormat);
-        allArgs[1] = UnsafeArg.of("fullQuery", toString());
-        allArgs[2] = LoggingArgs.durationMillis(timer);
-        System.arraycopy(queryArgs, 0, allArgs, 3, queryArgs.length);
-
-        log.log("A CQL query was slow: queryFormat = [{}], fullQuery = [{}], durationMillis = {}", allArgs);
-    }
-
-    private void logResultSize(KvsProfilingLogger.LoggingFunction log, CqlResult result) {
-        log.log("and returned {} rows",
-                SafeArg.of("numRows", result.getRows().size()));
+    String fullQuery() {
+        return String.format(queryFormat, (Object[]) queryArgs);
     }
 
     @Override
     public String toString() {
-        return String.format(queryFormat, (Object[]) queryArgs);
+        // toString needs to return a safe for logging string, as we use its lazy evaluation to log tracing on
+        // CassandraClientImpl#execute_cql3_query.
+
+        String queryString = String.format("query %s", queryFormat);
+        String argsString = Arrays.stream(queryArgs)
+                .filter(Arg::isSafeForLogging)
+                .map(arg -> String.format("%s %s", arg.getName(), arg.getValue()))
+                .collect(Collectors.joining(", "));
+
+        return queryString + ", " + argsString;
     }
 }

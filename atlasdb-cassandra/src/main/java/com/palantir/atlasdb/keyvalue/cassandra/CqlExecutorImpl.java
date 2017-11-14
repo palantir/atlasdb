@@ -18,34 +18,20 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Stopwatch;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
-import com.palantir.atlasdb.logging.KvsProfilingLogger;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.Arg;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private static final String SERVICE_NAME = "cassandra-thrift-client";
@@ -53,7 +39,7 @@ public class CqlExecutorImpl implements CqlExecutor {
     private QueryExecutor queryExecutor;
 
     public interface QueryExecutor {
-        CqlResult execute(byte[] rowHintForHostSelection, String query);
+        CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
     }
 
     CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
@@ -81,11 +67,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 CqlQueryUtils.key(startRowInclusive),
                 CqlQueryUtils.limit(limit));
 
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestamps(query {}, tableRef {}, limit {})",
-                selQuery, LoggingArgs.safeTableOrPlaceholder(tableRef), limit)) {
-            return query.executeAndGetCells(queryExecutor, startRowInclusive, CqlQueryUtils::getCellFromRow);
-        }
+        return query.executeAndGetCells(queryExecutor, startRowInclusive, CqlQueryUtils::getCellFromRow);
     }
 
     /**
@@ -109,17 +91,8 @@ public class CqlExecutorImpl implements CqlExecutor {
                 CqlQueryUtils.column2(invertedTimestamp),
                 CqlQueryUtils.limit(limit));
 
-        //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestampsWithinRow("
-                        + "query {}, table {}, ts {}, limit {})",
-                selQuery, LoggingArgs.safeTableOrPlaceholder(tableRef), startTimestampExclusive, limit)) {
-            return query.executeAndGetCells(queryExecutor, row,
-                    result -> CqlQueryUtils.getCellFromKeylessRow(result, row));
-        }
-    }
-
-    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
-        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
+        return query.executeAndGetCells(queryExecutor, row,
+                result -> CqlQueryUtils.getCellFromKeylessRow(result, row));
     }
 
     private static class QueryExecutorImpl implements QueryExecutor {
@@ -132,17 +105,17 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
 
         @Override
-        public CqlResult execute(byte[] rowHintForHostSelection, String query) {
-            return executeQueryOnHost(query, getHostForRow(rowHintForHostSelection));
+        public CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection) {
+            return executeQueryOnHost(cqlQuery, getHostForRow(rowHintForHostSelection));
         }
 
         private InetSocketAddress getHostForRow(byte[] row) {
             return clientPool.getRandomHostForKey(row);
         }
 
-        private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
+        private CqlResult executeQueryOnHost(CqlQuery cqlQuery, InetSocketAddress host) {
             try {
-                return clientPool.runWithRetryOnHost(host, createCqlFunction(query));
+                return clientPool.runWithRetryOnHost(host, createCqlFunction(cqlQuery));
             } catch (UnavailableException e) {
                 throw wrapIfConsistencyAll(e);
             } catch (TException e) {
@@ -159,18 +132,16 @@ public class CqlExecutorImpl implements CqlExecutor {
             }
         }
 
-        private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(String query) {
-            ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-
+        private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(CqlQuery cqlQuery) {
             return new FunctionCheckedException<CassandraClient, CqlResult, TException>() {
                 @Override
                 public CqlResult apply(CassandraClient client) throws TException {
-                    return client.execute_cql3_query(queryBytes, Compression.NONE, consistency);
+                    return client.execute_cql3_query(cqlQuery, Compression.NONE, consistency);
                 }
 
                 @Override
                 public String toString() {
-                    return query;
+                    return cqlQuery.fullQuery();
                 }
             };
         }

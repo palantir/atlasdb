@@ -76,7 +76,7 @@ public interface CassandraClient {
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    CqlResult execute_cql3_query(ByteBuffer query,
+    CqlResult execute_cql3_query(CqlQuery cqlQuery,
             Compression compression,
             ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
