@@ -252,6 +252,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate1.isInitialized() && delegate2.isInitialized();
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,

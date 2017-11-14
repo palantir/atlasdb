@@ -51,10 +51,13 @@ dependencies {
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+  testCompile group: 'org.awaitility', name: 'awaitility'
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
   processor project(":atlasdb-processors")
+
+  explicitShadow 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
 }
 
 shadowJar {

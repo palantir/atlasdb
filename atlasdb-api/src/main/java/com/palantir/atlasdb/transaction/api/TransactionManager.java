@@ -15,7 +15,26 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.exception.NotInitializedException;
+
 public interface TransactionManager extends AutoCloseable {
+    /**
+     * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
+     * and is ready to service transactions.
+     *
+     * If an attempt is made to execute a transaction when this method returns {@code false}, a
+     * {@link NotInitializedException} will be thrown.
+     *
+     * This method is used for TransactionManagers that can be initialized asynchronously (i.e. those extending
+     * {@link com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default
+     * implementation, and return true (they're trivially fully initialized).
+     *
+     * @return true if and only if the TransactionManager has been fully initialized
+     */
+    default boolean isInitialized() {
+        return true;
+    }
+
     /**
      * Runs the given {@link TransactionTask}. If the task completes successfully
      * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
@@ -76,8 +95,9 @@ public interface TransactionManager extends AutoCloseable {
             throws E, TransactionFailedRetriableException;
 
     /**
-     * This will open and run a read only transaction.  Read transactions are just like normal
-     * transactions, but will throw if any write operations are called.
+     * This will open and run a read-only transaction. Read-only transactions are similar to other
+     * transactions, but will throw if any write operations are called. Furthermore, they often
+     * make fewer network calls than their read/write counterparts so should be used where possible.
      *
      * @param task task to run
      *

@@ -16,55 +16,61 @@
 
 package com.palantir.atlasdb.timelock.clock;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 
 public class ClockSkewEvents {
     private static final long WARN_SKEW_THRESHOLD_NANOS = 10_000_000; // 10 ms
     private static final long ERROR_SKEW_THRESHOLD_NANOS = 50_000_000; // 50 ms
 
+    @VisibleForTesting
+    static final Duration REPRESENTATIVE_INTERVAL_SINCE_PREVIOUS_REQUEST = Duration.of(10, ChronoUnit.SECONDS);
+    @VisibleForTesting
+    static final Duration REPRESENTATIVE_REQUEST_DURATION = Duration.of(10, ChronoUnit.MILLIS);
+
+    private static final double SECONDS_BETWEEN_EXCEPTION_LOGS = 600; // 10 minutes
+    private static final double EXCEPTION_PERMIT_RATE = 1.0 / SECONDS_BETWEEN_EXCEPTION_LOGS;
+
     private final Logger log = LoggerFactory.getLogger(ClockSkewEvents.class);
-    private final MetricRegistry metricRegistry;
 
     private final Histogram clockSkew;
     private final Counter exception;
     private final Counter clockWentBackwards;
 
+    private final RateLimiter exceptionLoggingRateLimiter = RateLimiter.create(EXCEPTION_PERMIT_RATE);
+
     public ClockSkewEvents(MetricRegistry metricRegistry) {
-
-        this.metricRegistry = metricRegistry;
-
         this.clockSkew = metricRegistry.histogram("clock.skew");
         this.clockWentBackwards = metricRegistry.counter("clock.went-backwards");
         this.exception = metricRegistry.counter("clock.monitor-exception");
     }
 
-    public void tooMuchTimeSincePreviousRequest(long remoteElapsedTime) {
-        log.debug("It's been a long time since we last queried the server."
-                        + " Ignoring the skew, since it's not representative.",
-                SafeArg.of("remoteElapsedTime", remoteElapsedTime));
-    }
-
-    public void requestsTookTooLong(long minElapsedTime, long maxElapsedTime) {
-        log.debug("A request took too long to complete."
-                        + " Ignoring the skew, since it's not representative.",
-                SafeArg.of("requestsDuration", maxElapsedTime - minElapsedTime));
-    }
-
-    public void clockSkew(String server, long skew) {
-        if (skew > WARN_SKEW_THRESHOLD_NANOS && skew < ERROR_SKEW_THRESHOLD_NANOS) {
-            log.warn("Skew {} (in nanos) greater than expected on server {}", SafeArg.of("skew", skew),
-                    SafeArg.of("server", server));
-        } else if (skew >= ERROR_SKEW_THRESHOLD_NANOS) {
-            log.error("Skew {} (in nanos) much greater than expected on server {}", SafeArg.of("skew", skew),
-                    SafeArg.of("server", server));
+    public void clockSkew(String server, long skew, long minRequestInterval, long duration) {
+        if (skew >= ERROR_SKEW_THRESHOLD_NANOS && requestHasLikelyRepresentativeSkew(minRequestInterval, duration)) {
+            log.error("Significant skew of {} ns over at least {} ns was detected on the remote server {}."
+                            + " (Our request took approximately {} ns.)",
+                    SafeArg.of("skew", skew),
+                    SafeArg.of("minRequestInterval", minRequestInterval),
+                    SafeArg.of("server", server),
+                    SafeArg.of("requestDuration", duration));
+        } else if (skew >= WARN_SKEW_THRESHOLD_NANOS) {
+            log.warn("Skew of {} ns over at least {} ns was detected on the remote server {}."
+                            + " (Our request took approximately {} ns.)",
+                    SafeArg.of("skew", skew),
+                    SafeArg.of("minRequestInterval", minRequestInterval),
+                    SafeArg.of("server", server),
+                    SafeArg.of("requestDuration", duration));
         }
-
         clockSkew.update(skew);
     }
 
@@ -77,8 +83,15 @@ public class ClockSkewEvents {
     }
 
     public void exception(Throwable throwable) {
-        log.warn("ClockSkewMonitor threw an exception", throwable);
-
+        if (exceptionLoggingRateLimiter.tryAcquire()) {
+            log.warn("ClockSkewMonitor threw an exception", throwable);
+        }
         exception.inc();
+    }
+
+    @VisibleForTesting
+    static boolean requestHasLikelyRepresentativeSkew(long minTimeBetweenRequests, long duration) {
+        return minTimeBetweenRequests <= REPRESENTATIVE_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos()
+                && duration <= REPRESENTATIVE_REQUEST_DURATION.toNanos();
     }
 }

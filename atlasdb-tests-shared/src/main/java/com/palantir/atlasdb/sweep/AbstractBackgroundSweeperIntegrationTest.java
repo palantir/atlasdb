@@ -38,7 +38,7 @@ import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.priority.SweepPriority;
-import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -68,6 +68,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             .build();
     protected TransactionService txService;
     protected SpecificTableSweeper specificTableSweeper;
+    protected AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
     @Before
     public void setup() {
@@ -87,12 +88,15 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 txManager,
                 kvs,
                 sweepRunner,
-                () -> sweepBatchConfig,
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger(),
-                sweepMetrics);
+                sweepMetrics,
+                false);
+
+        sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() -> sweepBatchConfig);
 
         backgroundSweeper = BackgroundSweeperImpl.create(
+                sweepBatchConfigSource,
                 () -> true, // sweepEnabled
                 () -> 10L, // sweepPauseMillis
                 persistentLockManager,
@@ -119,7 +123,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         verifyTableSwept(TABLE_1, 75, true);
         verifyTableSwept(TABLE_2, 58, false);
         List<SweepPriority> priorities = txManager.runTaskReadOnly(
-                tx -> new SweepPriorityStore(SweepTableFactory.of()).loadNewPriorities(tx));
+                tx -> SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false).loadNewPriorities(tx));
         Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)));
         Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)));
     }

@@ -22,6 +22,14 @@
   color: white;
 }
 
+.changetype.changetype-logs {
+  background: #F2B824;
+}
+
+.changetype.changetype-metrics {
+  background: #F2B824;
+}
+
 .changetype.changetype-changed {
   background: #D9822B;
 }

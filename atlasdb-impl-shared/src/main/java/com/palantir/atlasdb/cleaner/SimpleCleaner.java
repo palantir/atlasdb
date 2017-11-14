@@ -45,6 +45,11 @@ public class SimpleCleaner implements Cleaner {
     }
 
     @Override
+    public boolean isInitialized() {
+        return scrubber.isInitialized() && puncher.isInitialized();
+    }
+
+    @Override
     public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
                                        long scrubTimestamp) {
         scrubber.queueCellsForScrubbing(cellToTableRefs, scrubTimestamp);

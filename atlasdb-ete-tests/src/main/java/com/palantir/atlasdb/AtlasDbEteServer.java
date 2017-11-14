@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -50,8 +49,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbEteServer.class);
     private static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 60;
     private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
-
-    private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema());
@@ -101,12 +98,12 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     private TransactionManager createTransactionManager(AtlasDbConfig config, Environment environment) {
-        return TransactionManagers.create(
-                config,
-                Optional::empty,
-                ETE_SCHEMAS,
-                environment.jersey()::register,
-                DONT_SHOW_HIDDEN_TABLES);
+        return TransactionManagers.builder()
+                .config(config)
+                .schemas(ETE_SCHEMAS)
+                .registrar(environment.jersey()::register)
+                .userAgent("ete test")
+                .buildSerializable();
     }
 
     private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {

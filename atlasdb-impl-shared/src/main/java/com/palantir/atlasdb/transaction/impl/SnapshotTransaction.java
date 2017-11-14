@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
@@ -203,6 +204,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final TimestampCache timestampValidationReadCache;
     protected final long lockAcquireTimeoutMs;
     protected final ExecutorService getRangesExecutor;
+    protected final int defaultGetRangesConcurrency;
 
     private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
     private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
@@ -229,7 +231,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache,
                                long lockAcquireTimeoutMs,
-                               ExecutorService getRangesExecutor) {
+                               ExecutorService getRangesExecutor,
+                               int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -247,6 +250,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     // TEST ONLY
@@ -260,7 +264,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
                         TimestampCache timestampValidationReadCache,
-                        ExecutorService getRangesExecutor) {
+                        ExecutorService getRangesExecutor,
+                        int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -278,6 +283,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -289,7 +295,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   boolean allowHiddenTableAccess,
                                   TimestampCache timestampValidationReadCache,
                                   long lockAcquireTimeoutMs,
-                                  ExecutorService getRangesExecutor) {
+                                  ExecutorService getRangesExecutor,
+                                  int defaultGetRangesConcurrency) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -307,6 +314,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.timestampValidationReadCache = timestampValidationReadCache;
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
+        this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
     }
 
     @Override
@@ -715,6 +723,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 pair -> visitableProcessor.apply(pair.getLeft(), pair.getRight()),
                 getRangesExecutor,
                 concurrencyLevel);
+    }
+
+    @Override
+    public <T> Stream<T> getRanges(
+            final TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, T> visitableProcessor) {
+        return getRanges(tableRef, rangeRequests, defaultGetRangesConcurrency, visitableProcessor);
     }
 
     private static boolean isSingleton(Iterable<?> elements) {
@@ -1285,6 +1301,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void commitWrites(TransactionService transactionService) {
         if (!hasWrites()) {
+            // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
+            // to ensure that sweep hasn't thoroughly deleted cells we tried to read
+            // TODO(nziebart): we actually only need to do this if we've read from tables with THOROUGH sweep strategy
+            throwIfImmutableTsOrCommitLocksExpired(null);
             return;
         }
 
@@ -1454,6 +1474,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 || conflictHandler == ConflictHandler.RETRY_ON_WRITE_WRITE_CELL
                 || conflictHandler == ConflictHandler.SERIALIZABLE) {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
+                getTransactionConflictsMeter().mark();
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
                         dominatingWrites, System.currentTimeMillis() - timeCreated);
             }
@@ -1521,6 +1542,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Predicate<CellConflict> conflicting = Predicates.compose(
                 Predicates.in(conflictingCells),
                 CellConflict.getCellFunction());
+        getTransactionConflictsMeter().mark();
         throw TransactionConflictException.create(table,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
@@ -1785,7 +1807,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
                 gets.size(), tableRef);
-        Map<Long, Long> rawResults = defaultTransactionService.get(gets);
+        Map<Long, Long> rawResults = loadCommitTimestamps(gets);
+
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
             if (e.getValue() != null) {
                 long startTs = e.getKey();
@@ -1795,6 +1818,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
         return result;
+    }
+
+    private Map<Long, Long> loadCommitTimestamps(Set<Long> startTimestamps) {
+        // distinguish between a single timestamp and a batch, for more granular metrics
+        if (startTimestamps.size() == 1) {
+            long singleTs = startTimestamps.iterator().next();
+            Long commitTsOrNull = defaultTransactionService.get(singleTs);
+            return commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull);
+        } else {
+            return defaultTransactionService.get(startTimestamps);
+        }
     }
 
     /**
@@ -1925,6 +1959,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private Histogram getHistogram(String name) {
         return metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name));
     }
+
+    private Meter getTransactionConflictsMeter() {
+        // TODO(hsaraogi): add table names as a tag
+        return metricRegistry.meter(MetricRegistry.name(SnapshotTransaction.class, "SnapshotTransactionConflict"));
+    }
+
 }
 
 

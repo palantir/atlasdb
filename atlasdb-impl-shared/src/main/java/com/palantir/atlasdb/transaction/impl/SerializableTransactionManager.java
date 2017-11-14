@@ -21,6 +21,8 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.monitoring.TimestampTracker;
+import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -37,27 +39,35 @@ import com.palantir.timestamp.TimestampService;
 public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper extends AutoDelegate_SerializableTransactionManager {
-        private SerializableTransactionManager manager;
-        private volatile boolean isInitialized = false;
+        private final SerializableTransactionManager manager;
+        private final Supplier<Boolean> initializationPrerequisite;
 
-        public InitializeCheckingWrapper(SerializableTransactionManager manager) {
+        public InitializeCheckingWrapper(SerializableTransactionManager manager,
+                Supplier<Boolean> initializationPrerequisite) {
             this.manager = manager;
+            this.initializationPrerequisite = initializationPrerequisite;
         }
 
         @Override
         public SerializableTransactionManager delegate() {
-            if (!isInitialized) {
-                try {
-                    // SerializableTransactionManager should throw until the underlying KVS is initialized.
-                    // TODO(ssouza): replace with KVS healthcheck status when that gets implemented.
-                    manager.getKeyValueService().getClusterAvailabilityStatus();
-                } catch (NotInitializedException e) {
-                    log.info("The KeyValueService is not initialized yet!");
-                    throw e;
-                }
-                isInitialized = true;
+            if (!isInitialized()) {
+                throw new NotInitializedException("TransactionManager");
             }
+
             return manager;
+        }
+
+        @Override
+        public boolean isInitialized() {
+            // Note that the PersistentLockService is also initialized asynchronously as part of
+            // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
+            // requests (note that it is not accessible from any TransactionManager implementation), so we omit
+            // checking here whether it is initialized.
+            return manager.getKeyValueService().isInitialized()
+                    && manager.getTimelockService().isInitialized()
+                    && manager.getTimestampService().isInitialized()
+                    && manager.getCleaner().isInitialized()
+                    && initializationPrerequisite.get();
         }
 
         @Override
@@ -75,8 +85,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
      * This constructor is necessary for the InitializeCheckingWrapper. We initialize a dummy transaction manager and
      * use the delegate instead.
      */
+    // TODO(ssouza): it's hard to change the interface of STM with this.
+    // We should extract interfaces and delete this hack.
     protected SerializableTransactionManager() {
-        this(null, null, null, null, null, null, null, null, null, 1);
+        this(null, null, null, null, null, null, null, null, null, () -> 1L, false, null, 1, 1);
     }
 
     public static SerializableTransactionManager create(KeyValueService keyValueService,
@@ -87,10 +99,15 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
+            Supplier<Boolean> initializationPrerequisite,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
-            boolean initializeAsync) {
+            int defaultGetRangesConcurrency,
+            boolean initializeAsync,
+            Supplier<Long> timestampCacheSize) {
+        TimestampTracker timestampTracker = TimestampTrackerImpl.createWithDefaultTrackers(
+                timelockService, cleaner, initializeAsync);
         SerializableTransactionManager serializableTransactionManager = new SerializableTransactionManager(
                 keyValueService,
                 timelockService,
@@ -100,15 +117,19 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
+                timestampTracker,
+                timestampCacheSize,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
 
-        return initializeAsync ? new InitializeCheckingWrapper(serializableTransactionManager)
+        return initializeAsync
+                ? new InitializeCheckingWrapper(serializableTransactionManager, initializationPrerequisite)
                 : serializableTransactionManager;
     }
 
-    public SerializableTransactionManager(KeyValueService keyValueService,
+    public static SerializableTransactionManager createForTest(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
             LockService lockService,
@@ -117,20 +138,30 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            int concurrentGetRangesThreadPoolSize) {
-        this(keyValueService,
-                timestampService,
-                lockClient,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            Supplier<Long> timestampCacheSize) {
+        return new SerializableTransactionManager(keyValueService,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
                 lockService,
                 transactionService,
                 constraintModeSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
+                TimestampTrackerImpl.createNoOpTracker(),
+                timestampCacheSize,
                 false,
-                concurrentGetRangesThreadPoolSize);
+                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency);
     }
 
+    /**
+     * @deprecated Use {@link SerializableTransactionManager#create} to create this class.
+     */
+    @Deprecated
+    // Used by internal product.
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimestampService timestampService,
             LockClient lockClient,
@@ -141,7 +172,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            int concurrentGetRangesThreadPoolSize) {
+            TimestampTracker timestampTracker,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            Supplier<Long> timestampCacheSize) {
         this(
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
@@ -151,34 +185,16 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                allowHiddenTableAccess,
-                concurrentGetRangesThreadPoolSize);
-    }
-
-    public SerializableTransactionManager(KeyValueService keyValueService,
-            TimelockService timelockService,
-            LockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            boolean allowHiddenTableAccess,
-            int concurrentGetRangesThreadPoolSize) {
-        this(
-                keyValueService,
-                timelockService,
-                lockService,
-                transactionService,
-                constraintModeSupplier,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                cleaner,
+                timestampTracker,
+                timestampCacheSize,
                 allowHiddenTableAccess,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                concurrentGetRangesThreadPoolSize);
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency
+        );
     }
 
+    // Canonical constructor.
     public SerializableTransactionManager(KeyValueService keyValueService,
             TimelockService timelockService,
             LockService lockService,
@@ -187,9 +203,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
+            TimestampTracker timestampTracker,
+            Supplier<Long> timestampCacheSize,
             boolean allowHiddenTableAccess,
             Supplier<Long> lockAcquireTimeoutMs,
-            int concurrentGetRangesThreadPoolSize) {
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency) {
         super(
                 keyValueService,
                 timelockService,
@@ -201,7 +220,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 allowHiddenTableAccess,
                 lockAcquireTimeoutMs,
-                concurrentGetRangesThreadPoolSize);
+                timestampTracker,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency,
+                timestampCacheSize);
     }
 
     @Override
@@ -226,7 +248,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs.get(),
-                getRangesExecutor);
+                getRangesExecutor,
+                defaultGetRangesConcurrency);
     }
 
 }

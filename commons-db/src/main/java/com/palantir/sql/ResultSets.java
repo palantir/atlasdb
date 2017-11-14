@@ -99,6 +99,14 @@ public class ResultSets {
         }
     }
 
+    public static boolean getBoolean(ResultSet ts, int col) throws PalantirSqlException {
+        try {
+            return ts.getBoolean(col);
+        } catch (SQLException e) {
+            throw BasicSQL.handleInterruptions(0, e);
+        }
+    }
+
     public static int getInt(ResultSet rs, int col) throws PalantirSqlException {
         try {
             return rs.getInt(col);
@@ -193,6 +201,14 @@ public class ResultSets {
                     }
                 }
             };
+        } catch (SQLException e) {
+            throw BasicSQL.handleInterruptions(0, e);
+        }
+    }
+
+    public static Object getArray(ResultSet rs, int col) {
+        try {
+            return rs.getArray(col).getArray();
         } catch (SQLException e) {
             throw BasicSQL.handleInterruptions(0, e);
         }

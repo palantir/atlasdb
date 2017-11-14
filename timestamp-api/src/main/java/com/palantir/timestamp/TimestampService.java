@@ -26,6 +26,16 @@ import com.palantir.logsafe.Safe;
 @Path("/timestamp")
 public interface TimestampService {
     /**
+     * Used for TimestampServices that can be initialized asynchronously; other TimestampServices can keep the default
+     * implementation, and return true (they're trivially fully initialized).
+     *
+     * @return true iff the TimestampService has been fully initialized and is ready to use
+     */
+    default boolean isInitialized() {
+        return true;
+    }
+
+    /**
      * A request to this method should return a timestamp greater than any timestamp
      * that may have been observed before the request was initiated.
      */

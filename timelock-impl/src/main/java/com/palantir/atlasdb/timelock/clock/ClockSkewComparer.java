@@ -16,55 +16,35 @@
 
 package com.palantir.atlasdb.timelock.clock;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-
 public class ClockSkewComparer {
-    @VisibleForTesting
-    static final Duration MAX_INTERVAL_SINCE_PREVIOUS_REQUEST = Duration.of(10, ChronoUnit.SECONDS);
-    @VisibleForTesting
-    static final Duration MAX_REQUEST_DURATION = Duration.of(10, ChronoUnit.MILLIS);
+    private final String server;
+    private final ClockSkewEvents events;
 
-    private String server;
-    private ClockSkewEvents events;
-
-    private long minElapsedTime;
-    private long maxElapsedTime;
-    private long remoteElapsedTime;
+    private final long minElapsedTime;
+    private final long maxElapsedTime;
+    private final long remoteElapsedTime;
+    private final long lastRequestDuration;
 
     public ClockSkewComparer(String server, ClockSkewEvents events, RequestTime previousRequest,
             RequestTime newRequest) {
         this.server = server;
         this.events = events;
 
-        maxElapsedTime = newRequest.localTimeAtEnd() - previousRequest.localTimeAtStart();
         minElapsedTime = newRequest.localTimeAtStart() - previousRequest.localTimeAtEnd();
+        maxElapsedTime = newRequest.localTimeAtEnd() - previousRequest.localTimeAtStart();
         remoteElapsedTime = newRequest.remoteSystemTime() - previousRequest.remoteSystemTime();
+        lastRequestDuration = newRequest.localTimeAtEnd() - newRequest.localTimeAtStart();
     }
 
     public void compare() {
-        Preconditions.checkArgument(maxElapsedTime > 0,
-                "A positive maxElapsedTime is expected");
-        Preconditions.checkArgument(minElapsedTime > 0,
-                "A positive minElapsedTime is expected");
-        Preconditions.checkArgument(remoteElapsedTime > 0,
-                "A positive remoteElapsedTime is expected");
-
-        if (hasTooMuchTimeElapsedSincePreviousRequest()) {
-            events.tooMuchTimeSincePreviousRequest(minElapsedTime);
-            return;
-        }
-
-        if (requestsTookTooLongToComplete()) {
-            events.requestsTookTooLong(minElapsedTime, maxElapsedTime);
+        if (clockHasMovedBackwards()) {
+            // The clock not moving forwards is already tracked by the ReversalDetectingClockService, so it is fine
+            // to no op here. We don't want to use these values.
             return;
         }
 
         long skew = getSkew();
-        events.clockSkew(server, skew);
+        events.clockSkew(server, skew, minElapsedTime, lastRequestDuration);
     }
 
     private long getSkew() {
@@ -79,11 +59,7 @@ public class ClockSkewComparer {
         return skew;
     }
 
-    private boolean requestsTookTooLongToComplete() {
-        return maxElapsedTime - minElapsedTime > 2 * MAX_REQUEST_DURATION.toNanos();
-    }
-
-    private boolean hasTooMuchTimeElapsedSincePreviousRequest() {
-        return minElapsedTime > MAX_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos();
+    private boolean clockHasMovedBackwards() {
+        return minElapsedTime < 0 || maxElapsedTime < 0 || remoteElapsedTime < 0;
     }
 }

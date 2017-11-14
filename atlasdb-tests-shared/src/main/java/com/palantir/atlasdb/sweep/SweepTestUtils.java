@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
+
 import com.google.common.base.Supplier;
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -28,6 +30,7 @@ import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -65,8 +68,11 @@ public final class SweepTestUtils {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        LockAwareTransactionManager txManager = new SerializableTransactionManager(kvs, tsService, lockClient,
-                lockService, txService, constraints, cdm, ssm, cleaner, false, 16);
+        LockAwareTransactionManager txManager = SerializableTransactionManager.createForTest(
+                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
         setupTables(kvs);
         return txManager;
     }
@@ -89,8 +95,7 @@ public final class SweepTestUtils {
         Awaitility.await()
                 .timeout(Duration.FIVE_MINUTES)
                 .until(() -> {
-                    kvs.getAllTableNames().stream()
-                            .forEach(tableRef -> kvs.dropTable(tableRef));
+                    kvs.getAllTableNames().forEach(kvs::dropTable);
                     return true;
                 });
         TransactionTables.deleteTables(kvs);

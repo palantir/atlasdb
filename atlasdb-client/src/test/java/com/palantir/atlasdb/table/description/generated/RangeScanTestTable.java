@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -610,6 +611,12 @@ public final class RangeScanTestTable implements
                 (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, RangeScanTestRowResult::of)));
     }
 
+    public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
+                                   BiFunction<RangeRequest, BatchingVisitable<RangeScanTestRowResult>, T> visitableProcessor) {
+        return t.getRanges(tableRef, ranges,
+                (rangeRequest, visitable) -> visitableProcessor.apply(rangeRequest, BatchingVisitables.transform(visitable, RangeScanTestRowResult::of)));
+    }
+
     public Stream<BatchingVisitable<RangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
         Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, ranges);
         return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, RangeScanTestRowResult::of));
@@ -727,8 +734,9 @@ public final class RangeScanTestTable implements
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZNS2g5wflr9FgsngCdFekQ==";
+    static String __CLASS_HASH = "dv0yt8ncZc+tkbAwWGXfDA==";
 }

@@ -41,6 +41,11 @@ import com.palantir.lock.LockRequest;
 public abstract class AbstractLockAwareTransactionManager
         extends AbstractTransactionManager
         implements LockAwareTransactionManager {
+
+    AbstractLockAwareTransactionManager(Supplier<Long> timestampCacheSize) {
+        super(timestampCacheSize);
+    }
+
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,

@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 
 import dagger.Module;
 import dagger.Provides;
@@ -31,12 +32,16 @@ public class ServicesConfigModule {
 
     private final ServicesConfig config;
 
-    public static ServicesConfigModule create(File configFile, String configRoot) throws IOException {
-        return ServicesConfigModule.create(AtlasDbConfigs.load(configFile, configRoot));
+    public static ServicesConfigModule create(File configFile, String configRoot, AtlasDbRuntimeConfig runtimeConfig)
+            throws IOException {
+        return ServicesConfigModule.create(AtlasDbConfigs.load(configFile, configRoot), runtimeConfig);
     }
 
-    public static ServicesConfigModule create(AtlasDbConfig atlasDbConfig) {
-        return new ServicesConfigModule(ImmutableServicesConfig.builder().atlasDbConfig(atlasDbConfig).build());
+    public static ServicesConfigModule create(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
+        return new ServicesConfigModule(ImmutableServicesConfig.builder()
+                .atlasDbConfig(atlasDbConfig)
+                .atlasDbRuntimeConfig(runtimeConfig)
+                .build());
     }
 
     public ServicesConfigModule(ServicesConfig config) {
@@ -55,4 +60,9 @@ public class ServicesConfigModule {
         return config.atlasDbConfig();
     }
 
+    @Provides
+    @Singleton
+    public AtlasDbRuntimeConfig provideAtlasDbRuntimeConfig() {
+        return config.atlasDbRuntimeConfig();
+    }
 }

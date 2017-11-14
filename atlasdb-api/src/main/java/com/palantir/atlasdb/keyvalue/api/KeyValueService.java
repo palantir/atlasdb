@@ -437,12 +437,15 @@ public interface KeyValueService extends AutoCloseable {
      * @param timestamp the maximum timestamp to load.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
+     *
+     * @deprecated use {@link #getCandidateCellsForSweeping}
      */
     @POST
     @Path("get-range-of-timestamps")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
+    @Deprecated
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             @QueryParam("tableRef") TableReference tableRef,
             RangeRequest rangeRequest,
@@ -450,30 +453,10 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * For a given range of rows, returns all candidate cells for sweeping (and their timestamps).
-     * Here is the precise definition of a candidate cell:
-     * <blockquote>
-     *      Let {@code Ts} be {@code request.sweepTimestamp()}<br>
-     *      Let {@code Tu} be {@code request.minUncommittedTimestamp()}<br>
-     *      Let {@code V} be {@code request.shouldCheckIfLatestValueIsEmpty()}<br>
-     *      Let {@code Ti} be set of timestamps in {@code request.timestampsToIgnore()}<br>
-     *      <p>
-     *      Consider a cell {@code C}. Let {@code Tc} be the set of all timestamps for {@code C} that are strictly
-     *      less than {@code Ts}. Let {@code T} be {@code Tc \ Ti} (i.e. the cell timestamps minus the ignored
-     *      timestamps).
-     *      <p>
-     *      Then {@code C} is a candidate for sweeping if and only if at least one of
-     *      the following conditions is true:
-     *      <ol>
-     *          <li> The set {@code T} has more than one element
-     *          <li> The set {@code T} contains an element that is greater than or equal to {@code Tu}
-     *             (that is, there is a timestamp that can possibly come from an uncommitted or aborted transaction)
-     *          <li> The set {@code T} contains {@link Value#INVALID_VALUE_TIMESTAMP}
-     *             (that is, there is a sentinel we can possibly clean up)
-     *          <li> {@code V} is true and the cell value corresponding to the maximum element of {@code T} is empty
-     *             (that is, the latest sweepable value is a 'soft-delete' tombstone)
-     *      </ol>
-     *
-     * </blockquote>
+     * <p>
+     * A candidate cell is a cell that has at least one timestamp that is less than request.sweepTimestamp() and is
+     * not in the set specified by request.timestampsToIgnore().
+     * <p>
      * This method will scan the semi-open range of rows from the start row specified in the {@code request}
      * to the end of the table. If the given start row name is an empty byte array, the whole table will be
      * scanned.
@@ -680,4 +663,13 @@ public interface KeyValueService extends AutoCloseable {
     @Path("node-availability-status")
     @Consumes(MediaType.APPLICATION_JSON)
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
+
+    /**
+     * @return true iff the KeyValueService has been initialized and is ready to use
+     *         Note that this check ignores the cluster's availability - use {@link #getClusterAvailabilityStatus()} if
+     *         you wish to verify that we can talk to the backing store.
+     */
+    default boolean isInitialized() {
+        return true;
+    }
 }

@@ -25,14 +25,14 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -46,8 +46,9 @@ import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
-// **** Important: Some internal tests depend on this class,
-// please recompile them if any breaking changes are made to the setup ***
+// Important: Some internal tests depend on this class.
+// Please recompile Oracle internal tests if any breaking changes are made to the setup.
+// Please don't make the setup methods private.
 public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
@@ -58,11 +59,11 @@ public abstract class EteSetup {
     private static List<String> availableClients;
     private static Duration waitDuration;
 
-    static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
+    public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
     }
 
-    private static RuleChain setupComposition(
+    public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -70,7 +71,7 @@ public abstract class EteSetup {
         return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
     }
 
-    static RuleChain setupComposition(
+    public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -78,7 +79,7 @@ public abstract class EteSetup {
         return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
     }
 
-    private static RuleChain setupComposition(
+    public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -88,7 +89,7 @@ public abstract class EteSetup {
         return setup(eteClass, composeFile, availableClientNames, environment, true);
     }
 
-    static RuleChain setupWithoutWaiting(
+    public static RuleChain setupWithoutWaiting(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
@@ -96,7 +97,7 @@ public abstract class EteSetup {
         return setup(eteClass, composeFile, availableClientNames, environment, false);
     }
 
-    private static RuleChain setup(
+    public static RuleChain setup(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
