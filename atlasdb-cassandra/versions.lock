@@ -110,8 +110,7 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "1.3.9",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.google.guava:guava": {
@@ -245,8 +244,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -265,7 +263,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -275,7 +273,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -284,31 +282,31 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -591,8 +589,7 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "1.3.9",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.google.guava:guava": {
@@ -726,8 +723,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -746,7 +742,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -756,7 +752,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -765,31 +761,31 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.3",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]

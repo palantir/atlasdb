@@ -61,11 +61,12 @@ dependencies {
   compile group: 'com.palantir.remoting3', name: 'tracing'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  compile group: 'org.hdrhistogram', name:'HdrHistogram'
   compile group: 'com.squareup', name:'javapoet', version: '1.9.0'
+  compile group: 'org.hdrhistogram', name: 'HdrHistogram'
 
   processor group: 'org.immutables', name: 'value'
 
