@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Arg;
@@ -47,6 +48,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class CqlExecutorImpl implements CqlExecutor {
+    private static final String SERVICE_NAME = "cassandra-thrift-client";
+
     private QueryExecutor queryExecutor;
 
     public interface QueryExecutor {
@@ -71,12 +74,18 @@ public class CqlExecutorImpl implements CqlExecutor {
             TableReference tableRef,
             byte[] startRowInclusive,
             int limit) {
+        String selQuery = "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
-                "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;",
+                selQuery,
                 quotedTableName(tableRef),
                 key(startRowInclusive),
                 limit(limit));
-        return query.executeAndGetCells(startRowInclusive, this::getCellFromRow);
+
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute(query {}, tableRef {}, limit {})",
+                selQuery, tableRef, limit)) {
+            return query.executeAndGetCells(startRowInclusive, this::getCellFromRow);
+        }
     }
 
     /**
@@ -91,14 +100,20 @@ public class CqlExecutorImpl implements CqlExecutor {
             long startTimestampExclusive,
             int limit) {
         long invertedTimestamp = ~startTimestampExclusive;
+        String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
-                "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;",
+                selQuery,
                 quotedTableName(tableRef),
                 key(row),
                 column1(startColumnInclusive),
                 column2(invertedTimestamp),
                 limit(limit));
-        return query.executeAndGetCells(row, result -> getCellFromKeylessRow(result, row));
+
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute(query {}, table {}, startTs {}, limit {})",
+                selQuery, LoggingArgs.safeTableOrPlaceholder(tableRef), startTimestampExclusive, limit)) {
+            return query.executeAndGetCells(row, result -> getCellFromKeylessRow(result, row));
+        }
     }
 
     private CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
@@ -148,6 +163,10 @@ public class CqlExecutorImpl implements CqlExecutor {
                 .stream()
                 .map(cellTsExtractor)
                 .collect(Collectors.toList());
+    }
+
+    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
+        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
     }
 
     private final class CqlQuery {
