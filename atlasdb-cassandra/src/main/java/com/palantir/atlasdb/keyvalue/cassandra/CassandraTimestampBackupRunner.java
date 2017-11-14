@@ -153,7 +153,7 @@ public class CassandraTimestampBackupRunner {
     private BoundData getCurrentBoundData(CassandraClient client) {
         checkTimestampTableExists();
 
-        ByteBuffer selectQuery = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
+        CqlQuery selectQuery = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
         CqlResult existingData = executeQueryUnchecked(client, selectQuery);
         Map<String, byte[]> columnarResults = CassandraTimestampUtils.getValuesFromSelectionResult(existingData);
 
@@ -171,13 +171,13 @@ public class CassandraTimestampBackupRunner {
     }
 
     private void executeAndVerifyCas(CassandraClient client, Map<String, Pair<byte[], byte[]>> casMap) {
-        ByteBuffer casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(casMap);
+        CqlQuery casQueryBuffer = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(casMap);
 
         CqlResult casResult = executeQueryUnchecked(client, casQueryBuffer);
         CassandraTimestampUtils.verifyCompatible(casResult, casMap);
     }
 
-    private CqlResult executeQueryUnchecked(CassandraClient client, ByteBuffer query) {
+    private CqlResult executeQueryUnchecked(CassandraClient client, CqlQuery query) {
         try {
             return queryRunner().run(client,
                     AtlasDbConstants.TIMESTAMP_TABLE,
