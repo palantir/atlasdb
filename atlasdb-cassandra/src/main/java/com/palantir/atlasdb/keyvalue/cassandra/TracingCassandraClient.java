@@ -140,7 +140,8 @@ public class TracingCassandraClient implements CassandraClient {
             ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
-        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})", cqlQuery)) {
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})",
+                cqlQuery.getLazySafeLoggableObject())) {
             return client.execute_cql3_query(cqlQuery, compression, consistency);
         }
     }

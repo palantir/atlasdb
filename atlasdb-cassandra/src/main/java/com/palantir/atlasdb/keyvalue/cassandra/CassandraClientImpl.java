@@ -87,7 +87,7 @@ public class CassandraClientImpl implements CassandraClient {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        client.batch_mutate(mutation_map, consistency_level);;
+        client.batch_mutate(mutation_map, consistency_level);
     }
 
     @Override
