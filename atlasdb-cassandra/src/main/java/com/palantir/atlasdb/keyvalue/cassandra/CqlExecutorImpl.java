@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
@@ -82,8 +83,8 @@ public class CqlExecutorImpl implements CqlExecutor {
                 limit(limit));
 
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute(query {}, tableRef {}, limit {})",
-                selQuery, tableRef, limit)) {
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestamps(query {}, tableRef {}, limit {})",
+                selQuery, LoggingArgs.safeTableOrPlaceholder(tableRef), limit)) {
             return query.executeAndGetCells(startRowInclusive, this::getCellFromRow);
         }
     }
@@ -110,7 +111,8 @@ public class CqlExecutorImpl implements CqlExecutor {
                 limit(limit));
 
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute(query {}, table {}, startTs {}, limit {})",
+        try (CloseableTrace trace = startLocalTrace("cqlExecutor.getTimestampsWithinRow("
+                        + "query {}, table {}, ts {}, limit {})",
                 selQuery, LoggingArgs.safeTableOrPlaceholder(tableRef), startTimestampExclusive, limit)) {
             return query.executeAndGetCells(row, result -> getCellFromKeylessRow(result, row));
         }
