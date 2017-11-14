@@ -26,13 +26,16 @@ dependencies {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
-	integTestCompile (project(":atlasdb-config"));
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
     integTestCompile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
     integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
+    integTestCompile group: 'com.palantir.remoting3', name: 'jersey-servers'
+    integTestCompile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
+        exclude (module:'jsr305')
+    }
 }
 
 configurations.all {
@@ -42,13 +45,17 @@ configurations.all {
     }
 }
 
-configurations.integTestCompile {
-     resolutionStrategy {
-         force 'io.dropwizard.metrics:metrics-core:3.2.5'
-         force 'org.hdrhistogram:HdrHistogram:2.1.10'
-         dependencySubstitution {
-             substitute module('io.dropwizard:dropwizard-jackson') with module('io.dropwizard:dropwizard-jackson:0.9.3')
-         }
-     }
- }
+def applyResolutionStrategy(config) {
+    config.resolutionStrategy {
+        force 'io.dropwizard.metrics:metrics-core:3.2.3'
+        force 'org.hdrhistogram:HdrHistogram:2.1.10'
+        force 'com.squareup.okhttp3:okhttp:3.8.1'
+        dependencySubstitution {
+            substitute module('io.dropwizard:dropwizard-jackson') with module(
+                        'io.dropwizard:dropwizard-jackson:0.9.3')
+        }
+    }
+}
 
+applyResolutionStrategy(configurations.integTestCompile)
+applyResolutionStrategy(configurations.integTestRuntime)

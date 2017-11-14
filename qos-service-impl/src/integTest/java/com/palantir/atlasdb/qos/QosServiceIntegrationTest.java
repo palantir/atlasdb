@@ -18,24 +18,35 @@ package com.palantir.atlasdb.qos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
+import java.nio.file.Paths;
 
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.remoting3.clients.ClientConfigurations;
+import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public class QosServiceIntegrationTest {
 
     private static final String SERVER_URI = "http://localhost:5080";
 
+    public static final SslConfiguration TEST_SSL_CONFIG =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+
     @ClassRule
     public static QosServerHolder serverHolder = new QosServerHolder("server.yml");
-    private static QosService service = AtlasDbHttpClients.createProxy(
-            Optional.empty(),
-            SERVER_URI,
+    private static ServiceConfiguration configuration = ServiceConfiguration.builder()
+            .security(TEST_SSL_CONFIG)
+            .addUris(SERVER_URI)
+            .build();
+
+
+    private static QosService service = JaxRsClient.create(
             QosService.class,
-            "integration tests");
+            "integration tests",
+            ClientConfigurations.of(configuration));
 
     @Test
     public void returnsConfiguredLimits() {
