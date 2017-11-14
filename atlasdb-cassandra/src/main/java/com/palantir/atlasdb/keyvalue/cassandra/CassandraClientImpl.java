@@ -46,14 +46,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
-    private static final String SERVICE_NAME = "cassandra-thrift-client";
-
     private final Cassandra.Client client;
 
     public CassandraClientImpl(Cassandra.Client client) {
@@ -75,23 +72,17 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfKeys = keys.size();
         int numberOfColumns = predicate.slice_range.count;
+        ColumnParent colFam = getColumnParent(tableRef);
 
-        try (CloseableTrace trace = startLocalTrace(
-                "client.multiget_slice(table {}, number of keys {}, number of columns {}, consistency {}) on kvs.{}",
-                LoggingArgs.safeTableOrPlaceholder(tableRef),
-                numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
-            ColumnParent colFam = getColumnParent(tableRef);
-
-            return KvsProfilingLogger.maybeLog(
-                    (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
-                            () -> client.multiget_slice(keys, colFam, predicate, consistency_level),
-                    (logger, timer) -> logger.log("client.multiget_slice({}, {}, {}, {}) on kvs.{}",
-                            LoggingArgs.tableRef(tableRef),
-                            SafeArg.of("number of keys", numberOfKeys),
-                            SafeArg.of("number of columns", numberOfColumns),
-                            SafeArg.of("consistency", consistency_level.toString()),
-                            SafeArg.of("kvsMethodName", kvsMethodName)));
-        }
+        return KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
+                        () -> client.multiget_slice(keys, colFam, predicate, consistency_level),
+                (logger, timer) -> logger.log("client.multiget_slice({}, {}, {}, {}) on kvs.{}",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("number of keys", numberOfKeys),
+                        SafeArg.of("number of columns", numberOfColumns),
+                        SafeArg.of("consistency", consistency_level.toString()),
+                        SafeArg.of("kvsMethodName", kvsMethodName)));
     }
 
     @Override
@@ -103,23 +94,17 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfKeys = predicate.slice_range.count;
         int numberOfColumns = range.count;
+        ColumnParent colFam = getColumnParent(tableRef);
 
-        try (CloseableTrace trace = startLocalTrace(
-                "client.get_range_slices(table {}, number of keys {}, number of columns {}, consistency {}) on kvs.{}",
-                LoggingArgs.safeTableOrPlaceholder(tableRef),
-                numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
-            ColumnParent colFam = getColumnParent(tableRef);
-
-            return KvsProfilingLogger.maybeLog(
-                    (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
-                            () -> client.get_range_slices(colFam, predicate, range, consistency_level),
-                    (logger, timer) -> logger.log("client.get_range_slices({}, {}, {}, {}) on kvs.{}",
-                            LoggingArgs.tableRef(tableRef),
-                            SafeArg.of("number of keys", numberOfKeys),
-                            SafeArg.of("number of columns", numberOfColumns),
-                            SafeArg.of("consistency", consistency_level.toString()),
-                            SafeArg.of("kvsMethodName", kvsMethodName)));
-        }
+        return KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
+                        () -> client.get_range_slices(colFam, predicate, range, consistency_level),
+                (logger, timer) -> logger.log("client.get_range_slices({}, {}, {}, {}) on kvs.{}",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("number of keys", numberOfKeys),
+                        SafeArg.of("number of columns", numberOfColumns),
+                        SafeArg.of("consistency", consistency_level.toString()),
+                        SafeArg.of("kvsMethodName", kvsMethodName)));
     }
 
     @Override
@@ -129,20 +114,16 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfRowsMutated = mutation_map.size();
 
-        try (CloseableTrace trace = startLocalTrace("client.batch_mutate(number of rows mutated {}, consistency {})"
-                        + " on kvs.{}",
-                numberOfRowsMutated, consistency_level, kvsMethodName)) {
-            KvsProfilingLogger.maybeLog(
-                    (KvsProfilingLogger.CallableCheckedException<Void, TException>)
-                            () -> {
-                                client.batch_mutate(mutation_map, consistency_level);
-                                return null;
-                            },
-                    (logger, timer) -> logger.log("client.batch_mutate({}, {}) on kvs.{}",
-                            SafeArg.of("number of mutations", numberOfRowsMutated),
-                            SafeArg.of("consistency", consistency_level.toString()),
-                            SafeArg.of("kvsMethodName", kvsMethodName)));
-        }
+        KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<Void, TException>)
+                        () -> {
+                            client.batch_mutate(mutation_map, consistency_level);
+                            return null;
+                        },
+                (logger, timer) -> logger.log("client.batch_mutate({}, {}) on kvs.{}",
+                        SafeArg.of("number of mutations", numberOfRowsMutated),
+                        SafeArg.of("consistency", consistency_level.toString()),
+                        SafeArg.of("kvsMethodName", kvsMethodName)));
     }
 
     @Override
@@ -154,16 +135,13 @@ public class CassandraClientImpl implements CassandraClient {
         ColumnPath columnPath = new ColumnPath(tableReference.getQualifiedName());
         columnPath.setColumn(column);
 
-        try (CloseableTrace trace = startLocalTrace("client.get(table {}, consistency {})",
-                LoggingArgs.safeTableOrPlaceholder(tableReference), consistency_level)) {
-            return KvsProfilingLogger.maybeLog(
-                    (KvsProfilingLogger.CallableCheckedException<ColumnOrSuperColumn, TException>)
+        return KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<ColumnOrSuperColumn, TException>)
                         () -> client.get(key, columnPath, consistency_level),
-                    (logger, timer) -> logger.log("client.get({}, {}) took {} ms",
-                            LoggingArgs.tableRef(tableReference),
-                            SafeArg.of("consistency", consistency_level.toString()),
-                            LoggingArgs.durationMillis(timer)));
-        }
+                (logger, timer) -> logger.log("client.get({}, {}) took {} ms",
+                        LoggingArgs.tableRef(tableReference),
+                        SafeArg.of("consistency", consistency_level.toString()),
+                        LoggingArgs.durationMillis(timer)));
     }
 
     @Override
@@ -176,16 +154,13 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
 
-        try (CloseableTrace trace = startLocalTrace("client.cas(table {})",
-                LoggingArgs.safeTableOrPlaceholder(tableReference))) {
-            return KvsProfilingLogger.maybeLog(
-                    (KvsProfilingLogger.CallableCheckedException<CASResult, TException>)
-                            () -> client.cas(key, internalTableName, expected, updates, serial_consistency_level,
-                                    commit_consistency_level),
-                    (logger, timer) -> logger.log("client.cas({}) took {} ms",
-                            LoggingArgs.tableRef(tableReference),
-                            LoggingArgs.durationMillis(timer)));
-        }
+        return KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<CASResult, TException>)
+                        () -> client.cas(key, internalTableName, expected, updates, serial_consistency_level,
+                                commit_consistency_level),
+                (logger, timer) -> logger.log("client.cas({}) took {} ms",
+                        LoggingArgs.tableRef(tableReference),
+                        LoggingArgs.durationMillis(timer)));
     }
 
     @Override
@@ -196,13 +171,11 @@ public class CassandraClientImpl implements CassandraClient {
             TException {
         ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.fullQuery().getBytes(StandardCharsets.UTF_8));
 
-        try (CloseableTrace trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})", cqlQuery)) {
-            return KvsProfilingLogger.maybeLog(
-                    (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
-                            () -> client.execute_cql3_query(queryBytes, compression, consistency),
-                    (logger, timer) -> this.logSlowResult(cqlQuery, logger, timer),
-                    this::logResultSize);
-        }
+        return KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
+                        () -> client.execute_cql3_query(queryBytes, compression, consistency),
+                (logger, timer) -> this.logSlowResult(cqlQuery, logger, timer),
+                this::logResultSize);
     }
 
     private void logSlowResult(CqlQuery cqlQuery, KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
@@ -222,9 +195,5 @@ public class CassandraClientImpl implements CassandraClient {
 
     private ColumnParent getColumnParent(TableReference tableRef) {
         return new ColumnParent(AbstractKeyValueService.internalTableName(tableRef));
-    }
-
-    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
-        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
     }
 }
