@@ -330,11 +330,6 @@ public abstract class AtlasDbConfig {
                                 + " DO NOT ATTEMPT TO FIX THIS YOURSELF.");
             }
             return keyValueServiceNamespace;
-        } else if (timelock().isPresent()) {
-            // Special case - empty timelock and empty namespace/keyspace does not make sense
-            Preconditions.checkState(timelock().get().client().isPresent(),
-                    "For InMemoryKVS, the TimeLock client should not be empty");
-            return timelock().get().client().get();
         } else {
             Preconditions.checkState(keyValueService() instanceof InMemoryAtlasDbConfig,
                     "Expecting KeyvalueServiceConfig to be instance of InMemoryAtlasDbConfig, found %s",
