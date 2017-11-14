@@ -77,6 +77,10 @@ develop
            This could cause long-running readers to read an incorrect empty value when using the ``Sweep.THOROUGH`` strategy.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2406>`__)
 
+    *    - |fixed|
+         - Paxos value information is now correctly being logged when applicable leader events are happening.
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -522,9 +526,6 @@ v0.60.1
 
     *    - Type
          - Change
-
-    *    - |fixed|
-         - Paxos value information is now correctly being logged when applicable leader events are happening.
 
     *    - |new| |improved|
          - AtlasDB now supports asynchronous initialization, where ``TransactionManagers.create()`` creates a ``SerializableTransactionManager`` even when initialization fails, for instance because the KVS is not up yet.

@@ -69,7 +69,8 @@ class LeadershipEvents {
     }
 
     public void noQuorum(PaxosValue value) {
-        leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now {}",
+        leaderLog.warn("The most recent known information says this server is the leader,"
+                        + " but there is no quorum right now {}",
                 SafeArg.of("value", value));
         noQuorum.mark();
     }
