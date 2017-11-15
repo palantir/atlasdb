@@ -48,6 +48,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+=======
+v0.67.0
+=======
+
+15 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new| |metrics|
          - We now record metrics for most cases where cells fetched from Cassandra are post-filtered before returning to the client.
            The new metrics are called ``notLatestVisibleValueCellFilterCount``, ``commitTsGreaterThatTxTsCellFilterCount``,
@@ -84,15 +100,37 @@ develop
            This is strictly more permissive, but may affect developers that use ``ServerListConfig`` directly, especially if it is being serialized.
            (`Pull Request 3 <https://github.com/palantir/atlasdb/pull/2647>`__)
 
+    *    - |improved| |logs|
+         - kvs-slow-log was added on all Cassandra calls. As with the original kvs-slow-log logs, the added logs have the ``kvs-slow-log`` origin.
+           To see the exact log messages, check the ``ProfilingCassandraClient`` class.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
+
+    *    - |improved| |metrics|
+         - Metrics were added on all Cassandra calls. The ``CassandraClient`` interface was Tritium instrumented. The following metrics were added:
+
+              - com.palantir.atlasdb.keyvalue.cassandra.multiget_slice
+              - com.palantir.atlasdb.keyvalue.cassandra.get_range_slices
+              - com.palantir.atlasdb.keyvalue.cassandra.batch_mutate
+              - com.palantir.atlasdb.keyvalue.cassandra.get
+              - com.palantir.atlasdb.keyvalue.cassandra.cas
+              - com.palantir.atlasdb.keyvalue.cassandra.execute_cql3_query
+
+           Note that the table calls mainly use the first three metrics of the above list.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
+
+    *    - |improved| |devbreak|
+         - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
+           Also, all exceptions thrown like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
+
+    *    - |improved| |logs|
+         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
+
     *    - |fixed| |metrics|
          - ``MetricsManager`` now logs failures to register metrics at ``WARN`` instead of ``ERROR``, as failure to do so is not necessarily a systemic failure.
            Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2636>`__)
-
-    *    - |improved| |devbreak|
-         - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
-           Also, all Cassandra KVS exceptions like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
 
     *    - |fixed|
          - ``SweepBatchConfig`` values are now decayed correctly when there's an error.
@@ -100,17 +138,13 @@ develop
            ``SweepBatchConfig`` values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2630>`__)
 
-    *    - |improved| |logs|
-         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
-
     *    - |improved|
          - AtlasDB now depends on Tritium 0.8.4, which depends on the same version of ``com.palantir.remoting3`` and ``HdrHistogram`` as AtlasDB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2662>`__)
 
     *    - |fixed|
          - Check that immutable timestamp is locked on write transactions with no writes.
-           This could cause long-running readers to read an incorrect empty value when using the ``Sweep.THOROUGH`` strategy.
+           This could cause long-running readers to read an incorrect empty value when the table had the ``Sweep.THOROUGH`` strategy.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2406>`__)
 
     *    - |fixed|
