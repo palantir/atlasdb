@@ -28,11 +28,11 @@ public class QosMetrics {
     private final Meter bytesWritten;
 
     public QosMetrics() {
-        readRequestCount = metricsManager.registerMeter(QosMetrics.class, "numReadRequests");
-        writeRequestCount = metricsManager.registerMeter(QosMetrics.class, "numWriteRequests");
+        readRequestCount = metricsManager.registerOrGetMeter(QosMetrics.class, "numReadRequests");
+        writeRequestCount = metricsManager.registerOrGetMeter(QosMetrics.class, "numWriteRequests");
 
-        bytesRead = metricsManager.registerMeter(QosMetrics.class, "bytesRead");
-        bytesWritten = metricsManager.registerMeter(QosMetrics.class, "bytesWritten");
+        bytesRead = metricsManager.registerOrGetMeter(QosMetrics.class, "bytesRead");
+        bytesWritten = metricsManager.registerOrGetMeter(QosMetrics.class, "bytesWritten");
     }
 
     public void updateReadCount() {
