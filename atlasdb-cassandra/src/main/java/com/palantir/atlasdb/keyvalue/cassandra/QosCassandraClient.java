@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -67,7 +68,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> result = client.multiget_slice(kvsMethodName, tableRef, keys,
                 predicate, consistency_level);
-        recordBytesRead(getApproximateReadByteCount(result));
+        recordBytesRead(() -> getApproximateReadByteCount(result));
         return result;
     }
 
@@ -83,7 +84,7 @@ public class QosCassandraClient implements CassandraClient {
             KeyRange range, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         List<KeySlice> result = client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level);
-        recordBytesRead(getCollectionSize(result, ThriftObjectSizeUtils::getKeySliceSize));
+        recordBytesRead(() -> getCollectionSize(result, ThriftObjectSizeUtils::getKeySliceSize));
         return result;
     }
 
@@ -92,7 +93,7 @@ public class QosCassandraClient implements CassandraClient {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
-        recordBytesWritten(getApproximateWriteByteCount(mutation_map));
+        recordBytesWritten(() -> getApproximateWriteByteCount(mutation_map));
     }
 
     private long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
@@ -109,7 +110,7 @@ public class QosCassandraClient implements CassandraClient {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
         ColumnOrSuperColumn result = client.get(tableReference, key, column, consistency_level);
-        recordBytesRead(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(result));
+        recordBytesRead(() -> ThriftObjectSizeUtils.getColumnOrSuperColumnSize(result));
         return result;
     }
 
@@ -119,8 +120,8 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         CASResult result = client.cas(tableReference, key, expected, updates, serial_consistency_level,
                 commit_consistency_level);
-        recordBytesWritten(updates.stream().mapToLong(ThriftObjectSizeUtils::getColumnSize).sum());
-        recordBytesRead(expected.stream().mapToLong(ThriftObjectSizeUtils::getColumnSize).sum());
+        recordBytesWritten(() -> getCollectionSize(updates, ThriftObjectSizeUtils::getColumnSize));
+        recordBytesRead(() -> getCollectionSize(updates, ThriftObjectSizeUtils::getColumnSize));
         return result;
     }
 
@@ -129,29 +130,29 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
         CqlResult cqlResult = client.execute_cql3_query(cqlQuery, compression, consistency);
-        recordBytesRead(ThriftObjectSizeUtils.getCqlResultSize(cqlResult));
+        recordBytesRead(() -> ThriftObjectSizeUtils.getCqlResultSize(cqlResult));
         return cqlResult;
     }
 
-    private void recordBytesRead(long numBytesRead) {
+    private void recordBytesRead(Supplier<Long> numBytesRead) {
         try {
             qosMetrics.updateReadCount();
-            qosMetrics.updateBytesRead(numBytesRead);
+            qosMetrics.updateBytesRead(numBytesRead.get());
         } catch (Exception e) {
             log.warn("Encountered an exception when recording read metrics.", e);
         }
     }
 
-    private void recordBytesWritten(long numBytesWritten) {
+    private void recordBytesWritten(Supplier<Long> numBytesWritten) {
         try {
             qosMetrics.updateWriteCount();
-            qosMetrics.updateBytesWritten(numBytesWritten);
+            qosMetrics.updateBytesWritten(numBytesWritten.get());
         } catch (Exception e) {
             log.warn("Encountered an exception when recording write metrics.", e);
         }
     }
 
     private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> singleObjectSizeFunction) {
-        return collection.stream().mapToLong(singleObjectSizeFunction::apply).sum();
+        return ThriftObjectSizeUtils.getCollectionSize(collection, singleObjectSizeFunction);
     }
 }
