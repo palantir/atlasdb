@@ -91,7 +91,7 @@ public class CassandraRangePagingIterable<T>
 
     private List<KeySlice> getRows(byte[] startKey) throws Exception {
         KeyRange keyRange = getKeyRange(startKey, rangeRequest.getEndExclusive());
-        return rowGetter.getRows(keyRange, slicePredicate);
+        return rowGetter.getRows("getRange", keyRange, slicePredicate);
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumns(List<KeySlice> firstPage) {

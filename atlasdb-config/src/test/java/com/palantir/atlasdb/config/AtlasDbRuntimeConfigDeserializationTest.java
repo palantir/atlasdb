@@ -20,12 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 import org.junit.Test;
+
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class AtlasDbRuntimeConfigDeserializationTest {
     private static final File TEST_RUNTIME_CONFIG_FILE = new File(
             AtlasDbRuntimeConfigDeserializationTest.class.getResource("/runtime-config-block.yml").getPath());
+    private static final File TEST_RUNTIME_CONFIG_NO_SERVERS_FILE = new File(
+            AtlasDbRuntimeConfigDeserializationTest.class.getResource("/runtime-config-block-no-servers.yml")
+                    .getPath());
 
     @Test
     public void canDeserializeRuntimeConfig() throws IOException {
@@ -39,5 +45,24 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                         "https://foo1:12345",
                         "https://foo2:8421",
                         "https://foo3:9421");
+        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).satisfies(
+                sslConfiguration -> sslConfiguration.ifPresent(this::assertSslConfigDeserializedCorrectly));
+    }
+
+    private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {
+        assertThat(sslConfiguration.keyStorePassword()).hasValue("0987654321");
+        assertThat(sslConfiguration.keyStorePath()).hasValue(Paths.get("var", "security", "keyStore.jks"));
+        assertThat(sslConfiguration.trustStorePath()).isEqualTo(Paths.get("var", "security", "trustStore.jks"));
+    }
+
+    @Test
+    public void canDeserializeRuntimeConfigWithZeroServers() throws IOException {
+        AtlasDbRuntimeConfig runtimeConfig =
+                AtlasDbConfigs.OBJECT_MAPPER.readValue(TEST_RUNTIME_CONFIG_NO_SERVERS_FILE, AtlasDbRuntimeConfig.class);
+        assertThat(runtimeConfig.timestampClient().enableTimestampBatching()).isTrue();
+
+        assertThat(runtimeConfig.timelockRuntime()).isPresent();
+        assertThat(runtimeConfig.timelockRuntime().get().serversList().servers()).isEmpty();
+        assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).isEmpty();
     }
 }
