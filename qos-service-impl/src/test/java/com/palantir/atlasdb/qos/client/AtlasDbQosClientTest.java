@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.client;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -26,8 +26,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Ticker;
-import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.QosMetrics;
+import com.palantir.atlasdb.qos.QosService;
+import com.palantir.atlasdb.qos.ratelimit.ImmutableQosRateLimiters;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 
 public class AtlasDbQosClientTest {
 
@@ -38,11 +41,14 @@ public class AtlasDbQosClientTest {
     private static final long TOTAL_TIME_MICROS = 4;
 
     private QosService qosService = mock(QosService.class);
-    private QosRateLimiter rateLimiter = mock(QosRateLimiter.class);
+    private QosRateLimiter readLimiter = mock(QosRateLimiter.class);
+    private QosRateLimiter writeLimiter = mock(QosRateLimiter.class);
+    private QosRateLimiters rateLimiters = ImmutableQosRateLimiters.builder()
+            .read(readLimiter).write(writeLimiter).build();
     private QosMetrics metrics = mock(QosMetrics.class);
     private Ticker ticker = mock(Ticker.class);
 
-    private AtlasDbQosClient qosClient = new AtlasDbQosClient(rateLimiter, metrics, ticker);
+    private AtlasDbQosClient qosClient = new AtlasDbQosClient(rateLimiters, metrics, ticker);
 
     @Before
     public void setUp() {
@@ -55,9 +61,9 @@ public class AtlasDbQosClientTest {
     public void consumesSpecifiedNumUnitsForReads() {
         qosClient.executeRead(() -> ESTIMATED_BYTES, () -> "foo", ignored -> ACTUAL_BYTES);
 
-        verify(rateLimiter).consumeWithBackoff(ESTIMATED_BYTES);
-        verify(rateLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
-        verifyNoMoreInteractions(rateLimiter);
+        verify(readLimiter).consumeWithBackoff(ESTIMATED_BYTES);
+        verify(readLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
+        verifyNoMoreInteractions(readLimiter, writeLimiter);
     }
 
     @Test
@@ -74,8 +80,8 @@ public class AtlasDbQosClientTest {
     public void consumesSpecifiedNumUnitsForWrites() {
         qosClient.executeWrite(() -> ACTUAL_BYTES, () -> { });
 
-        verify(rateLimiter).consumeWithBackoff(ACTUAL_BYTES);
-        verifyNoMoreInteractions(rateLimiter);
+        verify(writeLimiter).consumeWithBackoff(ACTUAL_BYTES);
+        verifyNoMoreInteractions(readLimiter, writeLimiter);
     }
 
     @Test

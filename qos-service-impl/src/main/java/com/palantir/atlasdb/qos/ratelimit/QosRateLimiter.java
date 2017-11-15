@@ -80,7 +80,7 @@ public class QosRateLimiter {
     /**
      * Records an adjustment to the original estimate of units consumed passed to {@link #consumeWithBackoff(int)}. This
      * should be called after a query returns, when the exact number of units consumed is known. This value may be
-     * positive (if the original estimate was too small) or negative (if the original estimate was too large.
+     * positive (if the original estimate was too small) or negative (if the original estimate was too large).
      */
     public void recordAdjustment(int adjustmentUnits) {
         if (adjustmentUnits > 0) {

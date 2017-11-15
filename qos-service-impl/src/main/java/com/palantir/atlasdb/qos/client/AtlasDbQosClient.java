@@ -26,24 +26,24 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QosMetrics;
-import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 
 public class AtlasDbQosClient implements QosClient {
 
     private static final Logger log = LoggerFactory.getLogger(AtlasDbQosClient.class);
 
-    private final QosRateLimiter rateLimiter;
+    private final QosRateLimiters rateLimiters;
     private final QosMetrics metrics;
     private final Ticker ticker;
 
-    public static AtlasDbQosClient create(QosRateLimiter rateLimiter) {
-        return new AtlasDbQosClient(rateLimiter, new QosMetrics(), Ticker.systemTicker());
+    public static AtlasDbQosClient create(QosRateLimiters rateLimiters) {
+        return new AtlasDbQosClient(rateLimiters, new QosMetrics(), Ticker.systemTicker());
     }
 
     @VisibleForTesting
-    AtlasDbQosClient(QosRateLimiter rateLimiter, QosMetrics metrics, Ticker ticker) {
+    AtlasDbQosClient(QosRateLimiters rateLimiters, QosMetrics metrics, Ticker ticker) {
         this.metrics = metrics;
-        this.rateLimiter = rateLimiter;
+        this.rateLimiters = rateLimiters;
         this.ticker = ticker;
     }
 
@@ -53,7 +53,7 @@ public class AtlasDbQosClient implements QosClient {
             ReadQuery<T, E> query,
             Function<T, Integer> weigher) throws E {
         int estimatedWeight = getWeight(estimatedWeigher, 1);
-        rateLimiter.consumeWithBackoff(estimatedWeight);
+        rateLimiters.read().consumeWithBackoff(estimatedWeight);
 
         // TODO(nziebart): decide what to do if we encounter a timeout exception
         long startTimeNanos = ticker.read();
@@ -64,7 +64,7 @@ public class AtlasDbQosClient implements QosClient {
         metrics.updateReadCount();
         metrics.updateBytesRead(actualWeight);
         metrics.updateReadTimeMicros(TimeUnit.NANOSECONDS.toMicros(totalTimeNanos));
-        rateLimiter.recordAdjustment(actualWeight - estimatedWeight);
+        rateLimiters.read().recordAdjustment(actualWeight - estimatedWeight);
 
         return result;
     }
@@ -72,7 +72,7 @@ public class AtlasDbQosClient implements QosClient {
     @Override
     public <T, E extends Exception> void executeWrite(Supplier<Integer> weigher, WriteQuery<E> query) throws E {
         int weight = getWeight(weigher, 1);
-        rateLimiter.consumeWithBackoff(weight);
+        rateLimiters.write().consumeWithBackoff(weight);
 
         // TODO(nziebart): decide what to do if we encounter a timeout exception
         long startTimeNanos = ticker.read();
