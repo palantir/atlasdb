@@ -25,7 +25,6 @@ configurations {
 }
 
 dependencies {
-  explicitShadow project(':atlasdb-processors')
   explicitShadow project(':lock-api')
   explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
   explicitShadow group: 'com.palantir.remoting-api', name: 'service-config'
