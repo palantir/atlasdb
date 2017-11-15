@@ -64,15 +64,6 @@ v0.67.0
     *    - Type
          - Change
 
-    *    - |new| |metrics|
-         - We now record metrics for most cases where cells fetched from Cassandra are post-filtered before returning to the client.
-           The new metrics are called ``notLatestVisibleValueCellFilterCount``, ``commitTsGreaterThatTxTsCellFilterCount``,
-           ``invalidStartTsTsCellFilterCount``, ``invalidCommitTsCellFilterCount`` and ``emptyValuesCellFilterCount``
-           each indicating the cause for the cells being post-filtered.
-           There are also new metrics ``numCellsRead`` and ``numCellsReturnedAfterFiltering`` to measure how many cells were
-           filtered at the transaction level before returning to the client.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
-
     *    - |new|
          - AtlasDB clients are now able to live reload TimeLock URLs.
            This is required for internal work on running services in Kubernetes.
@@ -105,18 +96,70 @@ v0.67.0
            To see the exact log messages, check the ``ProfilingCassandraClient`` class.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
 
-    *    - |improved| |metrics|
+    *    - |new| |metrics|
          - Metrics were added on all Cassandra calls. The ``CassandraClient`` interface was Tritium instrumented. The following metrics were added:
 
-              - com.palantir.atlasdb.keyvalue.cassandra.multiget_slice
-              - com.palantir.atlasdb.keyvalue.cassandra.get_range_slices
-              - com.palantir.atlasdb.keyvalue.cassandra.batch_mutate
-              - com.palantir.atlasdb.keyvalue.cassandra.get
-              - com.palantir.atlasdb.keyvalue.cassandra.cas
-              - com.palantir.atlasdb.keyvalue.cassandra.execute_cql3_query
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.multiget_slice
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get_range_slices
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.batch_mutate
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cas
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.execute_cql3_query
 
            Note that the table calls mainly use the first three metrics of the above list.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
+
+    *    - |new| |metrics|
+         - Metrics recording the number of Cassandra requests, and the amount of bytes read and written from and to Cassandra were added. The metrics are:
+
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numReadRequests
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numWriteRequests
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesRead
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesWritten
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2679>`__)
+
+    *    - |new| |metrics|
+         - Added metrics for cells read.
+           The read cells can be post-filtered at the CassandraKVS layer, when its value is not the latest. In this case, we have the metric:
+
+              - com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics.notLatestVisibleValueCellFilterCount
+
+           The cells returned from the KVS layer are then recorded at the metric:
+
+              - com.palantir.atlasdb.AtlasDbMetricNames.numCellsRead
+
+           Such cells can also be filtered out at the transaction layer, due to the Transaction Protocol. There, we have the metrics which record the filtered out cells:
+
+              - com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics.commitTsGreaterThatTxTsCellFilterCount
+              - com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics.invalidStartTsTsCellFilterCount
+              - com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics.invalidCommitTsCellFilterCount
+
+           At last, we have the metric that record the number of cells actually returned to the AtlasDB client:
+
+              - com.palantir.atlasdb.AtlasDbMetricNames.numCellsReturnedAfterFiltering
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
+
+
+    *    - |new| |metrics|
+         - Added metrics for written cells.
+           Empty cells are filtered out at the transaction layer, where we record the metric:
+
+              - com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics.emptyValuesCellFilterCount
+
+           The cells actually written to Cassandra are then recorded at the metric:
+
+              - com.palantir.atlasdb.AtlasDbMetricNames.bytesWritten
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
+
+    *    - |new| |metrics|
+         - A metric was added for the cases where a large read was made. Before we to logged a warning. The metric is:
+
+              - com.palantir.atlasdb.AtlasDbMetricNames.tooManyBytesRead
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
 
     *    - |improved| |devbreak|
          - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
