@@ -889,14 +889,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
         Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value.IS_EMPTY),
                 MapEntries.getValueFunction());
+        long numEmptyValues = 0;
         while (mergeIterators.hasNext()) {
             Entry<Cell, byte[]> next = mergeIterators.next();
             if (nonEmptyValuePredicate.apply(next)) {
                 mergedWritesWithoutEmptyValues.add(next);
             } else {
-                getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE).mark();
+                numEmptyValues++;
             }
         }
+        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE).mark(numEmptyValues);
         return mergedWritesWithoutEmptyValues;
     }
 
