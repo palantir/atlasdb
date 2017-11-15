@@ -196,16 +196,27 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
-<td>We now record metrics for most cases where cells fetched from Cassandra are post-filtered before returning to the client.
-The new metrics are called <code class="docutils literal"><span class="pre">notLatestVisibleValueCellFilterCount</span></code>, <code class="docutils literal"><span class="pre">commitTsGreaterThatTxTsCellFilterCount</span></code>,
-<code class="docutils literal"><span class="pre">invalidStartTsTsCellFilterCount</span></code>, <code class="docutils literal"><span class="pre">invalidCommitTsCellFilterCount</span></code> and <code class="docutils literal"><span class="pre">emptyValuesCellFilterCount</span></code>
-each indicating the cause for the cells being post-filtered.
-There are also new metrics <code class="docutils literal"><span class="pre">numCellsRead</span></code> and <code class="docutils literal"><span class="pre">numCellsReturnedAfterFiltering</span></code> to measure how many cells were
-filtered at the transaction level before returning to the client.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2671">Pull Request</a>)</td>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-67-0">
+<h2>v0.67.0<a class="headerlink" href="#v0-67-0" title="Permalink to this headline">¶</a></h2>
+<p>15 November 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB clients are now able to live reload TimeLock URLs.
 This is required for internal work on running services in Kubernetes.
 We still require that clients are configured to use TimeLock (as opposed to a leader, remote timestamp/lock or embedded service) at install time.
@@ -214,12 +225,12 @@ Please consult the <a class="reference internal" href="../configuration/external
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2621">Pull Request 1</a> and
 <a class="reference external" href="https://github.com/palantir/atlasdb/pull/2622">Pull Request 2</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td>The <code class="docutils literal"><span class="pre">servers</span></code> block within an AtlasDB <code class="docutils literal"><span class="pre">timelock</span></code> block is now deprecated.
 Please use the live-reloadable <code class="docutils literal"><span class="pre">servers</span></code> block within the <code class="docutils literal"><span class="pre">timelockRuntime</span></code> block of the runtime configuration instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2622">Pull Request 2</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB clients using TimeLock can now start up with knowledge of zero TimeLock nodes.
 Requests to TimeLock will throw <code class="docutils literal"><span class="pre">ServiceUnavailableException</span></code> until the config is live reloaded with one or more nodes.
 If live reloading causes the number of nodes to fall to zero, we also fail gracefully; <code class="docutils literal"><span class="pre">ServiceUnavailableException</span></code> will be thrown until the config is live reloaded with one or more nodes.
@@ -227,20 +238,114 @@ Note that this does not affect remote timestamp, lock or leader configurations; 
 Also, note that if one is using TimeLock without async initialization, then one still needs to provide information about the TimeLock cluster on startup.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2647">Pull Request 3</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal"><span class="pre">ServerListConfig</span></code> can now be created with zero servers, as part of work supporting Atlas clients starting up without knowing TimeLock nodes.
 This is strictly more permissive, but may affect developers that use <code class="docutils literal"><span class="pre">ServerListConfig</span></code> directly, especially if it is being serialized.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2647">Pull Request 3</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
-<td><code class="docutils literal"><span class="pre">MetricsManager</span></code> now logs failures to register metrics at <code class="docutils literal"><span class="pre">WARN</span></code> instead of <code class="docutils literal"><span class="pre">ERROR</span></code>, as failure to do so is not necessarily a systemic failure.
-Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2636">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>kvs-slow-log was added on all Cassandra calls. As with the original kvs-slow-log logs, the added logs have the <code class="docutils literal"><span class="pre">kvs-slow-log</span></code> origin.
+To see the exact log messages, check the <code class="docutils literal"><span class="pre">ProfilingCassandraClient</span></code> class.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2673">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><p class="first">Metrics were added on all Cassandra calls. The <code class="docutils literal"><span class="pre">CassandraClient</span></code> interface was Tritium instrumented:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.multiget_slice</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get_range_slices</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.batch_mutate</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cas</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.execute_cql3_query</li>
+</ul>
+</div></blockquote>
+<p class="last">Note that the table calls mainly use the first three metrics of the above list.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2673">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><p class="first">Metrics recording the number of Cassandra requests, and the amount of bytes read and written from and to Cassandra were added:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numReadRequests</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numWriteRequests</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesRead</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesWritten</li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2679">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><p class="first">Added metrics for cells read.
+The read cells can be post-filtered at the CassandraKVS layer, when there are multiple versions of the same cell.
+The filtered cells are recorded in the metric:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.keyvalue.cassandra.TimestampExtractor.notLatestVisibleValueCellFilterCount</li>
+<li>com.palantir.atlasdb.keyvalue.cassandra.ValueExtractor.notLatestVisibleValueCellFilterCount</li>
+</ul>
+</div></blockquote>
+<p>The cells returned from the KVS layer are then recorded at the metric:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsRead</li>
+</ul>
+</div></blockquote>
+<p>Such cells can also be filtered out at the transaction layer, due to the Transaction Protocol. The filtered out cells are recorded in the metrics:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount</li>
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidStartTsTsCellFilterCount</li>
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidCommitTsCellFilterCount</li>
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.emptyValuesCellFilterCount</li>
+</ul>
+</div></blockquote>
+<p>At last, the metric that record the number of cells actually returned to the AtlasDB client is:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsReturnedAfterFiltering</li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2671">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><p class="first">Added metrics for written bytes at the Transaction layer:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten</li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2671">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><p class="first">A metric was added for the cases where a large read was made:</p>
+<blockquote>
+<div><ul class="simple">
+<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead</li>
+</ul>
+</div></blockquote>
+<p class="last">Note that we also log a warning in these cases, with the message “A single get had quite a few bytes…”.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2671">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>AtlasDB will now consistently throw a <code class="docutils literal"><span class="pre">InsufficientConsistencyException</span></code> if Cassandra reports an <code class="docutils literal"><span class="pre">UnavailableException</span></code>.
-Also, all Cassandra KVS exceptions like <code class="docutils literal"><span class="pre">KeyAlreadyExists</span></code> or <code class="docutils literal"><span class="pre">TTransportException</span></code> as well as <code class="docutils literal"><span class="pre">NotInitializedException</span></code> will get wrapped into <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> in the interest of consistent exceptions.
+Also, all exceptions thrown at the KVS layer, as <code class="docutils literal"><span class="pre">KeyAlreadyExists</span></code> or <code class="docutils literal"><span class="pre">TTransportException</span></code> as well as <code class="docutils literal"><span class="pre">NotInitializedException</span></code>
+will get wrapped into <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> in the interest of consistent exceptions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2558">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td><code class="docutils literal"><span class="pre">SweeperServiceImpl</span></code> now logs when it starts sweeping and makes it clear if it is running full sweep or not
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2618">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td><code class="docutils literal"><span class="pre">MetricsManager</span></code> now logs failures to register metrics at <code class="docutils literal"><span class="pre">WARN</span></code> instead of <code class="docutils literal"><span class="pre">ERROR</span></code>, as failure to do so is not necessarily a systemic failure.
+Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2636">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> values are now decayed correctly when there’s an error.
@@ -248,20 +353,16 @@ Also, all Cassandra KVS exceptions like <code class="docutils literal"><span cla
 <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2630">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
-<td><code class="docutils literal"><span class="pre">SweeperServiceImpl</span></code> now logs when it starts sweeping and makes it clear if it is running full sweep or not
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2618">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now depends on Tritium 0.8.4, which depends on the same version of <code class="docutils literal"><span class="pre">com.palantir.remoting3</span></code> and <code class="docutils literal"><span class="pre">HdrHistogram</span></code> as AtlasDB.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2662">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Check that immutable timestamp is locked on write transactions with no writes.
-This could cause long-running readers to read an incorrect empty value when using the <code class="docutils literal"><span class="pre">Sweep.THOROUGH</span></code> strategy.
+This could cause long-running readers to read an incorrect empty value when the table had the <code class="docutils literal"><span class="pre">Sweep.THOROUGH</span></code> strategy.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2406">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Paxos value information is now correctly being logged when applicable leader events are happening.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2674">Pull Request</a>)</td>
 </tr>
