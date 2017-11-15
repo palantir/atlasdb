@@ -17,9 +17,12 @@ package com.palantir.atlasdb.sweep;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.longThat;
 
 import java.util.Optional;
 
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -28,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
+import com.palantir.common.time.SystemClock;
 
 public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
@@ -172,6 +176,49 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         Mockito.verify(sweepMetrics).examinedCellsOneIteration(10);
         Mockito.verify(sweepMetrics).deletedCellsFullTable(5, TABLE_REF);
         Mockito.verify(sweepMetrics).examinedCellsFullTable(21, TABLE_REF);
+    }
+
+    @Test
+    public void testRecordTimeMetricsCorrectlyAfterCompleteRunWithNoPrevious() {
+        setNoProgress();
+        setNextTableToSweep(TABLE_REF);
+        setupTaskRunner(ImmutableSweepResults.builder()
+                .staleValuesDeleted(2)
+                .cellTsPairsExamined(10)
+                .sweptTimestamp(12345L)
+                .timeInMillis(10_000L)
+                .timeElapsedSinceStart(100_000L)
+                .build());
+        backgroundSweeper.runOnce();
+
+        Mockito.verify(sweepMetrics).timeSweepingFullTable(10_000L, TABLE_REF);
+        Mockito.verify(sweepMetrics).sweepTimeElapsedFullTable(10_000L, TABLE_REF);
+    }
+
+    @Test
+    public void testRecordTimeMetricsCorrectlyAfterCompleteRun() {
+        setProgress(
+                ImmutableSweepProgress.builder()
+                        .tableRef(TABLE_REF)
+                        .staleValuesDeleted(3)
+                        .cellTsPairsExamined(11)
+                        .minimumSweptTimestamp(4567L)
+                        .startRow(new byte[] {1, 2, 3})
+                        .startColumn(PtBytes.toBytes("unused"))
+                        .timeInMillis(50L)
+                        .startTimeInMillis(new SystemClock().getTimeMillis())
+                        .build());
+        setupTaskRunner(ImmutableSweepResults.builder()
+                .staleValuesDeleted(2)
+                .cellTsPairsExamined(10)
+                .sweptTimestamp(12345L)
+                .timeInMillis(10_000L)
+                .timeElapsedSinceStart(100_000L)
+                .build());
+        backgroundSweeper.runOnce();
+
+        Mockito.verify(sweepMetrics).timeSweepingFullTable(10_050L, TABLE_REF);
+        Mockito.verify(sweepMetrics).sweepTimeElapsedFullTable(longThat(Matchers.lessThan(1000L)), eq(TABLE_REF));
     }
 
     // todo(gmaretic): test that per table metrics are getting recorded as well

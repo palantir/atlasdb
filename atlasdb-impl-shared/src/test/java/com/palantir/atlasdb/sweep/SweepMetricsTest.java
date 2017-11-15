@@ -41,6 +41,8 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public class SweepMetricsTest {
     private static final long DELETED = 10L;
     private static final long EXAMINED = 15L;
+    private static final long TIME_SWEEPING = 100L;
+    private static final long TIME_ELAPSED = 1500L;
 
     private static final long OTHER_DELETED = 12L;
     private static final long OTHER_EXAMINED = 4L;
@@ -78,12 +80,18 @@ public class SweepMetricsTest {
     }
 
     @Test
-    public void cellsDeletedAreRecordedForSafeTable() {
+    public void allMetricsAreRecordedForSafeTable() {
         LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, SAFE_METADATA));
         sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
         sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
+        sweepMetrics.timeSweepingFullTable(TIME_SWEEPING, TABLE_REF);
+        sweepMetrics.sweepTimeElapsedFullTable(TIME_ELAPSED, TABLE_REF);
 
+        assertValuesRecordedTagged("cellTimestampPairsExamined", TABLE_REF, true, EXAMINED);
         assertValuesRecordedTagged("staleValuesDeleted", TABLE_REF, true, DELETED);
+        assertValuesRecordedTagged("sweepTimeSweeping", TABLE_REF, true, TIME_SWEEPING);
+        assertValuesRecordedTagged("sweepTimeElapsedSinceStart", TABLE_REF, true, TIME_ELAPSED);
+
         assertValuesRecordedTagged("staleValuesDeleted", TABLE_REF, false);
     }
 
