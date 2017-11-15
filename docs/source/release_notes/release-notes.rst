@@ -161,8 +161,8 @@ v0.67.0
 
     *    - |improved| |devbreak|
          - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
-           Also, all exceptions thrown at the KVS layer, as ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException``
-           will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
+           Also, all exceptions thrown at the KVS layer, as ``KeyAlreadyExists`` or ``TTransportException`` and ``NotInitializedException``
+           were wrapped in ``AtlasDbDependencyException`` in the interest of consistent exceptions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
 
     *    - |improved| |logs|
