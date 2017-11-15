@@ -14,48 +14,68 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.qos.client;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosService;
+import com.palantir.atlasdb.qos.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 
 public class AtlasDbQosClient implements QosClient {
-    private final QosService qosService;
-    private final String clientName;
+
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbQosClient.class);
+
     private final QosRateLimiter rateLimiter;
+    private final QosMetrics metrics;
 
-    private volatile long credits;
-
-    public AtlasDbQosClient(QosService qosService,
-            ScheduledExecutorService limitRefresher,
-            String clientName,
-            QosRateLimiter rateLimiter) {
-        this.qosService = qosService;
-        this.clientName = clientName;
+    public AtlasDbQosClient(QosRateLimiter rateLimiter, QosMetrics metrics) {
+        this.metrics = metrics;
         this.rateLimiter = rateLimiter;
-        limitRefresher.scheduleAtFixedRate(() -> {
-            try {
-                credits = qosService.getLimit(clientName);
-            } catch (Exception e) {
-                // do nothing
-            }
-        }, 0L, 60L, TimeUnit.SECONDS);
     }
 
-    // The KVS layer should call this before every read/write operation
-    // Currently all operations are treated equally; each uses up a unit of credits
     @Override
-    public void checkLimit() {
-        // always return immediately - i.e. no backoff
-        // TODO if soft-limited, pause
-        // if hard-limited, throw exception
-        if (credits > 0) {
-            credits--;
-        } else {
-            // TODO This should be a ThrottleException?
-            throw new RuntimeException("Rate limit exceeded");
+    public <T, E extends Exception> T executeRead(
+            Supplier<Integer> estimatedWeigher,
+            ReadQuery<T, E> query,
+            Function<T, Integer> weigher) throws E {
+        int estimatedWeight = getWeight(estimatedWeigher, 1);
+        rateLimiter.consumeWithBackoff(estimatedWeight);
+
+        // TODO(nziebart): decide what to do if we encounter a timeout exception
+        T result = query.execute();
+
+        int actualWeight = getWeight(() -> weigher.apply(result), estimatedWeight);
+        metrics.updateReadCount();
+        metrics.updateBytesRead(actualWeight);
+        rateLimiter.recordAdjustment(actualWeight - estimatedWeight);
+
+        return result;
+    }
+
+    @Override
+    public <T, E extends Exception> void executeWrite(Supplier<Integer> weigher, WriteQuery<E> query) throws E {
+        int weight = getWeight(weigher, 1);
+        rateLimiter.consumeWithBackoff(weight);
+
+        // TODO(nziebart): decide what to do if we encounter a timeout exception
+        query.execute();
+
+        metrics.updateWriteCount();
+        metrics.updateBytesWritten(weight);
+    }
+
+    // TODO(nziebart): error handling in the weight calculation should be responsibility of the caller
+    private <T> Integer getWeight(Supplier<Integer> weigher, int fallback) {
+        try {
+            return weigher.get();
+        } catch (Exception e) {
+            log.warn("Exception while calculating response weight", e);
+            return fallback;
         }
     }
+
 }

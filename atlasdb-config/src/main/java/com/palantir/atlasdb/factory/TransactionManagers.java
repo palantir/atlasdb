@@ -74,6 +74,7 @@ import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.QosMetrics;
 import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
@@ -412,18 +413,19 @@ public abstract class TransactionManagers {
     }
 
     private QosClient getQosClient(Optional<ServiceConfiguration> serviceConfiguration) {
-        return serviceConfiguration.map(this::createAtlasDbQosClient).orElseGet(FakeQosClient::getDefault);
+        return serviceConfiguration.map(this::createAtlasDbQosClient).orElse(FakeQosClient.INSTANCE);
     }
 
     private QosClient createAtlasDbQosClient(ServiceConfiguration serviceConfiguration) {
         QosService qosService = JaxRsClient.create(QosService.class,
                 userAgent(),
                 ClientConfigurations.of(serviceConfiguration));
+        // TODO(nziebart): create a RefreshingRateLimiter
         ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
                 Executors.newSingleThreadScheduledExecutor(),
                 AtlasDbMetrics.getMetricRegistry(),
                 "qos-client-executor");
-        return new AtlasDbQosClient(qosService, scheduler, config().getNamespaceString(), QosRateLimiter.create());
+        return new AtlasDbQosClient(QosRateLimiter.create(), new QosMetrics());
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(

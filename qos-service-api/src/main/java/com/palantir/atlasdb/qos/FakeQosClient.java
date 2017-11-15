@@ -16,16 +16,22 @@
 
 package com.palantir.atlasdb.qos;
 
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 public class FakeQosClient implements QosClient {
 
-    private static final FakeQosClient DEFAULT = new FakeQosClient();
+    public static final FakeQosClient INSTANCE = new FakeQosClient();
 
-    public static FakeQosClient getDefault() {
-        return DEFAULT;
+    @Override
+    public <T, E extends Exception> T executeRead(Supplier<Integer> estimatedWeight, ReadQuery<T, E> query,
+            Function<T, Integer> weigher) throws E {
+        return query.execute();
     }
 
     @Override
-    public void checkLimit() {
-        // no op
+    public <T, E extends Exception> void executeWrite(Supplier<Integer> weight, WriteQuery<E> query)
+            throws E {
+        query.execute();
     }
 }

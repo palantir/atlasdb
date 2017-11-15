@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -61,7 +62,7 @@ public class QosCassandraClientTest {
     public void multigetSliceChecksLimit() throws TException, LimitExceededException {
         client.multiget_slice("get", TEST_TABLE, ImmutableList.of(ROW_KEY), SLICE_PREDICATE, ConsistencyLevel.ANY);
 
-        verify(qosClient, times(1)).checkLimit();
+        verify(qosClient, times(1)).executeRead(any(), any(), any());
         verifyNoMoreInteractions(qosClient);
     }
 
@@ -69,7 +70,7 @@ public class QosCassandraClientTest {
     public void batchMutateChecksLimit() throws TException, LimitExceededException {
         client.batch_mutate("put", ImmutableMap.of(), ConsistencyLevel.ANY);
 
-        verify(qosClient, times(1)).checkLimit();
+        verify(qosClient, times(1)).executeWrite(any(), any());
         verifyNoMoreInteractions(qosClient);
     }
 
@@ -78,7 +79,7 @@ public class QosCassandraClientTest {
         CqlQuery query = new CqlQuery("SELECT * FROM test_table LIMIT 1");
         client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.ANY);
 
-        verify(qosClient, times(1)).checkLimit();
+        verify(qosClient, times(1)).executeRead(any(), any(), any());
         verifyNoMoreInteractions(qosClient);
     }
 
@@ -86,7 +87,7 @@ public class QosCassandraClientTest {
     public void getRangeSlicesChecksLimit() throws TException, LimitExceededException {
         client.get_range_slices("get", TEST_TABLE, SLICE_PREDICATE, new KeyRange(), ConsistencyLevel.ANY);
 
-        verify(qosClient, times(1)).checkLimit();
+        verify(qosClient, times(1)).executeRead(any(), any(), any());
         verifyNoMoreInteractions(qosClient);
     }
 }

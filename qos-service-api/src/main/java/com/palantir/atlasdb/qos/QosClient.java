@@ -16,6 +16,25 @@
 
 package com.palantir.atlasdb.qos;
 
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 public interface QosClient {
-    void checkLimit();
+
+    interface ReadQuery<T, E extends Exception> {
+        T execute() throws E;
+    }
+
+    interface WriteQuery<E extends Exception> {
+        void execute() throws E;
+    }
+
+    <T, E extends Exception> T executeRead(
+            Supplier<Integer> estimatedWeight,
+            ReadQuery<T, E> query,
+            Function<T, Integer> weigher) throws E;
+
+    <T, E extends Exception> void executeWrite(
+            Supplier<Integer> weight,
+            WriteQuery<E> query) throws E;
 }

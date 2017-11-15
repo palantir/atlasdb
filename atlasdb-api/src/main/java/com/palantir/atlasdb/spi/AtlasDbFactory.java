@@ -37,7 +37,7 @@ public interface AtlasDbFactory {
     default KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         return createRawKeyValueService(config, leaderConfig, Optional.empty(), DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.getDefault());
+                FakeQosClient.INSTANCE);
     }
 
     /**

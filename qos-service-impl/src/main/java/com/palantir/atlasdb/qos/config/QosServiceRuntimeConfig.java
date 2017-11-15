@@ -27,5 +27,5 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
 public abstract class QosServiceRuntimeConfig {
-    public abstract Map<String, Long> clientLimits();
+    public abstract Map<String, Integer> clientLimits();
 }

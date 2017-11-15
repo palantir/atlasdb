@@ -41,7 +41,7 @@ public class QosRuntimeConfigDeserializationTest {
         QosServiceRuntimeConfig configuration = OBJECT_MAPPER.readValue(testConfigFile, QosServiceRuntimeConfig.class);
 
         assertThat(configuration).isEqualTo(ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test", 10L, "test2", 20L))
+                .clientLimits(ImmutableMap.of("test", 10, "test2", 20))
                 .build());
     }
 }

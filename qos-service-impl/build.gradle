@@ -16,6 +16,10 @@ jacocoTestReport {
 check.dependsOn integTest
 dependencies {
     compile (project(":qos-service-api"));
+    compile (project(":atlasdb-client")) {
+		exclude group: 'com.squareup.okhttp3'
+		exclude group: 'com.google.guava'
+    }
 
     processor group: 'org.immutables', name: 'value'
 

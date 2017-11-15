@@ -59,7 +59,7 @@ public class ServiceDiscoveringAtlasSupplier {
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this(config, leaderConfig, Optional.empty(), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.getDefault());
+                FakeQosClient.INSTANCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -68,7 +68,7 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<String> namespace,
             Optional<TableReference> timestampTable) {
         this(config, leaderConfig, namespace, timestampTable, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.getDefault());
+                FakeQosClient.INSTANCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
