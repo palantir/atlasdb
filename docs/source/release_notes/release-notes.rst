@@ -136,6 +136,7 @@ v0.67.0
               - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount
               - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidStartTsTsCellFilterCount
               - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidCommitTsCellFilterCount
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.emptyValuesCellFilterCount
 
            At last, the metric that record the number of cells actually returned to the AtlasDB client is:
 
@@ -143,14 +144,8 @@ v0.67.0
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
 
-
     *    - |new| |metrics|
-         - Added metrics for written cells.
-           Empty cells are filtered out at the transaction layer, where we record the metric:
-
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.emptyValuesCellFilterCount
-
-           The cells actually written to Cassandra are then recorded at the metric:
+         - Added metrics for written bytes at the Transaction layer:
 
               - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten
 
