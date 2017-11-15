@@ -15,6 +15,7 @@ dependencies {
     compile project(':atlasdb-dropwizard-bundle')
     compile project(':atlasdb-hikari')
 
+    compile group: 'org.awaitility', name: 'awaitility'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
