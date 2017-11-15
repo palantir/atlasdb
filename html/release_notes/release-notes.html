@@ -334,8 +334,8 @@ The filtered cells are recorded in the metric:</p>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>AtlasDB will now consistently throw a <code class="docutils literal"><span class="pre">InsufficientConsistencyException</span></code> if Cassandra reports an <code class="docutils literal"><span class="pre">UnavailableException</span></code>.
-Also, all exceptions thrown at the KVS layer, as <code class="docutils literal"><span class="pre">KeyAlreadyExists</span></code> or <code class="docutils literal"><span class="pre">TTransportException</span></code> as well as <code class="docutils literal"><span class="pre">NotInitializedException</span></code>
-will get wrapped into <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> in the interest of consistent exceptions.
+Also, all exceptions thrown at the KVS layer, as <code class="docutils literal"><span class="pre">KeyAlreadyExists</span></code> or <code class="docutils literal"><span class="pre">TTransportException</span></code> and <code class="docutils literal"><span class="pre">NotInitializedException</span></code>
+were wrapped in <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> in the interest of consistent exceptions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2558">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
