@@ -23,11 +23,11 @@ import com.palantir.atlasdb.qos.config.QosLimitsConfig;
 @Value.Immutable
 public interface QosRateLimiters {
 
-    static QosRateLimiters create(QosLimitsConfig config) {
-        QosRateLimiter readLimiter = QosRateLimiter.create();
+    static QosRateLimiters create(QosLimitsConfig config, long maxBackoffSleepTimeMillis) {
+        QosRateLimiter readLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis);
         readLimiter.updateRate(config.readBytesPerSecond());
 
-        QosRateLimiter writeLimiter = QosRateLimiter.create();
+        QosRateLimiter writeLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis);
         writeLimiter.updateRate(config.writeBytesPerSecond());
 
         return ImmutableQosRateLimiters.builder()

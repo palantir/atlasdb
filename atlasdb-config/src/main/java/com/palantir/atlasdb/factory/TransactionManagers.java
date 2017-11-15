@@ -405,7 +405,9 @@ public abstract class TransactionManagers {
 
     private QosClient getQosClient(QosClientConfig config) {
         // TODO(nziebart): create a RefreshingRateLimiter
-        QosRateLimiters rateLimiters = QosRateLimiters.create(config.limits());
+        QosRateLimiters rateLimiters = QosRateLimiters.create(
+                config.limits(),
+                config.maxBackoffSleepTime().toMilliseconds());
         return AtlasDbQosClient.create(rateLimiters);
     }
 

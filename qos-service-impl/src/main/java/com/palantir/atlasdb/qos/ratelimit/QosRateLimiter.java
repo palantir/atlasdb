@@ -34,21 +34,22 @@ public class QosRateLimiter {
 
     private static final double MAX_BURST_SECONDS = 5;
     private static final double UNLIMITED_RATE = Double.MAX_VALUE;
-    private static final int MAX_WAIT_TIME_SECONDS = 10;
 
+    private final long maxBackoffTimeMillis;
     private RateLimiter rateLimiter;
 
-    public static QosRateLimiter create() {
-        return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer());
+    public static QosRateLimiter create(long maxBackoffTimeMillis) {
+        return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer(), maxBackoffTimeMillis);
     }
 
     @VisibleForTesting
-    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch) {
+    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, long maxBackoffTimeMillis) {
         rateLimiter = new SmoothRateLimiter.SmoothBursty(
                 stopwatch,
                 MAX_BURST_SECONDS);
 
         rateLimiter.setRate(UNLIMITED_RATE);
+        this.maxBackoffTimeMillis = maxBackoffTimeMillis;
     }
 
     /**
@@ -67,8 +68,8 @@ public class QosRateLimiter {
     public Duration consumeWithBackoff(int estimatedNumUnits) {
         Optional<Duration> waitTime = rateLimiter.tryAcquire(
                 estimatedNumUnits,
-                MAX_WAIT_TIME_SECONDS,
-                TimeUnit.SECONDS);
+                maxBackoffTimeMillis,
+                TimeUnit.MILLISECONDS);
 
         if (!waitTime.isPresent()) {
             throw new RuntimeException("rate limited");
