@@ -74,7 +74,6 @@ import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosMetrics;
 import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
@@ -425,7 +424,7 @@ public abstract class TransactionManagers {
                 Executors.newSingleThreadScheduledExecutor(),
                 AtlasDbMetrics.getMetricRegistry(),
                 "qos-client-executor");
-        return new AtlasDbQosClient(QosRateLimiter.create(), new QosMetrics());
+        return AtlasDbQosClient.create(QosRateLimiter.create());
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(

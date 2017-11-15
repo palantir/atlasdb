@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 
@@ -32,16 +33,22 @@ public class AtlasDbQosClientTest {
 
     private static final int ESTIMATED_BYTES = 10;
     private static final int ACTUAL_BYTES = 51;
+    private static final long START_NANOS = 1100L;
+    private static final long END_NANOS = 5500L;
+    private static final long TOTAL_TIME_MICROS = 4;
 
     private QosService qosService = mock(QosService.class);
     private QosRateLimiter rateLimiter = mock(QosRateLimiter.class);
     private QosMetrics metrics = mock(QosMetrics.class);
+    private Ticker ticker = mock(Ticker.class);
 
-    private AtlasDbQosClient qosClient = new AtlasDbQosClient(rateLimiter, metrics);
+    private AtlasDbQosClient qosClient = new AtlasDbQosClient(rateLimiter, metrics, ticker);
 
     @Before
     public void setUp() {
         when(qosService.getLimit("test-client")).thenReturn(100);
+
+        when(ticker.read()).thenReturn(START_NANOS).thenReturn(END_NANOS);
     }
 
     @Test
@@ -59,6 +66,7 @@ public class AtlasDbQosClientTest {
 
         verify(metrics).updateReadCount();
         verify(metrics).updateBytesRead(ACTUAL_BYTES);
+        verify(metrics).updateReadTimeMicros(TOTAL_TIME_MICROS);
         verifyNoMoreInteractions(metrics);
     }
 
@@ -76,6 +84,8 @@ public class AtlasDbQosClientTest {
 
         verify(metrics).updateWriteCount();
         verify(metrics).updateBytesWritten(ACTUAL_BYTES);
+        verify(metrics).updateWriteTimeMicros(TOTAL_TIME_MICROS);
+        verifyNoMoreInteractions(metrics);
     }
 
     @Test

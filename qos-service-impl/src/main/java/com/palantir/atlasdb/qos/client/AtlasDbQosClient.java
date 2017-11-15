@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.qos.client;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
@@ -31,10 +34,17 @@ public class AtlasDbQosClient implements QosClient {
 
     private final QosRateLimiter rateLimiter;
     private final QosMetrics metrics;
+    private final Ticker ticker;
 
-    public AtlasDbQosClient(QosRateLimiter rateLimiter, QosMetrics metrics) {
+    public static AtlasDbQosClient create(QosRateLimiter rateLimiter) {
+        return new AtlasDbQosClient(rateLimiter, new QosMetrics(), Ticker.systemTicker());
+    }
+
+    @VisibleForTesting
+    AtlasDbQosClient(QosRateLimiter rateLimiter, QosMetrics metrics, Ticker ticker) {
         this.metrics = metrics;
         this.rateLimiter = rateLimiter;
+        this.ticker = ticker;
     }
 
     @Override
@@ -46,11 +56,14 @@ public class AtlasDbQosClient implements QosClient {
         rateLimiter.consumeWithBackoff(estimatedWeight);
 
         // TODO(nziebart): decide what to do if we encounter a timeout exception
+        long startTimeNanos = ticker.read();
         T result = query.execute();
+        long totalTimeNanos = ticker.read() - startTimeNanos;
 
         int actualWeight = getWeight(() -> weigher.apply(result), estimatedWeight);
         metrics.updateReadCount();
         metrics.updateBytesRead(actualWeight);
+        metrics.updateReadTimeMicros(TimeUnit.NANOSECONDS.toMicros(totalTimeNanos));
         rateLimiter.recordAdjustment(actualWeight - estimatedWeight);
 
         return result;
@@ -62,9 +75,12 @@ public class AtlasDbQosClient implements QosClient {
         rateLimiter.consumeWithBackoff(weight);
 
         // TODO(nziebart): decide what to do if we encounter a timeout exception
+        long startTimeNanos = ticker.read();
         query.execute();
+        long totalTimeNanos = ticker.read() - startTimeNanos;
 
         metrics.updateWriteCount();
+        metrics.updateWriteTimeMicros(TimeUnit.NANOSECONDS.toMicros(totalTimeNanos));
         metrics.updateBytesWritten(weight);
     }
 
