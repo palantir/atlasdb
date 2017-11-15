@@ -32,8 +32,8 @@ import feign.Request;
 import feign.Response;
 
 @AutoDelegate(typeToExtend = Client.class)
-public class ScheduledRefreshingClient implements Client {
-    private static final Logger log = LoggerFactory.getLogger(ScheduledRefreshingClient.class);
+public class CounterBackedRefreshingClient implements Client {
+    private static final Logger log = LoggerFactory.getLogger(CounterBackedRefreshingClient.class);
 
     private static final long DEFAULT_REQUEST_COUNT_BEFORE_REFRESH = 500_000_000L;
 
@@ -44,7 +44,7 @@ public class ScheduledRefreshingClient implements Client {
     private volatile Client currentClient;
 
     @VisibleForTesting
-    ScheduledRefreshingClient(Supplier<Client> baseClientSupplier, long requestCountBeforeRefresh) {
+    CounterBackedRefreshingClient(Supplier<Client> baseClientSupplier, long requestCountBeforeRefresh) {
         this.refreshingSupplier = baseClientSupplier;
         this.requestCountBeforeRefresh = requestCountBeforeRefresh;
         this.counter = new AtomicLong();
@@ -52,7 +52,7 @@ public class ScheduledRefreshingClient implements Client {
     }
 
     public static Client createRefreshingClient(Supplier<Client> baseClientSupplier) {
-        return new ScheduledRefreshingClient(baseClientSupplier, DEFAULT_REQUEST_COUNT_BEFORE_REFRESH);
+        return new CounterBackedRefreshingClient(baseClientSupplier, DEFAULT_REQUEST_COUNT_BEFORE_REFRESH);
     }
 
     @Override

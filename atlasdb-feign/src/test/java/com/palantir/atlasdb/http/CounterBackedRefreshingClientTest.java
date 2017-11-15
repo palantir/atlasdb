@@ -33,7 +33,7 @@ import feign.Client;
 import feign.Request;
 import feign.Response;
 
-public class ScheduledRefreshingClientTest {
+public class CounterBackedRefreshingClientTest {
     @SuppressWarnings("unchecked") // For testing, and we can configure the return types appropriately.
     private Supplier<Client> clientSupplier = (Supplier<Client>) mock(Supplier.class);
     private Client client = mock(Client.class);
@@ -47,7 +47,7 @@ public class ScheduledRefreshingClientTest {
         when(client.execute(request, options)).thenReturn(
                 Response.create(204, "no content", ImmutableMap.of(), new byte[0]));
 
-        Client refreshingClient = ScheduledRefreshingClient.createRefreshingClient(clientSupplier);
+        Client refreshingClient = CounterBackedRefreshingClient.createRefreshingClient(clientSupplier);
         refreshingClient.execute(request, options);
 
         verify(client, times(1)).execute(request, options);
@@ -60,7 +60,7 @@ public class ScheduledRefreshingClientTest {
         when(client.execute(request, options)).thenReturn(
                 Response.create(204, "no content", ImmutableMap.of(), new byte[0]));
 
-        Client refreshingClient = ScheduledRefreshingClient.createRefreshingClient(clientSupplier);
+        Client refreshingClient = CounterBackedRefreshingClient.createRefreshingClient(clientSupplier);
         refreshingClient.execute(request, options);
         refreshingClient.execute(request, options);
         refreshingClient.execute(request, options);
@@ -76,7 +76,7 @@ public class ScheduledRefreshingClientTest {
         when(client.execute(request, options)).thenReturn(
                 Response.create(204, "no content", ImmutableMap.of(), new byte[0]));
 
-        Client refreshingClient = new ScheduledRefreshingClient(clientSupplier, 2);
+        Client refreshingClient = new CounterBackedRefreshingClient(clientSupplier, 2);
         refreshingClient.execute(request, options);
         refreshingClient.execute(request, options);
         refreshingClient.execute(request, options);

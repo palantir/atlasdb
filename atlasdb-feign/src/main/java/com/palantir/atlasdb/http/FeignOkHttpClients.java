@@ -103,7 +103,7 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
-        return ScheduledRefreshingClient.createRefreshingClient(
+        return CounterBackedRefreshingClient.createRefreshingClient(
                 () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
     }
 
