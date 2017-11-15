@@ -83,7 +83,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
-        SweepMetrics sweepMetrics = new SweepMetrics(kvs);
+        SweepMetrics sweepMetrics = new SweepMetrics();
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
                 kvs,

@@ -16,30 +16,24 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Longs;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -62,12 +56,10 @@ public class SweepMetricsTest {
     private static TaggedMetricRegistry taggedMetricRegistry;
 
     private SweepMetrics sweepMetrics;
-    private KeyValueService kvs;
 
     @Before
     public void setUp() {
-        kvs = Mockito.mock(KeyValueService.class);
-        sweepMetrics = new SweepMetrics(kvs);
+        sweepMetrics = new SweepMetrics();
         taggedMetricRegistry = AtlasDbMetrics.getTaggedMetricRegistry();
     }
 
@@ -75,50 +67,6 @@ public class SweepMetricsTest {
     public void tearDown() {
         AtlasDbMetrics.setMetricRegistries(AtlasDbMetrics.getMetricRegistry(),
                 new DefaultTaggedMetricRegistry());
-    }
-
-    @Test
-    public void kvsIsNotQueriedWhenWeKnowIfTableIsSafe() {
-        sweepMetrics.tableRefArgs.put(TABLE_REF, SafeArg.of("mock", "mock"));
-        sweepMetrics.tableRefArgs.put(TABLE_REF2, SafeArg.of("mock2", "mock2"));
-        sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
-        sweepMetrics.examinedCellsFullTable(OTHER_EXAMINED, TABLE_REF2);
-
-        Mockito.verify(kvs, never()).getMetadataForTable(TABLE_REF);
-        Mockito.verify(kvs, never()).getMetadataForTable(TABLE_REF2);
-    }
-
-    @Test
-    public void kvsIsQueriedOnlyOnceIfItReturns() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF)).thenReturn(SAFE_METADATA);
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF2)).thenReturn(UNSAFE_METADATA);
-
-        sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
-        sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
-        sweepMetrics.examinedCellsFullTable(OTHER_EXAMINED, TABLE_REF2);
-        sweepMetrics.deletedCellsFullTable(OTHER_DELETED, TABLE_REF2);
-
-        Mockito.verify(kvs).getMetadataForTable(TABLE_REF);
-        Mockito.verify(kvs).getMetadataForTable(TABLE_REF2);
-    }
-
-    @Test
-    public void kvsIsQueriedEveryTimeUntilWeKnowIfTableIsSafe() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF))
-                .thenThrow(new RuntimeException(), new RuntimeException()).thenReturn(SAFE_METADATA);
-
-        sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
-        sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
-
-        Mockito.verify(kvs, times(2)).getMetadataForTable(TABLE_REF);
-        assertFalse(sweepMetrics.tableRefArgs.containsKey(TABLE_REF));
-
-        sweepMetrics.examinedCellsFullTable(OTHER_EXAMINED, TABLE_REF);
-        sweepMetrics.deletedCellsFullTable(OTHER_DELETED, TABLE_REF);
-
-        Mockito.verify(kvs, times(3)).getMetadataForTable(TABLE_REF);
-
-        assertTrue(sweepMetrics.tableRefArgs.containsKey(TABLE_REF));
     }
 
     @Test
@@ -131,7 +79,7 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsDeletedAreRecordedForSafeTable() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF)).thenReturn(SAFE_METADATA);
+        LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, SAFE_METADATA));
         sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
         sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
 
@@ -141,7 +89,7 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsDeletedAreRecordedForUnSafeTable() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF)).thenReturn(UNSAFE_METADATA);
+        LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA));
         sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
         sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
 
@@ -150,28 +98,13 @@ public class SweepMetricsTest {
     }
 
     @Test
-    public void cellsDeletedAreRecordedAsUnsafeIfKvsUnavailable() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF)).thenThrow(new RuntimeException());
+    public void cellsDeletedAreRecordedAsUnsafeIfMetadataUnavailable() {
+        LoggingArgs.hydrate(ImmutableMap.of());
         sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
         sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
 
         assertValuesRecordedTagged("staleValuesDeleted", TABLE_REF, false, DELETED);
         assertValuesRecordedTagged("staleValuesDeleted", TABLE_REF, true);
-    }
-
-    @Test
-    public void cellsDeletedAreRecordedForSafeTableWhenKvsBecomesAvailable() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF))
-                .thenThrow(new RuntimeException(), new RuntimeException()).thenReturn(SAFE_METADATA);
-
-        sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
-        sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
-
-        sweepMetrics.examinedCellsFullTable(OTHER_EXAMINED, TABLE_REF);
-        sweepMetrics.deletedCellsFullTable(OTHER_DELETED, TABLE_REF);
-
-        assertValuesRecordedTagged("staleValuesDeleted", TABLE_REF, false, DELETED);
-        assertValuesRecordedTagged("staleValuesDeleted", TABLE_REF, true, OTHER_DELETED);
     }
 
     @Test
@@ -187,7 +120,7 @@ public class SweepMetricsTest {
 
     @Test
     public void cellsDeletedAreAggregatedForSafeTable() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF)).thenReturn(SAFE_METADATA);
+        LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, SAFE_METADATA));
         sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
         sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
 
@@ -200,8 +133,7 @@ public class SweepMetricsTest {
     // todo(gmaretic): this is not a "feature" but fix is not trivial
     @Test
     public void cellsDeletedAreAggregatedForAllUnSafeTables() {
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF)).thenReturn(UNSAFE_METADATA);
-        Mockito.when(kvs.getMetadataForTable(TABLE_REF2)).thenReturn(UNSAFE_METADATA);
+        LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA, TABLE_REF2, UNSAFE_METADATA));
         sweepMetrics.examinedCellsFullTable(EXAMINED, TABLE_REF);
         sweepMetrics.deletedCellsFullTable(DELETED, TABLE_REF);
 
@@ -246,7 +178,7 @@ public class SweepMetricsTest {
         return MetricName.builder()
                 .safeName(MetricRegistry.name(SweepMetrics.class, name))
                 .safeTags(safe
-                        ? ImmutableMap.of("tableName", tableRef.toString())
+                        ? ImmutableMap.of("tableRef", tableRef.toString())
                         : ImmutableMap.of("unsafeTableRef", "unsafe"))
                 .build();
     }

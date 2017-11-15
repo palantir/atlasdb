@@ -23,18 +23,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.SafeLoggableData;
-import com.palantir.atlasdb.logging.SafeLoggableDataUtils;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Arg;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetrics {
-    private final KeyValueService kvs;
     @VisibleForTesting
     final Map<TableReference, Arg<String>> tableRefArgs = new HashMap<>();
     private final TaggedMetricRegistry metricRegistry = new MetricsManager().getTaggedRegistry();
@@ -43,10 +39,6 @@ public class SweepMetrics {
     private final SweepMetric cellsDeletedMetric = new SweepMetric("staleValuesDeleted");
     private final SweepMetric sweepTimeMetric = new SweepMetric("sweepTimeInMillis");
     private final SweepMetric sweepErrorMetric = new SweepMetric("sweepError");
-
-    public SweepMetrics(KeyValueService kvs) {
-        this.kvs = kvs;
-    }
 
     private class SweepMetric {
         private final String histogram;
@@ -77,36 +69,12 @@ public class SweepMetrics {
     }
 
     private Map<String, String> getTag(TableReference tableRef) {
-        Arg<String> safeOrUnsafeTableRef = checkTableRefIsSafe(tableRef);
+        Arg<String> safeOrUnsafeTableRef = LoggingArgs.tableRef(tableRef);
         if (safeOrUnsafeTableRef.isSafeForLogging()) {
             return ImmutableMap.of(safeOrUnsafeTableRef.getName(), safeOrUnsafeTableRef.getValue());
         } else {
             // todo(gmaretic) Do something smarter?
             return ImmutableMap.of("unsafeTableRef", "unsafe");
-        }
-    }
-
-    private Arg<String> checkTableRefIsSafe(TableReference tableRef) {
-        if (tableRefArgs.containsKey(tableRef)) {
-            return tableRefArgs.get(tableRef);
-        } else {
-            try {
-                SafeLoggableData safeLoggableData = SafeLoggableDataUtils
-                        .fromTableMetadata(ImmutableMap.of(tableRef, kvs.getMetadataForTable(tableRef)));
-                Arg<String> safeOrUnsafeTableRef = getSafeOrUnsafeTableRef(safeLoggableData, tableRef);
-                tableRefArgs.put(tableRef, safeOrUnsafeTableRef);
-                return safeOrUnsafeTableRef;
-            } catch (Exception e) {
-                return UnsafeArg.of("tableName", tableRef.toString());
-            }
-        }
-    }
-
-    private Arg<String> getSafeOrUnsafeTableRef(SafeLoggableData safeLoggableData, TableReference tableRef) {
-        if (safeLoggableData.isTableReferenceSafe(tableRef)) {
-            return SafeArg.of("tableName", tableRef.toString());
-        } else {
-            return UnsafeArg.of("tableName", tableRef.toString());
         }
     }
 
