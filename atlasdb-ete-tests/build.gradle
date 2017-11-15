@@ -31,8 +31,8 @@ dependencies {
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
-    testCompile group: 'org.awaitility', name: 'awaitility'
     testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.awaitility', name: 'awaitility'
 }
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
