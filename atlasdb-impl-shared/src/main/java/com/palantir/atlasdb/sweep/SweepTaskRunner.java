@@ -115,7 +115,6 @@ public class SweepTaskRunner {
             SweepBatchConfig batchConfig,
             byte[] startRow,
             RunType runType) {
-        Stopwatch watch = Stopwatch.createStarted();
 
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
@@ -138,19 +137,18 @@ public class SweepTaskRunner {
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResult();
         }
-        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get(), watch);
+        return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
     }
 
     private SweepResults doRun(TableReference tableRef,
                                SweepBatchConfig batchConfig,
                                byte[] startRow,
                                RunType runType,
-                               Sweeper sweeper,
-                               Stopwatch watch) {
+                               Sweeper sweeper) {
+        Stopwatch watch = Stopwatch.createStarted();
         log.info("Beginning iteration of sweep for table {} starting at row {}",
                 LoggingArgs.tableRef(tableRef),
                 UnsafeArg.of("startRow", PtBytes.encodeHexString(startRow)));
-
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions

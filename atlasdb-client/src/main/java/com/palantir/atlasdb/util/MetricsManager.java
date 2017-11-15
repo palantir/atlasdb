@@ -27,6 +27,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class MetricsManager {
@@ -78,7 +79,14 @@ public class MetricsManager {
             registeredMetrics.add(fullyQualifiedMetricName);
         } catch (Exception e) {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
-            log.error("Unable to register metric {}", fullyQualifiedMetricName, e);
+            log.warn("Unable to register metric {}."
+                            + " This may occur if you are running integration tests that don't clean up completely after "
+                            + " themselves, or if you are trying to use multiple TransactionManagers concurrently in the same"
+                            + " JVM (e.g. in a KVS migration). If this is not the case, this is likely to be a product and/or"
+                            + " an AtlasDB bug. This is no cause for immediate alarm, but it does mean that your telemetry for"
+                            + " the aforementioned metric may be reported incorrectly.",
+                    SafeArg.of("metricName", fullyQualifiedMetricName),
+                    e);
         }
     }
 

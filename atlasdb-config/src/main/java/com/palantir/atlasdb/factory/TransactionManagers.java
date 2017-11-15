@@ -441,7 +441,7 @@ public abstract class TransactionManagers {
         AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(() ->
                 getSweepBatchConfig(runtimeConfigSupplier.get().sweep(), config.keyValueService()));
 
-        SweepMetrics sweepMetrics = new SweepMetrics();
+        SweepMetrics sweepMetrics = new SweepMetrics(kvs);
 
         SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
                 env,

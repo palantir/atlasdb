@@ -133,7 +133,7 @@ public class SpecificTableSweeper {
             SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
             logSweepPerformance(tableRef, startRow, results);
 
-            reportSweepMetrics(results);
+            reportSweepMetricsAfterOneIteration(results);
 
             return results;
         } catch (RuntimeException e) {
@@ -244,7 +244,7 @@ public class SpecificTableSweeper {
                 SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),
                 SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()));
-        updateMetrics(cumulativeResults, tableToSweep.getTableRef());
+        reportSweepMetricsAfterSweepingFullTable(cumulativeResults, tableToSweep.getTableRef());
         sweepProgressStore.clearProgress();
     }
 
@@ -282,13 +282,13 @@ public class SpecificTableSweeper {
         });
     }
 
-    private void reportSweepMetrics(SweepResults sweepResults) {
+    private void reportSweepMetricsAfterOneIteration(SweepResults sweepResults) {
         sweepMetrics.examinedCellsOneIteration(sweepResults.getCellTsPairsExamined());
         sweepMetrics.deletedCellsOneIteration(sweepResults.getStaleValuesDeleted());
         sweepMetrics.sweepTimeOneIteration(sweepResults.getTimeInMillis());
     }
 
-    private void updateMetrics(SweepResults cumulativeResults, TableReference tableRef) {
+    private void reportSweepMetricsAfterSweepingFullTable(SweepResults cumulativeResults, TableReference tableRef) {
         sweepMetrics.examinedCellsFullTable(cumulativeResults.getCellTsPairsExamined(), tableRef);
         sweepMetrics.deletedCellsFullTable(cumulativeResults.getStaleValuesDeleted(), tableRef);
         sweepMetrics.sweepTimeForTable(cumulativeResults.getTimeInMillis(), tableRef);

@@ -15,76 +15,98 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.logging.SafeLoggableData;
+import com.palantir.atlasdb.logging.SafeLoggableDataUtils;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetrics {
-    private final MetricsManager metricsManager = new MetricsManager();
+    private final KeyValueService kvs;
+    @VisibleForTesting
+    final Map<TableReference, Arg<String>> tableRefArgs = new HashMap<>();
+    private final TaggedMetricRegistry metricRegistry = new MetricsManager().getTaggedRegistry();
 
-    private final MeterMetric cellsSweptMeter = new MeterMetric("cellsSwept");
-    private final MeterMetric cellsDeletedMeter = new MeterMetric("cellsDeleted");
-    private final MeterMetric sweepTimeMeter = new MeterMetric("sweepTime");
-    private final MeterMetric sweepErrorMeter = new MeterMetric("sweepError");
+    private final SweepMetric cellsSweptMetric = new SweepMetric("cellTimestampPairsExamined");
+    private final SweepMetric cellsDeletedMetric = new SweepMetric("staleValuesDeleted");
+    private final SweepMetric sweepTimeMetric = new SweepMetric("sweepTimeInMillis");
+    private final SweepMetric sweepErrorMetric = new SweepMetric("sweepError");
 
-    private final HistogramMetric cellsSweptHistogram = new HistogramMetric("cellTimestampPairsExamined");
-    private final HistogramMetric cellsDeletedHistogram = new HistogramMetric("staleValuesDeleted");
-    private final HistogramMetric sweepTimeHistogram = new HistogramMetric("sweepTimeInMillis");
+    public SweepMetrics(KeyValueService kvs) {
+        this.kvs = kvs;
+    }
 
-    private class HistogramMetric {
-        private final String name;
+    private class SweepMetric {
+        private final String histogram;
+        private final String meter;
 
-        HistogramMetric(String name) {
-            this.name = name;
+        SweepMetric(String name) {
+            this.histogram = name + "H";
+            this.meter = name + "M";
         }
 
         void update(long value, TableReference tableRef) {
-            metricsManager.getTaggedRegistry().histogram(getTaggedMetric(name, tableRef)).update(value);
+            Map<String, String> tag = getTag(tableRef);
+            metricRegistry.histogram(getTaggedMetric(histogram, tag)).update(value);
+            metricRegistry.meter(getTaggedMetric(meter, tag)).mark(value);
         }
 
         void update(long value) {
-            metricsManager.getTaggedRegistry().histogram(getNonTaggedMetric(name)).update(value);
+            metricRegistry.histogram(getNonTaggedMetric(histogram)).update(value);
+            metricRegistry.meter(getNonTaggedMetric(meter)).mark(value);
         }
     }
 
-    private class MeterMetric {
-        private final String name;
-
-        MeterMetric(String name) {
-            this.name = name;
-        }
-
-        void update(long value, TableReference tableRef) {
-            metricsManager.getTaggedRegistry().meter(getTaggedMetric(name, tableRef)).mark(value);
-        }
-
-        void update(long value) {
-            metricsManager.getTaggedRegistry().meter(getNonTaggedMetric(name)).mark(value);
-        }
-    }
-
-    private MetricName getTaggedMetric(String name, TableReference tableRef) {
+    private MetricName getTaggedMetric(String name, Map<String, String> tag) {
         return MetricName.builder()
                 .safeName(MetricRegistry.name(SweepMetrics.class, name))
-                .safeTags(getTag(tableRef))
+                .safeTags(tag)
                 .build();
     }
 
     private Map<String, String> getTag(TableReference tableRef) {
-        Arg<String> safeOrUnsafeTableRef = LoggingArgs.tableRef(tableRef);
+        Arg<String> safeOrUnsafeTableRef = checkTableRefIsSafe(tableRef);
         if (safeOrUnsafeTableRef.isSafeForLogging()) {
             return ImmutableMap.of(safeOrUnsafeTableRef.getName(), safeOrUnsafeTableRef.getValue());
         } else {
             // todo(gmaretic) Do something smarter?
             return ImmutableMap.of("unsafeTableRef", "unsafe");
+        }
+    }
+
+    private Arg<String> checkTableRefIsSafe(TableReference tableRef) {
+        if (tableRefArgs.containsKey(tableRef)) {
+            return tableRefArgs.get(tableRef);
+        } else {
+            try {
+                SafeLoggableData safeLoggableData = SafeLoggableDataUtils
+                        .fromTableMetadata(ImmutableMap.of(tableRef, kvs.getMetadataForTable(tableRef)));
+                Arg<String> safeOrUnsafeTableRef = getSafeOrUnsafeTableRef(safeLoggableData, tableRef);
+                tableRefArgs.put(tableRef, safeOrUnsafeTableRef);
+                return safeOrUnsafeTableRef;
+            } catch (Exception e) {
+                return UnsafeArg.of("tableName", tableRef.toString());
+            }
+        }
+    }
+
+    private Arg<String> getSafeOrUnsafeTableRef(SafeLoggableData safeLoggableData, TableReference tableRef) {
+        if (safeLoggableData.isTableReferenceSafe(tableRef)) {
+            return SafeArg.of("tableName", tableRef.toString());
+        } else {
+            return UnsafeArg.of("tableName", tableRef.toString());
         }
     }
 
@@ -97,36 +119,30 @@ public class SweepMetrics {
     }
 
     void examinedCellsOneIteration(long numExamined) {
-        cellsSweptHistogram.update(numExamined);
-        cellsSweptMeter.update(numExamined);
+        cellsSweptMetric.update(numExamined);
     }
 
     void deletedCellsOneIteration(long numDeleted) {
-        cellsDeletedHistogram.update(numDeleted);
-        cellsDeletedMeter.update(numDeleted);
+        cellsDeletedMetric.update(numDeleted);
     }
 
     void sweepTimeOneIteration(long timeSweeping) {
-        sweepTimeHistogram.update(timeSweeping);
-        sweepTimeMeter.update(timeSweeping);
+        sweepTimeMetric.update(timeSweeping);
     }
 
     void examinedCellsFullTable(long numExamined, TableReference tableRef) {
-        cellsSweptHistogram.update(numExamined, tableRef);
-        cellsSweptMeter.update(numExamined, tableRef);
+        cellsSweptMetric.update(numExamined, tableRef);
     }
 
     void deletedCellsFullTable(long numDeleted, TableReference tableRef) {
-        cellsDeletedHistogram.update(numDeleted, tableRef);
-        cellsDeletedMeter.update(numDeleted, tableRef);
+        cellsDeletedMetric.update(numDeleted, tableRef);
     }
 
     void sweepTimeForTable(long timeSweeping, TableReference tableRef) {
-        sweepTimeHistogram.update(timeSweeping, tableRef);
-        sweepTimeMeter.update(timeSweeping, tableRef);
+        sweepTimeMetric.update(timeSweeping, tableRef);
     }
 
     void sweepError() {
-        sweepErrorMeter.update(1);
+        sweepErrorMetric.update(1);
     }
 }
