@@ -37,13 +37,13 @@ import org.apache.cassandra.thrift.SuperColumn;
 
 public final class ThriftObjectSizeUtils {
 
-    private static final long ONE_BYTE = 1L;
+    private static final int ONE_BYTE = 1;
 
     private ThriftObjectSizeUtils() {
         // utility class
     }
 
-    public static long getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {
+    public static int getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {
         if (columnOrSuperColumn == null) {
             return getNullSize();
         }
@@ -53,14 +53,14 @@ public final class ThriftObjectSizeUtils {
                 + getCounterSuperColumnSize(columnOrSuperColumn.getCounter_super_column());
     }
 
-    public static long getByteBufferSize(ByteBuffer byteBuffer) {
+    public static int getByteBufferSize(ByteBuffer byteBuffer) {
         if (byteBuffer == null) {
             return getNullSize();
         }
         return byteBuffer.remaining();
     }
 
-    public static long getMutationSize(Mutation mutation) {
+    public static int getMutationSize(Mutation mutation) {
         if (mutation == null) {
             return getNullSize();
         }
@@ -69,7 +69,7 @@ public final class ThriftObjectSizeUtils {
                 mutation.getDeletion());
     }
 
-    public static long getCqlResultSize(CqlResult cqlResult) {
+    public static int getCqlResultSize(CqlResult cqlResult) {
         if (cqlResult == null) {
             return getNullSize();
         }
@@ -79,7 +79,7 @@ public final class ThriftObjectSizeUtils {
                 + getCqlMetadataSize(cqlResult.getSchema());
     }
 
-    public static long getKeySliceSize(KeySlice keySlice) {
+    public static int getKeySliceSize(KeySlice keySlice) {
         if (keySlice == null) {
             return getNullSize();
         }
@@ -88,7 +88,7 @@ public final class ThriftObjectSizeUtils {
                 + getCollectionSize(keySlice.getColumns(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize);
     }
 
-    public static long getStringSize(String string) {
+    public static int getStringSize(String string) {
         if (string == null) {
             return getNullSize();
         }
@@ -96,7 +96,7 @@ public final class ThriftObjectSizeUtils {
         return string.length() * Character.SIZE;
     }
 
-    public static long getColumnSize(Column column) {
+    public static int getColumnSize(Column column) {
         if (column == null) {
             return getNullSize();
         }
@@ -107,7 +107,7 @@ public final class ThriftObjectSizeUtils {
                 + getTimestampSize();
     }
 
-    private static long getCounterSuperColumnSize(CounterSuperColumn counterSuperColumn) {
+    private static int getCounterSuperColumnSize(CounterSuperColumn counterSuperColumn) {
         if (counterSuperColumn == null) {
             return getNullSize();
         }
@@ -116,7 +116,7 @@ public final class ThriftObjectSizeUtils {
                 + getCollectionSize(counterSuperColumn.getColumns(), ThriftObjectSizeUtils::getCounterColumnSize);
     }
 
-    private static long getCounterColumnSize(CounterColumn counterColumn) {
+    private static int getCounterColumnSize(CounterColumn counterColumn) {
         if (counterColumn == null) {
             return getNullSize();
         }
@@ -124,7 +124,7 @@ public final class ThriftObjectSizeUtils {
         return getByteArraySize(counterColumn.getName()) + getCounterValueSize();
     }
 
-    private static long getSuperColumnSize(SuperColumn superColumn) {
+    private static int getSuperColumnSize(SuperColumn superColumn) {
         if (superColumn == null) {
             return getNullSize();
         }
@@ -133,7 +133,7 @@ public final class ThriftObjectSizeUtils {
                 + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
-    private static long getDeletionSize(Deletion deletion) {
+    private static int getDeletionSize(Deletion deletion) {
         if (deletion == null) {
             return getNullSize();
         }
@@ -143,7 +143,7 @@ public final class ThriftObjectSizeUtils {
                 + getSlicePredicateSize(deletion.getPredicate());
     }
 
-    private static long getSlicePredicateSize(SlicePredicate predicate) {
+    private static int getSlicePredicateSize(SlicePredicate predicate) {
         if (predicate == null) {
             return getNullSize();
         }
@@ -152,7 +152,7 @@ public final class ThriftObjectSizeUtils {
                 + getSliceRangeSize(predicate.getSlice_range());
     }
 
-    private static long getSliceRangeSize(SliceRange sliceRange) {
+    private static int getSliceRangeSize(SliceRange sliceRange) {
         if (sliceRange == null) {
             return getNullSize();
         }
@@ -163,7 +163,7 @@ public final class ThriftObjectSizeUtils {
                 + getSliceRangeCountSize();
     }
 
-    private static long getCqlMetadataSize(CqlMetadata schema) {
+    private static int getCqlMetadataSize(CqlMetadata schema) {
         if (schema == null) {
             return getNullSize();
         }
@@ -174,13 +174,13 @@ public final class ThriftObjectSizeUtils {
                 + getStringSize(schema.getDefault_value_type());
     }
 
-    private static long getByteBufferStringMapSize(Map<ByteBuffer, String> nameTypes) {
+    private static int getByteBufferStringMapSize(Map<ByteBuffer, String> nameTypes) {
         return getCollectionSize(nameTypes.entrySet(),
                 entry -> ThriftObjectSizeUtils.getByteBufferSize(entry.getKey())
                         + ThriftObjectSizeUtils.getStringSize(entry.getValue()));
     }
 
-    private static Long getCqlRowSize(CqlRow cqlRow) {
+    private static int getCqlRowSize(CqlRow cqlRow) {
         if (cqlRow == null) {
             return getNullSize();
         }
@@ -188,47 +188,47 @@ public final class ThriftObjectSizeUtils {
                 + getCollectionSize(cqlRow.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
-    private static long getThriftEnumSize() {
+    private static int getThriftEnumSize() {
         return Integer.BYTES;
     }
 
-    private static long getByteArraySize(byte[] byteArray) {
+    private static int getByteArraySize(byte[] byteArray) {
         if (byteArray == null) {
             return getNullSize();
         }
         return byteArray.length;
     }
 
-    private static long getTimestampSize() {
+    private static int getTimestampSize() {
         return Long.BYTES;
     }
 
-    private static long getTtlSize() {
+    private static int getTtlSize() {
         return Integer.BYTES;
     }
 
-    private static long getCounterValueSize() {
+    private static int getCounterValueSize() {
         return Long.BYTES;
     }
 
-    private static long getReversedBooleanSize() {
+    private static int getReversedBooleanSize() {
         return ONE_BYTE;
     }
 
-    private static long getSliceRangeCountSize() {
+    private static int getSliceRangeCountSize() {
         return Integer.BYTES;
     }
 
-    private static long getNullSize() {
+    private static int getNullSize() {
         return Integer.BYTES;
     }
 
-    public static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
+    public static <T> int getCollectionSize(Collection<T> collection, Function<T, Integer> sizeFunction) {
         if (collection == null) {
             return getNullSize();
         }
 
-        long sum = 0;
+        int sum = 0;
         for (T item : collection) {
             sum += sizeFunction.apply(item);
         }

@@ -29,7 +29,7 @@ public class QosResource implements QosService {
     }
 
     @Override
-    public long getLimit(String client) {
-        return config.get().clientLimits().getOrDefault(client, Long.MAX_VALUE);
+    public int getLimit(String client) {
+        return config.get().clientLimits().getOrDefault(client, Integer.MAX_VALUE);
     }
 }

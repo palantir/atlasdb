@@ -18,11 +18,10 @@ package com.palantir.atlasdb.qos;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.TimeUnit;
-
-import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,42 +29,65 @@ import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 
 public class AtlasDbQosClientTest {
+
+    private static final int ESTIMATED_BYTES = 10;
+    private static final int ACTUAL_BYTES = 51;
+
     private QosService qosService = mock(QosService.class);
-    private DeterministicScheduler scheduler = new DeterministicScheduler();
     private QosRateLimiter rateLimiter = mock(QosRateLimiter.class);
+    private QosMetrics metrics = mock(QosMetrics.class);
+
+    private AtlasDbQosClient qosClient = new AtlasDbQosClient(rateLimiter, metrics);
 
     @Before
     public void setUp() {
-        when(qosService.getLimit("test-client")).thenReturn(1L);
+        when(qosService.getLimit("test-client")).thenReturn(100);
     }
 
     @Test
-    public void doesNotBackOff() {
-        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client", rateLimiter);
-        scheduler.tick(1L, TimeUnit.MILLISECONDS);
-        qosClient.checkLimit();
+    public void consumesSpecifiedNumUnitsForReads() {
+        qosClient.executeRead(() -> ESTIMATED_BYTES, () -> "foo", ignored -> ACTUAL_BYTES);
+
+        verify(rateLimiter).consumeWithBackoff(ESTIMATED_BYTES);
+        verify(rateLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
+        verifyNoMoreInteractions(rateLimiter);
     }
 
     @Test
-    public void throwsAfterLimitExceeded() {
-        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client", rateLimiter);
-        scheduler.tick(1L, TimeUnit.MILLISECONDS);
-        qosClient.checkLimit();
+    public void recordsReadMetrics() throws TestCheckedException {
+        qosClient.executeRead(() -> ESTIMATED_BYTES, () -> "foo", ignored -> ACTUAL_BYTES);
 
-        assertThatThrownBy(qosClient::checkLimit).isInstanceOf(RuntimeException.class);
+        verify(metrics).updateReadCount();
+        verify(metrics).updateBytesRead(ACTUAL_BYTES);
+        verifyNoMoreInteractions(metrics);
     }
 
     @Test
-    public void canCheckAgainAfterRefreshPeriod() {
-        AtlasDbQosClient qosClient = new AtlasDbQosClient(qosService, scheduler, "test-client", rateLimiter);
-        scheduler.tick(1L, TimeUnit.MILLISECONDS);
-        qosClient.checkLimit();
+    public void consumesSpecifiedNumUnitsForWrites() {
+        qosClient.executeWrite(() -> ACTUAL_BYTES, () -> { });
 
-        assertThatThrownBy(qosClient::checkLimit)
-                .isInstanceOf(RuntimeException.class).hasMessage("Rate limit exceeded");
-
-        scheduler.tick(60L, TimeUnit.SECONDS);
-
-        qosClient.checkLimit();
+        verify(rateLimiter).consumeWithBackoff(ACTUAL_BYTES);
+        verifyNoMoreInteractions(rateLimiter);
     }
+
+    @Test
+    public void recordsWriteMetrics() throws TestCheckedException {
+        qosClient.executeWrite(() -> ACTUAL_BYTES, () -> { });
+
+        verify(metrics).updateWriteCount();
+        verify(metrics).updateBytesWritten(ACTUAL_BYTES);
+    }
+
+    @Test
+    public void propagatesCheckedExceptions() throws TestCheckedException {
+        assertThatThrownBy(() -> qosClient.executeRead(() -> 1, () -> {
+            throw new TestCheckedException();
+        }, ignored -> 1)).isInstanceOf(TestCheckedException.class);
+
+        assertThatThrownBy(() -> qosClient.executeWrite(() -> 1, () -> {
+            throw new TestCheckedException();
+        })).isInstanceOf(TestCheckedException.class);
+    }
+
+    static class TestCheckedException extends Exception { }
 }

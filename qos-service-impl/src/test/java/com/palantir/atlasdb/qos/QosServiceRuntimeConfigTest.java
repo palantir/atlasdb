@@ -30,14 +30,14 @@ public class QosServiceRuntimeConfigTest {
     @Test
     public void canBuildFromSingleClientLimit() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", 10L))
+                .clientLimits(ImmutableMap.of("test_client", 10))
                 .build();
     }
 
     @Test
     public void canBuildFromMultipleClientLimits() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", 10L, "test_client2", 100L))
+                .clientLimits(ImmutableMap.of("test_client", 10, "test_client2", 100))
                 .build();
     }
 }
