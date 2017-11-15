@@ -82,10 +82,9 @@ public final class AtlasDbFeignTargetFactory {
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
-                .client(refreshingHttpClient ?
-                                FeignOkHttpClients.newRefreshingOkHttpClient(
-                                        sslSocketFactory, Optional.empty(), userAgent) :
-                                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
+                .client(refreshingHttpClient
+                        ? FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, Optional.empty(), userAgent)
+                        : FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
                 .target(type, uri);
     }
 
