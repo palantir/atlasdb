@@ -32,6 +32,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.LockService;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
@@ -53,6 +54,8 @@ public class TimeLockAgent {
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
+
+    private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
 
     public TimeLockAgent(TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
@@ -102,12 +105,22 @@ public class TimeLockAgent {
         registerExceptionMappers();
         leadershipCreator.registerLeaderElectionService();
 
-        // Finally, register the endpoints associated with the clients.
+        // Finally, register the health check, and endpoints associated with the clients.
+        healthCheckSupplier = leadershipCreator.getHealthCheck();
         registrar.accept(
                 new TimeLockResource(this::createInvalidatingTimeLockServices,
                         JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime)));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
+    }
+
+    @SuppressWarnings("unused") // used by external health checks
+    public TimeLockStatus getStatus() throws Exception {
+        if (healthCheckSupplier != null) {
+            return healthCheckSupplier.get().getStatus();
+        } else {
+            return TimeLockStatus.NO_QUORUM;
+        }
     }
 
     @SuppressWarnings("unused")

@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2xxx>`__)
+
     *    - |improved|
          - Applications can now easily determine whether their AtlasDB cluster is healthy by querying ``TransactionManager.getKeyValueServiceStatus().isHealthy()``.
            This returns true only if all key value service nodes are up; applications that do not perform schema mutations or deletes (including sweep or scrub) can

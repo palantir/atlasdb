@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -345,6 +346,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             log.error("Remote potential leader is claiming to be you!", e);
             throw Throwables.rewrap(e);
         }
+    }
+
+    @Override
+    public Set<PingableLeader> getPotentialLeaders() {
+        return potentialLeadersToHosts.keySet();
     }
 
     @Override
