@@ -96,6 +96,17 @@ public final class ThriftObjectSizeUtils {
         return string.length() * Character.SIZE;
     }
 
+    public static long getColumnSize(Column column) {
+        if (column == null) {
+            return getNullSize();
+        }
+
+        return getByteArraySize(column.getValue())
+                + getByteArraySize(column.getName())
+                + getTtlSize()
+                + getTimestampSize();
+    }
+
     private static long getCounterSuperColumnSize(CounterSuperColumn counterSuperColumn) {
         if (counterSuperColumn == null) {
             return getNullSize();
@@ -120,18 +131,6 @@ public final class ThriftObjectSizeUtils {
 
         return getByteArraySize(superColumn.getName())
                 + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
-    }
-
-
-    private static long getColumnSize(Column column) {
-        if (column == null) {
-            return getNullSize();
-        }
-
-        return getByteArraySize(column.getValue())
-                + getByteArraySize(column.getName())
-                + getTtlSize()
-                + getTimestampSize();
     }
 
     private static long getDeletionSize(Deletion deletion) {
@@ -224,7 +223,7 @@ public final class ThriftObjectSizeUtils {
         return Integer.BYTES;
     }
 
-    private static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
+    public static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
         if (collection == null) {
             return getNullSize();
         }

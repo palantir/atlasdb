@@ -17,15 +17,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
-import org.apache.cassandra.thrift.AutoDelegate_Client;
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
@@ -33,116 +31,55 @@ import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
+import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.processors.AutoDelegate;
 
-/**
- * Wrapper for Cassandra.Client.
- */
-@AutoDelegate(typeToExtend = Cassandra.Client.class)
-@SuppressWarnings({"checkstyle:all", "DuplicateThrows"}) // :'(
-public class CassandraClient extends AutoDelegate_Client {
-    private final Logger log = LoggerFactory.getLogger(CassandraClient.class);
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-    private final Cassandra.Client delegate;
-    private final QosMetrics qosMetrics;
-    private final QosClient qosClient;
+@SuppressWarnings({"all"}) // thrift variable names.
+public interface CassandraClient {
+    Cassandra.Client rawClient();
 
-    public CassandraClient(Cassandra.Client delegate, QosClient qosClient) {
-        super(delegate.getInputProtocol());
-        this.delegate = delegate;
-        this.qosClient = qosClient;
-        this.qosMetrics = new QosMetrics();
-    }
-
-    @Override
-    public Cassandra.Client delegate() {
-        return delegate;
-    }
-
-    @Override
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent,
+    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
+            TableReference tableRef,
+            List<ByteBuffer> keys,
             SlicePredicate predicate, ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        qosClient.checkLimit();
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> result = delegate.multiget_slice(keys, column_parent,
-                predicate, consistency_level);
-        recordBytesRead(getApproximateReadByteCount(result));
-        return result;
-    }
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    private long getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
-        return getCollectionSize(result.entrySet(),
-                rowResult ->
-                    ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
-                    + getCollectionSize(rowResult.getValue(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
-    }
-
-    @Override
-    public void batch_mutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap,
+    List<KeySlice> get_range_slices(String kvsMethodName,
+            TableReference tableRef,
+            SlicePredicate predicate,
+            KeyRange range,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        qosClient.checkLimit();
-        delegate.batch_mutate(mutationMap, consistency_level);
-        recordBytesWritten(getApproximateWriteByteCount(mutationMap));
-    }
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    private long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
-        long approxBytesForKeys = getCollectionSize(batchMutateMap.keySet(), ThriftObjectSizeUtils::getByteBufferSize);
-        long approxBytesForValues = getCollectionSize(batchMutateMap.values(), currentMap ->
-                getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
-                + getCollectionSize(currentMap.values(),
-                        mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
-        return approxBytesForKeys + approxBytesForValues;
-    }
+    void batch_mutate(String kvsMethodName,
+            Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    @Override
-    public CqlResult execute_cql3_query(ByteBuffer query, Compression compression, ConsistencyLevel consistency)
+    ColumnOrSuperColumn get(TableReference tableReference,
+            ByteBuffer key,
+            byte[] column,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException,
+            org.apache.thrift.TException;
+
+    CASResult cas(TableReference tableReference,
+            ByteBuffer key,
+            List<Column> expected,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+
+    CqlResult execute_cql3_query(CqlQuery cqlQuery,
+            Compression compression,
+            ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
-            TException {
-        qosClient.checkLimit();
-        CqlResult cqlResult = delegate.execute_cql3_query(query, compression, consistency);
-        recordBytesRead(ThriftObjectSizeUtils.getCqlResultSize(cqlResult));
-        return cqlResult;
-    }
-
-    @Override
-    public List<KeySlice> get_range_slices(ColumnParent column_parent, SlicePredicate predicate, KeyRange range,
-            ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        qosClient.checkLimit();
-        List<KeySlice> result = super.get_range_slices(column_parent, predicate, range, consistency_level);
-        recordBytesRead(getCollectionSize(result, ThriftObjectSizeUtils::getKeySliceSize));
-        return result;
-    }
-
-    private void recordBytesRead(long numBytesRead) {
-        try {
-            qosMetrics.updateReadCount();
-            qosMetrics.updateBytesRead(numBytesRead);
-        } catch (Exception e) {
-            log.warn("Encountered an exception when recording read metrics.", e);
-        }
-    }
-
-    private void recordBytesWritten(long numBytesWritten) {
-        try {
-            qosMetrics.updateWriteCount();
-            qosMetrics.updateBytesWritten(numBytesWritten);
-        } catch (Exception e) {
-            log.warn("Encountered an exception when recording write metrics.", e);
-        }
-    }
-
-    private <T> long getCollectionSize(Collection<T> collection, Function<T, Long> singleObjectSizeFunction) {
-        return collection.stream().mapToLong(singleObjectSizeFunction::apply).sum();
-    }
+            org.apache.thrift.TException;
 }

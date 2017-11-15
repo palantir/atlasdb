@@ -74,20 +74,14 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, long time, TimeUnit unit) {
-        try {
-            putInternal(
-                    tableRef,
-                    KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
-                    CassandraKeyValueServices.convertTtl(time, unit));
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        expiringPut("put", tableRef, values, timestamp, time, unit);
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, long time, TimeUnit unit) {
         try {
-            putInternal(tableRef, values.entries(), CassandraKeyValueServices.convertTtl(time, unit));
+            putInternal("putWithTimestamps", tableRef, values.entries(),
+                    CassandraKeyValueServices.convertTtl(time, unit));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -113,7 +107,7 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
             for (final List<Entry<Cell, byte[]>> p : partitions) {
                 callables.add(() -> {
                     Thread.currentThread().setName("Atlas expiry multiPut of " + p.size() + " cells into " + table);
-                    put(table, Maps2.fromEntries(p), timestamp, time, unit);
+                    expiringPut("multiPut", table, Maps2.fromEntries(p), timestamp, time, unit);
                     return null;
                 });
             }
@@ -136,4 +130,15 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
         }
     }
 
+    private void expiringPut(String kvsMethodName, TableReference tableRef, Map<Cell, byte[]> values, long timestamp,
+            long time, TimeUnit unit) {
+        try {
+            putInternal(kvsMethodName,
+                    tableRef,
+                    KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
+                    CassandraKeyValueServices.convertTtl(time, unit));
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
 }

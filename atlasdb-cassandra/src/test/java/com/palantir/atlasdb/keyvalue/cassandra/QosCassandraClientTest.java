@@ -22,12 +22,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 import javax.naming.LimitExceededException;
 
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyRange;
@@ -39,16 +36,17 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.qos.QosClient;
 
-public class CassandraClientTest {
+public class QosCassandraClientTest {
     private static final ByteBuffer ROW_KEY = ByteBuffer.wrap(PtBytes.toBytes("key"));
 
-    private final Cassandra.Client mockClient = mock(Cassandra.Client.class);
+    private final CassandraClient mockClient = mock(CassandraClient.class);
     private final QosClient qosClient = mock(QosClient.class);
 
-    private static final ColumnParent TEST_TABLE = new ColumnParent("table");
+    private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final SlicePredicate SLICE_PREDICATE = SlicePredicates.create(SlicePredicates.Range.ALL,
             SlicePredicates.Limit.ONE);
 
@@ -56,12 +54,12 @@ public class CassandraClientTest {
 
     @Before
     public void setUp() {
-        client = new CassandraClient(mockClient, qosClient);
+        client = new QosCassandraClient(mockClient, qosClient);
     }
 
     @Test
     public void multigetSliceChecksLimit() throws TException, LimitExceededException {
-        client.multiget_slice(ImmutableList.of(ROW_KEY), TEST_TABLE, SLICE_PREDICATE, ConsistencyLevel.ANY);
+        client.multiget_slice("get", TEST_TABLE, ImmutableList.of(ROW_KEY), SLICE_PREDICATE, ConsistencyLevel.ANY);
 
         verify(qosClient, times(1)).checkLimit();
         verifyNoMoreInteractions(qosClient);
@@ -69,7 +67,7 @@ public class CassandraClientTest {
 
     @Test
     public void batchMutateChecksLimit() throws TException, LimitExceededException {
-        client.batch_mutate(ImmutableMap.of(), ConsistencyLevel.ANY);
+        client.batch_mutate("put", ImmutableMap.of(), ConsistencyLevel.ANY);
 
         verify(qosClient, times(1)).checkLimit();
         verifyNoMoreInteractions(qosClient);
@@ -77,7 +75,7 @@ public class CassandraClientTest {
 
     @Test
     public void executeCqlQueryChecksLimit() throws TException, LimitExceededException {
-        ByteBuffer query = ByteBuffer.wrap("SELECT * FROM test_table LIMIT 1".getBytes(StandardCharsets.UTF_8));
+        CqlQuery query = new CqlQuery("SELECT * FROM test_table LIMIT 1");
         client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.ANY);
 
         verify(qosClient, times(1)).checkLimit();
@@ -86,7 +84,7 @@ public class CassandraClientTest {
 
     @Test
     public void getRangeSlicesChecksLimit() throws TException, LimitExceededException {
-        client.get_range_slices(TEST_TABLE, SLICE_PREDICATE, new KeyRange(), ConsistencyLevel.ANY);
+        client.get_range_slices("get", TEST_TABLE, SLICE_PREDICATE, new KeyRange(), ConsistencyLevel.ANY);
 
         verify(qosClient, times(1)).checkLimit();
         verifyNoMoreInteractions(qosClient);

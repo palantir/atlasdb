@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
@@ -71,8 +70,8 @@ public class CassandraTimestampUtilsTest {
 
     @Test
     public void canGetSelectQuery() {
-        String query = queryBufferToString(CassandraTimestampUtils.constructSelectFromTimestampTableQuery());
-        assertThat(query).isEqualTo("SELECT column1, value FROM \"_timestamp\" WHERE key=0x7473;");
+        CqlQuery query = CassandraTimestampUtils.constructSelectFromTimestampTableQuery();
+        assertThat(query.toString()).isEqualTo("SELECT column1, value FROM \"_timestamp\" WHERE key=0x7473;");
     }
 
     @Test
@@ -105,24 +104,24 @@ public class CassandraTimestampUtilsTest {
 
     @Test
     public void checkAndSetIsInsertIfNotExistsIfExpectedIsNull() {
-        String query = queryBufferToString(CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
-                ImmutableMap.of(COLUMN_NAME_1, Pair.create(null, VALUE_1))));
-        assertThat(query).contains("INSERT").contains("IF NOT EXISTS;");
+        CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                ImmutableMap.of(COLUMN_NAME_1, Pair.create(null, VALUE_1)));
+        assertThat(query.toString()).contains("INSERT").contains("IF NOT EXISTS;");
     }
 
     @Test
     public void checkAndSetIsUpdateIfEqualIfExpectedIsNotNull() {
-        String query = queryBufferToString(CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
-                ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2))));
-        assertThat(query).contains("UPDATE").contains("IF " + CassandraTimestampUtils.VALUE_COLUMN + "=");
+        CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+                ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2)));
+        assertThat(query.toString()).contains("UPDATE").contains("IF " + CassandraTimestampUtils.VALUE_COLUMN + "=");
     }
 
     @Test
     public void checkAndSetGeneratesBatchedStatements() {
-        String query = queryBufferToString(CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
+        CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
                 ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2),
-                        COLUMN_NAME_2, Pair.create(VALUE_2, VALUE_1))));
-        assertThat(query).contains("BEGIN UNLOGGED BATCH").contains("APPLY BATCH;");
+                        COLUMN_NAME_2, Pair.create(VALUE_2, VALUE_1)));
+        assertThat(query.toString()).contains("BEGIN UNLOGGED BATCH").contains("APPLY BATCH;");
     }
 
     @Test
@@ -226,9 +225,5 @@ public class CassandraTimestampUtilsTest {
         column.setName(PtBytes.toBytes(name));
         column.setValue(value);
         return column;
-    }
-
-    private static String queryBufferToString(ByteBuffer query) {
-        return PtBytes.toString(query.array());
     }
 }

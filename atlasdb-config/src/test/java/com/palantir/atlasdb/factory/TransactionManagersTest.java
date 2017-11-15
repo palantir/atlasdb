@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -61,7 +62,6 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -163,7 +163,7 @@ public class TransactionManagersTest {
     public void setup() throws JsonProcessingException {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
-        TransactionManagers.runAsync = task -> Awaitility.await().atMost(2, TimeUnit.SECONDS).until(task);
+        TransactionManagers.runAsync = task -> Awaitility.await().atMost(2, TimeUnit.SECONDS).untilAsserted(task::run);
 
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
@@ -194,6 +194,7 @@ public class TransactionManagersTest {
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
         when(runtimeConfig.getQosServiceConfiguration()).thenReturn(Optional.empty());
+        when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
 
         environment = mock(Consumer.class);
 
@@ -488,7 +489,7 @@ public class TransactionManagersTest {
     private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
         return TransactionManagers.createLockAndTimestampServices(
                 config,
-                () -> runtimeConfig.timestampClient(),
+                () -> runtimeConfig,
                 environment,
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
@@ -513,7 +514,7 @@ public class TransactionManagersTest {
         TransactionManagers.LockAndTimestampServices lockAndTimestamp =
                 TransactionManagers.createLockAndTimestampServices(
                         config,
-                        () -> ImmutableTimestampClientConfig.of(false),
+                        () -> runtimeConfig,
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
@@ -545,7 +546,7 @@ public class TransactionManagersTest {
             AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
         return TransactionManagers.createLockAndTimestampServices(
                 atlasDbConfig,
-                atlasDbRuntimeConfig::timestampClient,
+                () -> atlasDbRuntimeConfig,
                 environment,
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,

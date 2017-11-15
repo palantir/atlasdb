@@ -15,10 +15,11 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
+import java.util.function.Supplier;
+
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.timestamp.TimestampManagementService;
@@ -40,19 +41,20 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     public static TimeLockMigrator create(
-            TimeLockClientConfig config,
+            ServerListConfig serverListConfig,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
-        return create(config, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(() -> serverListConfig, invalidator, userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(
-            TimeLockClientConfig config,
+            Supplier<ServerListConfig> serverListConfigSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent,
             boolean initializeAsync) {
         TimestampManagementService remoteTimestampManagementService =
-                createRemoteManagementService(config, userAgent);
+                createRemoteManagementService(
+                        serverListConfigSupplier, userAgent);
         return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
     }
 
@@ -75,11 +77,10 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     private static TimestampManagementService createRemoteManagementService(
-            TimeLockClientConfig timelockConfig,
+            Supplier<ServerListConfig> serverListConfig,
             String userAgent) {
-        ServerListConfig serverListConfig = timelockConfig.toNamespacedServerList();
         return new ServiceCreator<>(TimestampManagementService.class, userAgent)
-                .apply(serverListConfig);
+                .applyDynamic(serverListConfig);
     }
 
     @Override
