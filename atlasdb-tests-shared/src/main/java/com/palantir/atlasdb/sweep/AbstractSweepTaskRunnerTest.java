@@ -485,6 +485,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         byte[] startRow = PtBytes.EMPTY_BYTE_ARRAY;
         long totalStaleValuesDeleted = 0;
         long totalCellsExamined = 0;
+        long totalTime = 0;
         for (int run = 0; run < 100; ++run) {
             SweepResults results = sweepRunner.run(
                     tableReference,
@@ -498,11 +499,13 @@ public abstract class AbstractSweepTaskRunnerTest {
             assertArrayEquals(startRow, results.getPreviousStartRow().orElse(null));
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
+            totalTime += results.getTimeInMillis();
             if (!results.getNextStartRow().isPresent()) {
                 return ImmutableSweepResults.builder()
                         .staleValuesDeleted(totalStaleValuesDeleted)
                         .cellTsPairsExamined(totalCellsExamined)
                         .sweptTimestamp(ts)
+                        .timeInMillis(totalTime)
                         .build();
             }
             startRow = results.getNextStartRow().get();
@@ -510,6 +513,8 @@ public abstract class AbstractSweepTaskRunnerTest {
         fail("failed to completely sweep a table in 100 runs");
         return null; // should never be reached
     }
+
+    // todo(gmaretic): add time tests
 
     private SweepResults partialSweep(long ts) {
         sweepTimestamp.set(ts);

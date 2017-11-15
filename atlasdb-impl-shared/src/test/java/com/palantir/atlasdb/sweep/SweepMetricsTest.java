@@ -23,9 +23,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class SweepMetricsTest {
     private static final long DELETED = 10L;
@@ -34,60 +35,64 @@ public class SweepMetricsTest {
     private static final long OTHER_DELETED = 12L;
     private static final long OTHER_EXAMINED = 4L;
 
-    private static final MetricRegistry METRIC_REGISTRY = AtlasDbMetrics.getMetricRegistry();
+    private static TaggedMetricRegistry taggedMetricRegistry;
 
     private SweepMetrics sweepMetrics;
 
     @Before
     public void setUp() {
         sweepMetrics = new SweepMetrics();
+        taggedMetricRegistry = AtlasDbMetrics.getTaggedMetricRegistry();
     }
 
     @After
     public void tearDown() {
-        METRIC_REGISTRY.removeMatching((name, metric) -> true);
+        AtlasDbMetrics.setMetricRegistries(AtlasDbMetrics.getMetricRegistry(),
+                new DefaultTaggedMetricRegistry());
     }
 
     @Test
     public void cellsDeletedAreRecorded() {
         sweepMetrics.examinedCellsOneIteration(EXAMINED);
-        sweepMetrics.deletedCells(DELETED);
+        sweepMetrics.deletedCellsOneIteration(DELETED);
 
-        assertValuesRecorded("staleValuesDeleted", DELETED);
+        assertValuesRecordedNonTagged("staleValuesDeleted", DELETED);
     }
 
     @Test
     public void cellsDeletedAreAggregated() {
         sweepMetrics.examinedCellsOneIteration(EXAMINED);
-        sweepMetrics.deletedCells(DELETED);
+        sweepMetrics.deletedCellsOneIteration(DELETED);
 
         sweepMetrics.examinedCellsOneIteration(OTHER_EXAMINED);
-        sweepMetrics.deletedCells(OTHER_DELETED);
+        sweepMetrics.deletedCellsOneIteration(OTHER_DELETED);
 
-        assertValuesRecorded("staleValuesDeleted", DELETED, OTHER_DELETED);
+        assertValuesRecordedNonTagged("staleValuesDeleted", DELETED, OTHER_DELETED);
     }
 
     @Test
     public void cellsExaminedAreRecorded() {
         sweepMetrics.examinedCellsOneIteration(EXAMINED);
-        sweepMetrics.deletedCells(DELETED);
+        sweepMetrics.deletedCellsOneIteration(DELETED);
 
-        assertValuesRecorded("cellTimestampPairsExamined", EXAMINED);
+        assertValuesRecordedNonTagged("cellTimestampPairsExamined", EXAMINED);
     }
 
     @Test
     public void cellsExaminedAreAggregated() {
         sweepMetrics.examinedCellsOneIteration(EXAMINED);
-        sweepMetrics.deletedCells(DELETED);
+        sweepMetrics.deletedCellsOneIteration(DELETED);
 
         sweepMetrics.examinedCellsOneIteration(OTHER_EXAMINED);
-        sweepMetrics.deletedCells(OTHER_DELETED);
+        sweepMetrics.deletedCellsOneIteration(OTHER_DELETED);
 
-        assertValuesRecorded("cellTimestampPairsExamined", EXAMINED, OTHER_EXAMINED);
+        assertValuesRecordedNonTagged("cellTimestampPairsExamined", EXAMINED, OTHER_EXAMINED);
     }
 
-    private void assertValuesRecorded(String aggregateMetric, Long... values) {
-        Histogram histogram = METRIC_REGISTRY.histogram(MetricRegistry.name(SweepMetrics.class, aggregateMetric));
+    // todo(gmaretic): add tagged metrics tests
+
+    private void assertValuesRecordedNonTagged(String aggregateMetric, Long... values) {
+        Histogram histogram = taggedMetricRegistry.histogram(SweepMetrics.getNonTaggedMetric(aggregateMetric));
         assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
     }
 }

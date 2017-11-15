@@ -27,6 +27,8 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class AtlasDbMetricsTest {
 
@@ -34,33 +36,50 @@ public class AtlasDbMetricsTest {
     private static final String PING_REQUEST = "ping";
     private static final String PING_RESPONSE = "pong";
 
+    private static final MetricRegistry metricRegistry = mock(MetricRegistry.class);
+    private static final TaggedMetricRegistry taggedMetrics = mock(TaggedMetricRegistry.class);
+
     @Rule
     public MetricsRule metricsRule = new MetricsRule();
 
     @Before
     public void before() throws Exception {
         AtlasDbMetrics.metrics.set(null);
+        AtlasDbMetrics.taggedMetrics.set(null);
     }
 
     @Test
     public void metricsIsDefaultWhenNotSet() {
-        AtlasDbMetrics.metrics.set(null);
         assertThat(AtlasDbMetrics.getMetricRegistry(),
                 is(equalTo(SharedMetricRegistries.getOrCreate(AtlasDbMetrics.DEFAULT_REGISTRY_NAME))));
     }
 
     @Test
-    public void metricsIsNotDefaultWhenSet() {
-        MetricRegistry metricRegistry = mock(MetricRegistry.class);
-        AtlasDbMetrics.setMetricRegistry(metricRegistry);
+    public void taggedMetricsIsDefaultWhenNotSet() {
+        assertThat(AtlasDbMetrics.getTaggedMetricRegistry(),
+                is(equalTo(DefaultTaggedMetricRegistry.getDefault())));
+    }
+
+    @Test
+    public void metricsAreNotDefaultWhenSet() {
+        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetrics);
         assertThat(AtlasDbMetrics.getMetricRegistry(), is(equalTo(metricRegistry)));
+        assertThat(AtlasDbMetrics.getTaggedMetricRegistry(), is(equalTo(taggedMetrics)));
     }
 
     @Test(expected = NullPointerException.class)
     public void nullMetricsCannotBeSet() {
-        AtlasDbMetrics.setMetricRegistry(null);
+        AtlasDbMetrics.setMetricRegistries(null, taggedMetrics);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void nullTaggedMetricsCannotBeSet() {
+        AtlasDbMetrics.setMetricRegistries(metricRegistry, null);
+    }
+
+
+    // todo(gmaretic): Tritium does not have an easy way to instrument with TaggedMetrics as of 0.8.3, so add those
+    // tests later
     @Test
     public void instrumentWithDefaultName() throws Exception {
         MetricRegistry metrics = setMetricRegistry();
@@ -83,7 +102,7 @@ public class AtlasDbMetricsTest {
 
     private MetricRegistry setMetricRegistry() {
         MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
-        AtlasDbMetrics.setMetricRegistry(metrics);
+        AtlasDbMetrics.setMetricRegistries(metrics, taggedMetrics);
         return metrics;
     }
 

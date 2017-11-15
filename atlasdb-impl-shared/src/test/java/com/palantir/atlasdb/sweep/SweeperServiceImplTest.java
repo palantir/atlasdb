@@ -141,8 +141,10 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     public void testWriteProgressAndPriorityNotUpdatedAfterSweepRunsSuccessfully_butMetricsAre() {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
         Mockito.verify(sweepMetrics, times(1)).examinedCellsOneIteration(eq(0L));
-        Mockito.verify(sweepMetrics, times(1)).deletedCells(eq(0L));
+        Mockito.verify(sweepMetrics, times(1)).deletedCellsOneIteration(eq(0L));
     }
+
+    // todo(gmaretic): test that per table metrics are getting recorded as well
 
     @Test
     public void sweepsEntireTableByDefault() {

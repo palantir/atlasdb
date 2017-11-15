@@ -27,6 +27,8 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
@@ -37,10 +39,13 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         new TimeLockServerLauncher().run(args);
     }
 
+    // todo(gmaretic): DefaultTaggedMetricRegistry.getDefault() uses ExponentiallyDecayingReservoir for Histograms,
+    // but the class is final so fix later
     @Override
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
-        AtlasDbMetrics.setMetricRegistry(metricRegistry);
+        TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
+        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());

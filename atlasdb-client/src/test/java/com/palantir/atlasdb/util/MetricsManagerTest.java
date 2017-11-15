@@ -27,6 +27,8 @@ import org.junit.Test;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class MetricsManagerTest {
     private static final Class<List> LIST_CLASS = List.class;
@@ -43,7 +45,8 @@ public class MetricsManagerTest {
     private static final Gauge GAUGE = () -> 1L;
 
     private final MetricRegistry registry = new MetricRegistry();
-    private final MetricsManager metricsManager = new MetricsManager(registry);
+    private final TaggedMetricRegistry taggedRegistry = DefaultTaggedMetricRegistry.getDefault();
+    private final MetricsManager metricsManager = new MetricsManager(registry, taggedRegistry);
 
     @Test
     public void registersMetricsByName() {

@@ -68,7 +68,7 @@ public final class AtlasDbMetrics {
     public static TaggedMetricRegistry getTaggedMetricRegistry() {
         return taggedMetrics.updateAndGet(registry -> {
             if (registry == null) {
-                return DefaultTaggedMetricRegistry.getDefault();
+                return createDefaultTaggedMetrics();
             }
             return registry;
         });
@@ -79,6 +79,15 @@ public final class AtlasDbMetrics {
         log.warn("Metric Registry was not set, setting to shared default registry name of "
                 + DEFAULT_REGISTRY_NAME);
         return registry;
+    }
+
+    // todo(gmaretic): DefaultTaggedMetricRegistry.getDefault() uses ExponentiallyDecayingReservoir for Histograms,
+    // but the class is final so fix later
+    // todo(gmaretic): implement getOrCreate as above
+    // todo(gmaretic): add log line
+    private static TaggedMetricRegistry createDefaultTaggedMetrics() {
+        TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
+        return taggedMetricRegistry;
     }
 
     public static <T, U extends T> T instrument(Class<T> serviceInterface, U service) {

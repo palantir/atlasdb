@@ -47,6 +47,8 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
@@ -60,11 +62,14 @@ public class CassandraClientPoolTest {
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
     private MetricRegistry metricRegistry;
+    // todo(gmaretic): add tests for tagged metric registry
+    private TaggedMetricRegistry taggedMetricRegistry;
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), new DefaultTaggedMetricRegistry());
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+        this.taggedMetricRegistry = AtlasDbMetrics.getTaggedMetricRegistry();
     }
 
     @Test

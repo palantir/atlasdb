@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.util;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,7 +27,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class MetricsManager {
@@ -70,14 +68,6 @@ public class MetricsManager {
         registerMetric(clazz, metricName, (Metric) gauge);
     }
 
-    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        taggedMetricRegistry.gauge(MetricName.builder()
-                        .safeName(MetricRegistry.name(clazz, metricName))
-                        .safeTags(tag)
-                        .build(),
-                gauge);
-    }
-
     public void registerMetric(Class clazz, String metricName, Metric metric) {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
     }
@@ -96,27 +86,10 @@ public class MetricsManager {
         return registerMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
     }
 
-    public Meter registerMeter(Class clazz, String metricPrefix, String meterName, Map<String, String> tags) {
-        return registerMeter(MetricRegistry.name(clazz, metricPrefix, meterName), tags);
-    }
-
     private synchronized Meter registerMeter(String fullyQualifiedMeterName) {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
         return meter;
-    }
-
-    private synchronized Meter registerMeter(String fullyQualifiedMeterName, Map<String, String> tags) {
-        Meter meter = taggedMetricRegistry.meter(getMetricNameWithTags(fullyQualifiedMeterName, tags));
-        registeredMetrics.add(fullyQualifiedMeterName);
-        return meter;
-    }
-
-    MetricName getMetricNameWithTags(String name, Map<String, String> tags) {
-        return MetricName.builder()
-                .safeName(name)
-                .safeTags(tags)
-                .build();
     }
 
     public synchronized void deregisterMetrics() {

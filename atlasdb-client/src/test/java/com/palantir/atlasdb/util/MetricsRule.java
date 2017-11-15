@@ -20,13 +20,17 @@ import org.junit.rules.ExternalResource;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class MetricsRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
         super.before();
-        AtlasDbMetrics.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
+        // todo(gmaretic): DefaultTaggedMetricRegistry.getDefault() uses ExponentiallyDecayingReservoir for Histograms,
+        // but the class is final so fix later
+        AtlasDbMetrics.setMetricRegistries(MetricRegistries.createWithHdrHistogramReservoirs(),
+                DefaultTaggedMetricRegistry.getDefault());
     }
 
     @Override

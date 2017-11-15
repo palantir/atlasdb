@@ -228,6 +228,7 @@ public class SpecificTableSweeper {
                     .startRow(results.getNextStartRow().get())
                     .startColumn(PtBytes.toBytes("unused"))
                     .minimumSweptTimestamp(results.getSweptTimestamp())
+                    .timeInMillis(results.getTimeInMillis())
                     .build();
             sweepProgressStore.saveProgress(newProgress);
             return null;
