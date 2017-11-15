@@ -50,6 +50,14 @@ public abstract class SweepResults {
     public abstract long getTimeInMillis();
 
     /**
+     * Time spent since started sweeping this table in milliseconds.
+     */
+    @Value.Default
+    public long getTimeElapsedSinceStart() {
+        return getTimeInMillis();
+    }
+
+    /**
      * Returns a new {@link SweepResults} representing cumulative results from this instance and {@code other}. Assumes
      * that {@code other} represents results from subsequent iteration of sweep (i.e., it happened after the run that
      * produced this instance).
@@ -79,6 +87,7 @@ public abstract class SweepResults {
                 .sweptTimestamp(0)
                 .nextStartRow(startRow)
                 .timeInMillis(0)
+                .timeElapsedSinceStart(0)
                 .build();
     }
 

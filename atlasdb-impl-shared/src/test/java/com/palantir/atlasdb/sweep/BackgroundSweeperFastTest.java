@@ -64,6 +64,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .startRow(new byte[] {1, 2, 3})
                 .startColumn(PtBytes.toBytes("unused"))
                 .timeInMillis(0L)
+                .startTimeInMillis(0L)
                 .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
@@ -105,6 +106,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                         .startRow(new byte[] {1, 2, 3})
                         .startColumn(PtBytes.toBytes("unused"))
                         .timeInMillis(0L)
+                        .startTimeInMillis(0L)
                         .build()));
     }
 
@@ -157,6 +159,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                         .startRow(new byte[] {1, 2, 3})
                         .startColumn(PtBytes.toBytes("unused"))
                         .timeInMillis(0L)
+                        .startTimeInMillis(0L)
                         .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)

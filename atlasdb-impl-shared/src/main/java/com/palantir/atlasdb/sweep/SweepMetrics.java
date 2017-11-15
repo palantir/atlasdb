@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -31,13 +29,12 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetrics {
-    @VisibleForTesting
-    final Map<TableReference, Arg<String>> tableRefArgs = new HashMap<>();
     private final TaggedMetricRegistry metricRegistry = new MetricsManager().getTaggedRegistry();
 
     private final SweepMetric cellsSweptMetric = new SweepMetric("cellTimestampPairsExamined");
     private final SweepMetric cellsDeletedMetric = new SweepMetric("staleValuesDeleted");
-    private final SweepMetric sweepTimeMetric = new SweepMetric("sweepTimeInMillis");
+    private final SweepMetric sweepTimeSweepingMetric = new SweepMetric("sweepTimeSweeping");
+    private final SweepMetric sweepTimeElapsedMetric = new SweepMetric("sweepTimeElapsedSinceStart");
     private final SweepMetric sweepErrorMetric = new SweepMetric("sweepError");
 
     private class SweepMetric {
@@ -59,6 +56,7 @@ public class SweepMetrics {
             metricRegistry.histogram(getNonTaggedMetric(histogram)).update(value);
             metricRegistry.meter(getNonTaggedMetric(meter)).mark(value);
         }
+
     }
 
     private MetricName getTaggedMetric(String name, Map<String, String> tag) {
@@ -95,7 +93,7 @@ public class SweepMetrics {
     }
 
     void sweepTimeOneIteration(long timeSweeping) {
-        sweepTimeMetric.update(timeSweeping);
+        sweepTimeSweepingMetric.update(timeSweeping);
     }
 
     void examinedCellsFullTable(long numExamined, TableReference tableRef) {
@@ -106,8 +104,12 @@ public class SweepMetrics {
         cellsDeletedMetric.update(numDeleted, tableRef);
     }
 
-    void sweepTimeForTable(long timeSweeping, TableReference tableRef) {
-        sweepTimeMetric.update(timeSweeping, tableRef);
+    void timeSweepingFullTable(long timeSweeping, TableReference tableRef) {
+        sweepTimeSweepingMetric.update(timeSweeping, tableRef);
+    }
+
+    void sweepTimeElapsedFullTable(long timeElapsedSinceStart, TableReference tableRef) {
+        sweepTimeElapsedMetric.update(timeElapsedSinceStart, tableRef);
     }
 
     void sweepError() {

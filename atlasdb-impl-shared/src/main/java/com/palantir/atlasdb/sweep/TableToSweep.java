@@ -58,4 +58,8 @@ public final class TableToSweep {
     long getTimeInMillisPreviously() {
         return progress.map(SweepProgress::timeInMillis).orElse(0L);
     }
+
+    Optional<Long> getStartTimeInMillis() {
+        return progress.map(SweepProgress::startTimeInMillis);
+    }
 }
