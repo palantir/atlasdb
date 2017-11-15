@@ -69,4 +69,20 @@ public class ScheduledRefreshingClientTest {
         verify(client, times(3)).execute(request, options);
         verifyNoMoreInteractions(clientSupplier, client);
     }
+
+    @Test
+    public void reinvokesSupplierAfterTheSpecifiedNumberOfRequestsHaveBeenMade() throws IOException {
+        when(clientSupplier.get()).thenReturn(client);
+        when(client.execute(request, options)).thenReturn(
+                Response.create(204, "no content", ImmutableMap.of(), new byte[0]));
+
+        Client refreshingClient = new ScheduledRefreshingClient(clientSupplier, 2);
+        refreshingClient.execute(request, options);
+        refreshingClient.execute(request, options);
+        refreshingClient.execute(request, options);
+
+        verify(clientSupplier, times(2)).get();
+        verify(client, times(3)).execute(request, options);
+        verifyNoMoreInteractions(clientSupplier, client);
+    }
 }
