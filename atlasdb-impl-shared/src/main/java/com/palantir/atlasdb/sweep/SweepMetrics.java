@@ -16,10 +16,11 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Map;
+import java.util.Optional;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -46,27 +47,21 @@ public class SweepMetrics {
             this.meter = name + "M";
         }
 
-        void update(long value, TableReference tableRef) {
-            Map<String, String> tag = getTag(tableRef);
-            metricRegistry.histogram(getTaggedMetric(histogram, tag)).update(value);
-            metricRegistry.meter(getTaggedMetric(meter, tag)).mark(value);
-        }
-
-        void update(long value) {
-            metricRegistry.histogram(getNonTaggedMetric(histogram)).update(value);
-            metricRegistry.meter(getNonTaggedMetric(meter)).mark(value);
+        void update(long value, Optional<TableReference> tableRef) {
+            metricRegistry.histogram(getTaggedMetric(histogram, tableRef)).update(value);
+            metricRegistry.meter(getTaggedMetric(meter, tableRef)).mark(value);
         }
 
     }
 
-    private MetricName getTaggedMetric(String name, Map<String, String> tag) {
+    private MetricName getTaggedMetric(String name, Optional<TableReference> tableRef) {
         return MetricName.builder()
                 .safeName(MetricRegistry.name(SweepMetrics.class, name))
-                .safeTags(tag)
+                .safeTags(tableRef.map(SweepMetrics::getTag).orElse(ImmutableMap.of()))
                 .build();
     }
 
-    private Map<String, String> getTag(TableReference tableRef) {
+    private static Map<String, String> getTag(TableReference tableRef) {
         Arg<String> safeOrUnsafeTableRef = LoggingArgs.tableRef(tableRef);
         if (safeOrUnsafeTableRef.isSafeForLogging()) {
             return ImmutableMap.of(safeOrUnsafeTableRef.getName(), safeOrUnsafeTableRef.getValue());
@@ -76,43 +71,21 @@ public class SweepMetrics {
         }
     }
 
-    @VisibleForTesting
-    static MetricName getNonTaggedMetric(String name) {
-        return MetricName.builder()
-                .safeName(MetricRegistry.name(SweepMetrics.class, name))
-                .safeTags(ImmutableMap.of())
-                .build();
+    void updateMetricsOneIteration(SweepResults sweepResults) {
+        cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), Optional.empty());
+        cellsDeletedMetric.update(sweepResults.getStaleValuesDeleted(), Optional.empty());
+        sweepTimeSweepingMetric.update(sweepResults.getTimeInMillis(), Optional.empty());
+        sweepTimeElapsedMetric.update(sweepResults.getTimeElapsedSinceStartedSweeping(), Optional.empty());
     }
 
-    void examinedCellsOneIteration(long numExamined) {
-        cellsSweptMetric.update(numExamined);
-    }
-
-    void deletedCellsOneIteration(long numDeleted) {
-        cellsDeletedMetric.update(numDeleted);
-    }
-
-    void sweepTimeOneIteration(long timeSweeping) {
-        sweepTimeSweepingMetric.update(timeSweeping);
-    }
-
-    void examinedCellsFullTable(long numExamined, TableReference tableRef) {
-        cellsSweptMetric.update(numExamined, tableRef);
-    }
-
-    void deletedCellsFullTable(long numDeleted, TableReference tableRef) {
-        cellsDeletedMetric.update(numDeleted, tableRef);
-    }
-
-    void timeSweepingFullTable(long timeSweeping, TableReference tableRef) {
-        sweepTimeSweepingMetric.update(timeSweeping, tableRef);
-    }
-
-    void sweepTimeElapsedFullTable(long timeElapsedSinceStart, TableReference tableRef) {
-        sweepTimeElapsedMetric.update(timeElapsedSinceStart, tableRef);
+    void updateMetricsFullTable(SweepResults sweepResults, TableReference tableRef) {
+        cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), Optional.of(tableRef));
+        cellsDeletedMetric.update(sweepResults.getStaleValuesDeleted(), Optional.of(tableRef));
+        sweepTimeSweepingMetric.update(sweepResults.getTimeInMillis(), Optional.of(tableRef));
+        sweepTimeElapsedMetric.update(sweepResults.getTimeElapsedSinceStartedSweeping(), Optional.of(tableRef));
     }
 
     void sweepError() {
-        sweepErrorMetric.update(1);
+        sweepErrorMetric.update(1, Optional.empty());
     }
 }

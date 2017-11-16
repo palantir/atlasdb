@@ -50,11 +50,12 @@ public abstract class SweepResults {
     public abstract long getTimeInMillis();
 
     /**
-     * Time spent since started sweeping this table in milliseconds.
+     * Time in milliseconds when we started sweeping this table.
      */
-    @Value.Default
-    public long getTimeElapsedSinceStart() {
-        return getTimeInMillis();
+    public abstract long getTimeSweepStarted();
+
+    public long getTimeElapsedSinceStartedSweeping() {
+        return System.currentTimeMillis() - getTimeSweepStarted();
     }
 
     /**
@@ -68,7 +69,8 @@ public abstract class SweepResults {
                 .staleValuesDeleted(getStaleValuesDeleted() + other.getStaleValuesDeleted())
                 .sweptTimestamp(other.getSweptTimestamp())
                 .nextStartRow(other.getNextStartRow())
-                .timeInMillis(other.getTimeInMillis())
+                .timeInMillis(getTimeInMillis() + other.getTimeInMillis())
+                .timeSweepStarted(getTimeSweepStarted())
                 .build();
     }
 
@@ -87,7 +89,7 @@ public abstract class SweepResults {
                 .sweptTimestamp(0)
                 .nextStartRow(startRow)
                 .timeInMillis(0)
-                .timeElapsedSinceStart(0)
+                .timeSweepStarted(0)
                 .build();
     }
 

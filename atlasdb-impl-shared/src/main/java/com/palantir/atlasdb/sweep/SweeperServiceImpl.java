@@ -126,8 +126,11 @@ public final class SweeperServiceImpl implements SweeperService {
                     cumulativeResults.getNextStartRow().get(),
                     sweepBatchConfig);
 
+            // todo(gmaretic): verify this method is correct
             cumulativeResults = cumulativeResults.accumulateWith(results);
         }
+
+        specificTableSweeper.updateMetricsFullTable(cumulativeResults, tableRef);
 
         return cumulativeResults;
     }

@@ -41,7 +41,6 @@ import com.palantir.atlasdb.sweep.progress.SweepProgressStoreImpl;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
-import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -134,7 +133,7 @@ public class SpecificTableSweeper {
             SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
             logSweepPerformance(tableRef, startRow, results);
 
-            reportSweepMetricsAfterOneIteration(results);
+            sweepMetrics.updateMetricsOneIteration(results);
 
             return results;
         } catch (RuntimeException e) {
@@ -200,10 +199,7 @@ public class SpecificTableSweeper {
                 tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
                 currentIteration.getSweptTimestamp());
         long timeInMillis = tableToSweep.getTimeInMillisPreviously() + currentIteration.getTimeInMillis();
-        // todo(gmaretic): should we use some other Clock?
-        long timeElapsedSinceStart = tableToSweep.getStartTimeInMillis()
-                .map(start -> new SystemClock().getTimeMillis() - start)
-                .orElse(currentIteration.getTimeInMillis());
+        long timeSweepStarted = tableToSweep.getStartTimeInMillis().orElse(currentIteration.getTimeSweepStarted());
 
         return SweepResults.builder()
                 .staleValuesDeleted(staleValuesDeleted)
@@ -211,7 +207,7 @@ public class SpecificTableSweeper {
                 .sweptTimestamp(minimumSweptTimestamp)
                 .nextStartRow(currentIteration.getNextStartRow())
                 .timeInMillis(timeInMillis)
-                .timeElapsedSinceStart(timeElapsedSinceStart)
+                .timeSweepStarted(timeSweepStarted)
                 .build();
     }
 
@@ -226,7 +222,6 @@ public class SpecificTableSweeper {
                         tableToSweep.getTableRef(),
                         ImmutableUpdateSweepPriority.builder().newWriteCount(0L).build());
             }
-            // todo(gmaretic): should we use some other Clock?
             SweepProgress newProgress = ImmutableSweepProgress.builder()
                     .tableRef(tableToSweep.getTableRef())
                     .staleValuesDeleted(results.getStaleValuesDeleted())
@@ -236,8 +231,7 @@ public class SpecificTableSweeper {
                     .startColumn(PtBytes.toBytes("unused"))
                     .minimumSweptTimestamp(results.getSweptTimestamp())
                     .timeInMillis(results.getTimeInMillis())
-                    .startTimeInMillis(tableToSweep.getStartTimeInMillis()
-                            .orElse(new SystemClock().getTimeMillis() - results.getTimeInMillis()))
+                    .startTimeInMillis(results.getTimeSweepStarted())
                     .build();
             sweepProgressStore.saveProgress(newProgress);
             return null;
@@ -253,8 +247,8 @@ public class SpecificTableSweeper {
                 SafeArg.of("cellTs pairs examined", cumulativeResults.getCellTsPairsExamined()),
                 SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
-                SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStart()));
-        reportSweepMetricsAfterSweepingFullTable(cumulativeResults, tableToSweep.getTableRef());
+                SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
+        updateMetricsFullTable(cumulativeResults, tableToSweep.getTableRef());
         sweepProgressStore.clearProgress();
     }
 
@@ -292,17 +286,8 @@ public class SpecificTableSweeper {
         });
     }
 
-    private void reportSweepMetricsAfterOneIteration(SweepResults sweepResults) {
-        sweepMetrics.examinedCellsOneIteration(sweepResults.getCellTsPairsExamined());
-        sweepMetrics.deletedCellsOneIteration(sweepResults.getStaleValuesDeleted());
-        sweepMetrics.sweepTimeOneIteration(sweepResults.getTimeInMillis());
-    }
-
-    private void reportSweepMetricsAfterSweepingFullTable(SweepResults cumulativeResults, TableReference tableRef) {
-        sweepMetrics.examinedCellsFullTable(cumulativeResults.getCellTsPairsExamined(), tableRef);
-        sweepMetrics.deletedCellsFullTable(cumulativeResults.getStaleValuesDeleted(), tableRef);
-        sweepMetrics.timeSweepingFullTable(cumulativeResults.getTimeInMillis(), tableRef);
-        sweepMetrics.sweepTimeElapsedFullTable(cumulativeResults.getTimeElapsedSinceStart(), tableRef);
+    void updateMetricsFullTable(SweepResults cumulativeResults, TableReference tableRef) {
+        sweepMetrics.updateMetricsFullTable(cumulativeResults, tableRef);
     }
 
     private static String startRowToHex(@Nullable byte[] row) {

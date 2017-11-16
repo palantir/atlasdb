@@ -146,6 +146,7 @@ public class SweepTaskRunner {
                                RunType runType,
                                Sweeper sweeper) {
         Stopwatch watch = Stopwatch.createStarted();
+        long timeSweepStarted = System.currentTimeMillis();
         log.info("Beginning iteration of sweep for table {} starting at row {}",
                 LoggingArgs.tableRef(tableRef),
                 UnsafeArg.of("startRow", PtBytes.encodeHexString(startRow)));
@@ -201,6 +202,7 @@ public class SweepTaskRunner {
                     .staleValuesDeleted(totalCellTsPairsDeleted)
                     .sweptTimestamp(sweepTs)
                     .timeInMillis(watch.elapsed(TimeUnit.MILLISECONDS))
+                    .timeSweepStarted(timeSweepStarted)
                     .build();
         }
     }
