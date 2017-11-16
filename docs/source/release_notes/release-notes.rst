@@ -48,8 +48,15 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new| |improved|
+         - Sweep now exposes tagged metrics per table indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started for each full run of sweep on a given table.
+           Logs will also include the new timing information.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
+
+    *    - |new| |improved|
+         - Sweep now exposes metrics for time spent sweeping an iteration, and time elapsed since sweep started sweeping the current table that are updated after each iteration of sweep.
+           Logs will also include the new timing information.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
 
 =======
 v0.67.0
