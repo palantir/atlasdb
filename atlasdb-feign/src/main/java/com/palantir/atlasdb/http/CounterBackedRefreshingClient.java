@@ -25,16 +25,16 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.processors.AutoDelegate;
 
 import feign.Client;
 import feign.Request;
 import feign.Response;
 
-@AutoDelegate(typeToExtend = Client.class)
 public class CounterBackedRefreshingClient implements Client {
     private static final Logger log = LoggerFactory.getLogger(CounterBackedRefreshingClient.class);
 
+    // This class is intended as a temporary workaround for okhttp#3670, where http2 connections don't handle
+    // integer overflows for stream IDs.
     private static final long DEFAULT_REQUEST_COUNT_BEFORE_REFRESH = 500_000_000L;
 
     private final Supplier<Client> refreshingSupplier;
@@ -64,9 +64,19 @@ public class CounterBackedRefreshingClient implements Client {
         long currentCount = counter.incrementAndGet();
         if (currentCount > requestCountBeforeRefresh && counter.compareAndSet(currentCount, 0)) {
             // This is a bit racy, but we ensure only one thread got to do the refresh.
+            // There is a risk that the supplier throws, but...
+            // (1) for our use case it shouldn't, and
+            // (2) even if it does we probably want to continue.
             log.info("Creating a new Feign client, as we believe that {} requests have been made.",
                     SafeArg.of("count", currentCount));
-            currentClient = refreshingSupplier.get();
+            try {
+                currentClient = refreshingSupplier.get();
+            } catch (RuntimeException e) {
+                log.warn("An error occurred whilst trying to re-create an OkHttpClient, because {} requests were made."
+                        + " Continuing operation with the old client...",
+                        SafeArg.of("count", currentCount),
+                        e);
+            }
         }
         return currentClient;
     }
