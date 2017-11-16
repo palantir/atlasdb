@@ -98,20 +98,31 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
         @Override
         public LockClient tryLock() {
-            while (true) {
-                synchronized (sync) {
-                    if (sync.tryAcquireShared(clientIndex) > 0) {
-                        return null;
+            boolean wasInterrupted = false;
+            try {
+                while (true) {
+                    synchronized (sync) {
+                        try {
+                            if (sync.tryAcquireSharedNanos(clientIndex, 1)) {
+                                return null;
+                            }
+                        } catch (InterruptedException e) {
+                            wasInterrupted = true;
+                        }
+                        LockClient lockHolder = sync.getLockHolder();
+                        if (lockHolder != null) {
+                            return lockHolder;
+                        }
                     }
-                    LockClient lockHolder = sync.getLockHolder();
-                    if (lockHolder != null) {
-                        return lockHolder;
-                    }
+                    // the lock was free, but we couldn't acquire it because
+                    // someone else was waiting for it (no barging). Yield
+                    // to give them a chance to grab it.
+                    Thread.yield();
                 }
-                // the lock was free, but we couldn't acquire it because
-                // someone else was waiting for it (no barging). Yield
-                // to give them a chance to grab it.
-                Thread.yield();
+            } finally {
+                if (wasInterrupted) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
 
@@ -175,20 +186,31 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
         @Override
         public LockClient tryLock() {
-            while (true) {
-                synchronized (sync) {
-                    if (sync.tryAcquire(clientIndex)) {
-                        return null;
+            boolean wasInterrupted = false;
+            try {
+                while (true) {
+                    synchronized (sync) {
+                        try {
+                            if (sync.tryAcquireNanos(clientIndex, 1)) {
+                                return null;
+                            }
+                        } catch (InterruptedException e) {
+                            wasInterrupted = true;
+                        }
+                        LockClient lockHolder = sync.getLockHolder();
+                        if (lockHolder != null) {
+                            return lockHolder;
+                        }
                     }
-                    LockClient lockHolder = sync.getLockHolder();
-                    if (lockHolder != null) {
-                        return lockHolder;
-                    }
+                    // the lock was free, but we couldn't acquire it because
+                    // someone else was waiting for it (no barging). Yield
+                    // to give them a chance to grab it.
+                    Thread.yield();
                 }
-                // the lock was free, but we couldn't acquire it because
-                // someone else was waiting for it (no barging). Yield
-                // to give them a chance to grab it.
-                Thread.yield();
+            } finally {
+                if (wasInterrupted) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
 
