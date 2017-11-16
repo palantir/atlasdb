@@ -85,4 +85,22 @@ public class CounterBackedRefreshingClientTest {
         verify(client, times(3)).execute(request, options);
         verifyNoMoreInteractions(clientSupplier, client);
     }
+
+    @Test
+    public void requestsContinueWithOldClientIfDelegateSupplierThrows() throws IOException {
+        when(clientSupplier.get()).thenReturn(client);
+        when(client.execute(request, options)).thenReturn(
+                Response.create(204, "no content", ImmutableMap.of(), new byte[0]));
+
+        Client refreshingClient = new CounterBackedRefreshingClient(clientSupplier, 2);
+        refreshingClient.execute(request, options);
+
+        when(clientSupplier.get()).thenThrow(new IllegalStateException("bad"));
+        refreshingClient.execute(request, options);
+        refreshingClient.execute(request, options); // Creation failed, so we delegate to the old client still.
+
+        verify(clientSupplier, times(2)).get();
+        verify(client, times(3)).execute(request, options);
+        verifyNoMoreInteractions(clientSupplier, client);
+    }
 }
