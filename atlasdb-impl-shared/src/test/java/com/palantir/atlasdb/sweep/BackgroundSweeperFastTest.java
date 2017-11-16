@@ -19,7 +19,9 @@ import static org.mockito.Matchers.any;
 
 import java.util.Optional;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -28,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
+import com.palantir.atlasdb.sweep.progress.SweepProgress;
 
 public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
@@ -88,7 +91,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     }
 
     @Test
-    public void testWriteProgressAfterIncompleteRun() {
+    public void testWriteProgressAfterIncompleteRunUsesSystemTimeForStart() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
         setupTaskRunner(ImmutableSweepResults.builder()
@@ -101,8 +104,17 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
 
-        Mockito.verify(progressStore).saveProgress(
-                Mockito.eq(ImmutableSweepProgress.builder()
+        ArgumentCaptor<SweepProgress> argumentCaptor = ArgumentCaptor.forClass(SweepProgress.class);
+        Mockito.verify(progressStore).saveProgress(argumentCaptor.capture());
+
+        SweepProgress savedProgress = argumentCaptor.getValue();
+        long timeSweepStarted = savedProgress.startTimeInMillis();
+
+        Assertions.assertThat(timeSweepStarted).isLessThanOrEqualTo(System.currentTimeMillis());
+        Assertions.assertThat(timeSweepStarted).isGreaterThan(System.currentTimeMillis() - 1000L);
+
+        Assertions.assertThat(savedProgress)
+                .isEqualTo(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(2)
                         .cellTsPairsExamined(10)
@@ -110,8 +122,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                         .startRow(new byte[] {1, 2, 3})
                         .startColumn(PtBytes.toBytes("unused"))
                         .timeInMillis(10L)
-                        .startTimeInMillis(20L)
-                        .build()));
+                        .startTimeInMillis(timeSweepStarted)
+                        .build());
     }
 
     @Test
