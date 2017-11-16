@@ -196,7 +196,12 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>HTTP clients for endpoints relating to the Paxos protocols (<code class="docutils literal"><span class="pre">PingableLeader</span></code>, <code class="docutils literal"><span class="pre">PaxosAcceptor</span></code> and <code class="docutils literal"><span class="pre">PaxosLearner</span></code>) now reset themselves after 500 million requests have been executed.
+This was implemented as a workaround for <a class="reference external" href="https://github.com/square/okhttp/issues/3670">OkHttp #3670</a> where HTTP/2 connections managed in OkHttp would fail after just over a billion requests owing to an unexpected integer overflow.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2NNN">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
 </tbody>
