@@ -114,7 +114,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
 
-        return string.length() * Character.SIZE;
+        return string.length();
     }
 
     public static long getColumnSize(Column column) {

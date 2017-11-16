@@ -83,7 +83,6 @@ public final class ThriftQueryWeighers {
     }
 
     public static <T> QosClient.QueryWeigher<T> writeWeigher(Supplier<Long> bytesWritten) {
-
         Supplier<Long> weight = Suppliers.memoize(() -> safeGetNumBytesOrDefault(bytesWritten))::get;
 
         return new QosClient.QueryWeigher<T>() {

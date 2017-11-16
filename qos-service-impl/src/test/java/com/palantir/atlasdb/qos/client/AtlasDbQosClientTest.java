@@ -30,7 +30,6 @@ import org.junit.Test;
 import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.ImmutableQueryWeight;
 import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.QueryWeight;
 import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.ImmutableQosRateLimiters;
@@ -59,7 +58,6 @@ public class AtlasDbQosClientTest {
 
     private QosClient.QueryWeigher weigher = mock(QosClient.QueryWeigher.class);
 
-    private QosService qosService = mock(QosService.class);
     private QosRateLimiter readLimiter = mock(QosRateLimiter.class);
     private QosRateLimiter writeLimiter = mock(QosRateLimiter.class);
     private QosRateLimiters rateLimiters = ImmutableQosRateLimiters.builder()
@@ -71,8 +69,6 @@ public class AtlasDbQosClientTest {
 
     @Before
     public void setUp() {
-        when(qosService.getLimit("test-client")).thenReturn(100L);
-
         when(ticker.read()).thenReturn(START_NANOS).thenReturn(END_NANOS);
 
         when(weigher.estimate()).thenReturn(ESTIMATED_WEIGHT);
@@ -105,8 +101,7 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void consumesSpecifiedNumUnitsForWrites() {
-        qosClient.executeWrite(() -> {
-        }, weigher);
+        qosClient.executeWrite(() -> { }, weigher);
 
         verify(writeLimiter).consumeWithBackoff(ESTIMATED_BYTES);
         verify(writeLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
@@ -115,8 +110,7 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void recordsWriteMetrics() throws TestCheckedException {
-        qosClient.executeWrite(() -> {
-        }, weigher);
+        qosClient.executeWrite(() -> { }, weigher);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
         verifyNoMoreInteractions(metrics);
