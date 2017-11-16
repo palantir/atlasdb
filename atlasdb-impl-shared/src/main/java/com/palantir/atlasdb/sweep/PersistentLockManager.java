@@ -57,7 +57,7 @@ public class PersistentLockManager {
         this.persistentLockService = persistentLockService;
         this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
         this.metricsManager = new MetricsManager();
-        this.lockFailureMeter = metricsManager.registerMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
+        this.lockFailureMeter = metricsManager.registerOrGetMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
         this.lockId = null;
     }
 
