@@ -41,6 +41,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
  *    to the return value of {@link #acquire()}.
  * 2) A new method {@link #steal(int)} was added, to support taking permits without waiting
  * 3) Some static constructors were removed.
+ *
  **/
 public abstract class RateLimiter {
 
@@ -206,7 +207,7 @@ public abstract class RateLimiter {
 
     /**
      * Acquires the given number of permits from this {@code RateLimiter} if it can be obtained
-     * without exceeding the specified {@code timeout}, or returns {@code false} immediately (without
+     * without exceeding the specified {@code timeout}, or returns {@code empty} immediately (without
      * waiting) if the permits would not have been granted before the timeout expired.
      *
      * @param permits the number of permits to acquire
