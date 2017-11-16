@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -33,12 +34,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.util.DropwizardClientRule;
@@ -140,10 +143,13 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void testWriteProgressAndPriorityNotUpdatedAfterSweepRunsSuccessfully_butMetricsAre() {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
-        Mockito.verify(sweepMetrics, times(1)).updateMetricsOneIteration(RESULTS_WITH_NO_MORE_TO_SWEEP);
-        Mockito.verify(sweepMetrics, times(1)).updateMetricsFullTable(RESULTS_WITH_NO_MORE_TO_SWEEP, TABLE_REF);
-    }
+        ArgumentCaptor<SweepResults> argumentCaptor = ArgumentCaptor.forClass(SweepResults.class);
 
+        Mockito.verify(sweepMetrics, times(1)).updateMetricsOneIteration(argumentCaptor.capture());
+        verifyExpectedArgument(argumentCaptor.getValue());
+        Mockito.verify(sweepMetrics, times(1)).updateMetricsFullTable(argumentCaptor.capture(), eq(TABLE_REF));
+        verifyExpectedArgument(argumentCaptor.getValue());
+    }
 
     @Test
     public void sweepsEntireTableByDefault() {
@@ -168,6 +174,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
+
     @Test
     public void runsOneIterationIfRequested() {
         setupTaskRunner(RESULTS_WITH_MORE_TO_SWEEP);
@@ -177,6 +184,18 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
         verify(sweepTaskRunner, times(1)).run(any(), any(), any());
         verifyNoMoreInteractions(sweepTaskRunner);
+    }
+
+    private void verifyExpectedArgument(SweepResults observedResult) {
+        assertThat(observedResult.getTimeSweepStarted())
+                .isGreaterThanOrEqualTo(RESULTS_WITH_NO_MORE_TO_SWEEP.getTimeSweepStarted());
+        assertThat(observedResult.getTimeSweepStarted())
+                .isLessThanOrEqualTo(RESULTS_WITH_NO_MORE_TO_SWEEP.getTimeSweepStarted() + 5000L);
+        assertThat(RESULTS_WITH_NO_MORE_TO_SWEEP)
+                .isEqualTo(SweepResults.builder()
+                        .from(observedResult)
+                        .timeSweepStarted(RESULTS_WITH_NO_MORE_TO_SWEEP.getTimeSweepStarted())
+                        .build());
     }
 
     private String encodeStartRow(byte[] rowBytes) {
