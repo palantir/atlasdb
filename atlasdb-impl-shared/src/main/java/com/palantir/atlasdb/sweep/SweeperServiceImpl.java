@@ -117,8 +117,7 @@ public final class SweeperServiceImpl implements SweeperService {
             TableReference tableRef,
             byte[] startRow,
             SweepBatchConfig sweepBatchConfig) {
-        SweepResults cumulativeResults = SweepResults.createEmptySweepResult(
-                Optional.of(startRow));
+        SweepResults cumulativeResults = SweepResults.createEmptySweepResult(Optional.of(startRow));
 
         while (cumulativeResults.getNextStartRow().isPresent()) {
             SweepResults results = runOneBatchWithoutSavingResults(
@@ -126,7 +125,6 @@ public final class SweeperServiceImpl implements SweeperService {
                     cumulativeResults.getNextStartRow().get(),
                     sweepBatchConfig);
 
-            // todo(gmaretic): verify this method is correct
             cumulativeResults = cumulativeResults.accumulateWith(results);
         }
 

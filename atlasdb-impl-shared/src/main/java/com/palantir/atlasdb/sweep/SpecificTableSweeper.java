@@ -192,23 +192,7 @@ public class SpecificTableSweeper {
     }
 
     private static SweepResults getCumulativeSweepResults(TableToSweep tableToSweep, SweepResults currentIteration) {
-        long staleValuesDeleted = tableToSweep.getStaleValuesDeletedPreviously()
-                + currentIteration.getStaleValuesDeleted();
-        long cellsExamined = tableToSweep.getCellsExaminedPreviously() + currentIteration.getCellTsPairsExamined();
-        long minimumSweptTimestamp = Math.min(
-                tableToSweep.getPreviousMinimumSweptTimestamp().orElse(Long.MAX_VALUE),
-                currentIteration.getSweptTimestamp());
-        long timeInMillis = tableToSweep.getTimeInMillisPreviously() + currentIteration.getTimeInMillis();
-        long timeSweepStarted = tableToSweep.getStartTimeInMillis().orElse(currentIteration.getTimeSweepStarted());
-
-        return SweepResults.builder()
-                .staleValuesDeleted(staleValuesDeleted)
-                .cellTsPairsExamined(cellsExamined)
-                .sweptTimestamp(minimumSweptTimestamp)
-                .nextStartRow(currentIteration.getNextStartRow())
-                .timeInMillis(timeInMillis)
-                .timeSweepStarted(timeSweepStarted)
-                .build();
+        return tableToSweep.getPreviousSweepResults().accumulateWith(currentIteration);
     }
 
     private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {

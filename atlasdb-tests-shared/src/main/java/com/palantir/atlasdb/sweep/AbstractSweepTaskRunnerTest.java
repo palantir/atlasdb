@@ -355,6 +355,20 @@ public abstract class AbstractSweepTaskRunnerTest {
     }
 
     @Test
+    public void testSweepTimers() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo2", "bang", 75);
+        putIntoDefaultColumn("foo3", "baz", 100);
+        putIntoDefaultColumn("foo4", "buzz", 125);
+        SweepResults sweepResults = partialSweep(150);
+
+        assertThat(sweepResults.getTimeSweepStarted() + sweepResults.getTimeInMillis())
+                .isLessThanOrEqualTo(System.currentTimeMillis());
+        assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(sweepResults.getTimeSweepStarted() + 1000L);
+    }
+
+    @Test
     public void testSweepingAlreadySweptTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("row", "val", 10);
@@ -506,6 +520,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .cellTsPairsExamined(totalCellsExamined)
                         .sweptTimestamp(ts)
                         .timeInMillis(totalTime)
+                        .timeSweepStarted(0L)
                         .build();
             }
             startRow = results.getNextStartRow().get();
@@ -513,8 +528,6 @@ public abstract class AbstractSweepTaskRunnerTest {
         fail("failed to completely sweep a table in 100 runs");
         return null; // should never be reached
     }
-
-    // todo(gmaretic): add time tests
 
     private SweepResults partialSweep(long ts) {
         sweepTimestamp.set(ts);

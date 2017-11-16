@@ -18,7 +18,9 @@ package com.palantir.atlasdb.sweep;
 import java.util.Map;
 import java.util.Optional;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -41,10 +43,12 @@ public class SweepMetrics {
     private class SweepMetric {
         private final String histogram;
         private final String meter;
+        private final String gauge;
 
         SweepMetric(String name) {
             this.histogram = name + "H";
             this.meter = name + "M";
+            this.gauge = name + "G";
         }
 
         void update(long value, Optional<TableReference> tableRef) {
@@ -52,6 +56,25 @@ public class SweepMetrics {
             metricRegistry.meter(getTaggedMetric(meter, tableRef)).mark(value);
         }
 
+        void updateAggregate(long value) {
+            metricRegistry.histogram(getTaggedMetric(histogram, Optional.empty())).update(value);
+            ((Current) metricRegistry.gauge(getTaggedMetric(gauge, Optional.empty()), new Current())).setValue(value);
+        }
+
+    }
+
+    @VisibleForTesting
+    static class Current implements Gauge<Long> {
+        private long value = 0;
+
+        @Override
+        public Long getValue() {
+            return value;
+        }
+
+        public void setValue(long newValue) {
+            value = newValue;
+        }
     }
 
     private MetricName getTaggedMetric(String name, Optional<TableReference> tableRef) {
@@ -75,7 +98,7 @@ public class SweepMetrics {
         cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), Optional.empty());
         cellsDeletedMetric.update(sweepResults.getStaleValuesDeleted(), Optional.empty());
         sweepTimeSweepingMetric.update(sweepResults.getTimeInMillis(), Optional.empty());
-        sweepTimeElapsedMetric.update(sweepResults.getTimeElapsedSinceStartedSweeping(), Optional.empty());
+        sweepTimeElapsedMetric.updateAggregate(sweepResults.getTimeElapsedSinceStartedSweeping());
     }
 
     void updateMetricsFullTable(SweepResults sweepResults, TableReference tableRef) {

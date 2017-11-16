@@ -67,7 +67,7 @@ public abstract class SweepResults {
         return SweepResults.builder()
                 .cellTsPairsExamined(getCellTsPairsExamined() + other.getCellTsPairsExamined())
                 .staleValuesDeleted(getStaleValuesDeleted() + other.getStaleValuesDeleted())
-                .sweptTimestamp(other.getSweptTimestamp())
+                .sweptTimestamp(Math.min(getSweptTimestamp(), other.getSweptTimestamp()))
                 .nextStartRow(other.getNextStartRow())
                 .timeInMillis(getTimeInMillis() + other.getTimeInMillis())
                 .timeSweepStarted(getTimeSweepStarted())
@@ -86,10 +86,10 @@ public abstract class SweepResults {
         return builder()
                 .cellTsPairsExamined(0)
                 .staleValuesDeleted(0)
-                .sweptTimestamp(0)
+                .sweptTimestamp(Long.MAX_VALUE)
                 .nextStartRow(startRow)
                 .timeInMillis(0)
-                .timeSweepStarted(0)
+                .timeSweepStarted(System.currentTimeMillis())
                 .build();
     }
 
