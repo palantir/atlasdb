@@ -77,9 +77,6 @@ public class AtlasDbMetricsTest {
         AtlasDbMetrics.setMetricRegistries(metricRegistry, null);
     }
 
-
-    // todo(gmaretic): Tritium does not have an easy way to instrument with TaggedMetrics as of 0.8.3, so add those
-    // tests later
     @Test
     public void instrumentWithDefaultName() throws Exception {
         MetricRegistry metrics = setMetricRegistry();

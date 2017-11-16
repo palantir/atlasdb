@@ -27,8 +27,6 @@ public class MetricsRule extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         super.before();
-        // todo(gmaretic): DefaultTaggedMetricRegistry.getDefault() uses ExponentiallyDecayingReservoir for Histograms,
-        // but the class is final so fix later
         AtlasDbMetrics.setMetricRegistries(MetricRegistries.createWithHdrHistogramReservoirs(),
                 DefaultTaggedMetricRegistry.getDefault());
     }

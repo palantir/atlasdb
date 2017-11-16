@@ -89,7 +89,6 @@ public class SweepMetrics {
         if (safeOrUnsafeTableRef.isSafeForLogging()) {
             return ImmutableMap.of(safeOrUnsafeTableRef.getName(), safeOrUnsafeTableRef.getValue());
         } else {
-            // todo(gmaretic) Do something smarter?
             return ImmutableMap.of("unsafeTableRef", "unsafe");
         }
     }

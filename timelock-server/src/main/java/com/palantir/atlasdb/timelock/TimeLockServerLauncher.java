@@ -39,8 +39,6 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
         new TimeLockServerLauncher().run(args);
     }
 
-    // todo(gmaretic): DefaultTaggedMetricRegistry.getDefault() uses ExponentiallyDecayingReservoir for Histograms,
-    // but the class is final so fix later
     @Override
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
         MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();

@@ -237,8 +237,6 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         Mockito.verify(sweepMetrics).updateMetricsFullTable(fullResults, TABLE_REF);
     }
 
-    // todo(gmaretic): test that per table metrics are getting recorded as well
-
     @Test
     public void testCompactInternallyAfterCompleteRunIfNonZeroDeletes() {
         setNoProgress();

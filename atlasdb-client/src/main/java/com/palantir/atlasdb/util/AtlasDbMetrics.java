@@ -81,10 +81,6 @@ public final class AtlasDbMetrics {
         return registry;
     }
 
-    // todo(gmaretic): DefaultTaggedMetricRegistry.getDefault() uses ExponentiallyDecayingReservoir for Histograms,
-    // but the class is final so fix later
-    // todo(gmaretic): implement getOrCreate as above
-    // todo(gmaretic): add log line
     private static TaggedMetricRegistry createDefaultTaggedMetrics() {
         TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
         return taggedMetricRegistry;

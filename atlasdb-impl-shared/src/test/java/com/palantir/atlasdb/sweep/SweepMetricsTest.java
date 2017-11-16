@@ -235,7 +235,6 @@ public class SweepMetricsTest {
         assertSweepTimeElapsedWithinMarginOfErrorInMeterTagged(TABLE_REF, START_TIME, OTHER_START_TIME);
     }
 
-    // todo(gmaretic): this is not a "feature" but fix is not trivial. The test is for documentation purposes
     @Test
     public void allHistogramsAreAggregatedForAllUnSafeTables() {
         LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA, TABLE_REF2, UNSAFE_METADATA));
