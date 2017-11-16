@@ -48,7 +48,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
-public class LockRefreshingTimelockServiceTest {
+public class TimeLockClientTest {
 
     private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
@@ -58,7 +58,7 @@ public class LockRefreshingTimelockServiceTest {
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);
-    private final TimelockService timelock = new LockRefreshingTimelockService(delegate, refresher);
+    private final TimelockService timelock = new TimeLockClient(delegate, refresher);
 
     private static final long TIMEOUT = 10_000;
 

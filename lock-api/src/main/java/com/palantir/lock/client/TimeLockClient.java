@@ -35,25 +35,23 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-// TODO(nziebart): probably should make it more obvious that this class should always be used;
-// maybe call this a TimelockClient and require that everywhere? Could also be used for async unlocking..
-public class LockRefreshingTimelockService implements AutoCloseable, TimelockService {
+public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
 
-    public static LockRefreshingTimelockService createDefault(TimelockService timelockService) {
+    public static TimeLockClient createDefault(TimelockService timelockService) {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                .setNameFormat(LockRefreshingTimelockService.class.getSimpleName() + "-%d")
+                .setNameFormat(TimeLockClient.class.getSimpleName() + "-%d")
                 .setDaemon(true)
                 .build());
         LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
-        return new LockRefreshingTimelockService(timelockService, lockRefresher);
+        return new TimeLockClient(timelockService, lockRefresher);
     }
 
-    public LockRefreshingTimelockService(TimelockService delegate, LockRefresher lockRefresher) {
+    public TimeLockClient(TimelockService delegate, LockRefresher lockRefresher) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
     }
