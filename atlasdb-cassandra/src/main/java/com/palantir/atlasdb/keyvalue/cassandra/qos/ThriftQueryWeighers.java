@@ -58,12 +58,12 @@ public final class ThriftQueryWeighers {
             readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1);
 
     public static final QosClient.QueryWeigher<CqlResult> EXECUTE_CQL3_QUERY =
-            // TODO(nziebart): we need to inspect the schema to see how many rows there are - a CQL row is NOT a partition
-            // rows here will depend on the type of query executed in CqlExecutor: either (column, ts) pairs, or
-            // (key, column, ts) triplets
+            // TODO(nziebart): we need to inspect the schema to see how many rows there are - a CQL row is NOT a
+            // partition. rows here will depend on the type of query executed in CqlExecutor: either (column, ts) pairs,
+            // or (key, column, ts) triplets
             readWeigher(ThriftObjectSizeUtils::getCqlResultSize, ignored -> 1);
 
-    public static final QosClient.QueryWeigher<Void> batchMutate(
+    public static QosClient.QueryWeigher<Void> batchMutate(
             Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
         long numRows = ThriftObjectSizeUtils.getCollectionSize(mutationMap.values(), map -> (long) map.size());
         return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateWriteByteCount(mutationMap));
