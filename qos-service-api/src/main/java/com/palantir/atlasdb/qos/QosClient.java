@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.qos;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 public interface QosClient {
 
     interface ReadQuery<T, E extends Exception> {
@@ -29,12 +26,19 @@ public interface QosClient {
         void execute() throws E;
     }
 
+    interface QueryWeigher<T> {
+
+        QueryWeight estimate();
+
+        QueryWeight weigh(T result, long timeTakenNanos);
+
+    }
+
     <T, E extends Exception> T executeRead(
-            Supplier<Integer> estimatedWeight,
             ReadQuery<T, E> query,
-            Function<T, Integer> weigher) throws E;
+            QueryWeigher<T> weigher) throws E;
 
     <T, E extends Exception> void executeWrite(
-            Supplier<Integer> weight,
-            WriteQuery<E> query) throws E;
+            WriteQuery<E> query,
+            QueryWeigher<Void> weigher) throws E;
 }

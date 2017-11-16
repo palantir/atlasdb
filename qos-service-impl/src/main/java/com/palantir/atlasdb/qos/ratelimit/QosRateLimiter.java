@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
 
 /**
  * A rate limiter for database queries, based on "units" of expense. This limiter strives to maintain an upper limit on
@@ -55,7 +56,7 @@ public class QosRateLimiter {
     /**
      * Update the allowed rate, in units per second.
      */
-    public void updateRate(int unitsPerSecond) {
+    public void updateRate(double unitsPerSecond) {
         rateLimiter.setRate(unitsPerSecond);
     }
 
@@ -65,9 +66,9 @@ public class QosRateLimiter {
      *
      * @return the amount of time slept for, if any
      */
-    public Duration consumeWithBackoff(int estimatedNumUnits) {
+    public Duration consumeWithBackoff(long estimatedNumUnits) {
         Optional<Duration> waitTime = rateLimiter.tryAcquire(
-                estimatedNumUnits,
+                Ints.saturatedCast(estimatedNumUnits), // TODO(nziebart): deal with longs
                 maxBackoffTimeMillis,
                 TimeUnit.MILLISECONDS);
 
@@ -79,13 +80,13 @@ public class QosRateLimiter {
     }
 
     /**
-     * Records an adjustment to the original estimate of units consumed passed to {@link #consumeWithBackoff(int)}. This
+     * Records an adjustment to the original estimate of units consumed passed to {@link #consumeWithBackoff}. This
      * should be called after a query returns, when the exact number of units consumed is known. This value may be
      * positive (if the original estimate was too small) or negative (if the original estimate was too large).
      */
-    public void recordAdjustment(int adjustmentUnits) {
+    public void recordAdjustment(long adjustmentUnits) {
         if (adjustmentUnits > 0) {
-            rateLimiter.steal(adjustmentUnits);
+            rateLimiter.steal(Ints.saturatedCast(adjustmentUnits)); // TODO(nziebart): deal with longs
         }
         // TODO(nziebart): handle negative case
     }

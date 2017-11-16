@@ -33,7 +33,7 @@ import org.apache.cassandra.thrift.SuperColumn;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.cassandra.ThriftObjectSizeUtils;
+import com.palantir.atlasdb.keyvalue.cassandra.qos.ThriftObjectSizeUtils;
 
 public class ThriftObjectSizeUtilsTest {
 
