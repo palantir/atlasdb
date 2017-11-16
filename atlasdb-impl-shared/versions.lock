@@ -277,8 +277,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -730,8 +729,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {

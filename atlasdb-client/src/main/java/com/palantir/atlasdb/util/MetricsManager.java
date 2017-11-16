@@ -23,9 +23,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -90,11 +92,35 @@ public class MetricsManager {
         }
     }
 
-    public Meter registerMeter(Class clazz, String metricPrefix, String meterName) {
-        return registerMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
+    public Histogram registerOrGetHistogram(Class clazz, String metricName) {
+        return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
     }
 
-    private synchronized Meter registerMeter(String fullyQualifiedMeterName) {
+    private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
+        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
+        registeredMetrics.add(fullyQualifiedHistogramName);
+        return histogram;
+    }
+
+    public Timer registerOrGetTimer(Class clazz, String metricName) {
+        return registerOrGetTimer(MetricRegistry.name(clazz, metricName));
+    }
+
+    private Timer registerOrGetTimer(String fullyQualifiedHistogramName) {
+        Timer timer = metricRegistry.timer(fullyQualifiedHistogramName);
+        registeredMetrics.add(fullyQualifiedHistogramName);
+        return timer;
+    }
+
+    public Meter registerOrGetMeter(Class clazz, String meterName) {
+        return registerOrGetMeter(MetricRegistry.name(clazz, "", meterName));
+    }
+
+    public Meter registerOrGetMeter(Class clazz, String metricPrefix, String meterName) {
+        return registerOrGetMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
+    }
+
+    private synchronized Meter registerOrGetMeter(String fullyQualifiedMeterName) {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
         return meter;

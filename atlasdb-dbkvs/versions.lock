@@ -381,8 +381,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -976,8 +975,7 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.remoting3:jersey-servers",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.remoting3:jersey-servers"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {

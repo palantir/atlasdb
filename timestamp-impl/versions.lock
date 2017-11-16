@@ -186,8 +186,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -527,8 +526,7 @@
         "com.palantir.remoting3:tracing": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-tracing"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
