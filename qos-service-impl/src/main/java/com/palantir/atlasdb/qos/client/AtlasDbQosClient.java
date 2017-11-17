@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.qos.client;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QueryWeight;
@@ -65,16 +67,20 @@ public class AtlasDbQosClient implements QosClient {
         long estimatedNumBytes = weigher.estimate().numBytes();
         rateLimiter.consumeWithBackoff(estimatedNumBytes);
 
-        // TODO(nziebart): decide what to do if we encounter a timeout exception
-        long startTimeNanos = ticker.read();
-        T result = query.execute();
-        long totalTimeNanos = ticker.read() - startTimeNanos;
+        Stopwatch timer = Stopwatch.createStarted(ticker);
 
-        QueryWeight actualWeight = weigher.weigh(result, totalTimeNanos);
-        weightMetric.accept(actualWeight);
-        rateLimiter.recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
-
-        return result;
+        QueryWeight actualWeight = null;
+        try {
+            T result = query.execute();
+            actualWeight = weigher.weighSuccess(result, timer.elapsed(TimeUnit.NANOSECONDS));
+            return result;
+        } catch (Exception ex) {
+            actualWeight = weigher.weighFailure(ex, timer.elapsed(TimeUnit.NANOSECONDS));
+            throw ex;
+        } finally {
+            weightMetric.accept(actualWeight);
+            rateLimiter.recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
+        }
     }
 
 }
