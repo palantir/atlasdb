@@ -27,13 +27,14 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
+
 public class QosRateLimiterTest {
 
     private static final long START_TIME_MICROS = 0L;
     private static final long MAX_BACKOFF_TIME_MILLIS = 10_000;
 
-    com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter.SleepingStopwatch stopwatch = mock(
-            com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter.SleepingStopwatch.class);
+    RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
     QosRateLimiter limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS);
 
     @Before
