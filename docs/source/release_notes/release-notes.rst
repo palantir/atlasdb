@@ -41,6 +41,32 @@ Changelog
 develop
 =======
 
+.. replace this with the release date
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved| |devbreak|
+         - AtlasDB will now consistently throw an ``AtlasDbDependencyException`` when requests fail due to TimeLock being unavailable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2677>`__)
+
+    *    - |fixed|
+         - ``Throwables.createPalantirRuntimeException`` once again throws ``PalantirInterruptedException`` if the original exception was either ``InterruptedException`` or ``InterruptedIOException``.
+           This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.68.0
+=======
+
+16 November 2017
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -51,10 +77,9 @@ develop
     *    - |fixed|
          - HTTP clients for endpoints relating to the Paxos protocols (``PingableLeader``, ``PaxosAcceptor`` and ``PaxosLearner``) now reset themselves after 500 million requests have been executed.
            This was implemented as a workaround for `OkHttp #3670 <https://github.com/square/okhttp/issues/3670>`__ where HTTP/2 connections managed in OkHttp would fail after just over a billion requests owing to an unexpected integer overflow.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2NNN>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2680>`__)
 
-    *    -
-         -
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.67.0
@@ -163,10 +188,6 @@ v0.67.0
 
            Note that we also log a warning in these cases, with the message "A single get had quite a few bytes...".
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
-
-    *    - |improved| |devbreak|
-         - AtlasDB will now consistently throw an ``AtlasDbDependencyException`` when requests fail due to TimeLock being unavailable.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2677>`__)
 
     *    - |improved| |devbreak|
          - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.

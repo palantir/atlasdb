@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirInterruptedException;
 
 public final class Throwables {
 
@@ -112,6 +113,7 @@ public final class Throwables {
     private static RuntimeException createPalantirRuntimeException(String newMessage, Throwable ex) {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
+            return new PalantirInterruptedException(newMessage, ex);
         }
         return new PalantirRuntimeException(newMessage, ex);
     }
