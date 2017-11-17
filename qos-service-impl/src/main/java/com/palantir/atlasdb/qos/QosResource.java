@@ -18,7 +18,7 @@ package com.palantir.atlasdb.qos;
 
 import java.util.function.Supplier;
 
-import com.codahale.metrics.Gauge;
+import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -31,8 +31,9 @@ public class QosResource implements QosService {
     private final CassandraMetricsService cassandraMetricClient;
     private Supplier<QosServiceRuntimeConfig> config;
     private static final String COUNTER_ATTRIBUTE = "Count";
+    private static final String GAUGE_ATTRIBUTE = "Value";
     private static MetricsManager metricsManager = new MetricsManager();
-    Supplier<Integer> scaledLimit = () -> 1;
+    private static EvictingQueue<PendingTaskMetric> queue = EvictingQueue.create(100);
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
@@ -40,7 +41,6 @@ public class QosResource implements QosService {
                 CassandraMetricsService.class,
                 "qos-service",
                 ClientConfigurations.of(config.get().cassandraServiceConfig()));
-        metricsManager.registerHi(QosResource.class, "scaledLimit", scaledLimit);
     }
 
     @Override
@@ -49,27 +49,35 @@ public class QosResource implements QosService {
         int configLimit = config.get().clientLimits().getOrDefault(client, Integer.MAX_VALUE);
         int scaledLimit = (int) (configLimit * checkCassandraHealth());
         //TODO (hsaraogi): add client names as tags
-
+        metricsManager.registerOrGetHistogram(QosResource.class, "scaledLimit").update(scaledLimit);
         return configLimit;
     }
 
     private double checkCassandraHealth() {
-        // type=ClientRequest
-        // scope=Read,RangeSlice,Write
-        // name=Timeouts/Failures//
-        int readTimeoutCounter = getTimeoutCounter("Read");
+//        int readTimeoutCounter = getTimeoutCounter("Read");
 
-//        Counter writeTimeoutCounter = getTimeoutCounter("Write");
-//        Counter rangeSliceTimeoutCounter = getTimeoutCounter("RangeSlice");
-//        long totalTimeouts =
-//                rangeSliceTimeoutCounter.getCount() + writeTimeoutCounter.getCount() + readTimeoutCounter.getCount();
+        long numPendingCommitLogTasks = (long) cassandraMetricClient.getMetric(
+                "CommitLog",
+                "PendingTasks",
+                GAUGE_ATTRIBUTE,
+                ImmutableMap.of());
+        queue.add(ImmutablePendingTaskMetric.builder()
+                .numPendingTasks(numPendingCommitLogTasks)
+                .timetamp(System.currentTimeMillis())
+                .build());
 
-        System.out.println("totalTimeouts :" + readTimeoutCounter);
+        double averagePendingCommitLogTasks = (long) queue.stream()
+                .mapToLong(PendingTaskMetric::numPendingTasks)
+                .average()
+                .getAsDouble();
+
+        if (averagePendingCommitLogTasks < numPendingCommitLogTasks) {
+            return (numPendingCommitLogTasks - averagePendingCommitLogTasks) / averagePendingCommitLogTasks;
+        }
+        return 1.0;
     }
 
     private Integer getTimeoutCounter(String operation) {
-//        MultivaluedHashMap<String, String> scope = new MultivaluedHashMap<>();
-//        scope.putAll(ImmutableMap.of("scope", ImmutableList.of(operation)));
         return (Integer) cassandraMetricClient
                 .getMetric("ClientRequest", "Timeouts", COUNTER_ATTRIBUTE,
                         ImmutableMap.of("scope", operation));

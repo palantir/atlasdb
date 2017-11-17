@@ -936,11 +936,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         private final Meter totalRequestConnectionExceptions;
 
         RequestMetrics(String metricPrefix) {
-            totalRequests = metricsManager.registerMeter(
+            totalRequests = metricsManager.registerOrGetMeter(
                     CassandraClientPool.class, metricPrefix, "requests");
-            totalRequestExceptions = metricsManager.registerMeter(
+            totalRequestExceptions = metricsManager.registerOrGetMeter(
                     CassandraClientPool.class, metricPrefix, "requestExceptions");
-            totalRequestConnectionExceptions = metricsManager.registerMeter(
+            totalRequestConnectionExceptions = metricsManager.registerOrGetMeter(
                     CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
         }
 
