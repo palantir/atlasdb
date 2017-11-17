@@ -46,10 +46,10 @@ public final class ThriftObjectSizeUtils {
 
     public static long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
         long approxBytesForKeys = getCollectionSize(batchMutateMap.keySet(), ThriftObjectSizeUtils::getByteBufferSize);
-        long approxBytesForValues = getCollectionSize(batchMutateMap.values(), currentMap ->
-                getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
+        long approxBytesForValues = getCollectionSize(batchMutateMap.values(),
+                currentMap -> getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
                         + getCollectionSize(currentMap.values(),
-                        mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
+                            mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
         return approxBytesForKeys + approxBytesForValues;
     }
 
