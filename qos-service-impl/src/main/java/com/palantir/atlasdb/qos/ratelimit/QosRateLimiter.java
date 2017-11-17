@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
+import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
 
 /**
  * A rate limiter for database queries, based on "units" of expense. This limiter strives to maintain an upper limit on

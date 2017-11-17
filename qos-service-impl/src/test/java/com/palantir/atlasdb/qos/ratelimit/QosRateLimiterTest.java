@@ -27,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
+
 public class QosRateLimiterTest {
 
     private static final long START_TIME_MICROS = 0L;
