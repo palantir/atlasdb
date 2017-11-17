@@ -300,10 +300,16 @@ public class SweepMetricsTest {
         return MetricName.builder()
                 .safeName(MetricRegistry.name(SweepMetrics.class, name))
                 .safeTags(tableRef
-                        .map(tableReference -> safe
-                                ? ImmutableMap.of("tableRef", tableReference.toString())
-                                : ImmutableMap.of("unsafeTableRef", "unsafe"))
-                        .orElse(ImmutableMap.of()))
+                        .map(tableReference -> {
+                            if (safe) {
+                                return ImmutableMap.of("tableRef", tableReference.toString(),
+                                        SweepMetrics.PERIOD_TAG, SweepMetrics.TABLE_TAG);
+                            } else {
+                                return ImmutableMap.of("unsafeTableRef", "unsafe",
+                                        SweepMetrics.PERIOD_TAG, SweepMetrics.TABLE_TAG);
+                            }
+                        })
+                        .orElse(ImmutableMap.of(SweepMetrics.PERIOD_TAG, SweepMetrics.ITERATION_TAG)))
                 .build();
     }
 

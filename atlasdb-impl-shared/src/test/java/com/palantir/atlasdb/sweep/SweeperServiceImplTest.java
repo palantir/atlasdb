@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.util.DropwizardClientRule;
@@ -57,9 +56,8 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     private static final String INVALID_START_ROW = "xyz";
     SweeperService sweeperService;
 
-    private static final SweepResults RESULTS_WITH_NO_MORE_TO_SWEEP = SweepResults.createEmptySweepResult();
-    private static final SweepResults RESULTS_WITH_MORE_TO_SWEEP = SweepResults.createEmptySweepResult(
-            Optional.of(new byte[] {0x55}));
+    private static final SweepResults RESULTS_NO_MORE_TO_SWEEP = SweepResults.createEmptySweepResultWithNoMoreToSweep();
+    private static final SweepResults RESULTS_MORE_TO_SWEEP = SweepResults.createEmptySweepResultWithMoreToSweep();
 
     @Rule
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
@@ -77,7 +75,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
                 SweeperServiceImplTest.class,
                 dropwizardClientRule.baseUri().toString());
 
-        setupTaskRunner(RESULTS_WITH_NO_MORE_TO_SWEEP);
+        setupTaskRunner(RESULTS_NO_MORE_TO_SWEEP);
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
     }
 
@@ -177,7 +175,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Test
     public void runsOneIterationIfRequested() {
-        setupTaskRunner(RESULTS_WITH_MORE_TO_SWEEP);
+        setupTaskRunner(RESULTS_MORE_TO_SWEEP);
 
         sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
                 Optional.empty(), Optional.empty(), Optional.empty());
@@ -188,13 +186,13 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     private void verifyExpectedArgument(SweepResults observedResult) {
         assertThat(observedResult.getTimeSweepStarted())
-                .isGreaterThanOrEqualTo(RESULTS_WITH_NO_MORE_TO_SWEEP.getTimeSweepStarted());
+                .isGreaterThanOrEqualTo(RESULTS_NO_MORE_TO_SWEEP.getTimeSweepStarted());
         assertThat(observedResult.getTimeSweepStarted())
-                .isLessThanOrEqualTo(RESULTS_WITH_NO_MORE_TO_SWEEP.getTimeSweepStarted() + 5000L);
-        assertThat(RESULTS_WITH_NO_MORE_TO_SWEEP)
+                .isLessThanOrEqualTo(RESULTS_NO_MORE_TO_SWEEP.getTimeSweepStarted() + 5000L);
+        assertThat(RESULTS_NO_MORE_TO_SWEEP)
                 .isEqualTo(SweepResults.builder()
                         .from(observedResult)
-                        .timeSweepStarted(RESULTS_WITH_NO_MORE_TO_SWEEP.getTimeSweepStarted())
+                        .timeSweepStarted(RESULTS_NO_MORE_TO_SWEEP.getTimeSweepStarted())
                         .build());
     }
 

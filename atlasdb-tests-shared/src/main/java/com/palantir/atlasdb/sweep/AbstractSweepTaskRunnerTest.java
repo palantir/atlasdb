@@ -328,7 +328,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 PtBytes.EMPTY_BYTE_ARRAY);
-        assertEquals(SweepResults.createEmptySweepResult(), results);
+        assertEquals(SweepResults.createEmptySweepResultWithNoMoreToSweep(), results);
         assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTs("foo"));
     }
 
@@ -351,7 +351,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 nextStartRow);
-        assertEquals(SweepResults.createEmptySweepResult(), results);
+        assertEquals(SweepResults.createEmptySweepResultWithNoMoreToSweep(), results);
     }
 
     @Test

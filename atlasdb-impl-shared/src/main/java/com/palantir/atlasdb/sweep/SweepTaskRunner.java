@@ -125,17 +125,17 @@ public class SweepTaskRunner {
             // I did check and sweep.stats did contain the FQ table name for all of the tables,
             // so it is at least broken in some way that still allows namespaced tables to eventually be swept.
             log.warn("The sweeper should not be run on tables passed through namespace mapping.");
-            return SweepResults.createEmptySweepResult();
+            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
                     LoggingArgs.tableRef("tableRef", tableRef));
-            return SweepResults.createEmptySweepResult();
+            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
         Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
         if (!sweeper.isPresent()) {
-            return SweepResults.createEmptySweepResult();
+            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
     }

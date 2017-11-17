@@ -33,12 +33,19 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetrics {
     private final TaggedMetricRegistry metricRegistry = new MetricsManager().getTaggedRegistry();
-
     private final SweepMetric cellsSweptMetric = new SweepMetric("cellTimestampPairsExamined");
+
     private final SweepMetric cellsDeletedMetric = new SweepMetric("staleValuesDeleted");
     private final SweepMetric sweepTimeSweepingMetric = new SweepMetric("sweepTimeSweeping");
     private final SweepMetric sweepTimeElapsedMetric = new SweepMetric("sweepTimeElapsedSinceStart");
     private final SweepMetric sweepErrorMetric = new SweepMetric("sweepError");
+
+    @VisibleForTesting
+    static final String PERIOD_TAG = "period";
+    @VisibleForTesting
+    static final String ITERATION_TAG = "perIteration";
+    @VisibleForTesting
+    static final String TABLE_TAG = "perTable";
 
     private class SweepMetric {
         private final String histogram;
@@ -56,7 +63,7 @@ public class SweepMetrics {
             metricRegistry.meter(getTaggedMetric(meter, tableRef)).mark(value);
         }
 
-        void updateAggregate(long value) {
+        void updateTimeElapsed(long value) {
             metricRegistry.histogram(getTaggedMetric(histogram, Optional.empty())).update(value);
             ((Current) metricRegistry.gauge(getTaggedMetric(gauge, Optional.empty()), new Current())).setValue(value);
         }
@@ -65,7 +72,7 @@ public class SweepMetrics {
 
     @VisibleForTesting
     static class Current implements Gauge<Long> {
-        private long value = 0;
+        private volatile long value = 0;
 
         @Override
         public Long getValue() {
@@ -80,16 +87,16 @@ public class SweepMetrics {
     private MetricName getTaggedMetric(String name, Optional<TableReference> tableRef) {
         return MetricName.builder()
                 .safeName(MetricRegistry.name(SweepMetrics.class, name))
-                .safeTags(tableRef.map(SweepMetrics::getTag).orElse(ImmutableMap.of()))
+                .safeTags(tableRef.map(SweepMetrics::getTag).orElse(ImmutableMap.of(PERIOD_TAG, ITERATION_TAG)))
                 .build();
     }
 
     private static Map<String, String> getTag(TableReference tableRef) {
-        Arg<String> safeOrUnsafeTableRef = LoggingArgs.tableRef(tableRef);
-        if (safeOrUnsafeTableRef.isSafeForLogging()) {
-            return ImmutableMap.of(safeOrUnsafeTableRef.getName(), safeOrUnsafeTableRef.getValue());
+        Arg<String> maybeSafeTableRef = LoggingArgs.tableRef(tableRef);
+        if (maybeSafeTableRef.isSafeForLogging()) {
+            return ImmutableMap.of(maybeSafeTableRef.getName(), maybeSafeTableRef.getValue(), PERIOD_TAG, TABLE_TAG);
         } else {
-            return ImmutableMap.of("unsafeTableRef", "unsafe");
+            return ImmutableMap.of("unsafeTableRef", "unsafe", PERIOD_TAG, TABLE_TAG);
         }
     }
 
@@ -97,7 +104,7 @@ public class SweepMetrics {
         cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), Optional.empty());
         cellsDeletedMetric.update(sweepResults.getStaleValuesDeleted(), Optional.empty());
         sweepTimeSweepingMetric.update(sweepResults.getTimeInMillis(), Optional.empty());
-        sweepTimeElapsedMetric.updateAggregate(sweepResults.getTimeElapsedSinceStartedSweeping());
+        sweepTimeElapsedMetric.updateTimeElapsed(sweepResults.getTimeElapsedSinceStartedSweeping());
     }
 
     void updateMetricsFullTable(SweepResults sweepResults, TableReference tableRef) {

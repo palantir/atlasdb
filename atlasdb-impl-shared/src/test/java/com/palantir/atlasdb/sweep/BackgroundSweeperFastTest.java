@@ -100,7 +100,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .sweptTimestamp(12345L)
                 .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .timeInMillis(10L)
-                .timeSweepStarted(20L)
+                .timeSweepStarted(Long.MAX_VALUE)
                 .build());
         backgroundSweeper.runOnce();
 

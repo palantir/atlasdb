@@ -19,6 +19,8 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.encoding.PtBytes;
+
 @Value.Immutable
 public abstract class SweepResults {
 
@@ -59,26 +61,40 @@ public abstract class SweepResults {
     }
 
     /**
-     * Returns a new {@link SweepResults} representing cumulative results from this instance and {@code other}. Assumes
-     * that {@code other} represents results from subsequent iteration of sweep (i.e., it happened after the run that
-     * produced this instance).
+     * Returns a new {@link SweepResults} representing cumulative results from this instance and {@code other}.
+     * The operation is commutative.
      */
     public SweepResults accumulateWith(SweepResults other) {
         return SweepResults.builder()
+                .nextStartRow(minRowOptional(getNextStartRow(), other.getNextStartRow()))
                 .cellTsPairsExamined(getCellTsPairsExamined() + other.getCellTsPairsExamined())
                 .staleValuesDeleted(getStaleValuesDeleted() + other.getStaleValuesDeleted())
                 .sweptTimestamp(Math.min(getSweptTimestamp(), other.getSweptTimestamp()))
-                .nextStartRow(other.getNextStartRow())
                 .timeInMillis(getTimeInMillis() + other.getTimeInMillis())
-                .timeSweepStarted(getTimeSweepStarted())
+                .timeSweepStarted(Math.min(getTimeSweepStarted(), other.getTimeSweepStarted()))
                 .build();
+    }
+
+    private Optional<byte[]> minRowOptional(Optional<byte[]> fst, Optional<byte[]> snd) {
+        if (!fst.isPresent() || !snd.isPresent()) {
+            return Optional.empty();
+        }
+        if (PtBytes.compareTo(fst.get(), snd.get()) > 0) {
+            return fst;
+        } else {
+            return snd;
+        }
     }
 
     public static ImmutableSweepResults.Builder builder() {
         return ImmutableSweepResults.builder();
     }
 
-    public static SweepResults createEmptySweepResult() {
+    public static SweepResults createEmptySweepResultWithMoreToSweep() {
+        return createEmptySweepResult(Optional.of(PtBytes.EMPTY_BYTE_ARRAY));
+    }
+
+    public static SweepResults createEmptySweepResultWithNoMoreToSweep() {
         return createEmptySweepResult(Optional.empty());
     }
 
