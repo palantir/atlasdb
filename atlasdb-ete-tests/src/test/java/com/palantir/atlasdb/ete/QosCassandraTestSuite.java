@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +62,8 @@ public class QosCassandraTestSuite extends EteSetup {
         todoClient.addTodo(getTodoOfSize(100_000));
         assertThatThrownBy(() -> todoClient.addTodo(getTodoOfSize(100_000)))
                 .isInstanceOf(RuntimeException.class)
-                .as("Cannot write 100_000 bytes the second time as write limit of 1000 was consumed and the burst isnt enough either.");
+                .as("Cannot write 100_000 bytes the second time as write limit of "
+                        + "1000 was consumed and the burst isnt enough either.");
     }
 
     @Test
