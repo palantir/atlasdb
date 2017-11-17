@@ -15,18 +15,30 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertNull;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
@@ -62,6 +74,44 @@ public class QosCassandraTestSuite extends EteSetup {
         assertThatThrownBy(todoClient::getTodoList)
                 .isInstanceOf(RuntimeException.class)
                 .as("Cant read 30_000 bytes in 10 batches i.e. 3000 bytes multiple times when limit is 1000.");
+    }
+
+    @Test
+    public void canBeWritingLargeNumberOfBytesConcurrently() throws InterruptedException {
+        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+
+        CyclicBarrier barrier = new CyclicBarrier(100);
+        ForkJoinPool threadPool = new ForkJoinPool(100);
+
+        List<Future<?>> futures = Lists.newArrayList();
+
+        IntStream.range(0, 100).parallel().forEach(i ->
+                futures.add(threadPool.submit(() ->
+                        (Callable<Void>) () -> {
+                            try {
+                                barrier.await();
+                                todoClient.addTodo(getTodoOfSize(1_000));
+                            } catch (BrokenBarrierException | InterruptedException e) {
+                                // Do nothing
+                            }
+                            return null;
+                        })));
+
+        threadPool.shutdown();
+        Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),
+                "Not all threads writing data finished in the expected time.");
+
+        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        futures.forEach(future -> {
+            try {
+                future.get();
+            } catch (ExecutionException e) {
+                exceptionCounter.getAndIncrement();
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
+            }
+        });
+        assertThat(exceptionCounter.get()).isEqualTo(0);
     }
 
     @After
