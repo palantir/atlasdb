@@ -96,9 +96,9 @@ public class ThrowablesTest extends Assert {
     @Test
     public void unwrapAndThrowRateLimitExceededOrAtlasDbDependencyExceptionThrowsWrappedAtlasDbDependencyExceptions() {
         assertThatThrownBy(() -> Throwables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
-                new ExecutionException(RATE_LIMIT_EXCEEDED_EXCEPTION))).isEqualTo(RATE_LIMIT_EXCEEDED_EXCEPTION);
+                new ExecutionException(ATLASDB_DEPENDENCY_EXCEPTION))).isEqualTo(ATLASDB_DEPENDENCY_EXCEPTION);
         assertThatThrownBy(() -> Throwables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
-                new InvocationTargetException(RATE_LIMIT_EXCEEDED_EXCEPTION))).isEqualTo(RATE_LIMIT_EXCEEDED_EXCEPTION);
+                new InvocationTargetException(ATLASDB_DEPENDENCY_EXCEPTION))).isEqualTo(ATLASDB_DEPENDENCY_EXCEPTION);
     }
 
     @Test

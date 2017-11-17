@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.qos.ratelimit;
 
+/**
+ * This exception is thrown when a request is made through a {@link com.palantir.atlasdb.qos.QosClient}, but the
+ * request exceeds the limits defined by the QosClient in some way and thus cannot be completed.
+ */
 public class RateLimitExceededException extends RuntimeException {
     public RateLimitExceededException(String msg) {
         super(msg);
