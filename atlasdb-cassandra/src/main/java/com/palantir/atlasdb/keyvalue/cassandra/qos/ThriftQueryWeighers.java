@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeySlice;
@@ -30,6 +32,7 @@ import org.apache.cassandra.thrift.Mutation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.qos.ImmutableQueryWeight;
@@ -40,7 +43,8 @@ public final class ThriftQueryWeighers {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
 
-    public static final QueryWeight DEFAULT_ESTIMATED_WEIGHT = ImmutableQueryWeight.builder()
+    @VisibleForTesting
+    static final QueryWeight DEFAULT_ESTIMATED_WEIGHT = ImmutableQueryWeight.builder()
             .numBytes(100)
             .numDistinctRows(1)
             .timeTakenNanos(TimeUnit.MILLISECONDS.toNanos(2))
@@ -69,6 +73,13 @@ public final class ThriftQueryWeighers {
         return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateWriteByteCount(mutationMap));
     }
 
+    public static QosClient.QueryWeigher<CASResult> cas(List<Column> updates) {
+        // TODO(nziebart): technically CAS involves both reads and writes; currently we are just counting it as a read
+        // Also, it should probably be counted as multiple rows, since Paxos negotiations trigger serial writes
+        long numRows = 1;
+        return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getCasByteCount(updates));
+    }
+
     public static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead, Function<T, Integer> numRows) {
         return new QosClient.QueryWeigher<T>() {
             @Override
@@ -77,11 +88,19 @@ public final class ThriftQueryWeighers {
             }
 
             @Override
-            public QueryWeight weigh(T result, long timeTakenNanos) {
+            public QueryWeight weighSuccess(T result, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .numBytes(safeGetNumBytesOrDefault(() -> bytesRead.apply(result)))
                         .timeTakenNanos(timeTakenNanos)
                         .numDistinctRows(numRows.apply(result))
+                        .build();
+            }
+
+            @Override
+            public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
+                return ImmutableQueryWeight.builder()
+                        .from(estimate())
+                        .timeTakenNanos(timeTakenNanos)
                         .build();
             }
         };
@@ -101,7 +120,15 @@ public final class ThriftQueryWeighers {
             }
 
             @Override
-            public QueryWeight weigh(T result, long timeTakenNanos) {
+            public QueryWeight weighSuccess(T result, long timeTakenNanos) {
+                return ImmutableQueryWeight.builder()
+                        .from(estimate())
+                        .timeTakenNanos(timeTakenNanos)
+                        .build();
+            }
+
+            @Override
+            public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .from(estimate())
                         .timeTakenNanos(timeTakenNanos)

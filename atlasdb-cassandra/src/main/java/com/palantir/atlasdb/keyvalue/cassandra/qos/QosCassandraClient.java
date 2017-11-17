@@ -86,7 +86,10 @@ public class QosCassandraClient implements CassandraClient {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.executeWrite(
-                () -> client.batch_mutate(kvsMethodName, mutation_map, consistency_level),
+                () -> {
+                    client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
+                    return null;
+                },
                 ThriftQueryWeighers.batchMutate(mutation_map));
     }
 
@@ -103,9 +106,10 @@ public class QosCassandraClient implements CassandraClient {
     public CASResult cas(TableReference tableReference, ByteBuffer key, List<Column> expected, List<Column> updates,
             ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        // TODO(nziebart): should this be considered as a write or do we need to treat is as both read and write?
-        return client.cas(tableReference, key, expected, updates, serial_consistency_level,
-                commit_consistency_level);
+        return qosClient.executeWrite(
+                () -> client.cas(tableReference, key, expected, updates, serial_consistency_level,
+                commit_consistency_level),
+                ThriftQueryWeighers.cas(updates));
     }
 
     @Override

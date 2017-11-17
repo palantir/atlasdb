@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -72,7 +73,9 @@ public class AtlasDbQosClientTest {
         when(ticker.read()).thenReturn(START_NANOS).thenReturn(END_NANOS);
 
         when(weigher.estimate()).thenReturn(ESTIMATED_WEIGHT);
-        when(weigher.weigh(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+        when(weigher.weighSuccess(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+        when(weigher.weighFailure(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+
     }
 
     @Test
@@ -96,12 +99,12 @@ public class AtlasDbQosClientTest {
     public void passesResultAndTimeToReadWeigher() throws TestCheckedException {
         qosClient.executeRead(() -> "foo", weigher);
 
-        verify(weigher).weigh("foo", TOTAL_NANOS);
+        verify(weigher).weighSuccess("foo", TOTAL_NANOS);
     }
 
     @Test
     public void consumesSpecifiedNumUnitsForWrites() {
-        qosClient.executeWrite(() -> { }, weigher);
+        qosClient.executeWrite(() -> null, weigher);
 
         verify(writeLimiter).consumeWithBackoff(ESTIMATED_BYTES);
         verify(writeLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
@@ -110,10 +113,43 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void recordsWriteMetrics() throws TestCheckedException {
-        qosClient.executeWrite(() -> { }, weigher);
+        qosClient.executeWrite(() -> null, weigher);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
         verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void recordsReadMetricsOnFailure() throws TestCheckedException {
+        TestCheckedException error = new TestCheckedException();
+        assertThatThrownBy(() -> qosClient.executeRead(() -> {
+            throw error;
+        }, weigher)).isInstanceOf(TestCheckedException.class);
+
+        verify(metrics).recordRead(ACTUAL_WEIGHT);
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void recordsWriteMetricsOnFailure() throws TestCheckedException {
+        TestCheckedException error = new TestCheckedException();
+        assertThatThrownBy(() -> qosClient.executeWrite(() -> {
+            throw error;
+        }, weigher)).isInstanceOf(TestCheckedException.class);
+
+        verify(metrics).recordWrite(ACTUAL_WEIGHT);
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void passesExceptionToWeigherOnFailure() throws TestCheckedException {
+        TestCheckedException error = new TestCheckedException();
+        assertThatThrownBy(() -> qosClient.executeRead(() -> {
+            throw error;
+        }, weigher)).isInstanceOf(TestCheckedException.class);
+
+        verify(weigher).weighFailure(error, TOTAL_NANOS);
+        verify(weigher, never()).weighSuccess(any(), anyLong());
     }
 
     @Test
