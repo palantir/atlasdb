@@ -33,8 +33,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class ThriftQueryWeighersTest {
 
-    private static final ByteBuffer BYTES1 = ByteBuffer.allocate(1);
-    private static final ByteBuffer BYTES2 = ByteBuffer.allocate(1);
+    private static final ByteBuffer BYTES1 = ByteBuffer.allocate(3);
+    private static final ByteBuffer BYTES2 = ByteBuffer.allocate(7);
     private static final ColumnOrSuperColumn COLUMN = new ColumnOrSuperColumn();
     private static final KeySlice KEY_SLICE = new KeySlice();
     private static final Mutation MUTATION = new Mutation();
@@ -47,24 +47,33 @@ public class ThriftQueryWeighersTest {
                 BYTES1, ImmutableList.of(COLUMN, COLUMN),
                 BYTES2, ImmutableList.of(COLUMN));
 
-        assertThat(ThriftQueryWeighers.MULTIGET_SLICE.weigh(result, UNIMPORTANT_ARG)).isEqualTo(2);
+        long actualNumRows = ThriftQueryWeighers.MULTIGET_SLICE.weigh(result, UNIMPORTANT_ARG).numDistinctRows();
+
+        assertThat(actualNumRows).isEqualTo(2);
     }
 
     @Test
     public void rangeSlicesWeigherReturnsCorrectNumRows() {
         List<KeySlice> result = ImmutableList.of(KEY_SLICE, KEY_SLICE, KEY_SLICE);
 
-        assertThat(ThriftQueryWeighers.GET_RANGE_SLICES.weigh(result, UNIMPORTANT_ARG)).isEqualTo(3);
+        long actualNumRows = ThriftQueryWeighers.GET_RANGE_SLICES.weigh(result, UNIMPORTANT_ARG).numDistinctRows();
+
+        assertThat(actualNumRows).isEqualTo(3);
     }
 
     @Test
     public void getWeigherReturnsCorrectNumRows() {
-        assertThat(ThriftQueryWeighers.GET.weigh(COLUMN, UNIMPORTANT_ARG)).isEqualTo(1);
+        long actualNumRows = ThriftQueryWeighers.GET.weigh(COLUMN, UNIMPORTANT_ARG).numDistinctRows();
+
+        assertThat(actualNumRows).isEqualTo(1);
     }
 
     @Test
-    public void executeCql3QueryReturnsOneRowAlways() {
-        assertThat(ThriftQueryWeighers.EXECUTE_CQL3_QUERY.weigh(new CqlResult(), UNIMPORTANT_ARG)).isEqualTo(1);
+    public void executeCql3QueryWeigherReturnsOneRowAlways() {
+        long actualNumRows = ThriftQueryWeighers.EXECUTE_CQL3_QUERY.weigh(new CqlResult(),
+                UNIMPORTANT_ARG).numDistinctRows();
+
+        assertThat(actualNumRows).isEqualTo(1);
     }
 
     @Test
@@ -76,7 +85,10 @@ public class ThriftQueryWeighersTest {
                 BYTES2, ImmutableMap.of(
                         "baz", ImmutableList.of(MUTATION)));
 
-        assertThat(ThriftQueryWeighers.batchMutate(mutations)).isEqualTo(3);
+        long actualNumRows = ThriftQueryWeighers.batchMutate(mutations).weigh(null, UNIMPORTANT_ARG)
+                .numDistinctRows();
+
+        assertThat(actualNumRows).isEqualTo(3);
     }
 
 }
