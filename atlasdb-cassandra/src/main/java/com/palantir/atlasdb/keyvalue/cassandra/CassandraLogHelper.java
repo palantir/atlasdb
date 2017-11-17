@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,8 +37,8 @@ final class CassandraLogHelper {
         return host.getHostString();
     }
 
-    static List<String> blacklistedHosts(Map<InetSocketAddress, Long> blacklistedHosts) {
-        return blacklistedHosts.entrySet().stream()
+    static List<String> blacklistedHosts(Blacklist blacklist) {
+        return blacklist.getBlacklistedHosts().entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
                         host(blacklistedHostToBlacklistTime.getKey()),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
