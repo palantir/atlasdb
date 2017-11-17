@@ -128,6 +128,17 @@ public final class ThriftObjectSizeUtils {
                 + getTimestampSize();
     }
 
+    public static long getColumnSize(Column column) {
+        if (column == null) {
+            return getNullSize();
+        }
+
+        return getByteArraySize(column.getValue())
+                + getByteArraySize(column.getName())
+                + getTtlSize()
+                + getTimestampSize();
+    }
+
     private static long getCounterSuperColumnSize(CounterSuperColumn counterSuperColumn) {
         if (counterSuperColumn == null) {
             return getNullSize();
