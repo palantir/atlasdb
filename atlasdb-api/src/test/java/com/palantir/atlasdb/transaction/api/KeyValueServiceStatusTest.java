@@ -27,8 +27,8 @@ public class KeyValueServiceStatusTest {
         assertTrue(KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS.isHealthy());
     }
     @Test
-    public void mostOperationsMeansHealthy() {
-        assertTrue(KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES.isHealthy());
+    public void mostOperationsMeansNotHealthy() {
+        assertFalse(KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES.isHealthy());
     }
 
     @Test

@@ -26,9 +26,10 @@ public class ClusterAvailabilityStatusTest {
     public void allAvailableMeansHealthy() {
         assertTrue(ClusterAvailabilityStatus.ALL_AVAILABLE.isHealthy());
     }
+
     @Test
-    public void quorumAvailableMeansHealthy() {
-        assertTrue(ClusterAvailabilityStatus.QUORUM_AVAILABLE.isHealthy());
+    public void quorumAvailableMeansNotHealthy() {
+        assertFalse(ClusterAvailabilityStatus.QUORUM_AVAILABLE.isHealthy());
     }
 
     @Test
