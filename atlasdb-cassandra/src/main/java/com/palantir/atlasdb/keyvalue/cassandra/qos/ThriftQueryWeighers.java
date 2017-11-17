@@ -65,7 +65,7 @@ public final class ThriftQueryWeighers {
 
     public static QosClient.QueryWeigher<Void> batchMutate(
             Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
-        long numRows = ThriftObjectSizeUtils.getCollectionSize(mutationMap.values(), map -> (long) map.size());
+        long numRows = mutationMap.size();
         return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateWriteByteCount(mutationMap));
     }
 

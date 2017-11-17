@@ -80,15 +80,15 @@ public class ThriftQueryWeighersTest {
     public void batchMutateWeigherReturnsCorrectNumRows() {
         Map<ByteBuffer, Map<String, List<Mutation>>> mutations = ImmutableMap.of(
                 BYTES1, ImmutableMap.of(
-                        "foo", ImmutableList.of(MUTATION, MUTATION),
-                        "bar", ImmutableList.of(MUTATION)),
+                        "table1", ImmutableList.of(MUTATION, MUTATION),
+                        "table2", ImmutableList.of(MUTATION)),
                 BYTES2, ImmutableMap.of(
-                        "baz", ImmutableList.of(MUTATION)));
+                        "table1", ImmutableList.of(MUTATION)));
 
         long actualNumRows = ThriftQueryWeighers.batchMutate(mutations).weigh(null, UNIMPORTANT_ARG)
                 .numDistinctRows();
 
-        assertThat(actualNumRows).isEqualTo(3);
+        assertThat(actualNumRows).isEqualTo(2);
     }
 
 }
