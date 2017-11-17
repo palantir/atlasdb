@@ -183,7 +183,8 @@ public class CqlExecutorImpl implements CqlExecutor {
             try {
                 return clientPool.runWithRetryOnHost(host, createCqlFunction(cqlQuery));
             } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException("The query [" + cqlQuery + "] requires consistency " + consistency, e);
+                throw new InsufficientConsistencyException("The query [" + cqlQuery.queryFormat + "] requires consistency " + consistency,
+                                                           e);
             } catch (TException e) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
