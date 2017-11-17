@@ -101,7 +101,7 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void consumesSpecifiedNumUnitsForWrites() {
-        qosClient.executeWrite(() -> { }, weigher);
+        qosClient.executeWrite(() -> null, weigher);
 
         verify(writeLimiter).consumeWithBackoff(ESTIMATED_BYTES);
         verify(writeLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
@@ -110,7 +110,7 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void recordsWriteMetrics() throws TestCheckedException {
-        qosClient.executeWrite(() -> { }, weigher);
+        qosClient.executeWrite(() -> null, weigher);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
         verifyNoMoreInteractions(metrics);

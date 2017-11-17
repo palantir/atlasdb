@@ -22,6 +22,8 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeySlice;
@@ -35,7 +37,8 @@ public class ThriftQueryWeighersTest {
 
     private static final ByteBuffer BYTES1 = ByteBuffer.allocate(3);
     private static final ByteBuffer BYTES2 = ByteBuffer.allocate(7);
-    private static final ColumnOrSuperColumn COLUMN = new ColumnOrSuperColumn();
+    private static final ColumnOrSuperColumn COLUMN_OR_SUPER = new ColumnOrSuperColumn();
+    private static final Column COLUMN = new Column();
     private static final KeySlice KEY_SLICE = new KeySlice();
     private static final Mutation MUTATION = new Mutation();
 
@@ -44,8 +47,8 @@ public class ThriftQueryWeighersTest {
     @Test
     public void multigetSliceWeigherReturnsCorrectNumRows() {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> result = ImmutableMap.of(
-                BYTES1, ImmutableList.of(COLUMN, COLUMN),
-                BYTES2, ImmutableList.of(COLUMN));
+                BYTES1, ImmutableList.of(COLUMN_OR_SUPER, COLUMN_OR_SUPER),
+                BYTES2, ImmutableList.of(COLUMN_OR_SUPER));
 
         long actualNumRows = ThriftQueryWeighers.MULTIGET_SLICE.weigh(result, UNIMPORTANT_ARG).numDistinctRows();
 
@@ -63,7 +66,7 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void getWeigherReturnsCorrectNumRows() {
-        long actualNumRows = ThriftQueryWeighers.GET.weigh(COLUMN, UNIMPORTANT_ARG).numDistinctRows();
+        long actualNumRows = ThriftQueryWeighers.GET.weigh(COLUMN_OR_SUPER, UNIMPORTANT_ARG).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(1);
     }
@@ -71,6 +74,14 @@ public class ThriftQueryWeighersTest {
     @Test
     public void executeCql3QueryWeigherReturnsOneRowAlways() {
         long actualNumRows = ThriftQueryWeighers.EXECUTE_CQL3_QUERY.weigh(new CqlResult(),
+                UNIMPORTANT_ARG).numDistinctRows();
+
+        assertThat(actualNumRows).isEqualTo(1);
+    }
+
+    @Test
+    public void casQueryWeigherReturnsOneRowAlways() {
+        long actualNumRows = ThriftQueryWeighers.cas(ImmutableList.of(COLUMN, COLUMN)).weigh(new CASResult(true),
                 UNIMPORTANT_ARG).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(1);
