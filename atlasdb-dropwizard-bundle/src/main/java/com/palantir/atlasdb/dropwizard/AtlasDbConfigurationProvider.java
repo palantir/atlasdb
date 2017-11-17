@@ -15,8 +15,13 @@
  */
 package com.palantir.atlasdb.dropwizard;
 
+import java.util.Optional;
+
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 
 public interface AtlasDbConfigurationProvider {
     AtlasDbConfig getAtlasDbConfig();
+
+    Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig();
 }

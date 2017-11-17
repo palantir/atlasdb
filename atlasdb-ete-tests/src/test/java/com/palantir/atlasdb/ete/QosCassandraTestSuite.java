@@ -15,23 +15,24 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
+
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.todo.ImmutableTodo;
+import com.palantir.atlasdb.todo.Todo;
+import com.palantir.atlasdb.todo.TodoResource;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        TodoEteTest.class,
-        CommandLineEteTest.class,
-        })
 public class QosCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
+    private static final Todo TODO = ImmutableTodo.of(String.join("", Collections.nCopies(10_000, "a")));
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
@@ -39,4 +40,12 @@ public class QosCassandraTestSuite extends EteSetup {
             "docker-compose.qos.cassandra.yml",
             CLIENTS,
             CassandraEnvironment.get());
+
+    @Test
+    public void shouldFailIfWritingTooManyBytes() {
+        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+        assertThatThrownBy(() -> todoClient.addTodo(TODO))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("rate limited");
+    }
 }
