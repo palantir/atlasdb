@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.junit.Before;
@@ -45,9 +46,7 @@ public class QosServiceTest {
     public void before() {
         QosServiceRuntimeConfig qosServiceRuntimeConfig = mock(QosServiceRuntimeConfig.class);
         when(qosServiceRuntimeConfig.clientLimits()).thenReturn(ImmutableMap.of());
-        when(qosServiceRuntimeConfig.cassandraServiceConfig()).thenReturn(mockCassandraServiceConfig);
-        when(config.get()).thenReturn(qosServiceRuntimeConfig);
-        when(mockCassandraServiceConfig.security()).thenReturn(sslConfiguration);
+        when(qosServiceRuntimeConfig.cassandraServiceConfig()).thenReturn(Optional.empty());
 
         resource = new QosResource(config);
     }

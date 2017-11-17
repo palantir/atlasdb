@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.qos;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
@@ -29,9 +30,8 @@ import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public class QosResource implements QosService {
 
-    private final CassandraMetricsService cassandraMetricClient;
+    private final Optional<CassandraMetricsService> cassandraMetricClient;
     private Supplier<QosServiceRuntimeConfig> config;
-    private static final String COUNTER_ATTRIBUTE = "Count";
     private static final String GAUGE_ATTRIBUTE = "Value";
     private static MetricsManager metricsManager = new MetricsManager();
     private static EvictingQueue<PendingTaskMetric> queue = EvictingQueue.create(100);
@@ -39,11 +39,11 @@ public class QosResource implements QosService {
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
         this.cassandraMetricClient = config.get().cassandraServiceConfig()
-                .map(cassandraServiceConfig -> JaxRsClient.create(
+                .map(cassandraServiceConfig -> Optional.of(JaxRsClient.create(
                 CassandraMetricsService.class,
                 "qos-service",
-                ClientConfigurations.of(cassandraServiceConfig)))
-        .orElse(FakeCassandraMetricClient.create());
+                ClientConfigurations.of(cassandraServiceConfig))))
+        .orElse(Optional.empty());
     }
 
     @Override
@@ -51,6 +51,7 @@ public class QosResource implements QosService {
         //TODO (hsaraogi): return long once the ratelimiter can handle it.
         int configLimit = config.get().clientLimits().getOrDefault(client, Integer.MAX_VALUE);
         int scaledLimit = (int) (configLimit * checkCassandraHealth());
+
         //TODO (hsaraogi): add client names as tags
         metricsManager.registerOrGetHistogram(QosResource.class, "scaledLimit").update(scaledLimit);
         return configLimit;
@@ -58,42 +59,34 @@ public class QosResource implements QosService {
 
     private double checkCassandraHealth() {
 //        int readTimeoutCounter = getTimeoutCounter("Read");
+        if (cassandraMetricClient.isPresent()) {
+            Object numPendingCommitLogTasks = cassandraMetricClient.get().getMetric(
+                    "CommitLog",
+                    "PendingTasks",
+                    GAUGE_ATTRIBUTE,
+                    ImmutableMap.of());
 
-        Object numPendingCommitLogTasks = cassandraMetricClient.getMetric(
-                "CommitLog",
-                "PendingTasks",
-                GAUGE_ATTRIBUTE,
-                ImmutableMap.of());
+            Preconditions.checkState(numPendingCommitLogTasks instanceof Integer,
+                    "Expected type Integer, found %s",
+                    numPendingCommitLogTasks.getClass());
 
-        if (numPendingCommitLogTasks == FakeCassandraMetricClient.DUMMY_METRIC) {
-            // Cant connect to the Cassandra metric service;
-            return 1.0;
-        }
+            int numPendingCommitLogTasksInt = (int) numPendingCommitLogTasks;
 
-        Preconditions.checkState(numPendingCommitLogTasks instanceof Integer,
-                "Expected type Integer, found %s",
-                numPendingCommitLogTasks.getClass());
+            queue.add(ImmutablePendingTaskMetric.builder()
+                    .numPendingTasks(numPendingCommitLogTasksInt)
+                    .timetamp(System.currentTimeMillis())
+                    .build());
 
-        int numPendingCommitLogTasksInt = (int) numPendingCommitLogTasks;
-        queue.add(ImmutablePendingTaskMetric.builder()
-                .numPendingTasks(numPendingCommitLogTasksInt)
-                .timetamp(System.currentTimeMillis())
-                .build());
+            double averagePendingCommitLogTasks = queue.stream()
+                    .mapToInt(PendingTaskMetric::numPendingTasks)
+                    .average()
+                    .getAsDouble();
 
-        double averagePendingCommitLogTasks = queue.stream()
-                .mapToLong(PendingTaskMetric::numPendingTasks)
-                .average()
-                .getAsDouble();
-
-        if (Double.compare(averagePendingCommitLogTasks, (double) numPendingCommitLogTasks) < 0) {
-            return 1.0 - ((numPendingCommitLogTasksInt - averagePendingCommitLogTasks) / numPendingCommitLogTasksInt);
+            if (Double.compare(averagePendingCommitLogTasks, (double) numPendingCommitLogTasks) < 0) {
+                return 1.0 -
+                        ((numPendingCommitLogTasksInt - averagePendingCommitLogTasks) / numPendingCommitLogTasksInt);
+            }
         }
         return 1.0;
-    }
-
-    private Integer getTimeoutCounter(String operation) {
-        return (Integer) cassandraMetricClient
-                .getMetric("ClientRequest", "Timeouts", COUNTER_ATTRIBUTE,
-                        ImmutableMap.of("scope", operation));
     }
 }
