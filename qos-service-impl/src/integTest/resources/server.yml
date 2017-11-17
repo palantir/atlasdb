@@ -7,3 +7,9 @@ runtime:
   clientLimits:
     test: 10
     test2: 20
+  cassandraServiceConfig:
+    uris:
+      - https://localhost:9161/cassandra-sidecar/api/
+    security:
+      trustStorePath: /Users/hsaraogi/code/sls-cassandra/sls-cassandra-sidecar-server/var/security/truststore.jks
+

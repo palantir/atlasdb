@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.qos;
+
+package com.palantir.cassandra.sidecar.metrics;
+
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -24,11 +27,23 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 
-@Path("/qos")
-public interface QosService {
-    @Path("{client: [a-zA-Z0-9_-]+}/get-limit")
+/**
+ * Copied from internal sls Cassandra project.
+ */
+
+@Path("/metrics")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public interface CassandraMetricsService {
+    /**
+     * Backs up the SSTables for the specified keyspaces.
+     * If no keyspaces are specified this operation succeeds, but does nothing.
+     */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    int getLimit(@Safe @PathParam("client") String client);
+    @Path("/{type}/{name}/{attribute}")
+    Object getMetric(
+            @Safe @PathParam(value = "type") String type,
+            @Safe @PathParam(value = "name") String name,
+            @Safe @PathParam(value = "attribute") String attr,
+            @Safe Map<String, String> additionalParams);
 }

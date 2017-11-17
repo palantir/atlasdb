@@ -18,18 +18,55 @@ package com.palantir.atlasdb.qos;
 
 import java.util.function.Supplier;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
+import com.palantir.remoting3.clients.ClientConfigurations;
+import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public class QosResource implements QosService {
 
+    private final CassandraMetricsService cassandraMetricClient;
     private Supplier<QosServiceRuntimeConfig> config;
+    private static final String COUNTER_ATTRIBUTE = "Count";
+    private static MetricsManager metricsManager = new MetricsManager();
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
+        this.cassandraMetricClient = JaxRsClient.create(
+                CassandraMetricsService.class,
+                "qos-service",
+                ClientConfigurations.of(config.get().cassandraServiceConfig()));
     }
 
     @Override
-    public long getLimit(String client) {
-        return config.get().clientLimits().getOrDefault(client, Long.MAX_VALUE);
+    public int getLimit(String client) {
+        //TODO (hsaraogi): return long once the ratelimiter can handle it.
+        int configLimit = config.get().clientLimits().getOrDefault(client, Integer.MAX_VALUE);
+        int scaledLimit = (int) (configLimit * checkCassandraHealth());
+
+        return configLimit;
+    }
+
+    private double checkCassandraHealth() {
+        // type=ClientRequest
+        // scope=Read,RangeSlice,Write
+        // name=Timeouts/Failures//
+        int readTimeoutCounter = getTimeoutCounter("Read");
+
+//        Counter writeTimeoutCounter = getTimeoutCounter("Write");
+//        Counter rangeSliceTimeoutCounter = getTimeoutCounter("RangeSlice");
+//        long totalTimeouts =
+//                rangeSliceTimeoutCounter.getCount() + writeTimeoutCounter.getCount() + readTimeoutCounter.getCount();
+
+        System.out.println("totalTimeouts :" + readTimeoutCounter);
+    }
+
+    private Integer getTimeoutCounter(String operation) {
+//        MultivaluedHashMap<String, String> scope = new MultivaluedHashMap<>();
+//        scope.putAll(ImmutableMap.of("scope", ImmutableList.of(operation)));
+        return (Integer) cassandraMetricClient
+                .getMetric("ClientRequest", "Timeouts", COUNTER_ATTRIBUTE,
+                        ImmutableMap.of("scope", operation));
     }
 }

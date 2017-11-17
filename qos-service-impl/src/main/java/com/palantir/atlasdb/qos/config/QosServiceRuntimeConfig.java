@@ -22,10 +22,13 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
 @JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
 @JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
 public abstract class QosServiceRuntimeConfig {
-    public abstract Map<String, Long> clientLimits();
+    public abstract Map<String, Integer> clientLimits();
+
+    public abstract ServiceConfiguration cassandraServiceConfig();
 }
