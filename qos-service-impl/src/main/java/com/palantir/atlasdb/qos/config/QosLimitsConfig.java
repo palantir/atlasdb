@@ -16,16 +16,26 @@
 
 package com.palantir.atlasdb.qos.config;
 
-import java.util.Map;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
-@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
-public abstract class QosServiceRuntimeConfig {
-    public abstract Map<String, Long> clientLimits();
+@JsonDeserialize(as = ImmutableQosLimitsConfig.class)
+@JsonSerialize(as = ImmutableQosLimitsConfig.class)
+public abstract class QosLimitsConfig {
+
+    public static final QosLimitsConfig DEFAULT_NO_LIMITS = ImmutableQosLimitsConfig.builder().build();
+
+    @Value.Default
+    public int readBytesPerSecond() {
+        return Integer.MAX_VALUE;
+    }
+
+    @Value.Default
+    public int writeBytesPerSecond() {
+        return Integer.MAX_VALUE;
+    }
+
 }

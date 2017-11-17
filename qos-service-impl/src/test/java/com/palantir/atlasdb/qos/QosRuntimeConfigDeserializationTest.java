@@ -37,11 +37,11 @@ public class QosRuntimeConfigDeserializationTest {
 
     @Test
     public void canDeserializeQosServerConfiguration() throws IOException {
-        File testConfigFile = new File(QosServiceRuntimeConfig.class.getResource("/qos.yml").getPath());
+        File testConfigFile = new File(QosServiceRuntimeConfig.class.getResource("/qos-server.yml").getPath());
         QosServiceRuntimeConfig configuration = OBJECT_MAPPER.readValue(testConfigFile, QosServiceRuntimeConfig.class);
 
         assertThat(configuration).isEqualTo(ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test", 10, "test2", 20))
+                .clientLimits(ImmutableMap.of("test", 10L, "test2", 20L))
                 .build());
     }
 }

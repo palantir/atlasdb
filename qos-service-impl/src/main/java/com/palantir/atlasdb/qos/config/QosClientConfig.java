@@ -16,16 +16,32 @@
 
 package com.palantir.atlasdb.qos.config;
 
-import java.util.Map;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.remoting.api.config.service.HumanReadableDuration;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
-@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
-@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
-public abstract class QosServiceRuntimeConfig {
-    public abstract Map<String, Long> clientLimits();
+@JsonDeserialize(as = ImmutableQosClientConfig.class)
+@JsonSerialize(as = ImmutableQosClientConfig.class)
+public abstract class QosClientConfig {
+
+    public static final QosClientConfig DEFAULT = ImmutableQosClientConfig.builder().build();
+
+    public abstract Optional<ServiceConfiguration> qosService();
+
+    @Value.Default
+    public HumanReadableDuration maxBackoffSleepTime() {
+        return HumanReadableDuration.seconds(10);
+    }
+
+    @Value.Default
+    public QosLimitsConfig limits() {
+        return QosLimitsConfig.DEFAULT_NO_LIMITS;
+    }
+
 }

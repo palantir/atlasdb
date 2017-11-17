@@ -46,6 +46,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.qos.QosCassandraClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.exception.AtlasDbDependencyException;

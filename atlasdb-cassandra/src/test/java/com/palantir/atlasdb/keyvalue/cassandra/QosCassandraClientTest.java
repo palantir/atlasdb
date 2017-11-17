@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.qos.QosCassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.qos.QosClient;
 
@@ -62,7 +63,7 @@ public class QosCassandraClientTest {
     public void multigetSliceChecksLimit() throws TException, LimitExceededException {
         client.multiget_slice("get", TEST_TABLE, ImmutableList.of(ROW_KEY), SLICE_PREDICATE, ConsistencyLevel.ANY);
 
-        verify(qosClient, times(1)).executeRead(any(), any(), any());
+        verify(qosClient, times(1)).executeRead(any(), any());
         verifyNoMoreInteractions(qosClient);
     }
 
@@ -79,7 +80,7 @@ public class QosCassandraClientTest {
         CqlQuery query = new CqlQuery("SELECT * FROM test_table LIMIT 1");
         client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.ANY);
 
-        verify(qosClient, times(1)).executeRead(any(), any(), any());
+        verify(qosClient, times(1)).executeRead(any(), any());
         verifyNoMoreInteractions(qosClient);
     }
 
@@ -87,7 +88,7 @@ public class QosCassandraClientTest {
     public void getRangeSlicesChecksLimit() throws TException, LimitExceededException {
         client.get_range_slices("get", TEST_TABLE, SLICE_PREDICATE, new KeyRange(), ConsistencyLevel.ANY);
 
-        verify(qosClient, times(1)).executeRead(any(), any(), any());
+        verify(qosClient, times(1)).executeRead(any(), any());
         verifyNoMoreInteractions(qosClient);
     }
 }

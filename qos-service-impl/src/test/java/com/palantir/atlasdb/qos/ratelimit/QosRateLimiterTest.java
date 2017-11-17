@@ -30,9 +30,10 @@ import org.junit.Test;
 public class QosRateLimiterTest {
 
     private static final long START_TIME_MICROS = 0L;
+    private static final long MAX_BACKOFF_TIME_MILLIS = 10_000;
 
     RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
-    QosRateLimiter limiter = new QosRateLimiter(stopwatch);
+    QosRateLimiter limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS);
 
     @Before
     public void before() {
@@ -61,6 +62,15 @@ public class QosRateLimiterTest {
 
         assertThatThrownBy(() -> limiter.consumeWithBackoff(100))
                 .hasMessageContaining("rate limited");
+    }
+
+    @Test
+    public void doesNotThrowIfMaxBackoffTimeIsVeryLarge() {
+        QosRateLimiter limiterWithLargeBackoffLimit = new QosRateLimiter(stopwatch, Long.MAX_VALUE);
+        limiterWithLargeBackoffLimit.updateRate(10);
+
+        limiterWithLargeBackoffLimit.consumeWithBackoff(1_000_000_000);
+        limiterWithLargeBackoffLimit.consumeWithBackoff(1_000_000_000);
     }
 
     @Test
