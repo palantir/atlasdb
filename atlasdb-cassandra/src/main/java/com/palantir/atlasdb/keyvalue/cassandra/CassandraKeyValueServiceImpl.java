@@ -1783,7 +1783,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
                             && !thriftException.getMessage().contains("already existing table")) {
-                        throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(thriftException);
+                        throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
+                                thriftException);
                     }
                 }
             }
