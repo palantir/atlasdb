@@ -56,7 +56,7 @@ public class QosResource implements QosService {
     private double checkCassandraHealth() {
 //        int readTimeoutCounter = getTimeoutCounter("Read");
 
-        long numPendingCommitLogTasks = (long) cassandraMetricClient.getMetric(
+        int numPendingCommitLogTasks = (int) cassandraMetricClient.getMetric(
                 "CommitLog",
                 "PendingTasks",
                 GAUGE_ATTRIBUTE,
@@ -66,7 +66,7 @@ public class QosResource implements QosService {
                 .timetamp(System.currentTimeMillis())
                 .build());
 
-        double averagePendingCommitLogTasks = (long) queue.stream()
+        double averagePendingCommitLogTasks = queue.stream()
                 .mapToLong(PendingTaskMetric::numPendingTasks)
                 .average()
                 .getAsDouble();

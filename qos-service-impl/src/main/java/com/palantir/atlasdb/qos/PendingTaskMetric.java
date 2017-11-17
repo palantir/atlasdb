@@ -20,7 +20,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PendingTaskMetric {
-    long numPendingTasks();
+    int numPendingTasks();
 
     long timetamp();
 }
