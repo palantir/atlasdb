@@ -328,7 +328,12 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 PtBytes.EMPTY_BYTE_ARRAY);
-        assertEquals(SweepResults.createEmptySweepResultWithNoMoreToSweep(), results);
+        assertThat(results.getTimeSweepStarted()).isLessThanOrEqualTo(System.currentTimeMillis());
+        assertThat(results.getTimeSweepStarted()).isGreaterThan(System.currentTimeMillis() - 1000L);
+        assertEquals(results, SweepResults.builder()
+                .from(SweepResults.createEmptySweepResultWithNoMoreToSweep())
+                .timeSweepStarted(results.getTimeSweepStarted())
+                .build());
         assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTs("foo"));
     }
 
