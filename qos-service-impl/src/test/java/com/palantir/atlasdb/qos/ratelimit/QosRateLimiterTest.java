@@ -144,9 +144,11 @@ public class QosRateLimiterTest {
 
     @Test
     public void canUpdateRate() {
+        // baseline
         limiter.consumeWithBackoff(20);
         assertThat(limiter.consumeWithBackoff(20)).isGreaterThan(Duration.ZERO);
 
+        // increase to a large rate
         when(currentRate.get()).thenReturn(1000000L);
         limiter.consumeWithBackoff(1);
         tickMillis(1);
@@ -154,6 +156,7 @@ public class QosRateLimiterTest {
         assertThat(limiter.consumeWithBackoff(50)).isEqualTo(Duration.ZERO);
         assertThat(limiter.consumeWithBackoff(500)).isEqualTo(Duration.ZERO);
 
+        // decrease to small rate
         when(currentRate.get()).thenReturn(10L);
         tickMillis(1000);
 
