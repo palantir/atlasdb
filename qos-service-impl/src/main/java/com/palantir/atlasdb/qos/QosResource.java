@@ -18,8 +18,10 @@ package com.palantir.atlasdb.qos;
 
 import java.util.function.Supplier;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
@@ -30,6 +32,7 @@ public class QosResource implements QosService {
     private Supplier<QosServiceRuntimeConfig> config;
     private static final String COUNTER_ATTRIBUTE = "Count";
     private static MetricsManager metricsManager = new MetricsManager();
+    Supplier<Integer> scaledLimit = () -> 1;
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
@@ -37,6 +40,7 @@ public class QosResource implements QosService {
                 CassandraMetricsService.class,
                 "qos-service",
                 ClientConfigurations.of(config.get().cassandraServiceConfig()));
+        metricsManager.registerHi(QosResource.class, "scaledLimit", scaledLimit);
     }
 
     @Override
@@ -44,6 +48,7 @@ public class QosResource implements QosService {
         //TODO (hsaraogi): return long once the ratelimiter can handle it.
         int configLimit = config.get().clientLimits().getOrDefault(client, Integer.MAX_VALUE);
         int scaledLimit = (int) (configLimit * checkCassandraHealth());
+        //TODO (hsaraogi): add client names as tags
 
         return configLimit;
     }
