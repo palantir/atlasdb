@@ -69,7 +69,7 @@ public class RowGetter {
                             throw new InsufficientConsistencyException("get_range_slices requires " + consistency
                                     + " Cassandra nodes to be up and available.", e);
                         } catch (Exception e) {
-                            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                            throw Throwables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
                         }
                     }
 
