@@ -29,6 +29,6 @@ atlasdb:
 atlasdbRuntime:
   qos:
     limits:
-      readBytesPerSecond: 10000
+      readBytesPerSecond: 1000
       writeBytesPerSecond: 1000
 
