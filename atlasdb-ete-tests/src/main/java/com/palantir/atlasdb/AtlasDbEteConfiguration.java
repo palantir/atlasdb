@@ -32,4 +32,5 @@ public class AtlasDbEteConfiguration extends Configuration implements AtlasDbCon
     public AtlasDbConfig getAtlasDbConfig() {
         return atlasdb;
     }
+
 }
