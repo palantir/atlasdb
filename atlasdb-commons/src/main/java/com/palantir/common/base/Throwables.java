@@ -83,9 +83,9 @@ public final class Throwables {
     /**
      * If the provided Throwable is
      *   a) a RateLimitExceededException, then rethrow it;
-     *   b) a RuntimeException or Error, then rethrow it;
-     *   c) an ExecutionException or InvocationTargetException, then apply this method on the cause.
-     *   d) none of the above, then wrap it in an AtlasDbDependencYException and then rethrow it.
+     *   b) an ExecutionException or InvocationTargetException, then apply this method on the cause;
+     *   c) an AtlasDbDependencyException, then rethrow it;
+     *   d) none of the above, then wrap it in an AtlasDbDependencyException and throw that.
      */
     public static RuntimeException unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(Throwable ex) {
         if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
