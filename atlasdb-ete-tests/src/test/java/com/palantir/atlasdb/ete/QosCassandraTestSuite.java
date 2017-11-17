@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
 
 import java.util.Collections;
@@ -24,15 +25,17 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class QosCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
-    private static final Todo TODO = ImmutableTodo.of(String.join("", Collections.nCopies(10_000, "a")));
+    private static final Todo TODO = ImmutableTodo.of(String.join("", Collections.nCopies(100_000, "a")));
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
@@ -44,8 +47,11 @@ public class QosCassandraTestSuite extends EteSetup {
     @Test
     public void shouldFailIfWritingTooManyBytes() {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+        todoClient.addTodo(TODO);
         assertThatThrownBy(() -> todoClient.addTodo(TODO))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("rate limited");
+                .isInstanceOf(RuntimeException.class);
+        Meter meter = AtlasDbMetrics.getMetricRegistry().getMeters().get(
+                "com.palantir.atlasdb.qos.metrics.QosMetrics.numReadRequests");
+        assertThat(meter.getCount()).isGreaterThan(200_000).isLessThan(201_000);
     }
 }
