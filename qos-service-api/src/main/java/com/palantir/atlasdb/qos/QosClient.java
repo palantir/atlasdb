@@ -24,7 +24,8 @@ public interface QosClient {
 
     interface QueryWeigher<T> {
         QueryWeight estimate();
-        QueryWeight weigh(T result, long timeTakenNanos);
+        QueryWeight weighSuccess(T result, long timeTakenNanos);
+        QueryWeight weighFailure(Exception error, long timeTakenNanos);
     }
 
     <T, E extends Exception> T executeRead(

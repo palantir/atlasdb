@@ -32,6 +32,7 @@ import org.apache.cassandra.thrift.Mutation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.qos.ImmutableQueryWeight;
@@ -42,7 +43,8 @@ public final class ThriftQueryWeighers {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
 
-    public static final QueryWeight DEFAULT_ESTIMATED_WEIGHT = ImmutableQueryWeight.builder()
+    @VisibleForTesting
+    static final QueryWeight DEFAULT_ESTIMATED_WEIGHT = ImmutableQueryWeight.builder()
             .numBytes(100)
             .numDistinctRows(1)
             .timeTakenNanos(TimeUnit.MILLISECONDS.toNanos(2))
@@ -86,11 +88,19 @@ public final class ThriftQueryWeighers {
             }
 
             @Override
-            public QueryWeight weigh(T result, long timeTakenNanos) {
+            public QueryWeight weighSuccess(T result, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .numBytes(safeGetNumBytesOrDefault(() -> bytesRead.apply(result)))
                         .timeTakenNanos(timeTakenNanos)
                         .numDistinctRows(numRows.apply(result))
+                        .build();
+            }
+
+            @Override
+            public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
+                return ImmutableQueryWeight.builder()
+                        .from(estimate())
+                        .timeTakenNanos(timeTakenNanos)
                         .build();
             }
         };
@@ -110,7 +120,15 @@ public final class ThriftQueryWeighers {
             }
 
             @Override
-            public QueryWeight weigh(T result, long timeTakenNanos) {
+            public QueryWeight weighSuccess(T result, long timeTakenNanos) {
+                return ImmutableQueryWeight.builder()
+                        .from(estimate())
+                        .timeTakenNanos(timeTakenNanos)
+                        .build();
+            }
+
+            @Override
+            public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .from(estimate())
                         .timeTakenNanos(timeTakenNanos)
