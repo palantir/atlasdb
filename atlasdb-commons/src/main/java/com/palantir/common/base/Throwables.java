@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 
@@ -77,6 +78,23 @@ public final class Throwables {
         rewrapAndThrowIfInstance(newMessage, ex, RuntimeException.class);
         rewrapAndThrowIfInstance(newMessage, ex, Error.class);
         throw createPalantirRuntimeException(newMessage, ex);
+    }
+
+    /**
+     * If the provided Throwable is
+     *   a) a RateLimitExceededException, then rethrow it;
+     *   b) a RuntimeException or Error, then rethrow it;
+     *   c) an ExecutionException or InvocationTargetException, then apply this method on the cause.
+     *   d) none of the above, then wrap it in an AtlasDbDependencYException and then rethrow it.
+     */
+    public static RuntimeException unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(Throwable ex) {
+        if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
+            // Needs to be this way in case you have ITE(RLE) or variants of that.
+            throw unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(ex.getCause());
+        } else if (ex instanceof RateLimitExceededException) {
+            throw (RateLimitExceededException) ex;
+        }
+        throw createAtlasDbDependencyException(ex);
     }
 
     /**
