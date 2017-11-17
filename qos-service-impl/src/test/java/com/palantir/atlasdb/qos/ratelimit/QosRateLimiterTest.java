@@ -37,15 +37,20 @@ public class QosRateLimiterTest {
 
     RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
     Supplier<Long> currentRate = mock(Supplier.class);
-    QosRateLimiter limiter = new QosRateLimiter(stopwatch, currentRate, MAX_BACKOFF_TIME_MILLIS);
+    QosRateLimiter limiter;
 
     @Before
     public void before() {
         when(stopwatch.readMicros()).thenReturn(START_TIME_MICROS);
+        when(currentRate.get()).thenReturn(10L);
+
+        limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS, currentRate);
     }
 
     @Test
-    public void doesNotLimitIfNoLimitIsSet() {
+    public void doesNotLimitIfLimitIsVeryHigh() {
+        when(currentRate.get()).thenReturn(Long.MAX_VALUE);
+
         assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
         assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
         assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
@@ -53,15 +58,12 @@ public class QosRateLimiterTest {
 
     @Test
     public void limitsBySleepingIfTimeIsReasonable() {
-        when(currentRate.get()).thenReturn(10L);
-
         assertThat(limiter.consumeWithBackoff(100)).isEqualTo(Duration.ZERO);
         assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
     }
 
     @Test
     public void limitsByThrowingIfSleepTimeIsTooGreat() {
-        when(currentRate.get()).thenReturn(10L);
         limiter.consumeWithBackoff(1_000);
 
         assertThatThrownBy(() -> limiter.consumeWithBackoff(100))
@@ -78,8 +80,6 @@ public class QosRateLimiterTest {
 
     @Test
     public void consumingAdditionalUnitsPenalizesFutureCallers() {
-        when(currentRate.get()).thenReturn(10L);
-
         limiter.consumeWithBackoff(1);
         limiter.recordAdjustment(100);
 
@@ -88,7 +88,6 @@ public class QosRateLimiterTest {
 
     @Test
     public void canConsumeBurstUnits() {
-        when(currentRate.get()).thenReturn(10L);
         limiter.consumeWithBackoff(100);
 
         // simulate 30 seconds passing with no consumption
@@ -114,11 +113,25 @@ public class QosRateLimiterTest {
 
     @Test
     public void sleepTimeIsSensible() {
-        when(currentRate.get()).thenReturn(10L);
         limiter.consumeWithBackoff(100);
 
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(5));
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(7));
+    }
+
+    @Test
+    public void canUpdateRate() {
+        limiter.consumeWithBackoff(20);
+        assertThat(limiter.consumeWithBackoff(50)).isGreaterThan(Duration.ZERO);
+
+        when(currentRate.get()).thenReturn(10_000L);
+        limiter.consumeWithBackoff(20);
+        assertThat(limiter.consumeWithBackoff(50)).isEqualTo(Duration.ZERO);
+
+        when(currentRate.get()).thenReturn(10L);
+        limiter.consumeWithBackoff(20);
+        assertThat(limiter.consumeWithBackoff(50)).isGreaterThan(Duration.ZERO);
+
     }
 
 }

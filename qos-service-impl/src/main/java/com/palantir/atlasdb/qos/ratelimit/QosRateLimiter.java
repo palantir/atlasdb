@@ -46,8 +46,9 @@ public class QosRateLimiter {
 
     private final Supplier<Long> maxBackoffTimeMillis;
     private final Supplier<Long> unitsPerSecond;
-    private RateLimiter rateLimiter;
+    private final RateLimiter.SleepingStopwatch stopwatch;
 
+    private volatile RateLimiter rateLimiter;
     private volatile long currentRate;
 
     public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond) {
@@ -58,11 +59,11 @@ public class QosRateLimiter {
     @VisibleForTesting
     QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, Supplier<Long> maxBackoffTimeMillis,
             Supplier<Long> unitsPerSecond) {
-        rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
-        updateRateAtomically();
-
+        this.stopwatch = stopwatch;
         this.unitsPerSecond = unitsPerSecond;
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
+
+        createRateLimiterAtomically();
     }
 
     /**
@@ -92,13 +93,17 @@ public class QosRateLimiter {
      */
     private void updateRateIfNeeded() {
         if (currentRate != unitsPerSecond.get()) {
-            updateRateAtomically();
+            createRateLimiterAtomically();
         }
     }
 
-    private synchronized void updateRateAtomically() {
+    /**
+     * Guava's RateLimiter has strange behavior around updating the rate. So, we just create a new rate limiter
+     * if the rate changes
+     */
+    private synchronized void createRateLimiterAtomically() {
         currentRate = unitsPerSecond.get();
-        rateLimiter.setRate(currentRate);
+        rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
 
         // TODO(nziebart): distinguish between read/write rate limiters
         log.info("Units per second set to {}", SafeArg.of("unitsPerSecond", currentRate));

@@ -406,8 +406,8 @@ public abstract class TransactionManagers {
 
     private QosClient getQosClient(Supplier<QosClientConfig> config) {
         QosRateLimiters rateLimiters = QosRateLimiters.create(
-                JavaSuppliers.compose(QosClientConfig::limits, config),
-                JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config));
+                JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
+                JavaSuppliers.compose(QosClientConfig::limits, config));
         return AtlasDbQosClient.create(rateLimiters);
     }
 

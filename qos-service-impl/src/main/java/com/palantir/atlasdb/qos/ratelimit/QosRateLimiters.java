@@ -25,7 +25,7 @@ import com.palantir.atlasdb.qos.config.QosLimitsConfig;
 @Value.Immutable
 public interface QosRateLimiters {
 
-    static QosRateLimiters create(Supplier<QosLimitsConfig> config, Supplier<Long> maxBackoffSleepTimeMillis) {
+    static QosRateLimiters create(Supplier<Long> maxBackoffSleepTimeMillis, Supplier<QosLimitsConfig> config) {
         QosRateLimiter readLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis,
                 () -> config.get().readBytesPerSecond());
 
