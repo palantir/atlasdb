@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos.config;
+package com.palantir.atlasdb.qos;
 
 import java.util.Map;
-import java.util.Optional;
 
-import org.immutables.value.Value;
+import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
+public class FakeCassandraMetricClient implements CassandraMetricsService {
 
-@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
-@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
-@Value.Immutable
-public abstract class QosServiceRuntimeConfig {
-    public abstract Map<String, Integer> clientLimits();
+    public static final Object DUMMY_METRIC = Long.MIN_VALUE;
 
-    public abstract Optional<ServiceConfiguration> cassandraServiceConfig();
+    @Override
+    public Object getMetric(String type, String name, String attr, Map<String, String> additionalParams) {
+        return DUMMY_METRIC;
+    }
+
+    public static CassandraMetricsService create() {
+        return new FakeCassandraMetricClient();
+    }
 }

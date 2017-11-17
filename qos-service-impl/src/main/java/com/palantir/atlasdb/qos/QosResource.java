@@ -18,6 +18,7 @@ package com.palantir.atlasdb.qos;
 
 import java.util.function.Supplier;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
@@ -37,10 +38,12 @@ public class QosResource implements QosService {
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
-        this.cassandraMetricClient = JaxRsClient.create(
+        this.cassandraMetricClient = config.get().cassandraServiceConfig()
+                .map(cassandraServiceConfig -> JaxRsClient.create(
                 CassandraMetricsService.class,
                 "qos-service",
-                ClientConfigurations.of(config.get().cassandraServiceConfig()));
+                ClientConfigurations.of(cassandraServiceConfig)))
+        .orElse(FakeCassandraMetricClient.create());
     }
 
     @Override
@@ -56,13 +59,24 @@ public class QosResource implements QosService {
     private double checkCassandraHealth() {
 //        int readTimeoutCounter = getTimeoutCounter("Read");
 
-        int numPendingCommitLogTasks = (int) cassandraMetricClient.getMetric(
+        Object numPendingCommitLogTasks = cassandraMetricClient.getMetric(
                 "CommitLog",
                 "PendingTasks",
                 GAUGE_ATTRIBUTE,
                 ImmutableMap.of());
+
+        if (numPendingCommitLogTasks == FakeCassandraMetricClient.DUMMY_METRIC) {
+            // Cant connect to the Cassandra metric service;
+            return 1.0;
+        }
+
+        Preconditions.checkState(numPendingCommitLogTasks instanceof Integer,
+                "Expected type Integer, found %s",
+                numPendingCommitLogTasks.getClass());
+
+        int numPendingCommitLogTasksInt = (int) numPendingCommitLogTasks;
         queue.add(ImmutablePendingTaskMetric.builder()
-                .numPendingTasks(numPendingCommitLogTasks)
+                .numPendingTasks(numPendingCommitLogTasksInt)
                 .timetamp(System.currentTimeMillis())
                 .build());
 
@@ -71,8 +85,8 @@ public class QosResource implements QosService {
                 .average()
                 .getAsDouble();
 
-        if (averagePendingCommitLogTasks < numPendingCommitLogTasks) {
-            return (numPendingCommitLogTasks - averagePendingCommitLogTasks) / averagePendingCommitLogTasks;
+        if (Double.compare(averagePendingCommitLogTasks, (double) numPendingCommitLogTasks) < 0) {
+            return 1.0 - ((numPendingCommitLogTasksInt - averagePendingCommitLogTasks) / numPendingCommitLogTasksInt);
         }
         return 1.0;
     }
