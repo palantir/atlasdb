@@ -61,7 +61,8 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(1_000);
 
         assertThatThrownBy(() -> limiter.consumeWithBackoff(100))
-                .hasMessageContaining("rate limited");
+                .isInstanceOf(RateLimitExceededException.class)
+                .hasMessageContaining("Rate limited");
     }
 
     @Test
@@ -117,5 +118,4 @@ public class QosRateLimiterTest {
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(5));
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(7));
     }
-
 }
