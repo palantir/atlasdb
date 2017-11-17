@@ -80,7 +80,7 @@ public final class ThriftQueryWeighers {
             public QueryWeight weigh(T result, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .numBytes(safeGetNumBytesOrDefault(() -> bytesRead.apply(result)))
-                        .timeTakenNanos((int) timeTakenNanos)
+                        .timeTakenNanos(timeTakenNanos)
                         .numDistinctRows(numRows.apply(result))
                         .build();
             }
@@ -104,7 +104,7 @@ public final class ThriftQueryWeighers {
             public QueryWeight weigh(T result, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
                         .from(estimate())
-                        .timeTakenNanos((int) timeTakenNanos)
+                        .timeTakenNanos(timeTakenNanos)
                         .build();
             }
         };
