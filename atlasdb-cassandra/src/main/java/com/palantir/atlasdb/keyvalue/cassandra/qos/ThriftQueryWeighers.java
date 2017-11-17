@@ -51,10 +51,10 @@ public final class ThriftQueryWeighers {
     private ThriftQueryWeighers() { }
 
     public static final QosClient.QueryWeigher<Map<ByteBuffer, List<ColumnOrSuperColumn>>> MULTIGET_SLICE =
-            readWeigher(ThriftObjectSizeUtils::getApproximateReadByteCount, Map::size);
+            readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size);
 
     public static final QosClient.QueryWeigher<List<KeySlice>> GET_RANGE_SLICES =
-            readWeigher(ThriftObjectSizeUtils::getApproximateReadByteCount, List::size);
+            readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size);
 
     public static final QosClient.QueryWeigher<ColumnOrSuperColumn> GET =
             readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1);
@@ -68,7 +68,7 @@ public final class ThriftQueryWeighers {
     public static QosClient.QueryWeigher<Void> batchMutate(
             Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
         long numRows = mutationMap.size();
-        return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateWriteByteCount(mutationMap));
+        return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(mutationMap));
     }
 
     public static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead, Function<T, Integer> numRows) {
