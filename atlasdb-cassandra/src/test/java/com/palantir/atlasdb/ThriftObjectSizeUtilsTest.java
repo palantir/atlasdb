@@ -217,7 +217,7 @@ public class ThriftObjectSizeUtilsTest {
                 + Integer.BYTES
                 + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
-        assertThat(ThriftObjectSizeUtils.getApproximateWriteByteCount(batchMutateMap)).isEqualTo(expectedSize);
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(batchMutateMap)).isEqualTo(expectedSize);
     }
 
     @Test
@@ -233,7 +233,7 @@ public class ThriftObjectSizeUtilsTest {
         long expectedSize = TEST_NAME_BYTES_SIZE
                 + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
-        assertThat(ThriftObjectSizeUtils.getApproximateReadByteCount(result)).isEqualTo(expectedSize);
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColsByKey(result)).isEqualTo(expectedSize);
     }
 
     @Test
@@ -246,7 +246,7 @@ public class ThriftObjectSizeUtilsTest {
         long expectedSize = TEST_NAME_BYTES_SIZE
                 + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
-        assertThat(ThriftObjectSizeUtils.getApproximateReadByteCount(slices)).isEqualTo(expectedSize);
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfKeySlices(slices)).isEqualTo(expectedSize);
     }
 
     @Test
