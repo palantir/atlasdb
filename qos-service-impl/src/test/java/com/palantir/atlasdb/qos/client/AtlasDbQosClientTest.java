@@ -175,7 +175,7 @@ public class AtlasDbQosClientTest {
     public void recordsBackoffExceptions() {
         // TODO(nziebart): use rate limited exception here
         when(readLimiter.consumeWithBackoff(anyLong())).thenThrow(new RuntimeException("rate limited"));
-        assertThatThrownBy(() ->qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(RuntimeException.class);
 
         verify(metrics).recordRateLimitedException();
     }
