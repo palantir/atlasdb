@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
 
 /**
  * A rate limiter for database queries, based on "units" of expense. This limiter strives to maintain an upper limit on
@@ -34,27 +35,28 @@ public class QosRateLimiter {
 
     private static final double MAX_BURST_SECONDS = 5;
     private static final double UNLIMITED_RATE = Double.MAX_VALUE;
-    private static final int MAX_WAIT_TIME_SECONDS = 10;
 
+    private final long maxBackoffTimeMillis;
     private RateLimiter rateLimiter;
 
-    public static QosRateLimiter create() {
-        return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer());
+    public static QosRateLimiter create(long maxBackoffTimeMillis) {
+        return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer(), maxBackoffTimeMillis);
     }
 
     @VisibleForTesting
-    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch) {
+    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, long maxBackoffTimeMillis) {
         rateLimiter = new SmoothRateLimiter.SmoothBursty(
                 stopwatch,
                 MAX_BURST_SECONDS);
 
         rateLimiter.setRate(UNLIMITED_RATE);
+        this.maxBackoffTimeMillis = maxBackoffTimeMillis;
     }
 
     /**
      * Update the allowed rate, in units per second.
      */
-    public void updateRate(int unitsPerSecond) {
+    public void updateRate(double unitsPerSecond) {
         rateLimiter.setRate(unitsPerSecond);
     }
 
@@ -64,11 +66,11 @@ public class QosRateLimiter {
      *
      * @return the amount of time slept for, if any
      */
-    public Duration consumeWithBackoff(int estimatedNumUnits) {
+    public Duration consumeWithBackoff(long estimatedNumUnits) {
         Optional<Duration> waitTime = rateLimiter.tryAcquire(
-                estimatedNumUnits,
-                MAX_WAIT_TIME_SECONDS,
-                TimeUnit.SECONDS);
+                Ints.saturatedCast(estimatedNumUnits), // TODO(nziebart): deal with longs
+                maxBackoffTimeMillis,
+                TimeUnit.MILLISECONDS);
 
         if (!waitTime.isPresent()) {
             throw new RuntimeException("rate limited");
@@ -78,13 +80,13 @@ public class QosRateLimiter {
     }
 
     /**
-     * Records an adjustment to the original estimate of units consumed passed to {@link #consumeWithBackoff(int)}. This
+     * Records an adjustment to the original estimate of units consumed passed to {@link #consumeWithBackoff}. This
      * should be called after a query returns, when the exact number of units consumed is known. This value may be
-     * positive (if the original estimate was too small) or negative (if the original estimate was too large.
+     * positive (if the original estimate was too small) or negative (if the original estimate was too large).
      */
-    public void recordAdjustment(int adjustmentUnits) {
+    public void recordAdjustment(long adjustmentUnits) {
         if (adjustmentUnits > 0) {
-            rateLimiter.steal(adjustmentUnits);
+            rateLimiter.steal(Ints.saturatedCast(adjustmentUnits)); // TODO(nziebart): deal with longs
         }
         // TODO(nziebart): handle negative case
     }

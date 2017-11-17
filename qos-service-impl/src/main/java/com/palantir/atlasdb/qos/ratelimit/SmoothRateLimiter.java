@@ -20,8 +20,6 @@ package com.palantir.atlasdb.qos.ratelimit;
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import com.google.common.math.LongMath;
-
 /**
  * Copied from Guava, because {@link SmoothBursty} is a package private class.
  **/
@@ -123,7 +121,7 @@ abstract class SmoothRateLimiter extends RateLimiter {
                 storedPermitsToWaitTime(this.storedPermits, storedPermitsToSpend)
                         + (long) (freshPermits * stableIntervalMicros);
 
-        this.nextFreeTicketMicros = LongMath.saturatedAdd(nextFreeTicketMicros, waitMicros);
+        this.nextFreeTicketMicros = nextFreeTicketMicros + waitMicros;
         this.storedPermits -= storedPermitsToSpend;
         return returnValue;
     }

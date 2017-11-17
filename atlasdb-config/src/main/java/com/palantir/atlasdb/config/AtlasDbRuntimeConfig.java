@@ -23,7 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
+import com.palantir.atlasdb.qos.config.QosClientConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -61,7 +61,18 @@ public abstract class AtlasDbRuntimeConfig {
         return AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
     }
 
-    public abstract Optional<ServiceConfiguration> getQosServiceConfiguration();
+    @Value.Default
+    public QosClientConfig qos() {
+        return QosClientConfig.DEFAULT;
+    }
+
+    /**
+     * Runtime live-reloadable parameters for communicating with TimeLock.
+     *
+     * This value is ignored if the install config does not specify usage of TimeLock.
+     * We do not currently support live reloading from a leader block or using embedded services to using TimeLock.
+     */
+    public abstract Optional<TimeLockRuntimeConfig> timelockRuntime();
 
     /**
      * Runtime live-reloadable parameters for communicating with TimeLock.

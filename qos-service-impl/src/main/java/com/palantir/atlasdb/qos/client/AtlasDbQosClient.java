@@ -14,48 +14,68 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.qos.client;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosService;
-import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
+import com.palantir.atlasdb.qos.QueryWeight;
+import com.palantir.atlasdb.qos.metrics.QosMetrics;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 
 public class AtlasDbQosClient implements QosClient {
-    private final QosService qosService;
-    private final String clientName;
-    private final QosRateLimiter rateLimiter;
 
-    private volatile long credits;
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbQosClient.class);
 
-    public AtlasDbQosClient(QosService qosService,
-            ScheduledExecutorService limitRefresher,
-            String clientName,
-            QosRateLimiter rateLimiter) {
-        this.qosService = qosService;
-        this.clientName = clientName;
-        this.rateLimiter = rateLimiter;
-        limitRefresher.scheduleAtFixedRate(() -> {
-            try {
-                credits = qosService.getLimit(clientName);
-            } catch (Exception e) {
-                // do nothing
-            }
-        }, 0L, 60L, TimeUnit.SECONDS);
+    private static final Void NO_RESULT = null;
+
+    private final QosRateLimiters rateLimiters;
+    private final QosMetrics metrics;
+    private final Ticker ticker;
+
+    public static AtlasDbQosClient create(QosRateLimiters rateLimiters) {
+        return new AtlasDbQosClient(rateLimiters, new QosMetrics(), Ticker.systemTicker());
     }
 
-    // The KVS layer should call this before every read/write operation
-    // Currently all operations are treated equally; each uses up a unit of credits
+    @VisibleForTesting
+    AtlasDbQosClient(QosRateLimiters rateLimiters, QosMetrics metrics, Ticker ticker) {
+        this.metrics = metrics;
+        this.rateLimiters = rateLimiters;
+        this.ticker = ticker;
+    }
+
     @Override
-    public void checkLimit() {
-        // always return immediately - i.e. no backoff
-        // TODO if soft-limited, pause
-        // if hard-limited, throw exception
-        if (credits > 0) {
-            credits--;
-        } else {
-            // TODO This should be a ThrottleException?
-            throw new RuntimeException("Rate limit exceeded");
-        }
+    public <T, E extends Exception> T executeRead(ReadQuery<T, E> query, QueryWeigher<T> weigher) throws E {
+        long estimatedNumBytes = weigher.estimate().numBytes();
+        rateLimiters.read().consumeWithBackoff(estimatedNumBytes);
+
+        // TODO(nziebart): decide what to do if we encounter a timeout exception
+        long startTimeNanos = ticker.read();
+        T result = query.execute();
+        long totalTimeNanos = ticker.read() - startTimeNanos;
+
+        QueryWeight actualWeight = weigher.weigh(result, totalTimeNanos);
+        metrics.recordRead(actualWeight);
+        rateLimiters.read().recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
+
+        return result;
     }
+
+    @Override
+    public <T, E extends Exception> void executeWrite(WriteQuery<E> query, QueryWeigher<Void> weigher) throws E {
+        long estimatedNumBytes = weigher.estimate().numBytes();
+        rateLimiters.write().consumeWithBackoff(estimatedNumBytes);
+
+        // TODO(nziebart): decide what to do if we encounter a timeout exception
+        long startTimeNanos = ticker.read();
+        query.execute();
+        long totalTimeNanos = ticker.read() - startTimeNanos;
+
+        QueryWeight actualWeight = weigher.weigh(NO_RESULT, totalTimeNanos);
+        metrics.recordWrite(actualWeight);
+        rateLimiters.write().recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
+    }
+
 }

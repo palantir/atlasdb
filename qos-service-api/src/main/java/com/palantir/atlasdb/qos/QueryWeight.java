@@ -16,26 +16,22 @@
 
 package com.palantir.atlasdb.qos;
 
-public interface QosClient {
+import java.util.concurrent.TimeUnit;
 
-    interface ReadQuery<T, E extends Exception> {
-        T execute() throws E;
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface QueryWeight {
+
+    long numBytes();
+
+    long numDistinctRows();
+
+    // TODO(nziebart): need to standardize everyhting to longs, and handle casting to int in QosRateLimiter
+    long timeTakenNanos();
+
+    default long timeTakenMicros() {
+        return TimeUnit.NANOSECONDS.toMicros(timeTakenNanos());
     }
 
-    interface WriteQuery<E extends Exception> {
-        void execute() throws E;
-    }
-
-    interface QueryWeigher<T> {
-        QueryWeight estimate();
-        QueryWeight weigh(T result, long timeTakenNanos);
-    }
-
-    <T, E extends Exception> T executeRead(
-            ReadQuery<T, E> query,
-            QueryWeigher<T> weigher) throws E;
-
-    <T, E extends Exception> void executeWrite(
-            WriteQuery<E> query,
-            QueryWeigher<Void> weigher) throws E;
 }
