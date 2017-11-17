@@ -39,20 +39,20 @@ public class QosServiceTest {
     public void defaultsToNoLimit() {
         when(config.get()).thenReturn(configWithLimits(ImmutableMap.of()));
 
-        assertThat(resource.getLimit("foo")).isEqualTo(Integer.MAX_VALUE);
+        assertThat(resource.getLimit("foo")).isEqualTo(Long.MAX_VALUE);
     }
 
     @Test
     public void canLiveReloadLimits() {
         when(config.get())
-                .thenReturn(configWithLimits(ImmutableMap.of("foo", 10)))
-                .thenReturn(configWithLimits(ImmutableMap.of("foo", 20)));
+                .thenReturn(configWithLimits(ImmutableMap.of("foo", 10L)))
+                .thenReturn(configWithLimits(ImmutableMap.of("foo", 20L)));
 
-        assertEquals(10, resource.getLimit("foo"));
-        assertEquals(20, resource.getLimit("foo"));
+        assertEquals(10L, resource.getLimit("foo"));
+        assertEquals(20L, resource.getLimit("foo"));
     }
 
-    private QosServiceRuntimeConfig configWithLimits(Map<String, Integer> limits) {
+    private QosServiceRuntimeConfig configWithLimits(Map<String, Long> limits) {
         return ImmutableQosServiceRuntimeConfig.builder().clientLimits(limits).build();
     }
 }

@@ -13,22 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.qos;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import java.util.concurrent.TimeUnit;
 
-import com.palantir.logsafe.Safe;
+import org.immutables.value.Value;
 
-@Path("/qos")
-public interface QosService {
-    @Path("{client: [a-zA-Z0-9_-]+}/get-limit")
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    long getLimit(@Safe @PathParam("client") String client);
+@Value.Immutable
+public interface QueryWeight {
+
+    long numBytes();
+
+    long numDistinctRows();
+
+    // TODO(nziebart): need to standardize everyhting to longs, and handle casting to int in QosRateLimiter
+    long timeTakenNanos();
+
+    default long timeTakenMicros() {
+        return TimeUnit.NANOSECONDS.toMicros(timeTakenNanos());
+    }
+
 }

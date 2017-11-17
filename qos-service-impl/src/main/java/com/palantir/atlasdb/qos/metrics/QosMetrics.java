@@ -14,40 +14,51 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.metrics;
 
 import com.codahale.metrics.Meter;
+import com.palantir.atlasdb.qos.QueryWeight;
 import com.palantir.atlasdb.util.MetricsManager;
 
+// TODO(nziebart): needs tests
 public class QosMetrics {
     private final MetricsManager metricsManager = new MetricsManager();
 
     private final Meter readRequestCount;
-    private final Meter writeRequestCount;
     private final Meter bytesRead;
+    private final Meter readTime;
+    private final Meter rowsRead;
+
+    private final Meter writeRequestCount;
     private final Meter bytesWritten;
+    private final Meter writeTime;
+    private final Meter rowsWritten;
+
 
     public QosMetrics() {
         readRequestCount = metricsManager.registerMeter(QosMetrics.class, "numReadRequests");
-        writeRequestCount = metricsManager.registerMeter(QosMetrics.class, "numWriteRequests");
-
         bytesRead = metricsManager.registerMeter(QosMetrics.class, "bytesRead");
+        readTime = metricsManager.registerMeter(QosMetrics.class, "readTime");
+        rowsRead = metricsManager.registerMeter(QosMetrics.class, "rowsRead");
+
+        writeRequestCount = metricsManager.registerMeter(QosMetrics.class, "numWriteRequests");
         bytesWritten = metricsManager.registerMeter(QosMetrics.class, "bytesWritten");
+        writeTime = metricsManager.registerMeter(QosMetrics.class, "writeTime");
+        rowsWritten = metricsManager.registerMeter(QosMetrics.class, "rowsWritten");
     }
 
-    public void updateReadCount() {
+    public void recordRead(QueryWeight weight) {
         readRequestCount.mark();
+        bytesRead.mark(weight.numBytes());
+        readTime.mark(weight.timeTakenMicros());
+        rowsRead.mark(weight.numDistinctRows());
     }
 
-    public void updateWriteCount() {
+    public void recordWrite(QueryWeight weight) {
         writeRequestCount.mark();
+        bytesWritten.mark(weight.numBytes());
+        writeTime.mark(weight.timeTakenMicros());
+        rowsWritten.mark(weight.numDistinctRows());
     }
 
-    public void updateBytesRead(long numBytes) {
-        bytesRead.mark(numBytes);
-    }
-
-    public void updateBytesWritten(long numBytes) {
-        bytesWritten.mark(numBytes);
-    }
 }
