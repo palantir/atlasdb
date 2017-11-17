@@ -64,6 +64,12 @@ public final class ThriftObjectSizeUtils {
         return getCollectionSize(slices, ThriftObjectSizeUtils::getKeySliceSize);
     }
 
+    public static long getCasByteCount(List<Column> updates) {
+        // TODO(nziebart): CAS actually writes more bytes than this, because the associated Paxos negotations must
+        // be persisted
+        return getCollectionSize(updates, ThriftObjectSizeUtils::getColumnSize);
+    }
+
     public static long getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {
         if (columnOrSuperColumn == null) {
             return getNullSize();

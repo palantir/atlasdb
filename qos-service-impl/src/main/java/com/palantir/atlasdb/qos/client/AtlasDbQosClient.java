@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.qos.client;
 
+import java.util.function.Consumer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,13 +25,12 @@ import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QueryWeight;
 import com.palantir.atlasdb.qos.metrics.QosMetrics;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 
 public class AtlasDbQosClient implements QosClient {
 
     private static final Logger log = LoggerFactory.getLogger(AtlasDbQosClient.class);
-
-    private static final Void NO_RESULT = null;
 
     private final QosRateLimiters rateLimiters;
     private final QosMetrics metrics;
@@ -47,9 +48,22 @@ public class AtlasDbQosClient implements QosClient {
     }
 
     @Override
-    public <T, E extends Exception> T executeRead(ReadQuery<T, E> query, QueryWeigher<T> weigher) throws E {
+    public <T, E extends Exception> T executeRead(Query<T, E> query, QueryWeigher<T> weigher) throws E {
+        return execute(query, weigher, rateLimiters.read(), metrics::recordRead);
+    }
+
+    @Override
+    public <T, E extends Exception> T executeWrite(Query<T, E> query, QueryWeigher<T> weigher) throws E {
+        return execute(query, weigher, rateLimiters.write(), metrics::recordWrite);
+    }
+
+    private <T, E extends Exception> T execute(
+            Query<T, E> query,
+            QueryWeigher<T> weigher,
+            QosRateLimiter rateLimiter,
+            Consumer<QueryWeight> weightMetric) throws E {
         long estimatedNumBytes = weigher.estimate().numBytes();
-        rateLimiters.read().consumeWithBackoff(estimatedNumBytes);
+        rateLimiter.consumeWithBackoff(estimatedNumBytes);
 
         // TODO(nziebart): decide what to do if we encounter a timeout exception
         long startTimeNanos = ticker.read();
@@ -57,25 +71,10 @@ public class AtlasDbQosClient implements QosClient {
         long totalTimeNanos = ticker.read() - startTimeNanos;
 
         QueryWeight actualWeight = weigher.weigh(result, totalTimeNanos);
-        metrics.recordRead(actualWeight);
-        rateLimiters.read().recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
+        weightMetric.accept(actualWeight);
+        rateLimiter.recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
 
         return result;
-    }
-
-    @Override
-    public <T, E extends Exception> void executeWrite(WriteQuery<E> query, QueryWeigher<Void> weigher) throws E {
-        long estimatedNumBytes = weigher.estimate().numBytes();
-        rateLimiters.write().consumeWithBackoff(estimatedNumBytes);
-
-        // TODO(nziebart): decide what to do if we encounter a timeout exception
-        long startTimeNanos = ticker.read();
-        query.execute();
-        long totalTimeNanos = ticker.read() - startTimeNanos;
-
-        QueryWeight actualWeight = weigher.weigh(NO_RESULT, totalTimeNanos);
-        metrics.recordWrite(actualWeight);
-        rateLimiters.write().recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
     }
 
 }

@@ -18,12 +18,8 @@ package com.palantir.atlasdb.qos;
 
 public interface QosClient {
 
-    interface ReadQuery<T, E extends Exception> {
+    interface Query<T, E extends Exception> {
         T execute() throws E;
-    }
-
-    interface WriteQuery<E extends Exception> {
-        void execute() throws E;
     }
 
     interface QueryWeigher<T> {
@@ -32,10 +28,11 @@ public interface QosClient {
     }
 
     <T, E extends Exception> T executeRead(
-            ReadQuery<T, E> query,
+            Query<T, E> query,
             QueryWeigher<T> weigher) throws E;
 
-    <T, E extends Exception> void executeWrite(
-            WriteQuery<E> query,
-            QueryWeigher<Void> weigher) throws E;
+    <T, E extends Exception> T executeWrite(
+            Query<T, E> query,
+            QueryWeigher<T> weigher) throws E;
+
 }

@@ -247,7 +247,17 @@ public class ThriftObjectSizeUtilsTest {
                 + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
         assertThat(ThriftObjectSizeUtils.getApproximateReadByteCount(slices)).isEqualTo(expectedSize);
+    }
 
+    @Test
+    public void getCasSize() {
+        List<Column> columns = ImmutableList.of(
+                TEST_COLUMN,
+                TEST_COLUMN);
+
+        long expectedSize = TEST_COLUMN_SIZE * 2;
+
+        assertThat(ThriftObjectSizeUtils.getCasByteCount(columns)).isEqualTo(expectedSize);
     }
 
 }
