@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.assertThatThrownBy;
 
 import java.util.Collections;
@@ -25,7 +24,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -50,8 +48,5 @@ public class QosCassandraTestSuite extends EteSetup {
         todoClient.addTodo(TODO);
         assertThatThrownBy(() -> todoClient.addTodo(TODO))
                 .isInstanceOf(RuntimeException.class);
-        Meter meter = AtlasDbMetrics.getMetricRegistry().getMeters().get(
-                "com.palantir.atlasdb.qos.metrics.QosMetrics.numReadRequests");
-        assertThat(meter.getCount()).isGreaterThan(200_000).isLessThan(201_000);
     }
 }
