@@ -77,6 +77,9 @@ public class AtlasDbQosClientTest {
         when(weigher.estimate()).thenReturn(ESTIMATED_WEIGHT);
         when(weigher.weighSuccess(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
         when(weigher.weighFailure(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+
+        when(readLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
+        when(writeLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
     }
 
     @Test
@@ -93,7 +96,6 @@ public class AtlasDbQosClientTest {
         qosClient.executeRead(() -> "foo", weigher);
 
         verify(metrics).recordRead(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -117,7 +119,6 @@ public class AtlasDbQosClientTest {
         qosClient.executeWrite(() -> null, weigher);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -128,7 +129,6 @@ public class AtlasDbQosClientTest {
         }, weigher)).isInstanceOf(TestCheckedException.class);
 
         verify(metrics).recordRead(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -139,7 +139,6 @@ public class AtlasDbQosClientTest {
         }, weigher)).isInstanceOf(TestCheckedException.class);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -176,7 +175,7 @@ public class AtlasDbQosClientTest {
     public void recordsBackoffExceptions() {
         // TODO(nziebart): use rate limited exception here
         when(readLimiter.consumeWithBackoff(anyLong())).thenThrow(new RuntimeException("rate limited"));
-        qosClient.executeRead(() -> "foo", weigher);
+        assertThatThrownBy(() ->qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(RuntimeException.class);
 
         verify(metrics).recordRateLimitedException();
     }

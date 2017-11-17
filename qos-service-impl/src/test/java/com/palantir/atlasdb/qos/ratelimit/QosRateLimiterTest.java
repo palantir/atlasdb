@@ -57,6 +57,29 @@ public class QosRateLimiterTest {
     }
 
     @Test
+    public void limitsOnlyWhenConsumptionExceedsLimit() {
+        when(currentRate.get()).thenReturn(100L);
+        limiter.consumeWithBackoff(1); // set the current time
+
+        tickMillis(500);
+
+        assertThat(limiter.consumeWithBackoff(25L)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(25L)).isEqualTo(Duration.ZERO);
+
+        tickMillis(500);
+
+        assertThat(limiter.consumeWithBackoff(20L)).isEqualTo(Duration.ZERO);
+
+        tickMillis(500);
+
+        assertThat(limiter.consumeWithBackoff(20L)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(20L)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(40L)).isEqualTo(Duration.ZERO);
+
+        assertThat(limiter.consumeWithBackoff(40L)).isGreaterThan(Duration.ZERO);
+    }
+
+    @Test
     public void limitsBySleepingIfTimeIsReasonable() {
         assertThat(limiter.consumeWithBackoff(100)).isEqualTo(Duration.ZERO);
         assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
@@ -81,7 +104,7 @@ public class QosRateLimiterTest {
     @Test
     public void consumingAdditionalUnitsPenalizesFutureCallers() {
         limiter.consumeWithBackoff(1);
-        limiter.recordAdjustment(100);
+        limiter.recordAdjustment(25);
 
         assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
     }
@@ -91,10 +114,10 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(100);
 
         // simulate 30 seconds passing with no consumption
-        when(stopwatch.readMicros()).thenReturn(TimeUnit.SECONDS.toMicros(30));
+        tickMillis(30_000);
 
         assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
-        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ZERO);
         assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
     }
 
@@ -113,7 +136,7 @@ public class QosRateLimiterTest {
 
     @Test
     public void sleepTimeIsSensible() {
-        limiter.consumeWithBackoff(100);
+        limiter.consumeWithBackoff(50);
 
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(5));
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ofSeconds(7));
@@ -122,16 +145,26 @@ public class QosRateLimiterTest {
     @Test
     public void canUpdateRate() {
         limiter.consumeWithBackoff(20);
-        assertThat(limiter.consumeWithBackoff(50)).isGreaterThan(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(20)).isGreaterThan(Duration.ZERO);
 
-        when(currentRate.get()).thenReturn(10_000L);
-        limiter.consumeWithBackoff(20);
+        when(currentRate.get()).thenReturn(1000000L);
+        limiter.consumeWithBackoff(1);
+        tickMillis(1);
+
         assertThat(limiter.consumeWithBackoff(50)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(500)).isEqualTo(Duration.ZERO);
 
         when(currentRate.get()).thenReturn(10L);
-        limiter.consumeWithBackoff(20);
-        assertThat(limiter.consumeWithBackoff(50)).isGreaterThan(Duration.ZERO);
+        tickMillis(1000);
 
+        limiter.consumeWithBackoff(1);
+        limiter.consumeWithBackoff(20);
+        assertThat(limiter.consumeWithBackoff(20)).isGreaterThan(Duration.ZERO);
+    }
+
+    private void tickMillis(long millis) {
+        long now = stopwatch.readMicros();
+        when(stopwatch.readMicros()).thenReturn(now + millis * 1_000);
     }
 
 }

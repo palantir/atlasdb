@@ -98,12 +98,15 @@ public class QosRateLimiter {
     }
 
     /**
-     * Guava's RateLimiter has strange behavior around updating the rate. So, we just create a new rate limiter
-     * if the rate changes
+     * Guava's RateLimiter has strange behavior around updating the rate. Namely, if you set the rate very small and ask
+     * for a large number of permits, you will end up having to wait until that small rate is satisfied before acquiring
+     * more, even if you update the rate to something very large. So, we just create a new rate limiter if the rate
+     * changes.
      */
     private synchronized void createRateLimiterAtomically() {
         currentRate = unitsPerSecond.get();
         rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
+        rateLimiter.setRate(currentRate);
 
         // TODO(nziebart): distinguish between read/write rate limiters
         log.info("Units per second set to {}", SafeArg.of("unitsPerSecond", currentRate));
