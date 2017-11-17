@@ -19,11 +19,16 @@ package com.palantir.atlasdb.qos.ratelimit;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * A rate limiter for database queries, based on "units" of expense. This limiter strives to maintain an upper limit on
@@ -35,31 +40,29 @@ import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
  */
 public class QosRateLimiter {
 
-    private static final double MAX_BURST_SECONDS = 5;
-    private static final double UNLIMITED_RATE = Double.MAX_VALUE;
+    private static final Logger log = LoggerFactory.getLogger(QosRateLimiter.class);
 
-    private final long maxBackoffTimeMillis;
+    private static final long MAX_BURST_SECONDS = 5;
+
+    private final Supplier<Long> maxBackoffTimeMillis;
+    private final Supplier<Long> unitsPerSecond;
     private RateLimiter rateLimiter;
 
-    public static QosRateLimiter create(long maxBackoffTimeMillis) {
-        return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer(), maxBackoffTimeMillis);
+    private volatile long currentRate;
+
+    public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond) {
+        return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer(), maxBackoffTimeMillis,
+                unitsPerSecond);
     }
 
     @VisibleForTesting
-    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, long maxBackoffTimeMillis) {
-        rateLimiter = new SmoothRateLimiter.SmoothBursty(
-                stopwatch,
-                MAX_BURST_SECONDS);
+    QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, Supplier<Long> maxBackoffTimeMillis,
+            Supplier<Long> unitsPerSecond) {
+        rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
+        updateRateAtomically();
 
-        rateLimiter.setRate(UNLIMITED_RATE);
+        this.unitsPerSecond = unitsPerSecond;
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
-    }
-
-    /**
-     * Update the allowed rate, in units per second.
-     */
-    public void updateRate(double unitsPerSecond) {
-        rateLimiter.setRate(unitsPerSecond);
     }
 
     /**
@@ -69,9 +72,11 @@ public class QosRateLimiter {
      * @return the amount of time slept for, if any
      */
     public Duration consumeWithBackoff(long estimatedNumUnits) {
+        updateRateIfNeeded();
+
         Optional<Duration> waitTime = rateLimiter.tryAcquire(
                 Ints.saturatedCast(estimatedNumUnits), // TODO(nziebart): deal with longs
-                maxBackoffTimeMillis,
+                maxBackoffTimeMillis.get(),
                 TimeUnit.MILLISECONDS);
 
         if (!waitTime.isPresent()) {
@@ -79,6 +84,24 @@ public class QosRateLimiter {
         }
 
         return waitTime.get();
+    }
+
+    /**
+     * The RateLimiter's rate requires a lock acquisition to read, and is returned as a double. To avoid
+     * overhead and double comparisons, we maintain the current rate ourselves.
+     */
+    private void updateRateIfNeeded() {
+        if (currentRate != unitsPerSecond.get()) {
+            updateRateAtomically();
+        }
+    }
+
+    private synchronized void updateRateAtomically() {
+        currentRate = unitsPerSecond.get();
+        rateLimiter.setRate(currentRate);
+
+        // TODO(nziebart): distinguish between read/write rate limiters
+        log.info("Units per second set to {}", SafeArg.of("unitsPerSecond", currentRate));
     }
 
     /**
