@@ -32,7 +32,8 @@ public class QosRateLimiterTest {
     private static final long START_TIME_MICROS = 0L;
     private static final long MAX_BACKOFF_TIME_MILLIS = 10_000;
 
-    RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
+    com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter.SleepingStopwatch stopwatch = mock(
+            com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter.SleepingStopwatch.class);
     QosRateLimiter limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS);
 
     @Before
