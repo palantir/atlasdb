@@ -22,9 +22,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
-import com.palantir.common.exception.AtlasDbDependencyException;
-
 public class ThrowablesTest extends Assert {
     @Before
     public void setUp() throws Exception {
