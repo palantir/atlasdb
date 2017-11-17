@@ -20,9 +20,6 @@ import java.sql.PreparedStatement;
 
 import javax.annotation.Nullable;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.exception.PalantirInterruptedException;
@@ -40,8 +37,6 @@ import com.palantir.sql.PreparedStatements;
  * @author jweel
  */
 public final class SqlConnectionHelper {
-
-    private static final Logger log = LogManager.getLogger(SqlConnectionHelper.class);
 
     private final BasicSQL basicSql;
 

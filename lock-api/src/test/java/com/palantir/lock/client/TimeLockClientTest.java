@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -25,6 +26,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,6 +36,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -44,7 +48,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
-public class LockRefreshingTimelockServiceTest {
+public class TimeLockClientTest {
 
     private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
@@ -54,7 +58,7 @@ public class LockRefreshingTimelockServiceTest {
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);
-    private final TimelockService timelock = new LockRefreshingTimelockService(delegate, refresher);
+    private final TimelockService timelock = new TimeLockClient(delegate, refresher);
 
     private static final long TIMEOUT = 10_000;
 
@@ -145,5 +149,33 @@ public class LockRefreshingTimelockServiceTest {
         when(delegate.getImmutableTimestamp()).thenReturn(immutableTs);
 
         assertThat(timelock.getImmutableTimestamp()).isEqualTo(immutableTs);
+    }
+
+    @Test
+    @SuppressWarnings("ThrowableNotThrown")
+    public void throwsDependencyUnavailableWhenConnectionToDelegateFails() {
+        Throwable cause = new ConnectException("I couldn't connect to TimeLock");
+        Throwable exceptionToThrow = new RuntimeException(cause);
+        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
+
+        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    @Test
+    @SuppressWarnings("ThrowableNotThrown")
+    public void throwsDependencyUnavailableWhenDelegateIsUnknown() {
+        Throwable cause = new UnknownHostException("I don't know how to talk to TimeLock");
+        Throwable exceptionToThrow = new RuntimeException(cause);
+        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
+
+        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    @Test
+    public void doesNotThrowDependencyExceptionWhenDelegateFailsForSomeOtherReason() {
+        when(delegate.getFreshTimestamp()).thenThrow(new RuntimeException("something else happened"));
+
+        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(RuntimeException.class)
+            .isNotInstanceOf(AtlasDbDependencyException.class);
     }
 }
