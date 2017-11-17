@@ -4,7 +4,6 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
     compile project(":commons-executors")
-    compile project(":qos-service-api")
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.google.code.findbugs', name: 'jsr305'
