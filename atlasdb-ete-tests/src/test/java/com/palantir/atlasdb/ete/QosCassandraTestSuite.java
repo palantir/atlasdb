@@ -77,7 +77,8 @@ public class QosCassandraTestSuite extends EteSetup {
     }
 
     @Test
-    public void canBeWritingLargeNumberOfBytesConcurrently() throws InterruptedException {
+    public void canWriteLargeNumberOfBytesConcurrentlyIfAllRequestsComeAtTheExactSameTime()
+            throws InterruptedException {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
         CyclicBarrier barrier = new CyclicBarrier(100);
@@ -112,6 +113,34 @@ public class QosCassandraTestSuite extends EteSetup {
             }
         });
         assertThat(exceptionCounter.get()).isEqualTo(0);
+    }
+
+    @Test
+    public void cannotWriteLargeNumberOfBytesConcurrently() throws InterruptedException {
+        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+
+        ForkJoinPool threadPool = new ForkJoinPool(100);
+
+        List<Future<?>> futures = Lists.newArrayList();
+
+        IntStream.range(0, 100).parallel()
+                .forEach(i -> futures.add(threadPool.submit(() -> todoClient.addTodo(getTodoOfSize(10_000)))));
+
+        threadPool.shutdown();
+        Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),
+                "Not all threads writing data finished in the expected time.");
+
+        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        futures.forEach(future -> {
+            try {
+                future.get();
+            } catch (ExecutionException e) {
+                exceptionCounter.getAndIncrement();
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
+            }
+        });
+        assertThat(exceptionCounter.get()).isGreaterThan(90);
     }
 
     @After
