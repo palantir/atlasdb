@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -34,6 +35,14 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,9 +155,9 @@ public class CqlKeyValueService extends AbstractKeyValueService {
     private boolean limitBatchSizesToServerDefaults = false;
 
     public static CqlKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
-        Optional<CassandraJmxCompactionManager> compactionManager =
-                CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        final CqlKeyValueService ret = new CqlKeyValueService(configManager, compactionManager);
+//        Optional<CassandraJmxCompactionManager> compactionManager =
+//                CassandraJmxCompaction.createJmxCompactionManager(configManager);
+        final CqlKeyValueService ret = new CqlKeyValueService(configManager, Optional.empty());
         ret.initializeConnectionPool();
         ret.performInitialSetup();
         return ret;
@@ -162,6 +171,24 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         this.compactionManager = compactionManager;
     }
 
+    public static void main(String[] args) {
+        Cluster.Builder clusterBuilder = Cluster.builder();
+        clusterBuilder.addContactPoint("127.0.0.1").withPort(9042);
+        Cluster cluster = clusterBuilder.build();
+        cluster.getMetadata();
+        System.out.println(":D");
+    }
+
+//    public static void main(String[] args) throws TException {
+//        TSocket thriftSocket = new TSocket("192.168.80.2", 9042, 2000);
+//        thriftSocket.open();
+//        TTransport thriftFramedTransport =
+//                new TFramedTransport(thriftSocket, CassandraConstants.CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES);
+//        TProtocol protocol = new TBinaryProtocol(thriftFramedTransport);
+//        Cassandra.Client client = new Cassandra.Client(protocol);
+//        client.describe_keyspaces();
+//    }
+
     @SuppressWarnings("CyclomaticComplexity")
     protected void initializeConnectionPool() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
@@ -169,7 +196,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         Cluster.Builder clusterBuilder = Cluster.builder();
         clusterBuilder.addContactPointsWithPorts(configuredHosts);
         clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.getKeyspaceOrThrow()); // for JMX metrics
-        clusterBuilder.withCompression(Compression.LZ4);
+//        clusterBuilder.withCompression(Compression.LZ4);
 
         if (config.sslConfiguration().isPresent()) {
             SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
@@ -427,54 +454,80 @@ public class CqlKeyValueService extends AbstractKeyValueService {
                             boolean loadAllTs,
                             final Visitor<Multimap<Cell, Value>> visitor,
                             final ConsistencyLevel consistency) throws Exception {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
+//        final CassandraKeyValueServiceConfig config = configManager.getConfig();
 
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
-        SortedSetMultimap<byte[], Cell> cellsByCol =
-                TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
         for (Cell cell : cells) {
-            cellsByCol.put(cell.getColumnName(), cell);
-        }
-        for (Entry<byte[], SortedSet<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
-            if (entry.getValue().size() > config.fetchBatchCount()) {
-                log.warn("A call to {} is performing a multiget {} cells; this may indicate overly-large batching "
-                        + "on a higher level.\n{}",
-                        tableRef,
-                        entry.getValue().size(),
-                        CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
-            }
-            for (List<Cell> batch : Iterables.partition(entry.getValue(), config.fetchBatchCount())) {
-                String rowBinds = Joiner.on(",").join(Iterables.limit(Iterables.cycle('?'), batch.size()));
-                final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef)
-                        + " WHERE " + fieldNameProvider.row()
-                        + " IN (" + rowBinds
-                        + ") AND " + fieldNameProvider.column()
-                        + " = ? AND " + fieldNameProvider.timestamp()
-                        + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
-                final PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session)
-                              .setConsistencyLevel(consistency);
+            final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef)
+                    + " WHERE " + fieldNameProvider.row()
+                    + " = ? AND " + fieldNameProvider.column()
+                    + " = ? AND " + fieldNameProvider.timestamp()
+                    + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
+            final PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session)
+                    .setConsistencyLevel(consistency);
 
-                Object[] args = new Object[batch.size() + 2];
-                for (int i = 0; i < batch.size(); i++) {
-                    args[i] = ByteBuffer.wrap(batch.get(i).getRowName());
-                }
-                args[batch.size()] = ByteBuffer.wrap(entry.getKey());
-                args[batch.size() + 1] = ~startTs;
-                ResultSetFuture resultSetFuture = session.executeAsync(
-                        preparedStatement.bind(args));
-                resultSetFutures.add(resultSetFuture);
-            }
+            Object[] args = new Object[3];
+            args[0] = ByteBuffer.wrap(cell.getRowName());
+            args[1] = ByteBuffer.wrap(cell.getColumnName());
+            args[2] = ~startTs;
+            ResultSetFuture resultSetFuture = session.executeAsync(preparedStatement.bind(args));
+            resultSetFutures.add(resultSetFuture);
         }
 
         String loggedLoadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " "
                 + "WHERE " + fieldNameProvider.row()
-                + " IN (?, ...) AND " + fieldNameProvider.column()
+                + " = ? AND " + fieldNameProvider.column()
                 + " = ? AND " + fieldNameProvider.timestamp()
                 + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
         for (ResultSetFuture rsf : resultSetFutures) {
             visitResults(rsf.getUninterruptibly(), visitor, loggedLoadWithTsQuery, loadAllTs);
         }
     }
+
+//    SortedSetMultimap<byte[], Cell> cellsByCol =
+//            TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
+//    for (Cell cell : cells) {
+//        cellsByCol.put(cell.getColumnName(), cell);
+//    }
+//    for (Entry<byte[], SortedSet<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
+//        if (entry.getValue().size() > config.fetchBatchCount()) {
+//            log.warn("A call to {} is performing a multiget {} cells; this may indicate overly-large batching "
+//                            + "on a higher level.\n{}",
+//                    tableRef,
+//                    entry.getValue().size(),
+//                    CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
+//        }
+//        for (List<Cell> batch : Iterables.partition(entry.getValue(), config.fetchBatchCount())) {
+//            String rowBinds = Joiner.on(",").join(Iterables.limit(Iterables.cycle('?'), batch.size()));
+//            final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef)
+//                    + " WHERE " + fieldNameProvider.row()
+//                    + " IN (" + rowBinds
+//                    + ") AND " + fieldNameProvider.column()
+//                    + " = ? AND " + fieldNameProvider.timestamp()
+//                    + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
+//            final PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session)
+//                    .setConsistencyLevel(consistency);
+//
+//            Object[] args = new Object[batch.size() + 2];
+//            for (int i = 0; i < batch.size(); i++) {
+//                args[i] = ByteBuffer.wrap(batch.get(i).getRowName());
+//            }
+//            args[batch.size()] = ByteBuffer.wrap(entry.getKey());
+//            args[batch.size() + 1] = ~startTs;
+//            ResultSetFuture resultSetFuture = session.executeAsync(
+//                    preparedStatement.bind(args));
+//            resultSetFutures.add(resultSetFuture);
+//        }
+//    }
+//
+//    String loggedLoadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " "
+//            + "WHERE " + fieldNameProvider.row()
+//            + " IN (?, ...) AND " + fieldNameProvider.column()
+//            + " = ? AND " + fieldNameProvider.timestamp()
+//            + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
+//    for (ResultSetFuture rsf : resultSetFutures) {
+//        visitResults(rsf.getUninterruptibly(), visitor, loggedLoadWithTsQuery, loadAllTs);
+//    }
 
     // TODO(unknown): use this for insert and delete batch-to-owner-coordinator mapping
     private Map<byte[], List<Cell>> partitionCellsByPrimaryKey(Collection<Cell> cells) {
