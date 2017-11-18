@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Mockito.mock;
 
+import java.net.InetSocketAddress;
+
 import org.junit.ClassRule;
 import org.slf4j.Logger;
 
@@ -34,25 +36,29 @@ public class CqlKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTe
 
     private final Logger logger = mock(Logger.class);
 
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(CqlKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+//    @ClassRule
+//    public static final Containers CONTAINERS = new Containers(CqlKeyValueServiceIntegrationTest.class)
+//            .with(new CassandraContainer());
 
     @Override
     protected KeyValueService getKeyValueService() {
         return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
     }
 
-    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
-        return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                CassandraContainer.LEADER_CONFIG,
-                testLogger);
+    @Override
+    protected boolean reverseRangesSupported() {
+        return false;
+    }
+
+    private CqlKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+        return CqlKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config));
     }
 
     private ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig
                 .copyOf(CassandraContainer.KVS_CONFIG)
+                .withServers(new InetSocketAddress("127.0.0.1", CassandraContainer.CASSANDRA_CQL_PORT))
                 .withGcGraceSeconds(gcGraceSeconds);
     }
 }
