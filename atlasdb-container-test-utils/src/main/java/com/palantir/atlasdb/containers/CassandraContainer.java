@@ -33,12 +33,13 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
 
-    public static final int CASSANDRA_PORT = 9160;
+    public static final int CASSANDRA_CQL_PORT = 9042;
+    public static final int CASSANDRA_THRIFT_PORT = 9160;
     public static final String USERNAME = "cassandra";
     public static final String PASSWORD = "cassandra";
 
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("cassandra", CASSANDRA_PORT))
+            .addServers(new InetSocketAddress("cassandra", CASSANDRA_THRIFT_PORT))
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()
