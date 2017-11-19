@@ -247,7 +247,7 @@ public class LockServerSync {
         boolean wasInterrupted = false;
         try {
             while (true) {
-                // Either acquire, fail to acquire, or figure out how the
+                // Either acquire, fail to acquire, or figure out the
                 // parameters of our wait...
                 long signalCount;
                 long left;
@@ -260,7 +260,7 @@ public class LockServerSync {
                     left = nanos - Math.max(0, System.nanoTime() - t0);
 
                     if (left <= 0) {
-                        // Out of time!  Try to figure out how has it.
+                        // Out of time!  Try to figure out who has it.
                         int blocker = getCurrentHolder();
                         if (blocker != 0) {
                             return blocker;
