@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -32,10 +33,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.net.ssl.SSLContext;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -101,6 +104,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -1252,7 +1256,50 @@ public class CqlKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        throw new UnsupportedOperationException("Check and set is not yet supported for CQL KeyValueService");
+        if (checkAndSetRequest.oldValue().isPresent()) {
+            performUpdate(checkAndSetRequest);
+        } else {
+            putUnlessExists(checkAndSetRequest.table(),
+                    ImmutableMap.of(checkAndSetRequest.cell(), checkAndSetRequest.newValue()));
+        }
+    }
+
+    private void performUpdate(CheckAndSetRequest checkAndSetRequest) {
+        final String loadWithTsQuery = "UPDATE " + getFullTableName(checkAndSetRequest.table())
+                + " SET " + fieldNameProvider.value()
+                + " = ? WHERE " + fieldNameProvider.row()
+                + " = ? AND " + fieldNameProvider.column()
+                + " = ? AND " + fieldNameProvider.timestamp()
+                + " = ? IF " + fieldNameProvider.value()
+                + " = ?";
+
+        final PreparedStatement preparedStatement =
+                getPreparedStatement(checkAndSetRequest.table(), loadWithTsQuery, session);
+        preparedStatement.setConsistencyLevel(writeConsistency);
+
+        Cell cell = checkAndSetRequest.cell();
+        Object[] args = new Object[5];
+        args[0] = ByteBuffer.wrap(checkAndSetRequest.newValue());
+        args[1] = ByteBuffer.wrap(cell.getRowName());
+        args[2] = ByteBuffer.wrap(cell.getColumnName());
+        args[3] = ~AtlasDbConstants.TRANSACTION_TS;
+        args[4] = ByteBuffer.wrap(checkAndSetRequest.oldValue().get());
+
+        BoundStatement boundStatement = preparedStatement.bind(args);
+
+        ResultSet resultSet = session.execute(boundStatement);
+
+        if (!resultSet.wasApplied()) {
+            List<byte[]> currentValues = resultSet.all().stream()
+                    .filter(row -> row.getColumnDefinitions().contains(fieldNameProvider.value()))
+                    .map(row -> row.getBytes(fieldNameProvider.value()).array())
+                    .collect(Collectors.toList());
+
+            throw new CheckAndSetException(checkAndSetRequest.cell(),
+                    checkAndSetRequest.table(),
+                    checkAndSetRequest.oldValue().orElse(null),
+                    currentValues);
+        }
     }
 
     String getFullTableName(TableReference tableRef) {
