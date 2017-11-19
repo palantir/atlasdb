@@ -1259,6 +1259,7 @@ public class CqlKeyValueService extends AbstractKeyValueService {
         if (checkAndSetRequest.oldValue().isPresent()) {
             performUpdate(checkAndSetRequest);
         } else {
+            // TODO(ssouza): should throw CASException, instead of KeyAlreadyExistsException
             putUnlessExists(checkAndSetRequest.table(),
                     ImmutableMap.of(checkAndSetRequest.cell(), checkAndSetRequest.newValue()));
         }
