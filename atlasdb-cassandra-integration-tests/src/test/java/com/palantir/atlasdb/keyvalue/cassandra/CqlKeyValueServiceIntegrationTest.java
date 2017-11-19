@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import java.net.InetSocketAddress;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.slf4j.Logger;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -48,6 +49,12 @@ public class CqlKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTe
     @Override
     protected boolean reverseRangesSupported() {
         return false;
+    }
+
+    @Override
+    @Ignore
+    public void testGetAllTableNames() {
+        //
     }
 
     private CqlKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
