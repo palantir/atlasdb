@@ -126,9 +126,15 @@ public interface TransactionManager extends AutoCloseable {
     long getImmutableTimestamp();
 
     /**
-     * Return the {@link KeyValueServiceStatus} depending on the availability of the underlying key-value store.
-     *
-     * @return status of the key value service, can be used by the application to decide its own health
+     * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store.
+     * This can be used to infer product health - in the usual, conservative case, products can call
+     * {@link KeyValueServiceStatus#isHealthy()}, which returns true only if all KVS nodes are up.
+     * <p>
+     * Products that use AtlasDB only for reads and writes (no schema mutations or deletes, including having sweep and
+     * scrub disabled) can also treat {@link KeyValueServiceStatus#HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES} as
+     * healthy.
+     * <p>
+     * This call must be implemented so that it completes synchronously.
      */
     KeyValueServiceStatus getKeyValueServiceStatus();
 
