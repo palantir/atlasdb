@@ -32,6 +32,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,11 +43,11 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -61,7 +62,6 @@ public class TimeLockMigratorTest {
 
     private static final String USER_AGENT = "user-agent (123456789)";
 
-    private ServerListConfig defaultServerListConfig;
     private TimeLockClientConfig timelockConfig;
 
     private final TimestampStoreInvalidator invalidator = mock(TimestampStoreInvalidator.class);
@@ -83,7 +83,7 @@ public class TimeLockMigratorTest {
         String serverUri = String.format("http://%s:%s",
                 WireMockConfiguration.DEFAULT_BIND_ADDRESS,
                 wireMockRule.port());
-        defaultServerListConfig = ImmutableServerListConfig.builder().addServers(serverUri).build();
+        ServerListConfig defaultServerListConfig = ImmutableServerListConfig.builder().addServers(serverUri).build();
         timelockConfig = ImmutableTimeLockClientConfig.builder()
                 .client("testClient")
                 .serversList(defaultServerListConfig)
@@ -94,7 +94,8 @@ public class TimeLockMigratorTest {
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
-        TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
         migrator.migrate();
 
         wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
@@ -106,8 +107,9 @@ public class TimeLockMigratorTest {
     public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
         wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
 
-        TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT);
-        assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+        assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
 
@@ -115,7 +117,8 @@ public class TimeLockMigratorTest {
     public void migrationDoesNotProceedIfInvalidationFails() {
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
-        TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
         wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
     }
@@ -135,7 +138,8 @@ public class TimeLockMigratorTest {
 
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
 
-        TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT, true);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()
@@ -163,7 +167,8 @@ public class TimeLockMigratorTest {
                 });
 
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
-        TimeLockMigrator migrator = TimeLockMigrator.create(timelockConfig, invalidator, USER_AGENT, true);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(() -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
         migrator.migrate();
 
         Awaitility.await()

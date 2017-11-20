@@ -44,9 +44,11 @@ import com.palantir.logsafe.UnsafeArg;
  */
 public final class LoggingArgs {
 
+    private static final String PLACEHOLDER_TABLE_NAME = "{table}";
+
     @VisibleForTesting
     static final TableReference PLACEHOLDER_TABLE_REFERENCE =
-            TableReference.createWithEmptyNamespace("{table}");
+            TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
 
     @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
@@ -107,6 +109,17 @@ public final class LoggingArgs {
             return tableReference;
         } else {
             return PLACEHOLDER_TABLE_REFERENCE;
+        }
+    }
+
+    /**
+     * If table is safe, returns the table. If unsafe, returns a placeholder name.
+     */
+    public static String safeInternalTableNameOrPlaceholder(String internalTableReference) {
+        if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
+            return internalTableReference;
+        } else {
+            return PLACEHOLDER_TABLE_NAME;
         }
     }
 

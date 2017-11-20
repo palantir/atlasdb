@@ -45,12 +45,13 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfigs;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -103,7 +104,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.client.LockRefreshingTimelockService;
+import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
@@ -320,7 +321,7 @@ public abstract class TransactionManagers {
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
-                () -> runtimeConfigSupplier.get().timestampClient(),
+                runtimeConfigSupplier,
                 registrar(),
                 () -> LockServiceImpl.create(lockServerOptions()),
                 atlasFactory::getTimestampService,
@@ -528,6 +529,7 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config,
+                        () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
                         env,
                         lock,
                         time,
@@ -542,16 +544,16 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
-            java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawInstrumentedServices(config, env, lock, time, invalidator, userAgent);
+                createRawInstrumentedServices(config, runtimeConfigSupplier, env, lock, time, invalidator, userAgent);
         return withRequestBatchingTimestampService(
-                runtimeConfigSupplier,
+                () -> runtimeConfigSupplier.get().timestampClient(),
                 withRefreshingLockService(lockAndTimestampServices));
     }
 
@@ -559,7 +561,7 @@ public abstract class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
+                .timelock(TimeLockClient.createDefault(lockAndTimestampServices.timelock()))
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .build();
     }
@@ -582,6 +584,7 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static LockAndTimestampServices createRawInstrumentedServices(
             AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
@@ -592,7 +595,7 @@ public abstract class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
-            return createRawServicesFromTimeLock(config, invalidator, userAgent);
+            return createRawServicesFromTimeLock(config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
         }
@@ -600,36 +603,39 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices createRawServicesFromTimeLock(
             AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
+        Supplier<ServerListConfig> serverListConfigSupplier =
+                getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
+        migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+        return ImmutableLockAndTimestampServices.copyOf(
+                getLockAndTimestampServices(serverListConfigSupplier, userAgent))
+                .withMigrator(migrator);
+    }
+
+    private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
+            AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Preconditions.checkState(config.timelock().isPresent(),
                 "Cannot create raw services from timelock without a timelock block!");
         TimeLockClientConfig clientConfig = config.timelock().get();
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
-        TimeLockClientConfig timeLockClientConfig =
-                TimeLockClientConfigs.copyWithClient(config.timelock().get(), resolvedClient);
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent, config.initializeAsync());
-        migrator.migrate(); // This can proceed async if config.initializeAsync() was set
-        return ImmutableLockAndTimestampServices.copyOf(
-                createNamespacedRawRemoteServices(timeLockClientConfig, userAgent))
-                .withMigrator(migrator);
-    }
-
-    private static LockAndTimestampServices createNamespacedRawRemoteServices(
-            TimeLockClientConfig config,
-            String userAgent) {
-        ServerListConfig namespacedServerListConfig = config.toNamespacedServerList();
-        return getLockAndTimestampServices(namespacedServerListConfig, userAgent);
+        return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
+                clientConfig,
+                () -> runtimeConfigSupplier.get().timelockRuntime(),
+                resolvedClient);
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(
-            ServerListConfig timelockServerListConfig,
+            Supplier<ServerListConfig> timelockServerListConfig,
             String userAgent) {
         LockService lockService = new ServiceCreator<>(LockService.class, userAgent)
-                .apply(timelockServerListConfig);
+                .applyDynamic(timelockServerListConfig);
         TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
-                .apply(timelockServerListConfig);
+                .applyDynamic(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

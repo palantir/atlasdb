@@ -154,10 +154,6 @@
         "joda-time:joda-time": {
             "locked": "2.7"
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "requested": "1.2.17"
-        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -336,10 +332,6 @@
         },
         "joda-time:joda-time": {
             "locked": "2.7"
-        },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "requested": "1.2.17"
         },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",

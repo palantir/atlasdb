@@ -46,12 +46,13 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 
-public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
+public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
 
     private static final LoadingCache<InetSocketAddress, SSLSocketFactory> sslSocketFactories =
@@ -75,9 +76,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     }
 
     @Override
-    public Client create() throws Exception {
+    public CassandraClient create() throws Exception {
         try {
-            return getClient(addr, config);
+            return instrumentClient(getRawClient(addr, config));
         } catch (Exception e) {
             String message = String.format("Failed to construct client for %s/%s", addr, config.getKeyspaceOrThrow());
             if (config.usingSsl()) {
@@ -87,8 +88,19 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
         }
     }
 
-    private static Cassandra.Client getClient(InetSocketAddress addr,
-                                              CassandraKeyValueServiceConfig config) throws Exception {
+    private CassandraClient instrumentClient(Client rawClient) {
+        CassandraClient client = new CassandraClientImpl(rawClient);
+        client = new ProfilingCassandraClient(client);
+        client = new TracingCassandraClient(client);
+        // TODO(ssouza): use the kvsMethodName to tag the timers.
+        client = AtlasDbMetrics.instrument(CassandraClient.class, client);
+        client = new QosCassandraClient(client);
+        return client;
+    }
+
+    private static Cassandra.Client getRawClient(InetSocketAddress addr, CassandraKeyValueServiceConfig config)
+            throws Exception {
+
         Client ret = getClientInternal(addr, config);
         try {
             ret.set_keyspace(config.getKeyspaceOrThrow());
@@ -167,18 +179,18 @@ public class CassandraClientFactory extends BasePooledObjectFactory<Client> {
     }
 
     @Override
-    public boolean validateObject(PooledObject<Client> client) {
-        return client.getObject().getOutputProtocol().getTransport().isOpen();
+    public boolean validateObject(PooledObject<CassandraClient> client) {
+        return client.getObject().rawClient().getOutputProtocol().getTransport().isOpen();
     }
 
     @Override
-    public PooledObject<Client> wrap(Client client) {
-        return new DefaultPooledObject<Client>(client);
+    public PooledObject<CassandraClient> wrap(CassandraClient client) {
+        return new DefaultPooledObject<>(client);
     }
 
     @Override
-    public void destroyObject(PooledObject<Client> client) {
-        client.getObject().getOutputProtocol().getTransport().close();
+    public void destroyObject(PooledObject<CassandraClient> client) {
+        client.getObject().rawClient().getOutputProtocol().getTransport().close();
         log.debug("Closed transport for client {} of host {}",
                 UnsafeArg.of("client", client),
                 SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));

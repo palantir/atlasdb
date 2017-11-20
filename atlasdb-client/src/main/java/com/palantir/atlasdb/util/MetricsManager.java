@@ -24,10 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -84,15 +87,46 @@ public class MetricsManager {
             registeredMetrics.add(fullyQualifiedMetricName);
         } catch (Exception e) {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
-            log.error("Unable to register metric {}", fullyQualifiedMetricName, e);
+            log.warn("Unable to register metric {}."
+                    + " This may occur if you are running integration tests that don't clean up completely after "
+                    + " themselves, or if you are trying to use multiple TransactionManagers concurrently in the same"
+                    + " JVM (e.g. in a KVS migration). If this is not the case, this is likely to be a product and/or"
+                    + " an AtlasDB bug. This is no cause for immediate alarm, but it does mean that your telemetry for"
+                    + " the aforementioned metric may be reported incorrectly.",
+                    SafeArg.of("metricName", fullyQualifiedMetricName),
+                    e);
         }
     }
 
-    public Meter registerMeter(Class clazz, String metricPrefix, String meterName) {
-        return registerMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
+    public Histogram registerOrGetHistogram(Class clazz, String metricName) {
+        return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
     }
 
-    private synchronized Meter registerMeter(String fullyQualifiedMeterName) {
+    private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
+        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
+        registeredMetrics.add(fullyQualifiedHistogramName);
+        return histogram;
+    }
+
+    public Timer registerOrGetTimer(Class clazz, String metricName) {
+        return registerOrGetTimer(MetricRegistry.name(clazz, metricName));
+    }
+
+    private Timer registerOrGetTimer(String fullyQualifiedHistogramName) {
+        Timer timer = metricRegistry.timer(fullyQualifiedHistogramName);
+        registeredMetrics.add(fullyQualifiedHistogramName);
+        return timer;
+    }
+
+    public Meter registerOrGetMeter(Class clazz, String meterName) {
+        return registerOrGetMeter(MetricRegistry.name(clazz, "", meterName));
+    }
+
+    public Meter registerOrGetMeter(Class clazz, String metricPrefix, String meterName) {
+        return registerOrGetMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
+    }
+
+    private synchronized Meter registerOrGetMeter(String fullyQualifiedMeterName) {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
         return meter;

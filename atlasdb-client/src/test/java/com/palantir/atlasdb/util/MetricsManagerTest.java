@@ -25,6 +25,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +46,7 @@ public class MetricsManagerTest {
     private static final String METER_NAME = "meterName";
 
     private static final Gauge GAUGE = () -> 1L;
+    private static final Meter METER = new Meter();
 
     private final MetricRegistry registry = new MetricRegistry();
     private TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
@@ -66,7 +68,7 @@ public class MetricsManagerTest {
 
     @Test
     public void registersMeters() {
-        metricsManager.registerMeter(LIST_CLASS, RUNTIME, METER_NAME);
+        metricsManager.registerOrGetMeter(LIST_CLASS, RUNTIME, METER_NAME);
 
         assertThat(registry.getMeters().keySet()).containsExactly(
                 MetricRegistry.name(LIST_CLASS, RUNTIME, METER_NAME));
@@ -173,6 +175,14 @@ public class MetricsManagerTest {
         metricsManager.deregisterMetricsWithPrefix(LIST_CLASS, "");
 
         assertThat(registry.getNames()).containsExactly(MetricRegistry.name(LIST_ITERATOR_CLASS, ERROR_OOM));
+    }
+
+
+    @Test
+    public void registerOrGetMeterMeterRegistersTheFullyQualifiedClassNameMetric() {
+        metricsManager.registerOrGetMeter(LIST_CLASS, ERROR_OUT_OF_BOUNDS);
+
+        assertThat(registry.getNames()).containsExactly("java.util.List.error.outofbounds");
     }
 
     @After
