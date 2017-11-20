@@ -18,14 +18,18 @@ package com.palantir.atlasdb.qos;
 
 public class FakeQosClient implements QosClient {
 
-    private static final FakeQosClient DEFAULT = new FakeQosClient();
+    public static final FakeQosClient INSTANCE = new FakeQosClient();
 
-    public static FakeQosClient getDefault() {
-        return DEFAULT;
+    @Override
+    public <T, E extends Exception> T executeRead(Query<T, E> query, QueryWeigher<T> weigher)
+            throws E {
+        return query.execute();
     }
 
     @Override
-    public void checkLimit() {
-        // no op
+    public <T, E extends Exception> T executeWrite(Query<T, E> query, QueryWeigher<T> weigher)
+            throws E {
+        return query.execute();
     }
+
 }

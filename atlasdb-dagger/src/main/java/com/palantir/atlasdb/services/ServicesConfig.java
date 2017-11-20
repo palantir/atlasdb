@@ -43,7 +43,7 @@ public abstract class ServicesConfig {
                 atlasDbConfig().leader(),
                 atlasDbConfig().namespace(),
                 atlasDbConfig().initializeAsync(),
-                FakeQosClient.getDefault());
+                FakeQosClient.INSTANCE);
     }
 
     @Value.Default

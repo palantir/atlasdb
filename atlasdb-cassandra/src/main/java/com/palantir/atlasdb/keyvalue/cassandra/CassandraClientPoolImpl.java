@@ -164,11 +164,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.getDefault());
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.getDefault());
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync,
