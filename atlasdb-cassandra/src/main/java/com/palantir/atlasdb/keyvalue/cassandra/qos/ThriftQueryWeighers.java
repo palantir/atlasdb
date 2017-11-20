@@ -51,32 +51,32 @@ public final class ThriftQueryWeighers {
 
     private ThriftQueryWeighers() { }
 
-    public static final QosClient.QueryWeigher<Map<ByteBuffer, List<ColumnOrSuperColumn>>> multigetSlice(
+    static QosClient.QueryWeigher<Map<ByteBuffer, List<ColumnOrSuperColumn>>> multigetSlice(
             int numberOfQueriedRows) {
         return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size, numberOfQueriedRows);
     }
 
-    public static final QosClient.QueryWeigher<List<KeySlice>> getRangeSlices(
+    static QosClient.QueryWeigher<List<KeySlice>> getRangeSlices(
             int numberOfQueriedRows) {
         return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size, numberOfQueriedRows);
     }
 
-    public static final QosClient.QueryWeigher<ColumnOrSuperColumn> GET =
+    static final QosClient.QueryWeigher<ColumnOrSuperColumn> GET =
             readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1, 1);
 
-    public static final QosClient.QueryWeigher<CqlResult> EXECUTE_CQL3_QUERY =
+    static final QosClient.QueryWeigher<CqlResult> EXECUTE_CQL3_QUERY =
             // TODO(nziebart): we need to inspect the schema to see how many rows there are - a CQL row is NOT a
             // partition. rows here will depend on the type of query executed in CqlExecutor: either (column, ts) pairs,
             // or (key, column, ts) triplets
             readWeigher(ThriftObjectSizeUtils::getCqlResultSize, ignored -> 1, 1);
 
-    public static QosClient.QueryWeigher<Void> batchMutate(
+    static QosClient.QueryWeigher<Void> batchMutate(
             Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
         long numRows = mutationMap.size();
         return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(mutationMap));
     }
 
-    public static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead, Function<T, Integer> numRows,
+    private static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead, Function<T, Integer> numRows,
             int numberOfQueriedRows) {
         return new QosClient.QueryWeigher<T>() {
             @Override
@@ -106,7 +106,7 @@ public final class ThriftQueryWeighers {
         };
     }
 
-    public static <T> QosClient.QueryWeigher<T> writeWeigher(long numRows, Supplier<Long> bytesWritten) {
+    private static <T> QosClient.QueryWeigher<T> writeWeigher(long numRows, Supplier<Long> bytesWritten) {
         Supplier<Long> weight = Suppliers.memoize(() -> safeGetNumBytesOrDefault(bytesWritten))::get;
 
         return new QosClient.QueryWeigher<T>() {
