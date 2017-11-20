@@ -288,9 +288,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "javax.validation:validation-api": {
@@ -322,8 +320,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-metrics"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "org.jooq:jooq": {
@@ -645,9 +642,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "javax.validation:validation-api": {
@@ -679,8 +674,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.tritium:tritium-metrics"
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "org.jooq:jooq": {

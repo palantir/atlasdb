@@ -797,9 +797,7 @@
             "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
@@ -934,8 +932,7 @@
             "locked": "2.1.10",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
-                "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.tritium:tritium-metrics"
+                "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "org.jboss.marshalling:jboss-marshalling": {
