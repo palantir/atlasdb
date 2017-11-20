@@ -338,7 +338,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
             if (blacklistedEntry.getValue() + backoffTimeMillis < System.currentTimeMillis()) {
                 InetSocketAddress host = blacklistedEntry.getKey();
-                if (isHostHealthy(host)) {
+                if (isHostHealthy(currentPools.get(host))) {
                     blacklist.remove(host);
                     log.info("Added host {} back into the pool after a waiting period and successful health check.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
@@ -347,16 +347,15 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private boolean isHostHealthy(InetSocketAddress host) {
+    private boolean isHostHealthy(CassandraClientPoolingContainer container) {
         try {
-            CassandraClientPoolingContainer testingContainer = currentPools.get(host);
-            testingContainer.runWithPooledResource(getDescribeRing());
-            testingContainer.runWithPooledResource(getValidatePartitioner());
+            container.runWithPooledResource(getDescribeRing());
+            container.runWithPooledResource(getValidatePartitioner());
             return true;
         } catch (Exception e) {
             log.warn("We tried to add {} back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
-                    SafeArg.of("host", CassandraLogHelper.host(host)),
+                    SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
                     UnsafeArg.of("exceptionMessage", e.getMessage()));
             return false;
