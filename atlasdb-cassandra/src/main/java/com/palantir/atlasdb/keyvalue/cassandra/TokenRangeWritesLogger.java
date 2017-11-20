@@ -36,7 +36,9 @@ import com.palantir.logsafe.SafeArg;
 
 public class TokenRangeWritesLogger {
     private static final Logger log = LoggerFactory.getLogger(TokenRangeWritesLogger.class);
-    private static final long THRESHOLD_WRITES_PER_TABLE = 100_000L;
+
+    @VisibleForTesting
+    static final long THRESHOLD_WRITES_PER_TABLE = 100_000L;
 
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, ConcurrentMap<TableReference, Long>> tokenRangeWritesPerTable =
@@ -53,7 +55,7 @@ public class TokenRangeWritesLogger {
     }
 
     public static TokenRangeWritesLogger createFromClientPool(CassandraClientPoolImpl clientPool) {
-        return new TokenRangeWritesLogger(clientPool.tokenMap.asMapOfRanges().keySet());
+        return new TokenRangeWritesLogger(clientPool.getTokenRanges());
 
     }
 
@@ -75,8 +77,8 @@ public class TokenRangeWritesLogger {
     private void logIfOverThreshold(TableReference tableRef) {
         if (writesPerTable.getOrDefault(tableRef, 0L) > THRESHOLD_WRITES_PER_TABLE) {
             log(tableRef);
+            writesPerTable.replace(tableRef, 0L);
         }
-        writesPerTable.replace(tableRef, 0L);
     }
 
     private void log(TableReference tableRef) {

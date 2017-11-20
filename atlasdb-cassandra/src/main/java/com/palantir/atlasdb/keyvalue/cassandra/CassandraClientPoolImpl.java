@@ -94,9 +94,9 @@ import com.palantir.remoting3.tracing.Tracers;
  *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
  *   ... this is one of the reasons why there is a new system.
  **/
-@SuppressWarnings("VisibilityModifier")
 @AutoDelegate(typeToExtend = CassandraClientPool.class)
-public final class CassandraClientPoolImpl implements CassandraClientPool {
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
+public class CassandraClientPoolImpl implements CassandraClientPool {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
         public CassandraClientPool delegate() {
@@ -511,6 +511,10 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         } else {
             throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
         }
+    }
+
+    Set<Range<LightweightOppToken>> getTokenRanges() {
+        return tokenMap.asMapOfRanges().keySet();
     }
 
     private void refreshTokenRanges() {

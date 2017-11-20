@@ -212,7 +212,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    private TokenRangeWritesLogger tokenRangeWritesLogger;
+    @VisibleForTesting
+    TokenRangeWritesLogger tokenRangeWritesLogger;
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
@@ -1010,10 +1011,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 entry.getValue().entrySet(),
                                 ttl);
                         tokenRangeWritesLogger.markWritesForTable(entry.getValue().entrySet(), tableRef);
-//                        for (Map.Entry<Cell, Value> cell : entry.getValue().entrySet()) {
-//                            ((CassandraClientPoolImpl) clientPool)
-//                                    .markTokenRangeWritesForKeyAndTable(cell.getKey().getRowName(), tableRef, 1);
-//                        }
                         return null;
                     }));
         }

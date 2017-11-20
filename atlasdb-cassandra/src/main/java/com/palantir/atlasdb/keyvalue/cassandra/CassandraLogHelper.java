@@ -79,14 +79,14 @@ final class CassandraLogHelper {
     }
 
     private static String getLowerEndpoint(Range<LightweightOppToken> range) {
-        if (range.hasLowerBound()) {
+        if (!range.hasLowerBound()) {
             return "(no lower bound)";
         }
         return range.lowerEndpoint().toString();
     }
 
     private static String getUpperEndpoint(Range<LightweightOppToken> range) {
-        if (range.hasUpperBound()) {
+        if (!range.hasUpperBound()) {
             return "(no upper bound)";
         }
         return range.upperEndpoint().toString();
