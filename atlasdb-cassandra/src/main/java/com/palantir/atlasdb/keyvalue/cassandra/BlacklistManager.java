@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.logsafe.SafeArg;
@@ -37,16 +38,16 @@ public class BlacklistManager {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
     private final CassandraKeyValueServiceConfig config;
-    private final Blacklist blacklist;
+    private Map<InetSocketAddress, Long> blacklist;
 
     BlacklistManager(CassandraKeyValueServiceConfig config) {
         this.config = config;
-        this.blacklist = new Blacklist();
+        this.blacklist = Maps.newConcurrentMap();
     }
 
     public void checkAndUpdateBlacklist(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
         // Check blacklist and re-integrate or continue to wait as necessary
-        for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklist.getBlacklistedHosts().entrySet()) {
+        for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklist.entrySet()) {
             if (coolOffPeriodExpired(blacklistedEntry)) {
                 InetSocketAddress host = blacklistedEntry.getKey();
                 if (isHostHealthy(pools.get(host))) {
@@ -78,47 +79,45 @@ public class BlacklistManager {
         }
     }
 
-    public int size() {
-        return blacklist.size();
-    }
-
-    public void unblacklist(InetSocketAddress host) {
-        blacklist.remove(host);
-    }
-
-    public String describeBlacklist() {
-        return blacklist.getBlacklistedHosts().keySet().toString();
-    }
-
     public Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
-        return Sets.difference(
-                ImmutableSet.copyOf(potentialHosts),
-                blacklist.getBlacklistedHosts().keySet());
-    }
-
-    public List<String> blacklistDetails() {
-        return blacklist.getBlacklistedHosts().entrySet().stream()
-                .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
-                        CassandraLogHelper.host(blacklistedHostToBlacklistTime.getKey()),
-                        blacklistedHostToBlacklistTime.getValue().longValue()))
-                .collect(Collectors.toList());
-
-    }
-
-    public void blacklist(InetSocketAddress host) {
-        blacklist.add(host);
-        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
+        return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
     }
 
     public boolean isBlacklisted(InetSocketAddress host) {
-        return blacklist.contains(host);
+        return blacklist.containsKey(host);
+    }
+
+    public void blacklist(InetSocketAddress host) {
+        blacklist.put(host, System.currentTimeMillis());
+        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
     public void blacklistAll(Set<InetSocketAddress> hosts) {
         hosts.forEach(this::blacklist);
     }
 
+    public void unblacklist(InetSocketAddress host) {
+        blacklist.remove(host);
+    }
+
     public void unblacklistAll() {
-        blacklist.removeAll();
+        blacklist.clear();
+    }
+
+    public int size() {
+        return blacklist.size();
+    }
+
+    public String describeBlacklist() {
+        return blacklist.keySet().toString();
+    }
+
+    public List<String> blacklistDetails() {
+        return blacklist.entrySet().stream()
+                .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
+                        CassandraLogHelper.host(blacklistedHostToBlacklistTime.getKey()),
+                        blacklistedHostToBlacklistTime.getValue().longValue()))
+                .collect(Collectors.toList());
+
     }
 }
