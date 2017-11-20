@@ -24,6 +24,8 @@ import java.util.SortedMap;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 
+import com.codahale.metrics.Meter;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -31,11 +33,15 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class ResultsExtractor<T> {
+
+    protected MetricsManager metricsManager = new MetricsManager();
+
     @SuppressWarnings("VisibilityModifier")
     public final byte[] extractResults(
             Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
@@ -44,18 +50,22 @@ public abstract class ResultsExtractor<T> {
         byte[] maxRow = null;
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
-            if (maxRow == null) {
-                maxRow = row;
-            } else {
-                maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, row);
-            }
+            maxRow = updatedMaxRow(maxRow, row);
 
             for (ColumnOrSuperColumn c : colEntry.getValue()) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.column);
-                internalExtractResult(startTs, selection, row, pair.lhSide, c.column.getValue(), pair.rhSide);
+                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
+                internalExtractResult(startTs, selection, row, pair.lhSide, c.getColumn().getValue(), pair.rhSide);
             }
         }
         return maxRow;
+    }
+
+    private byte[] updatedMaxRow(byte[] previousMaxRow, byte[] row) {
+        if (previousMaxRow == null) {
+            return row;
+        } else {
+            return PtBytes.BYTES_COMPARATOR.max(previousMaxRow, row);
+        }
     }
 
     public TokenBackedBasicResultsPage<RowResult<T>, byte[]> getPageFromRangeResults(
@@ -91,4 +101,9 @@ public abstract class ResultsExtractor<T> {
                                                long ts);
 
     public abstract Map<Cell, T> asMap();
+
+    protected Meter getNotlatestVisibleValueCellFilterMeter(Class clazz) {
+        // TODO(hsaraogi): add table names as a tag
+        return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+    }
 }

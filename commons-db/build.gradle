@@ -10,9 +10,6 @@ dependencies {
   compile group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils
   compile group: 'org.apache.commons', name: 'commons-lang3'
   compile group: 'commons-io', name: 'commons-io'
-  compile(group: 'log4j', name: 'log4j', version: libVersions.log4j) {
-    transitive = false
-  }
   compile group: 'com.mchange', name: 'c3p0', version: libVersions.c3p0
   compile group: 'com.palantir.remoting2', name: 'tracing'
 

@@ -16,11 +16,15 @@
 
 package com.palantir.lock.client;
 
+import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -31,25 +35,23 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-// TODO(nziebart): probably should make it more obvious that this class should always be used;
-// maybe call this a TimelockClient and require that everywhere? Could also be used for async unlocking..
-public class LockRefreshingTimelockService implements AutoCloseable, TimelockService {
+public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
 
-    public static LockRefreshingTimelockService createDefault(TimelockService timelockService) {
+    public static TimeLockClient createDefault(TimelockService timelockService) {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                .setNameFormat(LockRefreshingTimelockService.class.getSimpleName() + "-%d")
+                .setNameFormat(TimeLockClient.class.getSimpleName() + "-%d")
                 .setDaemon(true)
                 .build());
         LockRefresher lockRefresher = new LockRefresher(executor, timelockService, REFRESH_INTERVAL_MILLIS);
-        return new LockRefreshingTimelockService(timelockService, lockRefresher);
+        return new TimeLockClient(timelockService, lockRefresher);
     }
 
-    public LockRefreshingTimelockService(TimelockService delegate, LockRefresher lockRefresher) {
+    public TimeLockClient(TimelockService delegate, LockRefresher lockRefresher) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
     }
@@ -61,29 +63,29 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
 
     @Override
     public long getFreshTimestamp() {
-        return delegate.getFreshTimestamp();
+        return executeOnTimeLock(delegate::getFreshTimestamp);
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return delegate.getFreshTimestamps(numTimestampsRequested);
+        return executeOnTimeLock(() -> delegate.getFreshTimestamps(numTimestampsRequested));
     }
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
-        LockImmutableTimestampResponse response = delegate.lockImmutableTimestamp(request);
+        LockImmutableTimestampResponse response = executeOnTimeLock(() -> delegate.lockImmutableTimestamp(request));
         lockRefresher.registerLock(response.getLock());
         return response;
     }
 
     @Override
     public long getImmutableTimestamp() {
-        return delegate.getImmutableTimestamp();
+        return executeOnTimeLock(delegate::getImmutableTimestamp);
     }
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponse response = delegate.lock(request);
+        LockResponse response = executeOnTimeLock(() -> delegate.lock(request));
         if (response.wasSuccessful()) {
             lockRefresher.registerLock(response.getToken());
         }
@@ -92,23 +94,36 @@ public class LockRefreshingTimelockService implements AutoCloseable, TimelockSer
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return delegate.waitForLocks(request);
+        return executeOnTimeLock(() -> delegate.waitForLocks(request));
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return delegate.refreshLockLeases(tokens);
+        return executeOnTimeLock(() -> delegate.refreshLockLeases(tokens));
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         lockRefresher.unregisterLocks(tokens);
-        return delegate.unlock(tokens);
+        return executeOnTimeLock(() -> delegate.unlock(tokens));
     }
 
     @Override
     public long currentTimeMillis() {
-        return delegate.currentTimeMillis();
+        return executeOnTimeLock(delegate::currentTimeMillis);
+    }
+
+    private <T> T executeOnTimeLock(Callable<T> callable) {
+        try {
+            return callable.call();
+        } catch (Exception e) {
+            if (e.getCause() instanceof ConnectException
+                    || e.getCause() instanceof UnknownHostException) {
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            } else {
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
     }
 
     @Override

@@ -52,7 +52,7 @@ public class SweepMetrics {
         private final Meter meter;
 
         MeterMetric(String name) {
-            this.meter = metricsManager.registerMeter(SweepMetrics.class, null, name);
+            this.meter = metricsManager.registerOrGetMeter(SweepMetrics.class, null, name);
         }
 
         void update(long value) {

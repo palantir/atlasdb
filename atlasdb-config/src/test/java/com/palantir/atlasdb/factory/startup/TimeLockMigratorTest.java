@@ -47,6 +47,7 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -108,7 +109,7 @@ public class TimeLockMigratorTest {
 
         TimeLockMigrator migrator =
                 TimeLockMigrator.create(timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
-        assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
 
