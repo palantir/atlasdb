@@ -90,7 +90,8 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(1_000);
 
         assertThatThrownBy(() -> limiter.consumeWithBackoff(100))
-                .hasMessageContaining("rate limited");
+                .isInstanceOf(RateLimitExceededException.class)
+                .hasMessageContaining("Rate limited");
     }
 
     @Test
@@ -169,5 +170,4 @@ public class QosRateLimiterTest {
         long now = stopwatch.readMicros();
         when(stopwatch.readMicros()).thenReturn(now + millis * 1_000);
     }
-
 }

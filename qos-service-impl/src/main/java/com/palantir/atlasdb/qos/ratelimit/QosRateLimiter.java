@@ -81,7 +81,7 @@ public class QosRateLimiter {
                 TimeUnit.MILLISECONDS);
 
         if (!waitTime.isPresent()) {
-            throw new RuntimeException("rate limited");
+            throw new RateLimitExceededException("Rate limited. Available capacity has been exhausted.");
         }
 
         return waitTime.get();
