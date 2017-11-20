@@ -48,6 +48,15 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |deprecated| |metrics|
+         - AtlasDB has deprecated the static method ``AtlasDB.setMetricsRegistry`` in favour of ``AtlasDB.setMetricsRegistries`` which requires you to set both the ``MetricsRegistry`` and the ``TaggedMetricRegistry``.
+           This will enable reporting of tagged metrics for your product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2659>`__)
+
+    *    - |improved| |metrics|
+         - AtlasDB now registers per host metrics for Cassandra using tagged metrics. Note that these metrics were removed in 0.57.0 to prevent metric cardinality explosion.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2659>`__)
+
     *    - |improved| |devbreak|
          - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
            Also, all Cassandra KVS exceptions like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
