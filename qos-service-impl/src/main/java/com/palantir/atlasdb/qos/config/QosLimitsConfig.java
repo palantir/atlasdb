@@ -29,13 +29,13 @@ public abstract class QosLimitsConfig {
     public static final QosLimitsConfig DEFAULT_NO_LIMITS = ImmutableQosLimitsConfig.builder().build();
 
     @Value.Default
-    public int readBytesPerSecond() {
-        return Integer.MAX_VALUE;
+    public long readBytesPerSecond() {
+        return Long.MAX_VALUE;
     }
 
     @Value.Default
-    public int writeBytesPerSecond() {
-        return Integer.MAX_VALUE;
+    public long writeBytesPerSecond() {
+        return Long.MAX_VALUE;
     }
 
 }

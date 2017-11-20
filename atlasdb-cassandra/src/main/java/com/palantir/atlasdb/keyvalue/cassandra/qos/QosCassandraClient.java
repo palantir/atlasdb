@@ -109,10 +109,8 @@ public class QosCassandraClient implements CassandraClient {
     public CASResult cas(TableReference tableReference, ByteBuffer key, List<Column> expected, List<Column> updates,
             ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        return qosClient.executeWrite(
-                () -> client.cas(tableReference, key, expected, updates, serial_consistency_level,
-                commit_consistency_level),
-                ThriftQueryWeighers.cas(updates));
+        // CAS is intentionally not rate limited, until we have a concept of priority
+        return client.cas(tableReference, key, expected, updates, serial_consistency_level, commit_consistency_level);
     }
 
     @Override
