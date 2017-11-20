@@ -99,6 +99,7 @@ import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -309,7 +310,7 @@ public abstract class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = getQosClient(runtimeConfigSupplier.get().qos());
+        QosClient qosClient = getQosClient(JavaSuppliers.compose(conf -> conf.qos(), runtimeConfigSupplier));
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
@@ -403,11 +404,10 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    private QosClient getQosClient(QosClientConfig config) {
-        // TODO(nziebart): create a RefreshingRateLimiter
+    private QosClient getQosClient(Supplier<QosClientConfig> config) {
         QosRateLimiters rateLimiters = QosRateLimiters.create(
-                config.limits(),
-                config.maxBackoffSleepTime().toMilliseconds());
+                JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
+                JavaSuppliers.compose(QosClientConfig::limits, config));
         return AtlasDbQosClient.create(rateLimiters);
     }
 
