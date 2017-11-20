@@ -23,8 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeySlice;
@@ -71,13 +69,6 @@ public final class ThriftQueryWeighers {
             Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
         long numRows = mutationMap.size();
         return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateWriteByteCount(mutationMap));
-    }
-
-    public static QosClient.QueryWeigher<CASResult> cas(List<Column> updates) {
-        // TODO(nziebart): technically CAS involves both reads and writes; currently we are just counting it as a read
-        // Also, it should probably be counted as multiple rows, since Paxos negotiations trigger serial writes
-        long numRows = 1;
-        return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getCasByteCount(updates));
     }
 
     public static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead, Function<T, Integer> numRows) {

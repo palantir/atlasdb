@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
@@ -88,14 +87,6 @@ public class ThriftQueryWeighersTest {
     }
 
     @Test
-    public void casQueryWeigherReturnsOneRowAlways() {
-        long actualNumRows = ThriftQueryWeighers.cas(ImmutableList.of(COLUMN, COLUMN)).weighSuccess(new CASResult(true),
-                TIME_TAKEN).numDistinctRows();
-
-        assertThat(actualNumRows).isEqualTo(1);
-    }
-
-    @Test
     public void batchMutateWeigherReturnsCorrectNumRows() {
         Map<ByteBuffer, Map<String, List<Mutation>>> mutations = ImmutableMap.of(
                 BYTES1, ImmutableMap.of(
@@ -137,19 +128,6 @@ public class ThriftQueryWeighersTest {
                 BYTES1, ImmutableMap.of("foo", ImmutableList.of(MUTATION, MUTATION)));
 
         QosClient.QueryWeigher<Void> weigher = ThriftQueryWeighers.batchMutate(mutations);
-
-        QueryWeight expected = ImmutableQueryWeight.builder()
-                .from(weigher.estimate())
-                .timeTakenNanos(TIME_TAKEN)
-                .build();
-        QueryWeight actual = weigher.weighFailure(new RuntimeException(), TIME_TAKEN);
-
-        assertThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void casWeigherReturnsEstimateForFailure() {
-        QosClient.QueryWeigher<CASResult> weigher = ThriftQueryWeighers.cas(ImmutableList.of(COLUMN, COLUMN));
 
         QueryWeight expected = ImmutableQueryWeight.builder()
                 .from(weigher.estimate())
