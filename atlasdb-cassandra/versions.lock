@@ -258,6 +258,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing"
             ]
@@ -290,6 +291,7 @@
         "com.palantir.tritium:tritium-metrics": {
             "locked": "0.8.4",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
@@ -297,6 +299,12 @@
             "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
@@ -337,7 +345,9 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry"
             ]
         },
         "io.netty:netty-buffer": {
@@ -429,7 +439,8 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "org.jboss.marshalling:jboss-marshalling": {
@@ -737,6 +748,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing"
             ]
@@ -769,6 +781,7 @@
         "com.palantir.tritium:tritium-metrics": {
             "locked": "0.8.4",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
@@ -776,6 +789,12 @@
             "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
@@ -816,7 +835,9 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry"
             ]
         },
         "io.netty:netty-buffer": {
@@ -908,7 +929,8 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-client"
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "org.jboss.marshalling:jboss-marshalling": {
