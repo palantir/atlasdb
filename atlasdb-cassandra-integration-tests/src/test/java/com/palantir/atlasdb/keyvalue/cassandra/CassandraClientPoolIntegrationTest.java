@@ -41,7 +41,6 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -160,15 +159,14 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        clientPool.blacklistedHosts.putAll(
-                Maps.transformValues(clientPool.getCurrentPools(), clientPoolContainer -> Long.MAX_VALUE));
+        clientPool.getBlacklist().addAll(clientPool.getCurrentPools().keySet());
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
             fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
-        clientPool.blacklistedHosts.clear();
+        clientPool.getBlacklist().removeAll();
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
