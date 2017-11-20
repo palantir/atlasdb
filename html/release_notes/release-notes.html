@@ -196,13 +196,42 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Applications can now easily determine whether their AtlasDB cluster is healthy by querying <code class="docutils literal"><span class="pre">TransactionManager.getKeyValueServiceStatus().isHealthy()</span></code>.
+This returns true only if all key value service nodes are up; applications that do not perform schema mutations or deletes (including sweep or scrub) can
+also treat <code class="docutils literal"><span class="pre">KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES</span></code> as a healthy state.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2678">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>AtlasDB will now consistently throw an <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when requests fail due to TimeLock being unavailable.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2677">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">Throwables.createPalantirRuntimeException</span></code> once again throws <code class="docutils literal"><span class="pre">PalantirInterruptedException</span></code> if the original exception was either <code class="docutils literal"><span class="pre">InterruptedException</span></code> or <code class="docutils literal"><span class="pre">InterruptedIOException</span></code>.
+This reverts behaviour introduced in 0.67.0, where we instead threw <code class="docutils literal"><span class="pre">PalantirRuntimeException</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2702">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-68-0">
+<h2>v0.68.0<a class="headerlink" href="#v0-68-0" title="Permalink to this headline">¶</a></h2>
+<p>16 November 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>HTTP clients for endpoints relating to the Paxos protocols (<code class="docutils literal"><span class="pre">PingableLeader</span></code>, <code class="docutils literal"><span class="pre">PaxosAcceptor</span></code> and <code class="docutils literal"><span class="pre">PaxosLearner</span></code>) now reset themselves after 500 million requests have been executed.
 This was implemented as a workaround for <a class="reference external" href="https://github.com/square/okhttp/issues/3670">OkHttp #3670</a> where HTTP/2 connections managed in OkHttp would fail after just over a billion requests owing to an unexpected integer overflow.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2NNN">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td>&#160;</td>
-<td>&#160;</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2680">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -338,40 +367,36 @@ The filtered cells are recorded in the metric:</p>
 </td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>AtlasDB will now consistently throw an <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when requests fail due to TimeLock being unavailable.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2677">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>AtlasDB will now consistently throw a <code class="docutils literal"><span class="pre">InsufficientConsistencyException</span></code> if Cassandra reports an <code class="docutils literal"><span class="pre">UnavailableException</span></code>.
 Also, all exceptions thrown at the KVS layer, as <code class="docutils literal"><span class="pre">KeyAlreadyExists</span></code> or <code class="docutils literal"><span class="pre">TTransportException</span></code> and <code class="docutils literal"><span class="pre">NotInitializedException</span></code>
 were wrapped in <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> in the interest of consistent exceptions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2558">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td><code class="docutils literal"><span class="pre">SweeperServiceImpl</span></code> now logs when it starts sweeping and makes it clear if it is running full sweep or not
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2618">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td><code class="docutils literal"><span class="pre">MetricsManager</span></code> now logs failures to register metrics at <code class="docutils literal"><span class="pre">WARN</span></code> instead of <code class="docutils literal"><span class="pre">ERROR</span></code>, as failure to do so is not necessarily a systemic failure.
 Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2636">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> values are now decayed correctly when there’s an error.
 <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> should be decreased until sweep succeeds, however the config actually oscillated between values, these were normally small but could be larger than the original config.  This was caused by us fixing one of the values at 1.
 <code class="docutils literal"><span class="pre">SweepBatchConfig</span></code> values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2630">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now depends on Tritium 0.8.4, which depends on the same version of <code class="docutils literal"><span class="pre">com.palantir.remoting3</span></code> and <code class="docutils literal"><span class="pre">HdrHistogram</span></code> as AtlasDB.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2662">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Check that immutable timestamp is locked on write transactions with no writes.
 This could cause long-running readers to read an incorrect empty value when the table had the <code class="docutils literal"><span class="pre">Sweep.THOROUGH</span></code> strategy.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2406">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Paxos value information is now correctly being logged when applicable leader events are happening.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2674">Pull Request</a>)</td>
 </tr>
