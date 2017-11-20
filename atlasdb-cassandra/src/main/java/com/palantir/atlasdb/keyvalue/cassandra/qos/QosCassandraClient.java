@@ -67,18 +67,21 @@ public class QosCassandraClient implements CassandraClient {
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName, TableReference tableRef,
             List<ByteBuffer> keys, SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        int numberOfQueriedRows = keys.size();
+
         return qosClient.executeRead(
                 () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
-                ThriftQueryWeighers.MULTIGET_SLICE);
+                ThriftQueryWeighers.multigetSlice(numberOfQueriedRows));
     }
 
     @Override
     public List<KeySlice> get_range_slices(String kvsMethodName, TableReference tableRef, SlicePredicate predicate,
             KeyRange range, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        int numberOfQueriedRows = range.count;
         return qosClient.executeRead(
                 () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
-                ThriftQueryWeighers.GET_RANGE_SLICES);
+                ThriftQueryWeighers.getRangeSlices(numberOfQueriedRows));
     }
 
     @Override
