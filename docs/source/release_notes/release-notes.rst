@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |new| |logging|
+         - Cassandra KVS now records how many writes have been made into each token range for each table.
+           That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).
+           These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+
     *    - |improved|
          - Applications can now easily determine whether their AtlasDB cluster is healthy by querying ``TransactionManager.getKeyValueServiceStatus().isHealthy()``.
            This returns true only if all key value service nodes are up; applications that do not perform schema mutations or deletes (including sweep or scrub) can
