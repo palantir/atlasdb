@@ -20,8 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -41,16 +39,17 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
-public class QosCassandraTestSuite extends EteSetup {
+public class QosCassandraWriteTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            QosCassandraTestSuite.class,
+            QosCassandraWriteTestSuite.class,
             "docker-compose.qos.cassandra.yml",
             CLIENTS,
             CassandraEnvironment.get());
@@ -58,84 +57,49 @@ public class QosCassandraTestSuite extends EteSetup {
     @Test
     public void shouldFailIfWritingTooManyBytes() {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
-        // Doesn't throw the first time as we estimate low values
-        todoClient.addTodo(getTodoOfSize(100_000));
+
+        ensureOneWriteHasOccurred(todoClient);
+
         assertThatThrownBy(() -> todoClient.addTodo(getTodoOfSize(100_000)))
                 .isInstanceOf(RuntimeException.class)
                 .as("Cannot write 100_000 bytes the second time as write limit of "
                         + "1000 was consumed and the burst isnt enough either.");
     }
 
-    @Test
-    public void shouldFailIfReadingTooManyBytes() throws InterruptedException {
-        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
-        IntStream.range(0, 30).forEach(i -> todoClient.addTodo(getTodoOfSize(1_000)));
-
-        assertThatThrownBy(todoClient::getTodoList)
-                .isInstanceOf(RuntimeException.class)
-                .as("Cant read 30_000 bytes in 10 batches i.e. 3000 bytes multiple times when limit is 1000.");
+    private void ensureOneWriteHasOccurred(TodoResource todoClient) {
+        try {
+            todoClient.addTodo(getTodoOfSize(100_000));
+            // okay as the first huge write is not rate limited.
+        } catch (Exception e) {
+            // okay as some other test might have written before
+        }
     }
 
     @Test
-    public void canWriteLargeNumberOfBytesConcurrentlyIfAllRequestsComeAtTheExactSameTime()
+    public void canNotWriteLargeNumberOfBytesConcurrentlyIfAllRequestsComeAtTheExactSameTime()
             throws InterruptedException {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
         CyclicBarrier barrier = new CyclicBarrier(100);
         ForkJoinPool threadPool = new ForkJoinPool(100);
-
         List<Future<?>> futures = Lists.newArrayList();
 
         IntStream.range(0, 100).parallel().forEach(i ->
-                futures.add(threadPool.submit(() ->
-                        (Callable<Void>) () -> {
-                            try {
-                                barrier.await();
-                                todoClient.addTodo(getTodoOfSize(1_000));
-                            } catch (BrokenBarrierException | InterruptedException e) {
-                                // Do nothing
-                            }
+                futures.add(threadPool.submit(
+                        () -> {
+                            barrier.await();
+                            todoClient.addTodo(getTodoOfSize(1_000));
                             return null;
                         })));
 
-        threadPool.shutdown();
-        Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),
-                "Not all threads writing data finished in the expected time.");
-
-        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        AtomicInteger exceptionCounter = new AtomicInteger(90);
         futures.forEach(future -> {
             try {
                 future.get();
             } catch (ExecutionException e) {
-                exceptionCounter.getAndIncrement();
-            } catch (InterruptedException e) {
-                throw Throwables.propagate(e);
-            }
-        });
-        assertThat(exceptionCounter.get()).isEqualTo(0);
-    }
-
-    @Test
-    public void cannotWriteLargeNumberOfBytesConcurrently() throws InterruptedException {
-        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
-
-        ForkJoinPool threadPool = new ForkJoinPool(100);
-
-        List<Future<?>> futures = Lists.newArrayList();
-
-        IntStream.range(0, 100).parallel()
-                .forEach(i -> futures.add(threadPool.submit(() -> todoClient.addTodo(getTodoOfSize(10_000)))));
-
-        threadPool.shutdown();
-        Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),
-                "Not all threads writing data finished in the expected time.");
-
-        AtomicInteger exceptionCounter = new AtomicInteger(0);
-        futures.forEach(future -> {
-            try {
-                future.get();
-            } catch (ExecutionException e) {
-                exceptionCounter.getAndIncrement();
+                if (e.getCause().getClass().equals(AtlasDbRemoteException.class)) {
+                    exceptionCounter.getAndIncrement();
+                }
             } catch (InterruptedException e) {
                 throw Throwables.propagate(e);
             }
@@ -143,9 +107,38 @@ public class QosCassandraTestSuite extends EteSetup {
         assertThat(exceptionCounter.get()).isGreaterThan(90);
     }
 
+    @Test
+    public void canNotWriteLargeNumberOfBytesConcurrently() throws InterruptedException {
+        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+
+        ForkJoinPool threadPool = new ForkJoinPool(100);
+        List<Future<?>> futures = Lists.newArrayList();
+
+        IntStream.range(0, 100).parallel()
+                .forEach(i -> futures.add(threadPool.submit(() -> todoClient.addTodo(getTodoOfSize(1_000)))));
+
+        threadPool.shutdown();
+        Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),
+                "Not all threads writing data finished in the expected time.");
+
+        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        futures.forEach(future -> {
+            try {
+                future.get();
+            } catch (ExecutionException e) {
+                if (e.getCause().getClass().equals(AtlasDbRemoteException.class)) {
+                    exceptionCounter.getAndIncrement();
+                }
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
+            }
+        });
+        assertThat(exceptionCounter.get()).isGreaterThan(0);
+    }
+
     @After
     public void after() {
-        Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     private Todo getTodoOfSize(int size) {

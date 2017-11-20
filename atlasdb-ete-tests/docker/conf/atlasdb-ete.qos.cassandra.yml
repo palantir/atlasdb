@@ -27,6 +27,8 @@ atlasdb:
     autoRefreshNodes: false
 
 atlasdbRuntime:
+  sweep:
+    enabled: false
   qos:
     limits:
       readBytesPerSecond: 1000
