@@ -53,6 +53,15 @@ public class ThriftQueryWeighersTest {
             .build();
 
     @Test
+    public void multigetSliceWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
+        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(1).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(2).estimate().numBytes();
+
+        assertThat(numBytesWithOneRow).isGreaterThan(0L);
+        assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
+    }
+
+    @Test
     public void multigetSliceWeigherReturnsCorrectNumRows() {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> result = ImmutableMap.of(
                 BYTES1, ImmutableList.of(COLUMN_OR_SUPER, COLUMN_OR_SUPER),
@@ -61,6 +70,15 @@ public class ThriftQueryWeighersTest {
         long actualNumRows = ThriftQueryWeighers.multigetSlice(1).weighSuccess(result, TIME_TAKEN).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(2);
+    }
+
+    @Test
+    public void rangeSlicesWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
+        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(1).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(2).estimate().numBytes();
+
+        assertThat(numBytesWithOneRow).isGreaterThan(0L);
+        assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
     }
 
     @Test
