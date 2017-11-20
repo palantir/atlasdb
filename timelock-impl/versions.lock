@@ -289,7 +289,8 @@
         "com.palantir.atlasdb:leader-election-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:leader-election-impl"
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.atlasdb:leader-election-api-protobufs": {
@@ -942,7 +943,8 @@
         "com.palantir.atlasdb:leader-election-api": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:leader-election-impl"
+                "com.palantir.atlasdb:leader-election-impl",
+                "com.palantir.atlasdb:lock-api"
             ]
         },
         "com.palantir.atlasdb:leader-election-api-protobufs": {

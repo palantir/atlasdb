@@ -37,6 +37,7 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -165,6 +166,16 @@ public class TimeLockClientTest {
     @SuppressWarnings("ThrowableNotThrown")
     public void throwsDependencyUnavailableWhenDelegateIsUnknown() {
         Throwable cause = new UnknownHostException("I don't know how to talk to TimeLock");
+        Throwable exceptionToThrow = new RuntimeException(cause);
+        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
+
+        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    @Test
+    @SuppressWarnings("ThrowableNotThrown")
+    public void throwsDependencyUnavailableWhenDelegateIsNotCurrentLeader() {
+        Throwable cause = new NotCurrentLeaderException("No TimeLock node appears to be the leader");
         Throwable exceptionToThrow = new RuntimeException(cause);
         when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
 

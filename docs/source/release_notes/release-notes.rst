@@ -58,7 +58,7 @@ develop
 
     *    - |improved| |devbreak|
          - AtlasDB will now consistently throw an ``AtlasDbDependencyException`` when requests fail due to TimeLock being unavailable.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2677>`__)
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/2677>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/2716>`__)
 
     *    - |fixed|
          - ``Throwables.createPalantirRuntimeException`` once again throws ``PalantirInterruptedException`` if the original exception was either ``InterruptedException`` or ``InterruptedIOException``.
