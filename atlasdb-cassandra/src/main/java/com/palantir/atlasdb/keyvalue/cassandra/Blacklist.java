@@ -20,25 +20,17 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Maps;
-import com.palantir.logsafe.SafeArg;
 
 public class Blacklist {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-
     private Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
 
     public Map<InetSocketAddress, Long> getBlacklistedHosts() {
         return blacklistedHosts;
     }
 
-    // TODO (gsheasby): Why did we blacklist this host?
     public void add(InetSocketAddress badHost) {
         blacklistedHosts.put(badHost, System.currentTimeMillis());
-        log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(badHost)));
     }
 
     public void addAll(Set<InetSocketAddress> hosts) {

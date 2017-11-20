@@ -159,14 +159,14 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        clientPool.getBlacklist().addAll(clientPool.getCurrentPools().keySet());
+        clientPool.blacklistAll(clientPool.getCurrentPools().keySet());
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
             fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
-        clientPool.getBlacklist().removeAll();
+        clientPool.unblacklistAll();
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =

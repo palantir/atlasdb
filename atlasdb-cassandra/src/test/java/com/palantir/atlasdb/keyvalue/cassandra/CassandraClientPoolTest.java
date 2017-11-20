@@ -130,7 +130,7 @@ public class CassandraClientPoolTest {
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1, HOST_2));
-        cassandraClientPool.getBlacklist().add(HOST_1);
+        cassandraClientPool.blacklist(HOST_1);
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);
