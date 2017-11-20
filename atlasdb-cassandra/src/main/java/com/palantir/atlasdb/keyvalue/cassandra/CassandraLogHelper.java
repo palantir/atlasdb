@@ -59,7 +59,7 @@ final class CassandraLogHelper {
     }
 
     static List<String> tokenMap(
-            RangeMap<CassandraClientPoolImpl.LightweightOppToken, List<InetSocketAddress>> tokenMap) {
+            RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
 
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format("range from %s to %s is on host %s",
@@ -69,14 +69,23 @@ final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    private static String getLowerEndpoint(Range<CassandraClientPoolImpl.LightweightOppToken> range) {
+    static List<String> tokenRangesToWrites(Map<Range<LightweightOppToken>, Long> writes) {
+        return writes.entrySet().stream()
+                .map(entry -> String.format("range from %s to %s has %d",
+                        getLowerEndpoint(entry.getKey()),
+                        getUpperEndpoint(entry.getKey()),
+                        entry.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    private static String getLowerEndpoint(Range<LightweightOppToken> range) {
         if (range.hasLowerBound()) {
             return "(no lower bound)";
         }
         return range.lowerEndpoint().toString();
     }
 
-    private static String getUpperEndpoint(Range<CassandraClientPoolImpl.LightweightOppToken> range) {
+    private static String getUpperEndpoint(Range<LightweightOppToken> range) {
         if (range.hasUpperBound()) {
             return "(no upper bound)";
         }

@@ -212,6 +212,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
+    private TokenRangeWritesLogger tokenRangeWritesLogger;
+
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
@@ -302,6 +304,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
+        //todo(gamretic): better to cas, or have a getter for token ranges in the interface?
+        tokenRangeWritesLogger = TokenRangeWritesLogger.createFromClientPool((CassandraClientPoolImpl) clientPool);
     }
 
     private LockLeader whoIsTheLockCreator() {
@@ -1005,6 +1009,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 tableRef,
                                 entry.getValue().entrySet(),
                                 ttl);
+                        tokenRangeWritesLogger.markWritesForTable(entry.getValue().entrySet(), tableRef);
+//                        for (Map.Entry<Cell, Value> cell : entry.getValue().entrySet()) {
+//                            ((CassandraClientPoolImpl) clientPool)
+//                                    .markTokenRangeWritesForKeyAndTable(cell.getKey().getRowName(), tableRef, 1);
+//                        }
                         return null;
                     }));
         }
@@ -2122,6 +2131,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 ImmutableList.of(e.getKey()));
                     }
                 }
+                tokenRangeWritesLogger.markWritesForTable(values.entrySet(), tableRef);
                 return null;
             });
         } catch (Exception e) {
