@@ -350,8 +350,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private boolean isHostHealthy(InetSocketAddress host) {
         try {
             CassandraClientPoolingContainer testingContainer = currentPools.get(host);
-            testingContainer.runWithPooledResource(describeRing);
-            testingContainer.runWithPooledResource(validatePartitioner);
+            testingContainer.runWithPooledResource(getDescribeRing());
+            testingContainer.runWithPooledResource(getValidatePartitioner());
             return true;
         } catch (Exception e) {
             log.warn("We tried to add {} back into the pool, but got an exception"
@@ -452,7 +452,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
             if (thisHostResponded) {
                 try {
-                    runOnHost(host, validatePartitioner);
+                    runOnHost(host, getValidatePartitioner());
                 } catch (Exception e) {
                     aliveButInvalidPartitionerHosts.put(host, e);
                 }
@@ -520,7 +520,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     ImmutableRangeMap.builder();
 
             // grab latest token ring view from a random node in the cluster
-            List<TokenRange> tokenRanges = getRandomGoodHost().runWithPooledResource(describeRing);
+            List<TokenRange> tokenRanges = getRandomGoodHost().runWithPooledResource(getDescribeRing());
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -549,14 +549,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }
     }
-
-    private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
-            new FunctionCheckedException<CassandraClient, List<TokenRange>, Exception>() {
-                @Override
-                public List<TokenRange> apply(CassandraClient client) throws Exception {
-                    return client.rawClient().describe_ring(config.getKeyspaceOrThrow());
-                }
-            };
 
     @Override
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K {
@@ -812,18 +804,13 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 || isFastFailoverException(ex.getCause()));
     }
 
-    private final FunctionCheckedException<CassandraClient, Void, Exception> validatePartitioner =
-            new FunctionCheckedException<CassandraClient, Void, Exception>() {
-                @Override
-                public Void apply(CassandraClient client) throws Exception {
-                    CassandraVerifier.validatePartitioner(client.rawClient().describe_partitioner(), config);
-                    return null;
-                }
-            };
-
     @Override
     public FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner() {
-        return validatePartitioner;
+        return CassandraUtils.getValidatePartitioner(config);
+    }
+
+    private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> getDescribeRing() {
+        return CassandraUtils.getDescribeRing(config);
     }
 
     /**
