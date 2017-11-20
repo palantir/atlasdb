@@ -144,7 +144,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
 
-    private final BlacklistManager blacklistManager;
+    private final Blacklist blacklist;
 
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
@@ -188,7 +188,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
-        this.blacklistManager = new BlacklistManager(config);
+        this.blacklist = new Blacklist(config);
     }
 
     private void tryInitialize() {
@@ -238,7 +238,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private void registerAggregateMetrics() {
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
-                () -> blacklistManager.size());
+                () -> blacklist.size());
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
                 aggregateMetrics::getExceptionProportion);
@@ -248,7 +248,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private synchronized void refreshPool() {
-        blacklistManager.checkAndUpdateBlacklist(getCurrentPools());
+        blacklist.checkAndUpdate(getCurrentPools());
 
         Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
         Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
@@ -297,7 +297,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void removePool(InetSocketAddress removedServerAddress) {
-        blacklistManager.unblacklist(removedServerAddress);
+        blacklist.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
         } catch (Exception e) {
@@ -313,7 +313,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             StringBuilder currentState = new StringBuilder();
             currentState.append(
                     String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
-                            blacklistManager.describeBlacklist(),
+                            blacklist.describeBlacklistedHosts(),
                             currentPools.keySet().toString()));
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getActiveCheckouts();
@@ -346,7 +346,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             return Optional.empty();
         }
 
-        Set<InetSocketAddress> livingHosts = blacklistManager.filterBlacklistedHostsFrom(filteredHosts);
+        Set<InetSocketAddress> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
         if (livingHosts.isEmpty()) {
             log.warn("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
@@ -369,14 +369,14 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             return getRandomGoodHost().getHost();
         }
 
-        Set<InetSocketAddress> liveOwnerHosts = blacklistManager.filterBlacklistedHostsFrom(hostsForKey);
+        Set<InetSocketAddress> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
 
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
                     + "live hosts that claim ownership of the given range. Falling back to choosing a random live node."
                     + " Current host blacklist is {}."
                     + " Current state logged at TRACE",
-                    SafeArg.of("blacklistedHosts", blacklistManager.blacklistDetails()));
+                    SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
             log.trace("Current ring view is: {}.",
                     SafeArg.of("tokenMap", CassandraLogHelper.tokenMap(tokenMap)));
             return getRandomGoodHost().getHost();
@@ -411,7 +411,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 atLeastOneHostResponded = true;
             } catch (Exception e) {
                 completelyUnresponsiveHosts.put(host, e);
-                blacklistManager.blacklist(host);
+                blacklist.blacklist(host);
             }
 
             if (thisHostResponded) {
@@ -533,7 +533,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             }
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
-            if (blacklistManager.isBlacklisted(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
+            if (blacklist.contains(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
                 InetSocketAddress previousHostPool = hostPool == null ? specifiedHost : hostPool.getHost();
                 Optional<CassandraClientPoolingContainer> hostPoolCandidate
                         = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
@@ -604,17 +604,17 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void blacklist(InetSocketAddress host) {
-        blacklistManager.blacklist(host);
+        blacklist.blacklist(host);
     }
 
     @VisibleForTesting
     void blacklistAll(Set<InetSocketAddress> hosts) {
-        blacklistManager.blacklistAll(hosts);
+        blacklist.addAll(hosts);
     }
 
     @VisibleForTesting
     void unblacklistAll() {
-        blacklistManager.unblacklistAll();
+        blacklist.removeAll();
     }
 
     private void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
@@ -668,7 +668,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                             ex);
                 }
                 if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
-                    blacklistManager.blacklist(host);
+                    blacklist.blacklist(host);
                 }
             }
         } else {

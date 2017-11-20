@@ -34,18 +34,18 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class BlacklistManager {
+class Blacklist {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
     private final CassandraKeyValueServiceConfig config;
     private Map<InetSocketAddress, Long> blacklist;
 
-    BlacklistManager(CassandraKeyValueServiceConfig config) {
+    Blacklist(CassandraKeyValueServiceConfig config) {
         this.config = config;
         this.blacklist = Maps.newConcurrentMap();
     }
 
-    public void checkAndUpdateBlacklist(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
+    void checkAndUpdate(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
         // Check blacklist and re-integrate or continue to wait as necessary
         for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklist.entrySet()) {
             if (coolOffPeriodExpired(blacklistedEntry)) {
@@ -79,40 +79,40 @@ public class BlacklistManager {
         }
     }
 
-    public Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
+    Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
         return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
     }
 
-    public boolean isBlacklisted(InetSocketAddress host) {
+    boolean contains(InetSocketAddress host) {
         return blacklist.containsKey(host);
     }
 
-    public void blacklist(InetSocketAddress host) {
+    void blacklist(InetSocketAddress host) {
         blacklist.put(host, System.currentTimeMillis());
         log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
-    public void blacklistAll(Set<InetSocketAddress> hosts) {
+    void addAll(Set<InetSocketAddress> hosts) {
         hosts.forEach(this::blacklist);
     }
 
-    public void unblacklist(InetSocketAddress host) {
+    void remove(InetSocketAddress host) {
         blacklist.remove(host);
     }
 
-    public void unblacklistAll() {
+    void removeAll() {
         blacklist.clear();
     }
 
-    public int size() {
+    int size() {
         return blacklist.size();
     }
 
-    public String describeBlacklist() {
+    String describeBlacklistedHosts() {
         return blacklist.keySet().toString();
     }
 
-    public List<String> blacklistDetails() {
+    List<String> blacklistDetails() {
         return blacklist.entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
                         CassandraLogHelper.host(blacklistedHostToBlacklistTime.getKey()),
