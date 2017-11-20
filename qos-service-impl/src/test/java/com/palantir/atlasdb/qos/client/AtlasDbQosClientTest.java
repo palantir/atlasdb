@@ -25,6 +25,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -76,6 +78,8 @@ public class AtlasDbQosClientTest {
         when(weigher.weighSuccess(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
         when(weigher.weighFailure(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
 
+        when(readLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
+        when(writeLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
     }
 
     @Test
@@ -92,7 +96,6 @@ public class AtlasDbQosClientTest {
         qosClient.executeRead(() -> "foo", weigher);
 
         verify(metrics).recordRead(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -116,7 +119,6 @@ public class AtlasDbQosClientTest {
         qosClient.executeWrite(() -> null, weigher);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -127,7 +129,6 @@ public class AtlasDbQosClientTest {
         }, weigher)).isInstanceOf(TestCheckedException.class);
 
         verify(metrics).recordRead(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -138,7 +139,6 @@ public class AtlasDbQosClientTest {
         }, weigher)).isInstanceOf(TestCheckedException.class);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -161,6 +161,23 @@ public class AtlasDbQosClientTest {
         assertThatThrownBy(() -> qosClient.executeWrite(() -> {
             throw new TestCheckedException();
         }, weigher)).isInstanceOf(TestCheckedException.class);
+    }
+
+    @Test
+    public void recordsBackoffTime() {
+        when(readLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ofMillis(1_100));
+        qosClient.executeRead(() -> "foo", weigher);
+
+        verify(metrics).recordBackoffMicros(1_100_000);
+    }
+
+    @Test
+    public void recordsBackoffExceptions() {
+        // TODO(nziebart): use rate limited exception here
+        when(readLimiter.consumeWithBackoff(anyLong())).thenThrow(new RuntimeException("rate limited"));
+        assertThatThrownBy(() -> qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(RuntimeException.class);
+
+        verify(metrics).recordRateLimitedException();
     }
 
     static class TestCheckedException extends Exception {}

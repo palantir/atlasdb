@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.qos.client;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -65,7 +66,13 @@ public class AtlasDbQosClient implements QosClient {
             QosRateLimiter rateLimiter,
             Consumer<QueryWeight> weightMetric) throws E {
         long estimatedNumBytes = weigher.estimate().numBytes();
-        rateLimiter.consumeWithBackoff(estimatedNumBytes);
+        try {
+            Duration waitTime = rateLimiter.consumeWithBackoff(estimatedNumBytes);
+            metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
+        } catch (RuntimeException ex) { // TODO(nziebart): use rate limited exception here
+            metrics.recordRateLimitedException();
+            throw ex;
+        }
 
         Stopwatch timer = Stopwatch.createStarted(ticker);
 

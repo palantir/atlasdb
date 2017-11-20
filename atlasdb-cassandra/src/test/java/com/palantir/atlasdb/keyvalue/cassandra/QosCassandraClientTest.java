@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 
 import javax.naming.LimitExceededException;
 
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyRange;
@@ -89,6 +90,14 @@ public class QosCassandraClientTest {
         client.get_range_slices("get", TEST_TABLE, SLICE_PREDICATE, new KeyRange(), ConsistencyLevel.ANY);
 
         verify(qosClient, times(1)).executeRead(any(), any());
+        verifyNoMoreInteractions(qosClient);
+    }
+
+    @Test
+    public void casDoesNotCheckLimit() throws TException, LimitExceededException {
+        client.cas(TEST_TABLE, ByteBuffer.allocate(1), ImmutableList.of(new Column()), ImmutableList.of(new Column()),
+                ConsistencyLevel.SERIAL, ConsistencyLevel.SERIAL);
+
         verifyNoMoreInteractions(qosClient);
     }
 }
