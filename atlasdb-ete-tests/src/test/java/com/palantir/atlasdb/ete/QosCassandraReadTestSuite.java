@@ -16,15 +16,20 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,8 +39,8 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -52,12 +57,13 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.ImmutableTodo;
+import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -77,6 +83,8 @@ public class QosCassandraReadTestSuite extends EteSetup {
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(QosCassandraReadTestSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
+
+    // Changing the read and write limits will force the rate limiter to be recreated for each test.
     private static Supplier<Integer> readBytesPerSecond = new Supplier<Integer>() {
         int initial = 10_000;
         @Override
@@ -118,24 +126,48 @@ public class QosCassandraReadTestSuite extends EteSetup {
     }
 
     @Test
-    public void shouldBeAbleToReadSmallAmountOfBytesThatDoesntExceedLimit() {
+    public void shouldBeAbleToReadSmallAmountOfBytesIfDoesNotExceedLimit() {
         assertThat(readOneBatchOfSize(1)).hasSize(1);
     }
 
     @Test
-    public void shouldBeAbleToReadSmallAmountOfBytesConcurrentlyThatDoesntExceedLimit() {
-        assertThat(readOneBatchOfSize(1)).hasSize(1);
+    public void shouldBeAbleToReadSmallAmountOfBytesSeriallyIfDoesNotExceedLimit() {
+        IntStream.range(0, 50)
+                .forEach(i -> assertThat(readOneBatchOfSize(1)).hasSize(1));
     }
-
 
     @Test
-    public void shouldNotBeAbleToReadLargeAmountsTheFirstTime() {
-        assertThatThrownBy(() -> readOneBatchOfSize(100))
-                .isInstanceOf(AtlasDbDependencyException.class)
-                .hasCause(new RuntimeException("rate limited"));
+    public void shouldBeAbleToReadSmallAmountOfBytesConcurrentlyIfDoesNotExceedLimit() throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(50);
+        List<Future<List<Todo>>> futures = new ArrayList<>();
+
+        IntStream.range(0, 50)
+                .forEach(i -> futures.add(executorService.submit(() -> readOneBatchOfSize(1))));
+
+        executorService.shutdown();
+        executorService.awaitTermination(10L, TimeUnit.SECONDS);
+
+        AtomicInteger exceptionCounter = new AtomicInteger(0);
+        futures.forEach(future -> {
+            try {
+                assertThat(future.get()).hasSize(1);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof RateLimitExceededException) {
+                    exceptionCounter.getAndIncrement();
+                }
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
+            }
+        });
+        assertThat(exceptionCounter.get()).isEqualTo(0);
     }
 
-    private List<ImmutableTodo> readOneBatchOfSize(int batchSize) {
+    @Test
+    public void shouldBeAbleToReadLargeAmountsTheFirstTime() {
+        readOneBatchOfSize(100);
+    }
+
+    private List<Todo> readOneBatchOfSize(int batchSize) {
         ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
             BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
                     TodoSchema.todoTable(), RangeRequest.all());
@@ -154,19 +186,6 @@ public class QosCassandraReadTestSuite extends EteSetup {
                 .map(ValueType.STRING::convertToString)
                 .map(ImmutableTodo::of)
                 .collect(Collectors.toList());
-    }
-
-    @Test
-    public void shouldBeAbleToReadSmallAmountsConsecutively() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        readOneBatchOfSize(1);
-        long firstLargeReadLatency = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-
-        stopwatch = Stopwatch.createStarted();
-        readOneBatchOfSize(1);
-        long secondReadLatency = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-
-        assertThat(secondReadLatency).isGreaterThan(firstLargeReadLatency);
     }
 
     public static AtlasDbConfig getAtlasDbConfig() {
