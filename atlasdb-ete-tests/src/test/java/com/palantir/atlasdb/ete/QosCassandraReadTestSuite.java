@@ -39,6 +39,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -86,14 +87,15 @@ public class QosCassandraReadTestSuite extends EteSetup {
 
     // Changing the read and write limits will force the rate limiter to be recreated for each test.
     private static Supplier<Integer> readBytesPerSecond = new Supplier<Integer>() {
-        int initial = 10_000;
+        int initial = 5_000;
         @Override
         public Integer get() {
             return initial++;
         }
     };
+
     private static Supplier<Integer> writeBytesPerSecond = new Supplier<Integer>() {
-        int initial = 10_000;
+        int initial = 5_000;
         @Override
         public Integer get() {
             return initial++;
@@ -114,7 +116,7 @@ public class QosCassandraReadTestSuite extends EteSetup {
                 .pollInterval(Duration.ONE_SECOND)
                 .until(serializableTransactionManager::isInitialized);
 
-        IntStream.range(0, 100).forEach(i -> serializableTransactionManager
+        IntStream.range(0, 200).forEach(i -> serializableTransactionManager
                 .runTaskWithRetry((transaction) -> {
                     Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
                             TodoSchema.todoTextColumn());
@@ -163,9 +165,22 @@ public class QosCassandraReadTestSuite extends EteSetup {
     }
 
     @Test
-    public void shouldBeAbleToReadLargeAmountsTheFirstTime() {
-        readOneBatchOfSize(100);
+    public void shouldBeAbleToReadLargeAmountsExceedingTheLimitFirstTime() {
+        assertThat(readOneBatchOfSize(200)).hasSize(200);
     }
+
+    @Test
+    public void shouldBeAbleToReadLargeAmountsExceedingTheLimitSecondTime() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        assertThat(readOneBatchOfSize(200)).hasSize(200);
+        long firstReadTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+
+        stopwatch = Stopwatch.createStarted();
+        assertThat(readOneBatchOfSize(200)).hasSize(200);
+        long secondReadTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+
+    }
+
 
     private List<Todo> readOneBatchOfSize(int batchSize) {
         ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
