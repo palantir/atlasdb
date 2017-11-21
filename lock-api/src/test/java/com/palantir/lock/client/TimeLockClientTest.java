@@ -153,29 +153,24 @@ public class TimeLockClientTest {
     }
 
     @Test
-    @SuppressWarnings("ThrowableNotThrown")
     public void throwsDependencyUnavailableWhenConnectionToDelegateFails() {
         Throwable cause = new ConnectException("I couldn't connect to TimeLock");
-        Throwable exceptionToThrow = new RuntimeException(cause);
-        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
-
-        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+        assertDependencyUnavailableIsThrownWhenWeCatch(cause);
     }
 
     @Test
-    @SuppressWarnings("ThrowableNotThrown")
     public void throwsDependencyUnavailableWhenDelegateIsUnknown() {
         Throwable cause = new UnknownHostException("I don't know how to talk to TimeLock");
-        Throwable exceptionToThrow = new RuntimeException(cause);
-        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
-
-        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+        assertDependencyUnavailableIsThrownWhenWeCatch(cause);
     }
 
     @Test
-    @SuppressWarnings("ThrowableNotThrown")
     public void throwsDependencyUnavailableWhenDelegateIsNotCurrentLeader() {
         Throwable cause = new NotCurrentLeaderException("No TimeLock node appears to be the leader");
+        assertDependencyUnavailableIsThrownWhenWeCatch(cause);
+    }
+
+    private void assertDependencyUnavailableIsThrownWhenWeCatch(Throwable cause) {
         Throwable exceptionToThrow = new RuntimeException(cause);
         when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
 
