@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.junit.Test;
@@ -52,21 +53,43 @@ public class ThriftQueryWeighersTest {
             .build();
 
     @Test
+    public void multigetSliceWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
+        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1)).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2)).estimate()
+                .numBytes();
+
+        assertThat(numBytesWithOneRow).isGreaterThan(0L);
+        assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
+    }
+
+    @Test
     public void multigetSliceWeigherReturnsCorrectNumRows() {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> result = ImmutableMap.of(
                 BYTES1, ImmutableList.of(COLUMN_OR_SUPER, COLUMN_OR_SUPER),
                 BYTES2, ImmutableList.of(COLUMN_OR_SUPER));
 
-        long actualNumRows = ThriftQueryWeighers.MULTIGET_SLICE.weighSuccess(result, TIME_TAKEN).numDistinctRows();
+        long actualNumRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1))
+                .weighSuccess(result, TIME_TAKEN)
+                .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(2);
+    }
+
+    @Test
+    public void rangeSlicesWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
+        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(new KeyRange(1)).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(2)).estimate().numBytes();
+
+        assertThat(numBytesWithOneRow).isGreaterThan(0L);
+        assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
     }
 
     @Test
     public void rangeSlicesWeigherReturnsCorrectNumRows() {
         List<KeySlice> result = ImmutableList.of(KEY_SLICE, KEY_SLICE, KEY_SLICE);
 
-        long actualNumRows = ThriftQueryWeighers.GET_RANGE_SLICES.weighSuccess(result, TIME_TAKEN).numDistinctRows();
+        long actualNumRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(1)).weighSuccess(result, TIME_TAKEN)
+                .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(3);
     }
@@ -103,7 +126,8 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.MULTIGET_SLICE.weighFailure(new RuntimeException(), TIME_TAKEN);
+        QueryWeight weight = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1))
+                .weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
     }
@@ -117,7 +141,8 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void getRangeSlicesWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.GET_RANGE_SLICES.weighFailure(new RuntimeException(), TIME_TAKEN);
+        QueryWeight weight = ThriftQueryWeighers.getRangeSlices(new KeyRange(1))
+                .weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
     }

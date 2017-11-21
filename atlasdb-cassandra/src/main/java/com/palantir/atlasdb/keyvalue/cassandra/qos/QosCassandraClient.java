@@ -69,7 +69,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return qosClient.executeRead(
                 () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
-                ThriftQueryWeighers.MULTIGET_SLICE);
+                ThriftQueryWeighers.multigetSlice(keys));
     }
 
     @Override
@@ -78,7 +78,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return qosClient.executeRead(
                 () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
-                ThriftQueryWeighers.GET_RANGE_SLICES);
+                ThriftQueryWeighers.getRangeSlices(range));
     }
 
     @Override
