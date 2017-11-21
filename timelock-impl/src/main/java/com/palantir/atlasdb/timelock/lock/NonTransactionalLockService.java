@@ -43,7 +43,7 @@ public class NonTransactionalLockService extends ForwardingLockService {
     }
 
     @Override
-    protected LockService delegate() {
+    public LockService delegate() {
         return delegate;
     }
 

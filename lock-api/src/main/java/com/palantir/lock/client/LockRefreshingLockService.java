@@ -74,7 +74,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
-    protected LockService delegate() {
+    public LockService delegate() {
         return delegate;
     }
 
