@@ -24,10 +24,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -70,13 +72,14 @@ public class QosCassandraReadTestSuite extends EteSetup {
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(QosCassandraReadTestSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
+    private static int readBytesPerSecond = 10_000;
+    private static int writeBytesPerSecond = 10_000;
 
-    @Before
-    public void waitUntilTransactionManagersIsUp() {
-
+    @BeforeClass
+    public static void waitUntilTransactionManagersIsUp() {
         serializableTransactionManager = TransactionManagers.builder()
                 .config(getAtlasDbConfig())
-                .runtimeConfigSupplier(() -> getAtlasDbRuntimeConfig())
+                .runtimeConfigSupplier(QosCassandraReadTestSuite::getAtlasDbRuntimeConfig)
                 .schemas(ImmutableList.of(TodoSchema.getSchema()))
                 .userAgent("qos-test")
                 .buildSerializable();
@@ -86,16 +89,86 @@ public class QosCassandraReadTestSuite extends EteSetup {
                 .pollInterval(Duration.ONE_SECOND)
                 .until(serializableTransactionManager::isInitialized);
 
-        serializableTransactionManager.runTaskWithRetry((transaction) -> {
+        IntStream.range(0, 100).forEach(i -> serializableTransactionManager
+                .runTaskWithRetry((transaction) -> {
             Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
                     TodoSchema.todoTextColumn());
-            Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(getTodoOfSize(100)));
+            Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(getTodoOfSize(1_000)));
             transaction.put(TodoSchema.todoTable(), write);
             return null;
-        });
+        }));
     }
 
-    private AtlasDbConfig getAtlasDbConfig() {
+    @Before
+    public void setup() {
+        // modifying the limits, forces creation of a new ratelimiter.
+        readBytesPerSecond = readBytesPerSecond + 10;
+        writeBytesPerSecond = writeBytesPerSecond + 10;
+    }
+
+
+    @Test
+    public void shouldBeAbleToReadSmallAmounts() {
+        ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
+            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
+                    TodoSchema.todoTable(), RangeRequest.all());
+            ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
+
+            rowResultBatchingVisitable.batchAccept(10, items -> {
+                rowResults.addAll(items);
+                return false;
+            });
+
+            return rowResults.build();
+        });
+
+        List<ImmutableTodo> collect = results.stream()
+                .map(RowResult::getOnlyColumnValue)
+                .map(ValueType.STRING::convertToString)
+                .map(ImmutableTodo::of)
+                .collect(Collectors.toList());
+
+        assertThat(collect).hasSize(10);
+    }
+
+    @Test
+    public void shouldBeAbleToReadLargeAmountsTheFirstTime() {
+        assertThatAllTodosAreRead();
+    }
+
+    @Test
+    public void shouldNotBeAbleToReadLargeAmountsConsecutively() {
+        assertThatAllTodosAreRead();
+        assertThatAllTodosAreRead();
+        assertThatAllTodosAreRead();
+        assertThatAllTodosAreRead();
+        assertThatAllTodosAreRead();
+    }
+
+    private void assertThatAllTodosAreRead() {
+        ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
+            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
+                    TodoSchema.todoTable(), RangeRequest.all());
+            ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
+
+            rowResultBatchingVisitable.batchAccept(10, items -> {
+                rowResults.addAll(items);
+                return true;
+            });
+
+            return rowResults.build();
+        });
+
+        List<ImmutableTodo> collect = results.stream()
+                .map(RowResult::getOnlyColumnValue)
+                .map(ValueType.STRING::convertToString)
+                .map(ImmutableTodo::of)
+                .collect(Collectors.toList());
+
+        assertThat(collect).hasSize(100);
+    }
+
+    public static AtlasDbConfig getAtlasDbConfig() {
         DockerPort cassandraPort = docker.containers()
                 .container("cassandra")
                 .port(CASSANDRA_PORT_NUMBER);
@@ -121,47 +194,16 @@ public class QosCassandraReadTestSuite extends EteSetup {
                 .build();
     }
 
-    private Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
+    public static Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
         return Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
                 .sweep(ImmutableSweepConfig.builder().enabled(false).build())
                 .qos(ImmutableQosClientConfig.builder()
                         .limits(ImmutableQosLimitsConfig.builder()
-                                .readBytesPerSecond(10_000)
-                                .writeBytesPerSecond(10_000)
+                                .readBytesPerSecond(readBytesPerSecond)
+                                .writeBytesPerSecond(writeBytesPerSecond)
                                 .build())
                         .build())
                 .build());
-    }
-
-//    @Test
-//    public void shouldFailIfReadingTooManyBytes() throws InterruptedException {
-//        assertThatThrownBy(todoClient::getTodoList)
-//                .isInstanceOf(RuntimeException.class)
-//                .as("Cant read 30_000 bytes in 10 batches i.e. 3000 bytes multiple times when limit is 1000.");
-//    }
-
-    @Test
-    public void shouldBeAbleToReadSmallAmounts() {
-        ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
-            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
-                    TodoSchema.todoTable(), RangeRequest.all());
-            ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
-
-            rowResultBatchingVisitable.batchAccept(10, items -> {
-                rowResults.addAll(items);
-                return true;
-            });
-
-            return rowResults.build();
-        });
-
-        List<ImmutableTodo> collect = results.stream()
-                .map(RowResult::getOnlyColumnValue)
-                .map(ValueType.STRING::convertToString)
-                .map(ImmutableTodo::of)
-                .collect(Collectors.toList());
-
-        assertThat(collect).hasSize(1);
     }
 
     private static String getTodoOfSize(int size) {
