@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.ConnectException;
 import java.net.UnknownHostException;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -53,9 +52,9 @@ public class TimeLockClientTest {
 
     private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
-    private static final Set<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
+    private static final ImmutableSet<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
 
-    private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(StringLockDescriptor.of("foo"));
+    private static final ImmutableSet<LockDescriptor> LOCKS = ImmutableSet.of(StringLockDescriptor.of("foo"));
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);

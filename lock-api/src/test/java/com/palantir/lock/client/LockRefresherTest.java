@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +39,7 @@ public class LockRefresherTest {
 
     private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
-    private static final Set<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
+    private static final ImmutableSet<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
     private final TimelockService timelock = mock(TimelockService.class);
