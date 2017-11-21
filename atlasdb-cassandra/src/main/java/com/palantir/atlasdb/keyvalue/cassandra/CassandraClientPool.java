@@ -19,7 +19,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.Range;
 import com.palantir.common.base.FunctionCheckedException;
 
 public interface CassandraClientPool {
@@ -34,5 +36,6 @@ public interface CassandraClientPool {
     InetSocketAddress getAddressForHost(String host) throws UnknownHostException;
     InetSocketAddress getRandomHostForKey(byte[] key);
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
+    Set<Range<LightweightOppToken>> getTokenRanges();
     void shutdown();
 }

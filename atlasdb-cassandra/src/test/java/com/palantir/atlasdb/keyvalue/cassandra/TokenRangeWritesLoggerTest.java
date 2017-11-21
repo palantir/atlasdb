@@ -44,7 +44,7 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 public class TokenRangeWritesLoggerTest {
     private TestLogger logger;
 
-    private CassandraClientPoolImpl clientPool = Mockito.mock(CassandraClientPoolImpl.class);
+    private CassandraClientPool clientPool = Mockito.mock(CassandraClientPool.class);
     private TokenRangeWritesLogger writesLogger;
 
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("test.test");

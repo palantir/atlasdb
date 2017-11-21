@@ -305,8 +305,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
-        //todo(gamretic): better to cast, or have a getter for token ranges in the CassandraClientPool interface?
-        tokenRangeWritesLogger = TokenRangeWritesLogger.createFromClientPool((CassandraClientPoolImpl) clientPool);
+        tokenRangeWritesLogger = TokenRangeWritesLogger.createFromClientPool(clientPool);
     }
 
     private LockLeader whoIsTheLockCreator() {

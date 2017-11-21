@@ -54,7 +54,7 @@ public class TokenRangeWritesLogger {
         writesPerTable = new ConcurrentHashMap<>();
     }
 
-    public static TokenRangeWritesLogger createFromClientPool(CassandraClientPoolImpl clientPool) {
+    public static TokenRangeWritesLogger createFromClientPool(CassandraClientPool clientPool) {
         return new TokenRangeWritesLogger(clientPool.getTokenRanges());
 
     }
