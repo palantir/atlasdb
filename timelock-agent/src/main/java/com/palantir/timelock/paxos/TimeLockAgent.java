@@ -115,7 +115,7 @@ public class TimeLockAgent {
     }
 
     @SuppressWarnings("unused") // used by external health checks
-    public TimeLockStatus getStatus() throws Exception {
+    public TimeLockStatus getStatus() {
         if (healthCheckSupplier != null) {
             return healthCheckSupplier.get().getStatus();
         } else {
