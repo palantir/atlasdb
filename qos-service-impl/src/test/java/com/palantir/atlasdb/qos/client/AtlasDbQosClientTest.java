@@ -96,6 +96,7 @@ public class AtlasDbQosClientTest {
     public void recordsReadMetrics() throws TestCheckedException {
         qosClient.executeRead(() -> "foo", weigher);
 
+        verify(metrics).recordReadEstimate(ESTIMATED_WEIGHT);
         verify(metrics).recordRead(ACTUAL_WEIGHT);
     }
 
@@ -120,6 +121,7 @@ public class AtlasDbQosClientTest {
         qosClient.executeWrite(() -> null, weigher);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
+        verify(metrics, never()).recordReadEstimate(any());
     }
 
     @Test
