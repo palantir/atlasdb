@@ -51,8 +51,8 @@ develop
          - Change
 
     *    - |devbreak| |metrics|
-         - AtlasDB has added removed the static method ``AtlasDB.setMetricsRegistry`` in favour of required parameters on the TransactionManagers builder.
-           Please use the builder to set the ``metricRegistry`` and the ``taggedMetricRegistry`` used by AtlasDB metrics.
+         - The method ``AtlasDdMetrics.setMetricsRegistries`` was added, to register both the MetricRegistry and the TaggedMetricRegistry.
+           Please use it instead of the old ``AtlasDbMetrics.setMetricsRegistry``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
 
     *    - |improved|
