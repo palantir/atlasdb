@@ -111,7 +111,6 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -146,10 +145,6 @@ public abstract class TransactionManagers {
     }
 
     abstract String userAgent();
-
-    abstract MetricRegistry metricRegistry();
-
-    abstract TaggedMetricRegistry taggedMetricRegistry();
 
     public static Builder builder() {
         return new Builder();
@@ -305,8 +300,6 @@ public abstract class TransactionManagers {
     SerializableTransactionManager serializable() {
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
-
-        AtlasDbMetrics.setMetricRegistries(metricRegistry(), taggedMetricRegistry());
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
