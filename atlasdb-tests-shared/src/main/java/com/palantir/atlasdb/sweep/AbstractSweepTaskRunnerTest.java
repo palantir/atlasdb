@@ -328,12 +328,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 PtBytes.EMPTY_BYTE_ARRAY);
-        assertThat(results.getTimeSweepStarted()).isLessThanOrEqualTo(System.currentTimeMillis());
-        assertThat(results.getTimeSweepStarted()).isGreaterThan(System.currentTimeMillis() - 1000L);
-        assertEquals(results, SweepResults.builder()
-                .from(SweepResults.createEmptySweepResultWithNoMoreToSweep())
-                .timeSweepStarted(results.getTimeSweepStarted())
-                .build());
+        assertEmptyResultWithNoMoreToSweep(results);
         assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTs("foo"));
     }
 
@@ -356,7 +351,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 nextStartRow);
-        assertEquals(SweepResults.createEmptySweepResultWithNoMoreToSweep(), results);
+        assertEmptyResultWithNoMoreToSweep(results);
     }
 
     @Test
@@ -368,9 +363,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         putIntoDefaultColumn("foo4", "buzz", 125);
         SweepResults sweepResults = partialSweep(150);
 
-        assertThat(sweepResults.getTimeSweepStarted() + sweepResults.getTimeInMillis())
-                .isLessThanOrEqualTo(System.currentTimeMillis());
-        assertThat(System.currentTimeMillis()).isLessThanOrEqualTo(sweepResults.getTimeSweepStarted() + 1000L);
+        assertTimeSweepStartedWithinDeltaOfSystemTime(sweepResults);
     }
 
     @Test
@@ -612,5 +605,23 @@ public abstract class AbstractSweepTaskRunnerTest {
                     }
                 }.toTableMetadata().persistToBytes()
         );
+    }
+
+    private void assertEmptyResultWithNoMoreToSweep(SweepResults results) {
+        assertTimeSweepStartedWithinDeltaOfSystemTime(results);
+        assertThat(results.getTimeInMillis()).isLessThanOrEqualTo(1000L);
+        assertThat(results.getTimeInMillis()).isGreaterThanOrEqualTo(0L);
+        assertEquals(results, SweepResults.builder()
+                .from(SweepResults.createEmptySweepResultWithNoMoreToSweep())
+                .timeSweepStarted(results.getTimeSweepStarted())
+                .timeInMillis(results.getTimeInMillis())
+                .build());
+    }
+
+    private void assertTimeSweepStartedWithinDeltaOfSystemTime(SweepResults results) {
+        assertThat(results.getTimeSweepStarted() + results.getTimeInMillis())
+                .isLessThanOrEqualTo(System.currentTimeMillis());
+        assertThat(results.getTimeSweepStarted() + results.getTimeInMillis())
+                .isGreaterThan(System.currentTimeMillis() - 1000L);
     }
 }
