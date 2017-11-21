@@ -108,7 +108,6 @@ import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -191,7 +190,7 @@ public abstract class TransactionManagers {
 
     @JsonIgnore
     @Value.Derived
-    SerializableTransactionManager serializable() {
+    public SerializableTransactionManager serializable() {
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
 

@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -28,6 +29,7 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public final class TimeLockTestUtils {
     private TimeLockTestUtils() {
@@ -48,8 +50,13 @@ public final class TimeLockTestUtils {
                                 .build())
                         .build())
                 .build();
-        return TransactionManagers.builder().config(config).userAgent(
-                "test").buildSerializable();
+        return TransactionManagers.builder()
+                .config(config)
+                .userAgent("test")
+                .metricRegistry(new MetricRegistry())
+                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .build()
+                .serializable();
     }
 
 }

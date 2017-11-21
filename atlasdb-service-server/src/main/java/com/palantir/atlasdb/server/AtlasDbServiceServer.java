@@ -46,9 +46,12 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
 
         SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config.getConfig())
-                .registrar(environment.jersey()::register)
                 .userAgent("AtlasDbServiceServer")
-                .buildSerializable();
+                .metricRegistry(environment.metrics())
+                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment.jersey()::register)
+                .build()
+                .serializable();
 
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
 
