@@ -16,8 +16,18 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 public enum ClusterAvailabilityStatus {
-    TERMINAL,
-    NO_QUORUM_AVAILABLE,
-    QUORUM_AVAILABLE,
-    ALL_AVAILABLE
+    TERMINAL(false),
+    NO_QUORUM_AVAILABLE(false),
+    QUORUM_AVAILABLE(false),
+    ALL_AVAILABLE(true);
+
+    private final boolean isHealthy;
+
+    ClusterAvailabilityStatus(boolean isHealthy) {
+        this.isHealthy = isHealthy;
+    }
+
+    public boolean isHealthy() {
+        return isHealthy;
+    }
 }
