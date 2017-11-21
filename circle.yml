@@ -67,7 +67,7 @@ deployment:
     commands:
       - ./scripts/circle-ci/publish-github-page.sh
   publish-internal-docs:
-    branch: ssouza/fix-publish-docs3
+    branch: develop
     owner: atlasdb
     commands:
       - curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
