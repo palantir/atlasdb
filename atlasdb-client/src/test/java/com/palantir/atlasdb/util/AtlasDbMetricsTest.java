@@ -64,6 +64,11 @@ public class AtlasDbMetricsTest {
         AtlasDbMetrics.setMetricRegistries(null, null);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void nullTaggedMetricRegistryCannotBeSet() {
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), null);
+    }
+
     @Test
     public void instrumentWithDefaultName() throws Exception {
         MetricRegistry metrics = setMetricRegistry();
