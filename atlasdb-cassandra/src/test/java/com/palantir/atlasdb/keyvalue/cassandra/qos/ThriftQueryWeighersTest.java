@@ -53,8 +53,9 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(1).estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(2).estimate().numBytes();
+        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1)).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2)).estimate()
+                .numBytes();
 
         assertThat(numBytesWithOneRow).isGreaterThan(0L);
         assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
@@ -66,7 +67,9 @@ public class ThriftQueryWeighersTest {
                 BYTES1, ImmutableList.of(COLUMN_OR_SUPER, COLUMN_OR_SUPER),
                 BYTES2, ImmutableList.of(COLUMN_OR_SUPER));
 
-        long actualNumRows = ThriftQueryWeighers.multigetSlice(1).weighSuccess(result, TIME_TAKEN).numDistinctRows();
+        long actualNumRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1))
+                .weighSuccess(result, TIME_TAKEN)
+                .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(2);
     }
@@ -121,7 +124,8 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.multigetSlice(1).weighFailure(new RuntimeException(), TIME_TAKEN);
+        QueryWeight weight = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1))
+                .weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
     }
