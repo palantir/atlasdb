@@ -51,6 +51,7 @@ import com.palantir.common.base.FunctionCheckedException;
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
     private static final int TIME_BETWEEN_EVICTION_RUNS_SECONDS = 20;
+    private static final int UNRESPONSIVE_HOST_BACKOFF_SECONDS = 5 * 60;
     private static final int DEFAULT_PORT = 5000;
     private static final int OTHER_PORT = 6000;
     private static final String HOSTNAME_1 = "1.0.0.0";
@@ -59,12 +60,22 @@ public class CassandraClientPoolTest {
     private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
+
     private MetricRegistry metricRegistry;
+    private CassandraKeyValueServiceConfig config;
+    private Blacklist blacklist;
 
     @Before
     public void setup() {
         AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+
+        config = mock(CassandraKeyValueServiceConfig.class);
+        when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
+        when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
+        when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
+
+        blacklist = new Blacklist(config);
     }
 
     @Test
@@ -130,7 +141,7 @@ public class CassandraClientPoolTest {
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1, HOST_2));
-        cassandraClientPool.blacklist(HOST_1);
+        blacklist.add(HOST_1);
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);
@@ -311,13 +322,12 @@ public class CassandraClientPoolTest {
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool,
             Optional<Exception> failureMode) {
-        CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
-        when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
-        when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.servers()).thenReturn(servers);
 
         CassandraClientPoolImpl cassandraClientPool =
-                CassandraClientPoolImpl.createImplForTest(config, CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN);
+                CassandraClientPoolImpl.createImplForTest(config,
+                        CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
+                        blacklist);
 
         serversInPool.forEach(address ->
                 cassandraClientPool.addPool(address, getMockPoolingContainerForHost(address, failureMode)));

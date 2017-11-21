@@ -87,13 +87,13 @@ class Blacklist {
         return blacklist.containsKey(host);
     }
 
-    void blacklist(InetSocketAddress host) {
+    void add(InetSocketAddress host) {
         blacklist.put(host, System.currentTimeMillis());
         log.warn("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
     void addAll(Set<InetSocketAddress> hosts) {
-        hosts.forEach(this::blacklist);
+        hosts.forEach(this::add);
     }
 
     void remove(InetSocketAddress host) {

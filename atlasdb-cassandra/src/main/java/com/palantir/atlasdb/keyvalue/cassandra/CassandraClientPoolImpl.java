@@ -160,8 +160,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+            StartupChecks startupChecks, Blacklist blacklist) {
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, blacklist);
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
@@ -170,25 +170,28 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = create(config,
-                StartupChecks.RUN, initializeAsync);
+                StartupChecks.RUN, initializeAsync, new Blacklist(config));
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+            StartupChecks startupChecks, boolean initializeAsync, Blacklist blacklist) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks, blacklist);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
-    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
+    private CassandraClientPoolImpl(
+            CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            Blacklist blacklist) {
         this.config = config;
         this.startupChecks = startupChecks;
         this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
-        this.blacklist = new Blacklist(config);
+        this.blacklist = blacklist;
     }
 
     private void tryInitialize() {
@@ -411,7 +414,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 atLeastOneHostResponded = true;
             } catch (Exception e) {
                 completelyUnresponsiveHosts.put(host, e);
-                blacklist.blacklist(host);
+                blacklist.add(host);
             }
 
             if (thisHostResponded) {
@@ -602,21 +605,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    @VisibleForTesting
-    void blacklist(InetSocketAddress host) {
-        blacklist.blacklist(host);
-    }
-
-    @VisibleForTesting
-    void blacklistAll(Set<InetSocketAddress> hosts) {
-        blacklist.addAll(hosts);
-    }
-
-    @VisibleForTesting
-    void unblacklistAll() {
-        blacklist.removeAll();
-    }
-
     private void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
         updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequest);
     }
@@ -668,7 +656,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                             ex);
                 }
                 if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
-                    blacklist.blacklist(host);
+                    blacklist.add(host);
                 }
             }
         } else {
