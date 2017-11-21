@@ -49,8 +49,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.InstrumentedExecutorService;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -107,7 +105,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -215,13 +212,10 @@ public final class DbKvs extends AbstractKeyValueService {
             SqlConnectionSupplier connections,
             OracleTableNameGetter tableNameGetter,
             OracleDdlConfig oracleDdlConfig) {
-        InstrumentedExecutorService oracleShrinkExecutorService = new InstrumentedExecutorService(
-                    Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
-                            .setNameFormat("oracle-shrink-%d")
-                            .setDaemon(true)
-                            .build()),
-                    AtlasDbMetrics.getMetricRegistry(),
-                    MetricRegistry.name(OracleShrinkExecutor.class, "executor"));
+        ExecutorService oracleShrinkExecutorService = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+                .setNameFormat("oracle-shrink-%d")
+                .setDaemon(true)
+                .build());
         return new OracleShrinkExecutor(connections, oracleShrinkExecutorService, tableNameGetter,
                 oracleDdlConfig.shrinkConfig());
     }
