@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.junit.Test;
@@ -76,8 +77,8 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void rangeSlicesWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(1).estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(2).estimate().numBytes();
+        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(new KeyRange(1)).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(2)).estimate().numBytes();
 
         assertThat(numBytesWithOneRow).isGreaterThan(0L);
         assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
@@ -87,7 +88,8 @@ public class ThriftQueryWeighersTest {
     public void rangeSlicesWeigherReturnsCorrectNumRows() {
         List<KeySlice> result = ImmutableList.of(KEY_SLICE, KEY_SLICE, KEY_SLICE);
 
-        long actualNumRows = ThriftQueryWeighers.getRangeSlices(1).weighSuccess(result, TIME_TAKEN).numDistinctRows();
+        long actualNumRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(1)).weighSuccess(result, TIME_TAKEN)
+                .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(3);
     }
@@ -139,7 +141,8 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void getRangeSlicesWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.getRangeSlices(1).weighFailure(new RuntimeException(), TIME_TAKEN);
+        QueryWeight weight = ThriftQueryWeighers.getRangeSlices(new KeyRange(1))
+                .weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
     }

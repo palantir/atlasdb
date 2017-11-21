@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.slf4j.Logger;
@@ -55,8 +56,8 @@ public final class ThriftQueryWeighers {
         return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size, keys.size());
     }
 
-    static QosClient.QueryWeigher<List<KeySlice>> getRangeSlices(int numberOfQueriedRows) {
-        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size, numberOfQueriedRows);
+    static QosClient.QueryWeigher<List<KeySlice>> getRangeSlices(KeyRange keyRange) {
+        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size, keyRange.count);
     }
 
     static final QosClient.QueryWeigher<ColumnOrSuperColumn> GET =
