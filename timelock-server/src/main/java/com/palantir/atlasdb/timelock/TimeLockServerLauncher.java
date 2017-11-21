@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.function.Consumer;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
@@ -26,12 +27,14 @@ import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
-import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
+/**
+ * Provides a way of launching an embedded TimeLock server using Dropwizard. Should only be used in tests.
+ */
 public class TimeLockServerLauncher extends Application<TimeLockServerConfiguration> {
     public static void main(String[] args) throws Exception {
         new TimeLockServerLauncher().run(args);
@@ -39,7 +42,7 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
-        MetricRegistry metricRegistry = MetricRegistries.createWithHdrHistogramReservoirs();
+        MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate("AtlasDbTest");
         AtlasDbMetrics.setMetricRegistry(metricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
