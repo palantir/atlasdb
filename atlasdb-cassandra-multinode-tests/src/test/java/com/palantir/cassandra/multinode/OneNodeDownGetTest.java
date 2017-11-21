@@ -112,7 +112,7 @@ public class OneNodeDownGetTest {
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
         assertThatThrownBy(() -> it.next())
                 .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessage("This operation requires all Cassandra nodes to be up and available.");
+                .hasMessageContaining("requires all Cassandra nodes to be up and available.");
     }
 
     @Test
@@ -120,6 +120,6 @@ public class OneNodeDownGetTest {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
                 .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessage("This get operation requires ALL Cassandra nodes to be up and available.");
+                .hasMessageContaining("requires ALL Cassandra nodes to be up and available.");
     }
 }
