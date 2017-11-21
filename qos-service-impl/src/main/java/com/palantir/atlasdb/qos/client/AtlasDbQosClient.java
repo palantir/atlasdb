@@ -50,6 +50,7 @@ public class AtlasDbQosClient implements QosClient {
     public <T, E extends Exception> T executeRead(ReadQuery<T, E> query, QueryWeigher<T> weigher) throws E {
         long estimatedNumBytes = weigher.estimate().numBytes();
         rateLimiters.read().consumeWithBackoff(estimatedNumBytes);
+        System.out.println("");
 
         // TODO(nziebart): decide what to do if we encounter a timeout exception
         long startTimeNanos = ticker.read();
@@ -59,6 +60,7 @@ public class AtlasDbQosClient implements QosClient {
         QueryWeight actualWeight = weigher.weigh(result, totalTimeNanos);
         metrics.recordRead(actualWeight);
         rateLimiters.read().recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
+
 
         return result;
     }

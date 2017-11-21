@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -23,16 +24,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -54,11 +57,13 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
+import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 public class QosCassandraReadTestSuite extends EteSetup {
     private static final Random random = new Random();
@@ -72,8 +77,20 @@ public class QosCassandraReadTestSuite extends EteSetup {
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(QosCassandraReadTestSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
-    private static int readBytesPerSecond = 10_000;
-    private static int writeBytesPerSecond = 10_000;
+    private static Supplier<Integer> readBytesPerSecond = new Supplier<Integer>() {
+        int initial = 10_000;
+        @Override
+        public Integer get() {
+            return initial + 1;
+        }
+    };
+    private static Supplier<Integer> writeBytesPerSecond = new Supplier<Integer>() {
+        int initial = 10_000;
+        @Override
+        public Integer get() {
+            return initial + 1;
+        }
+    };
 
     @BeforeClass
     public static void waitUntilTransactionManagersIsUp() {
@@ -91,30 +108,40 @@ public class QosCassandraReadTestSuite extends EteSetup {
 
         IntStream.range(0, 100).forEach(i -> serializableTransactionManager
                 .runTaskWithRetry((transaction) -> {
-            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
-                    TodoSchema.todoTextColumn());
-            Map<Cell, byte[]> write = ImmutableMap.of(thisCell, ValueType.STRING.convertFromJava(getTodoOfSize(1_000)));
-            transaction.put(TodoSchema.todoTable(), write);
-            return null;
-        }));
+                    Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
+                            TodoSchema.todoTextColumn());
+                    Map<Cell, byte[]> write = ImmutableMap.of(thisCell,
+                            ValueType.STRING.convertFromJava(getTodoOfSize(1_000)));
+                    transaction.put(TodoSchema.todoTable(), write);
+                    return null;
+                }));
     }
 
-    @Before
-    public void setup() {
-        // modifying the limits, forces creation of a new ratelimiter.
-        readBytesPerSecond = readBytesPerSecond + 10;
-        writeBytesPerSecond = writeBytesPerSecond + 10;
+    @Test
+    public void shouldBeAbleToReadSmallAmountOfBytesThatDoesntExceedLimit() {
+        assertThat(readOneBatchOfSize(1)).hasSize(1);
+    }
+
+    @Test
+    public void shouldBeAbleToReadSmallAmountOfBytesConcurrentlyThatDoesntExceedLimit() {
+        assertThat(readOneBatchOfSize(1)).hasSize(1);
     }
 
 
     @Test
-    public void shouldBeAbleToReadSmallAmounts() {
+    public void shouldNotBeAbleToReadLargeAmountsTheFirstTime() {
+        assertThatThrownBy(() -> readOneBatchOfSize(100))
+                .isInstanceOf(AtlasDbDependencyException.class)
+                .hasCause(new RuntimeException("rate limited"));
+    }
+
+    private List<ImmutableTodo> readOneBatchOfSize(int batchSize) {
         ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
             BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
                     TodoSchema.todoTable(), RangeRequest.all());
             ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
 
-            rowResultBatchingVisitable.batchAccept(10, items -> {
+            rowResultBatchingVisitable.batchAccept(batchSize, items -> {
                 rowResults.addAll(items);
                 return false;
             });
@@ -122,50 +149,24 @@ public class QosCassandraReadTestSuite extends EteSetup {
             return rowResults.build();
         });
 
-        List<ImmutableTodo> collect = results.stream()
+        return results.stream()
                 .map(RowResult::getOnlyColumnValue)
                 .map(ValueType.STRING::convertToString)
                 .map(ImmutableTodo::of)
                 .collect(Collectors.toList());
-
-        assertThat(collect).hasSize(10);
     }
 
     @Test
-    public void shouldBeAbleToReadLargeAmountsTheFirstTime() {
-        assertThatAllTodosAreRead();
-    }
+    public void shouldBeAbleToReadSmallAmountsConsecutively() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        readOneBatchOfSize(1);
+        long firstLargeReadLatency = stopwatch.elapsed(TimeUnit.MILLISECONDS);
 
-    @Test
-    public void shouldNotBeAbleToReadLargeAmountsConsecutively() {
-        assertThatAllTodosAreRead();
-        assertThatAllTodosAreRead();
-        assertThatAllTodosAreRead();
-        assertThatAllTodosAreRead();
-        assertThatAllTodosAreRead();
-    }
+        stopwatch = Stopwatch.createStarted();
+        readOneBatchOfSize(1);
+        long secondReadLatency = stopwatch.elapsed(TimeUnit.MILLISECONDS);
 
-    private void assertThatAllTodosAreRead() {
-        ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
-            BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable = transaction.getRange(
-                    TodoSchema.todoTable(), RangeRequest.all());
-            ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
-
-            rowResultBatchingVisitable.batchAccept(10, items -> {
-                rowResults.addAll(items);
-                return true;
-            });
-
-            return rowResults.build();
-        });
-
-        List<ImmutableTodo> collect = results.stream()
-                .map(RowResult::getOnlyColumnValue)
-                .map(ValueType.STRING::convertToString)
-                .map(ImmutableTodo::of)
-                .collect(Collectors.toList());
-
-        assertThat(collect).hasSize(100);
+        assertThat(secondReadLatency).isGreaterThan(firstLargeReadLatency);
     }
 
     public static AtlasDbConfig getAtlasDbConfig() {
@@ -195,13 +196,15 @@ public class QosCassandraReadTestSuite extends EteSetup {
     }
 
     public static Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
+
         return Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
                 .sweep(ImmutableSweepConfig.builder().enabled(false).build())
                 .qos(ImmutableQosClientConfig.builder()
                         .limits(ImmutableQosLimitsConfig.builder()
-                                .readBytesPerSecond(readBytesPerSecond)
-                                .writeBytesPerSecond(writeBytesPerSecond)
+                                .readBytesPerSecond(readBytesPerSecond.get())
+                                .writeBytesPerSecond(writeBytesPerSecond.get())
                                 .build())
+                        .maxBackoffSleepTime(HumanReadableDuration.seconds(10))
                         .build())
                 .build());
     }
