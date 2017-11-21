@@ -15,6 +15,7 @@
  */
 package com.palantir.lock;
 
+import java.io.Closeable;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Set;
@@ -26,28 +27,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.processors.AutoDelegate;
 
-public abstract class ForwardingLockService extends ForwardingObject implements CloseableLockService {
-
-    @Override
-    protected abstract LockService delegate();
-
-    @Override
-    public LockRefreshToken lock(String client, LockRequest request)
-            throws InterruptedException {
-        return delegate().lock(client, request);
-    }
+@AutoDelegate(typeToExtend = LockService.class)
+public abstract class ForwardingLockService implements AutoDelegate_LockService, Closeable {
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
-            throws InterruptedException {
-        return delegate().lockAndGetHeldLocks(client, request);
-    }
-
-    @Override
-    public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        return delegate().lockWithFullLockResponse(client, request);
-    }
+    public abstract LockService delegate();
 
     @Override
     public boolean unlock(HeldLocksToken token) {
@@ -57,21 +43,6 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
     @Override
     public boolean unlock(LockRefreshToken token) {
         return delegate().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token));
-    }
-
-    @Override
-    public boolean unlockSimple(SimpleHeldLocksToken token) {
-        return delegate().unlockSimple(token);
-    }
-
-    @Override
-    public boolean unlockAndFreeze(HeldLocksToken token) {
-        return delegate().unlockAndFreeze(token);
-    }
-
-    @Override
-    public Set<HeldLocksToken> getTokens(LockClient client) {
-        return delegate().getTokens(client);
     }
 
     @Override
@@ -86,71 +57,6 @@ public abstract class ForwardingLockService extends ForwardingObject implements 
             ret.add(goodToken.refreshTokenWithExpriationDate(lock));
         }
         return ret;
-    }
-
-    @Override
-    @Idempotent
-    public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
-        return delegate().refreshLockRefreshTokens(tokens);
-    }
-
-    @Override
-    public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
-        return delegate().refreshGrant(grant);
-    }
-
-    @Override
-    public HeldLocksGrant refreshGrant(BigInteger grantId) {
-        return delegate().refreshGrant(grantId);
-    }
-
-    @Override
-    public HeldLocksGrant convertToGrant(HeldLocksToken token) {
-        return delegate().convertToGrant(token);
-    }
-
-    @Override
-    public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
-        return delegate().useGrant(client, grant);
-    }
-
-    @Override
-    public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
-        return delegate().useGrant(client, grantId);
-    }
-
-    /**
-     * @deprecated Please use getMinLockedInVersionId(LockClient.ANONYMOUS) instead
-     */
-    @Override
-    @Deprecated
-    public Long getMinLockedInVersionId() {
-        return delegate().getMinLockedInVersionId();
-    }
-
-    @Override
-    public Long getMinLockedInVersionId(String client) {
-        return delegate().getMinLockedInVersionId(client);
-    }
-
-    @Override
-    public Long getMinLockedInVersionId(LockClient client) {
-        return delegate().getMinLockedInVersionId(client);
-    }
-
-    @Override
-    public LockServerOptions getLockServerOptions() {
-        return delegate().getLockServerOptions();
-    }
-
-    @Override
-    public long currentTimeMillis() {
-        return delegate().currentTimeMillis();
-    }
-
-    @Override
-    public void logCurrentState() {
-        delegate().logCurrentState();
     }
 
     @Override
