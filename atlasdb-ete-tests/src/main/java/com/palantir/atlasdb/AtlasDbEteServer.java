@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
@@ -37,7 +38,6 @@ import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
-import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
@@ -59,7 +59,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
-        bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
+        bootstrap.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
         enableEnvironmentVariablesInConfig(bootstrap);
         bootstrap.addBundle(new AtlasDbBundle<>());
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());

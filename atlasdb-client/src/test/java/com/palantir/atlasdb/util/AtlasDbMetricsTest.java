@@ -26,7 +26,6 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
-import com.palantir.tritium.metrics.MetricRegistries;
 
 public class AtlasDbMetricsTest {
 
@@ -82,7 +81,7 @@ public class AtlasDbMetricsTest {
     }
 
     private MetricRegistry setMetricRegistry() {
-        MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
+        MetricRegistry metrics = SharedMetricRegistries.getOrCreate("AtlasDbTest");
         AtlasDbMetrics.setMetricRegistry(metrics);
         return metrics;
     }
