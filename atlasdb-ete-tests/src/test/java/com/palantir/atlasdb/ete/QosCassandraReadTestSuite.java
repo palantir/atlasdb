@@ -89,14 +89,14 @@ public class QosCassandraReadTestSuite extends EteSetup {
         int initial = 10_000;
         @Override
         public Integer get() {
-            return initial + 1;
+            return initial++;
         }
     };
     private static Supplier<Integer> writeBytesPerSecond = new Supplier<Integer>() {
         int initial = 10_000;
         @Override
         public Integer get() {
-            return initial + 1;
+            return initial++;
         }
     };
 
@@ -215,7 +215,6 @@ public class QosCassandraReadTestSuite extends EteSetup {
     }
 
     public static Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
-
         return Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
                 .sweep(ImmutableSweepConfig.builder().enabled(false).build())
                 .qos(ImmutableQosClientConfig.builder()
