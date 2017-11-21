@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.qos.client;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -53,22 +54,26 @@ public class AtlasDbQosClient implements QosClient {
 
     @Override
     public <T, E extends Exception> T executeRead(Query<T, E> query, QueryWeigher<T> weigher) throws E {
-        return execute(query, weigher, rateLimiters.read(), metrics::recordRead);
+        return execute(query, weigher, rateLimiters.read(), Optional.of(metrics::recordReadEstimate),
+                metrics::recordRead);
     }
 
     @Override
     public <T, E extends Exception> T executeWrite(Query<T, E> query, QueryWeigher<T> weigher) throws E {
-        return execute(query, weigher, rateLimiters.write(), metrics::recordWrite);
+        return execute(query, weigher, rateLimiters.write(), Optional.empty(), metrics::recordWrite);
     }
 
     private <T, E extends Exception> T execute(
             Query<T, E> query,
             QueryWeigher<T> weigher,
             QosRateLimiter rateLimiter,
+            Optional<Consumer<QueryWeight>> estimatedWeightMetric,
             Consumer<QueryWeight> weightMetric) throws E {
-        long estimatedNumBytes = weigher.estimate().numBytes();
+        QueryWeight estimatedWeight = weigher.estimate();
+        estimatedWeightMetric.ifPresent(metric -> metric.accept(estimatedWeight));
+
         try {
-            Duration waitTime = rateLimiter.consumeWithBackoff(estimatedNumBytes);
+            Duration waitTime = rateLimiter.consumeWithBackoff(estimatedWeight.numBytes());
             metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
         } catch (RateLimitExceededException ex) {
             metrics.recordRateLimitedException();
@@ -87,7 +92,7 @@ public class AtlasDbQosClient implements QosClient {
             throw ex;
         } finally {
             weightMetric.accept(actualWeight);
-            rateLimiter.recordAdjustment(actualWeight.numBytes() - estimatedNumBytes);
+            rateLimiter.recordAdjustment(actualWeight.numBytes() - estimatedWeight.numBytes());
         }
     }
 

@@ -36,6 +36,9 @@ public class QosMetrics {
     private final Meter readTime;
     private final Meter rowsRead;
 
+    private final Meter estimatedBytesRead;
+    private final Meter estimatedRowsRead;
+
     private final Meter writeRequestCount;
     private final Meter bytesWritten;
     private final Meter writeTime;
@@ -50,6 +53,9 @@ public class QosMetrics {
         readTime = metricsManager.registerMeter(QosMetrics.class, "readTime");
         rowsRead = metricsManager.registerMeter(QosMetrics.class, "rowsRead");
 
+        estimatedBytesRead = metricsManager.registerMeter(QosMetrics.class, "estimated.bytesRead");
+        estimatedRowsRead = metricsManager.registerMeter(QosMetrics.class, "estimated.rowsRead");
+
         writeRequestCount = metricsManager.registerMeter(QosMetrics.class, "numWriteRequests");
         bytesWritten = metricsManager.registerMeter(QosMetrics.class, "bytesWritten");
         writeTime = metricsManager.registerMeter(QosMetrics.class, "writeTime");
@@ -57,6 +63,11 @@ public class QosMetrics {
 
         backoffTime = metricsManager.registerMeter(QosMetrics.class, "backoffTime");
         rateLimitedExceptions = metricsManager.registerMeter(QosMetrics.class, "rateLimitedExceptions");
+    }
+
+    public void recordReadEstimate(QueryWeight weight) {
+        estimatedBytesRead.mark(weight.numBytes());
+        estimatedRowsRead.mark(weight.numDistinctRows());
     }
 
     public void recordRead(QueryWeight weight) {
