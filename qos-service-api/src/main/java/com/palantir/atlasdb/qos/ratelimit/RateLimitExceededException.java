@@ -14,26 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.qos;
+package com.palantir.atlasdb.qos.ratelimit;
 
-public interface QosClient {
-
-    interface Query<T, E extends Exception> {
-        T execute() throws E;
+/**
+ * This exception is thrown when a request is made through a {@link com.palantir.atlasdb.qos.QosClient}, but the
+ * request exceeds the limits defined by the QosClient in some way and thus cannot be completed.
+ */
+public class RateLimitExceededException extends RuntimeException {
+    public RateLimitExceededException(String msg) {
+        super(msg);
     }
 
-    interface QueryWeigher<T> {
-        QueryWeight estimate();
-        QueryWeight weighSuccess(T result, long timeTakenNanos);
-        QueryWeight weighFailure(Exception error, long timeTakenNanos);
+    public RateLimitExceededException(String msg, Throwable throwable) {
+        super(msg, throwable);
     }
-
-    <T, E extends Exception> T executeRead(
-            Query<T, E> query,
-            QueryWeigher<T> weigher) throws E;
-
-    <T, E extends Exception> T executeWrite(
-            Query<T, E> query,
-            QueryWeigher<T> weigher) throws E;
-
 }

@@ -69,7 +69,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return qosClient.executeRead(
                 () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
-                ThriftQueryWeighers.MULTIGET_SLICE);
+                ThriftQueryWeighers.multigetSlice(keys));
     }
 
     @Override
@@ -78,7 +78,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return qosClient.executeRead(
                 () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
-                ThriftQueryWeighers.GET_RANGE_SLICES);
+                ThriftQueryWeighers.getRangeSlices(range));
     }
 
     @Override
@@ -86,7 +86,10 @@ public class QosCassandraClient implements CassandraClient {
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         qosClient.executeWrite(
-                () -> client.batch_mutate(kvsMethodName, mutation_map, consistency_level),
+                () -> {
+                    client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
+                    return null;
+                },
                 ThriftQueryWeighers.batchMutate(mutation_map));
     }
 
@@ -103,9 +106,8 @@ public class QosCassandraClient implements CassandraClient {
     public CASResult cas(TableReference tableReference, ByteBuffer key, List<Column> expected, List<Column> updates,
             ConsistencyLevel serial_consistency_level, ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        // TODO(nziebart): should this be considered as a write or do we need to treat is as both read and write?
-        return client.cas(tableReference, key, expected, updates, serial_consistency_level,
-                commit_consistency_level);
+        // CAS is intentionally not rate limited, until we have a concept of priority
+        return client.cas(tableReference, key, expected, updates, serial_consistency_level, commit_consistency_level);
     }
 
     @Override

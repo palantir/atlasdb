@@ -20,9 +20,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import java.time.Duration;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +38,7 @@ import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.ImmutableQosRateLimiters;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 
 public class AtlasDbQosClientTest {
 
@@ -72,7 +76,11 @@ public class AtlasDbQosClientTest {
         when(ticker.read()).thenReturn(START_NANOS).thenReturn(END_NANOS);
 
         when(weigher.estimate()).thenReturn(ESTIMATED_WEIGHT);
-        when(weigher.weigh(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+        when(weigher.weighSuccess(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+        when(weigher.weighFailure(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+
+        when(readLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
+        when(writeLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
     }
 
     @Test
@@ -88,20 +96,20 @@ public class AtlasDbQosClientTest {
     public void recordsReadMetrics() throws TestCheckedException {
         qosClient.executeRead(() -> "foo", weigher);
 
+        verify(metrics).recordReadEstimate(ESTIMATED_WEIGHT);
         verify(metrics).recordRead(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
     public void passesResultAndTimeToReadWeigher() throws TestCheckedException {
         qosClient.executeRead(() -> "foo", weigher);
 
-        verify(weigher).weigh("foo", TOTAL_NANOS);
+        verify(weigher).weighSuccess("foo", TOTAL_NANOS);
     }
 
     @Test
     public void consumesSpecifiedNumUnitsForWrites() {
-        qosClient.executeWrite(() -> { }, weigher);
+        qosClient.executeWrite(() -> null, weigher);
 
         verify(writeLimiter).consumeWithBackoff(ESTIMATED_BYTES);
         verify(writeLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
@@ -110,10 +118,41 @@ public class AtlasDbQosClientTest {
 
     @Test
     public void recordsWriteMetrics() throws TestCheckedException {
-        qosClient.executeWrite(() -> { }, weigher);
+        qosClient.executeWrite(() -> null, weigher);
 
         verify(metrics).recordWrite(ACTUAL_WEIGHT);
-        verifyNoMoreInteractions(metrics);
+        verify(metrics, never()).recordReadEstimate(any());
+    }
+
+    @Test
+    public void recordsReadMetricsOnFailure() throws TestCheckedException {
+        TestCheckedException error = new TestCheckedException();
+        assertThatThrownBy(() -> qosClient.executeRead(() -> {
+            throw error;
+        }, weigher)).isInstanceOf(TestCheckedException.class);
+
+        verify(metrics).recordRead(ACTUAL_WEIGHT);
+    }
+
+    @Test
+    public void recordsWriteMetricsOnFailure() throws TestCheckedException {
+        TestCheckedException error = new TestCheckedException();
+        assertThatThrownBy(() -> qosClient.executeWrite(() -> {
+            throw error;
+        }, weigher)).isInstanceOf(TestCheckedException.class);
+
+        verify(metrics).recordWrite(ACTUAL_WEIGHT);
+    }
+
+    @Test
+    public void passesExceptionToWeigherOnFailure() throws TestCheckedException {
+        TestCheckedException error = new TestCheckedException();
+        assertThatThrownBy(() -> qosClient.executeRead(() -> {
+            throw error;
+        }, weigher)).isInstanceOf(TestCheckedException.class);
+
+        verify(weigher).weighFailure(error, TOTAL_NANOS);
+        verify(weigher, never()).weighSuccess(any(), anyLong());
     }
 
     @Test
@@ -125,6 +164,34 @@ public class AtlasDbQosClientTest {
         assertThatThrownBy(() -> qosClient.executeWrite(() -> {
             throw new TestCheckedException();
         }, weigher)).isInstanceOf(TestCheckedException.class);
+
+        verify(metrics, never()).recordRateLimitedException();
+    }
+
+    @Test
+    public void recordsBackoffTime() {
+        when(readLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ofMillis(1_100));
+        qosClient.executeRead(() -> "foo", weigher);
+
+        verify(metrics).recordBackoffMicros(1_100_000);
+    }
+
+    @Test
+    public void recordsBackoffExceptions() {
+        when(readLimiter.consumeWithBackoff(anyLong())).thenThrow(new RateLimitExceededException("rate limited"));
+        assertThatThrownBy(() -> qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(
+                RateLimitExceededException.class);
+
+        verify(metrics).recordRateLimitedException();
+    }
+
+    @Test
+    public void doesNotRecordRuntimeExceptions() {
+        when(readLimiter.consumeWithBackoff(anyLong())).thenThrow(new RuntimeException("foo"));
+        assertThatThrownBy(() -> qosClient.executeRead(() -> "foo", weigher)).isInstanceOf(
+                RuntimeException.class);
+
+        verify(metrics, never()).recordRateLimitedException();
     }
 
     static class TestCheckedException extends Exception {}

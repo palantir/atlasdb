@@ -393,6 +393,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:qos-service-impl"
             ]
         },
@@ -1199,6 +1200,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:qos-service-impl"
             ]
         },

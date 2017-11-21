@@ -44,7 +44,7 @@ public final class ThriftObjectSizeUtils {
         // utility class
     }
 
-    public static long getApproximateWriteByteCount(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
+    public static long getApproximateSizeOfMutationMap(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
         long approxBytesForKeys = getCollectionSize(batchMutateMap.keySet(), ThriftObjectSizeUtils::getByteBufferSize);
         long approxBytesForValues = getCollectionSize(batchMutateMap.values(),
                 currentMap -> getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
@@ -53,15 +53,21 @@ public final class ThriftObjectSizeUtils {
         return approxBytesForKeys + approxBytesForValues;
     }
 
-    public static long getApproximateReadByteCount(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
+    public static long getApproximateSizeOfColsByKey(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
         return getCollectionSize(result.entrySet(),
                 rowResult -> ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
                         + getCollectionSize(rowResult.getValue(),
                         ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
     }
 
-    public static long getApproximateReadByteCount(List<KeySlice> slices) {
+    public static long getApproximateSizeOfKeySlices(List<KeySlice> slices) {
         return getCollectionSize(slices, ThriftObjectSizeUtils::getKeySliceSize);
+    }
+
+    public static long getCasByteCount(List<Column> updates) {
+        // TODO(nziebart): CAS actually writes more bytes than this, because the associated Paxos negotations must
+        // be persisted
+        return getCollectionSize(updates, ThriftObjectSizeUtils::getColumnSize);
     }
 
     public static long getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {

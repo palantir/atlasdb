@@ -21,14 +21,15 @@ public class FakeQosClient implements QosClient {
     public static final FakeQosClient INSTANCE = new FakeQosClient();
 
     @Override
-    public <T, E extends Exception> T executeRead(ReadQuery<T, E> query, QueryWeigher<T> weigher)
+    public <T, E extends Exception> T executeRead(Query<T, E> query, QueryWeigher<T> weigher)
             throws E {
         return query.execute();
     }
 
     @Override
-    public <T, E extends Exception> void executeWrite(WriteQuery<E> query,
-            QueryWeigher<Void> weigher) throws E {
-        query.execute();
+    public <T, E extends Exception> T executeWrite(Query<T, E> query, QueryWeigher<T> weigher)
+            throws E {
+        return query.execute();
     }
+
 }
