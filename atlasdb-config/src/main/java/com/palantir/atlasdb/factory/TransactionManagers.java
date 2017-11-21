@@ -648,6 +648,7 @@ public abstract class TransactionManagers {
     }
 
     @Value.Immutable
+    @Value.Style(stagedBuilder = false)
     public interface LockAndTimestampServices {
         LockService lock();
         TimestampService timestamp();

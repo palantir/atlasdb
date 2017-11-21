@@ -148,7 +148,6 @@ public class TransactionManagersTest {
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
     private Supplier<Optional<AtlasDbRuntimeConfig>> configSupplier;
-    private TransactionManagers.Environment env;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
