@@ -35,7 +35,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -50,7 +49,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
-import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -71,7 +69,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
-import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -150,8 +148,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
-    private final MetricsManager metricsManager = new MetricsManager();
-    private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
+    private final CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics();
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private List<InetSocketAddress> cassandraHosts;
@@ -213,11 +210,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             runOneTimeStartupChecks();
         }
         refreshPool(); // ensure we've initialized before returning
-        registerAggregateMetrics();
+        metrics.registerAggregateMetrics(blacklist::size);
     }
 
     private void cleanUpOnInitFailure() {
-        metricsManager.deregisterMetrics();
+        metrics.deregisterMetrics();
         refreshPoolFuture.cancel(true);
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
@@ -229,24 +226,12 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         refreshDaemon.shutdown();
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
-        metricsManager.deregisterMetrics();
+        metrics.deregisterMetrics();
     }
 
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return currentPools;
-    }
-
-    private void registerAggregateMetrics() {
-        metricsManager.registerMetric(
-                CassandraClientPool.class, "numBlacklistedHosts",
-                blacklist::size);
-        metricsManager.registerMetric(
-                CassandraClientPool.class, "requestFailureProportion",
-                aggregateMetrics::getExceptionProportion);
-        metricsManager.registerMetric(
-                CassandraClientPool.class, "requestConnectionExceptionProportion",
-                aggregateMetrics::getConnectionExceptionProportion);
     }
 
     private synchronized void refreshPool() {
@@ -592,34 +577,16 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraClientPoolingContainer hostPool,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
 
-        recordRequestOnHost(hostPool);
+        metrics.recordRequestOnHost(hostPool);
         try {
             return hostPool.runWithPooledResource(fn);
         } catch (Exception e) {
-            recordExceptionOnHost(hostPool);
+            metrics.recordExceptionOnHost(hostPool);
             if (isConnectionException(e)) {
-                recordConnectionExceptionOnHost(hostPool);
+                metrics.recordConnectionExceptionOnHost(hostPool);
             }
             throw e;
         }
-    }
-
-    private void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
-        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequest);
-    }
-
-    private void recordExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestException);
-    }
-
-    private void recordConnectionExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        updateMetricOnAggregateAndHost(hostPool, RequestMetrics::markRequestConnectionException);
-    }
-
-    private void updateMetricOnAggregateAndHost(
-            CassandraClientPoolingContainer hostPool,
-            Consumer<RequestMetrics> metricsConsumer) {
-        metricsConsumer.accept(aggregateMetrics);
     }
 
     @SuppressWarnings("unchecked")
@@ -870,43 +837,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             return BaseEncoding.base16().encode(bytes);
         }
 
-    }
-
-    private class RequestMetrics {
-        private final Meter totalRequests;
-        private final Meter totalRequestExceptions;
-        private final Meter totalRequestConnectionExceptions;
-
-        RequestMetrics(String metricPrefix) {
-            totalRequests = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requests");
-            totalRequestExceptions = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requestExceptions");
-            totalRequestConnectionExceptions = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
-        }
-
-        void markRequest() {
-            totalRequests.mark();
-        }
-
-        void markRequestException() {
-            totalRequestExceptions.mark();
-        }
-
-        void markRequestConnectionException() {
-            totalRequestConnectionExceptions.mark();
-        }
-
-        // Approximate
-        double getExceptionProportion() {
-            return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
-        }
-
-        // Approximate
-        double getConnectionExceptionProportion() {
-            return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
-        }
     }
 
     @VisibleForTesting
