@@ -211,6 +211,11 @@ also treat <code class="docutils literal"><span class="pre">KeyValueServiceStatu
 This reverts behaviour introduced in 0.67.0, where we instead threw <code class="docutils literal"><span class="pre">PalantirRuntimeException</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2702">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td><code class="docutils literal"><span class="pre">CassandraKeyValueServiceImpl.compactInternally</span></code> no longer logs an error when no compaction manager is configured.
+This message is instead logged once, when the KVS is instantiated.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2727">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
