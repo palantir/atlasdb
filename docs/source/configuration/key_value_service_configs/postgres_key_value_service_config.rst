@@ -85,7 +85,7 @@ We also provide the following options, which are mapped to `Hikari connection op
          - The maximum size the pool is allowed to reach.
 
     *    - ``maxConnectionAge``
-         - 1000
+         - 1800
          - ``maxLifetime``
          - The maximum lifetime, in seconds, of a connection in the pool. ``maxLifetime`` is in ``ms``, so we multiply the provided value by 1000.
 
@@ -102,7 +102,7 @@ We also provide the following options, which are mapped to `Hikari connection op
     *    - ``checkoutTimeout``
          - 30000
          - ``connectionTimeout``
-         - The maximum time, in milliseconds, we wait for a connection from the pool.
+         - The maximum time, **in milliseconds**, we wait for a connection from the pool.
 
 For example, to double the size of the connection pool, apply the following configuration:
 
