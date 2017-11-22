@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.qos;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -37,10 +38,36 @@ import org.apache.cassandra.thrift.SuperColumn;
 
 public final class ThriftObjectSizeUtils {
 
-    private static final long ONE_BYTE = 1L;
+    private static final long ONE_BYTE = 1;
 
     private ThriftObjectSizeUtils() {
         // utility class
+    }
+
+    public static long getApproximateSizeOfMutationMap(Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap) {
+        long approxBytesForKeys = getCollectionSize(batchMutateMap.keySet(), ThriftObjectSizeUtils::getByteBufferSize);
+        long approxBytesForValues = getCollectionSize(batchMutateMap.values(),
+                currentMap -> getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
+                        + getCollectionSize(currentMap.values(),
+                            mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
+        return approxBytesForKeys + approxBytesForValues;
+    }
+
+    public static long getApproximateSizeOfColsByKey(Map<ByteBuffer, List<ColumnOrSuperColumn>> result) {
+        return getCollectionSize(result.entrySet(),
+                rowResult -> ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
+                        + getCollectionSize(rowResult.getValue(),
+                        ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
+    }
+
+    public static long getApproximateSizeOfKeySlices(List<KeySlice> slices) {
+        return getCollectionSize(slices, ThriftObjectSizeUtils::getKeySliceSize);
+    }
+
+    public static long getCasByteCount(List<Column> updates) {
+        // TODO(nziebart): CAS actually writes more bytes than this, because the associated Paxos negotations must
+        // be persisted
+        return getCollectionSize(updates, ThriftObjectSizeUtils::getColumnSize);
     }
 
     public static long getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {
@@ -93,7 +120,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
 
-        return string.length() * Character.SIZE;
+        return string.length();
     }
 
     public static long getColumnSize(Column column) {
@@ -180,7 +207,7 @@ public final class ThriftObjectSizeUtils {
                         + ThriftObjectSizeUtils.getStringSize(entry.getValue()));
     }
 
-    private static Long getCqlRowSize(CqlRow cqlRow) {
+    private static long getCqlRowSize(CqlRow cqlRow) {
         if (cqlRow == null) {
             return getNullSize();
         }
