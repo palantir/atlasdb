@@ -145,7 +145,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         CassandraKeyValueServiceImpl kvs = (CassandraKeyValueServiceImpl) keyValueService;
 
         kvs.tokenRangeWritesLogger = new TokenRangeWritesLogger(ImmutableSet.of(
-                Range.lessThan(getToken("bcd")),
+                Range.atMost(getToken("bcd")),
                 Range.openClosed(getToken("bcd"), getToken("ghi")),
                 Range.openClosed(getToken("ghi"), getToken("opq")),
                 Range.greaterThan(getToken("opq"))));
@@ -161,7 +161,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 Cell.create(PtBytes.toBytes("zg"), column0), value0_t0,
                 Cell.create(PtBytes.toBytes("zz"), column0), value0_t0));
 
-        assertThat(kvs.tokenRangeWritesLogger.writesPerTable.getOrDefault(TEST_TABLE, 0L), equalTo(5L));
+        assertThat(kvs.tokenRangeWritesLogger.statsPerTable.get(TEST_TABLE).totalWrites.get(), equalTo(5L));
         assertWritesInRangeDefinedBy(1L, "a", kvs);
         assertWritesInRangeDefinedBy(1L, "g", kvs);
         assertWritesInRangeDefinedBy(3L, "z", kvs);
@@ -172,8 +172,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private void assertWritesInRangeDefinedBy(long number, String name, CassandraKeyValueServiceImpl kvs) {
-        assertThat(kvs.tokenRangeWritesLogger.tokenRangeWritesPerTable.get(getToken(name)).getOrDefault(TEST_TABLE, 0L),
-                equalTo(number));
+        assertThat(kvs.tokenRangeWritesLogger.statsPerTable
+                        .get(TEST_TABLE).writesPerRange.get(getToken(name)).get(), equalTo(number));
     }
 
     @Test

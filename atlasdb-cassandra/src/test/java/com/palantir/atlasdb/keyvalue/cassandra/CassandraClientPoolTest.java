@@ -317,7 +317,8 @@ public class CassandraClientPoolTest {
         when(config.servers()).thenReturn(servers);
 
         CassandraClientPoolImpl cassandraClientPool =
-                CassandraClientPoolImpl.createImplForTest(config, CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN);
+                CassandraClientPoolImpl.createImplForTest(config, TokenRangeWritesLogger.createUninitialized(),
+                        CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN);
 
         serversInPool.forEach(address ->
                 cassandraClientPool.addPool(address, getMockPoolingContainerForHost(address, failureMode)));

@@ -142,6 +142,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
 
+    final TokenRangeWritesLogger tokenRangeWritesLogger;
+
     private Blacklist blacklist = new Blacklist();
 
     private final CassandraKeyValueServiceConfig config;
@@ -158,30 +160,35 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+            TokenRangeWritesLogger tokenRangeWritesLogger, StartupChecks startupChecks) {
+        return create(config, tokenRangeWritesLogger, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config,
+            TokenRangeWritesLogger tokenRangeWritesLogger) {
+        return create(config, tokenRangeWritesLogger, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, Runnable x, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = create(config,
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config,
+            TokenRangeWritesLogger tokenRangeWritesLogger, boolean initializeAsync) {
+        CassandraClientPoolImpl cassandraClientPool = create(config, tokenRangeWritesLogger,
                 StartupChecks.RUN, initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+            TokenRangeWritesLogger tokenRangeWritesLogger, StartupChecks startupChecks, boolean initializeAsync) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, tokenRangeWritesLogger, startupChecks);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
-    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
+    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config,
+            TokenRangeWritesLogger tokenRangeWritesLogger,
+            StartupChecks startupChecks) {
         this.config = config;
         this.startupChecks = startupChecks;
+        this.tokenRangeWritesLogger = tokenRangeWritesLogger;
         this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
@@ -512,11 +519,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    @Override
-    public Set<Range<LightweightOppToken>> getTokenRanges() {
-        return tokenMap.asMapOfRanges().keySet();
-    }
-
     private void refreshTokenRanges() {
         try {
             Set<Range<LightweightOppToken>> oldRanges = tokenMap.asMapOfRanges().keySet();
@@ -549,9 +551,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 }
             }
             tokenMap = newTokenRing.build();
-            if (!Sets.symmetricDifference(oldRanges, getTokenRanges()).isEmpty()) {
-
-            }
+            tokenRangeWritesLogger.update(tokenMap.asMapOfRanges().keySet());
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }

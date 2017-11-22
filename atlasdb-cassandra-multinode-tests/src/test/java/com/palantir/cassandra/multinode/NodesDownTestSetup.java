@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger;
 import com.palantir.docker.compose.connection.DockerPort;
 
 public abstract class NodesDownTestSetup {
@@ -138,7 +139,7 @@ public abstract class NodesDownTestSetup {
                 ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            CassandraClientPoolImpl.create(manager.getConfig());
+            CassandraClientPoolImpl.create(manager.getConfig(), TokenRangeWritesLogger.createUninitialized());
             return true;
         } catch (Exception e) {
             return false;

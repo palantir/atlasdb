@@ -101,7 +101,8 @@ public class SchemaMutationLockIntegrationTest {
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = CassandraClientPoolImpl.create(simpleManager.getConfig());
+        clientPool = CassandraClientPoolImpl.create(simpleManager.getConfig(),
+                TokenRangeWritesLogger.createUninitialized());
         lockTable = new UniqueSchemaMutationLockTable(
                 new SchemaMutationLockTables(clientPool, quickTimeoutConfig),
                 LockLeader.I_AM_THE_LOCK_LEADER);

@@ -36,6 +36,5 @@ public interface CassandraClientPool {
     InetSocketAddress getAddressForHost(String host) throws UnknownHostException;
     InetSocketAddress getRandomHostForKey(byte[] key);
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
-    Set<Range<LightweightOppToken>> getTokenRanges();
     void shutdown();
 }

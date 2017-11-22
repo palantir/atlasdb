@@ -27,10 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
-import com.google.common.util.concurrent.AtomicLongMap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -43,58 +45,38 @@ public class TokenRangeWritesLogger {
     static final long THRESHOLD_WRITES_PER_TABLE = 1_000_000L;
     static final long TIME_UNTIL_LOG_MILLIS = 24 * 60 * 60 * 1000L;
 
-    ConcurrentMap<TableReference, TokenRangeWrites> tokenRangeWritesPerTable2 =
-            new ConcurrentHashMap<>();
-
-    Set<Range<LightweightOppToken>> ranges;
+    ConcurrentMap<TableReference, TokenRangeWrites> statsPerTable = new ConcurrentHashMap<>();
+    volatile Set<Range<LightweightOppToken>> ranges;
 
     public TokenRangeWritesLogger(Set<Range<LightweightOppToken>> ranges) {
+        Preconditions.checkArgument(!ranges.isEmpty(), "Set of ranges must not be empty!");
         this.ranges = ranges;
     }
 
-    public static TokenRangeWritesLogger createFromClientPool(CassandraClientPool clientPool) {
-        return new TokenRangeWritesLogger(clientPool.getTokenRanges());
+    public static TokenRangeWritesLogger createUninitialized() {
+        return new TokenRangeWritesLogger(ImmutableSet.of(Range.all()));
+    }
+
+    public void update(Set<Range<LightweightOppToken>> newRanges) {
+        Preconditions.checkArgument(!newRanges.isEmpty(), "Set of ranges must not be empty!");
+        if (!Sets.symmetricDifference(ranges, newRanges).isEmpty()) {
+            ranges = newRanges;
+            statsPerTable.clear();
+        }
     }
 
     public <V> void  markWritesForTable(Set<Map.Entry<Cell, V>> entries, TableReference tableRef) {
-        TokenRangeWrites tokenRangeWrites = tokenRangeWritesPerTable2.putIfAbsent(tableRef, new TokenRangeWrites(tableRef, ranges));
+        statsPerTable.putIfAbsent(tableRef, new TokenRangeWrites(tableRef, ranges));
+        TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
         entries.forEach(entry -> tokenRangeWrites.markWrite(entry.getKey()));
+        tokenRangeWrites.maybeLog();
     }
 
-    public static TokenRangeWritesLogger createUnitialized() {
-        return new TokenRangeWritesLogger(new HashSet<>());
-    }
-
-    public void update() {
-
-    }
-
-    //    private void logIfOverThreshold(TableReference tableRef) {
-//        if (writesPerTable.getOrDefault(tableRef, 0L) > THRESHOLD_WRITES_PER_TABLE) {
-//            tryLog(tableRef);
-//            writesPerTable.replace(tableRef, 0L);
-//        }
-//    }
-
-//    private void tryLog(TableReference tableRef) {
-//        ImmutableMap.Builder<Range<LightweightOppToken>, Long> writesAsMapBuilder = ImmutableMap.builder();
-//        tokenRangeWritesPerTable.asMapOfRanges().entrySet().forEach(entry -> {
-//            long numWrites = entry.getValue().getOrDefault(tableRef, 0L);
-//            if (numWrites > 0) {
-//                writesAsMapBuilder.put(entry.getKey(), numWrites);
-//            }
-//        });
-//        ImmutableMap<Range<LightweightOppToken>, Long> writesAsMap = writesAsMapBuilder.build();
-//        tryLog.info("The distribution of writes over token ranges for table {} is as follows: {}.",
-//                LoggingArgs.tableRef(tableRef),
-//                SafeArg.of("writesPerTokenRange", CassandraLogHelper.tokenRangesToWrites(writesAsMap)));
-//    }
-
-    private static class TokenRangeWrites {
-        private final TableReference tableRef;
-        private final RangeMap<LightweightOppToken, AtomicLong> writesPerRange;
-        private final AtomicLong totalWrites = new AtomicLong(0);
-        private long lastReportedTime = System.currentTimeMillis();
+    static class TokenRangeWrites {
+        final TableReference tableRef;
+        final RangeMap<LightweightOppToken, AtomicLong> writesPerRange;
+        final AtomicLong totalWrites = new AtomicLong(0);
+        long lastReportedTime = System.currentTimeMillis();
 
         TokenRangeWrites(TableReference tableRef, Set<Range<LightweightOppToken>> ranges) {
             this.tableRef = tableRef;
@@ -106,7 +88,6 @@ public class TokenRangeWritesLogger {
         public void markWrite(Cell cell) {
             writesPerRange.get(LightweightOppToken.of(cell)).incrementAndGet();
             totalWrites.incrementAndGet();
-            maybeLog();
         }
 
         private void maybeLog() {
@@ -143,7 +124,7 @@ public class TokenRangeWritesLogger {
         }
 
         private boolean distributionNotUniform() {
-            return false;
+            return true;
         }
 
         private void logNotEnoughWrites(long numWrites) {

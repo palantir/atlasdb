@@ -213,7 +213,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     @VisibleForTesting
-    TokenRangeWritesLogger tokenRangeWritesLogger;
+    TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
@@ -259,8 +259,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.tokenRangeWritesLogger = TokenRangeWritesLogger.createUnitialized();
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), () -> tokenRangeWritesLogger.update(), initializeAsync);
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), tokenRangeWritesLogger, initializeAsync);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
