@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
@@ -25,6 +27,8 @@ public class RetryableCassandraRequest<V, K extends Exception> {
     private final FunctionCheckedException<CassandraClient, V, K> fn;
 
     private int numberOfAttempts = 0;
+    private boolean shouldGiveUpOnPreferredHost = false;
+    private Set<InetSocketAddress> triedHosts = Sets.newHashSet();
 
     public RetryableCassandraRequest(InetSocketAddress preferredHost,
             FunctionCheckedException<CassandraClient, V, K> fn) {
@@ -46,5 +50,21 @@ public class RetryableCassandraRequest<V, K extends Exception> {
 
     public int getNumberOfAttempts() {
         return numberOfAttempts;
+    }
+
+    public boolean shouldGiveUpOnPreferredHost() {
+        return shouldGiveUpOnPreferredHost;
+    }
+
+    public void giveUpOnPreferredHost() {
+        shouldGiveUpOnPreferredHost = true;
+    }
+
+    public boolean alreadyTriedOnHost(InetSocketAddress address) {
+        return triedHosts.contains(address);
+    }
+
+    public void triedOnHost(InetSocketAddress host) {
+        triedHosts.add(host);
     }
 }

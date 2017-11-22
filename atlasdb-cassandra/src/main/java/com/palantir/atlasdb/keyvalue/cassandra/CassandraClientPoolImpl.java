@@ -512,37 +512,25 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedHost, fn);
 
-        boolean shouldRetryOnDifferentHost = false;
-        Set<InetSocketAddress> triedHosts = Sets.newHashSet();
         while (true) {
             if (log.isTraceEnabled()) {
                 log.trace("Running function on host {}.",
-                        SafeArg.of("host", CassandraLogHelper.host(specifiedHost)));
+                        SafeArg.of("host", CassandraLogHelper.host(req.getPreferredHost())));
             }
-            CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
-
-            if (blacklist.contains(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
-                InetSocketAddress previousHostPool = hostPool == null ? specifiedHost : hostPool.getHost();
-                Optional<CassandraClientPoolingContainer> hostPoolCandidate
-                        = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
-                hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
-                log.warn("Randomly redirected a query intended for host {} to {}.",
-                        SafeArg.of("previousHost", CassandraLogHelper.host(previousHostPool)),
-                        SafeArg.of("randomHost", CassandraLogHelper.host(hostPool.getHost())));
-            }
+            CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
 
             try {
-                return runWithPooledResourceRecordingMetrics(hostPool, fn);
+                return runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
             } catch (Exception e) {
                 req.incrementNumberOfAttempts();
-                triedHosts.add(hostPool.getHost());
+                req.triedOnHost(hostPool.getHost());
                 this.<K>handleException(req, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
                     // And value between -500 and +500ms to backoff to better spread load on failover
                     int sleepDuration =
                             req.getNumberOfAttempts() * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
                     log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
-                            UnsafeArg.of("queryString", fn.toString()),
+                            UnsafeArg.of("queryString", req.getFunction().toString()),
                             SafeArg.of("sleepDuration", sleepDuration),
                             SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
 
@@ -552,15 +540,31 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                         throw new RuntimeException(i);
                     }
                     if (req.getNumberOfAttempts() >= MAX_TRIES_SAME_HOST) {
-                        shouldRetryOnDifferentHost = true;
+                        req.giveUpOnPreferredHost();
                     }
                 } else if (isFastFailoverException(e)) {
                     log.info("Retrying with fast failover a query intended for host {}.",
                             SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
-                    shouldRetryOnDifferentHost = true;
+                    req.giveUpOnPreferredHost();
                 }
             }
         }
+    }
+
+    private <V, K extends Exception> CassandraClientPoolingContainer getPreferredHostOrFallBack(
+            RetryableCassandraRequest<V, K> req) {
+        CassandraClientPoolingContainer hostPool = currentPools.get(req.getPreferredHost());
+
+        if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
+            InetSocketAddress previousHostPool = hostPool == null ? req.getPreferredHost() : hostPool.getHost();
+            Optional<CassandraClientPoolingContainer> hostPoolCandidate
+                    = getRandomGoodHostForPredicate(address -> !req.alreadyTriedOnHost(address));
+            hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
+            log.warn("Randomly redirected a query intended for host {} to {}.",
+                    SafeArg.of("previousHost", CassandraLogHelper.host(previousHostPool)),
+                    SafeArg.of("randomHost", CassandraLogHelper.host(hostPool.getHost())));
+        }
+        return hostPool;
     }
 
     @Override
