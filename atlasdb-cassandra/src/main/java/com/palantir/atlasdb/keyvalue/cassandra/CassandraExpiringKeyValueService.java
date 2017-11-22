@@ -58,8 +58,7 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
         CassandraClientPool clientPool =
                 CassandraClientPoolImpl.create(configManager.getConfig(), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         CassandraExpiringKeyValueService kvs =
-                new CassandraExpiringKeyValueService(configManager, clientPool, compactionManager, leaderConfig,
-                        AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                new CassandraExpiringKeyValueService(configManager, clientPool, compactionManager, leaderConfig);
         kvs.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return kvs;
     }
@@ -68,10 +67,9 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
             CassandraKeyValueServiceConfigManager configManager,
             CassandraClientPool clientPool,
             Optional<CassandraJmxCompactionManager> compactionManager,
-            Optional<LeaderConfig> leaderConfig,
-            boolean initializeAsync) {
+            Optional<LeaderConfig> leaderConfig) {
         super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, clientPool,
-                compactionManager, leaderConfig, initializeAsync);
+                compactionManager, leaderConfig);
     }
 
     @Override
