@@ -65,6 +65,12 @@ develop
            This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
 
+    *    - |fixed|
+         - Fixes the ability of deleting values from the Streaming Store when configured hash rowComponents.
+           Previously, due to a deserialization bug, we'd not issue delete to the correct rows.
+           If you think you're affected by this bug, please contact the AtlasDB team to migrate off of this behavior.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2736>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
