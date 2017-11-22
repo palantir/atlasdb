@@ -152,7 +152,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private final ScheduledExecutorService refreshDaemon;
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
-    private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private List<InetSocketAddress> cassandraHosts;
@@ -621,10 +620,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraClientPoolingContainer hostPool,
             Consumer<RequestMetrics> metricsConsumer) {
         metricsConsumer.accept(aggregateMetrics);
-        RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
-        if (requestMetricsForHost != null) {
-            metricsConsumer.accept(requestMetricsForHost);
-        }
     }
 
     @SuppressWarnings("unchecked")
