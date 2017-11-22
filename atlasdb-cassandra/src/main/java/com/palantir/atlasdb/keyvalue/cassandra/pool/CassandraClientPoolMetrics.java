@@ -39,7 +39,7 @@ public class CassandraClientPoolMetrics {
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
-                () -> blacklistSize);
+                () -> blacklistSize.get());
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
                 aggregateMetrics::getExceptionProportion);
