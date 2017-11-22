@@ -16,12 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +38,11 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.util.MathUtils;
 
 public class TokenRangeWritesLogger {
     private static final Logger log = LoggerFactory.getLogger(TokenRangeWritesLogger.class);
+    private static final double CONFIDENCE_FOR_LOGGING = 0.99;
 
     @VisibleForTesting
     static final long THRESHOLD_WRITES_PER_TABLE = 1_000_000L;
@@ -124,7 +127,9 @@ public class TokenRangeWritesLogger {
         }
 
         private boolean distributionNotUniform() {
-            return true;
+            List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
+                    .collect(Collectors.toList());
+            return MathUtils.confidenceDistributionIsNotUniform(values) > CONFIDENCE_FOR_LOGGING;
         }
 
         private void logNotEnoughWrites(long numWrites) {
