@@ -36,7 +36,8 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 
-public class QosCassandraWriteEteTest extends QosCassandraTestSetup {
+public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
+
     @Test
     public void shouldBeAbleToWriteSmallAmountOfBytesIfDoesNotExceedLimit() {
         writeNTodosOfSize(1, 100);
@@ -54,8 +55,6 @@ public class QosCassandraWriteEteTest extends QosCassandraTestSetup {
 
     @Test
     public void shouldBeAbleToWriteLargeAmountsExceedingTheLimitSecondTimeWithSoftLimiting() {
-        // Have one quick limit-exceeding write, as the rate-limiter
-        // will let anything pass through until the limit is exceeded.
         Stopwatch stopwatch = Stopwatch.createStarted();
         writeNTodosOfSize(1, 20_000);
         long firstWriteTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
@@ -81,8 +80,11 @@ public class QosCassandraWriteEteTest extends QosCassandraTestSetup {
 
     @Test
     public void writeRateLimitShouldBeRespectedByConcurrentWritingThreads() throws InterruptedException {
+        int oneTodoSizeInBytes = 167;
+
         int numThreads = 5;
         int numWritesPerThread = 10;
+
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         List<Future> futures = new ArrayList<>(numThreads);
 
@@ -98,7 +100,7 @@ public class QosCassandraWriteEteTest extends QosCassandraTestSetup {
         long timeTakenToWriteInSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start);
 
         assertThatAllWritesWereSuccessful(futures);
-        long actualWriteRate = (numThreads * numWritesPerThread * 167) / timeTakenToWriteInSeconds;
+        long actualWriteRate = (numThreads * numWritesPerThread * oneTodoSizeInBytes) / timeTakenToWriteInSeconds;
         assertThat(actualWriteRate).isLessThan(
                 writeBytesPerSecond + (writeBytesPerSecond / 10 /* to allow burst time */));
     }

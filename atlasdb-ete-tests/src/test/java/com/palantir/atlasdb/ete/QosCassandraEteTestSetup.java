@@ -22,18 +22,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -57,13 +54,13 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
-public class QosCassandraTestSetup {
+public class QosCassandraEteTestSetup {
     private static final Random random = new Random();
-    protected static SerializableTransactionManager serializableTransactionManager;
-    protected static final int readBytesPerSecond = 10_000;
-    protected static final int writeBytesPerSecond = 10_000;
+    static SerializableTransactionManager serializableTransactionManager;
+    static final int readBytesPerSecond = 10_000;
+    static final int writeBytesPerSecond = 10_000;
     private static final int CASSANDRA_PORT_NUMBER = 9160;
-    protected static final int MAX_SOFT_LIMITING_SLEEP_MILLIS = 2000;
+    static final int MAX_SOFT_LIMITING_SLEEP_MILLIS = 2000;
 
     @ClassRule
     public static DockerComposeRule docker = DockerComposeRule.builder()
@@ -73,28 +70,16 @@ public class QosCassandraTestSetup {
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 
-    @BeforeClass
-    public static void ensureTransactionManagerIsCreated() {
-        serializableTransactionManager = TransactionManagers.builder()
-                .config(getAtlasDbConfig())
-                .runtimeConfigSupplier(QosCassandraTestSetup::getAtlasDbRuntimeConfig)
-                .schemas(ImmutableList.of(TodoSchema.getSchema()))
-                .userAgent("qos-test")
-                .buildSerializable();
-
-        Awaitility.await()
-                .atMost(Duration.ONE_MINUTE)
-                .pollInterval(Duration.ONE_SECOND)
-                .until(serializableTransactionManager::isInitialized);
-    }
-
     @Before
     public void setup() {
         AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
+        ensureTransactionManagerIsCreated();
+    }
 
+    static void ensureTransactionManagerIsCreated() {
         serializableTransactionManager = TransactionManagers.builder()
                 .config(getAtlasDbConfig())
-                .runtimeConfigSupplier(QosCassandraTestSetup::getAtlasDbRuntimeConfig)
+                .runtimeConfigSupplier(QosCassandraEteTestSetup::getAtlasDbRuntimeConfig)
                 .schemas(ImmutableList.of(TodoSchema.getSchema()))
                 .userAgent("qos-test")
                 .buildSerializable();
@@ -105,7 +90,7 @@ public class QosCassandraTestSetup {
                 .until(serializableTransactionManager::isInitialized);
     }
 
-    protected static void writeNTodosOfSize(int numTodos, int size) {
+    static void writeNTodosOfSize(int numTodos, int size) {
         serializableTransactionManager.runTaskWithRetry((transaction) -> {
             Map<Cell, byte[]> write = new HashMap<>();
             for (int i = 0; i < numTodos; i++) {
@@ -116,7 +101,6 @@ public class QosCassandraTestSetup {
             transaction.put(TodoSchema.todoTable(), write);
             return null;
         });
-
     }
 
     private static AtlasDbConfig getAtlasDbConfig() {
@@ -158,13 +142,13 @@ public class QosCassandraTestSetup {
                 .build());
     }
 
-    @After
-    public void after() {
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
-    }
-
     private static String getTodoOfSize(int size) {
         // Note that the size of the cell for 1000 length text is actually 1050.
         return String.join("", Collections.nCopies(size, "a"));
+    }
+
+    @After
+    public void after() {
+        serializableTransactionManager.close();
     }
 }

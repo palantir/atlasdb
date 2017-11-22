@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -45,8 +44,7 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.common.base.BatchingVisitable;
 
-public class QosCassandraReadEteTest extends QosCassandraTestSetup {
-
+public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
     private static final int ONE_TODO_SIZE_IN_BYTES = 1050;
 
     @BeforeClass
@@ -74,7 +72,7 @@ public class QosCassandraReadEteTest extends QosCassandraTestSetup {
     @Test
     public void shouldBeAbleToReadLargeAmountsExceedingTheLimitSecondTimeWithSoftLimiting() {
         assertThat(readOneBatchOfSize(12)).hasSize(12);
-        // The second read might actually be faster as the transaction/metadata
+        // The second read might actually be faster as the transaction/metadata is cached
         assertThat(readOneBatchOfSize(12)).hasSize(12);
     }
 
@@ -146,10 +144,4 @@ public class QosCassandraReadEteTest extends QosCassandraTestSetup {
                 .map(ImmutableTodo::of)
                 .collect(Collectors.toList());
     }
-
-    @After
-    public void cleanup() {
-        serializableTransactionManager.close();
-    }
-
 }
