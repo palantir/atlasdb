@@ -166,7 +166,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, Runnable x, boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = create(config,
                 StartupChecks.RUN, initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
@@ -519,6 +519,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private void refreshTokenRanges() {
         try {
+            Set<Range<LightweightOppToken>> oldRanges = tokenMap.asMapOfRanges().keySet();
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
                     ImmutableRangeMap.builder();
 
@@ -548,6 +549,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 }
             }
             tokenMap = newTokenRing.build();
+            if (!Sets.symmetricDifference(oldRanges, getTokenRanges()).isEmpty()) {
+
+            }
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }

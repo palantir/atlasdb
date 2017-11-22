@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.TokenRange;
@@ -69,12 +70,12 @@ final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    static List<String> tokenRangesToWrites(Map<Range<LightweightOppToken>, Long> writes) {
-        return writes.entrySet().stream()
+    static List<String> tokenRangesToWrites(RangeMap<LightweightOppToken, AtomicLong> writes) {
+        return writes.asMapOfRanges().entrySet().stream()
                 .map(entry -> String.format("range from %s to %s has %d",
                         getLowerEndpoint(entry.getKey()),
                         getUpperEndpoint(entry.getKey()),
-                        entry.getValue()))
+                        entry.getValue().get()))
                 .collect(Collectors.toList());
     }
 

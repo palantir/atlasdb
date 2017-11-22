@@ -20,6 +20,7 @@ import java.util.Arrays;
 
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class LightweightOppToken implements Comparable<LightweightOppToken> {
 
@@ -27,6 +28,10 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
 
     public LightweightOppToken(byte[] bytes) {
         this.bytes = bytes;
+    }
+
+    public static LightweightOppToken of(Cell cell) {
+        return new LightweightOppToken(cell.getRowName());
     }
 
     @Override

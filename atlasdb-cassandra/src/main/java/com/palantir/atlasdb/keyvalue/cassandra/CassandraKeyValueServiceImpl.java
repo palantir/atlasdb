@@ -259,7 +259,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
+        this.tokenRangeWritesLogger = TokenRangeWritesLogger.createUnitialized();
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), () -> tokenRangeWritesLogger.update(), initializeAsync);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -305,7 +306,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
-        tokenRangeWritesLogger = TokenRangeWritesLogger.createFromClientPool(clientPool);
     }
 
     private LockLeader whoIsTheLockCreator() {
