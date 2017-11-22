@@ -259,7 +259,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), tokenRangeWritesLogger, initializeAsync);
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), tokenRangeWritesLogger,
+                initializeAsync);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();

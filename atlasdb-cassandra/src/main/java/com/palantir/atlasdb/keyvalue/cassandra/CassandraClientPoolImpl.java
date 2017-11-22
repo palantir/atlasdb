@@ -178,7 +178,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
             TokenRangeWritesLogger tokenRangeWritesLogger, StartupChecks startupChecks, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, tokenRangeWritesLogger, startupChecks);
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, tokenRangeWritesLogger,
+                startupChecks);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
@@ -521,7 +522,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private void refreshTokenRanges() {
         try {
-            Set<Range<LightweightOppToken>> oldRanges = tokenMap.asMapOfRanges().keySet();
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
                     ImmutableRangeMap.builder();
 
@@ -551,7 +551,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 }
             }
             tokenMap = newTokenRing.build();
-            tokenRangeWritesLogger.update(tokenMap.asMapOfRanges().keySet());
+            tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }

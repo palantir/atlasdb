@@ -42,9 +42,10 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
 public class TokenRangeWritesLoggerTest {
     private TestLogger infoLogger;
-
     private TokenRangeWritesLogger writesLogger;
 
+    private static final long TIME_UNTIL_LOG_MILLIS = TokenRangeWritesLogger.TIME_UNTIL_LOG_MILLIS;
+    private static final long THRESHOLD_WRITES_PER_TABLE = TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE;
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("test.test");
     private static final TableReference TABLE_REFERENCE2 = TableReference.createFromFullyQualifiedName("test.test2");
 
@@ -62,7 +63,7 @@ public class TokenRangeWritesLoggerTest {
     @Before
     public void setup() {
         writesLogger = TokenRangeWritesLogger.createUninitialized();
-        writesLogger.update(TOKEN_RANGES);
+        writesLogger.updateTokenRanges(TOKEN_RANGES);
         infoLogger = TestLoggerFactory.getTestLogger(TokenRangeWritesLogger.class);
         infoLogger.setEnabledLevelsForAllThreads(Level.INFO, Level.WARN);
     }
@@ -116,41 +117,40 @@ public class TokenRangeWritesLoggerTest {
     @Test
     public void markResetsNumberOfWritesAndLogsNotUniform() {
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE, 1, 0, 4),
+        writesLogger.markWritesForTable(writesPerRange(THRESHOLD_WRITES_PER_TABLE, 1, 0, 4),
                 TABLE_REFERENCE);
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
 
-        assertWritesPerRangeForTable(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE, 3, 0, 4, TABLE_REFERENCE);
+        assertWritesPerRangeForTable(THRESHOLD_WRITES_PER_TABLE, 3, 0, 4, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
 
-        assertLoggedNotUniform(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE, 2, 0, 4, TABLE_REFERENCE);
+        assertLoggedNotUniform(THRESHOLD_WRITES_PER_TABLE, 2, 0, 4, TABLE_REFERENCE);
     }
 
     @Test
     public void markResetsNumberOfWritesAndLogsUniform() {
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE,
-                TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE,
-                TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE,
-                TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE),
+        writesLogger.markWritesForTable(writesPerRange(THRESHOLD_WRITES_PER_TABLE,
+                THRESHOLD_WRITES_PER_TABLE,
+                THRESHOLD_WRITES_PER_TABLE,
+                THRESHOLD_WRITES_PER_TABLE),
                 TABLE_REFERENCE);
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
 
-        assertWritesPerRangeForTable(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE,
-                TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE + 2,
-                TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE,
-                TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE,
+        assertWritesPerRangeForTable(THRESHOLD_WRITES_PER_TABLE,
+                THRESHOLD_WRITES_PER_TABLE + 2,
+                THRESHOLD_WRITES_PER_TABLE,
+                THRESHOLD_WRITES_PER_TABLE,
                 TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
 
-        assertLoggedMaybeUniform(4 * TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE + 1, true);
+        assertLoggedMaybeUniform(4 * THRESHOLD_WRITES_PER_TABLE + 1, true);
     }
 
     @Test
     public void markLogsInsufficientWritesAfterDayWithNotEnoughWritesAndDoesNotResetCount() {
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.statsPerTable.get(TABLE_REFERENCE).lastReportedTime =
-                System.currentTimeMillis() - TokenRangeWritesLogger.TIME_UNTIL_LOG_MILLIS - 5;
+        writesLogger.setLastLoggedTime(TABLE_REFERENCE, System.currentTimeMillis() - TIME_UNTIL_LOG_MILLIS - 5);
         writesLogger.markWritesForTable(writesPerRange(100, 0, 0, 5), TABLE_REFERENCE);
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
 
@@ -163,18 +163,17 @@ public class TokenRangeWritesLoggerTest {
     @Test
     public void markLogsNotUniformAndResetsTimeIfADayHasPassed() {
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.statsPerTable.get(TABLE_REFERENCE).lastReportedTime =
-                System.currentTimeMillis() - TokenRangeWritesLogger.TIME_UNTIL_LOG_MILLIS - 5;
-        writesLogger.markWritesForTable(writesPerRange(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE, 1, 0, 4),
+        writesLogger.setLastLoggedTime(TABLE_REFERENCE, System.currentTimeMillis() - TIME_UNTIL_LOG_MILLIS - 5);
+        writesLogger.markWritesForTable(writesPerRange(THRESHOLD_WRITES_PER_TABLE, 1, 0, 4),
                 TABLE_REFERENCE);
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
 
-        assertWritesPerRangeForTable(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE, 3, 0, 4, TABLE_REFERENCE);
+        assertWritesPerRangeForTable(THRESHOLD_WRITES_PER_TABLE, 3, 0, 4, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
-        Assert.assertThat(writesLogger.statsPerTable.get(TABLE_REFERENCE).lastReportedTime,
+        Assert.assertThat(writesLogger.getLastLoggedTime(TABLE_REFERENCE),
                 Matchers.greaterThan(System.currentTimeMillis() - 1000L));
 
-        assertLoggedNotUniform(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE, 2, 0, 4, TABLE_REFERENCE);
+        assertLoggedNotUniform(THRESHOLD_WRITES_PER_TABLE, 2, 0, 4, TABLE_REFERENCE);
     }
 
     @Test
@@ -182,23 +181,32 @@ public class TokenRangeWritesLoggerTest {
         writesLogger.markWritesForTable(writesPerRange(1, 2, 0, 4), TABLE_REFERENCE);
         writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE2);
         writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE, 2, 2, 2),
-                TABLE_REFERENCE2);
+        writesLogger.markWritesForTable(writesPerRange(THRESHOLD_WRITES_PER_TABLE, 2, 2, 2), TABLE_REFERENCE2);
         writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
         writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE2);
 
         assertWritesPerRangeForTable(5, 6, 4, 8, TABLE_REFERENCE);
-        assertWritesPerRangeForTable(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE + 4, 6, 6, 6, TABLE_REFERENCE2);
+        assertWritesPerRangeForTable(THRESHOLD_WRITES_PER_TABLE + 4, 6, 6, 6, TABLE_REFERENCE2);
         assertTotalNumberOfWritesForTable(23, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(8, TABLE_REFERENCE2);
 
-        assertLoggedNotUniform(TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE + 2, 4, 4, 4, TABLE_REFERENCE2);
+        assertLoggedNotUniform(THRESHOLD_WRITES_PER_TABLE + 2, 4, 4, 4, TABLE_REFERENCE2);
     }
 
     @Test
-    public void testUpdateResetsCounts() {
+    public void testUpdateDoesNotResetCountsWhenSameRanges() {
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.update(ImmutableSet.of(Range.all()));
+        writesLogger.updateTokenRanges(ImmutableSet.of(RANGE_2, RANGE_1, RANGE_4, RANGE_3));
+        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
+
+        assertWritesPerRangeForTable(2, 3, 2, 2, TABLE_REFERENCE);
+        assertTotalNumberOfWritesForTable(9, TABLE_REFERENCE);
+    }
+
+    @Test
+    public void testUpdateResetsCountsWhenNewRanges() {
+        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        writesLogger.updateTokenRanges(ImmutableSet.of(Range.all()));
         writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
 
         assertWritesForRangeAndTable(8, Range.all(), TABLE_REFERENCE);
@@ -230,23 +238,23 @@ public class TokenRangeWritesLoggerTest {
     }
 
     private void assertWritesForRangeAndTable(long number, Range<LightweightOppToken> range, TableReference tableRef) {
-        Assert.assertThat(writesLogger.statsPerTable.get(tableRef).writesPerRange.asMapOfRanges().get(range).get(),
-                Matchers.equalTo(number));
+        Assert.assertThat(writesLogger.getNumberOfWritesInRange(tableRef, range), Matchers.equalTo(number));
     }
 
     private void assertTotalNumberOfWritesForTable(long number, TableReference tableRef) {
-        Assert.assertThat(writesLogger.statsPerTable.get(tableRef).totalWrites.get(), Matchers.equalTo(number));
+        Assert.assertThat(writesLogger.getNumberOfWritesTotal(tableRef), Matchers.equalTo(number));
     }
 
+    @SuppressWarnings("unchecked")
     private void assertLoggedNotUniform(long fst, long snd, long trd, long fth, TableReference tableRef) {
         LoggingEvent loggingEvent = getLoggingEventAndAssertLoggedAtLevel(Level.WARN);
         Assert.assertThat(loggingEvent.getArguments().get(0), Matchers.equalTo(LoggingArgs.tableRef(tableRef)));
         SafeArg<List<String>> argument = (SafeArg<List<String>>) loggingEvent.getArguments().get(1);
         Assert.assertThat(argument.getValue(), Matchers.containsInAnyOrder(
-                "range from (no lower bound) to 626364 has " + fst,
-                "range from 626364 to 676869 has " + snd,
-                "range from 676869 to 6F7071 has " + trd,
-                "range from 6F7071 to (no upper bound) has " + fth));
+                "range from (no lower bound) to 626364 has " + fst + " writes",
+                "range from 626364 to 676869 has " + snd + " writes",
+                "range from 676869 to 6F7071 has " + trd + " writes",
+                "range from 6F7071 to (no upper bound) has " + fth + " writes"));
     }
 
     private void assertLoggedMaybeUniform(long numWrites, boolean enoughWrites) {
@@ -256,11 +264,11 @@ public class TokenRangeWritesLoggerTest {
         Assert.assertThat(loggingEvent.getArguments().get(1), Matchers.equalTo(LoggingArgs.tableRef(TABLE_REFERENCE)));
         if (!enoughWrites) {
             Assert.assertThat(loggingEvent.getArguments().get(2), Matchers.equalTo(
-                    SafeArg.of("thresholdOfWrites", TokenRangeWritesLogger.THRESHOLD_WRITES_PER_TABLE)));
+                    SafeArg.of("thresholdOfWrites", THRESHOLD_WRITES_PER_TABLE)));
         }
     }
 
-    LoggingEvent getLoggingEventAndAssertLoggedAtLevel(Level level) {
+    private LoggingEvent getLoggingEventAndAssertLoggedAtLevel(Level level) {
         Assert.assertThat(infoLogger.getAllLoggingEvents().size(), Matchers.equalTo(1));
         LoggingEvent loggingEvent = infoLogger.getAllLoggingEvents().asList().get(0);
         Assert.assertThat(loggingEvent.getLevel(), Matchers.equalTo(level));

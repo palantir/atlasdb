@@ -40,27 +40,27 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.MathUtils;
 
-public class TokenRangeWritesLogger {
+public final class TokenRangeWritesLogger {
     private static final Logger log = LoggerFactory.getLogger(TokenRangeWritesLogger.class);
-    private static final double CONFIDENCE_FOR_LOGGING = 0.99;
 
     @VisibleForTesting
     static final long THRESHOLD_WRITES_PER_TABLE = 1_000_000L;
+    @VisibleForTesting
     static final long TIME_UNTIL_LOG_MILLIS = 24 * 60 * 60 * 1000L;
+    private static final double CONFIDENCE_FOR_LOGGING = 0.99;
 
-    ConcurrentMap<TableReference, TokenRangeWrites> statsPerTable = new ConcurrentHashMap<>();
-    volatile Set<Range<LightweightOppToken>> ranges;
+    private final ConcurrentMap<TableReference, TokenRangeWrites> statsPerTable = new ConcurrentHashMap<>();
+    private volatile Set<Range<LightweightOppToken>> ranges = ImmutableSet.of(Range.all());
 
-    public TokenRangeWritesLogger(Set<Range<LightweightOppToken>> ranges) {
-        Preconditions.checkArgument(!ranges.isEmpty(), "Set of ranges must not be empty!");
-        this.ranges = ranges;
+    private TokenRangeWritesLogger() {
+        // use factory method
     }
 
     public static TokenRangeWritesLogger createUninitialized() {
-        return new TokenRangeWritesLogger(ImmutableSet.of(Range.all()));
+        return new TokenRangeWritesLogger();
     }
 
-    public void update(Set<Range<LightweightOppToken>> newRanges) {
+    public void updateTokenRanges(Set<Range<LightweightOppToken>> newRanges) {
         Preconditions.checkArgument(!newRanges.isEmpty(), "Set of ranges must not be empty!");
         if (!Sets.symmetricDifference(ranges, newRanges).isEmpty()) {
             ranges = newRanges;
@@ -68,27 +68,27 @@ public class TokenRangeWritesLogger {
         }
     }
 
-    public <V> void  markWritesForTable(Set<Map.Entry<Cell, V>> entries, TableReference tableRef) {
+    <V> void  markWritesForTable(Set<Map.Entry<Cell, V>> entries, TableReference tableRef) {
         statsPerTable.putIfAbsent(tableRef, new TokenRangeWrites(tableRef, ranges));
         TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
         entries.forEach(entry -> tokenRangeWrites.markWrite(entry.getKey()));
         tokenRangeWrites.maybeLog();
     }
 
-    static class TokenRangeWrites {
-        final TableReference tableRef;
-        final RangeMap<LightweightOppToken, AtomicLong> writesPerRange;
-        final AtomicLong totalWrites = new AtomicLong(0);
-        long lastReportedTime = System.currentTimeMillis();
+    private static final class TokenRangeWrites {
+        private final TableReference tableRef;
+        private final RangeMap<LightweightOppToken, AtomicLong> writesPerRange;
+        private final AtomicLong totalWrites = new AtomicLong(0);
+        private long lastLoggedTime = System.currentTimeMillis();
 
-        TokenRangeWrites(TableReference tableRef, Set<Range<LightweightOppToken>> ranges) {
+        private TokenRangeWrites(TableReference tableRef, Set<Range<LightweightOppToken>> ranges) {
             this.tableRef = tableRef;
             ImmutableRangeMap.Builder<LightweightOppToken, AtomicLong> builder = ImmutableRangeMap.builder();
             ranges.forEach(range -> builder.put(range, new AtomicLong(0)));
             this.writesPerRange = builder.build();
         }
 
-        public void markWrite(Cell cell) {
+        private void markWrite(Cell cell) {
             writesPerRange.get(LightweightOppToken.of(cell)).incrementAndGet();
             totalWrites.incrementAndGet();
         }
@@ -104,7 +104,7 @@ public class TokenRangeWritesLogger {
                 long numWrites = totalWrites.get();
                 if (!exceedsThresholdOfWrites(numWrites)) {
                     logNotEnoughWrites(numWrites);
-                    lastReportedTime = System.currentTimeMillis();
+                    lastLoggedTime = System.currentTimeMillis();
                     return;
                 }
                 if (distributionNotUniform()) {
@@ -113,13 +113,13 @@ public class TokenRangeWritesLogger {
                     logUniform(numWrites);
                 }
                 totalWrites.set(0);
-                lastReportedTime = System.currentTimeMillis();
+                lastLoggedTime = System.currentTimeMillis();
             }
         }
 
         private boolean shouldLog() {
             return exceedsThresholdOfWrites(totalWrites.get())
-                    || (System.currentTimeMillis() - lastReportedTime) > TIME_UNTIL_LOG_MILLIS;
+                    || (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
         }
 
         private boolean exceedsThresholdOfWrites(long numWrites) {
@@ -153,5 +153,31 @@ public class TokenRangeWritesLogger {
                     SafeArg.of("numberOfWrites", numWrites),
                     LoggingArgs.tableRef(tableRef));
         }
+
+    }
+
+    @VisibleForTesting
+    long getLastLoggedTime(TableReference tableRef) {
+        return statsPerTable.get(tableRef).lastLoggedTime;
+    }
+
+    @VisibleForTesting
+    void setLastLoggedTime(TableReference tableRef, long newTime) {
+        statsPerTable.get(tableRef).lastLoggedTime = newTime;
+    }
+
+    @VisibleForTesting
+    long getNumberOfWritesFromToken(TableReference tableRef, LightweightOppToken token) {
+        return statsPerTable.get(tableRef).writesPerRange.get(token).get();
+    }
+
+    @VisibleForTesting
+    long getNumberOfWritesInRange(TableReference tableRef, Range<LightweightOppToken> range) {
+        return statsPerTable.get(tableRef).writesPerRange.asMapOfRanges().get(range).get();
+    }
+
+    @VisibleForTesting
+    long getNumberOfWritesTotal(TableReference tableRef) {
+        return statsPerTable.get(tableRef).totalWrites.get();
     }
 }

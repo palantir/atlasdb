@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -59,9 +58,7 @@ final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    static List<String> tokenMap(
-            RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
-
+    static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format("range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
@@ -72,7 +69,7 @@ final class CassandraLogHelper {
 
     static List<String> tokenRangesToWrites(RangeMap<LightweightOppToken, AtomicLong> writes) {
         return writes.asMapOfRanges().entrySet().stream()
-                .map(entry -> String.format("range from %s to %s has %d",
+                .map(entry -> String.format("range from %s to %s has %d writes",
                         getLowerEndpoint(entry.getKey()),
                         getUpperEndpoint(entry.getKey()),
                         entry.getValue().get()))
