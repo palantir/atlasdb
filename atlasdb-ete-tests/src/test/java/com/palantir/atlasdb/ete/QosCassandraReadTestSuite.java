@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -35,12 +36,15 @@ import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -64,6 +68,7 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -76,6 +81,9 @@ public class QosCassandraReadTestSuite extends EteSetup {
     private static final Random random = new Random();
     private static final int CASSANDRA_PORT_NUMBER = 9160;
     private static SerializableTransactionManager serializableTransactionManager;
+    private static final int readBytesPerSecond = 10_000;
+    private static final int writeBytesPerSecond = 10_000;
+    private static final int ONE_TODO_SIZE_IN_BYTES = 1050;
 
     @ClassRule
     public static DockerComposeRule docker = DockerComposeRule.builder()
@@ -84,23 +92,6 @@ public class QosCassandraReadTestSuite extends EteSetup {
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(QosCassandraReadTestSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
-
-    // Changing the read and write limits will force the rate limiter to be recreated for each test.
-    private static Supplier<Integer> readBytesPerSecond = new Supplier<Integer>() {
-        int initial = 5_000;
-        @Override
-        public Integer get() {
-            return initial++;
-        }
-    };
-
-    private static Supplier<Integer> writeBytesPerSecond = new Supplier<Integer>() {
-        int initial = 5_000;
-        @Override
-        public Integer get() {
-            return initial++;
-        }
-    };
 
     @BeforeClass
     public static void waitUntilTransactionManagersIsUp() {
@@ -125,6 +116,24 @@ public class QosCassandraReadTestSuite extends EteSetup {
                     transaction.put(TodoSchema.todoTable(), write);
                     return null;
                 }));
+        serializableTransactionManager.close();
+    }
+
+    @Before
+    public void setup() {
+        serializableTransactionManager = TransactionManagers.builder()
+                .config(getAtlasDbConfig())
+                .runtimeConfigSupplier(QosCassandraReadTestSuite::getAtlasDbRuntimeConfig)
+                .schemas(ImmutableList.of(TodoSchema.getSchema()))
+                .userAgent("qos-test")
+                .buildSerializable();
+
+        Awaitility.await()
+                .atMost(Duration.ONE_MINUTE)
+                .pollInterval(Duration.ONE_SECOND)
+                .until(serializableTransactionManager::isInitialized);
+
+        AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
     }
 
     @Test
@@ -139,20 +148,63 @@ public class QosCassandraReadTestSuite extends EteSetup {
     }
 
     @Test
-    public void shouldBeAbleToReadSmallAmountOfBytesConcurrentlyIfDoesNotExceedLimit() throws InterruptedException {
-        ExecutorService executorService = Executors.newFixedThreadPool(50);
-        List<Future<List<Todo>>> futures = new ArrayList<>();
+    public void shouldBeAbleToReadLargeAmountsExceedingTheLimitFirstTime() {
+        assertThat(readOneBatchOfSize(12)).hasSize(12);
+    }
 
-        IntStream.range(0, 50)
-                .forEach(i -> futures.add(executorService.submit(() -> readOneBatchOfSize(1))));
+    @Test
+    public void shouldBeAbleToReadLargeAmountsExceedingTheLimitSecondTimeWithSoftLimiting() {
+        assertThat(readOneBatchOfSize(12)).hasSize(12);
+        // The second read might actually be faster as the transaction/metadata
+        assertThat(readOneBatchOfSize(12)).hasSize(12);
+    }
 
+    @Test
+    public void shouldNotBeAbleToReadLargeAmountsIfSoftLimitSleepIsMoreThanConfiguredBackoffTime() {
+        Stopwatch started = Stopwatch.createStarted();
+        assertThat(readOneBatchOfSize(12)).hasSize(12);
+        long firstReadTime = started.elapsed(TimeUnit.MILLISECONDS);
+        System.out.println(firstReadTime);
+
+        //This one will throw because the read to the transaction table is rate limited.
+        assertThatThrownBy(() -> readOneBatchOfSize(200))
+                .isInstanceOf(RateLimitExceededException.class)
+                .hasMessage("Rate limited. Available capacity has been exhausted.");
+    }
+
+
+    @Test
+    public void readRateLimitShouldBeRespectedByConcurrentReadingThreads() throws InterruptedException {
+        int numThreads = 5;
+        int numReadsPerThread = 10;
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        List<Future<List<Todo>>> futures = new ArrayList<>(numReadsPerThread);
+
+        long start = System.nanoTime();
+        IntStream.range(0, numReadsPerThread)
+                .forEach(i ->
+                        futures.add(executorService.submit(() -> {
+                            List<Todo> results = new ArrayList<>(numReadsPerThread);
+                            IntStream.range(0, numReadsPerThread)
+                                    .forEach(j -> results.addAll(readOneBatchOfSize(1)));
+                            return results;
+                        }))
+                );
         executorService.shutdown();
-        executorService.awaitTermination(10L, TimeUnit.SECONDS);
+        Preconditions.checkState(executorService.awaitTermination(30L, TimeUnit.SECONDS),
+                "Read tasks did not finish in 30s");
+        long timeTakenToReadInSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start);
 
+        assertThatAllReadsWereSuccessful(futures, numReadsPerThread);
+        long actualReadRate = (numThreads * numReadsPerThread * ONE_TODO_SIZE_IN_BYTES) / timeTakenToReadInSeconds;
+        assertThat(actualReadRate).isLessThan(readBytesPerSecond + (readBytesPerSecond / 10 /* to allow burst time */));
+    }
+
+    private void assertThatAllReadsWereSuccessful(List<Future<List<Todo>>> futures, int numReadsPerThread) {
         AtomicInteger exceptionCounter = new AtomicInteger(0);
         futures.forEach(future -> {
             try {
-                assertThat(future.get()).hasSize(1);
+                assertThat(future.get()).hasSize(numReadsPerThread);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RateLimitExceededException) {
                     exceptionCounter.getAndIncrement();
@@ -163,24 +215,6 @@ public class QosCassandraReadTestSuite extends EteSetup {
         });
         assertThat(exceptionCounter.get()).isEqualTo(0);
     }
-
-    @Test
-    public void shouldBeAbleToReadLargeAmountsExceedingTheLimitFirstTime() {
-        assertThat(readOneBatchOfSize(200)).hasSize(200);
-    }
-
-    @Test
-    public void shouldBeAbleToReadLargeAmountsExceedingTheLimitSecondTime() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        assertThat(readOneBatchOfSize(200)).hasSize(200);
-        long firstReadTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-
-        stopwatch = Stopwatch.createStarted();
-        assertThat(readOneBatchOfSize(200)).hasSize(200);
-        long secondReadTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-
-    }
-
 
     private List<Todo> readOneBatchOfSize(int batchSize) {
         ImmutableList<RowResult<byte[]>> results = serializableTransactionManager.runTaskWithRetry((transaction) -> {
@@ -234,15 +268,21 @@ public class QosCassandraReadTestSuite extends EteSetup {
                 .sweep(ImmutableSweepConfig.builder().enabled(false).build())
                 .qos(ImmutableQosClientConfig.builder()
                         .limits(ImmutableQosLimitsConfig.builder()
-                                .readBytesPerSecond(readBytesPerSecond.get())
-                                .writeBytesPerSecond(writeBytesPerSecond.get())
+                                .readBytesPerSecond(readBytesPerSecond)
+                                .writeBytesPerSecond(writeBytesPerSecond)
                                 .build())
-                        .maxBackoffSleepTime(HumanReadableDuration.seconds(10))
+                        .maxBackoffSleepTime(HumanReadableDuration.seconds(2))
                         .build())
                 .build());
     }
 
+    @After
+    public void cleanup() {
+        serializableTransactionManager.close();
+    }
+
     private static String getTodoOfSize(int size) {
+        // Note that the size of the cell for 1000 length text is actually 11.
         return String.join("", Collections.nCopies(size, "a"));
     }
 }
