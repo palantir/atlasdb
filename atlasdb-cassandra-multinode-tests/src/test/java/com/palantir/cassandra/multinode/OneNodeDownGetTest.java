@@ -112,7 +112,7 @@ public class OneNodeDownGetTest {
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
         assertThatThrownBy(() -> it.next())
                 .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessage("This operation requires all Cassandra nodes to be up and available.");
+                .hasMessageContaining("requires consistency ALL");
     }
 
     @Test
