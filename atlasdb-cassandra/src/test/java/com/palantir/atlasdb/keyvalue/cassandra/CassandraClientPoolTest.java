@@ -18,9 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -32,10 +30,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.TimedOutException;
-import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -199,7 +193,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldRetryOnSameNodeToFailureAndThenRedirect() {
-        int numHosts = CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST + 1;
+        int numHosts = 4;
         List<InetSocketAddress> hostList = Lists.newArrayList();
         for (int i = 0; i < numHosts; i++) {
             hostList.add(new InetSocketAddress(i));
@@ -209,7 +203,7 @@ public class CassandraClientPoolTest {
                 ImmutableSet.copyOf(hostList), new SocketTimeoutException());
         runNoopOnHostWithRetryWithException(hostList.get(0), cassandraClientPool);
 
-        verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, CassandraClientPoolImpl.MAX_TRIES_SAME_HOST);
+        verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, cassandraClientPool.getMaxRetriesPerHost());
         for (int i = 1; i < numHosts; i++) {
             verifyNumberOfAttemptsOnHost(hostList.get(i), cassandraClientPool, 1);
         }
@@ -221,7 +215,7 @@ public class CassandraClientPoolTest {
                 ImmutableSet.of(HOST_1), new SocketTimeoutException());
 
         runNoopOnHostWithRetryWithException(HOST_1, cassandraClientPool);
-        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, CassandraClientPoolImpl.MAX_TRIES_TOTAL);
+        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, cassandraClientPool.getMaxTriesTotal());
     }
 
     @Test
@@ -269,39 +263,6 @@ public class CassandraClientPoolTest {
         Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
                 .runWithPooledResource(
                         Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
-    }
-
-    @Test
-    public void testIsConnectionException() {
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TimedOutException()));
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isConnectionException(new TTransportException(
-                new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TimedOutException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException(new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableWithBackoffException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new NoSuchElementException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new UnavailableException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new SocketTimeoutException())));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new UnavailableException())));
-    }
-
-    @Test
-    public void testIsFastFailoverException() {
-        assertFalse(CassandraClientPoolImpl.isRetriableWithBackoffException(new InvalidRequestException()));
-        assertFalse(CassandraClientPoolImpl.isRetriableException(new InvalidRequestException()));
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new InvalidRequestException()));
-        assertTrue(CassandraClientPoolImpl.isFastFailoverException(new InvalidRequestException()));
     }
 
     private CassandraClientPoolImpl clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {

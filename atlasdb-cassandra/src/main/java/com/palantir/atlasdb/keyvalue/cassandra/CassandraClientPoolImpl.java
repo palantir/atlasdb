@@ -215,12 +215,12 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
     @VisibleForTesting
-    private int getMaxRetriesPerHost() {
+    int getMaxRetriesPerHost() {
         return 3;
     }
 
     @VisibleForTesting
-    private int getMaxTriesTotal() {
+    int getMaxTriesTotal() {
         return 6;
     }
 
