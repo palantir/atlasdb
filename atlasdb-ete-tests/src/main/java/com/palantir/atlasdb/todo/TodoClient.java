@@ -54,7 +54,7 @@ public class TodoClient {
                     TodoSchema.todoTable(), RangeRequest.all());
             ImmutableList.Builder<RowResult<byte[]>> rowResults = ImmutableList.builder();
 
-            rowResultBatchingVisitable.batchAccept(10, items -> {
+            rowResultBatchingVisitable.batchAccept(1000, items -> {
                 rowResults.addAll(items);
                 return true;
             });
