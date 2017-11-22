@@ -115,9 +115,9 @@ public class QosCassandraReadTestSuite {
         serializableTransactionManager.close();
     }
 
-    private static void writeNTodosOfSize(Transaction transaction, int n, int size) {
+    public static void writeNTodosOfSize(Transaction transaction, int numTodos, int size) {
         Map<Cell, byte[]> write = new HashMap<>();
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < numTodos; i++) {
             Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
                     TodoSchema.todoTextColumn());
             write.put(thisCell, ValueType.STRING.convertFromJava(getTodoOfSize(size)));
@@ -281,7 +281,7 @@ public class QosCassandraReadTestSuite {
     }
 
     private static String getTodoOfSize(int size) {
-        // Note that the size of the cell for 1000 length text is actually 11.
+        // Note that the size of the cell for 1000 length text is actually 1050.
         return String.join("", Collections.nCopies(size, "a"));
     }
 }
