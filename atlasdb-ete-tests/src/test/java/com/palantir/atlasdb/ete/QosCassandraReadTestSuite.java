@@ -235,7 +235,7 @@ public class QosCassandraReadTestSuite {
                 .collect(Collectors.toList());
     }
 
-    public static AtlasDbConfig getAtlasDbConfig() {
+    private static AtlasDbConfig getAtlasDbConfig() {
         DockerPort cassandraPort = docker.containers()
                 .container("cassandra")
                 .port(CASSANDRA_PORT_NUMBER);
@@ -261,7 +261,7 @@ public class QosCassandraReadTestSuite {
                 .build();
     }
 
-    public static Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
+    private static Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
         return Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
                 .sweep(ImmutableSweepConfig.builder().enabled(false).build())
                 .qos(ImmutableQosClientConfig.builder()
