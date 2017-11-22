@@ -169,6 +169,12 @@
                 "com.palantir.atlasdb:leader-election-api"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
@@ -346,6 +352,12 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.slf4j:slf4j-api": {
