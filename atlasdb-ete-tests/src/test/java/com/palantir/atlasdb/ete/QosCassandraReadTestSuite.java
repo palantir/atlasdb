@@ -108,9 +108,9 @@ public class QosCassandraReadTestSuite {
                 .until(serializableTransactionManager::isInitialized);
 
         serializableTransactionManager.runTaskWithRetry((transaction) -> {
-                    writeNTodosOfSize(transaction, 200, 1_000);
-                    return null;
-                });
+            writeNTodosOfSize(transaction, 200, 1_000);
+            return null;
+        });
         serializableTransactionManager.close();
     }
 
@@ -179,15 +179,13 @@ public class QosCassandraReadTestSuite {
         List<Future<List<Todo>>> futures = new ArrayList<>(numThreads);
 
         long start = System.nanoTime();
-        IntStream.range(0, numThreads)
-                .forEach(i ->
-                        futures.add(executorService.submit(() -> {
-                            List<Todo> results = new ArrayList<>(numReadsPerThread);
-                            IntStream.range(0, numReadsPerThread)
-                                    .forEach(j -> results.addAll(readOneBatchOfSize(1)));
-                            return results;
-                        }))
-                );
+        IntStream.range(0, numThreads).forEach(i ->
+                futures.add(executorService.submit(() -> {
+                    List<Todo> results = new ArrayList<>(numReadsPerThread);
+                    IntStream.range(0, numReadsPerThread)
+                            .forEach(j -> results.addAll(readOneBatchOfSize(1)));
+                    return results;
+                })));
         executorService.shutdown();
         Preconditions.checkState(executorService.awaitTermination(30L, TimeUnit.SECONDS),
                 "Read tasks did not finish in 30s");
