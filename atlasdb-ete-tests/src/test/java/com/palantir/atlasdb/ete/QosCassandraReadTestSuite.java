@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,10 +45,8 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -67,6 +66,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoSchema;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.base.BatchingVisitable;
@@ -107,16 +107,22 @@ public class QosCassandraReadTestSuite {
                 .pollInterval(Duration.ONE_SECOND)
                 .until(serializableTransactionManager::isInitialized);
 
-        IntStream.range(0, 200).forEach(i -> serializableTransactionManager
+        serializableTransactionManager
                 .runTaskWithRetry((transaction) -> {
-                    Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
-                            TodoSchema.todoTextColumn());
-                    Map<Cell, byte[]> write = ImmutableMap.of(thisCell,
-                            ValueType.STRING.convertFromJava(getTodoOfSize(1_000)));
-                    transaction.put(TodoSchema.todoTable(), write);
+                    writeNTodosOfSize(transaction, 200, 1_000);
                     return null;
-                }));
+                });
         serializableTransactionManager.close();
+    }
+
+    private static void writeNTodosOfSize(Transaction transaction, int n, int size) {
+        Map<Cell, byte[]> write = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            Cell thisCell = Cell.create(ValueType.FIXED_LONG.convertFromJava(random.nextLong()),
+                    TodoSchema.todoTextColumn());
+            write.put(thisCell, ValueType.STRING.convertFromJava(getTodoOfSize(size)));
+        }
+        transaction.put(TodoSchema.todoTable(), write);
     }
 
     @Before
@@ -160,18 +166,11 @@ public class QosCassandraReadTestSuite {
     }
 
     @Test
-    public void shouldNotBeAbleToReadLargeAmountsIfSoftLimitSleepIsMoreThanConfiguredBackoffTime() {
-        Stopwatch started = Stopwatch.createStarted();
-        assertThat(readOneBatchOfSize(12)).hasSize(12);
-        long firstReadTime = started.elapsed(TimeUnit.MILLISECONDS);
-        System.out.println(firstReadTime);
-
-        //This one will throw because the read to the transaction table is rate limited.
+    public void shouldNotBeAbleToReadLargeAmountsIfSoftLimitSleepWillBeMoreThanConfiguredBackoffTime() {
         assertThatThrownBy(() -> readOneBatchOfSize(200))
                 .isInstanceOf(RateLimitExceededException.class)
                 .hasMessage("Rate limited. Available capacity has been exhausted.");
     }
-
 
     @Test
     public void readRateLimitShouldBeRespectedByConcurrentReadingThreads() throws InterruptedException {
