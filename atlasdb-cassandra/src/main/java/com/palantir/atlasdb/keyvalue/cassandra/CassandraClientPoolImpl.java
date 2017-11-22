@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -27,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -39,15 +36,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
-import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -67,8 +59,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -126,10 +116,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
-            + " Error writing to Cassandra socket."
-            + " Likely cause: Exceeded maximum thrift frame size;"
-            + " unlikely cause: network issues.";
     /**
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
@@ -522,33 +508,15 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             try {
                 return runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
             } catch (Exception e) {
-                req.incrementNumberOfAttempts();
-                req.triedOnHost(hostPool.getHost());
-                this.<K>handleException(req, hostPool.getHost(), e);
-                if (isRetriableWithBackoffException(e)) {
-                    // And value between -500 and +500ms to backoff to better spread load on failover
-                    int sleepDuration =
-                            req.getNumberOfAttempts() * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
-                    log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
-                            UnsafeArg.of("queryString", req.getFunction().toString()),
-                            SafeArg.of("sleepDuration", sleepDuration),
-                            SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
-
-                    try {
-                        Thread.sleep(sleepDuration);
-                    } catch (InterruptedException i) {
-                        throw new RuntimeException(i);
-                    }
-                    if (req.getNumberOfAttempts() >= MAX_TRIES_SAME_HOST) {
-                        req.giveUpOnPreferredHost();
-                    }
-                } else if (isFastFailoverException(e)) {
-                    log.info("Retrying with fast failover a query intended for host {}.",
-                            SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
-                    req.giveUpOnPreferredHost();
-                }
+                handleException(req, e, hostPool.getHost());
             }
         }
+    }
+
+    private <V, K extends Exception> void handleException(RetryableCassandraRequest<V, K> req, Exception ex,
+            InetSocketAddress hostTried) throws K {
+        new CassandraRequestExceptionHandler(MAX_TRIES_SAME_HOST, MAX_TRIES_TOTAL, blacklist)
+                .handleRequest(req, hostTried, ex);
     }
 
     private <V, K extends Exception> CassandraClientPoolingContainer getPreferredHostOrFallBack(
@@ -588,50 +556,10 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             return hostPool.runWithPooledResource(fn);
         } catch (Exception e) {
             metrics.recordExceptionOnHost(hostPool);
-            if (isConnectionException(e)) {
+            if (CassandraRequestExceptionHandler.isConnectionException(e)) {
                 metrics.recordConnectionExceptionOnHost(hostPool);
             }
             throw e;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <K extends Exception> void handleException(
-            RetryableCassandraRequest<?, K> req, InetSocketAddress host, Exception ex) throws K {
-        if (isRetriableException(ex) || isRetriableWithBackoffException(ex) || isFastFailoverException(ex)) {
-            if (req.getNumberOfAttempts() >= MAX_TRIES_TOTAL) {
-                if (ex instanceof TTransportException
-                        && ex.getCause() != null
-                        && (ex.getCause().getClass() == SocketException.class)) {
-                    log.error(CONNECTION_FAILURE_MSG, req.getNumberOfAttempts(), ex);
-                    String errorMsg =
-                            MessageFormatter.format(CONNECTION_FAILURE_MSG, req.getNumberOfAttempts()).getMessage();
-                    throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
-                } else {
-                    log.error("Tried to connect to cassandra {} times.",
-                            SafeArg.of("numTries", req.getNumberOfAttempts()), ex);
-                    throw (K) ex;
-                }
-            } else {
-                // Only log the actual exception the first time
-                if (req.getNumberOfAttempts() > 1) {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
-                            SafeArg.of("numTries", req.getNumberOfAttempts()),
-                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
-                            SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
-                            UnsafeArg.of("exceptionMessage", ex.getMessage()));
-                } else {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
-                            SafeArg.of("numTries", req.getNumberOfAttempts()),
-                            SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
-                            ex);
-                }
-                if (isConnectionException(ex) && req.getNumberOfAttempts() >= MAX_TRIES_SAME_HOST) {
-                    blacklist.add(host);
-                }
-            }
-        } else {
-            throw (K) ex;
         }
     }
 
@@ -702,44 +630,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
             CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
         }
-    }
-
-    @VisibleForTesting
-    static boolean isConnectionException(Throwable ex) {
-        return ex != null
-                && (ex instanceof SocketTimeoutException
-                || ex instanceof ClientCreationFailedException
-                || isConnectionException(ex.getCause()));
-    }
-
-    @VisibleForTesting
-    static boolean isRetriableException(Throwable ex) {
-        return ex != null
-                && (ex instanceof TTransportException
-                || ex instanceof TimedOutException
-                || ex instanceof InsufficientConsistencyException
-                || isConnectionException(ex)
-                || isRetriableException(ex.getCause()));
-    }
-
-    @VisibleForTesting
-    static boolean isRetriableWithBackoffException(Throwable ex) {
-        return ex != null
-                // pool for this node is fully in use
-                && (ex instanceof NoSuchElementException
-                // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
-                || ex instanceof UnavailableException
-                // tcp socket timeout, possibly indicating network flake, long GC, or restarting server
-                || isConnectionException(ex)
-                || isRetriableWithBackoffException(ex.getCause()));
-    }
-
-    @VisibleForTesting
-    static boolean isFastFailoverException(Throwable ex) {
-        return ex != null
-                // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
-                && (ex instanceof InvalidRequestException
-                || isFastFailoverException(ex.getCause()));
     }
 
     @Override
