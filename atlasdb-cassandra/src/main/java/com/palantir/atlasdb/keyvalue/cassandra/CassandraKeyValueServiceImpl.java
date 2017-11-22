@@ -263,8 +263,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraKeyValueServiceImpl keyValueService =
-                new CassandraKeyValueServiceImpl(log, configManager, clientPool,
-                        compactionManager, leaderConfig, initializeAsync);
+                new CassandraKeyValueServiceImpl(log, configManager, clientPool, compactionManager, leaderConfig);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
@@ -273,8 +272,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                         CassandraKeyValueServiceConfigManager configManager,
                                         CassandraClientPool clientPool,
                                         Optional<CassandraJmxCompactionManager> compactionManager,
-                                        Optional<LeaderConfig> leaderConfig,
-                                        boolean initializeAsync) {
+                                        Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
