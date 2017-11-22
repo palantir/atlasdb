@@ -397,16 +397,14 @@ public class CassandraClientPoolTest {
     private void verifyAggregateFailureMetrics(
             double requestFailureProportion,
             double requestConnectionExceptionProportion) {
-        assertEquals(
-                getAggregateMetricValueForMetricName("requestFailureProportion"),
-                requestFailureProportion);
-        assertEquals(
-                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"),
-                requestConnectionExceptionProportion);
+        assertEquals(requestFailureProportion,
+                getAggregateMetricValueForMetricName("requestFailureProportion"));
+        assertEquals(requestConnectionExceptionProportion,
+                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"));
     }
 
     private void verifyBlacklistMetric(Integer expectedSize) {
-        assertEquals(getAggregateMetricValueForMetricName("numBlacklistedHosts"), expectedSize);
+        assertEquals(expectedSize, getAggregateMetricValueForMetricName("numBlacklistedHosts"));
     }
 
     private Object getAggregateMetricValueForMetricName(String metricName) {
