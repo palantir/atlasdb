@@ -77,7 +77,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
-public class QosCassandraReadTestSuite extends EteSetup {
+public class QosCassandraReadTestSuite {
     private static final Random random = new Random();
     private static final int CASSANDRA_PORT_NUMBER = 9160;
     private static SerializableTransactionManager serializableTransactionManager;
@@ -94,7 +94,7 @@ public class QosCassandraReadTestSuite extends EteSetup {
             .build();
 
     @BeforeClass
-    public static void waitUntilTransactionManagersIsUp() {
+    public static void createTransactionManagerAndWriteData() {
         serializableTransactionManager = TransactionManagers.builder()
                 .config(getAtlasDbConfig())
                 .runtimeConfigSupplier(QosCassandraReadTestSuite::getAtlasDbRuntimeConfig)

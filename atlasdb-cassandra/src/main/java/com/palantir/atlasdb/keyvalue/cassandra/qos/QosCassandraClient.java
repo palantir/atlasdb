@@ -67,8 +67,12 @@ public class QosCassandraClient implements CassandraClient {
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName, TableReference tableRef,
             List<ByteBuffer> keys, SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        System.out.println("multiget_slice from the table " + tableRef.getQualifiedName() + " with slice " + predicate.toString() + " and keys " + keys.size());
+
         return qosClient.executeRead(
-                () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
+                () -> {
+                    return client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level);
+                },
                 ThriftQueryWeighers.multigetSlice(keys));
     }
 
@@ -76,8 +80,11 @@ public class QosCassandraClient implements CassandraClient {
     public List<KeySlice> get_range_slices(String kvsMethodName, TableReference tableRef, SlicePredicate predicate,
             KeyRange range, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        System.out.println("get_range_slices from the table " + tableRef.getQualifiedName() + " with slice " + predicate.toString() + " and keys " + range.toString());
         return qosClient.executeRead(
-                () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
+                () -> {
+                    return client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level);
+                },
                 ThriftQueryWeighers.getRangeSlices(range));
     }
 
@@ -85,6 +92,8 @@ public class QosCassandraClient implements CassandraClient {
     public void batch_mutate(String kvsMethodName, Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        System.out.println("batch_mutate from the tables with mutation_map " + mutation_map.size());
+
         qosClient.executeWrite(
                 () -> {
                     client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
@@ -97,6 +106,8 @@ public class QosCassandraClient implements CassandraClient {
     public ColumnOrSuperColumn get(TableReference tableReference, ByteBuffer key, byte[] column,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
+        System.out.println("get from the query " + tableReference.getQualifiedName());
+
         return qosClient.executeRead(
                 () -> client.get(tableReference, key, column, consistency_level),
                 ThriftQueryWeighers.GET);
@@ -114,6 +125,8 @@ public class QosCassandraClient implements CassandraClient {
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {
+        System.out.println("execute_cql3_query from the query " + cqlQuery.getLazySafeLoggableObject());
+
         return qosClient.executeRead(
                 () -> client.execute_cql3_query(cqlQuery, compression, consistency),
                 ThriftQueryWeighers.EXECUTE_CQL3_QUERY);
