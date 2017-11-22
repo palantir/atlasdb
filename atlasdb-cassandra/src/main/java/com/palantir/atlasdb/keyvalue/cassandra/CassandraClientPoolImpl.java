@@ -240,7 +240,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private void registerAggregateMetrics() {
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
-                () -> blacklist.size());
+                blacklist::size);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
                 aggregateMetrics::getExceptionProportion);
