@@ -12,6 +12,7 @@ dependencies {
     compile group: 'io.dropwizard.metrics', name: 'metrics-core'
     compile group: 'net.jpountz.lz4', name: 'lz4'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.2'
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
