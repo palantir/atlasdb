@@ -107,8 +107,7 @@ public class QosCassandraReadTestSuite {
                 .pollInterval(Duration.ONE_SECOND)
                 .until(serializableTransactionManager::isInitialized);
 
-        serializableTransactionManager
-                .runTaskWithRetry((transaction) -> {
+        serializableTransactionManager.runTaskWithRetry((transaction) -> {
                     writeNTodosOfSize(transaction, 200, 1_000);
                     return null;
                 });
@@ -127,6 +126,8 @@ public class QosCassandraReadTestSuite {
 
     @Before
     public void setup() {
+        AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
+
         serializableTransactionManager = TransactionManagers.builder()
                 .config(getAtlasDbConfig())
                 .runtimeConfigSupplier(QosCassandraReadTestSuite::getAtlasDbRuntimeConfig)
@@ -138,8 +139,6 @@ public class QosCassandraReadTestSuite {
                 .atMost(Duration.ONE_MINUTE)
                 .pollInterval(Duration.ONE_SECOND)
                 .until(serializableTransactionManager::isInitialized);
-
-        AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
     }
 
     @Test
