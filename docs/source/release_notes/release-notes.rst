@@ -71,6 +71,12 @@ develop
            This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
 
+    *    - |fixed| |logs|
+         - ``CassandraKeyValueServiceImpl.compactInternally`` no longer logs an error when no compaction manager is configured.
+           This message is instead logged once, when the KVS is instantiated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2727>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
