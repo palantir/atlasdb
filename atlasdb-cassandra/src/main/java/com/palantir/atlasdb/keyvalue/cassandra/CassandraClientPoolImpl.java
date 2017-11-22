@@ -510,7 +510,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K {
-        int numTries = 0;
+        RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedHost, fn);
+
         boolean shouldRetryOnDifferentHost = false;
         Set<InetSocketAddress> triedHosts = Sets.newHashSet();
         while (true) {
@@ -533,12 +534,13 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             try {
                 return runWithPooledResourceRecordingMetrics(hostPool, fn);
             } catch (Exception e) {
-                numTries++;
+                req.incrementNumberOfAttempts();
                 triedHosts.add(hostPool.getHost());
-                this.<K>handleException(numTries, hostPool.getHost(), e);
+                this.<K>handleException(req, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
                     // And value between -500 and +500ms to backoff to better spread load on failover
-                    int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
+                    int sleepDuration =
+                            req.getNumberOfAttempts() * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
                     log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                             UnsafeArg.of("queryString", fn.toString()),
                             SafeArg.of("sleepDuration", sleepDuration),
@@ -549,7 +551,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                     } catch (InterruptedException i) {
                         throw new RuntimeException(i);
                     }
-                    if (numTries >= MAX_TRIES_SAME_HOST) {
+                    if (req.getNumberOfAttempts() >= MAX_TRIES_SAME_HOST) {
                         shouldRetryOnDifferentHost = true;
                     }
                 } else if (isFastFailoverException(e)) {
@@ -590,34 +592,37 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @SuppressWarnings("unchecked")
-    private <K extends Exception> void handleException(int numTries, InetSocketAddress host, Exception ex) throws K {
+    private <K extends Exception> void handleException(
+            RetryableCassandraRequest<?, K> req, InetSocketAddress host, Exception ex) throws K {
         if (isRetriableException(ex) || isRetriableWithBackoffException(ex) || isFastFailoverException(ex)) {
-            if (numTries >= MAX_TRIES_TOTAL) {
+            if (req.getNumberOfAttempts() >= MAX_TRIES_TOTAL) {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    log.error(CONNECTION_FAILURE_MSG, numTries, ex);
-                    String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numTries).getMessage();
+                    log.error(CONNECTION_FAILURE_MSG, req.getNumberOfAttempts(), ex);
+                    String errorMsg =
+                            MessageFormatter.format(CONNECTION_FAILURE_MSG, req.getNumberOfAttempts()).getMessage();
                     throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
                 } else {
-                    log.error("Tried to connect to cassandra {} times.", SafeArg.of("numTries", numTries), ex);
+                    log.error("Tried to connect to cassandra {} times.",
+                            SafeArg.of("numTries", req.getNumberOfAttempts()), ex);
                     throw (K) ex;
                 }
             } else {
                 // Only log the actual exception the first time
-                if (numTries > 1) {
+                if (req.getNumberOfAttempts() > 1) {
                     log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
-                            SafeArg.of("numTries", numTries),
+                            SafeArg.of("numTries", req.getNumberOfAttempts()),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                             UnsafeArg.of("exceptionMessage", ex.getMessage()));
                 } else {
                     log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
-                            SafeArg.of("numTries", numTries),
+                            SafeArg.of("numTries", req.getNumberOfAttempts()),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             ex);
                 }
-                if (isConnectionException(ex) && numTries >= MAX_TRIES_SAME_HOST) {
+                if (isConnectionException(ex) && req.getNumberOfAttempts() >= MAX_TRIES_SAME_HOST) {
                     blacklist.add(host);
                 }
             }
