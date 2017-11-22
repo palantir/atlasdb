@@ -176,10 +176,10 @@ public class QosCassandraReadTestSuite {
         int numThreads = 5;
         int numReadsPerThread = 10;
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-        List<Future<List<Todo>>> futures = new ArrayList<>(numReadsPerThread);
+        List<Future<List<Todo>>> futures = new ArrayList<>(numThreads);
 
         long start = System.nanoTime();
-        IntStream.range(0, numReadsPerThread)
+        IntStream.range(0, numThreads)
                 .forEach(i ->
                         futures.add(executorService.submit(() -> {
                             List<Todo> results = new ArrayList<>(numReadsPerThread);
