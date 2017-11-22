@@ -21,6 +21,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -36,20 +37,23 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCrea
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class CassandraRequestExceptionHandler {
+class CassandraRequestExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
-    private final int maxTriesSameHost;
-    private final int maxTriesTotal;
+    private final Supplier<Integer> maxTriesSameHost;
+    private final Supplier<Integer> maxTriesTotal;
     private final Blacklist blacklist;
 
-    public CassandraRequestExceptionHandler(int maxTriesSameHost, int maxTriesTotal, Blacklist blacklist) {
+    CassandraRequestExceptionHandler(
+            Supplier<Integer> maxTriesSameHost,
+            Supplier<Integer> maxTriesTotal,
+            Blacklist blacklist) {
         this.maxTriesSameHost = maxTriesSameHost;
         this.maxTriesTotal = maxTriesTotal;
         this.blacklist = blacklist;
     }
 
-    public <K extends Exception> void handleRequest(
+    <K extends Exception> void handleRequest(
                 RetryableCassandraRequest<?, K> req,
                 InetSocketAddress hostTried,
                 Exception ex)
@@ -71,7 +75,7 @@ public class CassandraRequestExceptionHandler {
             } catch (InterruptedException i) {
                 throw new RuntimeException(i);
             }
-            if (req.getNumberOfAttempts() >= maxTriesSameHost) {
+            if (req.getNumberOfAttempts() >= maxTriesSameHost.get()) {
                 req.giveUpOnPreferredHost();
             }
         } else if (isFastFailoverException(ex)) {
@@ -85,7 +89,7 @@ public class CassandraRequestExceptionHandler {
     private <K extends Exception> void handleExceptionInternal(
             RetryableCassandraRequest<?, K> req, InetSocketAddress host, Exception ex) throws K {
         if (isRetriableException(ex) || isRetriableWithBackoffException(ex) || isFastFailoverException(ex)) {
-            if (req.getNumberOfAttempts() >= maxTriesTotal) {
+            if (req.getNumberOfAttempts() >= maxTriesTotal.get()) {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
@@ -112,7 +116,7 @@ public class CassandraRequestExceptionHandler {
                             SafeArg.of("maxTotalTries", maxTriesTotal),
                             ex);
                 }
-                if (isConnectionException(ex) && req.getNumberOfAttempts() >= maxTriesSameHost) {
+                if (isConnectionException(ex) && req.getNumberOfAttempts() >= maxTriesSameHost.get()) {
                     blacklist.add(host);
                 }
             }

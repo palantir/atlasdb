@@ -116,19 +116,12 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
-    /**
-     * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
-     * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
-     */
-    @VisibleForTesting
-    static final int MAX_TRIES_SAME_HOST = 3;
 
-    @VisibleForTesting
-    static final int MAX_TRIES_TOTAL = 6;
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
 
     private final Blacklist blacklist;
+    private final CassandraRequestExceptionHandler exceptionHandler;
 
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
@@ -174,6 +167,8 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build()));
         this.blacklist = blacklist;
+        this.exceptionHandler = new CassandraRequestExceptionHandler(
+                this::getMaxRetriesPerHost, this::getMaxTriesTotal, blacklist);
     }
 
     private void tryInitialize() {
@@ -213,6 +208,20 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
         metrics.deregisterMetrics();
+    }
+
+    /**
+     * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
+     * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
+     */
+    @VisibleForTesting
+    private int getMaxRetriesPerHost() {
+        return 3;
+    }
+
+    @VisibleForTesting
+    private int getMaxTriesTotal() {
+        return 6;
     }
 
     @Override
@@ -515,8 +524,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     private <V, K extends Exception> void handleException(RetryableCassandraRequest<V, K> req, Exception ex,
             InetSocketAddress hostTried) throws K {
-        new CassandraRequestExceptionHandler(MAX_TRIES_SAME_HOST, MAX_TRIES_TOTAL, blacklist)
-                .handleRequest(req, hostTried, ex);
+        exceptionHandler.handleRequest(req, hostTried, ex);
     }
 
     private <V, K extends Exception> CassandraClientPoolingContainer getPreferredHostOrFallBack(
