@@ -196,8 +196,18 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>The method <code class="docutils literal"><span class="pre">AtlasDdMetrics.setMetricsRegistries</span></code> was added, to register both the MetricRegistry and the TaggedMetricRegistry.
+Please use it instead of the old <code class="docutils literal"><span class="pre">AtlasDbMetrics.setMetricsRegistry</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2720">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The previously deprecated <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> methods have been removed.
+To create a <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> please use the <code class="docutils literal"><span class="pre">TransactionManagers.builder()</span></code> to create a <code class="docutils literal"><span class="pre">TransactionManagers</span></code> object and then call its <code class="docutils literal"><span class="pre">serializable()</span></code> method.
+Furthermore, this builder now requires a <code class="docutils literal"><span class="pre">taggedMetricRegistry</span></code> argument, and is a staged builder, requiring all mandatory parameters to be specified in the following order:
+<code class="docutils literal"><span class="pre">TransactionManagers.config().userAgent().metricRegistry().taggedMetricRegistry()</span></code>.
+This avoid runtime errors due to failure to specify all required arguments.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2720">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
