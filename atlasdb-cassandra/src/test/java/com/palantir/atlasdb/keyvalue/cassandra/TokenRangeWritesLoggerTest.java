@@ -129,22 +129,22 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markResetsNumberOfWritesAndLogsUniform() {
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(THRESHOLD_WRITES_PER_TABLE,
-                THRESHOLD_WRITES_PER_TABLE,
-                THRESHOLD_WRITES_PER_TABLE,
-                THRESHOLD_WRITES_PER_TABLE),
+        writesLogger.markWritesForTable(writesPerRange(3, 3, 3, 3), TABLE_REFERENCE);
+        writesLogger.markWritesForTable(writesPerRange(THRESHOLD_WRITES_PER_TABLE / 4,
+                THRESHOLD_WRITES_PER_TABLE / 4,
+                THRESHOLD_WRITES_PER_TABLE / 4,
+                THRESHOLD_WRITES_PER_TABLE / 4),
                 TABLE_REFERENCE);
         writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
 
-        assertWritesPerRangeForTable(THRESHOLD_WRITES_PER_TABLE,
-                THRESHOLD_WRITES_PER_TABLE + 2,
-                THRESHOLD_WRITES_PER_TABLE,
-                THRESHOLD_WRITES_PER_TABLE,
+        assertWritesPerRangeForTable(THRESHOLD_WRITES_PER_TABLE / 4 + 3,
+                THRESHOLD_WRITES_PER_TABLE / 4 + 4,
+                THRESHOLD_WRITES_PER_TABLE / 4 + 3,
+                THRESHOLD_WRITES_PER_TABLE / 4 + 3,
                 TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
 
-        assertLoggedMaybeUniform(4 * THRESHOLD_WRITES_PER_TABLE + 1, true);
+        assertLoggedMaybeUniform(4 * (THRESHOLD_WRITES_PER_TABLE / 4) + 12, true);
     }
 
     @Test
