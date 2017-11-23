@@ -59,6 +59,18 @@ public final class AtlasDbHttpClients {
                 MetricRegistry.name(type));
     }
 
+    public static <T> T createProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            String uri,
+            boolean refreshingHttpClient,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, refreshingHttpClient, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
     /**
      * Constructs a list, corresponding to the iteration order of the supplied endpoints, of dynamic proxies for the
      * specified type, using the supplied SSL factory if it is present.
@@ -76,6 +88,19 @@ public final class AtlasDbHttpClients {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
             ret.add(createProxy(sslSocketFactory, uri, type, userAgent));
+        }
+        return ret;
+    }
+
+    public static <T> List<T> createProxies(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            boolean refreshingHttpClient,
+            Class<T> type,
+            String userAgent) {
+        List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
+        for (String uri : endpointUris) {
+            ret.add(createProxy(sslSocketFactory, uri, refreshingHttpClient, type, userAgent));
         }
         return ret;
     }

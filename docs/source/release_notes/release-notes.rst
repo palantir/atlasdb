@@ -41,6 +41,8 @@ Changelog
 develop
 =======
 
+.. replace this with the release date
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -54,14 +56,66 @@ develop
            This issue affected thoroughly swept tables, which could accumulate many rows entirely made up of tombstones.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2732>`__)
 
-    *    - |new| |metrics|
-         - We now record metrics for most cases where cells fetched from Cassandra are post-filtered before returning to the client.
-           The new metrics are called ``notLatestVisibleValueCellFilterCount``, ``commitTsGreaterThatTxTsCellFilterCount``,
-           ``invalidStartTsTsCellFilterCount``, ``invalidCommitTsCellFilterCount`` and ``emptyValuesCellFilterCount``
-           each indicating the cause for the cells being post-filtered.
-           There are also new metrics ``numCellsRead`` and ``numCellsReturnedAfterFiltering`` to measure how many cells were
-           filtered at the transaction level before returning to the client.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
+    *    - |improved|
+         - Applications can now easily determine whether their AtlasDB cluster is healthy by querying ``TransactionManager.getKeyValueServiceStatus().isHealthy()``.
+           This returns true only if all key value service nodes are up; applications that do not perform schema mutations or deletes (including sweep or scrub) can
+           also treat ``KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES`` as a healthy state.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2678>`__)
+
+    *    - |improved| |devbreak|
+         - AtlasDB will now consistently throw an ``AtlasDbDependencyException`` when requests fail due to TimeLock being unavailable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2677>`__)
+
+    *    - |fixed|
+         - ``Throwables.createPalantirRuntimeException`` once again throws ``PalantirInterruptedException`` if the original exception was either ``InterruptedException`` or ``InterruptedIOException``.
+           This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
+
+    *    - |fixed| |logs|
+         - ``CassandraKeyValueServiceImpl.compactInternally`` no longer logs an error when no compaction manager is configured.
+           This message is instead logged once, when the KVS is instantiated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2727>`__)
+
+    *    - |fixed|
+         - Fixes the ability of deleting values from the Streaming Store when configured hash rowComponents.
+           Previously, due to a deserialization bug, we'd not issue delete to the correct rows.
+           If you think you're affected by this bug, please contact the AtlasDB team to migrate off of this behavior.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2736>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.68.0
+=======
+
+16 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - HTTP clients for endpoints relating to the Paxos protocols (``PingableLeader``, ``PaxosAcceptor`` and ``PaxosLearner``) now reset themselves after 500 million requests have been executed.
+           This was implemented as a workaround for `OkHttp #3670 <https://github.com/square/okhttp/issues/3670>`__ where HTTP/2 connections managed in OkHttp would fail after just over a billion requests owing to an unexpected integer overflow.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2680>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.67.0
+=======
+
+15 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |new|
          - AtlasDB clients are now able to live reload TimeLock URLs.
@@ -90,15 +144,88 @@ develop
            This is strictly more permissive, but may affect developers that use ``ServerListConfig`` directly, especially if it is being serialized.
            (`Pull Request 3 <https://github.com/palantir/atlasdb/pull/2647>`__)
 
+    *    - |improved| |logs|
+         - kvs-slow-log was added on all Cassandra calls. As with the original kvs-slow-log logs, the added logs have the ``kvs-slow-log`` origin.
+           To see the exact log messages, check the ``ProfilingCassandraClient`` class.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
+
+    *    - |new| |metrics|
+         - Metrics were added on all Cassandra calls. The ``CassandraClient`` interface was Tritium instrumented:
+
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.multiget_slice
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get_range_slices
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.batch_mutate
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cas
+              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.execute_cql3_query
+
+           Note that the table calls mainly use the first three metrics of the above list.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
+
+    *    - |new| |metrics|
+         - Metrics recording the number of Cassandra requests, and the amount of bytes read and written from and to Cassandra were added:
+
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numReadRequests
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numWriteRequests
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesRead
+              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesWritten
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2679>`__)
+
+    *    - |new| |metrics|
+         - Added metrics for cells read.
+           The read cells can be post-filtered at the CassandraKVS layer, when there are multiple versions of the same cell.
+           The filtered cells are recorded in the metric:
+
+              - com.palantir.atlasdb.keyvalue.cassandra.TimestampExtractor.notLatestVisibleValueCellFilterCount
+              - com.palantir.atlasdb.keyvalue.cassandra.ValueExtractor.notLatestVisibleValueCellFilterCount
+
+           The cells returned from the KVS layer are then recorded at the metric:
+
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsRead
+
+           Such cells can also be filtered out at the transaction layer, due to the Transaction Protocol. The filtered out cells are recorded in the metrics:
+
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidStartTsTsCellFilterCount
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidCommitTsCellFilterCount
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.emptyValuesCellFilterCount
+
+           At last, the metric that record the number of cells actually returned to the AtlasDB client is:
+
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsReturnedAfterFiltering
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
+
+    *    - |new| |metrics|
+         - Added metrics for written bytes at the Transaction layer:
+
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
+
+    *    - |new| |metrics|
+         - A metric was added for the cases where a large read was made:
+
+              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead
+
+           Note that we also log a warning in these cases, with the message "A single get had quite a few bytes...".
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
+
+    *    - |improved| |devbreak|
+         - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
+           Also, all exceptions thrown at the KVS layer, as ``KeyAlreadyExists`` or ``TTransportException`` and ``NotInitializedException``
+           were wrapped in ``AtlasDbDependencyException`` in the interest of consistent exceptions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
+
+    *    - |improved| |logs|
+         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
+
     *    - |fixed| |metrics|
          - ``MetricsManager`` now logs failures to register metrics at ``WARN`` instead of ``ERROR``, as failure to do so is not necessarily a systemic failure.
            Also, we now log the name of the metric as a Safe argument (previously it was logged as Unsafe).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2636>`__)
-
-    *    - |improved| |devbreak|
-         - AtlasDB will now consistently throw a ``InsufficientConsistencyException`` if Cassandra reports an ``UnavailableException``.
-           Also, all Cassandra KVS exceptions like ``KeyAlreadyExists`` or ``TTransportException`` as well as ``NotInitializedException`` will get wrapped into ``AtlasDbDependencyException`` in the interest of consistent exceptions.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2558>`__)
 
     *    - |fixed|
          - ``SweepBatchConfig`` values are now decayed correctly when there's an error.
@@ -106,17 +233,13 @@ develop
            ``SweepBatchConfig`` values will now be halved with each failure until they reach 1 (previously they only went to about 30% due to another bug).  This ensures we fully backoff and gives us the best possible chance of success.  Values will slowly increase with each successful run until they are back to their default level.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2630>`__)
 
-    *    - |improved| |logs|
-         - ``SweeperServiceImpl`` now logs when it starts sweeping and makes it clear if it is running full sweep or not
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2618>`__)
-
     *    - |improved|
          - AtlasDB now depends on Tritium 0.8.4, which depends on the same version of ``com.palantir.remoting3`` and ``HdrHistogram`` as AtlasDB.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2662>`__)
 
     *    - |fixed|
          - Check that immutable timestamp is locked on write transactions with no writes.
-           This could cause long-running readers to read an incorrect empty value when using the ``Sweep.THOROUGH`` strategy.
+           This could cause long-running readers to read an incorrect empty value when the table had the ``Sweep.THOROUGH`` strategy.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2406>`__)
 
     *    - |fixed|

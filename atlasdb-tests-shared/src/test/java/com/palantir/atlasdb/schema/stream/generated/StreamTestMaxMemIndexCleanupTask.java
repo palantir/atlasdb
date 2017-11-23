@@ -23,7 +23,7 @@ public class StreamTestMaxMemIndexCleanupTask implements OnCleanupTask {
         StreamTestMaxMemStreamIdxTable usersIndex = tables.getStreamTestMaxMemStreamIdxTable(t);
         Set<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow> rows = Sets.newHashSetWithExpectedSize(cells.size());
         for (Cell cell : cells) {
-            rows.add(StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow.of((Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
+            rows.add(StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue> rowsInDb = usersIndex.getRowsMultimap(rows);
         Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.keySet().size());

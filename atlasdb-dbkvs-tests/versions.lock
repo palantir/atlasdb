@@ -590,12 +590,6 @@
                 "com.palantir.atlasdb:atlasdb-tests-shared"
             ]
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
-            ]
-        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -1290,12 +1284,6 @@
             "locked": "4.12",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-tests-shared"
-            ]
-        },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
             ]
         },
         "net.jpountz.lz4:lz4": {

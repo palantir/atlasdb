@@ -27,7 +27,7 @@ public class StreamTestWithHashMetadataCleanupTask implements OnCleanupTask {
         StreamTestWithHashStreamMetadataTable metaTable = tables.getStreamTestWithHashStreamMetadataTable(t);
         Collection<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> rows = Lists.newArrayListWithCapacity(cells.size());
         for (Cell cell : cells) {
-            rows.add(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of((Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
+            rows.add(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();
