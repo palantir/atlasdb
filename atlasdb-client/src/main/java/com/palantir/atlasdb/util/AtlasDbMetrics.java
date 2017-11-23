@@ -51,13 +51,13 @@ public final class AtlasDbMetrics {
 
     public static synchronized void setMetricRegistries(MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry) {
-        if (!metricRegistry.equals(metrics.get())) {
+        if (metricRegistry != metrics.get()) {
             log.warn("The MetricsRegistry was re-set to a different value: the previous registry will be ignored"
-                    + " and the metrics will be registered on the new one.");
+                    + " and metrics may be lost.");
         }
-        if (!taggedMetricRegistry.equals(taggedMetrics.get())) {
+        if (taggedMetricRegistry != taggedMetrics.get()) {
             log.warn("The TaggedMetricsRegistry was re-set to a different value: the previous registry will be ignored"
-                    + " and the metrics will be registered on the new one.");
+                    + " and metrics may be lost.");
         }
 
         metrics.set(Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null"));

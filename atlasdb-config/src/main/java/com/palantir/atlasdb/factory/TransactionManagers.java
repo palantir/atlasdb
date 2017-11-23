@@ -153,7 +153,7 @@ public abstract class TransactionManagers {
     abstract TaggedMetricRegistry taggedMetricRegistry();
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
-        return ImmutableTransactionManagers.builder();;
+        return ImmutableTransactionManagers.builder();
     }
 
     @VisibleForTesting
