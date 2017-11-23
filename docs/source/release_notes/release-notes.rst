@@ -48,6 +48,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - We now avoid Cassandra timeouts caused by running unbounded CQL range scans during sweep.
+           In order to assign a bound, we prefetch row keys using thrift, and use these bounds to page internally through rows.
+           This issue affected thoroughly swept tables, which could accumulate many rows entirely made up of tombstones.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2732>`__)
+
     *    - |new| |metrics|
          - We now record metrics for most cases where cells fetched from Cassandra are post-filtered before returning to the client.
            The new metrics are called ``notLatestVisibleValueCellFilterCount``, ``commitTsGreaterThatTxTsCellFilterCount``,
