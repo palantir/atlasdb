@@ -73,7 +73,7 @@ public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
         // will let anything pass through until the limit is exceeded.
         writeNTodosOfSize(1, 100_000);
 
-        assertThatThrownBy(() -> writeNTodosOfSize(200, 10_000))
+        assertThatThrownBy(() -> writeNTodosOfSize(1, 100_000))
                 .isInstanceOf(RateLimitExceededException.class)
                 .hasMessage("Rate limited. Available capacity has been exhausted.");
 
