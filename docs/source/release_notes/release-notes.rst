@@ -51,22 +51,22 @@ develop
          - Change
 
     *    - |fixed|
-         - Fixes the ability of deleting values from the StreamingStore when configured to hash rowComponents.
-           Previously, due to a deserialization bug, we'd not issue delete to the correct rows.
-           If you think you're affected by this bug, please contact the AtlasDB team to migrate off of this behavior.
+         - Fixed the deletion of values from the StreamStore when configured to hash rowComponents.
+           Previously, due to a deserialization bug, we wouldn't delete the streamed data.
+           If you think you're affected by this bug, please contact the AtlasDB team to migrate away from this behavior.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2736>`__)
 
     *    - |fixed|
          - We now avoid Cassandra timeouts caused by running unbounded CQL range scans during sweep.
            In order to assign a bound, we prefetch row keys using thrift, and use these bounds to page internally through rows.
-           This issue affected swept tables configured to use THOROUGH sweep strategy — which could accumulate many rows entirely made up of tombstones —
-           and Cassandra was configured as the backing store.
+           This issue affected tables configured to use THOROUGH sweep strategy — which could accumulate many rows entirely made up of tombstones —
+           when Cassandra is configured as the backing store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2732>`__)
 
     *    - |improved|
          - Applications can now easily determine whether their AtlasDB cluster is healthy by querying ``TransactionManager.getKeyValueServiceStatus().isHealthy()``.
-           This returns true only if all key value service nodes are up; applications that do not perform schema mutations or deletes (including sweep or scrub) can
-           also treat ``KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES`` as a healthy state.
+           This returns true only if all key value service nodes are up; applications that have sweep and scrub disabled and do not perform schema mutations
+           can also treat ``KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES`` as a healthy state.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2678>`__)
 
     *    - |improved| |devbreak|
