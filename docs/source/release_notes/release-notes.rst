@@ -50,6 +50,23 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.69.0
+=======
+
+23 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |fixed|
          - Fixed the deletion of values from the StreamStore when configured to hash rowComponents.
            Previously, due to a deserialization bug, we wouldn't delete the streamed data.
