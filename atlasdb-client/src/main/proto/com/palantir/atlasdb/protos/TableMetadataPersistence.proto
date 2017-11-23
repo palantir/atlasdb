@@ -13,6 +13,7 @@ message TableMetadata {
     optional int32 explicitCompressionBlockSizeKiloBytes = 10;
     optional bool appendHeavyAndReadLight = 11;
     optional LogSafety nameLogSafety = 12 [default = UNSAFE];
+    optional CleanupRequirement cleanupRequirement = 13 [default = ARBITRARY];
 }
 
 message NameMetadataDescription {
@@ -133,4 +134,10 @@ enum ExpirationStrategy {
 enum LogSafety {
     SAFE = 0;
     UNSAFE = 1;
+}
+
+enum CleanupRequirement {
+    NOT_NEEDED = 0; // I'd go with NONE but that's not allowed in protobufs
+    STREAM_CASCADE = 1;
+    ARBITRARY = 2;
 }
