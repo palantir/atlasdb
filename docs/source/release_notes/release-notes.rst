@@ -50,8 +50,19 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |devbreak| |metrics|
+         - The method ``AtlasDdMetrics.setMetricsRegistries`` was added, to register both the MetricRegistry and the TaggedMetricRegistry.
+           Please use it instead of the old ``AtlasDbMetrics.setMetricsRegistry``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
+
+    *    - |devbreak| |improved|
+         - The previously deprecated ``TransactionManagers.create()`` methods have been removed.
+           To create a ``SerializableTransactionManager`` please use the ``TransactionManagers.builder()`` to create a ``TransactionManagers`` object and then call its ``serializable()`` method.
+           Furthermore, this builder now requires a ``taggedMetricRegistry`` argument, and is a staged builder, requiring all mandatory parameters to be specified in the following order:
+           ``TransactionManagers.config().userAgent().metricRegistry().taggedMetricRegistry()``.
+           This avoid runtime errors due to failure to specify all required arguments.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
