@@ -196,37 +196,58 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-69-0">
+<h2>v0.69.0<a class="headerlink" href="#v0-69-0" title="Permalink to this headline">¶</a></h2>
+<p>23 November 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>We now avoid Cassandra timeouts caused by running unbounded CQL range scans during sweep.
-In order to assign a bound, we prefetch row keys using thrift, and use these bounds to page internally through rows.
-This issue affected thoroughly swept tables, which could accumulate many rows entirely made up of tombstones.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2732">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Applications can now easily determine whether their AtlasDB cluster is healthy by querying <code class="docutils literal"><span class="pre">TransactionManager.getKeyValueServiceStatus().isHealthy()</span></code>.
-This returns true only if all key value service nodes are up; applications that do not perform schema mutations or deletes (including sweep or scrub) can
-also treat <code class="docutils literal"><span class="pre">KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES</span></code> as a healthy state.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2678">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>AtlasDB will now consistently throw an <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when requests fail due to TimeLock being unavailable.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2677">Pull Request</a>)</td>
+<td>Fixed the deletion of values from the StreamStore when configured to hash rowComponents.
+Previously, due to a deserialization bug, we wouldn’t delete the streamed data.
+If you think you’re affected by this bug, please contact the AtlasDB team to migrate away from this behavior.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2736">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>We now avoid Cassandra timeouts caused by running unbounded CQL range scans during sweep.
+In order to assign a bound, we prefetch row keys using thrift, and use these bounds to page internally through rows.
+This issue affected tables configured to use THOROUGH sweep strategy — which could accumulate many rows entirely made up of tombstones —
+when Cassandra is configured as the backing store.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2732">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Applications can now easily determine whether their AtlasDB cluster is healthy by querying <code class="docutils literal"><span class="pre">TransactionManager.getKeyValueServiceStatus().isHealthy()</span></code>.
+This returns true only if all key value service nodes are up; applications that have sweep and scrub disabled and do not perform schema mutations
+can also treat <code class="docutils literal"><span class="pre">KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES</span></code> as a healthy state.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2678">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>AtlasDB will now consistently throw an <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when TimeLock is unavailable.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2677">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">Throwables.createPalantirRuntimeException</span></code> once again throws <code class="docutils literal"><span class="pre">PalantirInterruptedException</span></code> if the original exception was either <code class="docutils literal"><span class="pre">InterruptedException</span></code> or <code class="docutils literal"><span class="pre">InterruptedIOException</span></code>.
 This reverts behaviour introduced in 0.67.0, where we instead threw <code class="docutils literal"><span class="pre">PalantirRuntimeException</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2702">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td><code class="docutils literal"><span class="pre">CassandraKeyValueServiceImpl.compactInternally</span></code> no longer logs an error when no compaction manager is configured.
-This message is instead logged once, when the KVS is instantiated.
+This message is instead logged once, when the CKVS is instantiated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2727">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixes the ability of deleting values from the Streaming Store when configured hash rowComponents.
-Previously, due to a deserialization bug, we’d not issue delete to the correct rows.
-If you think you’re affected by this bug, please contact the AtlasDB team to migrate off of this behavior.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2736">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
