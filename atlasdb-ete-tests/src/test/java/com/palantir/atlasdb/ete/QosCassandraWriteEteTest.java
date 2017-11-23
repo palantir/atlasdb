@@ -97,12 +97,13 @@ public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
         executorService.shutdown();
         Preconditions.checkState(executorService.awaitTermination(30L, TimeUnit.SECONDS),
                 "Read tasks did not finish in 30s");
-        long timeTakenToWriteInSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start);
+        long writeTime = System.nanoTime() - start;
 
         assertThatAllWritesWereSuccessful(futures);
-        long actualWriteRate = (numThreads * numWritesPerThread * oneTodoSizeInBytes) / timeTakenToWriteInSeconds;
-        assertThat(actualWriteRate).isLessThan(
-                writeBytesPerSecond + (writeBytesPerSecond / 10 /* to allow burst time */));
+        double actualBytesWritten = numThreads * numWritesPerThread * oneTodoSizeInBytes;
+        double maxReadBytesLimit = readBytesPerSecond * ((double) writeTime / TimeUnit.SECONDS.toNanos(1)
+                + 5 /* to allow for rate-limiter burst */);
+        assertThat(actualBytesWritten).isLessThan(maxReadBytesLimit);
     }
 
     private void assertThatAllWritesWereSuccessful(List<Future> futures) {

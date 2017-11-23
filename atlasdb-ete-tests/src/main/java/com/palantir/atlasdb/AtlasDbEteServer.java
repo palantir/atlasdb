@@ -79,11 +79,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
-            return createTransactionManager(config.getAtlasDbConfig(), environment, config.getAtlasDbRuntimeConfig());
+            return createTransactionManager(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment);
         } else {
-            return createTransactionManagerWithRetry(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(),
-                    environment
-            );
+            return createTransactionManagerWithRetry(config.getAtlasDbConfig(),
+                    config.getAtlasDbRuntimeConfig(),
+                    environment);
         }
     }
 
@@ -94,7 +94,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
             try {
-                return createTransactionManager(config, environment, atlasDbRuntimeConfig);
+                return createTransactionManager(config, atlasDbRuntimeConfig, environment);
             } catch (RuntimeException e) {
                 log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
@@ -103,8 +103,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
-    private TransactionManager createTransactionManager(AtlasDbConfig config, Environment environment,
-            Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional) {
+    private TransactionManager createTransactionManager(AtlasDbConfig config,
+            Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment) {
         return TransactionManagers.builder()
                 .config(config)
                 .schemas(ETE_SCHEMAS)

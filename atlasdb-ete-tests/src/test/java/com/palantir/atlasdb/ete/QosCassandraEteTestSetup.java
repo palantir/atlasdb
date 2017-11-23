@@ -56,11 +56,11 @@ import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 public class QosCassandraEteTestSetup {
     private static final Random random = new Random();
-    static SerializableTransactionManager serializableTransactionManager;
-    static final int readBytesPerSecond = 10_000;
-    static final int writeBytesPerSecond = 10_000;
+    protected static SerializableTransactionManager serializableTransactionManager;
+    protected static final int readBytesPerSecond = 10_000;
+    protected static final int writeBytesPerSecond = 10_000;
     private static final int CASSANDRA_PORT_NUMBER = 9160;
-    static final int MAX_SOFT_LIMITING_SLEEP_MILLIS = 2000;
+    protected static final int MAX_SOFT_LIMITING_SLEEP_MILLIS = 2000;
 
     @ClassRule
     public static DockerComposeRule docker = DockerComposeRule.builder()
@@ -76,7 +76,7 @@ public class QosCassandraEteTestSetup {
         ensureTransactionManagerIsCreated();
     }
 
-    static void ensureTransactionManagerIsCreated() {
+    protected static void ensureTransactionManagerIsCreated() {
         serializableTransactionManager = TransactionManagers.builder()
                 .config(getAtlasDbConfig())
                 .runtimeConfigSupplier(QosCassandraEteTestSetup::getAtlasDbRuntimeConfig)
@@ -90,7 +90,7 @@ public class QosCassandraEteTestSetup {
                 .until(serializableTransactionManager::isInitialized);
     }
 
-    static void writeNTodosOfSize(int numTodos, int size) {
+    protected static void writeNTodosOfSize(int numTodos, int size) {
         serializableTransactionManager.runTaskWithRetry((transaction) -> {
             Map<Cell, byte[]> write = new HashMap<>();
             for (int i = 0; i < numTodos; i++) {

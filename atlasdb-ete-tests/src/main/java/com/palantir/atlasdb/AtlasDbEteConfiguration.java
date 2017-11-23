@@ -29,7 +29,7 @@ public class AtlasDbEteConfiguration extends Configuration implements AtlasDbCon
     private final Optional<AtlasDbRuntimeConfig> atlasdbRuntime;
 
     public AtlasDbEteConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb,
-            @JsonProperty("atlasdbRuntime") Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig) {
+            @JsonProperty("atlasDbRuntime") Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig) {
         this.atlasdb = atlasdb;
         this.atlasdbRuntime = atlasDbRuntimeConfig;
     }

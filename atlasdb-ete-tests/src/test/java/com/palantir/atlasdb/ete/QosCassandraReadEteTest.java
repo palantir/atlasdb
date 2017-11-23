@@ -101,11 +101,14 @@ public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
         executorService.shutdown();
         Preconditions.checkState(executorService.awaitTermination(30L, TimeUnit.SECONDS),
                 "Read tasks did not finish in 30s");
-        long timeTakenToReadInSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start);
+        long readTime = System.nanoTime() - start;
 
         assertThatAllReadsWereSuccessful(futures, numReadsPerThread);
-        long actualReadRate = (numThreads * numReadsPerThread * ONE_TODO_SIZE_IN_BYTES) / timeTakenToReadInSeconds;
-        assertThat(actualReadRate).isLessThan(readBytesPerSecond + (readBytesPerSecond / 10 /* to allow burst time */));
+        double actualBytesRead = numThreads * numReadsPerThread * ONE_TODO_SIZE_IN_BYTES;
+        double maxReadBytesLimit = readBytesPerSecond * ((double) readTime / TimeUnit.SECONDS.toNanos(1)
+                + 5 /* to allow for rate-limiter burst */);
+
+        assertThat(actualBytesRead).isLessThan(maxReadBytesLimit);
     }
 
     private void assertThatAllReadsWereSuccessful(List<Future<List<Todo>>> futures, int numReadsPerThread) {
