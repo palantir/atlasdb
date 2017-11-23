@@ -1490,10 +1490,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             String kvsMethodName,
             TableReference tableRef,
             CandidateCellForSweepingRequest request) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.ALL, tableRef);
         return new CandidateRowsForSweepingIterator(
                 (iteratorTableRef, cells, maxTimestampExclusive) ->
                         get(kvsMethodName, iteratorTableRef, cells, maxTimestampExclusive),
-                newInstrumentedCqlExecutor(),
+                newInstrumentedCqlExecutor(), rowGetter,
                 tableRef, request);
     }
 

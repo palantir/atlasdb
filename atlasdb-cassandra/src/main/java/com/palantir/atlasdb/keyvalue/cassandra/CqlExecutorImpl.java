@@ -59,12 +59,15 @@ public class CqlExecutorImpl implements CqlExecutor {
     public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
             byte[] startRowInclusive,
+            byte[] endRowInclusive,
             int limit) {
-        String selQuery = "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;";
+        String selQuery = "SELECT key, column1, column2 FROM %s"
+                + " WHERE token(key) >= token(%s) AND token(key) <= token(%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
                 selQuery,
                 CqlQueryUtils.quotedTableName(tableRef),
                 CqlQueryUtils.key(startRowInclusive),
+                CqlQueryUtils.key(endRowInclusive),
                 CqlQueryUtils.limit(limit));
 
         return executeAndGetCells(query, startRowInclusive, CqlQueryUtils::getCellFromRow);

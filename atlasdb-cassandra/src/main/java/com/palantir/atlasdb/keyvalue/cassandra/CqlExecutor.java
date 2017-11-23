@@ -39,5 +39,6 @@ public interface CqlExecutor {
     List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
             byte[] startRowInclusive,
+            byte[] endRowInclusive,
             int limit);
 }
