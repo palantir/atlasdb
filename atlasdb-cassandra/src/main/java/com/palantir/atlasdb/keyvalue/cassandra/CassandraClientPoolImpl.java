@@ -67,7 +67,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -142,10 +144,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
 
-    final TokenRangeWritesLogger tokenRangeWritesLogger;
-
     private Blacklist blacklist = new Blacklist();
 
+    final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
@@ -160,36 +161,29 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
-            TokenRangeWritesLogger tokenRangeWritesLogger, StartupChecks startupChecks) {
-        return create(config, tokenRangeWritesLogger, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+            StartupChecks startupChecks) {
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config,
-            TokenRangeWritesLogger tokenRangeWritesLogger) {
-        return create(config, tokenRangeWritesLogger, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config,
-            TokenRangeWritesLogger tokenRangeWritesLogger, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = create(config, tokenRangeWritesLogger,
-                StartupChecks.RUN, initializeAsync);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+        CassandraClientPoolImpl cassandraClientPool = create(config, StartupChecks.RUN, initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
-    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
-            TokenRangeWritesLogger tokenRangeWritesLogger, StartupChecks startupChecks, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, tokenRangeWritesLogger,
-                startupChecks);
+    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config, StartupChecks startupChecks,
+            boolean initializeAsync) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
-    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config,
-            TokenRangeWritesLogger tokenRangeWritesLogger,
-            StartupChecks startupChecks) {
+    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
         this.startupChecks = startupChecks;
-        this.tokenRangeWritesLogger = tokenRangeWritesLogger;
         this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
@@ -243,6 +237,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return currentPools;
+    }
+
+    @Override
+    public <V> void markWritesForTable(Set<Entry<Cell, V>> entries, TableReference tableRef) {
+        tokenRangeWritesLogger.markWritesForTable(entries, tableRef);
     }
 
     private void registerAggregateMetrics() {

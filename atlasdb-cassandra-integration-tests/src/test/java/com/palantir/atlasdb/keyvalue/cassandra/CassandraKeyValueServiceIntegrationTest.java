@@ -143,8 +143,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testTokenRangeWritesLogger() {
         CassandraKeyValueServiceImpl kvs = (CassandraKeyValueServiceImpl) keyValueService;
+        CassandraClientPoolImpl clientPool = (CassandraClientPoolImpl) kvs.getClientPool();
+        TokenRangeWritesLogger tokenRangeWritesLogger = clientPool.tokenRangeWritesLogger;
 
-        kvs.tokenRangeWritesLogger.updateTokenRanges(ImmutableSet.of(
+        tokenRangeWritesLogger.updateTokenRanges(ImmutableSet.of(
                 Range.atMost(getToken("bcd")),
                 Range.openClosed(getToken("bcd"), getToken("ghi")),
                 Range.openClosed(getToken("ghi"), getToken("opq")),
@@ -161,18 +163,18 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 Cell.create(PtBytes.toBytes("zg"), column0), value0_t0,
                 Cell.create(PtBytes.toBytes("zz"), column0), value0_t0));
 
-        assertThat(kvs.tokenRangeWritesLogger.getNumberOfWritesTotal(TEST_TABLE), equalTo(5L));
-        assertWritesInRangeDefinedBy(1L, "a", kvs);
-        assertWritesInRangeDefinedBy(1L, "g", kvs);
-        assertWritesInRangeDefinedBy(3L, "z", kvs);
+        assertThat(tokenRangeWritesLogger.getNumberOfWritesTotal(TEST_TABLE), equalTo(5L));
+        assertWritesInRangeDefinedBy(1L, "a", tokenRangeWritesLogger);
+        assertWritesInRangeDefinedBy(1L, "g", tokenRangeWritesLogger);
+        assertWritesInRangeDefinedBy(3L, "z", tokenRangeWritesLogger);
     }
 
     private LightweightOppToken getToken(String name) {
         return new LightweightOppToken(PtBytes.toBytes(name));
     }
 
-    private void assertWritesInRangeDefinedBy(long number, String name, CassandraKeyValueServiceImpl kvs) {
-        assertThat(kvs.tokenRangeWritesLogger.getNumberOfWritesFromToken(TEST_TABLE, getToken(name)), equalTo(number));
+    private void assertWritesInRangeDefinedBy(long number, String name, TokenRangeWritesLogger tokenRangeWritesLogger) {
+        assertThat(tokenRangeWritesLogger.getNumberOfWritesFromToken(TEST_TABLE, getToken(name)), equalTo(number));
     }
 
     @Test

@@ -101,16 +101,10 @@ public final class TokenRangeWritesLogger {
 
         private synchronized void tryLog() {
             if (shouldLog()) {
-                long numWrites = totalWrites.get();
-                if (!exceedsThresholdOfWrites(numWrites)) {
-                    logNotEnoughWrites(numWrites);
-                    lastLoggedTime = System.currentTimeMillis();
-                    return;
-                }
                 if (distributionNotUniform()) {
                     logNotUniform();
                 } else {
-                    logUniform(numWrites);
+                    logUniform();
                 }
                 totalWrites.set(0);
                 lastLoggedTime = System.currentTimeMillis();
@@ -118,26 +112,14 @@ public final class TokenRangeWritesLogger {
         }
 
         private boolean shouldLog() {
-            return exceedsThresholdOfWrites(totalWrites.get())
-                    || (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
-        }
-
-        private boolean exceedsThresholdOfWrites(long numWrites) {
-            return numWrites > THRESHOLD_WRITES_PER_TABLE;
+            return totalWrites.get() > THRESHOLD_WRITES_PER_TABLE
+                    && (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
         }
 
         private boolean distributionNotUniform() {
             List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
                     .collect(Collectors.toList());
             return MathUtils.confidenceDistributionIsNotUniform(values) > CONFIDENCE_FOR_LOGGING;
-        }
-
-        private void logNotEnoughWrites(long numWrites) {
-            log.info("There were {} writes into the table {} since the last statistical analysis, which is less "
-                            + "than the required threshold of {} writes.",
-                    SafeArg.of("numberOfWrites", numWrites),
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("thresholdOfWrites", THRESHOLD_WRITES_PER_TABLE));
         }
 
         private void logNotUniform() {
@@ -147,10 +129,10 @@ public final class TokenRangeWritesLogger {
                     SafeArg.of("writesPerTokenRange", CassandraLogHelper.tokenRangesToWrites(writesPerRange)));
         }
 
-        private void logUniform(long numWrites) {
+        private void logUniform() {
             log.info("There were at least {} writes into the table {} since the last statistical analysis. The "
                             + "distribution of writes over token ranges does not appear to be skewed.",
-                    SafeArg.of("numberOfWrites", numWrites),
+                    SafeArg.of("numberOfWrites", totalWrites.get()),
                     LoggingArgs.tableRef(tableRef));
         }
 

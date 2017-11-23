@@ -212,9 +212,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    @VisibleForTesting
-    TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
-
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
@@ -259,8 +256,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), tokenRangeWritesLogger,
-                initializeAsync);
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -1013,7 +1009,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 tableRef,
                                 entry.getValue().entrySet(),
                                 ttl);
-                        tokenRangeWritesLogger.markWritesForTable(entry.getValue().entrySet(), tableRef);
+                        clientPool.markWritesForTable(entry.getValue().entrySet(), tableRef);
                         return null;
                     }));
         }
@@ -2131,7 +2127,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 ImmutableList.of(e.getKey()));
                     }
                 }
-                tokenRangeWritesLogger.markWritesForTable(values.entrySet(), tableRef);
+                clientPool.markWritesForTable(values.entrySet(), tableRef);
                 return null;
             });
         } catch (Exception e) {
