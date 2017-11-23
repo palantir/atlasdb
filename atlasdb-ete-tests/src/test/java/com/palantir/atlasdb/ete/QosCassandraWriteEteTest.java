@@ -76,6 +76,11 @@ public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
         assertThatThrownBy(() -> writeNTodosOfSize(200, 10_000))
                 .isInstanceOf(RateLimitExceededException.class)
                 .hasMessage("Rate limited. Available capacity has been exhausted.");
+
+        // One write smaller than the rate limit should also be rate limited.
+        assertThatThrownBy(() -> writeNTodosOfSize(5, 10))
+                .isInstanceOf(RateLimitExceededException.class)
+                .hasMessage("Rate limited. Available capacity has been exhausted.");
     }
 
     @Test

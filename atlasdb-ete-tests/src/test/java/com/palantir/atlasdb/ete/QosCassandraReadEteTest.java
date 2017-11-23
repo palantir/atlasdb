@@ -81,6 +81,11 @@ public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
         assertThatThrownBy(() -> readOneBatchOfSize(200))
                 .isInstanceOf(RateLimitExceededException.class)
                 .hasMessage("Rate limited. Available capacity has been exhausted.");
+
+        // TODO(hsaraogi): This should not happen.
+        assertThatThrownBy(() -> readOneBatchOfSize(1))
+                .isInstanceOf(RateLimitExceededException.class)
+                .hasMessage("Rate limited. Available capacity has been exhausted.");
     }
 
     @Test
