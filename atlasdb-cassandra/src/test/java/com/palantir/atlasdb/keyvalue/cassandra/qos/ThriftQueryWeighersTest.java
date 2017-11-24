@@ -54,8 +54,9 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1)).estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2)).estimate()
+        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1),
+                false).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2), false).estimate()
                 .numBytes();
 
         assertThat(numBytesWithOneRow).isGreaterThan(0L);
@@ -68,7 +69,7 @@ public class ThriftQueryWeighersTest {
                 BYTES1, ImmutableList.of(COLUMN_OR_SUPER, COLUMN_OR_SUPER),
                 BYTES2, ImmutableList.of(COLUMN_OR_SUPER));
 
-        long actualNumRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1))
+        long actualNumRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), false)
                 .weighSuccess(result, TIME_TAKEN)
                 .numDistinctRows();
 
@@ -77,8 +78,8 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void rangeSlicesWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(new KeyRange(1)).estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(2)).estimate().numBytes();
+        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false).estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(2), false).estimate().numBytes();
 
         assertThat(numBytesWithOneRow).isGreaterThan(0L);
         assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
@@ -88,7 +89,7 @@ public class ThriftQueryWeighersTest {
     public void rangeSlicesWeigherReturnsCorrectNumRows() {
         List<KeySlice> result = ImmutableList.of(KEY_SLICE, KEY_SLICE, KEY_SLICE);
 
-        long actualNumRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(1)).weighSuccess(result, TIME_TAKEN)
+        long actualNumRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false).weighSuccess(result, TIME_TAKEN)
                 .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(3);
@@ -96,7 +97,7 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void getWeigherReturnsCorrectNumRows() {
-        long actualNumRows = ThriftQueryWeighers.GET.weighSuccess(COLUMN_OR_SUPER, TIME_TAKEN).numDistinctRows();
+        long actualNumRows = ThriftQueryWeighers.get(false).weighSuccess(COLUMN_OR_SUPER, TIME_TAKEN).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(1);
     }
@@ -126,7 +127,7 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1))
+        QueryWeight weight = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), false)
                 .weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
@@ -134,14 +135,14 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void getWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.GET.weighFailure(new RuntimeException(), TIME_TAKEN);
+        QueryWeight weight = ThriftQueryWeighers.get(false).weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
     }
 
     @Test
     public void getRangeSlicesWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.getRangeSlices(new KeyRange(1))
+        QueryWeight weight = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false)
                 .weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);

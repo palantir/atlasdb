@@ -50,24 +50,35 @@ public final class ThriftQueryWeighers {
             .timeTakenNanos(TimeUnit.MILLISECONDS.toNanos(2))
             .build();
 
+    static final QueryWeight ZERO_ESTIMATED_WEIGHT = ImmutableQueryWeight.builder()
+            .numBytes(0)
+            .numDistinctRows(1)
+            .timeTakenNanos(TimeUnit.MILLISECONDS.toNanos(1))
+            .build();
+
     private ThriftQueryWeighers() { }
 
-    static QosClient.QueryWeigher<Map<ByteBuffer, List<ColumnOrSuperColumn>>> multigetSlice(List<ByteBuffer> keys) {
-        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size, keys.size());
+    static QosClient.QueryWeigher<Map<ByteBuffer, List<ColumnOrSuperColumn>>> multigetSlice(List<ByteBuffer> keys,
+            boolean zeroEstimate) {
+        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size, keys.size(), zeroEstimate);
     }
 
-    static QosClient.QueryWeigher<List<KeySlice>> getRangeSlices(KeyRange keyRange) {
-        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size, keyRange.count);
+    static QosClient.QueryWeigher<List<KeySlice>> getRangeSlices(KeyRange keyRange, boolean zeroEstimate) {
+        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size, keyRange.count,
+                zeroEstimate);
     }
 
-    static final QosClient.QueryWeigher<ColumnOrSuperColumn> GET =
-            readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1, 1);
+    static QosClient.QueryWeigher<ColumnOrSuperColumn> get(boolean zeroEstimate) {
+        return readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1, 1, zeroEstimate);
+    }
 
     static final QosClient.QueryWeigher<CqlResult> EXECUTE_CQL3_QUERY =
             // TODO(nziebart): we need to inspect the schema to see how many rows there are - a CQL row is NOT a
             // partition. rows here will depend on the type of query executed in CqlExecutor: either (column, ts) pairs,
             // or (key, column, ts) triplets
-            readWeigher(ThriftObjectSizeUtils::getCqlResultSize, ignored -> 1, 1);
+            // Currently, transaction or metadata table queries dont use the CQL executor,
+            // but we should provide a way to estimate zero based on the tableRef if they do start using it.
+            readWeigher(ThriftObjectSizeUtils::getCqlResultSize, ignored -> 1, 1, false);
 
     static QosClient.QueryWeigher<Void> batchMutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
         long numRows = mutationMap.size();
@@ -75,10 +86,13 @@ public final class ThriftQueryWeighers {
     }
 
     private static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead, Function<T, Integer> numRows,
-            int numberOfQueriedRows) {
+            int numberOfQueriedRows, boolean zeroEstimate) {
         return new QosClient.QueryWeigher<T>() {
             @Override
             public QueryWeight estimate() {
+                if (zeroEstimate) {
+                    return ZERO_ESTIMATED_WEIGHT;
+                }
                 return ImmutableQueryWeight.builder()
                         .from(DEFAULT_ESTIMATED_WEIGHT)
                         .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)

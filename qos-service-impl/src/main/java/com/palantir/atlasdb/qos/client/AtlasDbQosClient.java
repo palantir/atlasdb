@@ -73,8 +73,10 @@ public class AtlasDbQosClient implements QosClient {
         estimatedWeightMetric.ifPresent(metric -> metric.accept(estimatedWeight));
 
         try {
-            Duration waitTime = rateLimiter.consumeWithBackoff(estimatedWeight.numBytes());
-            metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
+            if (estimatedWeight.numBytes() > 0) {
+                Duration waitTime = rateLimiter.consumeWithBackoff(estimatedWeight.numBytes());
+                metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
+            }
         } catch (RateLimitExceededException ex) {
             metrics.recordRateLimitedException();
             throw ex;
