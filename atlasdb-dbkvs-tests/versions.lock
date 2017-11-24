@@ -563,8 +563,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "javax.validation:validation-api": {
@@ -1268,8 +1267,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "javax.validation:validation-api": {

@@ -459,8 +459,7 @@
             "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "javax.validation:validation-api": {
@@ -1036,8 +1035,7 @@
             "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "javax.validation:validation-api": {

@@ -630,7 +630,6 @@
             "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-registry",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -1857,7 +1856,6 @@
             "locked": "3.2.3",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-registry",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",

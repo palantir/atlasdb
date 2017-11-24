@@ -600,8 +600,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
@@ -1317,8 +1316,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.2.3",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.tritium:tritium-registry"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
