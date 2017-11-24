@@ -37,7 +37,7 @@ public class AtlasDbMetricsTest {
     private static final String PING_RESPONSE = "pong";
 
     private static final MetricRegistry metricRegistry = mock(MetricRegistry.class);
-    private static final TaggedMetricRegistry taggedMetrics = mock(TaggedMetricRegistry.class);
+    private static final TaggedMetricRegistry taggedMetricRegistry = mock(TaggedMetricRegistry.class);
 
     @Rule
     public MetricsRule metricsRule = new MetricsRule();
@@ -62,14 +62,19 @@ public class AtlasDbMetricsTest {
 
     @Test
     public void metricsAreNotDefaultWhenSet() {
-        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetrics);
+        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetricRegistry);
         assertThat(AtlasDbMetrics.getMetricRegistry(), is(equalTo(metricRegistry)));
-        assertThat(AtlasDbMetrics.getTaggedMetricRegistry(), is(equalTo(taggedMetrics)));
+        assertThat(AtlasDbMetrics.getTaggedMetricRegistry(), is(equalTo(taggedMetricRegistry)));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullCannotBeSet() {
+        AtlasDbMetrics.setMetricRegistries(null, null);
     }
 
     @Test(expected = NullPointerException.class)
     public void nullMetricsCannotBeSet() {
-        AtlasDbMetrics.setMetricRegistries(null, taggedMetrics);
+        AtlasDbMetrics.setMetricRegistries(null, taggedMetricRegistry);
     }
 
     @Test(expected = NullPointerException.class)
@@ -82,9 +87,7 @@ public class AtlasDbMetricsTest {
         MetricRegistry metrics = setMetricRegistry();
         TestService service = AtlasDbMetrics.instrument(TestService.class, () -> PING_RESPONSE);
 
-        String methodTimerName = MetricRegistry.name(TestService.class, PING_REQUEST);
-
-        assertMetricCountIncrementsAfterPing(metrics, service, methodTimerName);
+        assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(TestService.class, PING_REQUEST));
     }
 
     @Test
@@ -92,13 +95,12 @@ public class AtlasDbMetricsTest {
         MetricRegistry metrics = setMetricRegistry();
         TestService service = AtlasDbMetrics.instrument(TestService.class, () -> PING_RESPONSE, CUSTOM_METRIC_NAME);
 
-        String methodTimerName = MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST);
-
-        assertMetricCountIncrementsAfterPing(metrics, service, methodTimerName);
+        assertMetricCountIncrementsAfterPing(metrics, service, MetricRegistry.name(CUSTOM_METRIC_NAME, PING_REQUEST));
     }
 
     private MetricRegistry setMetricRegistry() {
         MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
+        TaggedMetricRegistry taggedMetrics = DefaultTaggedMetricRegistry.getDefault();
         AtlasDbMetrics.setMetricRegistries(metrics, taggedMetrics);
         return metrics;
     }
@@ -117,5 +119,4 @@ public class AtlasDbMetricsTest {
     public interface TestService {
         String ping();
     }
-
 }

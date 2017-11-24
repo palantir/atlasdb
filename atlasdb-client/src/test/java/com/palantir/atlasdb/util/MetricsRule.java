@@ -28,7 +28,7 @@ public class MetricsRule extends ExternalResource {
     protected void before() throws Throwable {
         super.before();
         AtlasDbMetrics.setMetricRegistries(MetricRegistries.createWithHdrHistogramReservoirs(),
-                DefaultTaggedMetricRegistry.getDefault());
+                new DefaultTaggedMetricRegistry());
     }
 
     @Override
