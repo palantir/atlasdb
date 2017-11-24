@@ -3,11 +3,21 @@ package com.palantir.atlasdb.protos.generated;
 message SchemaMetadata {
     // Using this rather than map, to avoid introducing a dependency on proto3
     // TODO (jkong): Eventually coordinate a shift to proto3
-    repeated SchemaDependentTableMetadata tableMetadata = 1;
+    repeated SchemaDependentTableMetadataEntry tableMetadata = 1;
+}
+
+message SchemaDependentTableMetadataEntry {
+    optional TableReference tableReference = 1;
+    optional SchemaDependentTableMetadata cleanupRequirement = 2;
 }
 
 message SchemaDependentTableMetadata {
     optional CleanupRequirement cleanupRequirement = 1;
+}
+
+message TableReference {
+    optional string namespace = 1;
+    optional string tableName = 2;
 }
 
 enum CleanupRequirement {
