@@ -19,17 +19,13 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -41,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -57,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.WeightedHosts;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.common.base.FunctionCheckedException;
@@ -615,66 +611,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner() {
         return CassandraUtils.getValidatePartitioner(config);
-    }
-
-    /**
-     * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
-     * pick a random host
-     */
-    @VisibleForTesting
-    static final class WeightedHosts {
-        final NavigableMap<Integer, InetSocketAddress> hosts;
-
-        private WeightedHosts(NavigableMap<Integer, InetSocketAddress> hosts) {
-            this.hosts = hosts;
-        }
-
-        static WeightedHosts create(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
-            Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
-            return new WeightedHosts(buildHostsWeightedByActiveConnections(pools));
-        }
-
-        /**
-         * The key for a host is the open upper bound of the weight. Since the domain is intended to be contiguous, the
-         * closed lower bound of that weight is the key of the previous entry.
-         * <p>
-         * The closed lower bound of the first entry is 0.
-         * <p>
-         * Every weight is guaranteed to be non-zero in size. That is, every key is guaranteed to be at least one larger
-         * than the previous key.
-         */
-        private static NavigableMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
-                Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
-
-            Map<InetSocketAddress, Integer> openRequestsByHost = new HashMap<>(pools.size());
-            int totalOpenRequests = 0;
-            for (Entry<InetSocketAddress, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
-                int openRequests = Math.max(poolEntry.getValue().getOpenRequests(), 0);
-                openRequestsByHost.put(poolEntry.getKey(), openRequests);
-                totalOpenRequests += openRequests;
-            }
-
-            int lowerBoundInclusive = 0;
-            NavigableMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
-            for (Entry<InetSocketAddress, Integer> entry : openRequestsByHost.entrySet()) {
-                // We want the weight to be inversely proportional to the number of open requests so that we pick
-                // less-active hosts. We add 1 to make sure that all ranges are non-empty
-                int weight = totalOpenRequests - entry.getValue() + 1;
-                weightedHosts.put(lowerBoundInclusive + weight, entry.getKey());
-                lowerBoundInclusive += weight;
-            }
-            return weightedHosts;
-        }
-
-        InetSocketAddress getRandomHost() {
-            int index = ThreadLocalRandom.current().nextInt(hosts.lastKey());
-            return getRandomHostInternal(index);
-        }
-
-        // This basically exists for testing
-        InetSocketAddress getRandomHostInternal(int index) {
-            return hosts.higherEntry(index).getValue();
-        }
     }
 
     @VisibleForTesting
