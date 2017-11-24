@@ -41,10 +41,10 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
+import com.palantir.atlasdb.keyvalue.cassandra.HiddenTables;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -53,7 +53,7 @@ public class QosCassandraClient implements CassandraClient {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
     private static final Function<TableReference, Boolean> ZERO_ESTIMATE_DETERMINING_FUNCTION = tRef ->
-            tRef.equals(TransactionConstants.TRANSACTION_TABLE) || tRef.equals(AtlasDbConstants.DEFAULT_METADATA_TABLE);
+            tRef.equals(TransactionConstants.TRANSACTION_TABLE) || new HiddenTables().isHidden(tRef);
 
     private final CassandraClient client;
     private final QosClient qosClient;

@@ -52,26 +52,16 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        assertThatEstimatesAreCorrect(false);
+        assertThatEstimatesAreCorrect(false,
+                ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), false),
+                ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2), false));
     }
 
     @Test
     public void multigetSliceWithZeroEstimateWeigherEstimatesZeroNumberOfBytes() {
-        assertThatEstimatesAreCorrect(true);
-    }
-
-    private void assertThatEstimatesAreCorrect(boolean zeroEstimate) {
-        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), zeroEstimate)
-                .estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2), zeroEstimate)
-                .estimate().numBytes();
-
-        if (zeroEstimate) {
-            assertThat(numBytesWithOneRow).isEqualTo(0L);
-        } else {
-            assertThat(numBytesWithOneRow).isGreaterThan(0L);
-        }
-        assertThat(numBytesWithTwoRows).isEqualTo(zeroEstimate ? 0L : numBytesWithOneRow * 2);
+        assertThatEstimatesAreCorrect(true,
+                ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), true),
+                ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2), true));
     }
 
     @Test
@@ -97,19 +87,23 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void rangeSlicesWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        assertThatEstimatesAreCorrectForRangeSlices(false);
+        assertThatEstimatesAreCorrect(false,
+                ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false),
+                ThriftQueryWeighers.getRangeSlices(new KeyRange(2), false));
     }
 
     @Test
     public void rangeSlicesWeigherWithZeroEstimateEstimatesZeroNumberOfBytes() {
-        assertThatEstimatesAreCorrectForRangeSlices(true);
+        assertThatEstimatesAreCorrect(true,
+                ThriftQueryWeighers.getRangeSlices(new KeyRange(1), true),
+                ThriftQueryWeighers.getRangeSlices(new KeyRange(2), true));
     }
 
-    private void assertThatEstimatesAreCorrectForRangeSlices(boolean zeroEstimate) {
-        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), zeroEstimate)
-                .estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(2), zeroEstimate)
-                .estimate().numBytes();
+    private void assertThatEstimatesAreCorrect(boolean zeroEstimate,
+            QosClient.QueryWeigher queryWeigherOneRow,
+            QosClient.QueryWeigher queryWeigherTwoRows) {
+        long numBytesWithOneRow = queryWeigherOneRow.estimate().numBytes();
+        long numBytesWithTwoRows = queryWeigherTwoRows.estimate().numBytes();
 
         if (zeroEstimate) {
             assertThat(numBytesWithOneRow).isEqualTo(0L);
@@ -121,11 +115,11 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void rangeSlicesWeigherReturnsCorrectNumRows() {
-        assertThatrangeSlicesWeigherReturnsCorrectNumRows(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false));
-        assertThatrangeSlicesWeigherReturnsCorrectNumRows(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), true));
+        assertThatRangeSlicesWeigherReturnsCorrectNumRows(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false));
+        assertThatRangeSlicesWeigherReturnsCorrectNumRows(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), true));
     }
 
-    private void assertThatrangeSlicesWeigherReturnsCorrectNumRows(
+    private void assertThatRangeSlicesWeigherReturnsCorrectNumRows(
             QosClient.QueryWeigher<List<KeySlice>> weigher) {
         List<KeySlice> result = ImmutableList.of(KEY_SLICE, KEY_SLICE, KEY_SLICE);
 

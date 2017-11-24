@@ -60,16 +60,23 @@ public final class ThriftQueryWeighers {
 
     static QosClient.QueryWeigher<Map<ByteBuffer, List<ColumnOrSuperColumn>>> multigetSlice(List<ByteBuffer> keys,
             boolean zeroEstimate) {
-        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size, keys.size(), zeroEstimate);
+        return zeroEstimate
+                ? readWeigherWithZeroEstimate(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size,
+                keys.size())
+                : readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfColsByKey, Map::size, keys.size());
     }
 
     static QosClient.QueryWeigher<List<KeySlice>> getRangeSlices(KeyRange keyRange, boolean zeroEstimate) {
-        return readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size, keyRange.count,
-                zeroEstimate);
+        return zeroEstimate
+                ? readWeigherWithZeroEstimate(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size,
+                keyRange.count)
+                : readWeigher(ThriftObjectSizeUtils::getApproximateSizeOfKeySlices, List::size, keyRange.count);
     }
 
     static QosClient.QueryWeigher<ColumnOrSuperColumn> get(boolean zeroEstimate) {
-        return readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1, 1, zeroEstimate);
+        return zeroEstimate
+                ? readWeigherWithZeroEstimate(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1, 1)
+                : readWeigher(ThriftObjectSizeUtils::getColumnOrSuperColumnSize, ignored -> 1, 1);
     }
 
     static final QosClient.QueryWeigher<CqlResult> EXECUTE_CQL3_QUERY =
@@ -78,22 +85,20 @@ public final class ThriftQueryWeighers {
             // or (key, column, ts) triplets
             // Currently, transaction or metadata table queries dont use the CQL executor,
             // but we should provide a way to estimate zero based on the tableRef if they do start using it.
-            readWeigher(ThriftObjectSizeUtils::getCqlResultSize, ignored -> 1, 1, false);
+            readWeigher(ThriftObjectSizeUtils::getCqlResultSize, ignored -> 1, 1);
 
     static QosClient.QueryWeigher<Void> batchMutate(Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap) {
         long numRows = mutationMap.size();
         return writeWeigher(numRows, () -> ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(mutationMap));
     }
 
-    private static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead, Function<T, Integer> numRows,
-            int numberOfQueriedRows, boolean zeroEstimate) {
+    private static <T> QosClient.QueryWeigher<T> readWeigherWithZeroEstimate(Function<T, Long> bytesRead,
+            Function<T, Integer> numRows,
+            int numberOfQueriedRows) {
         return new QosClient.QueryWeigher<T>() {
             @Override
             public QueryWeight estimate() {
-                if (zeroEstimate) {
-                    return ZERO_ESTIMATED_WEIGHT;
-                }
-                return defaultEstimate();
+                return ZERO_ESTIMATED_WEIGHT;
             }
 
             @Override
@@ -108,15 +113,40 @@ public final class ThriftQueryWeighers {
             @Override
             public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
-                        .from(defaultEstimate())
+                        .from(DEFAULT_ESTIMATED_WEIGHT)
+                        .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)
                         .timeTakenNanos(timeTakenNanos)
                         .build();
             }
+        };
+    }
 
-            private ImmutableQueryWeight defaultEstimate() {
+    private static <T> QosClient.QueryWeigher<T> readWeigher(Function<T, Long> bytesRead,
+            Function<T, Integer> numRows,
+            int numberOfQueriedRows) {
+        return new QosClient.QueryWeigher<T>() {
+            @Override
+            public QueryWeight estimate() {
                 return ImmutableQueryWeight.builder()
                         .from(DEFAULT_ESTIMATED_WEIGHT)
                         .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)
+                        .build();
+            }
+
+            @Override
+            public QueryWeight weighSuccess(T result, long timeTakenNanos) {
+                return ImmutableQueryWeight.builder()
+                        .numBytes(safeGetNumBytesOrDefault(() -> bytesRead.apply(result)))
+                        .timeTakenNanos(timeTakenNanos)
+                        .numDistinctRows(numRows.apply(result))
+                        .build();
+            }
+
+            @Override
+            public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
+                return ImmutableQueryWeight.builder()
+                        .from(estimate())
+                        .timeTakenNanos(timeTakenNanos)
                         .build();
             }
         };
