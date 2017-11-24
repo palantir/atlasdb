@@ -20,6 +20,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -29,11 +30,17 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private QueryExecutor queryExecutor;
@@ -63,11 +70,11 @@ public class CqlExecutorImpl implements CqlExecutor {
         String selQuery = "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
                 selQuery,
-                CqlQueryUtils.quotedTableName(tableRef),
-                CqlQueryUtils.key(startRowInclusive),
-                CqlQueryUtils.limit(limit));
+                quotedTableName(tableRef),
+                key(startRowInclusive),
+                limit(limit));
 
-        return executeAndGetCells(query, startRowInclusive, CqlQueryUtils::getCellFromRow);
+        return executeAndGetCells(query, startRowInclusive, CqlExecutorImpl::getCellFromRow);
     }
 
     /**
@@ -85,14 +92,14 @@ public class CqlExecutorImpl implements CqlExecutor {
         String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
                 selQuery,
-                CqlQueryUtils.quotedTableName(tableRef),
-                CqlQueryUtils.key(row),
-                CqlQueryUtils.column1(startColumnInclusive),
-                CqlQueryUtils.column2(invertedTimestamp),
-                CqlQueryUtils.limit(limit));
+                quotedTableName(tableRef),
+                key(row),
+                column1(startColumnInclusive),
+                column2(invertedTimestamp),
+                limit(limit));
 
         return executeAndGetCells(query, row,
-                result -> CqlQueryUtils.getCellFromKeylessRow(result, row));
+                result -> getCellFromKeylessRow(result, row));
     }
 
     private List<CellWithTimestamp> executeAndGetCells(
@@ -100,7 +107,58 @@ public class CqlExecutorImpl implements CqlExecutor {
             byte[] rowHintForHostSelection,
             Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
         CqlResult cqlResult = queryExecutor.execute(query, rowHintForHostSelection);
-        return CqlQueryUtils.getCells(cellTsExtractor, cqlResult);
+        return getCells(cellTsExtractor, cqlResult);
+    }
+
+    private static CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
+        byte[] rowName = key;
+        byte[] columnName = row.getColumns().get(0).getValue();
+        long timestamp = extractTimestamp(row, 1);
+
+        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
+    }
+
+    private static CellWithTimestamp getCellFromRow(CqlRow row) {
+        byte[] rowName = row.getColumns().get(0).getValue();
+        byte[] columnName = row.getColumns().get(1).getValue();
+        long timestamp = extractTimestamp(row, 2);
+
+        return CellWithTimestamp.of(Cell.create(rowName, columnName), timestamp);
+    }
+
+    private static long extractTimestamp(CqlRow row, int columnIndex) {
+        byte[] flippedTimestampAsBytes = row.getColumns().get(columnIndex).getValue();
+        return ~PtBytes.toLong(flippedTimestampAsBytes);
+    }
+
+    private static Arg<String> key(byte[] row) {
+        return UnsafeArg.of("key", CassandraKeyValueServices.encodeAsHex(row));
+    }
+
+    private static Arg<String> column1(byte[] column) {
+        return UnsafeArg.of("column1", CassandraKeyValueServices.encodeAsHex(column));
+    }
+
+    private static Arg<Long> column2(long invertedTimestamp) {
+        return SafeArg.of("column2", invertedTimestamp);
+    }
+
+    private static Arg<Long> limit(long limit) {
+        return SafeArg.of("limit", limit);
+    }
+
+    private static Arg<String> quotedTableName(TableReference tableRef) {
+        String tableNameWithQuotes = "\"" + CassandraKeyValueServiceImpl.internalTableName(tableRef) + "\"";
+        return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
+    }
+
+    private static List<CellWithTimestamp> getCells(Function<CqlRow,
+            CellWithTimestamp> cellTsExtractor,
+            CqlResult cqlResult) {
+        return cqlResult.getRows()
+                .stream()
+                .map(cellTsExtractor)
+                .collect(Collectors.toList());
     }
 
     private static class QueryExecutorImpl implements QueryExecutor {
@@ -125,18 +183,11 @@ public class CqlExecutorImpl implements CqlExecutor {
             try {
                 return clientPool.runWithRetryOnHost(host, createCqlFunction(cqlQuery));
             } catch (UnavailableException e) {
-                throw wrapIfConsistencyAll(e);
+                throw new InsufficientConsistencyException(
+                        "The query [" + cqlQuery.queryFormat + "] requires consistency " + consistency,
+                        e);
             } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-        }
-
-        private RuntimeException wrapIfConsistencyAll(UnavailableException ex) {
-            if (consistency.equals(ConsistencyLevel.ALL)) {
-                throw new InsufficientConsistencyException("This operation requires all Cassandra"
-                        + " nodes to be up and available.", ex);
-            } else {
-                throw Throwables.throwUncheckedException(ex);
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
         }
 
