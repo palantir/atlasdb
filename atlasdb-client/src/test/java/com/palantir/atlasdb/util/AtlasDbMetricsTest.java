@@ -26,7 +26,6 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
-import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -46,7 +45,6 @@ public class AtlasDbMetricsTest {
 
     @Test
     public void metricsIsDefaultWhenNotSet() {
-        AtlasDbMetrics.metrics.set(null);
         assertThat(AtlasDbMetrics.getMetricRegistry(),
                 is(equalTo(SharedMetricRegistries.getOrCreate(AtlasDbMetrics.DEFAULT_REGISTRY_NAME))));
     }
@@ -61,7 +59,7 @@ public class AtlasDbMetricsTest {
 
     @Test(expected = NullPointerException.class)
     public void nullMetricsCannotBeSet() {
-        AtlasDbMetrics.setMetricRegistries(null, null);
+        AtlasDbMetrics.setMetricRegistries(null, new DefaultTaggedMetricRegistry());
     }
 
     @Test(expected = NullPointerException.class)

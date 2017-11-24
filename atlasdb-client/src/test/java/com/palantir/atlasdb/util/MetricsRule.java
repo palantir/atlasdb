@@ -39,6 +39,7 @@ public class MetricsRule extends ExternalResource {
             ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics).build();
             reporter.report();
             reporter.close();
+            SharedMetricRegistries.remove("AtlasDbTest");
         }
     }
 

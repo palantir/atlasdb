@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import com.codahale.metrics.MetricRegistry;
@@ -44,7 +45,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
-        MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate("AtlasDbTest");
+        MetricRegistry metricRegistry = SharedMetricRegistries
+                .getOrCreate("AtlasDbTest" + UUID.randomUUID().toString());
         TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
         AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetricRegistry);
         bootstrap.setMetricRegistry(metricRegistry);

@@ -162,7 +162,7 @@ public class TransactionManagersTest {
     public void setup() throws JsonProcessingException {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
-        TransactionManagers.runAsync = task -> Awaitility.await().atMost(2, TimeUnit.SECONDS).untilAsserted(task::run);
+        TransactionManagers.runAsync = task -> Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(task::run);
 
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
