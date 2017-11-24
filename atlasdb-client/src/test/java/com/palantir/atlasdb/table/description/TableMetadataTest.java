@@ -18,9 +18,13 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.function.Predicate;
+
 import org.junit.Test;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CleanupRequirement;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
@@ -96,13 +100,42 @@ public class TableMetadataTest {
         assertCanSerializeAndDeserializeWithSafety(NAME_NOT_LOGGABLE_TABLE_METADATA, LogSafety.UNSAFE);
     }
 
+    @Test
+    public void cleanupRequirementIsArbitrarySyncByDefault() {
+        assertThat(DEFAULT_TABLE_METADATA.getCleanupRequirement()).isEqualTo(CleanupRequirement.ARBITRARY_SYNC);
+    }
+
+    @Test
+    public void cleanupRequirementIsArbitrarySyncIfMetadataIsOnlyLightlySpecified() {
+        assertThat(LIGHTLY_SPECIFIED_TABLE_METADATA.getCleanupRequirement())
+                .isEqualTo(CleanupRequirement.ARBITRARY_SYNC);
+    }
+
+    @Test
+    public void canSerializeAndDeserializeWithSpecifiedCleanupRequirement() {
+        Arrays.stream(CleanupRequirement.values())
+                .forEach(requirement -> {
+                    TableMetadata tableMetadata = createWithSpecifiedCleanupRequiremnt(requirement);
+                    assertCanSerializeAndDeserializeSatisfyingPredicate(
+                            tableMetadata,
+                            description -> description.getCleanupRequirement() == requirement);
+                });
+    }
+
     private static void assertCanSerializeAndDeserializeWithSafety(
             TableMetadata tableMetadata,
             LogSafety logSafety) {
+        assertCanSerializeAndDeserializeSatisfyingPredicate(tableMetadata,
+                description -> description.getNameLogSafety() == logSafety);
+    }
+
+    private static void assertCanSerializeAndDeserializeSatisfyingPredicate(
+            TableMetadata tableMetadata,
+            Predicate<TableMetadata> predicate) {
         TableMetadataPersistence.TableMetadata.Builder builder = tableMetadata.persistToProto();
         assertThat(TableMetadata.hydrateFromProto(builder.build()))
                 .isEqualTo(tableMetadata)
-                .matches(description -> description.getNameLogSafety() == logSafety);
+                .matches(predicate);
     }
 
     private static TableMetadata createWithSpecifiedLogSafety(LogSafety logSafety) {
@@ -119,5 +152,22 @@ public class TableMetadataTest {
                 TableMetadataPersistence.ExpirationStrategy.NEVER,
                 false,
                 logSafety);
+    }
+
+    private static TableMetadata createWithSpecifiedCleanupRequiremnt(CleanupRequirement cleanupRequirement) {
+        return new TableMetadata(
+                NAME_METADATA_DESCRIPTION,
+                COLUMN_METADATA_DESCRIPTION,
+                CONFLICT_HANDLER,
+                TableMetadataPersistence.CachePriority.WARM,
+                TableMetadataPersistence.PartitionStrategy.ORDERED,
+                false,
+                0,
+                false,
+                TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
+                TableMetadataPersistence.ExpirationStrategy.NEVER,
+                false,
+                LogSafety.UNSAFE,
+                cleanupRequirement);
     }
 }

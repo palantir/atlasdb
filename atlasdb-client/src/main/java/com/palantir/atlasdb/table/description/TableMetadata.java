@@ -336,7 +336,7 @@ public class TableMetadata implements Persistable {
         result = prime * result + sweepStrategy.hashCode();
         result = prime * result + (appendHeavyAndReadLight ? 0 : 1);
         result = prime * result + nameLogSafety.hashCode(); // Nonnull, because it has a default value
-        result = prime * result + cleanupRequirement.hashCode();
+        result = prime * result + ((cleanupRequirement == null) ? 0 : cleanupRequirement.hashCode());
         return result;
     }
 
