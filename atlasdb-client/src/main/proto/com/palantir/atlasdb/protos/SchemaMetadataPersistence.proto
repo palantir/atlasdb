@@ -8,7 +8,7 @@ message SchemaMetadata {
 
 message SchemaDependentTableMetadataEntry {
     optional TableReference tableReference = 1;
-    optional SchemaDependentTableMetadata cleanupRequirement = 2;
+    optional SchemaDependentTableMetadata schemaDependentTableMetadata = 2;
 }
 
 message SchemaDependentTableMetadata {

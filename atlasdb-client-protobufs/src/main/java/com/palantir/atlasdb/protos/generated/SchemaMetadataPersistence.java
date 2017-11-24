@@ -982,17 +982,17 @@ public final class SchemaMetadataPersistence {
     com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.TableReferenceOrBuilder getTableReferenceOrBuilder();
 
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
      */
-    boolean hasCleanupRequirement();
+    boolean hasSchemaDependentTableMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
      */
-    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getCleanupRequirement();
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getSchemaDependentTableMetadata();
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
      */
-    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder getCleanupRequirementOrBuilder();
+    com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder getSchemaDependentTableMetadataOrBuilder();
   }
   /**
    * Protobuf type {@code com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadataEntry}
@@ -1062,12 +1062,12 @@ public final class SchemaMetadataPersistence {
             case 18: {
               com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder subBuilder = null;
               if (((bitField0_ & 0x00000002) == 0x00000002)) {
-                subBuilder = cleanupRequirement_.toBuilder();
+                subBuilder = schemaDependentTableMetadata_.toBuilder();
               }
-              cleanupRequirement_ = input.readMessage(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.PARSER, extensionRegistry);
+              schemaDependentTableMetadata_ = input.readMessage(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.PARSER, extensionRegistry);
               if (subBuilder != null) {
-                subBuilder.mergeFrom(cleanupRequirement_);
-                cleanupRequirement_ = subBuilder.buildPartial();
+                subBuilder.mergeFrom(schemaDependentTableMetadata_);
+                schemaDependentTableMetadata_ = subBuilder.buildPartial();
               }
               bitField0_ |= 0x00000002;
               break;
@@ -1133,30 +1133,30 @@ public final class SchemaMetadataPersistence {
       return tableReference_;
     }
 
-    public static final int CLEANUPREQUIREMENT_FIELD_NUMBER = 2;
-    private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata cleanupRequirement_;
+    public static final int SCHEMADEPENDENTTABLEMETADATA_FIELD_NUMBER = 2;
+    private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata schemaDependentTableMetadata_;
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
      */
-    public boolean hasCleanupRequirement() {
+    public boolean hasSchemaDependentTableMetadata() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
      */
-    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getCleanupRequirement() {
-      return cleanupRequirement_;
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getSchemaDependentTableMetadata() {
+      return schemaDependentTableMetadata_;
     }
     /**
-     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+     * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
      */
-    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder getCleanupRequirementOrBuilder() {
-      return cleanupRequirement_;
+    public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder getSchemaDependentTableMetadataOrBuilder() {
+      return schemaDependentTableMetadata_;
     }
 
     private void initFields() {
       tableReference_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.TableReference.getDefaultInstance();
-      cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
+      schemaDependentTableMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1175,7 +1175,7 @@ public final class SchemaMetadataPersistence {
         output.writeMessage(1, tableReference_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeMessage(2, cleanupRequirement_);
+        output.writeMessage(2, schemaDependentTableMetadata_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -1192,7 +1192,7 @@ public final class SchemaMetadataPersistence {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(2, cleanupRequirement_);
+          .computeMessageSize(2, schemaDependentTableMetadata_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1304,7 +1304,7 @@ public final class SchemaMetadataPersistence {
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
           getTableReferenceFieldBuilder();
-          getCleanupRequirementFieldBuilder();
+          getSchemaDependentTableMetadataFieldBuilder();
         }
       }
       private static Builder create() {
@@ -1319,10 +1319,10 @@ public final class SchemaMetadataPersistence {
           tableReferenceBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000001);
-        if (cleanupRequirementBuilder_ == null) {
-          cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
+        if (schemaDependentTableMetadataBuilder_ == null) {
+          schemaDependentTableMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
         } else {
-          cleanupRequirementBuilder_.clear();
+          schemaDependentTableMetadataBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
@@ -1364,10 +1364,10 @@ public final class SchemaMetadataPersistence {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        if (cleanupRequirementBuilder_ == null) {
-          result.cleanupRequirement_ = cleanupRequirement_;
+        if (schemaDependentTableMetadataBuilder_ == null) {
+          result.schemaDependentTableMetadata_ = schemaDependentTableMetadata_;
         } else {
-          result.cleanupRequirement_ = cleanupRequirementBuilder_.build();
+          result.schemaDependentTableMetadata_ = schemaDependentTableMetadataBuilder_.build();
         }
         result.bitField0_ = to_bitField0_;
         onBuilt();
@@ -1388,8 +1388,8 @@ public final class SchemaMetadataPersistence {
         if (other.hasTableReference()) {
           mergeTableReference(other.getTableReference());
         }
-        if (other.hasCleanupRequirement()) {
-          mergeCleanupRequirement(other.getCleanupRequirement());
+        if (other.hasSchemaDependentTableMetadata()) {
+          mergeSchemaDependentTableMetadata(other.getSchemaDependentTableMetadata());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -1534,120 +1534,120 @@ public final class SchemaMetadataPersistence {
         return tableReferenceBuilder_;
       }
 
-      private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
+      private com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata schemaDependentTableMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder> cleanupRequirementBuilder_;
+          com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder> schemaDependentTableMetadataBuilder_;
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public boolean hasCleanupRequirement() {
+      public boolean hasSchemaDependentTableMetadata() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getCleanupRequirement() {
-        if (cleanupRequirementBuilder_ == null) {
-          return cleanupRequirement_;
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata getSchemaDependentTableMetadata() {
+        if (schemaDependentTableMetadataBuilder_ == null) {
+          return schemaDependentTableMetadata_;
         } else {
-          return cleanupRequirementBuilder_.getMessage();
+          return schemaDependentTableMetadataBuilder_.getMessage();
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public Builder setCleanupRequirement(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata value) {
-        if (cleanupRequirementBuilder_ == null) {
+      public Builder setSchemaDependentTableMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata value) {
+        if (schemaDependentTableMetadataBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
           }
-          cleanupRequirement_ = value;
+          schemaDependentTableMetadata_ = value;
           onChanged();
         } else {
-          cleanupRequirementBuilder_.setMessage(value);
+          schemaDependentTableMetadataBuilder_.setMessage(value);
         }
         bitField0_ |= 0x00000002;
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public Builder setCleanupRequirement(
+      public Builder setSchemaDependentTableMetadata(
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder builderForValue) {
-        if (cleanupRequirementBuilder_ == null) {
-          cleanupRequirement_ = builderForValue.build();
+        if (schemaDependentTableMetadataBuilder_ == null) {
+          schemaDependentTableMetadata_ = builderForValue.build();
           onChanged();
         } else {
-          cleanupRequirementBuilder_.setMessage(builderForValue.build());
+          schemaDependentTableMetadataBuilder_.setMessage(builderForValue.build());
         }
         bitField0_ |= 0x00000002;
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public Builder mergeCleanupRequirement(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata value) {
-        if (cleanupRequirementBuilder_ == null) {
+      public Builder mergeSchemaDependentTableMetadata(com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata value) {
+        if (schemaDependentTableMetadataBuilder_ == null) {
           if (((bitField0_ & 0x00000002) == 0x00000002) &&
-              cleanupRequirement_ != com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance()) {
-            cleanupRequirement_ =
-              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.newBuilder(cleanupRequirement_).mergeFrom(value).buildPartial();
+              schemaDependentTableMetadata_ != com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance()) {
+            schemaDependentTableMetadata_ =
+              com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.newBuilder(schemaDependentTableMetadata_).mergeFrom(value).buildPartial();
           } else {
-            cleanupRequirement_ = value;
+            schemaDependentTableMetadata_ = value;
           }
           onChanged();
         } else {
-          cleanupRequirementBuilder_.mergeFrom(value);
+          schemaDependentTableMetadataBuilder_.mergeFrom(value);
         }
         bitField0_ |= 0x00000002;
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public Builder clearCleanupRequirement() {
-        if (cleanupRequirementBuilder_ == null) {
-          cleanupRequirement_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
+      public Builder clearSchemaDependentTableMetadata() {
+        if (schemaDependentTableMetadataBuilder_ == null) {
+          schemaDependentTableMetadata_ = com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.getDefaultInstance();
           onChanged();
         } else {
-          cleanupRequirementBuilder_.clear();
+          schemaDependentTableMetadataBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder getCleanupRequirementBuilder() {
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder getSchemaDependentTableMetadataBuilder() {
         bitField0_ |= 0x00000002;
         onChanged();
-        return getCleanupRequirementFieldBuilder().getBuilder();
+        return getSchemaDependentTableMetadataFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
-      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder getCleanupRequirementOrBuilder() {
-        if (cleanupRequirementBuilder_ != null) {
-          return cleanupRequirementBuilder_.getMessageOrBuilder();
+      public com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder getSchemaDependentTableMetadataOrBuilder() {
+        if (schemaDependentTableMetadataBuilder_ != null) {
+          return schemaDependentTableMetadataBuilder_.getMessageOrBuilder();
         } else {
-          return cleanupRequirement_;
+          return schemaDependentTableMetadata_;
         }
       }
       /**
-       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata cleanupRequirement = 2;</code>
+       * <code>optional .com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadata schemaDependentTableMetadata = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
           com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder> 
-          getCleanupRequirementFieldBuilder() {
-        if (cleanupRequirementBuilder_ == null) {
-          cleanupRequirementBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+          getSchemaDependentTableMetadataFieldBuilder() {
+        if (schemaDependentTableMetadataBuilder_ == null) {
+          schemaDependentTableMetadataBuilder_ = new com.google.protobuf.SingleFieldBuilder<
               com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder, com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.SchemaDependentTableMetadataOrBuilder>(
-                  getCleanupRequirement(),
+                  getSchemaDependentTableMetadata(),
                   getParentForChildren(),
                   isClean());
-          cleanupRequirement_ = null;
+          schemaDependentTableMetadata_ = null;
         }
-        return cleanupRequirementBuilder_;
+        return schemaDependentTableMetadataBuilder_;
       }
 
       // @@protoc_insertion_point(builder_scope:com.palantir.atlasdb.protos.generated.SchemaDependentTableMetadataEntry)
@@ -2735,19 +2735,19 @@ public final class SchemaMetadataPersistence {
       ".generated\"q\n\016SchemaMetadata\022_\n\rtableMet" +
       "adata\030\001 \003(\0132H.com.palantir.atlasdb.proto" +
       "s.generated.SchemaDependentTableMetadata" +
-      "Entry\"\323\001\n!SchemaDependentTableMetadataEn" +
+      "Entry\"\335\001\n!SchemaDependentTableMetadataEn" +
       "try\022M\n\016tableReference\030\001 \001(\01325.com.palant" +
       "ir.atlasdb.protos.generated.TableReferen" +
-      "ce\022_\n\022cleanupRequirement\030\002 \001(\0132C.com.pal",
-      "antir.atlasdb.protos.generated.SchemaDep" +
-      "endentTableMetadata\"u\n\034SchemaDependentTa" +
-      "bleMetadata\022U\n\022cleanupRequirement\030\001 \001(\0162" +
-      "9.com.palantir.atlasdb.protos.generated." +
-      "CleanupRequirement\"6\n\016TableReference\022\021\n\t" +
-      "namespace\030\001 \001(\t\022\021\n\ttableName\030\002 \001(\t*_\n\022Cl" +
-      "eanupRequirement\022\016\n\nNOT_NEEDED\020\000\022\020\n\014STRE" +
-      "AM_STORE\020\001\022\023\n\017ARBITRARY_ASYNC\020\002\022\022\n\016ARBIT" +
-      "RARY_SYNC\020\003"
+      "ce\022i\n\034schemaDependentTableMetadata\030\002 \001(\013",
+      "2C.com.palantir.atlasdb.protos.generated" +
+      ".SchemaDependentTableMetadata\"u\n\034SchemaD" +
+      "ependentTableMetadata\022U\n\022cleanupRequirem" +
+      "ent\030\001 \001(\01629.com.palantir.atlasdb.protos." +
+      "generated.CleanupRequirement\"6\n\016TableRef" +
+      "erence\022\021\n\tnamespace\030\001 \001(\t\022\021\n\ttableName\030\002" +
+      " \001(\t*_\n\022CleanupRequirement\022\016\n\nNOT_NEEDED" +
+      "\020\000\022\020\n\014STREAM_STORE\020\001\022\023\n\017ARBITRARY_ASYNC\020" +
+      "\002\022\022\n\016ARBITRARY_SYNC\020\003"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -2772,7 +2772,7 @@ public final class SchemaMetadataPersistence {
     internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadataEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadataEntry_descriptor,
-        new java.lang.String[] { "TableReference", "CleanupRequirement", });
+        new java.lang.String[] { "TableReference", "SchemaDependentTableMetadata", });
     internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_descriptor =
       getDescriptor().getMessageTypes().get(2);
     internal_static_com_palantir_atlasdb_protos_generated_SchemaDependentTableMetadata_fieldAccessorTable = new
