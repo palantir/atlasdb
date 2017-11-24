@@ -281,11 +281,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         cassandra.addPool(server, currentPoolNumber);
     }
 
-    @VisibleForTesting
-    void addPool(InetSocketAddress server, int poolNumber) {
-        cassandra.addPool(server, poolNumber);
-    }
-
     @Override
     public InetSocketAddress getRandomHostForKey(byte[] key) {
         return cassandra.getRandomHostForKey(key);
