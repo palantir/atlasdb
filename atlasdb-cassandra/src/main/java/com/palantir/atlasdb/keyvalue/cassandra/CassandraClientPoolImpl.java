@@ -49,10 +49,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.io.BaseEncoding;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -60,10 +58,10 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -124,6 +122,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;
+    private final CassandraService cassandra;
 
     final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final CassandraKeyValueServiceConfig config;
@@ -191,6 +190,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.blacklist = blacklist;
         this.exceptionHandler = new CassandraRequestExceptionHandler(
                 this::getMaxRetriesPerHost, this::getMaxTriesTotal, blacklist);
+        cassandra = new CassandraService(config, this);
     }
 
     private void tryInitialize() {
@@ -263,7 +263,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
 
         if (config.autoRefreshNodes()) {
-            refreshTokenRanges(); // re-use token mapping as list of hosts in the cluster
+            RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenRanges = cassandra.refreshTokenRanges();
+            if (tokenRanges != null) {
+                tokenMap = tokenRanges;
+            }
             for (List<InetSocketAddress> rangeOwners : tokenMap.asMapOfRanges().values()) {
                 for (InetSocketAddress address : rangeOwners) {
                     serversToAdd.add(address);
@@ -283,7 +286,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             if (!config.autoRefreshNodes()) { // grab new token mapping, if we didn't already do this before
-                refreshTokenRanges();
+                tokenMap = cassandra.refreshTokenRanges();
             }
         }
 
@@ -338,7 +341,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private CassandraClientPoolingContainer getRandomGoodHost() {
+    public CassandraClientPoolingContainer getRandomGoodHost() {
         return getRandomGoodHostForPredicate(address -> true).orElseThrow(
                 () -> new IllegalStateException("No hosts available."));
     }
@@ -457,14 +460,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
-        try {
-            return getAddressForHost(host);
-        } catch (UnknownHostException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
-    }
-
     @Override
     public InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         InetAddress resolvedHost = InetAddress.getByName(host);
@@ -484,43 +479,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts));
         } else {
             throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
-        }
-    }
-
-    private void refreshTokenRanges() {
-        try {
-            ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
-                    ImmutableRangeMap.builder();
-
-            // grab latest token ring view from a random node in the cluster
-            List<TokenRange> tokenRanges = getRandomGoodHost().runWithPooledResource(getDescribeRing());
-
-            // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
-            if (tokenRanges.size() == 1) {
-                String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
-                InetSocketAddress onlyHost = getAddressForHost(onlyEndpoint);
-                newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
-            } else { // normal case, large cluster with many vnodes
-                for (TokenRange tokenRange : tokenRanges) {
-                    List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
-                            .map(host -> getAddressForHostThrowUnchecked(host)).collect(Collectors.toList());
-                    LightweightOppToken startToken = new LightweightOppToken(
-                            BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
-                    LightweightOppToken endToken = new LightweightOppToken(
-                            BaseEncoding.base16().decode(tokenRange.getEnd_token().toUpperCase()));
-                    if (startToken.compareTo(endToken) <= 0) {
-                        newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
-                    } else {
-                        // Handle wrap-around
-                        newTokenRing.put(Range.greaterThan(startToken), hosts);
-                        newTokenRing.put(Range.atMost(endToken), hosts);
-                    }
-                }
-            }
-            tokenMap = newTokenRing.build();
-            tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
-        } catch (Exception e) {
-            log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }
     }
 
