@@ -69,7 +69,7 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
         super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig,
-                initializeAsync, FakeQosClient.getDefault());
+                initializeAsync, FakeQosClient.INSTANCE);
     }
 
     @Override

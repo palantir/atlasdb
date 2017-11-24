@@ -14,48 +14,86 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.qos.client;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Ticker;
 import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosService;
+import com.palantir.atlasdb.qos.QueryWeight;
+import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 
 public class AtlasDbQosClient implements QosClient {
-    private final QosService qosService;
-    private final String clientName;
-    private final QosRateLimiter rateLimiter;
 
-    private volatile long credits;
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbQosClient.class);
 
-    public AtlasDbQosClient(QosService qosService,
-            ScheduledExecutorService limitRefresher,
-            String clientName,
-            QosRateLimiter rateLimiter) {
-        this.qosService = qosService;
-        this.clientName = clientName;
-        this.rateLimiter = rateLimiter;
-        limitRefresher.scheduleAtFixedRate(() -> {
-            try {
-                credits = qosService.getLimit(clientName);
-            } catch (Exception e) {
-                // do nothing
-            }
-        }, 0L, 60L, TimeUnit.SECONDS);
+    private final QosRateLimiters rateLimiters;
+    private final QosMetrics metrics;
+    private final Ticker ticker;
+
+    public static AtlasDbQosClient create(QosRateLimiters rateLimiters) {
+        return new AtlasDbQosClient(rateLimiters, new QosMetrics(), Ticker.systemTicker());
     }
 
-    // The KVS layer should call this before every read/write operation
-    // Currently all operations are treated equally; each uses up a unit of credits
+    @VisibleForTesting
+    AtlasDbQosClient(QosRateLimiters rateLimiters, QosMetrics metrics, Ticker ticker) {
+        this.metrics = metrics;
+        this.rateLimiters = rateLimiters;
+        this.ticker = ticker;
+    }
+
     @Override
-    public void checkLimit() {
-        // always return immediately - i.e. no backoff
-        // TODO if soft-limited, pause
-        // if hard-limited, throw exception
-        if (credits > 0) {
-            credits--;
-        } else {
-            // TODO This should be a ThrottleException?
-            throw new RuntimeException("Rate limit exceeded");
+    public <T, E extends Exception> T executeRead(Query<T, E> query, QueryWeigher<T> weigher) throws E {
+        return execute(query, weigher, rateLimiters.read(), Optional.of(metrics::recordReadEstimate),
+                metrics::recordRead);
+    }
+
+    @Override
+    public <T, E extends Exception> T executeWrite(Query<T, E> query, QueryWeigher<T> weigher) throws E {
+        return execute(query, weigher, rateLimiters.write(), Optional.empty(), metrics::recordWrite);
+    }
+
+    private <T, E extends Exception> T execute(
+            Query<T, E> query,
+            QueryWeigher<T> weigher,
+            QosRateLimiter rateLimiter,
+            Optional<Consumer<QueryWeight>> estimatedWeightMetric,
+            Consumer<QueryWeight> weightMetric) throws E {
+        QueryWeight estimatedWeight = weigher.estimate();
+        estimatedWeightMetric.ifPresent(metric -> metric.accept(estimatedWeight));
+
+        try {
+            Duration waitTime = rateLimiter.consumeWithBackoff(estimatedWeight.numBytes());
+            metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
+        } catch (RateLimitExceededException ex) {
+            metrics.recordRateLimitedException();
+            throw ex;
+        }
+
+        Stopwatch timer = Stopwatch.createStarted(ticker);
+
+        QueryWeight actualWeight = null;
+        try {
+            T result = query.execute();
+            actualWeight = weigher.weighSuccess(result, timer.elapsed(TimeUnit.NANOSECONDS));
+            return result;
+        } catch (Exception ex) {
+            actualWeight = weigher.weighFailure(ex, timer.elapsed(TimeUnit.NANOSECONDS));
+            throw ex;
+        } finally {
+            weightMetric.accept(actualWeight);
+            rateLimiter.recordAdjustment(actualWeight.numBytes() - estimatedWeight.numBytes());
         }
     }
+
 }

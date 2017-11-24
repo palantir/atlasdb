@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
@@ -99,6 +101,11 @@ public class AtlasDbConsoleCommandTest {
         @Override
         public AtlasDbConfig getAtlasDbConfig() {
             return atlasDbConfig;
+        }
+
+        @Override
+        public Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
+            return Optional.empty();
         }
     }
 }

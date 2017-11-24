@@ -18,8 +18,6 @@ package com.palantir.atlasdb.factory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -30,7 +28,6 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
@@ -72,11 +69,10 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosService;
 import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
-import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
+import com.palantir.atlasdb.qos.config.QosClientConfig;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -103,6 +99,7 @@ import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -117,9 +114,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
@@ -316,8 +310,7 @@ public abstract class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-
-        QosClient qosClient = getQosClient(runtimeConfigSupplier.get().getQosServiceConfiguration());
+        QosClient qosClient = getQosClient(JavaSuppliers.compose(conf -> conf.qos(), runtimeConfigSupplier));
 
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(
@@ -411,19 +404,11 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    private QosClient getQosClient(Optional<ServiceConfiguration> serviceConfiguration) {
-        return serviceConfiguration.map(this::createAtlasDbQosClient).orElseGet(FakeQosClient::getDefault);
-    }
-
-    private QosClient createAtlasDbQosClient(ServiceConfiguration serviceConfiguration) {
-        QosService qosService = JaxRsClient.create(QosService.class,
-                userAgent(),
-                ClientConfigurations.of(serviceConfiguration));
-        ScheduledExecutorService scheduler = new InstrumentedScheduledExecutorService(
-                Executors.newSingleThreadScheduledExecutor(),
-                AtlasDbMetrics.getMetricRegistry(),
-                "qos-client-executor");
-        return new AtlasDbQosClient(qosService, scheduler, config().getNamespaceString(), QosRateLimiter.create());
+    private QosClient getQosClient(Supplier<QosClientConfig> config) {
+        QosRateLimiters rateLimiters = QosRateLimiters.create(
+                JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
+                JavaSuppliers.compose(QosClientConfig::limits, config));
+        return AtlasDbQosClient.create(rateLimiters);
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(

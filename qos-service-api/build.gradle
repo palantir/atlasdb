@@ -17,5 +17,8 @@ dependencies {
         exclude (module:'okhttp')
         exclude (module:'jsr305')
     }
+
+    processor group: 'org.immutables', name: 'value'
+
 }
 

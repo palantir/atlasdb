@@ -17,5 +17,23 @@
 package com.palantir.atlasdb.qos;
 
 public interface QosClient {
-    void checkLimit();
+
+    interface Query<T, E extends Exception> {
+        T execute() throws E;
+    }
+
+    interface QueryWeigher<T> {
+        QueryWeight estimate();
+        QueryWeight weighSuccess(T result, long timeTakenNanos);
+        QueryWeight weighFailure(Exception error, long timeTakenNanos);
+    }
+
+    <T, E extends Exception> T executeRead(
+            Query<T, E> query,
+            QueryWeigher<T> weigher) throws E;
+
+    <T, E extends Exception> T executeWrite(
+            Query<T, E> query,
+            QueryWeigher<T> weigher) throws E;
+
 }
