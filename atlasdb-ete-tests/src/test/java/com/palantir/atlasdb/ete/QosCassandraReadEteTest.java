@@ -78,12 +78,11 @@ public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
 
     @Test
     public void shouldNotBeAbleToReadLargeAmountsIfSoftLimitSleepWillBeMoreThanConfiguredBackoffTime() {
-        assertThatThrownBy(() -> readOneBatchOfSize(200))
-                .isInstanceOf(RateLimitExceededException.class)
-                .hasMessage("Rate limited. Available capacity has been exhausted.");
+        // Have one quick limit-exceeding write, as the rate-limiter
+        // will let anything pass through until the limit is exceeded.
+        assertThat(readOneBatchOfSize(20)).hasSize(20);
 
-        // TODO(hsaraogi): This should not happen.
-        assertThatThrownBy(() -> readOneBatchOfSize(1))
+        assertThatThrownBy(() -> readOneBatchOfSize(100))
                 .isInstanceOf(RateLimitExceededException.class)
                 .hasMessage("Rate limited. Available capacity has been exhausted.");
     }
