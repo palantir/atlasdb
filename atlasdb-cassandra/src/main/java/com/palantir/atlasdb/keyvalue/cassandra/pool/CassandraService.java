@@ -18,24 +18,35 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
+import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger;
 import com.palantir.common.base.Throwables;
 
 public class CassandraService {
@@ -45,12 +56,22 @@ public class CassandraService {
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPoolImpl pool;
 
+    @VisibleForTesting
+    volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
+    private final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
+
     public CassandraService(CassandraKeyValueServiceConfig config, CassandraClientPoolImpl cassandraClientPool) {
         this.config = config;
         this.pool = cassandraClientPool;
     }
 
-    public RangeMap<LightweightOppToken, List<InetSocketAddress>> refreshTokenRanges() {
+    public TokenRangeWritesLogger getTokenRangeWritesLogger() {
+        return tokenRangeWritesLogger;
+    }
+
+    public Set<InetSocketAddress> refreshTokenRanges() {
+        Set<InetSocketAddress> servers = Sets.newHashSet();
+
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
                     ImmutableRangeMap.builder();
@@ -67,6 +88,9 @@ public class CassandraService {
                 for (TokenRange tokenRange : tokenRanges) {
                     List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
                             .map(host -> getAddressForHostThrowUnchecked(host)).collect(Collectors.toList());
+
+                    servers.addAll(hosts);
+
                     LightweightOppToken startToken = new LightweightOppToken(
                             BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
                     LightweightOppToken endToken = new LightweightOppToken(
@@ -80,10 +104,15 @@ public class CassandraService {
                     }
                 }
             }
-            return newTokenRing.build();
+            tokenMap = newTokenRing.build();
+
+            tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
+            return servers;
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
-            return null;
+
+            // return the set of servers we knew about last time we successfully constructed the tokenMap
+            return tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
         }
     }
 
@@ -97,5 +126,21 @@ public class CassandraService {
         } catch (UnknownHostException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    public List<InetSocketAddress> getHostsFor(byte[] key) {
+        return tokenMap.get(new LightweightOppToken(key));
+    }
+
+    public String getRingViewDescription() {
+        return CassandraLogHelper.tokenMap(tokenMap).toString();
+    }
+
+    public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+        return tokenMap;
+    }
+
+    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
+        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
     }
 }

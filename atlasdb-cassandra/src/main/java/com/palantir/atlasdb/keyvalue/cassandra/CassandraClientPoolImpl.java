@@ -44,12 +44,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -117,14 +115,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPool.class);
 
-    @VisibleForTesting
-    volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
-
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;
     private final CassandraService cassandra;
 
-    final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
@@ -253,7 +247,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
-        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
+        cassandra.markWritesForTable(entries, tableRef);
+    }
+
+    @VisibleForTesting
+    CassandraService getCassandra() {
+        return cassandra;
     }
 
     private synchronized void refreshPool() {
@@ -263,15 +262,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
 
         if (config.autoRefreshNodes()) {
-            RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenRanges = cassandra.refreshTokenRanges();
-            if (tokenRanges != null) {
-                tokenMap = tokenRanges;
-            }
-            for (List<InetSocketAddress> rangeOwners : tokenMap.asMapOfRanges().values()) {
-                for (InetSocketAddress address : rangeOwners) {
-                    serversToAdd.add(address);
-                }
-            }
+            serversToAdd.addAll(cassandra.refreshTokenRanges());
         }
 
         serversToAdd = Sets.difference(serversToAdd, currentPools.keySet());
@@ -286,7 +277,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             if (!config.autoRefreshNodes()) { // grab new token mapping, if we didn't already do this before
-                tokenMap = cassandra.refreshTokenRanges();
+                cassandra.refreshTokenRanges();
             }
         }
 
@@ -372,7 +363,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public InetSocketAddress getRandomHostForKey(byte[] key) {
-        List<InetSocketAddress> hostsForKey = tokenMap.get(new LightweightOppToken(key));
+        List<InetSocketAddress> hostsForKey = cassandra.getHostsFor(key);
 
         if (hostsForKey == null) {
             log.debug("We attempted to route your query to a cassandra host that already contains the relevant data."
@@ -390,7 +381,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     + " Current state logged at TRACE",
                     SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
             log.trace("Current ring view is: {}.",
-                    SafeArg.of("tokenMap", CassandraLogHelper.tokenMap(tokenMap)));
+                    SafeArg.of("tokenMap", cassandra.getRingViewDescription()));
             return getRandomGoodHost().getHost();
         } else {
             return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
@@ -624,10 +615,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner() {
         return CassandraUtils.getValidatePartitioner(config);
-    }
-
-    private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> getDescribeRing() {
-        return CassandraUtils.getDescribeRing(config);
     }
 
     /**
