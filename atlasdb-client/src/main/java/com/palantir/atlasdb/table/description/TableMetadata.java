@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CleanupRequirement;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
@@ -44,6 +45,7 @@ public class TableMetadata implements Persistable {
     final ExpirationStrategy expirationStrategy;
     final boolean appendHeavyAndReadLight;
     final LogSafety nameLogSafety;
+    final CleanupRequirement cleanupRequirement;
 
     public TableMetadata() {
         this(
@@ -107,6 +109,35 @@ public class TableMetadata implements Persistable {
                          ExpirationStrategy expirationStrategy,
                          boolean appendHeavyAndReadLight,
                          LogSafety nameLogSafety) {
+        this(
+                rowMetadata,
+                columns,
+                conflictHandler,
+                cachePriority,
+                partitionStrategy,
+                rangeScanAllowed,
+                explicitCompressionBlockSizeKB,
+                negativeLookups,
+                sweepStrategy,
+                expirationStrategy,
+                appendHeavyAndReadLight,
+                nameLogSafety,
+                CleanupRequirement.ARBITRARY_SYNC);
+    }
+
+    public TableMetadata(NameMetadataDescription rowMetadata,
+            ColumnMetadataDescription columns,
+            ConflictHandler conflictHandler,
+            CachePriority cachePriority,
+            PartitionStrategy partitionStrategy,
+            boolean rangeScanAllowed,
+            int explicitCompressionBlockSizeKB,
+            boolean negativeLookups,
+            SweepStrategy sweepStrategy,
+            ExpirationStrategy expirationStrategy,
+            boolean appendHeavyAndReadLight,
+            LogSafety nameLogSafety,
+            CleanupRequirement cleanupRequirement) {
         if (rangeScanAllowed) {
             Preconditions.checkArgument(
                     partitionStrategy == PartitionStrategy.ORDERED,
@@ -124,6 +155,7 @@ public class TableMetadata implements Persistable {
         this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
         this.nameLogSafety = nameLogSafety;
+        this.cleanupRequirement = cleanupRequirement;
     }
 
     public NameMetadataDescription getRowMetadata() {
@@ -178,6 +210,10 @@ public class TableMetadata implements Persistable {
         return nameLogSafety;
     }
 
+    public CleanupRequirement getCleanupRequirement() {
+        return cleanupRequirement;
+    }
+
     @Override
     public byte[] persistToBytes() {
         return persistToProto().build().toByteArray();
@@ -208,6 +244,7 @@ public class TableMetadata implements Persistable {
         // expiration strategy doesn't need to be persisted.
         builder.setAppendHeavyAndReadLight(appendHeavyAndReadLight);
         builder.setNameLogSafety(nameLogSafety);
+        builder.setCleanupRequirement(cleanupRequirement);
         return builder;
     }
 
@@ -244,6 +281,10 @@ public class TableMetadata implements Persistable {
         if (message.hasNameLogSafety()) {
             nameLogSafety = message.getNameLogSafety();
         }
+        CleanupRequirement cleanupRequirement = CleanupRequirement.ARBITRARY_SYNC;
+        if (message.hasCleanupRequirement()) {
+            cleanupRequirement = message.getCleanupRequirement();
+        }
 
         return new TableMetadata(
                 NameMetadataDescription.hydrateFromProto(message.getRowName()),
@@ -257,7 +298,8 @@ public class TableMetadata implements Persistable {
                 sweepStrategy,
                 ExpirationStrategy.NEVER,
                 appendHeavyAndReadLight,
-                nameLogSafety);
+                nameLogSafety,
+                cleanupRequirement);
     }
 
     @Override
@@ -274,6 +316,7 @@ public class TableMetadata implements Persistable {
                 + ", sweepStrategy = " + sweepStrategy
                 + ", appendHeavyAndReadLight = " + appendHeavyAndReadLight
                 + ", nameLogSafety = " + nameLogSafety
+                + ", cleanupRequirement = " + cleanupRequirement
                 + "]";
     }
 
@@ -293,6 +336,7 @@ public class TableMetadata implements Persistable {
         result = prime * result + sweepStrategy.hashCode();
         result = prime * result + (appendHeavyAndReadLight ? 0 : 1);
         result = prime * result + nameLogSafety.hashCode(); // Nonnull, because it has a default value
+        result = prime * result + cleanupRequirement.hashCode();
         return result;
     }
 
@@ -334,9 +378,6 @@ public class TableMetadata implements Persistable {
         } else if (!rowMetadata.equals(other.rowMetadata)) {
             return false;
         }
-        if (rangeScanAllowed != other.rangeScanAllowed) {
-            return false;
-        }
         if (explicitCompressionBlockSizeKB != other.explicitCompressionBlockSizeKB) {
             return false;
         }
@@ -350,6 +391,9 @@ public class TableMetadata implements Persistable {
             return false;
         }
         if (nameLogSafety != other.nameLogSafety) {
+            return false;
+        }
+        if (cleanupRequirement != other.cleanupRequirement) {
             return false;
         }
         return true;

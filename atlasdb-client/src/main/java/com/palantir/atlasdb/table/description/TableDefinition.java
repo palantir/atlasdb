@@ -26,6 +26,7 @@ import com.google.common.collect.Sets;
 import com.google.protobuf.GeneratedMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CleanupRequirement;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
@@ -390,6 +391,7 @@ public class TableDefinition extends AbstractDefinition {
     private LogSafety tableNameSafety = LogSafety.UNSAFE;
     private LogSafety defaultNamedComponentLogSafety = LogSafety.UNSAFE;
     private boolean v2TableEnabled = false;
+    private CleanupRequirement cleanupRequirement = CleanupRequirement.ARBITRARY_SYNC; // strictest
 
     public TableMetadata toTableMetadata() {
         Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
