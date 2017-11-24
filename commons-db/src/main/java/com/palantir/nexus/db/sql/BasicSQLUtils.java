@@ -28,9 +28,9 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.joda.time.format.DateTimeFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.exception.PalantirSqlException;
@@ -253,7 +253,7 @@ public class BasicSQLUtils {
         return out.toString();
     }
 
-    private static final Logger cancelLogger = LogManager.getLogger("SQLUtils.cancel"); //$NON-NLS-1$
+    private static final Logger cancelLogger = LoggerFactory.getLogger("SQLUtils.cancel"); //$NON-NLS-1$
 
     /** Helper method for wrapping quick calls that don't appreciate being interrupted.
      * Passes all exceptions and errors back to the client.

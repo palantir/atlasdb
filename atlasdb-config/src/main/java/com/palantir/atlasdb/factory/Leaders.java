@@ -186,7 +186,7 @@ public final class Leaders {
             Class<T> clazz,
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz, userAgent),
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, true, clazz, userAgent),
                 ImmutableList.of(localObject)));
     }
 
@@ -200,7 +200,7 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
             PingableLeader remoteInterface = AtlasDbHttpClients
-                    .createProxy(sslSocketFactory, endpoint, PingableLeader.class, userAgent);
+                    .createProxy(sslSocketFactory, endpoint, true, PingableLeader.class, userAgent);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }

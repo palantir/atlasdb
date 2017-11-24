@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
@@ -40,6 +41,7 @@ import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
@@ -107,11 +109,14 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment) {
         return TransactionManagers.builder()
                 .config(config)
-                .schemas(ETE_SCHEMAS)
-                .registrar(environment.jersey()::register)
                 .userAgent("ete test")
+                .metricRegistry(new MetricRegistry())
+                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)
-                .buildSerializable();
+                .registrar(environment.jersey()::register)
+                .addAllSchemas(ETE_SCHEMAS)
+                .build()
+                .serializable();
     }
 
     private void enableEnvironmentVariablesInConfig(Bootstrap<AtlasDbEteConfiguration> bootstrap) {

@@ -53,6 +53,7 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.remoting.api.config.service.HumanReadableDuration;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class QosCassandraEteTestSetup {
     private static final Random random = new Random();
@@ -72,17 +73,21 @@ public class QosCassandraEteTestSetup {
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault());
         ensureTransactionManagerIsCreated();
     }
 
     protected static void ensureTransactionManagerIsCreated() {
         serializableTransactionManager = TransactionManagers.builder()
                 .config(getAtlasDbConfig())
+                .userAgent("ete test")
+                .metricRegistry(new MetricRegistry())
+                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .runtimeConfigSupplier(QosCassandraEteTestSetup::getAtlasDbRuntimeConfig)
-                .schemas(ImmutableList.of(TodoSchema.getSchema()))
-                .userAgent("qos-test")
-                .buildSerializable();
+                .registrar(unused -> { })
+                .addAllSchemas(ImmutableList.of(TodoSchema.getSchema()))
+                .build()
+                .serializable();
 
         Awaitility.await()
                 .atMost(Duration.ONE_MINUTE)
