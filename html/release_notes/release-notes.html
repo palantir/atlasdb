@@ -331,15 +331,16 @@ To see the exact log messages, check the <code class="docutils literal"><span cl
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2673">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
-<td><p class="first">Metrics were added on all Cassandra calls. The <code class="docutils literal"><span class="pre">CassandraClient</span></code> interface was Tritium instrumented:</p>
+<td><p class="first">Metrics were added on all Cassandra calls. The <code class="docutils literal"><span class="pre">CassandraClient</span></code> interface was Tritium instrumented.
+The following metrics have been added, with the common prefix (package) <code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.</span></code>:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.multiget_slice</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get_range_slices</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.batch_mutate</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cas</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.execute_cql3_query</li>
+<li><code class="docutils literal"><span class="pre">CassandraClient.multiget_slice</span></code></li>
+<li><code class="docutils literal"><span class="pre">CassandraClient.get_range_slices</span></code></li>
+<li><code class="docutils literal"><span class="pre">CassandraClient.batch_mutate</span></code></li>
+<li><code class="docutils literal"><span class="pre">CassandraClient.get</span></code></li>
+<li><code class="docutils literal"><span class="pre">CassandraClient.cas</span></code></li>
+<li><code class="docutils literal"><span class="pre">CassandraClient.execute_cql3_query</span></code></li>
 </ul>
 </div></blockquote>
 <p class="last">Note that the table calls mainly use the first three metrics of the above list.
@@ -347,13 +348,14 @@ To see the exact log messages, check the <code class="docutils literal"><span cl
 </td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
-<td><p class="first">Metrics recording the number of Cassandra requests, and the amount of bytes read and written from and to Cassandra were added:</p>
+<td><p class="first">Metrics recording the number of Cassandra requests, and the amount of bytes read and written from and to Cassandra were added:
+The following metrics have been added, with the common prefix (package) <code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.</span></code>:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numReadRequests</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numWriteRequests</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesRead</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesWritten</li>
+<li><code class="docutils literal"><span class="pre">QosMetrics.numReadRequests</span></code></li>
+<li><code class="docutils literal"><span class="pre">QosMetrics.numWriteRequests</span></code></li>
+<li><code class="docutils literal"><span class="pre">QosMetrics.bytesRead</span></code></li>
+<li><code class="docutils literal"><span class="pre">QosMetrics.bytesWritten</span></code></li>
 </ul>
 </div></blockquote>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2679">Pull Request</a>)</p>
@@ -362,32 +364,32 @@ To see the exact log messages, check the <code class="docutils literal"><span cl
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td><p class="first">Added metrics for cells read.
 The read cells can be post-filtered at the CassandraKVS layer, when there are multiple versions of the same cell.
-The filtered cells are recorded in the metric:</p>
+The filtered cells are recorded in the following metrics have been added, with the common prefix (package) <code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.</span></code>:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.keyvalue.cassandra.TimestampExtractor.notLatestVisibleValueCellFilterCount</li>
-<li>com.palantir.atlasdb.keyvalue.cassandra.ValueExtractor.notLatestVisibleValueCellFilterCount</li>
+<li><code class="docutils literal"><span class="pre">TimestampExtractor.notLatestVisibleValueCellFilterCount</span></code></li>
+<li><code class="docutils literal"><span class="pre">ValueExtractor.notLatestVisibleValueCellFilterCount</span></code></li>
 </ul>
 </div></blockquote>
-<p>The cells returned from the KVS layer are then recorded at the metric:</p>
+<p>The cells returned from the KVS layer are then recorded at the metric with the prefix (package) <code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.</span></code>:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsRead</li>
+<li><code class="docutils literal"><span class="pre">SnapshotTransaction.numCellsRead</span></code></li>
 </ul>
 </div></blockquote>
 <p>Such cells can also be filtered out at the transaction layer, due to the Transaction Protocol. The filtered out cells are recorded in the metrics:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount</li>
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidStartTsTsCellFilterCount</li>
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidCommitTsCellFilterCount</li>
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.emptyValuesCellFilterCount</li>
+<li><code class="docutils literal"><span class="pre">SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount</span></code></li>
+<li><code class="docutils literal"><span class="pre">SnapshotTransaction.invalidStartTsTsCellFilterCount</span></code></li>
+<li><code class="docutils literal"><span class="pre">SnapshotTransaction.invalidCommitTsCellFilterCount</span></code></li>
+<li><code class="docutils literal"><span class="pre">SnapshotTransaction.emptyValuesCellFilterCount</span></code></li>
 </ul>
 </div></blockquote>
 <p>At last, the metric that record the number of cells actually returned to the AtlasDB client is:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsReturnedAfterFiltering</li>
+<li><code class="docutils literal"><span class="pre">SnapshotTransaction.numCellsReturnedAfterFiltering</span></code></li>
 </ul>
 </div></blockquote>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2671">Pull Request</a>)</p>
@@ -397,7 +399,7 @@ The filtered cells are recorded in the metric:</p>
 <td><p class="first">Added metrics for written bytes at the Transaction layer:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten</li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten</span></code></li>
 </ul>
 </div></blockquote>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2671">Pull Request</a>)</p>
@@ -407,7 +409,7 @@ The filtered cells are recorded in the metric:</p>
 <td><p class="first">A metric was added for the cases where a large read was made:</p>
 <blockquote>
 <div><ul class="simple">
-<li>com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead</li>
+<li><code class="docutils literal"><span class="pre">com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead</span></code></li>
 </ul>
 </div></blockquote>
 <p class="last">Note that we also log a warning in these cases, with the message “A single get had quite a few bytes…”.
