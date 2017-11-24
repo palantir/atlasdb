@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeyRange;
@@ -41,7 +40,6 @@ public class ThriftQueryWeighersTest {
     private static final ByteBuffer BYTES1 = ByteBuffer.allocate(3);
     private static final ByteBuffer BYTES2 = ByteBuffer.allocate(7);
     private static final ColumnOrSuperColumn COLUMN_OR_SUPER = new ColumnOrSuperColumn();
-    private static final Column COLUMN = new Column();
     private static final KeySlice KEY_SLICE = new KeySlice();
     private static final Mutation MUTATION = new Mutation();
 
@@ -54,22 +52,43 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1),
-                false).estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2), false).estimate()
-                .numBytes();
+        assertThatEstimatesAreCorrect(false);
+    }
 
-        assertThat(numBytesWithOneRow).isGreaterThan(0L);
-        assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
+    @Test
+    public void multigetSliceWithZeroEstimateWeigherEstimatesZeroNumberOfBytes() {
+        assertThatEstimatesAreCorrect(true);
+    }
+
+    private void assertThatEstimatesAreCorrect(boolean zeroEstimate) {
+        long numBytesWithOneRow = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), zeroEstimate)
+                .estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1, BYTES2), zeroEstimate)
+                .estimate().numBytes();
+
+        if (zeroEstimate) {
+            assertThat(numBytesWithOneRow).isEqualTo(0L);
+        } else {
+            assertThat(numBytesWithOneRow).isGreaterThan(0L);
+        }
+        assertThat(numBytesWithTwoRows).isEqualTo(zeroEstimate ? 0L : numBytesWithOneRow * 2);
     }
 
     @Test
     public void multigetSliceWeigherReturnsCorrectNumRows() {
+        assertThatWeightSuccessReturnsCorrectNumberOfRows(
+                ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), false));
+        assertThatWeightSuccessReturnsCorrectNumberOfRows(
+                ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), true));
+    }
+
+    private void assertThatWeightSuccessReturnsCorrectNumberOfRows(
+            QosClient.QueryWeigher<Map<ByteBuffer, List<ColumnOrSuperColumn>>> mapQueryWeigher) {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> result = ImmutableMap.of(
                 BYTES1, ImmutableList.of(COLUMN_OR_SUPER, COLUMN_OR_SUPER),
                 BYTES2, ImmutableList.of(COLUMN_OR_SUPER));
 
-        long actualNumRows = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), false)
+        long actualNumRows = mapQueryWeigher
                 .weighSuccess(result, TIME_TAKEN)
                 .numDistinctRows();
 
@@ -78,18 +97,40 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void rangeSlicesWeigherEstimatesNumberOfBytesBasedOnNumberOfRows() {
-        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false).estimate().numBytes();
-        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(2), false).estimate().numBytes();
+        assertThatEstimatesAreCorrectForRangeSlices(false);
+    }
 
-        assertThat(numBytesWithOneRow).isGreaterThan(0L);
-        assertThat(numBytesWithTwoRows).isEqualTo(numBytesWithOneRow * 2);
+    @Test
+    public void rangeSlicesWeigherWithZeroEstimateEstimatesZeroNumberOfBytes() {
+        assertThatEstimatesAreCorrectForRangeSlices(true);
+    }
+
+    private void assertThatEstimatesAreCorrectForRangeSlices(boolean zeroEstimate) {
+        long numBytesWithOneRow = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), zeroEstimate)
+                .estimate().numBytes();
+        long numBytesWithTwoRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(2), zeroEstimate)
+                .estimate().numBytes();
+
+        if (zeroEstimate) {
+            assertThat(numBytesWithOneRow).isEqualTo(0L);
+        } else {
+            assertThat(numBytesWithOneRow).isGreaterThan(0L);
+        }
+        assertThat(numBytesWithTwoRows).isEqualTo(zeroEstimate ? 0L : numBytesWithOneRow * 2);
     }
 
     @Test
     public void rangeSlicesWeigherReturnsCorrectNumRows() {
+        assertThatrangeSlicesWeigherReturnsCorrectNumRows(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false));
+        assertThatrangeSlicesWeigherReturnsCorrectNumRows(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), true));
+    }
+
+    private void assertThatrangeSlicesWeigherReturnsCorrectNumRows(
+            QosClient.QueryWeigher<List<KeySlice>> weigher) {
         List<KeySlice> result = ImmutableList.of(KEY_SLICE, KEY_SLICE, KEY_SLICE);
 
-        long actualNumRows = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false).weighSuccess(result, TIME_TAKEN)
+        long actualNumRows = weigher
+                .weighSuccess(result, TIME_TAKEN)
                 .numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(3);
@@ -97,7 +138,13 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void getWeigherReturnsCorrectNumRows() {
-        long actualNumRows = ThriftQueryWeighers.get(false).weighSuccess(COLUMN_OR_SUPER, TIME_TAKEN).numDistinctRows();
+        assertThatGetWeighSuccessReturnsOneRow(ThriftQueryWeighers.get(false));
+        assertThatGetWeighSuccessReturnsOneRow(ThriftQueryWeighers.get(true));
+    }
+
+    private void assertThatGetWeighSuccessReturnsOneRow(
+            QosClient.QueryWeigher<ColumnOrSuperColumn> weighQuery) {
+        long actualNumRows = weighQuery.weighSuccess(COLUMN_OR_SUPER, TIME_TAKEN).numDistinctRows();
 
         assertThat(actualNumRows).isEqualTo(1);
     }
@@ -127,25 +174,20 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void multigetSliceWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), false)
-                .weighFailure(new RuntimeException(), TIME_TAKEN);
-
-        assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
+        assertThatWeighFailureReturnsDefaultWeight(ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), false));
+        assertThatWeighFailureReturnsDefaultWeight(ThriftQueryWeighers.multigetSlice(ImmutableList.of(BYTES1), true));
     }
 
     @Test
     public void getWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.get(false).weighFailure(new RuntimeException(), TIME_TAKEN);
-
-        assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
+        assertThatWeighFailureReturnsDefaultWeight(ThriftQueryWeighers.get(false));
+        assertThatWeighFailureReturnsDefaultWeight(ThriftQueryWeighers.get(true));
     }
 
     @Test
     public void getRangeSlicesWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false)
-                .weighFailure(new RuntimeException(), TIME_TAKEN);
-
-        assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
+        assertThatWeighFailureReturnsDefaultWeight(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), false));
+        assertThatWeighFailureReturnsDefaultWeight(ThriftQueryWeighers.getRangeSlices(new KeyRange(1), true));
     }
 
     @Test
@@ -159,6 +201,7 @@ public class ThriftQueryWeighersTest {
                 .from(weigher.estimate())
                 .timeTakenNanos(TIME_TAKEN)
                 .build();
+
         QueryWeight actual = weigher.weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(actual).isEqualTo(expected);
@@ -166,10 +209,13 @@ public class ThriftQueryWeighersTest {
 
     @Test
     public void cql3QueryWeigherReturnsDefaultEstimateForFailure() {
-        QueryWeight weight = ThriftQueryWeighers.EXECUTE_CQL3_QUERY.weighFailure(new RuntimeException(),
-                TIME_TAKEN);
+        assertThatWeighFailureReturnsDefaultWeight(ThriftQueryWeighers.EXECUTE_CQL3_QUERY);
+    }
+
+    private void assertThatWeighFailureReturnsDefaultWeight(
+            QosClient.QueryWeigher queryWeigher) {
+        QueryWeight weight = queryWeigher.weighFailure(new RuntimeException(), TIME_TAKEN);
 
         assertThat(weight).isEqualTo(DEFAULT_WEIGHT);
     }
-
 }

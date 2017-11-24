@@ -93,10 +93,7 @@ public final class ThriftQueryWeighers {
                 if (zeroEstimate) {
                     return ZERO_ESTIMATED_WEIGHT;
                 }
-                return ImmutableQueryWeight.builder()
-                        .from(DEFAULT_ESTIMATED_WEIGHT)
-                        .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)
-                        .build();
+                return defaultEstimate();
             }
 
             @Override
@@ -111,8 +108,15 @@ public final class ThriftQueryWeighers {
             @Override
             public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
-                        .from(estimate())
+                        .from(defaultEstimate())
                         .timeTakenNanos(timeTakenNanos)
+                        .build();
+            }
+
+            private ImmutableQueryWeight defaultEstimate() {
+                return ImmutableQueryWeight.builder()
+                        .from(DEFAULT_ESTIMATED_WEIGHT)
+                        .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)
                         .build();
             }
         };
