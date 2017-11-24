@@ -20,13 +20,15 @@ import org.junit.rules.ExternalResource;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class MetricsRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
         super.before();
-        AtlasDbMetrics.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
+        AtlasDbMetrics.setMetricRegistries(SharedMetricRegistries.getOrCreate("AtlasDbTest"),
+                new DefaultTaggedMetricRegistry());
     }
 
     @Override
