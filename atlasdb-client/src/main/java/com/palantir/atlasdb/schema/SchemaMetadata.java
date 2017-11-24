@@ -51,7 +51,7 @@ public abstract class SchemaMetadata implements Persistable {
                 SchemaMetadataPersistence.SchemaDependentTableMetadataEntry.newBuilder()
                         .setTableReference(
                                 SchemaMetadataPersistence.TableReference.newBuilder()
-                                        .setNamespace(entry.getKey().getNamespace().toString())
+                                        .setNamespace(entry.getKey().getNamespace().getName())
                                         .setTableName(entry.getKey().getTablename())
                                         .build())
                         .setSchemaDependentTableMetadata(entry.getValue().persistToProto())
@@ -64,7 +64,7 @@ public abstract class SchemaMetadata implements Persistable {
         message.getTableMetadataList()
                 .forEach(entry -> builder.putSchemaDependentTableMetadata(
                         TableReference.create(
-                                Namespace.create(entry.getTableReference().getTableName()),
+                                Namespace.create(entry.getTableReference().getNamespace()),
                                 entry.getTableReference().getTableName()),
                         SchemaDependentTableMetadata.hydrateFromProto(entry.getSchemaDependentTableMetadata())));
         return builder.build();
