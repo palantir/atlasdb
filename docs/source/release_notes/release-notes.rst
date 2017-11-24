@@ -231,14 +231,14 @@ v0.67.0
     *    - |new| |metrics|
          - Added metrics for written bytes at the Transaction layer:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten
+              - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
 
     *    - |new| |metrics|
          - A metric was added for the cases where a large read was made:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead
+              - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead``
 
            Note that we also log a warning in these cases, with the message "A single get had quite a few bytes...".
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
