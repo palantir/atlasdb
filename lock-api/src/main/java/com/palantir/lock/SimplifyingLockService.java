@@ -26,7 +26,7 @@ import com.google.common.collect.Sets;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate(typeToExtend = LockService.class)
-public abstract class ForwardingLockService implements AutoDelegate_LockService, CloseableLockService {
+public abstract class SimplifyingLockService implements AutoDelegate_LockService, CloseableLockService {
 
     @Override
     public abstract LockService delegate();
