@@ -29,10 +29,15 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 
 @Value.Immutable
+@Value.Style(stagedBuilder = true)
 public abstract class NameComponentDescription {
     public abstract String getComponentName();
     public abstract ValueType getType();
-    abstract ValueByteOrder byteOrder();
+
+    @Value.Default
+    ValueByteOrder byteOrder() {
+        return ValueByteOrder.ASCENDING;
+    }
 
     @Nullable
     @Value.Default
@@ -46,7 +51,10 @@ public abstract class NameComponentDescription {
         return null;
     }
 
-    public abstract LogSafety getLogSafety();
+    @Value.Default
+    public LogSafety getLogSafety() {
+        return LogSafety.UNSAFE;
+    }
 
     @Value.Derived
     public ValueByteOrder getOrder() {

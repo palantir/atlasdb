@@ -73,28 +73,6 @@ public class NameComponentDescriptionTest {
         assertThat(description.getLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
-    @Test(expected = NullPointerException.class)
-    public void builderRequiresComponentName() {
-        ImmutableNameComponentDescription.builder()
-                .type(VALUE_TYPE)
-                .byteOrder(VALUE_BYTE_ORDER)
-                .uniformPartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitPartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
-                .logSafety(LogSafety.SAFE)
-                .build();
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void builderRequiresType() {
-        ImmutableNameComponentDescription.builder()
-                .componentName(COMPONENT_NAME)
-                .byteOrder(VALUE_BYTE_ORDER)
-                .uniformPartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitPartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
-                .logSafety(LogSafety.SAFE)
-                .build();
-    }
-
     @Test
     public void builderSetsSaneDefaults() {
         NameComponentDescription description = ImmutableNameComponentDescription.builder()
