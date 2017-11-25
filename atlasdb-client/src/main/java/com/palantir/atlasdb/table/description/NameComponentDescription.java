@@ -58,6 +58,16 @@ public abstract class NameComponentDescription {
         return getOrder() == ValueByteOrder.DESCENDING;
     }
 
+    /**
+     * Returns true iff the component has a uniform partitioner.
+     *
+     * NB: a component can have both a uniform partitioner and an explicit partitioner
+     */
+    @Value.Derived
+    public boolean hasUniformPartitioner() {
+        return getUniformPartitioner() != null;
+    }
+
     @Value.Derived
     public TableMetadataPersistence.NameComponentDescription.Builder persistToProto() {
         TableMetadataPersistence.NameComponentDescription.Builder builder
@@ -92,16 +102,6 @@ public abstract class NameComponentDescription {
                 .explicitPartitioner(explicitPartitioner)
                 .logSafety(message.getLogSafety())
                 .build();
-    }
-
-    /**
-     * Returns true iff the component has a uniform partitioner.
-     *
-     * NB: a component can have both a uniform partitioner and an explicit partitioner
-     */
-    @Value.Derived
-    public boolean hasUniformPartitioner() {
-        return getUniformPartitioner() != null;
     }
 
     @Value.Derived
