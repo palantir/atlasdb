@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.ImmutableNameComponentDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -51,7 +52,7 @@ public class TransactionConstants {
     }
 
     public static final TableMetadata TRANSACTION_TABLE_METADATA = new TableMetadata(
-        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
+        NameMetadataDescription.create(ImmutableList.of(ImmutableNameComponentDescription.builder()
                 .componentName("write_ts")
                 .type(ValueType.VAR_LONG)
                 .build())),

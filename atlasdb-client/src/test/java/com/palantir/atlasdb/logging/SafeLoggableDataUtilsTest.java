@@ -26,6 +26,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.ImmutableNameComponentDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -43,11 +44,11 @@ public class SafeLoggableDataUtilsTest {
     private static final String COLUMN_LONG_NAME = "barrrr";
     private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
             ImmutableList.of(
-                    new NameComponentDescription.Builder()
+                    ImmutableNameComponentDescription.builder()
                             .componentName(ROW_COMPONENT_NAME)
                             .type(ValueType.VAR_LONG)
                             .byteOrder(TableMetadataPersistence.ValueByteOrder.ASCENDING)
-                            .uniformRowNamePartitioner(new UniformRowNamePartitioner(ValueType.VAR_LONG))
+                            .uniformPartitioner(new UniformRowNamePartitioner(ValueType.VAR_LONG))
                             .logSafety(LogSafety.SAFE)
                             .build()),
             0);
@@ -57,7 +58,7 @@ public class SafeLoggableDataUtilsTest {
 
     private static final TableMetadata TABLE_METADATA_1 = new TableMetadata(
             NameMetadataDescription.create(
-                    ImmutableList.of(new NameComponentDescription.Builder()
+                    ImmutableList.of(ImmutableNameComponentDescription.builder()
                             .componentName(ROW_COMPONENT_NAME).type(ValueType.VAR_LONG).build()),
                     0),
             new ColumnMetadataDescription(

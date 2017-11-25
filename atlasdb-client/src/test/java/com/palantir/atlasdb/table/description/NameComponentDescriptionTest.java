@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.common.annotation.Immutable;
 
 public class NameComponentDescriptionTest {
     private static final String COMPONENT_NAME = "rowComponent";
@@ -34,17 +35,18 @@ public class NameComponentDescriptionTest {
     private static final ExplicitRowNamePartitioner EXPLICIT_ROW_NAME_PARTITIONER =
             new ExplicitRowNamePartitioner(VALUE_TYPE, ImmutableSet.of());
 
-    private static final NameComponentDescription DEFAULT_UNNAMED_DESCRIPTION = new NameComponentDescription.Builder()
+    private static final NameComponentDescription DEFAULT_UNNAMED_DESCRIPTION = ImmutableNameComponentDescription
+            .builder()
             .componentName("name")
             .type(ValueType.BLOB)
             .build();
     private static final NameComponentDescription LOGGABILITY_UNSPECIFIED_DESCRIPTION
-            = new NameComponentDescription.Builder()
+            = ImmutableNameComponentDescription.builder()
                     .componentName(COMPONENT_NAME)
                     .type(VALUE_TYPE)
                     .byteOrder(VALUE_BYTE_ORDER)
-                    .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                    .explicitRowNamePartitioner(null)
+                    .uniformPartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                    .explicitPartitioner(null)
                     .build();
 
     private static final NameComponentDescription NAME_LOGGABLE_DESCRIPTION =
@@ -54,67 +56,67 @@ public class NameComponentDescriptionTest {
 
     @Test
     public void builderCanCreateNameComponentDescription() {
-        NameComponentDescription description = new NameComponentDescription.Builder()
+        NameComponentDescription description = ImmutableNameComponentDescription.builder()
                 .componentName(COMPONENT_NAME)
                 .type(VALUE_TYPE)
                 .byteOrder(VALUE_BYTE_ORDER)
-                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                .uniformPartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .explicitPartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
                 .logSafety(LogSafety.SAFE)
                 .build();
 
         assertThat(description.getComponentName()).isEqualTo(COMPONENT_NAME);
         assertThat(description.getType()).isEqualTo(VALUE_TYPE);
         assertThat(description.getOrder()).isEqualTo(VALUE_BYTE_ORDER);
-        assertThat(description.uniformPartitioner).isEqualTo(UNIFORM_ROW_NAME_PARTITIONER);
+        assertThat(description.getUniformPartitioner()).isEqualTo(UNIFORM_ROW_NAME_PARTITIONER);
         assertThat(description.getExplicitPartitioner()).isEqualTo(EXPLICIT_ROW_NAME_PARTITIONER);
         assertThat(description.getLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
     @Test(expected = NullPointerException.class)
     public void builderRequiresComponentName() {
-        new NameComponentDescription.Builder()
+        ImmutableNameComponentDescription.builder()
                 .type(VALUE_TYPE)
                 .byteOrder(VALUE_BYTE_ORDER)
-                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                .uniformPartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .explicitPartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
                 .logSafety(LogSafety.SAFE)
                 .build();
     }
 
     @Test(expected = NullPointerException.class)
     public void builderRequiresType() {
-        new NameComponentDescription.Builder()
+        ImmutableNameComponentDescription.builder()
                 .componentName(COMPONENT_NAME)
                 .byteOrder(VALUE_BYTE_ORDER)
-                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                .uniformPartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .explicitPartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
                 .logSafety(LogSafety.SAFE)
                 .build();
     }
 
     @Test
     public void builderSetsSaneDefaults() {
-        NameComponentDescription description = new NameComponentDescription.Builder()
+        NameComponentDescription description = ImmutableNameComponentDescription.builder()
                 .componentName(COMPONENT_NAME)
                 .type(VALUE_TYPE)
                 .build();
 
         assertThat(description.getOrder()).isEqualTo(TableMetadataPersistence.ValueByteOrder.ASCENDING);
-        assertThat(description.uniformPartitioner).isEqualTo(new UniformRowNamePartitioner(VALUE_TYPE));
-        assertThat(description.explicitPartitioner).isNull();
+        assertThat(description.getUniformPartitioner()).isEqualTo(new UniformRowNamePartitioner(VALUE_TYPE));
+        assertThat(description.getExplicitPartitioner()).isNull();
         assertThat(description.getLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
     public void builderCanSetUniformPartitionerToNull() {
-        NameComponentDescription description = new NameComponentDescription.Builder()
+        NameComponentDescription description = ImmutableNameComponentDescription.builder()
                 .componentName(COMPONENT_NAME)
                 .type(VALUE_TYPE)
-                .uniformRowNamePartitioner(null)
+                .uniformPartitioner(null)
                 .build();
 
-        assertThat(description.uniformPartitioner).isNull();
+        assertThat(description.getUniformPartitioner()).isNull();
     }
 
     @Test
@@ -178,11 +180,11 @@ public class NameComponentDescriptionTest {
     }
 
     private static NameComponentDescription createWithSpecifiedLogSafety(LogSafety logSafety) {
-        return new NameComponentDescription.Builder()
+        return ImmutableNameComponentDescription.builder()
                 .componentName(COMPONENT_NAME)
                 .type(VALUE_TYPE)
                 .byteOrder(VALUE_BYTE_ORDER)
-                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                .uniformPartitioner(UNIFORM_ROW_NAME_PARTITIONER)
                 .logSafety(logSafety)
                 .build();
     }

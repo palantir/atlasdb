@@ -44,14 +44,14 @@ public class NameMetadataDescription {
 
     public NameMetadataDescription() {
         this(ImmutableList.of(
-                new NameComponentDescription.Builder().componentName("name").type(ValueType.BLOB).build()), 0);
+                ImmutableNameComponentDescription.builder().componentName("name").type(ValueType.BLOB).build()), 0);
     }
 
     private NameMetadataDescription(List<NameComponentDescription> components, int numberOfComponentsHashed) {
         Preconditions.checkArgument(!components.isEmpty());
         this.rowParts = ImmutableList.copyOf(components);
         for (NameComponentDescription nameComponent : rowParts.subList(0, rowParts.size() - 1)) {
-            if (nameComponent.type == ValueType.BLOB || nameComponent.type == ValueType.STRING) {
+            if (nameComponent.getType() == ValueType.BLOB || nameComponent.getType() == ValueType.STRING) {
                 throw new IllegalArgumentException("string or blob must be on end.  components were: " + components);
             }
         }
@@ -76,7 +76,7 @@ public class NameMetadataDescription {
             return new NameMetadataDescription(components, numberOfComponentsHashed);
         } else {
             List<NameComponentDescription> withHashRowComponent = Lists.newArrayListWithCapacity(components.size() + 1);
-            withHashRowComponent.add(new NameComponentDescription.Builder()
+            withHashRowComponent.add(ImmutableNameComponentDescription.builder()
                     .componentName(HASH_ROW_COMPONENT_NAME)
                     .type(ValueType.FIXED_LONG)
                     .build());
@@ -139,12 +139,12 @@ public class NameMetadataDescription {
             }
             Pair<String, Integer> parse;
             if (component.isReverseOrder()) {
-                parse = component.type.convertToJson(flippedName, offset);
+                parse = component.getType().convertToJson(flippedName, offset);
             } else {
-                parse = component.type.convertToJson(name, offset);
+                parse = component.getType().convertToJson(name, offset);
             }
             offset += parse.rhSide;
-            sb.append('"').append(component.componentName).append('"').append(": ").append(parse.lhSide);
+            sb.append('"').append(component.getComponentName()).append('"').append(": ").append(parse.lhSide);
             if (it.hasNext()) {
                 sb.append(", ");
             }

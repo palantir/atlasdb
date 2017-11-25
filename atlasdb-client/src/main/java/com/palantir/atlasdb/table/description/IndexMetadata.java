@@ -31,6 +31,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.common.annotation.Immutable;
 
 public class IndexMetadata {
     final String name;
@@ -292,9 +293,9 @@ public class IndexMetadata {
 
     private static ColumnMetadataDescription getCellReferencingIndexColumn(List<NameComponentDescription> components) {
         components = ImmutableList.<NameComponentDescription>builder()
-                .add(new NameComponentDescription.Builder().componentName("row_name").type(ValueType.SIZED_BLOB)
+                .add(ImmutableNameComponentDescription.builder().componentName("row_name").type(ValueType.SIZED_BLOB)
                         .build())
-                .add(new NameComponentDescription.Builder().componentName("column_name").type(ValueType.SIZED_BLOB)
+                .add(ImmutableNameComponentDescription.builder().componentName("column_name").type(ValueType.SIZED_BLOB)
                         .build())
                 .addAll(components)
                 .build();

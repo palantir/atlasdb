@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.ImmutableNameComponentDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -44,7 +45,7 @@ public class SimpleKvsTimestampBoundStore implements TimestampBoundStore {
     private static final Cell TS_CELL = Cell.create(ROW_AND_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
             ROW_AND_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
+            NameMetadataDescription.create(ImmutableList.of(ImmutableNameComponentDescription.builder()
                     .componentName("timestamp_name").type(ValueType.STRING).build())),
             new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription(
                     ROW_AND_COLUMN_NAME,

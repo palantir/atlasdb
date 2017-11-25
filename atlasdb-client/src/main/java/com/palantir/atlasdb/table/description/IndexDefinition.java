@@ -76,7 +76,7 @@ public class IndexDefinition extends AbstractDefinition {
     public void componentFromRow(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
             String sourceComponentName) {
         addComponent(IndexComponent.createFromRow(
-                new NameComponentDescription.Builder()
+                ImmutableNameComponentDescription.builder()
                         .componentName(componentName)
                         .type(valueType)
                         .byteOrder(valueByteOrder)
@@ -99,7 +99,7 @@ public class IndexDefinition extends AbstractDefinition {
     public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
             String sourceComponentName) {
         addComponent(IndexComponent.createFromDynamicColumn(
-                new NameComponentDescription.Builder()
+                ImmutableNameComponentDescription.builder()
                         .componentName(componentName)
                         .type(valueType)
                         .byteOrder(valueByteOrder)
@@ -167,7 +167,7 @@ public class IndexDefinition extends AbstractDefinition {
     public void componentFromColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
             String sourceColumnName, String codeToAccessValue) {
         addComponent(IndexComponent.createFromColumn(
-                new NameComponentDescription.Builder()
+                ImmutableNameComponentDescription.builder()
                         .componentName(componentName)
                         .type(valueType)
                         .byteOrder(valueByteOrder)
@@ -184,7 +184,7 @@ public class IndexDefinition extends AbstractDefinition {
     public void componentFromIterableColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder,
             String sourceColumnName, String codeToAccessValue) {
         addComponent(IndexComponent.createIterableFromColumn(
-                new NameComponentDescription.Builder()
+                ImmutableNameComponentDescription.builder()
                         .componentName(componentName)
                         .type(valueType)
                         .byteOrder(valueByteOrder)
