@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -49,6 +50,11 @@ import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement;
+import com.palantir.atlasdb.schema.ImmutableSchemaDependentTableMetadata;
+import com.palantir.atlasdb.schema.ImmutableSchemaMetadata;
+import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
+import com.palantir.atlasdb.schema.SchemaMetadata;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -401,5 +407,33 @@ public class Schema {
 
     public void ignoreTableNameLengthChecks() {
         ignoreTableNameLengthChecks = true;
+    }
+
+    public SchemaMetadata getSchemaMetadata() {
+        // TODO (jkong): Memoize
+        ImmutableSchemaMetadata.Builder builder = ImmutableSchemaMetadata.builder();
+
+        // This is kinda funky, but I can't really think of a better way
+        Map<TableReference, SchemaDependentTableMetadata> tableMetadatas =
+                Stream.of(tempTableDefinitions, tableDefinitions, indexDefinitions)
+                        .map(Map::keySet)
+                        .map(Set::stream)
+                        .flatMap(x -> x)
+                        .collect(Collectors.toMap(
+                                tableName -> TableReference.create(namespace, tableName),
+                                // TODO (jkong): Extract method
+                                tableName -> {
+                                    // TODO (jkong): Stream Stores are different
+                                    CleanupRequirement requirement = CleanupRequirement.ARBITRARY_SYNC;
+                                    if (!cleanupTasks.containsKey(tableName)) {
+                                        requirement = CleanupRequirement.NOT_NEEDED;
+                                    }
+                                    return ImmutableSchemaDependentTableMetadata.builder()
+                                            .cleanupRequirement(requirement)
+                                            .build();
+                                }));
+        builder.putAllSchemaDependentTableMetadata(tableMetadatas);
+
+        return builder.build();
     }
 }
