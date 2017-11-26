@@ -88,6 +88,8 @@ public class Schema {
     private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
     private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
 
+    private final Map<String, CleanupRequirement> cleanupRequirements = Maps.newHashMap();
+
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
@@ -196,6 +198,10 @@ public class Schema {
                 packageName, name, renderer, namespace);
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
+        // TODO (jkong): Switch to STREAM_STORE when that actually becomes a thing
+        // Note that users can define their own cleanup tasks with even stricter requirements, so this can't be put.
+        streamStoreCleanupTasks.keySet().forEach(tableWithStreamCleanupTask ->
+                cleanupRequirements.putIfAbsent(tableWithStreamCleanupTask, CleanupRequirement.ARBITRARY_ASYNC));
         streamStoreRenderers.add(renderer);
     }
 
@@ -390,11 +396,19 @@ public class Schema {
     }
 
     public void addCleanupTask(String rawTableName, OnCleanupTask task) {
-        cleanupTasks.put(rawTableName, Suppliers.ofInstance(task));
+        addCleanupTask(rawTableName, Suppliers.ofInstance(task));
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
+        addCleanupTask(rawTableName, task, CleanupRequirement.ARBITRARY_SYNC);
+    }
+
+    public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task, CleanupRequirement requirement) {
+        Preconditions.checkState(requirement == CleanupRequirement.ARBITRARY_SYNC ||
+                requirement == CleanupRequirement.ARBITRARY_ASYNC,
+                "Cannot manually specify a cleanup task with requirement %s", requirement);
         cleanupTasks.put(rawTableName, task);
+        cleanupRequirements.put(rawTableName, requirement);
     }
 
     public Multimap<TableReference, OnCleanupTask> getCleanupTasksByTable() {
@@ -424,10 +438,9 @@ public class Schema {
                                 // TODO (jkong): Extract method
                                 tableName -> {
                                     // TODO (jkong): Stream Stores are different
-                                    CleanupRequirement requirement = CleanupRequirement.ARBITRARY_SYNC;
-                                    if (!cleanupTasks.containsKey(tableName)) {
-                                        requirement = CleanupRequirement.NOT_NEEDED;
-                                    }
+                                    CleanupRequirement requirement = cleanupRequirements.getOrDefault(
+                                            tableName,
+                                            CleanupRequirement.NOT_NEEDED);
                                     return ImmutableSchemaDependentTableMetadata.builder()
                                             .cleanupRequirement(requirement)
                                             .build();
