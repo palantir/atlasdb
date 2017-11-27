@@ -18,11 +18,16 @@ package com.palantir.atlasdb.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement;
 
 public class SchemaMetadataTest {
     private final SchemaDependentTableMetadata TABLE_METADATA_1 = ImmutableSchemaDependentTableMetadata.builder()
@@ -55,6 +60,18 @@ public class SchemaMetadataTest {
                 .putSchemaDependentTableMetadata(
                         TableReference.create(Namespace.create("foo"), "barbar"), TABLE_METADATA_2)
                 .build());
+    }
+
+    @Test
+    public void orderingOfCleanupRequirementEnumIsCorrect() {
+        List<CleanupRequirement> sortedCleanupRequirements = Lists.newArrayList(
+                CleanupRequirement.NOT_NEEDED,
+                CleanupRequirement.STREAM_STORE,
+                CleanupRequirement.ARBITRARY_ASYNC,
+                CleanupRequirement.ARBITRARY_SYNC);
+        List<CleanupRequirement> copy = Lists.newArrayList(sortedCleanupRequirements);
+        Collections.sort(copy);
+        assertThat(copy).isEqualTo(sortedCleanupRequirements);
     }
 
     private void canSerializeAndDeserializePreservingEquality(SchemaMetadata schemaMetadata) {
