@@ -956,6 +956,10 @@ v0.57.0
     *    - Type
          - Change
 
+    *    - |metrics| |changed|
+         - From this version onwards, AtlasDB's metrics no longer have unbounded multiplicity.
+           This means that AtlasDB can be whitelisted in the internal metrics aggregator tool.
+
     *    - |metrics| |userbreak|
          - AtlasDB no longer embeds Cassandra host names in its metrics.
            Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
