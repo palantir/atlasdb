@@ -266,6 +266,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.cassandraTables = new CassandraTables(clientPool, configManager);
+
+        if (!compactionManager.isPresent()) {
+            logLackOfCompactionManager(configManager.getConfig().getKeyspaceOrThrow());
+        }
     }
 
     @Override
@@ -1486,10 +1490,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             String kvsMethodName,
             TableReference tableRef,
             CandidateCellForSweepingRequest request) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.ALL, tableRef);
         return new CandidateRowsForSweepingIterator(
                 (iteratorTableRef, cells, maxTimestampExclusive) ->
                         get(kvsMethodName, iteratorTableRef, cells, maxTimestampExclusive),
-                newInstrumentedCqlExecutor(),
+                newInstrumentedCqlExecutor(), rowGetter,
                 tableRef, request);
     }
 
@@ -2219,11 +2224,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 "tableRef:[%s] should not be null or empty.", tableRef);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
         if (!compactionManager.isPresent()) {
-            log.error("No compaction client was configured, but compact was called."
-                    + " If you actually want to clear deleted data immediately"
-                    + " from Cassandra, lower your gc_grace_seconds setting and"
-                    + " run `nodetool compact {} {}`.", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
-                    LoggingArgs.tableRef(tableRef));
             return;
         }
         long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
@@ -2246,6 +2246,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     config.gcGraceSeconds(),
                     CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
         }
+    }
+
+    private void logLackOfCompactionManager(String keyspace) {
+        log.info("No compaction client was configured. Sweep and other operations may delete data from an Atlas "
+                + "perspective, but if you actually want to clear deleted data from Cassandra, "
+                + "you will need to run `nodetool compact {} <table_name>`. "
+                + "This will clear data that was deleted more than gc_grace_seconds ago.",
+                UnsafeArg.of("keyspace", keyspace));
     }
 
     @Override
