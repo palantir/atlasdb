@@ -92,9 +92,10 @@ public class MetricsManager {
                     + " themselves, or if you are trying to use multiple TransactionManagers concurrently in the same"
                     + " JVM (e.g. in a KVS migration). If this is not the case, this is likely to be a product and/or"
                     + " an AtlasDB bug. This is no cause for immediate alarm, but it does mean that your telemetry for"
-                    + " the aforementioned metric may be reported incorrectly.",
-                    SafeArg.of("metricName", fullyQualifiedMetricName),
-                    e);
+                    + " the aforementioned metric may be reported incorrectly. Turn on TRACE logging to see the full"
+                    + " exception.",
+                    SafeArg.of("metricName", fullyQualifiedMetricName));
+            log.trace("Full exception follows:", e);
         }
     }
 
