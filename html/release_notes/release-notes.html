@@ -1154,40 +1154,44 @@ Several logging parameters in TimeLock (e.g. in <code class="docutils literal"><
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-changed">CHANGED</span></td>
+<td>From this version onwards, AtlasDB’s metrics no longer have unbounded multiplicity.
+This means that AtlasDB can be whitelisted in the internal metrics aggregator tool.</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>AtlasDB no longer embeds Cassandra host names in its metrics.
 Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
 This was necessary for compatibility with an internal log-ingestion tool.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2324">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>AtlasDB no longer embeds table names in Sweep metrics.
 Sweep aggregate metrics continue to be reported.
 This was necessary for compatibility with an internal log-ingestion tool.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2324">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB now depends on okhttp 3.8.1. This is expected to fix an issue where connections would constantly throw “shutdown” exceptions, which was likely due to a documented bug in okhttp 3.4.1.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2343">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal"><span class="pre">ConcurrentStreams</span></code> class has been deleted and replaced with calls to <code class="docutils literal"><span class="pre">MoreStreams.blockingStreamWithParallelism</span></code>, from <a class="reference external" href="https://github.com/palantir/streams">streams</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2361/files">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>TimeLockAgent’s constructor now accepts a Supplier instead of an RxJava Observable.
 This reduces the size of the TimeLock Agent jar, and removes the need for a dependency on RxJava.
 To convert an RxJava Observable to a Supplier that always returns the most recent value, consider the method <cite>blockingMostRecent</cite> as implemented <a class="reference external" href="https://github.com/palantir/atlasdb/blob/0.56.0/timelock-agent/src/main/java/com/palantir/timelock/Observables.java#L39-L48">here</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2339">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">BatchingVisitableView</span></code> methods <code class="docutils literal"><span class="pre">immutableCopy</span></code>, <code class="docutils literal"><span class="pre">immutableSetCopy</span></code>, and <code class="docutils literal"><span class="pre">copyInto</span></code> use the default batch hint of 1000, instead of a batch hint of 100,000.
 We previously defaulted to the higher value because the result set was assumed to be small; however, in practice this has turned out not to be the case, leading to timeouts and OOMs in the field.
 To use a custom batch hint, set the <code class="docutils literal"><span class="pre">batchHint</span></code> property for your <code class="docutils literal"><span class="pre">RangeRequest</span></code>.
 Alternatively, call <code class="docutils literal"><span class="pre">BatchingVisitableView.hintBatchSize(int)</span></code> before making a copy.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2347">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB table definitions now support specifying log safety without having to also specify value byte order for row components.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2349">Pull Request</a>)</td>
 </tr>
