@@ -215,7 +215,70 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
+    public void testSweepLatestDeletedMultiRowThorough() {
+        createTable(SweepStrategy.THOROUGH);
+        putIntoDefaultColumn("foo", "", 50);
+        put("foo-2", "other", "womp", 60);
+        SweepResults results = completeSweep(75);
+        assertEquals(1, results.getStaleValuesDeleted());
+        assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
+
+        assertNull(get("foo", 150));
+        assertEquals(ImmutableSet.of(), getAllTs("foo"));
+    }
+
+    @Test(timeout = 50000)
+    public void testSweepLatestDeletedMultiColThorough() {
+        createTable(SweepStrategy.THOROUGH);
+        put("foo", "The Library", "Donna Noble has been saved", 40);
+        putIntoDefaultColumn("foo", "", 50);
+        SweepResults results = completeSweep(75);
+        assertEquals(1, results.getStaleValuesDeleted());
+        assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
+
+        // TODO these look wrong but are actually OK - they check only for COL
+        assertNull(get("foo", 150));
+        assertEquals(ImmutableSet.of(), getAllTs("foo"));
+    }
+
+    @Test(timeout = 50000)
+    public void testSweepLatestDeletedMultiValConservative() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        putIntoDefaultColumn("foo", "this citizen will be erased", 40);
+        putIntoDefaultColumn("foo", "", 50);
+        SweepResults results = completeSweep(75);
+        assertEquals(1, results.getStaleValuesDeleted());
+        assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
+        assertNull(get("foo", 150));
+        assertEquals(ImmutableSet.of(), getAllTs("foo"));
+    }
+
+    @Test(timeout = 50000)
+    public void testSweepLatestNotDeletedMultiValThorough() {
+        createTable(SweepStrategy.THOROUGH);
+        putIntoDefaultColumn("foo", "this citizen will be erased", 40);
+        putIntoDefaultColumn("foo", "this is the modern world", 50);
+        SweepResults results = completeSweep(75);
+        assertEquals(1, results.getStaleValuesDeleted());
+        assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
+//        assertNull(get("foo", 150));
+//        assertEquals(ImmutableSet.of(), getAllTs("foo"));
+    }
+
+    @Test(timeout = 50000)
+    public void testSweepLatestDeletedMultiValThorough() {
+        createTable(SweepStrategy.THOROUGH);
+        putIntoDefaultColumn("foo", "this citizen will be erased", 40);
+        putIntoDefaultColumn("foo", "", 50);
+        SweepResults results = completeSweep(75);
+        assertEquals(1, results.getStaleValuesDeleted());
+        assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
+        assertNull(get("foo", 150));
+        assertEquals(ImmutableSet.of(), getAllTs("foo"));
+    }
+
+    @Test(timeout = 50000)
     public void testSweepLatestDeletedThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "", 50);
