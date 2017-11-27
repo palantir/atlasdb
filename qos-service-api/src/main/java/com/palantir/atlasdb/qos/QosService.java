@@ -26,9 +26,16 @@ import com.palantir.logsafe.Safe;
 
 @Path("/qos")
 public interface QosService {
-    @Path("{client: [a-zA-Z0-9_-]+}/get-limit")
+    @Path("{client: [a-zA-Z0-9_-]+}/read-limit")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    int getLimit(@Safe @PathParam("client") String client);
+    int readLimit(@Safe @PathParam("client") String client);
+
+    @Path("{client: [a-zA-Z0-9_-]+}/write-limit")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    int writeLimit(@Safe @PathParam("client") String client);
+
 }

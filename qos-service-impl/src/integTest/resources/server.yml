@@ -5,11 +5,30 @@ server:
 
 runtime:
   clientLimits:
-    test: 10
-    test2: 20
+    test:
+      limits:
+        readBytesPerSecond: 10000
+        writeBytesPerSecond: 1000
+      clientPriority: HIGH
+    test2:
+      limits:
+        readBytesPerSecond: 10000
+        writeBytesPerSecond: 1000
+      clientPriority: LOW
+
   cassandraServiceConfig:
     uris:
       - https://localhost:9161/cassandra-sidecar/api/
     security:
       trustStorePath: /Users/hsaraogi/code/sls-cassandra/sls-cassandra-sidecar-server/var/security/truststore.jks
+  cassandraHealthMetrics:
+    - type: CommitLog
+      name: PendingTasks
+      attribute: Value
+      lowerLimit: 0
+      upperLimit: 50
+  throttlingStrategy: SIMPLE
+
+
+
 

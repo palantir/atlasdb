@@ -50,8 +50,8 @@ public class QosServiceIntegrationTest {
 
     @Test
     public void returnsConfiguredLimits() {
-        assertThat(service.getLimit("test")).isEqualTo(10);
-        assertThat(service.getLimit("test2")).isEqualTo(20);
+        assertThat(service.readLimit("test")).isEqualTo(10);
+        assertThat(service.readLimit("test2")).isEqualTo(20);
     }
 
 }

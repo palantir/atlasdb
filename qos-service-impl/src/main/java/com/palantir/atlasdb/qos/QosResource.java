@@ -16,14 +16,19 @@
 
 package com.palantir.atlasdb.qos;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.EvictingQueue;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
+import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
+import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
+import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
+import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
+import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
@@ -32,61 +37,89 @@ public class QosResource implements QosService {
 
     private final Optional<CassandraMetricsService> cassandraMetricClient;
     private Supplier<QosServiceRuntimeConfig> config;
-    private static final String GAUGE_ATTRIBUTE = "Value";
-    private static MetricsManager metricsManager = new MetricsManager();
-    private static EvictingQueue<PendingTaskMetric> queue = EvictingQueue.create(100);
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
         this.cassandraMetricClient = config.get().cassandraServiceConfig()
                 .map(cassandraServiceConfig -> Optional.of(JaxRsClient.create(
-                CassandraMetricsService.class,
-                "qos-service",
-                ClientConfigurations.of(cassandraServiceConfig))))
-        .orElse(Optional.empty());
+                        CassandraMetricsService.class,
+                        "qos-service",
+                        ClientConfigurations.of(cassandraServiceConfig))))
+                .orElse(Optional.empty());
     }
 
     @Override
-    public int getLimit(String client) {
-        //TODO (hsaraogi): return long once the ratelimiter can handle it.
-        int configLimit = config.get().clientLimits().getOrDefault(client, Integer.MAX_VALUE);
-        int scaledLimit = (int) (configLimit * checkCassandraHealth());
-
-        //TODO (hsaraogi): add client names as tags
-        metricsManager.registerOrGetHistogram(QosResource.class, "scaledLimit").update(scaledLimit);
-        return configLimit;
+    public int readLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
+                ImmutableQosClientLimitsConfig.builder().build());
+        return Ints.saturatedCast((long) getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().readBytesPerSecond());
     }
 
-    private double checkCassandraHealth() {
-//        int readTimeoutCounter = getTimeoutCounter("Read");
+    @Override
+    public int writeLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
+                ImmutableQosClientLimitsConfig.builder().build());
+        return Ints.saturatedCast((long) getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().writeBytesPerSecond());
+    }
+
+    private double getClientLimitMultiplier(QosPriority qosPriority) {
         if (cassandraMetricClient.isPresent()) {
-            Object numPendingCommitLogTasks = cassandraMetricClient.get().getMetric(
-                    "CommitLog",
-                    "PendingTasks",
-                    GAUGE_ATTRIBUTE,
-                    ImmutableMap.of());
+            List<CassandraHealthMetric> cassandraHealthMetrics = config.get().cassandraHealthMetrics();
 
-            Preconditions.checkState(numPendingCommitLogTasks instanceof Integer,
-                    "Expected type Integer, found %s",
-                    numPendingCommitLogTasks.getClass());
+            List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
+                    cassandraHealthMetrics.stream().map(metric ->
+                            ImmutableCassandraHealthMetricMeasurement.builder()
+                                    .currentValue(cassandraMetricClient.get().getMetric(
+                                            metric.type(),
+                                            metric.name(),
+                                            metric.attribute(),
+                                            metric.additionalParams()))
+                                    .lowerLimit(metric.lowerLimit())
+                                    .upperLimit(metric.upperLimit())
+                                    .build())
+                            .collect(Collectors.toList());
 
-            int numPendingCommitLogTasksInt = (int) numPendingCommitLogTasks;
-
-            queue.add(ImmutablePendingTaskMetric.builder()
-                    .numPendingTasks(numPendingCommitLogTasksInt)
-                    .timetamp(System.currentTimeMillis())
-                    .build());
-
-            double averagePendingCommitLogTasks = queue.stream()
-                    .mapToInt(PendingTaskMetric::numPendingTasks)
-                    .average()
-                    .getAsDouble();
-
-            if (Double.compare(averagePendingCommitLogTasks, (double) numPendingCommitLogTasks) < 0) {
-                return 1.0 -
-                        ((numPendingCommitLogTasksInt - averagePendingCommitLogTasks) / numPendingCommitLogTasksInt);
-            }
+            return config.get()
+                    .throttlingStrategy()
+                    .getThrottlingStrategy()
+                    .clientLimitMultiplier(cassandraHealthMetricMeasurements, qosPriority);
         }
         return 1.0;
     }
+
+
+    //    private double checkCassandraHealth() {
+    //        //        int readTimeoutCounter = getTimeoutCounter("Read");
+    //        if (cassandraMetricClient.isPresent()) {
+    //            Object numPendingCommitLogTasks = cassandraMetricClient.get().getMetric(
+    //                    "CommitLog",
+    //                    "PendingTasks",
+    //                    GAUGE_ATTRIBUTE,
+    //                    ImmutableMap.of());
+    //
+    //            Preconditions.checkState(numPendingCommitLogTasks instanceof Integer,
+    //                    "Expected type Integer, found %s",
+    //                    numPendingCommitLogTasks.getClass());
+    //
+    //            int numPendingCommitLogTasksInt = (int) numPendingCommitLogTasks;
+    //
+    //            queue.add(ImmutablePendingTaskMetric.builder()
+    //                    .numPendingTasks(numPendingCommitLogTasksInt)
+    //                    .timetamp(System.currentTimeMillis())
+    //                    .build());
+    //
+    //            double averagePendingCommitLogTasks = queue.stream()
+    //                    .mapToInt(PendingTaskMetric::numPendingTasks)
+    //                    .average()
+    //                    .getAsDouble();
+    //
+    //            if (Double.compare(averagePendingCommitLogTasks, (double) numPendingCommitLogTasks) < 0) {
+    //                return 1.0 -
+    //                        ((numPendingCommitLogTasksInt - averagePendingCommitLogTasks) / numPendingCommitLogTasksInt);
+    //            }
+    //        }
+    //        return 1.0;
+    //    }
 }
