@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
@@ -63,7 +64,7 @@ public class CassandraClientPoolTest {
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault());
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
     }
 
@@ -130,7 +131,7 @@ public class CassandraClientPoolTest {
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1, HOST_2));
-        cassandraClientPool.blacklistedHosts.put(HOST_1, System.currentTimeMillis());
+        cassandraClientPool.getBlacklist().add(HOST_1);
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);

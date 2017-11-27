@@ -37,7 +37,6 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings({"all"}) // thrift variable names.

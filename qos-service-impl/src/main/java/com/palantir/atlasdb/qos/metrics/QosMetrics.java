@@ -48,21 +48,21 @@ public class QosMetrics {
     private final Meter rateLimitedExceptions;
 
     public QosMetrics() {
-        readRequestCount = metricsManager.registerMeter(QosMetrics.class, "numReadRequests");
-        bytesRead = metricsManager.registerMeter(QosMetrics.class, "bytesRead");
-        readTime = metricsManager.registerMeter(QosMetrics.class, "readTime");
-        rowsRead = metricsManager.registerMeter(QosMetrics.class, "rowsRead");
+        readRequestCount = metricsManager.registerOrGetMeter(QosMetrics.class, "numReadRequests");
+        bytesRead = metricsManager.registerOrGetMeter(QosMetrics.class, "bytesRead");
+        readTime = metricsManager.registerOrGetMeter(QosMetrics.class, "readTime");
+        rowsRead = metricsManager.registerOrGetMeter(QosMetrics.class, "rowsRead");
 
-        estimatedBytesRead = metricsManager.registerMeter(QosMetrics.class, "estimated.bytesRead");
-        estimatedRowsRead = metricsManager.registerMeter(QosMetrics.class, "estimated.rowsRead");
+        estimatedBytesRead = metricsManager.registerOrGetMeter(QosMetrics.class, "estimated.bytesRead");
+        estimatedRowsRead = metricsManager.registerOrGetMeter(QosMetrics.class, "estimated.rowsRead");
 
-        writeRequestCount = metricsManager.registerMeter(QosMetrics.class, "numWriteRequests");
-        bytesWritten = metricsManager.registerMeter(QosMetrics.class, "bytesWritten");
-        writeTime = metricsManager.registerMeter(QosMetrics.class, "writeTime");
-        rowsWritten = metricsManager.registerMeter(QosMetrics.class, "rowsWritten");
+        writeRequestCount = metricsManager.registerOrGetMeter(QosMetrics.class, "numWriteRequests");
+        bytesWritten = metricsManager.registerOrGetMeter(QosMetrics.class, "bytesWritten");
+        writeTime = metricsManager.registerOrGetMeter(QosMetrics.class, "writeTime");
+        rowsWritten = metricsManager.registerOrGetMeter(QosMetrics.class, "rowsWritten");
 
-        backoffTime = metricsManager.registerMeter(QosMetrics.class, "backoffTime");
-        rateLimitedExceptions = metricsManager.registerMeter(QosMetrics.class, "rateLimitedExceptions");
+        backoffTime = metricsManager.registerOrGetMeter(QosMetrics.class, "backoffTime");
+        rateLimitedExceptions = metricsManager.registerOrGetMeter(QosMetrics.class, "rateLimitedExceptions");
     }
 
     public void recordReadEstimate(QueryWeight weight) {

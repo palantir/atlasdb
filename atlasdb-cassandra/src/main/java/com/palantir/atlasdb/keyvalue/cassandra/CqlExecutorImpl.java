@@ -66,12 +66,15 @@ public class CqlExecutorImpl implements CqlExecutor {
     public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
             byte[] startRowInclusive,
+            byte[] endRowInclusive,
             int limit) {
-        String selQuery = "SELECT key, column1, column2 FROM %s WHERE token(key) >= token(%s) LIMIT %s;";
+        String selQuery = "SELECT key, column1, column2 FROM %s"
+                + " WHERE token(key) >= token(%s) AND token(key) <= token(%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
                 selQuery,
                 quotedTableName(tableRef),
                 key(startRowInclusive),
+                key(endRowInclusive),
                 limit(limit));
 
         return executeAndGetCells(query, startRowInclusive, CqlExecutorImpl::getCellFromRow);
@@ -99,7 +102,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 limit(limit));
 
         return executeAndGetCells(query, row,
-                result -> getCellFromKeylessRow(result, row));
+                result -> CqlExecutorImpl.getCellFromKeylessRow(result, row));
     }
 
     private List<CellWithTimestamp> executeAndGetCells(
@@ -107,7 +110,7 @@ public class CqlExecutorImpl implements CqlExecutor {
             byte[] rowHintForHostSelection,
             Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
         CqlResult cqlResult = queryExecutor.execute(query, rowHintForHostSelection);
-        return getCells(cellTsExtractor, cqlResult);
+        return CqlExecutorImpl.getCells(cellTsExtractor, cqlResult);
     }
 
     private static CellWithTimestamp getCellFromKeylessRow(CqlRow row, byte[] key) {
@@ -183,11 +186,18 @@ public class CqlExecutorImpl implements CqlExecutor {
             try {
                 return clientPool.runWithRetryOnHost(host, createCqlFunction(cqlQuery));
             } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException(
-                        "The query [" + cqlQuery.queryFormat + "] requires consistency " + consistency,
-                        e);
+                throw wrapIfConsistencyAll(e);
             } catch (TException e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                throw Throwables.throwUncheckedException(e);
+            }
+        }
+
+        private RuntimeException wrapIfConsistencyAll(UnavailableException ex) {
+            if (consistency.equals(ConsistencyLevel.ALL)) {
+                throw new InsufficientConsistencyException("This operation requires all Cassandra"
+                        + " nodes to be up and available.", ex);
+            } else {
+                throw Throwables.throwUncheckedException(ex);
             }
         }
 

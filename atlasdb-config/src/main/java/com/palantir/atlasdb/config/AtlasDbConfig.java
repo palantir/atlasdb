@@ -292,6 +292,12 @@ public abstract class AtlasDbConfig {
         checkServersListHasAtLeastOneServerIfPresent(timestamp());
     }
 
+    private static void checkServersListHasAtLeastOneServerIfPresent(Optional<ServerListConfig> serverListOptional) {
+        serverListOptional.ifPresent(
+                serverList -> Preconditions.checkState(serverList.hasAtLeastOneServer(),
+                        "Server list must have at least one server."));
+    }
+
     private String checkNamespaceConfigAndGetNamespace() {
         if (namespace().isPresent()) {
             String namespaceConfigValue = namespace().get();
@@ -304,7 +310,6 @@ public abstract class AtlasDbConfig {
                     Preconditions.checkState(client.equals(namespaceConfigValue),
                             "If present, the TimeLock client config should be the same as the"
                                     + " atlas root-level namespace config.")));
-
             return namespaceConfigValue;
         } else if (!(keyValueService() instanceof InMemoryAtlasDbConfig)) {
             Preconditions.checkState(keyValueService().namespace().isPresent(),
@@ -354,12 +359,6 @@ public abstract class AtlasDbConfig {
 
     private boolean areTimeAndLockConfigsAbsent() {
         return !lock().isPresent() && !timestamp().isPresent();
-    }
-
-    private static void checkServersListHasAtLeastOneServerIfPresent(Optional<ServerListConfig> serverListOptional) {
-        serverListOptional.ifPresent(
-                serverList -> Preconditions.checkState(serverList.hasAtLeastOneServer(),
-                        "Server list must have at least one server."));
     }
 
     @JsonIgnore

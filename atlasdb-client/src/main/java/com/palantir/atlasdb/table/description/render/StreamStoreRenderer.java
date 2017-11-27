@@ -670,7 +670,7 @@ public class StreamStoreRenderer {
                     line(StreamIdxTable, " usersIndex = tables.get", StreamIdxTable, "(t);");
                     line("Set<", StreamIdxRow, "> rows = Sets.newHashSetWithExpectedSize(cells.size());");
                     line("for (Cell cell : cells) {"); {
-                        line("rows.add(", StreamIdxRow, ".of((", StreamId, ") ValueType.", streamIdType.toString(), ".convertToJava(cell.getRowName(), 0)));");
+                        line("rows.add(", StreamIdxRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
                     line("Multimap<", StreamIdxRow, ", ", StreamIdxColumnValue, "> rowsInDb = usersIndex.getRowsMultimap(rows);");
                     line("Set<", StreamId, "> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.keySet().size());");
@@ -739,7 +739,7 @@ public class StreamStoreRenderer {
                     line(StreamMetadataTable, " metaTable = tables.get", StreamMetadataTable, "(t);");
                     line("Collection<", StreamMetadataRow, "> rows = Lists.newArrayListWithCapacity(cells.size());");
                     line("for (Cell cell : cells) {"); {
-                        line("rows.add(", StreamMetadataRow, ".of((", StreamId, ") ValueType.", streamIdType.toString(), ".convertToJava(cell.getRowName(), 0)));");
+                        line("rows.add(", StreamMetadataRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);");
                     line("Set<", StreamId, "> toDelete = Sets.newHashSet();");

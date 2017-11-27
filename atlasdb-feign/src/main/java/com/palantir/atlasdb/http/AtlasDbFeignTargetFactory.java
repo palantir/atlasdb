@@ -67,13 +67,24 @@ public final class AtlasDbFeignTargetFactory {
             String uri,
             Class<T> type,
             String userAgent) {
+        return createProxy(sslSocketFactory, uri, false, type, userAgent);
+    }
+
+    public static <T> T createProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            String uri,
+            boolean refreshingHttpClient,
+            Class<T> type,
+            String userAgent) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
-                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
+                .client(refreshingHttpClient
+                        ? FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, Optional.empty(), userAgent)
+                        : FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
                 .target(type, uri);
     }
 
