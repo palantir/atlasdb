@@ -63,6 +63,10 @@ develop
            This avoid runtime errors due to failure to specify all required arguments.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
 
+    *    - |fixed|
+         - Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2744>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
