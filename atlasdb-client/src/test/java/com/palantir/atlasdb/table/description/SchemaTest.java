@@ -39,8 +39,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.base.Supplier;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement;
@@ -56,6 +58,7 @@ public class SchemaTest {
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
     private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
+    private static final Supplier<OnCleanupTask> CLEANUP_TASK_SUPPLIER = () -> (tx, cells) -> false;
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
@@ -182,7 +185,7 @@ public class SchemaTest {
     public void tablesWithUnspecifiedSafetyCleanupTasksHaveArbitrarySyncCleanupRequirement() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
-        schema.addCleanupTask(TEST_TABLE_NAME, (tx, cell) -> false);
+        schema.addCleanupTask(TEST_TABLE_NAME, CLEANUP_TASK_SUPPLIER);
         assertCleanupRequirementOnTestTableRef(schema, CleanupRequirement.ARBITRARY_SYNC);
     }
 
@@ -192,7 +195,7 @@ public class SchemaTest {
         schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
         schema.addCleanupTask(
                 TEST_TABLE_NAME,
-                () -> (tx, cell) -> false,
+                CLEANUP_TASK_SUPPLIER,
                 CleanupRequirement.ARBITRARY_ASYNC);
         assertCleanupRequirementOnTestTableRef(schema, CleanupRequirement.ARBITRARY_ASYNC);
     }
@@ -204,7 +207,7 @@ public class SchemaTest {
         IntStream.range(0, 10)
                 .forEach(unused -> schema.addCleanupTask(
                         TEST_TABLE_NAME,
-                        () -> (tx, cell) -> false,
+                        CLEANUP_TASK_SUPPLIER,
                         CleanupRequirement.ARBITRARY_ASYNC));
         assertCleanupRequirementOnTestTableRef(schema, CleanupRequirement.ARBITRARY_ASYNC);
     }
@@ -215,11 +218,11 @@ public class SchemaTest {
         schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
         schema.addCleanupTask(
                 TEST_TABLE_NAME,
-                () -> (tx, cell) -> false,
+                CLEANUP_TASK_SUPPLIER,
                 CleanupRequirement.ARBITRARY_SYNC);
         schema.addCleanupTask(
                 TEST_TABLE_NAME,
-                () -> (tx, cell) -> false,
+                CLEANUP_TASK_SUPPLIER,
                 CleanupRequirement.ARBITRARY_ASYNC);
         assertCleanupRequirementOnTestTableRef(schema, CleanupRequirement.ARBITRARY_SYNC);
     }
@@ -228,30 +231,21 @@ public class SchemaTest {
     public void throwsWhenSpecifyingCleanupTaskWithNonArbitraryCleanupRequirements() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         assertThatThrownBy(() -> schema.addCleanupTask(
-                TEST_TABLE_NAME, () -> (tx, cell) -> false, CleanupRequirement.NOT_NEEDED))
+                TEST_TABLE_NAME, CLEANUP_TASK_SUPPLIER, CleanupRequirement.NOT_NEEDED))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> schema.addCleanupTask(
-                TEST_TABLE_NAME, () -> (tx, cell) -> false, CleanupRequirement.STREAM_STORE))
+                TEST_TABLE_NAME, CLEANUP_TASK_SUPPLIER, CleanupRequirement.STREAM_STORE))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void streamStoreTablesCreatedWithCorrectCleanupRequirements() {
-        String shortName = "d";
-        String longName = "deoxyribonucleic_acid";
-
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_LONG)
-                        .hashRowComponents()
-                        .build());
+        String shortName = "f";
+        String longName = "floccinaucinihilipilification";
 
-        Map<TableReference, CleanupRequirement> cleanupRequirements = schema.getSchemaMetadata()
-                .schemaDependentTableMetadata()
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> entry.getValue().cleanupRequirement()));
+        setupStreamStore(schema, shortName, longName);
+        Map<TableReference, CleanupRequirement> cleanupRequirements = getCleanupRequirements(schema);
 
         // TODO (jkong): Change if/when we decide to special-case stream stores
         assertThat(cleanupRequirements.get(
@@ -267,6 +261,48 @@ public class SchemaTest {
         assertThat(cleanupRequirements.get(
                 TableReference.create(Namespace.EMPTY_NAMESPACE, StreamTableType.HASH.getTableName(shortName))))
                 .isEqualTo(CleanupRequirement.NOT_NEEDED);
+    }
+
+    @Test
+    public void streamStoreTablesCanSupportAdditionalCleanupTasks() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        String shortName = "p";
+        String longName = "pneumonoultramicroscopicsilicovolcanoconiosis";
+
+        setupStreamStore(schema, shortName, longName);
+
+        schema.addCleanupTask(
+                StreamTableType.INDEX.getTableName(shortName),
+                CLEANUP_TASK_SUPPLIER,
+                CleanupRequirement.ARBITRARY_ASYNC);
+        schema.addCleanupTask(
+                StreamTableType.METADATA.getTableName(shortName),
+                CLEANUP_TASK_SUPPLIER,
+                CleanupRequirement.ARBITRARY_SYNC);
+
+        Map<TableReference, CleanupRequirement> cleanupRequirements = getCleanupRequirements(schema);
+        assertThat(cleanupRequirements.get(
+                TableReference.create(Namespace.EMPTY_NAMESPACE, StreamTableType.INDEX.getTableName(shortName))))
+                .isEqualTo(CleanupRequirement.ARBITRARY_ASYNC);
+        assertThat(cleanupRequirements.get(
+                TableReference.create(Namespace.EMPTY_NAMESPACE, StreamTableType.METADATA.getTableName(shortName))))
+                .isEqualTo(CleanupRequirement.ARBITRARY_SYNC);
+    }
+
+    private void setupStreamStore(Schema schema, String shortName, String longName) {
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_LONG)
+                        .hashRowComponents()
+                        .build());
+    }
+
+    private Map<TableReference, CleanupRequirement> getCleanupRequirements(Schema schema) {
+        return schema.getSchemaMetadata()
+                .schemaDependentTableMetadata()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        entry -> entry.getValue().cleanupRequirement()));
     }
 
     private void assertCleanupRequirementOnTestTableRef(Schema schema, CleanupRequirement requirement) {
