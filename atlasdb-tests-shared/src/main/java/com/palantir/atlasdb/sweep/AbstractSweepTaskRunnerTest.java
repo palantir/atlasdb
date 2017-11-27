@@ -119,7 +119,7 @@ public abstract class AbstractSweepTaskRunnerTest {
      */
     protected abstract KeyValueService getKeyValueService();
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepOneConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -132,7 +132,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(-1L, 100L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testDontSweepLatestConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -143,7 +143,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepUncommittedConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -155,7 +155,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepManyValuesConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -171,12 +171,12 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(-1L, 125L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepManyRowsConservative() {
         testSweepManyRows(SweepStrategy.CONSERVATIVE);
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testDontSweepFutureConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -191,7 +191,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(-1L, 100L, 125L, 150L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepOneThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -204,7 +204,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(100L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testDontSweepLatestThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -289,7 +289,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepUncommittedThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -301,7 +301,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(50L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepManyValuesThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -317,12 +317,12 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(125L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepManyRowsThorough() {
         testSweepManyRows(SweepStrategy.THOROUGH);
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepManyLatestDeletedThorough1() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -345,7 +345,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepManyLatestDeletedThorough2() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -360,7 +360,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(125L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testDontSweepFutureThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -375,7 +375,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(100L, 125L, 150L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepStrategyNothing() {
         createTable(SweepStrategy.NOTHING);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -395,7 +395,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTs("foo"));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweeperFailsHalfwayThroughOnDeleteTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -417,7 +417,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(SweepResults.createEmptySweepResult(), results);
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepingAlreadySweptTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("row", "val", 10);
@@ -432,7 +432,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepOnMixedCaseTable() {
         TableReference mixedCaseTable = TableReference.create(Namespace.create("someNamespace"), "someTable");
         createTable(mixedCaseTable, SweepStrategy.CONSERVATIVE);
@@ -444,7 +444,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(2);
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepBatchesDownToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner =
@@ -459,7 +459,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(SMALL_LIST_OF_CELLS);
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepBatchesUpToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner =
@@ -473,7 +473,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertEquals(SMALL_LIST_OF_CELLS, sweptCells.get(0));
     }
 
-    @Test
+    @Test(timeout = 50000)
     public void testSweepBatches() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner =
