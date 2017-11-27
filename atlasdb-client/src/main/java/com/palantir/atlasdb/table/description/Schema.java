@@ -408,7 +408,12 @@ public class Schema {
                 requirement == CleanupRequirement.ARBITRARY_ASYNC,
                 "Cannot manually specify a cleanup task with requirement %s", requirement);
         cleanupTasks.put(rawTableName, task);
-        cleanupRequirements.put(rawTableName, requirement);
+        cleanupRequirements.compute(rawTableName,
+                (tableName, knownRequirement) -> {
+                    CleanupRequirement nonNullRequirement =
+                            knownRequirement == null ? CleanupRequirement.NOT_NEEDED : knownRequirement;
+                    return requirement.compareTo(nonNullRequirement) >= 0 ? requirement : nonNullRequirement;
+                });
     }
 
     public Multimap<TableReference, OnCleanupTask> getCleanupTasksByTable() {
@@ -424,7 +429,7 @@ public class Schema {
     }
 
     public SchemaMetadata getSchemaMetadata() {
-        // TODO (jkong): Memoize
+        // TODO (jkong): Memoize?
         ImmutableSchemaMetadata.Builder builder = ImmutableSchemaMetadata.builder();
 
         // This is kinda funky, but I can't really think of a better way
@@ -435,18 +440,19 @@ public class Schema {
                         .flatMap(x -> x)
                         .collect(Collectors.toMap(
                                 tableName -> TableReference.create(namespace, tableName),
-                                // TODO (jkong): Extract method
-                                tableName -> {
-                                    // TODO (jkong): Stream Stores are different
-                                    CleanupRequirement requirement = cleanupRequirements.getOrDefault(
-                                            tableName,
-                                            CleanupRequirement.NOT_NEEDED);
-                                    return ImmutableSchemaDependentTableMetadata.builder()
-                                            .cleanupRequirement(requirement)
-                                            .build();
-                                }));
+                                this::constructSchemaDependentMetadataForTable));
         builder.putAllSchemaDependentTableMetadata(tableMetadatas);
 
         return builder.build();
+    }
+
+    private SchemaDependentTableMetadata constructSchemaDependentMetadataForTable(String tableName) {
+        // TODO (jkong): Stream Stores are different
+        CleanupRequirement requirement = cleanupRequirements.getOrDefault(
+                tableName,
+                CleanupRequirement.NOT_NEEDED);
+        return ImmutableSchemaDependentTableMetadata.builder()
+                .cleanupRequirement(requirement)
+                .build();
     }
 }
