@@ -96,10 +96,10 @@ public class GetCellTimestamps {
      * tombstones (ideally this will involve catching some exception and reducing the range appropriately).
      */
     private void fetchBatchOfTimestampsBeginningAtStartRow() {
-        Optional<byte[]> rangeEnd;
-        for (byte[] rangeStart = startRowInclusive; timestamps.isEmpty();
-             rangeStart = RangeRequests.nextLexicographicName(rangeEnd.get())) {
-            rangeEnd = determineSafeRangeEndInclusive(rangeStart);
+        byte[] rangeStart = startRowInclusive;
+
+        while (timestamps.isEmpty()) {
+            Optional<byte[]> rangeEnd = determineSafeRangeEndInclusive(rangeStart);
             if (!rangeEnd.isPresent()) {
                 return;
             }
@@ -107,6 +107,7 @@ public class GetCellTimestamps {
             // Note that both ends of this range are *inclusive*
             List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rangeStart, rangeEnd.get(), batchHint);
             timestamps.addAll(batch);
+            rangeStart = RangeRequests.nextLexicographicName(rangeEnd.get());
         }
     }
 
