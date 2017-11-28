@@ -38,6 +38,7 @@ dependencies {
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+  testCompile group: 'org.awaitility', name: 'awaitility'
 
   testRuntime group: 'ch.qos.logback', name: 'logback-classic'
 }
