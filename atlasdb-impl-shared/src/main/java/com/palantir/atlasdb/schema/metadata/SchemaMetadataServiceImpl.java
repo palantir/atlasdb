@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.schema.ImmutableSchemaMetadata;
 import com.palantir.atlasdb.schema.SchemaMetadata;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.processors.AutoDelegate;
@@ -90,10 +89,9 @@ public class SchemaMetadataServiceImpl implements SchemaMetadataService {
     }
 
     @Override
-    public SchemaMetadata loadSchemaMetadata(String schemaName) {
+    public Optional<SchemaMetadata> loadSchemaMetadata(String schemaName) {
         return loadMetadataCellFromKeyValueService(schemaName)
-                .map(SchemaMetadata.HYDRATOR::hydrateFromBytes)
-                .orElse(ImmutableSchemaMetadata.builder().build());
+                .map(SchemaMetadata.HYDRATOR::hydrateFromBytes);
     }
 
     @Override
@@ -121,7 +119,7 @@ public class SchemaMetadataServiceImpl implements SchemaMetadataService {
     }
 
     @Override
-    public Map<String, SchemaMetadata> getAllSchemaMetadata(String schemaName) {
+    public Map<String, SchemaMetadata> getAllSchemaMetadata() {
         // RangeRequest here is ok as the table is small
         return keyValueService.getRange(AtlasDbConstants.DEFAULT_SCHEMA_METADATA_TABLE,
                 RangeRequest.all(),
@@ -135,7 +133,7 @@ public class SchemaMetadataServiceImpl implements SchemaMetadataService {
     @Override
     public void decommissionSchema(String schemaName) {
         keyValueService.delete(AtlasDbConstants.DEFAULT_SCHEMA_METADATA_TABLE,
-                ImmutableMultimap.of(createCellForGivenSchemaName(schemaName), QUERY_TIMESTAMP));
+                ImmutableMultimap.of(createCellForGivenSchemaName(schemaName), 0L));
     }
 
     private Cell createCellForGivenSchemaName(String schemaName) {
