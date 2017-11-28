@@ -122,6 +122,10 @@ public class Schema {
         this.optionalType = optionalType;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public void addTableDefinition(String tableName, TableDefinition definition) {
         Preconditions.checkArgument(
                 !tableDefinitions.containsKey(tableName) && !indexDefinitions.containsKey(tableName),
