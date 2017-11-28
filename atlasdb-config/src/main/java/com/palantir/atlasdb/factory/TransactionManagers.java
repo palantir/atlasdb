@@ -70,6 +70,8 @@ import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
+import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
@@ -222,9 +224,11 @@ public abstract class TransactionManagers {
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
+        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(kvs, config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 kvs,
                 schemas(),
+                schemaMetadataService,
                 config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 kvs,
