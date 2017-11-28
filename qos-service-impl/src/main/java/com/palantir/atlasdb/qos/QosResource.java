@@ -88,38 +88,4 @@ public class QosResource implements QosService {
         }
         return 1.0;
     }
-
-
-    //    private double checkCassandraHealth() {
-    //        //        int readTimeoutCounter = getTimeoutCounter("Read");
-    //        if (cassandraMetricClient.isPresent()) {
-    //            Object numPendingCommitLogTasks = cassandraMetricClient.get().getMetric(
-    //                    "CommitLog",
-    //                    "PendingTasks",
-    //                    GAUGE_ATTRIBUTE,
-    //                    ImmutableMap.of());
-    //
-    //            Preconditions.checkState(numPendingCommitLogTasks instanceof Integer,
-    //                    "Expected type Integer, found %s",
-    //                    numPendingCommitLogTasks.getClass());
-    //
-    //            int numPendingCommitLogTasksInt = (int) numPendingCommitLogTasks;
-    //
-    //            queue.add(ImmutablePendingTaskMetric.builder()
-    //                    .numPendingTasks(numPendingCommitLogTasksInt)
-    //                    .timetamp(System.currentTimeMillis())
-    //                    .build());
-    //
-    //            double averagePendingCommitLogTasks = queue.stream()
-    //                    .mapToInt(PendingTaskMetric::numPendingTasks)
-    //                    .average()
-    //                    .getAsDouble();
-    //
-    //            if (Double.compare(averagePendingCommitLogTasks, (double) numPendingCommitLogTasks) < 0) {
-    //                return 1.0 -
-    //                        ((numPendingCommitLogTasksInt - averagePendingCommitLogTasks) / numPendingCommitLogTasksInt);
-    //            }
-    //        }
-    //        return 1.0;
-    //    }
 }
