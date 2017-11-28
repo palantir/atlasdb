@@ -16,19 +16,21 @@
 
 package com.palantir.atlasdb.qos.config;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
-@JsonDeserialize(as = ImmutableQosServiceRuntimeConfig.class)
-@JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
-public abstract class QosServiceRuntimeConfig {
-    public abstract Map<String, QosClientLimitsConfig> clientLimits();
+@JsonSerialize(as = ImmutableQosCassandraMetricsConfig.class)
+@JsonDeserialize(as = ImmutableQosCassandraMetricsConfig.class)
+public abstract class QosCassandraMetricsConfig {
+    public abstract ServiceConfiguration cassandraServiceConfig();
 
-    public abstract Optional<QosCassandraMetricsConfig> qosCassandraMetricsConfig();
+    public abstract List<CassandraHealthMetric> cassandraHealthMetrics();
+
+    public abstract ThrottlingStrategy.ThrottlingStrategies throttlingStrategy();
 }

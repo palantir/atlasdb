@@ -22,10 +22,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
+import com.palantir.atlasdb.qos.config.QosCassandraMetricsConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
@@ -40,11 +40,11 @@ public class QosResource implements QosService {
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
-        this.cassandraMetricClient = config.get().cassandraServiceConfig()
-                .map(cassandraServiceConfig -> Optional.of(JaxRsClient.create(
+        this.cassandraMetricClient = config.get().qosCassandraMetricsConfig()
+                .map(metricsConfig -> Optional.of(JaxRsClient.create(
                         CassandraMetricsService.class,
                         "qos-service",
-                        ClientConfigurations.of(cassandraServiceConfig))))
+                        ClientConfigurations.of(metricsConfig.cassandraServiceConfig()))))
                 .orElse(Optional.empty());
     }
 
@@ -65,11 +65,12 @@ public class QosResource implements QosService {
     }
 
     private double getClientLimitMultiplier(QosPriority qosPriority) {
-        if (cassandraMetricClient.isPresent()) {
-            List<CassandraHealthMetric> cassandraHealthMetrics = config.get().cassandraHealthMetrics();
+        Optional<QosCassandraMetricsConfig> qosCassandraMetricsConfig = config.get().qosCassandraMetricsConfig();
+        if (qosCassandraMetricsConfig.isPresent() && cassandraMetricClient.isPresent()) {
+            QosCassandraMetricsConfig metricsConfig = qosCassandraMetricsConfig.get();
 
             List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
-                    cassandraHealthMetrics.stream().map(metric ->
+                    metricsConfig.cassandraHealthMetrics().stream().map(metric ->
                             ImmutableCassandraHealthMetricMeasurement.builder()
                                     .currentValue(cassandraMetricClient.get().getMetric(
                                             metric.type(),
@@ -81,7 +82,7 @@ public class QosResource implements QosService {
                                     .build())
                             .collect(Collectors.toList());
 
-            return config.get()
+            return metricsConfig
                     .throttlingStrategy()
                     .getThrottlingStrategy()
                     .clientLimitMultiplier(cassandraHealthMetricMeasurements, qosPriority);
