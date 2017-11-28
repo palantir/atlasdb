@@ -44,6 +44,7 @@ public class CqlExecutorTest {
 
     private static final TableReference TABLE_REF = TableReference.create(Namespace.create("foo"), "bar");
     private static final byte[] ROW = {0x01, 0x02};
+    private static final byte[] END_ROW = {0x05, 0x09};
     private static final byte[] COLUMN = {0x03, 0x04};
     private static final long TIMESTAMP = 123L;
     private static final int LIMIT = 100;
@@ -60,9 +61,10 @@ public class CqlExecutorTest {
 
     @Test
     public void getTimestamps() {
-        String expected = "SELECT key, column1, column2 FROM \"foo__bar\" WHERE token(key) >= token(0x0102) LIMIT 100;";
+        String expected = "SELECT key, column1, column2 FROM \"foo__bar\""
+                + " WHERE token(key) >= token(0x0102) AND token(key) <= token(0x0509) LIMIT 100;";
 
-        executor.getTimestamps(TABLE_REF, ROW, LIMIT);
+        executor.getTimestamps(TABLE_REF, ROW, END_ROW, LIMIT);
 
         verify(queryExecutor).execute(argThat(cqlQueryMatcher(expected)), eq(ROW));
     }

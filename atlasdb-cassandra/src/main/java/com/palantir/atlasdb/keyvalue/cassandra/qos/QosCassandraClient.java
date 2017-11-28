@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.qos;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
@@ -43,12 +44,16 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
+import com.palantir.atlasdb.keyvalue.cassandra.HiddenTables;
 import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class QosCassandraClient implements CassandraClient {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
+    private static final Function<TableReference, Boolean> ZERO_ESTIMATE_DETERMINING_FUNCTION = tRef ->
+            tRef.equals(TransactionConstants.TRANSACTION_TABLE) || new HiddenTables().isHidden(tRef);
 
     private final CassandraClient client;
     private final QosClient qosClient;
@@ -69,7 +74,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return qosClient.executeRead(
                 () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
-                ThriftQueryWeighers.multigetSlice(keys));
+                ThriftQueryWeighers.multigetSlice(keys, ZERO_ESTIMATE_DETERMINING_FUNCTION.apply(tableRef)));
     }
 
     @Override
@@ -78,7 +83,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return qosClient.executeRead(
                 () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
-                ThriftQueryWeighers.getRangeSlices(range));
+                ThriftQueryWeighers.getRangeSlices(range, ZERO_ESTIMATE_DETERMINING_FUNCTION.apply(tableRef)));
     }
 
     @Override
@@ -99,7 +104,7 @@ public class QosCassandraClient implements CassandraClient {
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
         return qosClient.executeRead(
                 () -> client.get(tableReference, key, column, consistency_level),
-                ThriftQueryWeighers.GET);
+                ThriftQueryWeighers.get(ZERO_ESTIMATE_DETERMINING_FUNCTION.apply(tableReference)));
     }
 
     @Override
