@@ -17,15 +17,16 @@
 package com.palantir.atlasdb.schema.metadata;
 
 import java.util.Map;
+import java.util.Optional;
 
 import com.palantir.atlasdb.schema.SchemaMetadata;
 
 public interface SchemaMetadataService {
-    SchemaMetadata loadSchemaMetadata(String schemaName);
+    Optional<SchemaMetadata> loadSchemaMetadata(String schemaName);
 
     void putSchemaMetadata(String schemaName, SchemaMetadata schemaMetadata);
 
-    Map<String, SchemaMetadata> getAllSchemaMetadata(String schemaName);
+    Map<String, SchemaMetadata> getAllSchemaMetadata();
 
     void decommissionSchema(String schemaName);
 }

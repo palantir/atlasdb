@@ -64,7 +64,9 @@ public abstract class SchemaMetadata implements Persistable {
         message.getTableMetadataList()
                 .forEach(entry -> builder.putSchemaDependentTableMetadata(
                         TableReference.create(
-                                Namespace.create(entry.getTableReference().getNamespace()),
+                                entry.getTableReference().getNamespace().isEmpty() ?
+                                        Namespace.EMPTY_NAMESPACE :
+                                        Namespace.create(entry.getTableReference().getNamespace()),
                                 entry.getTableReference().getTableName()),
                         SchemaDependentTableMetadata.hydrateFromProto(entry.getSchemaDependentTableMetadata())));
         return builder.build();
