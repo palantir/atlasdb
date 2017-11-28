@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -28,7 +29,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
 public abstract class QosServiceRuntimeConfig {
+    @JsonProperty("client-limits")
     public abstract Map<String, QosClientLimitsConfig> clientLimits();
 
+    @JsonProperty("qos-cassandra-metrics")
     public abstract Optional<QosCassandraMetricsConfig> qosCassandraMetricsConfig();
 }

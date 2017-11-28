@@ -1,4 +1,4 @@
-clientLimits:
+client-limits:
   test:
     limits:
       readBytesPerSecond: 10

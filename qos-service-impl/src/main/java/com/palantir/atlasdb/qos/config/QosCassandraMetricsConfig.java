@@ -20,17 +20,25 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableList;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableQosCassandraMetricsConfig.class)
 @JsonDeserialize(as = ImmutableQosCassandraMetricsConfig.class)
 public abstract class QosCassandraMetricsConfig {
+    @JsonProperty("cassandra-service-config")
     public abstract ServiceConfiguration cassandraServiceConfig();
 
-    public abstract List<CassandraHealthMetric> cassandraHealthMetrics();
+    @JsonProperty("cassandra-health-metrics")
+    @Value.Default
+    public List<CassandraHealthMetric> cassandraHealthMetrics() {
+        return ImmutableList.of();
+    }
 
+    @JsonProperty("throttling-strategy")
     public abstract ThrottlingStrategy.ThrottlingStrategies throttlingStrategy();
 }

@@ -4,7 +4,7 @@ server:
     port: 5080
 
 runtime:
-  clientLimits:
+  client-limits:
     test:
       limits:
         readBytesPerSecond: 10000
@@ -15,19 +15,19 @@ runtime:
         readBytesPerSecond: 10000
         writeBytesPerSecond: 1000
       clientPriority: LOW
-
-  cassandraServiceConfig:
-    uris:
-      - https://localhost:9161/cassandra-sidecar/api/
-    security:
-      trustStorePath: /Users/hsaraogi/code/sls-cassandra/sls-cassandra-sidecar-server/var/security/truststore.jks
-  cassandraHealthMetrics:
-    - type: CommitLog
-      name: PendingTasks
-      attribute: Value
-      lowerLimit: 0
-      upperLimit: 50
-  throttlingStrategy: SIMPLE
+  qos-cassandra-metrics:
+    cassandra-service-config:
+      uris:
+        - https://localhost:9161/cassandra-sidecar/api/
+      security:
+        trustStorePath: /Users/hsaraogi/code/sls-cassandra/sls-cassandra-sidecar-server/var/security/truststore.jks
+    cassandra-health-metrics:
+      - type: CommitLog
+        name: PendingTasks
+        attribute: Value
+        lowerLimit: 0
+        upperLimit: 50
+    throttling-strategy: SIMPLE
 
 
 
