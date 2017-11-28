@@ -1497,7 +1497,7 @@ v0.47.0
     *    - Type
          - Change
 
-    *    - |changed|
+    *    - |improved|
          - ErrorProne is enabled and not ignored on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool.
            On v0.42.0:
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1889>`__)
