@@ -2729,25 +2729,25 @@ public final class SchemaMetadataPersistence {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\nYatlasdb-client/src/main/proto/com/pala" +
-      "ntir/atlasdb/protos/SchemaMetadataPersis" +
-      "tence.proto\022%com.palantir.atlasdb.protos" +
-      ".generated\"q\n\016SchemaMetadata\022_\n\rtableMet" +
-      "adata\030\001 \003(\0132H.com.palantir.atlasdb.proto" +
-      "s.generated.SchemaDependentTableMetadata" +
-      "Entry\"\335\001\n!SchemaDependentTableMetadataEn" +
-      "try\022M\n\016tableReference\030\001 \001(\01325.com.palant" +
-      "ir.atlasdb.protos.generated.TableReferen" +
-      "ce\022i\n\034schemaDependentTableMetadata\030\002 \001(\013",
-      "2C.com.palantir.atlasdb.protos.generated" +
-      ".SchemaDependentTableMetadata\"u\n\034SchemaD" +
-      "ependentTableMetadata\022U\n\022cleanupRequirem" +
-      "ent\030\001 \001(\01629.com.palantir.atlasdb.protos." +
-      "generated.CleanupRequirement\"6\n\016TableRef" +
-      "erence\022\021\n\tnamespace\030\001 \001(\t\022\021\n\ttableName\030\002" +
-      " \001(\t*_\n\022CleanupRequirement\022\016\n\nNOT_NEEDED" +
-      "\020\000\022\020\n\014STREAM_STORE\020\001\022\023\n\017ARBITRARY_ASYNC\020" +
-      "\002\022\022\n\016ARBITRARY_SYNC\020\003"
+      "\nFmain/proto/com/palantir/atlasdb/protos" +
+      "/SchemaMetadataPersistence.proto\022%com.pa" +
+      "lantir.atlasdb.protos.generated\"q\n\016Schem" +
+      "aMetadata\022_\n\rtableMetadata\030\001 \003(\0132H.com.p" +
+      "alantir.atlasdb.protos.generated.SchemaD" +
+      "ependentTableMetadataEntry\"\335\001\n!SchemaDep" +
+      "endentTableMetadataEntry\022M\n\016tableReferen" +
+      "ce\030\001 \001(\01325.com.palantir.atlasdb.protos.g" +
+      "enerated.TableReference\022i\n\034schemaDepende" +
+      "ntTableMetadata\030\002 \001(\0132C.com.palantir.atl",
+      "asdb.protos.generated.SchemaDependentTab" +
+      "leMetadata\"u\n\034SchemaDependentTableMetada" +
+      "ta\022U\n\022cleanupRequirement\030\001 \001(\01629.com.pal" +
+      "antir.atlasdb.protos.generated.CleanupRe" +
+      "quirement\"6\n\016TableReference\022\021\n\tnamespace" +
+      "\030\001 \001(\t\022\021\n\ttableName\030\002 \001(\t*_\n\022CleanupRequ" +
+      "irement\022\016\n\nNOT_NEEDED\020\000\022\020\n\014STREAM_STORE\020" +
+      "\001\022\023\n\017ARBITRARY_ASYNC\020\002\022\022\n\016ARBITRARY_SYNC" +
+      "\020\003"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
