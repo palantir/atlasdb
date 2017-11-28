@@ -34,7 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.common.base.Throwables;
+import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 
 public class GetCellTimestamps {
 
@@ -118,8 +118,7 @@ public class GetCellTimestamps {
                 return Optional.of(Iterables.getLast(rows).getKey());
             }
         } catch (Exception e) {
-            // TODO(nziebart): handle QoS exceptions here
-            throw Throwables.throwUncheckedException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
