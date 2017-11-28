@@ -242,7 +242,8 @@ public abstract class TransactionManagers {
         kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs, MetricRegistry.name(KeyValueService.class));
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
 
-        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(kvs, config.initializeAsync());
+        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(rawKvs,
+                config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 kvs,
                 schemas(),
