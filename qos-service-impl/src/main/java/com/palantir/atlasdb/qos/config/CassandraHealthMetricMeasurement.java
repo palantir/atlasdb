@@ -29,7 +29,7 @@ public abstract class CassandraHealthMetricMeasurement {
         try {
             measurement = (double) currentValue();
         } catch (ClassCastException ex) {
-            // TODO: The metric is not a number, should we throw here?
+            // TODO(hsaraogi): The metric is not a number, should we throw here?
             return true;
         }
         return Double.compare(lowerLimit(), measurement) <= 0

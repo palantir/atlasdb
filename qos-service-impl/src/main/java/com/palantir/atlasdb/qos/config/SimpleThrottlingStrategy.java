@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.config;
 
 import java.util.List;
@@ -30,9 +29,10 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
             QosPriority unused) {
         if (metricMeasurements.stream()
                 .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits())) {
-            return multiplier = Math.max(0.1, multiplier * 0.5);
+            multiplier = Math.max(0.1, multiplier * 0.5);
         } else {
-            return multiplier = Math.min(1.0, multiplier * 2);
+            multiplier = Math.min(1.0, multiplier * 2);
         }
+        return multiplier;
     }
 }
