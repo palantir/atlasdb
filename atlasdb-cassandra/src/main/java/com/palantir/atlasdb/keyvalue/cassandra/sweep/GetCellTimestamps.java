@@ -43,8 +43,6 @@ public class GetCellTimestamps {
     private final byte[] startRowInclusive;
     private final int batchHint;
 
-    private byte[] endRowInclusive;
-
     private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
 
     public GetCellTimestamps(

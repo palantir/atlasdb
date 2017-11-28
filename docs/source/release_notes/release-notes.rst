@@ -179,64 +179,66 @@ v0.67.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
 
     *    - |new| |metrics|
-         - Metrics were added on all Cassandra calls. The ``CassandraClient`` interface was Tritium instrumented:
+         - Metrics were added on all Cassandra calls. The ``CassandraClient`` interface was Tritium instrumented.
+           The following metrics have been added, with the common prefix (package) ``com.palantir.atlasdb.keyvalue.cassandra.``:
 
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.multiget_slice
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get_range_slices
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.batch_mutate
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cas
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.execute_cql3_query
+              - ``CassandraClient.multiget_slice``
+              - ``CassandraClient.get_range_slices``
+              - ``CassandraClient.batch_mutate``
+              - ``CassandraClient.get``
+              - ``CassandraClient.cas``
+              - ``CassandraClient.execute_cql3_query``
 
            Note that the table calls mainly use the first three metrics of the above list.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
 
     *    - |new| |metrics|
          - Metrics recording the number of Cassandra requests, and the amount of bytes read and written from and to Cassandra were added:
+           The following metrics have been added, with the common prefix (package) ``com.palantir.atlasdb.keyvalue.cassandra.``:
 
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numReadRequests
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numWriteRequests
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesRead
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesWritten
+              - ``QosMetrics.numReadRequests``
+              - ``QosMetrics.numWriteRequests``
+              - ``QosMetrics.bytesRead``
+              - ``QosMetrics.bytesWritten``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2679>`__)
 
     *    - |new| |metrics|
          - Added metrics for cells read.
            The read cells can be post-filtered at the CassandraKVS layer, when there are multiple versions of the same cell.
-           The filtered cells are recorded in the metric:
+           The filtered cells are recorded in the following metrics have been added, with the common prefix (package) ``com.palantir.atlasdb.keyvalue.cassandra.``:
 
-              - com.palantir.atlasdb.keyvalue.cassandra.TimestampExtractor.notLatestVisibleValueCellFilterCount
-              - com.palantir.atlasdb.keyvalue.cassandra.ValueExtractor.notLatestVisibleValueCellFilterCount
+              - ``TimestampExtractor.notLatestVisibleValueCellFilterCount``
+              - ``ValueExtractor.notLatestVisibleValueCellFilterCount``
 
-           The cells returned from the KVS layer are then recorded at the metric:
+           The cells returned from the KVS layer are then recorded at the metric with the prefix (package) ``com.palantir.atlasdb.transaction.impl.``:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsRead
+              - ``SnapshotTransaction.numCellsRead``
 
            Such cells can also be filtered out at the transaction layer, due to the Transaction Protocol. The filtered out cells are recorded in the metrics:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidStartTsTsCellFilterCount
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidCommitTsCellFilterCount
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.emptyValuesCellFilterCount
+              - ``SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount``
+              - ``SnapshotTransaction.invalidStartTsTsCellFilterCount``
+              - ``SnapshotTransaction.invalidCommitTsCellFilterCount``
+              - ``SnapshotTransaction.emptyValuesCellFilterCount``
 
            At last, the metric that record the number of cells actually returned to the AtlasDB client is:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsReturnedAfterFiltering
+              - ``SnapshotTransaction.numCellsReturnedAfterFiltering``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
 
     *    - |new| |metrics|
          - Added metrics for written bytes at the Transaction layer:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten
+              - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
 
     *    - |new| |metrics|
          - A metric was added for the cases where a large read was made:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead
+              - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead``
 
            Note that we also log a warning in these cases, with the message "A single get had quite a few bytes...".
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
@@ -953,6 +955,10 @@ v0.57.0
 
     *    - Type
          - Change
+
+    *    - |metrics| |changed|
+         - From this version onwards, AtlasDB's metrics no longer have unbounded multiplicity.
+           This means that AtlasDB can be whitelisted in the internal metrics aggregator tool.
 
     *    - |metrics| |userbreak|
          - AtlasDB no longer embeds Cassandra host names in its metrics.

@@ -39,7 +39,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.qos.ThriftObjectSizeUtils;
 
 public class ThriftObjectSizeUtilsTest {
-
     private static final String TEST_MAME = "foo";
     private static final ByteBuffer TEST_NAME_BYTES = ByteBuffer.wrap(TEST_MAME.getBytes());
     private static final Column TEST_COLUMN = new Column(TEST_NAME_BYTES);
@@ -259,5 +258,4 @@ public class ThriftObjectSizeUtilsTest {
 
         assertThat(ThriftObjectSizeUtils.getCasByteCount(columns)).isEqualTo(expectedSize);
     }
-
 }

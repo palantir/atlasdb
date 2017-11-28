@@ -50,7 +50,6 @@ public class RowGetter {
     }
 
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
-
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
