@@ -1497,6 +1497,16 @@ v0.47.0
     *    - Type
          - Change
 
+    *    - |changed|
+         - ErrorProne is enabled and not ignored on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool.
+           On v0.42.0:
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1889>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1901>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1902>`__)
+           
+           On v0.47.0:
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2055>`__)
+
     *    - |new| |improved|
          - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
@@ -1912,12 +1922,6 @@ v0.42.0
 
     *    - Type
          - Change
-
-    *    - |changed|
-         - ErrorProne is enabled on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1889>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1901>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1902>`__)
 
     *    - |fixed|
          - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
