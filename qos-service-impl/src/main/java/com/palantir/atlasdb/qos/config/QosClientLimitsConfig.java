@@ -29,8 +29,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class QosClientLimitsConfig implements Serializable {
     // These numbers comes from the metrics released and are scaled by a factor of 2,
     // we should probably scale up more or set to no limit?
-    private static final long BYTES_READ_PER_SECOND_PER_CLIENT = 500_000;
-    private static final long BYTES_WRITTEN_PER_SECOND_PER_CLIENT = 1_000_000L;
+    public static final long BYTES_READ_PER_SECOND_PER_CLIENT = 500_000L;
+    public static final long BYTES_WRITTEN_PER_SECOND_PER_CLIENT = 1_000_000L;
 
     @Value.Default
     public QosLimitsConfig limits() {
