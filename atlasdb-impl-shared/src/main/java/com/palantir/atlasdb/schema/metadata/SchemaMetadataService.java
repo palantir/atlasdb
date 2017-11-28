@@ -29,4 +29,6 @@ public interface SchemaMetadataService {
     Map<String, SchemaMetadata> getAllSchemaMetadata();
 
     void decommissionSchema(String schemaName);
+
+    boolean isInitialized();
 }

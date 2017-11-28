@@ -136,6 +136,11 @@ public class SchemaMetadataServiceImpl implements SchemaMetadataService {
                 ImmutableMultimap.of(createCellForGivenSchemaName(schemaName), 0L));
     }
 
+    @Override
+    public boolean isInitialized() {
+        return keyValueService.isInitialized();
+    }
+
     private Cell createCellForGivenSchemaName(String schemaName) {
         return Cell.create(PtBytes.toBytes(schemaName), COLUMN_NAME);
     }

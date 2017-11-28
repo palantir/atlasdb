@@ -17,15 +17,21 @@
 package com.palantir.atlasdb.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+import org.awaitility.Awaitility;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
 import com.palantir.atlasdb.schema.ImmutableSchemaDependentTableMetadata;
@@ -126,5 +132,35 @@ public class SchemaMetadataServiceImplTest {
         SCHEMA_METADATA_SERVICE.decommissionSchema(SCHEMA_NAME_ONE);
         SCHEMA_METADATA_SERVICE.decommissionSchema(SCHEMA_NAME_ONE);
         assertThat(SCHEMA_METADATA_SERVICE.loadSchemaMetadata(SCHEMA_NAME_ONE)).isEmpty();
+    }
+
+    @Test
+    public void canInitializeAsynchronously() {
+        ForwardingKeyValueService forwardingKeyValueService = new ForwardingKeyValueService() {
+            private KeyValueService realKeyValueService = new InMemoryKeyValueService(true);
+            private boolean fail = true;
+
+            @Override
+            protected KeyValueService delegate() {
+                if (fail) {
+                    fail = false;
+                    return mock(KeyValueService.class, (Answer) invocation -> {
+                        throw new RuntimeException("I am unhappy");
+                    });
+                }
+                return realKeyValueService;
+            }
+        };
+
+        SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(
+                forwardingKeyValueService,
+                true);
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(schemaMetadataService::isInitialized);
+        schemaMetadataService.putSchemaMetadata(SCHEMA_NAME_ONE, SCHEMA_METADATA_ONE);
+        assertThat(schemaMetadataService.loadSchemaMetadata(SCHEMA_NAME_ONE)).contains(SCHEMA_METADATA_ONE);
     }
 }
