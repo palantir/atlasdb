@@ -56,7 +56,7 @@ public class RowGetter {
                 host,
                 new FunctionCheckedException<CassandraClient, List<KeySlice>, RuntimeException>() {
                     @Override
-                    public List<KeySlice> apply(CassandraClient client) throws RuntimeException {
+                    public List<KeySlice> apply(CassandraClient client) {
                         try {
                             return queryRunner.run(client, tableRef,
                                     () -> client.get_range_slices(kvsMethodName,
