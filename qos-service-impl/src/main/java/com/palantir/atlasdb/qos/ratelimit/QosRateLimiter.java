@@ -45,23 +45,26 @@ public class QosRateLimiter {
     private static final long MAX_BURST_SECONDS = 5;
 
     private final Supplier<Long> maxBackoffTimeMillis;
+    private final String rateLimiterName;
     private final Supplier<Long> unitsPerSecond;
     private final RateLimiter.SleepingStopwatch stopwatch;
 
     private volatile RateLimiter rateLimiter;
     private volatile long currentRate;
 
-    public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond) {
+    public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond,
+            String rateLimiterType) {
         return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer(), maxBackoffTimeMillis,
-                unitsPerSecond);
+                unitsPerSecond, rateLimiterType);
     }
 
     @VisibleForTesting
     QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, Supplier<Long> maxBackoffTimeMillis,
-            Supplier<Long> unitsPerSecond) {
+            Supplier<Long> unitsPerSecond, String rateLimiterName) {
         this.stopwatch = stopwatch;
         this.unitsPerSecond = unitsPerSecond;
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
+        this.rateLimiterName = rateLimiterName;
 
         createRateLimiterAtomically();
     }
@@ -108,8 +111,9 @@ public class QosRateLimiter {
         rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
         rateLimiter.setRate(currentRate);
 
-        // TODO(nziebart): distinguish between read/write rate limiters
-        log.info("Units per second set to {}", SafeArg.of("unitsPerSecond", currentRate));
+        log.info("Units per second set to {} for rate limiter {}",
+                SafeArg.of("unitsPerSecond", currentRate),
+                SafeArg.of("rateLimiterName", rateLimiterName));
     }
 
     /**

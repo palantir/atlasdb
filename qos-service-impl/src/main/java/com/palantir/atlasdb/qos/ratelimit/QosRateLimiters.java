@@ -27,10 +27,10 @@ public interface QosRateLimiters {
 
     static QosRateLimiters create(Supplier<Long> maxBackoffSleepTimeMillis, Supplier<QosLimitsConfig> config) {
         QosRateLimiter readLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis,
-                () -> config.get().readBytesPerSecond());
+                () -> config.get().readBytesPerSecond(), "read");
 
         QosRateLimiter writeLimiter = QosRateLimiter.create(maxBackoffSleepTimeMillis,
-                () -> config.get().writeBytesPerSecond());
+                () -> config.get().writeBytesPerSecond(), "write");
 
         return ImmutableQosRateLimiters.builder()
                 .read(readLimiter)
