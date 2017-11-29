@@ -209,6 +209,10 @@ Furthermore, this builder now requires a <code class="docutils literal"><span cl
 This avoid runtime errors due to failure to specify all required arguments.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2720">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>AtlasDB now wraps <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> in <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when this exception is thrown by TimeLock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2716">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -246,7 +250,7 @@ can also treat <code class="docutils literal"><span class="pre">KeyValueServiceS
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2678">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>AtlasDB will now consistently throw an <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when TimeLock is unavailable.
+<td>AtlasDB will now consistently throw an <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when requests fail due to TimeLock being unavailable.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2677">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
