@@ -280,6 +280,11 @@ public abstract class AbstractSweepTaskRunnerTest {
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
         assertNull(getFromDefaultColumn("foo", 150));
         assertEquals(ImmutableSet.of(), getAllTsFromDefaultColumn("foo"));
+
+        // The second sweep has no cells to examine
+        SweepResults secondSweep = completeSweep(75);
+        assertEquals(0, secondSweep.getStaleValuesDeleted());
+        assertEquals(0, secondSweep.getCellTsPairsExamined());
     }
 
     @Test(timeout = 50000)
