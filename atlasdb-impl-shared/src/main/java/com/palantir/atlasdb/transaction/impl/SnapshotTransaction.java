@@ -1705,7 +1705,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
             return true;
         } catch (KeyAlreadyExistsException e) {
-            log.error("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
+            log.info("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
                     + " else's request with start: {}",
                     SafeArg.of("startTs", startTs),
                     new TransactionFailedRetriableException(
