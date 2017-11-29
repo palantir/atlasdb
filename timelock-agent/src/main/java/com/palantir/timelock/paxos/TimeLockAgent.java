@@ -35,14 +35,13 @@ import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
-public class TimeLockAgent {
+public final class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 1L;
 
     private final TimeLockInstallConfiguration install;
@@ -57,13 +56,16 @@ public class TimeLockAgent {
 
     private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
 
-    public TimeLockAgent(TimeLockInstallConfiguration install,
+    public static TimeLockAgent create(TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
+            TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
-        this(install, runtime, ImmutableTimeLockDeprecatedConfiguration.builder().build(), registrar);
+        TimeLockAgent agent = new TimeLockAgent(install, runtime, deprecated, registrar);
+        agent.createAndRegisterResources();
+        return agent;
     }
 
-    public TimeLockAgent(TimeLockInstallConfiguration install,
+    private TimeLockAgent(TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
@@ -100,7 +102,7 @@ public class TimeLockAgent {
                 JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
     }
 
-    public void createAndRegisterResources() {
+    private void createAndRegisterResources() {
         registerPaxosResource();
         registerExceptionMappers();
         leadershipCreator.registerLeaderElectionService();
@@ -116,11 +118,7 @@ public class TimeLockAgent {
 
     @SuppressWarnings("unused") // used by external health checks
     public TimeLockStatus getStatus() {
-        if (healthCheckSupplier != null) {
-            return healthCheckSupplier.get().getStatus();
-        } else {
-            return TimeLockStatus.NO_QUORUM;
-        }
+        return healthCheckSupplier.get().getStatus();
     }
 
     @SuppressWarnings("unused")
