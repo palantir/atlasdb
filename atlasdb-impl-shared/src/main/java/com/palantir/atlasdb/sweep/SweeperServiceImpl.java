@@ -53,7 +53,7 @@ public final class SweeperServiceImpl implements SweeperService {
         checkTableExists(tableName, tableRef);
 
         byte[] decodedStartRow = startRow.map(PtBytes::decodeHexString).orElse(PtBytes.EMPTY_BYTE_ARRAY);
-        SweepBatchConfig config = buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize,
+        SweepBatchConfig config = buildConfigWithOverrides(tableRef, maxCellTsPairsToExamine, candidateBatchSize,
                 deleteBatchSize);
 
         return SweepTableResponse.from(runSweep(fullSweep, tableRef, decodedStartRow, config));
@@ -89,11 +89,12 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private SweepBatchConfig buildConfigWithOverrides(
+            TableReference tableReference,
             Optional<Integer> maxCellTsPairsToExamine,
             Optional<Integer> candidateBatchSize,
             Optional<Integer> deleteBatchSize) {
         ImmutableSweepBatchConfig.Builder batchConfigBuilder = ImmutableSweepBatchConfig.builder()
-                .from(sweepBatchConfigSource.getAdjustedSweepConfig());
+                .from(sweepBatchConfigSource.getAdjustedSweepConfig(tableReference));
 
         maxCellTsPairsToExamine.ifPresent(batchConfigBuilder::maxCellTsPairsToExamine);
         candidateBatchSize.ifPresent(batchConfigBuilder::candidateBatchSize);

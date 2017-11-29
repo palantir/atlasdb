@@ -44,6 +44,8 @@ public final class AdjustableSweepBatchConfigSource {
     private static volatile double batchSizeMultiplier = 1.0;
     private final AtomicInteger successiveIncreases = new AtomicInteger(0);
 
+    private SweepBatchConfig lastBatchConfig;
+
     private AdjustableSweepBatchConfigSource(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         this.rawSweepBatchConfig = rawSweepBatchConfig;
     }
@@ -66,17 +68,18 @@ public final class AdjustableSweepBatchConfigSource {
     }
 
     public SweepBatchConfig getAdjustedSweepConfig(TableReference tableRef) {
-        SweepBatchConfig sweepConfig = adjustConfigIfTableIsStreamStoreValues(tableRef, getRawSweepConfig());
+        SweepBatchConfig sweepConfig = adjustConfigIfTableIsStreamStoreValue(tableRef, getRawSweepConfig());
         double multiplier = batchSizeMultiplier;
 
-        return ImmutableSweepBatchConfig.builder()
+        lastBatchConfig = ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(adjust(sweepConfig.maxCellTsPairsToExamine(), multiplier))
                 .candidateBatchSize(adjust(sweepConfig.candidateBatchSize(), multiplier))
                 .deleteBatchSize(adjust(sweepConfig.deleteBatchSize(), multiplier))
                 .build();
+        return lastBatchConfig;
     }
 
-    private SweepBatchConfig adjustConfigIfTableIsStreamStoreValues(
+    private SweepBatchConfig adjustConfigIfTableIsStreamStoreValue(
             TableReference tableRef,
             SweepBatchConfig sweepConfig) {
         if (StreamTableType.isStreamStoreValueTable(tableRef)) {
@@ -101,7 +104,6 @@ public final class AdjustableSweepBatchConfigSource {
 
     public void decreaseMultiplier() {
         successiveIncreases.set(0);
-        SweepBatchConfig lastBatchConfig = getAdjustedSweepConfig();
 
         // Cut batch size in half, always sweep at least one row.
         reduceBatchSizeMultiplier();

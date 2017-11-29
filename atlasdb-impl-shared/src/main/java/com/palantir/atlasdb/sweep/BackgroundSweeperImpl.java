@@ -149,7 +149,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    // Returns milliseconds to sleep
     private void updateBatchSize(SweepOutcome outcome) {
         if (outcome == SweepOutcome.SUCCESS) {
             sweepBatchConfigSource.increaseMultiplier();
