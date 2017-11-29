@@ -45,7 +45,7 @@ public class QosRateLimiter {
     private static final long MAX_BURST_SECONDS = 5;
 
     private final Supplier<Long> maxBackoffTimeMillis;
-    private String rateLimiterType;
+    private final String rateLimiterName;
     private final Supplier<Long> unitsPerSecond;
     private final RateLimiter.SleepingStopwatch stopwatch;
 
@@ -60,11 +60,11 @@ public class QosRateLimiter {
 
     @VisibleForTesting
     QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, Supplier<Long> maxBackoffTimeMillis,
-            Supplier<Long> unitsPerSecond, String rateLimiterType) {
+            Supplier<Long> unitsPerSecond, String rateLimiterName) {
         this.stopwatch = stopwatch;
         this.unitsPerSecond = unitsPerSecond;
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
-        this.rateLimiterType = rateLimiterType;
+        this.rateLimiterName = rateLimiterName;
 
         createRateLimiterAtomically();
     }
@@ -111,9 +111,9 @@ public class QosRateLimiter {
         rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
         rateLimiter.setRate(currentRate);
 
-        log.info("Units per second set to {} for rate limiter type {}",
+        log.info("Units per second set to {} for rate limiter {}",
                 SafeArg.of("unitsPerSecond", currentRate),
-                SafeArg.of("rateLimiterType", rateLimiterType));
+                SafeArg.of("rateLimiterName", rateLimiterName));
     }
 
     /**
