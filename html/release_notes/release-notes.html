@@ -201,7 +201,11 @@
 Please use it instead of the old <code class="docutils literal"><span class="pre">AtlasDbMetrics.setMetricsRegistry</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2720">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>All logging in <code class="docutils literal"><span class="pre">SnapshotTransaction</span></code> now marks its placehold arguments as either safe or unsafe.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2755">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The previously deprecated <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> methods have been removed.
 To create a <code class="docutils literal"><span class="pre">SerializableTransactionManager</span></code> please use the <code class="docutils literal"><span class="pre">TransactionManagers.builder()</span></code> to create a <code class="docutils literal"><span class="pre">TransactionManagers</span></code> object and then call its <code class="docutils literal"><span class="pre">serializable()</span></code> method.
 Furthermore, this builder now requires a <code class="docutils literal"><span class="pre">taggedMetricRegistry</span></code> argument, and is a staged builder, requiring all mandatory parameters to be specified in the following order:
@@ -209,11 +213,11 @@ Furthermore, this builder now requires a <code class="docutils literal"><span cl
 This avoid runtime errors due to failure to specify all required arguments.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2720">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2744">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">MetricsManager</span></code> no longer outputs stack traces to WARN when a metric is registered for a second time.
 The stack trace can still be accessed by turning on TRACE logging for <code class="docutils literal"><span class="pre">com.palantir.atlasdb.util.MetricsManager</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2753">Pull Request</a>)</td>
