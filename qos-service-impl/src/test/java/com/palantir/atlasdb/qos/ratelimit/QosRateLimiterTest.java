@@ -44,7 +44,7 @@ public class QosRateLimiterTest {
         when(stopwatch.readMicros()).thenReturn(START_TIME_MICROS);
         when(currentRate.get()).thenReturn(10L);
 
-        limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS, currentRate);
+        limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS, currentRate, "test");
     }
 
     @Test
@@ -96,7 +96,8 @@ public class QosRateLimiterTest {
 
     @Test
     public void doesNotThrowIfMaxBackoffTimeIsVeryLarge() {
-        QosRateLimiter limiterWithLargeBackoffLimit = new QosRateLimiter(stopwatch, () -> Long.MAX_VALUE, () -> 10L);
+        QosRateLimiter limiterWithLargeBackoffLimit = new QosRateLimiter(stopwatch, () -> Long.MAX_VALUE, () -> 10L,
+                "test");
 
         limiterWithLargeBackoffLimit.consumeWithBackoff(1_000_000_000);
         limiterWithLargeBackoffLimit.consumeWithBackoff(1_000_000_000);
