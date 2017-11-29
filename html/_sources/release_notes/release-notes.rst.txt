@@ -67,7 +67,12 @@ develop
          - Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2744>`__)
 
-    *    - |improved| |devbreak|
+    *    - |fixed|
+         - ``MetricsManager`` no longer outputs stack traces to WARN when a metric is registered for a second time.
+           The stack trace can still be accessed by turning on TRACE logging for ``com.palantir.atlasdb.util.MetricsManager``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2753>`__)
+
+*    - |improved| |devbreak|
          - AtlasDB now wraps ``NotCurrentLeaderException`` in ``AtlasDbDependencyException`` when this exception is thrown by TimeLock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2716>`__)
 

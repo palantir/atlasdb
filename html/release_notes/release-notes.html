@@ -213,12 +213,27 @@ This avoid runtime errors due to failure to specify all required arguments.
 <td>Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2744">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>AtlasDB now wraps <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> in <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when this exception is thrown by TimeLock.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2716">Pull Request</a>)</td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">MetricsManager</span></code> no longer outputs stack traces to WARN when a metric is registered for a second time.
+The stack trace can still be accessed by turning on TRACE logging for <code class="docutils literal"><span class="pre">com.palantir.atlasdb.util.MetricsManager</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2753">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
+<ul class="simple">
+<li><ul class="first">
+<li><dl class="first docutils">
+<dt><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></dt>
+<dd><ul class="first last">
+<li>AtlasDB now wraps <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> in <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when this exception is thrown by TimeLock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2716">Pull Request</a>)</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</li>
+</ul>
 </div>
 <div class="section" id="v0-69-0">
 <h2>v0.69.0<a class="headerlink" href="#v0-69-0" title="Permalink to this headline">¶</a></h2>
