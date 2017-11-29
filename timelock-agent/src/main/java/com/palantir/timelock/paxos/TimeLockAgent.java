@@ -41,7 +41,8 @@ import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
-public final class TimeLockAgent {
+@SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
+public class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 1L;
 
     private final TimeLockInstallConfiguration install;
