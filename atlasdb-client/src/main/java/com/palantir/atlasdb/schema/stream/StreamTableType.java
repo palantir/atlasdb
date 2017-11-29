@@ -42,14 +42,14 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
     }
 
     public static boolean isStreamStoreValueTable(TableReference tableReference) {
-        return tableReference.getQualifiedName().contains(StreamTableType.VALUE.tableSuffix);
+        return tableReference.getQualifiedName().endsWith(StreamTableType.VALUE.tableSuffix);
     }
 
     public static TableReference getIndexFromValue(TableReference tableReference) {
         Preconditions.checkArgument(isStreamStoreValueTable(tableReference),
                 "tableReference should be a StreamStore value table");
 
-        int tableNameLastIndex = tableReference.getQualifiedName().indexOf(StreamTableType.VALUE.tableSuffix);
+        int tableNameLastIndex = tableReference.getQualifiedName().lastIndexOf(StreamTableType.VALUE.tableSuffix);
         String indexTableName = tableReference.getQualifiedName().substring(0, tableNameLastIndex) + INDEX.tableSuffix;
         return TableReference.createFromFullyQualifiedName(indexTableName);
     }

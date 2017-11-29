@@ -23,11 +23,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
 public final class AdjustableSweepBatchConfigSource {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+
+    // We noticed that Sweep increases GC pressure in cassandra when sweeping the VALUE table of a StreamStore.
+    // Thus, we use a reduced default config in these scenarios.
+    private static final ImmutableSweepBatchConfig STREAM_STORE_BATCH_CONFIG = ImmutableSweepBatchConfig.builder()
+            .candidateBatchSize(128)
+            .deleteBatchSize(128)
+            .maxCellTsPairsToExamine(128)
+            .build();
 
     private final Supplier<SweepBatchConfig> rawSweepBatchConfig;
 
@@ -55,8 +65,8 @@ public final class AdjustableSweepBatchConfigSource {
         return batchSizeMultiplier;
     }
 
-    public SweepBatchConfig getAdjustedSweepConfig() {
-        SweepBatchConfig sweepConfig = getRawSweepConfig();
+    public SweepBatchConfig getAdjustedSweepConfig(TableReference tableRef) {
+        SweepBatchConfig sweepConfig = adjustConfigIfTableIsStreamStoreValues(tableRef, getRawSweepConfig());
         double multiplier = batchSizeMultiplier;
 
         return ImmutableSweepBatchConfig.builder()
@@ -64,6 +74,15 @@ public final class AdjustableSweepBatchConfigSource {
                 .candidateBatchSize(adjust(sweepConfig.candidateBatchSize(), multiplier))
                 .deleteBatchSize(adjust(sweepConfig.deleteBatchSize(), multiplier))
                 .build();
+    }
+
+    private SweepBatchConfig adjustConfigIfTableIsStreamStoreValues(
+            TableReference tableRef,
+            SweepBatchConfig sweepConfig) {
+        if (StreamTableType.isStreamStoreValueTable(tableRef)) {
+            sweepConfig = SweepBatchConfig.min(sweepConfig, STREAM_STORE_BATCH_CONFIG);
+        }
+        return sweepConfig;
     }
 
     private static int adjust(int parameterValue, double multiplier) {

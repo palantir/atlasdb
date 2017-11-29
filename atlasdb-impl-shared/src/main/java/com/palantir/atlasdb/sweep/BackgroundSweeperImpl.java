@@ -29,7 +29,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
@@ -43,14 +42,6 @@ import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
-
-    // We've noticed that Sweep increases GC pressure in cassandra when sweeping the VALUE table of a StreamStore.
-    // Thus, we use a reduced config in these scenarios.
-    private static final ImmutableSweepBatchConfig STREAM_STORE_BATCH_CONFIG = ImmutableSweepBatchConfig.builder()
-            .candidateBatchSize(128)
-            .deleteBatchSize(128)
-            .maxCellTsPairsToExamine(128)
-            .build();
 
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
@@ -221,10 +212,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
 
         TableToSweep tableToSweep = tableToSweepOptional.get();
-        SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig();
-        if (StreamTableType.isStreamStoreValueTable(tableToSweep.getTableRef())) {
-            batchConfig = SweepBatchConfig.min(batchConfig, STREAM_STORE_BATCH_CONFIG);
-        }
+        SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig(tableToSweep.getTableRef());
 
         try {
             specificTableSweeper.runOnceAndSaveResults(tableToSweep, batchConfig);
