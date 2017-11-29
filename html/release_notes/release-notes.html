@@ -238,6 +238,16 @@ The stack trace can still be accessed by turning on TRACE logging for <code clas
 </ul>
 </li>
 </ul>
+<blockquote>
+<div><ul class="simple">
+<li><ul class="first">
+<li><span class="changetype changetype-improved">IMPROVED</span></li>
+<li>Sweep no longer fetches any values from Cassandra in CONSERVATIVE mode. This results in significantly less data being transferred from Cassandra to the client when sweeping tables with large values, such as stream store tables.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2754">Pull Request</a>)</li>
+</ul>
+</li>
+</ul>
+</div></blockquote>
 </div>
 <div class="section" id="v0-69-0">
 <h2>v0.69.0<a class="headerlink" href="#v0-69-0" title="Permalink to this headline">¶</a></h2>
