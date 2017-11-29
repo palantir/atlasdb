@@ -63,6 +63,11 @@ develop
            This avoid runtime errors due to failure to specify all required arguments.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
 
+    *    - |fixed|
+         - ``MetricsManager`` no longer outputs stack traces to WARN when a metric is registered for a second time.
+           The stack trace can still be accessed by turning on TRACE logging for ``com.palantir.atlasdb.util.MetricsManager``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2753>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
