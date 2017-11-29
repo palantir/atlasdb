@@ -26,10 +26,10 @@ import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
 
 public class SchemaMetadataTest {
     private final SchemaDependentTableMetadata TABLE_METADATA_1 = ImmutableSchemaDependentTableMetadata.builder()
-            .cleanupRequirement(SchemaMetadataPersistence.CleanupRequirement.STREAM_STORE)
+            .cleanupRequirement(SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED)
             .build();
     private final SchemaDependentTableMetadata TABLE_METADATA_2 = ImmutableSchemaDependentTableMetadata.builder()
-            .cleanupRequirement(SchemaMetadataPersistence.CleanupRequirement.ARBITRARY_SYNC)
+            .cleanupRequirement(SchemaMetadataPersistence.CleanupRequirement.ARBITRARY_ASYNC)
             .build();
 
     @Test

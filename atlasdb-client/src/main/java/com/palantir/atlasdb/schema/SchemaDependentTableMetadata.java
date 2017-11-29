@@ -52,7 +52,7 @@ public abstract class SchemaDependentTableMetadata implements Persistable {
 
     public static SchemaDependentTableMetadata hydrateFromProto(
             SchemaMetadataPersistence.SchemaDependentTableMetadata message) {
-        CleanupRequirement cleanupRequirement = CleanupRequirement.ARBITRARY_SYNC; // strictest default
+        CleanupRequirement cleanupRequirement = CleanupRequirement.ARBITRARY_ASYNC; // strictest default
         if (message.hasCleanupRequirement()) {
             cleanupRequirement = message.getCleanupRequirement();
         }
