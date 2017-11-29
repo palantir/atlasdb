@@ -159,7 +159,8 @@ public class StreamTableDefinitionBuilder {
                 }
                 if (dbSideCompressionForBlocks) {
                     int streamStoreValueSizeKB = GenericStreamStore.BLOCK_SIZE_IN_BYTES / 1_000;
-                    int compressionBlockSizeKB = highestPowerOfTwoLessThanOrEqualTo(streamStoreValueSizeKB / 2);
+                    int expectedAverageValueSizeKB = streamStoreValueSizeKB / 2;
+                    int compressionBlockSizeKB = highestPowerOfTwoLessThanOrEqualTo(expectedAverageValueSizeKB);
                     explicitCompressionBlockSizeKB(compressionBlockSizeKB);
                 }
                 ignoreHotspottingChecks();

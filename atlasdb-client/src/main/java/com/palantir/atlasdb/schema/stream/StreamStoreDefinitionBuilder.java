@@ -78,11 +78,10 @@ public class StreamStoreDefinitionBuilder {
     }
 
     /**
-     * For Cassandra, this increases the sstable compression block size (which correspondingly increases the minimum
-     * amount of bytes that must be read from disk for any read). This increases the efficiency of database-side
-     * compression. However, it's recommended to use {@link #compressStreamInClient()} instead, because that will
-     * compress before sending the data over the network to Cassandra.
+     * @deprecated use {@link #compressStreamInClient()} instead, because that will compress before sending the data
+     * over the network to Cassandra.
      */
+    @Deprecated
     public StreamStoreDefinitionBuilder compressBlocksInDb() {
         streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.compressBlocksInDb());
         return this;
