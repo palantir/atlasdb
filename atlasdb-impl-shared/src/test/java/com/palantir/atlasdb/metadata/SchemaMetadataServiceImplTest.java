@@ -50,7 +50,7 @@ public class SchemaMetadataServiceImplTest {
             ImmutableSchemaMetadata.builder().putSchemaDependentTableMetadata(
                     TableReference.create(Namespace.EMPTY_NAMESPACE, "tableOne"),
                     ImmutableSchemaDependentTableMetadata.builder().cleanupRequirement(
-                            SchemaMetadataPersistence.CleanupRequirement.ARBITRARY_SYNC).build()).build();
+                            SchemaMetadataPersistence.CleanupRequirement.NOT_NEEDED).build()).build();
 
     private final String SCHEMA_NAME_TWO = "two";
     private final SchemaMetadata SCHEMA_METADATA_TWO =
