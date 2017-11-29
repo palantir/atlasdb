@@ -79,6 +79,10 @@ develop
 *    - |improved| |devbreak|
          - AtlasDB now wraps ``NotCurrentLeaderException`` in ``AtlasDbDependencyException`` when this exception is thrown by TimeLock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2716>`__)
+           
+    *    - |improved|
+         - Sweep no longer fetches any values from Cassandra in CONSERVATIVE mode. This results in significantly less data being transferred from Cassandra to the client when sweeping tables with large values, such as stream store tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2754>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
