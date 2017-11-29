@@ -142,29 +142,37 @@ public class StreamTableDefinitionBuilder {
             }};
 
         case VALUE:
-            return new TableDefinition() {{
-                javaTableName(streamTableType.getJavaClassName(prefix));
-                rowName();
+            return new TableDefinition() {
+                {
+                    javaTableName(streamTableType.getJavaClassName(prefix));
+                    rowName();
                     hashFirstNRowComponents(numberOfComponentsHashed);
-                    rowComponent("id",              idType);
-                    rowComponent("block_id",        ValueType.VAR_LONG);
-                columns();
-                    column("value", "v",            ValueType.BLOB);
-                conflictHandler(ConflictHandler.IGNORE_ALL);
-                maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);
-                cachePriority(CachePriority.COLD);
-                expirationStrategy(expirationStrategy);
-                if (appendHeavyAndReadLight) {
-                    appendHeavyAndReadLight();
+                    rowComponent("id", idType);
+                    rowComponent("block_id", ValueType.VAR_LONG);
+                    columns();
+                    column("value", "v", ValueType.BLOB);
+                    conflictHandler(ConflictHandler.IGNORE_ALL);
+                    maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);
+                    cachePriority(CachePriority.COLD);
+                    expirationStrategy(expirationStrategy);
+                    if (appendHeavyAndReadLight) {
+                        appendHeavyAndReadLight();
+                    }
+                    if (dbSideCompressionForBlocks) {
+                        int streamStoreValueSizeKB = GenericStreamStore.BLOCK_SIZE_IN_BYTES / 1_000;
+                        int compressionBlockSizeKB = highestPowerOfTwoLessThanOrEqualTo(streamStoreValueSizeKB / 2);
+                        explicitCompressionBlockSizeKB(compressionBlockSizeKB);
+                    }
+                    ignoreHotspottingChecks();
                 }
-                if (dbSideCompressionForBlocks) {
-                    explicitCompressionBlockSizeKB(Integer.highestOneBit(GenericStreamStore.BLOCK_SIZE_IN_BYTES / 2));
-                }
-                ignoreHotspottingChecks();
-            }};
+            };
 
         default:
             throw new IllegalStateException("Incorrectly supplied stream table type");
         }
+    }
+
+    private static int highestPowerOfTwoLessThanOrEqualTo(int value) {
+        return Integer.highestOneBit(value);
     }
 }
