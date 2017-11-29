@@ -30,6 +30,7 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -95,19 +96,22 @@ public class GetCellTimestamps {
      * tombstones (ideally this will involve catching some exception and reducing the range appropriately).
      */
     private void fetchBatchOfTimestampsBeginningAtStartRow() {
-        Optional<byte[]> rangeEnd;
-        for (byte[] rangeStart = startRowInclusive; timestamps.isEmpty(); rangeStart = rangeEnd.get()) {
-            rangeEnd = determineSafeRangeEnd(rangeStart);
+        byte[] rangeStart = startRowInclusive;
+
+        while (timestamps.isEmpty()) {
+            Optional<byte[]> rangeEnd = determineSafeRangeEndInclusive(rangeStart);
             if (!rangeEnd.isPresent()) {
                 return;
             }
 
+            // Note that both ends of this range are *inclusive*
             List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rangeStart, rangeEnd.get(), batchHint);
             timestamps.addAll(batch);
+            rangeStart = RangeRequests.nextLexicographicName(rangeEnd.get());
         }
     }
 
-    private Optional<byte[]> determineSafeRangeEnd(byte[] rangeStart) {
+    private Optional<byte[]> determineSafeRangeEndInclusive(byte[] rangeStart) {
         KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
         SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ONE);
         try {

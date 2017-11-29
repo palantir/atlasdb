@@ -64,9 +64,17 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
 
     *    - |fixed|
+         - Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2744>`__)
+
+    *    - |fixed|
          - ``MetricsManager`` no longer outputs stack traces to WARN when a metric is registered for a second time.
            The stack trace can still be accessed by turning on TRACE logging for ``com.palantir.atlasdb.util.MetricsManager``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2753>`__)
+
+*    - |improved| |devbreak|
+         - AtlasDB now wraps ``NotCurrentLeaderException`` in ``AtlasDbDependencyException`` when this exception is thrown by TimeLock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2716>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -103,7 +111,7 @@ v0.69.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2678>`__)
 
     *    - |improved| |devbreak|
-         - AtlasDB will now consistently throw an ``AtlasDbDependencyException`` when TimeLock is unavailable.
+         - AtlasDB will now consistently throw an ``AtlasDbDependencyException`` when requests fail due to TimeLock being unavailable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2677>`__)
 
     *    - |fixed|
@@ -960,6 +968,10 @@ v0.57.0
 
     *    - Type
          - Change
+
+    *    - |metrics| |changed|
+         - From this version onwards, AtlasDB's metrics no longer have unbounded multiplicity.
+           This means that AtlasDB can be whitelisted in the internal metrics aggregator tool.
 
     *    - |metrics| |userbreak|
          - AtlasDB no longer embeds Cassandra host names in its metrics.

@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -118,7 +119,8 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
             return callable.call();
         } catch (Exception e) {
             if (e.getCause() instanceof ConnectException
-                    || e.getCause() instanceof UnknownHostException) {
+                    || e.getCause() instanceof UnknownHostException
+                    || e.getCause() instanceof NotCurrentLeaderException) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             } else {
                 throw Throwables.throwUncheckedException(e);
