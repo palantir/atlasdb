@@ -55,6 +55,10 @@ develop
            Please use it instead of the old ``AtlasDbMetrics.setMetricsRegistry``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
 
+    *    - |improved|
+         - All logging in ``SnapshotTransaction`` now marks its placehold arguments as either safe or unsafe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2755>`__)
+
     *    - |devbreak| |improved|
          - The previously deprecated ``TransactionManagers.create()`` methods have been removed.
            To create a ``SerializableTransactionManager`` please use the ``TransactionManagers.builder()`` to create a ``TransactionManagers`` object and then call its ``serializable()`` method.
