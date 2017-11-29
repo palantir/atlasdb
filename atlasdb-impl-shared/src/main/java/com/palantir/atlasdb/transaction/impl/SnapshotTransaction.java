@@ -526,7 +526,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (numConsumed > 0) {
                     log.warn("Not all columns for row {} were read. {} columns were discarded.",
                              UnsafeArg.of("row", Arrays.toString(prevRowName)),
-                             SafeArg.of("numColumnDiscarded", numConsumed));
+                             SafeArg.of("numColumnsDiscarded", numConsumed));
                 }
             }
         };
