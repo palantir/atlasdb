@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.common.base.ClosableIterator;
 
 public class CandidateRowsForSweepingIterator extends AbstractIterator<List<CandidateRowForSweeping>>
@@ -31,6 +32,7 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
 
     private final ValuesLoader valuesLoader;
     private final CqlExecutor cqlExecutor;
+    private final RowGetter rowGetter;
     private final TableReference table;
     private final CandidateCellForSweepingRequest request;
 
@@ -39,10 +41,12 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
     public CandidateRowsForSweepingIterator(
             ValuesLoader valuesLoader,
             CqlExecutor cqlExecutor,
+            RowGetter rowGetter,
             TableReference table,
             CandidateCellForSweepingRequest request) {
         this.valuesLoader = valuesLoader;
         this.cqlExecutor = cqlExecutor;
+        this.rowGetter = rowGetter;
         this.table = table;
         this.request = request;
 
@@ -63,7 +67,7 @@ public class CandidateRowsForSweepingIterator extends AbstractIterator<List<Cand
     }
 
     private List<CandidateRowForSweeping> getCandidateCellsForSweepingBatch() {
-        return new GetCandidateRowsForSweeping(valuesLoader, cqlExecutor, table,
+        return new GetCandidateRowsForSweeping(valuesLoader, cqlExecutor, rowGetter, table,
                 request.withStartRow(nextStartRow)).execute();
     }
 }

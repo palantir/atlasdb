@@ -98,6 +98,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.logging.LoggingArgs.SafeAndUnsafeTableReferences;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -523,8 +525,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
                 if (numConsumed > 0) {
                     log.warn("Not all columns for row {} were read. {} columns were discarded.",
-                             Arrays.toString(prevRowName),
-                             numConsumed);
+                             UnsafeArg.of("row", Arrays.toString(prevRowName)),
+                             SafeArg.of("numColumnsDiscarded", numConsumed));
                 }
             }
         };
@@ -701,7 +703,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     }
                     long processedRangeMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
                     log.trace("Processed {} range requests for {} in {}ms",
-                            input.size(), tableRef, processedRangeMillis);
+                            SafeArg.of("numRequests", input.size()),
+                            LoggingArgs.tableRef(tableRef),
+                            SafeArg.of("millis", processedRangeMillis));
                     return ret;
                 });
     }
@@ -1039,9 +1043,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
             log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
                     + "Enable debug logging for more information.",
-                    bytes, tableRef.getQualifiedName(), rawResults.size());
+                    SafeArg.of("numBytes", bytes),
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("numResults", rawResults.size()));
             if (log.isDebugEnabled()) {
-                log.debug("The first 10 results of your request were {}.", Iterables.limit(rawResults.entrySet(), 10),
+                log.debug("The first 10 results of your request were {}.",
+                        UnsafeArg.of("results", Iterables.limit(rawResults.entrySet(), 10)),
                         new RuntimeException("This exception and stack trace are provided for debugging purposes."));
             }
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ).update(bytes);
@@ -1219,7 +1226,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
                     log.warn("A single transaction has put quite a few bytes: {}. "
-                            + "Enable debug logging for more information", newVal);
+                            + "Enable debug logging for more information",
+                            SafeArg.of("numBytes", newVal));
                     if (log.isDebugEnabled()) {
                         log.debug("This exception and stack trace are provided for debugging purposes.",
                                 new RuntimeException());
@@ -1383,13 +1391,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             getTimer("commitTotalTimeSinceTxCreation").update(millisSinceCreation, TimeUnit.MILLISECONDS);
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
             if (perfLogger.isDebugEnabled()) {
+                SafeAndUnsafeTableReferences tableRefs = LoggingArgs.tableRefs(writesByTable.keySet());
                 perfLogger.debug("Committed {} bytes with locks, start ts {}, commit ts {}, "
                         + "acquiring locks took {} ms, checking for conflicts took {} ms, "
                         + "writing took {} ms, punch took {} ms, putCommitTs took {} ms, "
                         + "total time since tx creation {} ms, tables: {}.",
-                        byteCount.get(), getStartTimestamp(),
-                        commitTimestamp, millisForLocks, millisCheckingForConflicts, millisForWrites,
-                        millisForPunch, millisForCommitTs, millisSinceCreation, writesByTable.keySet());
+                        SafeArg.of("numBytes", byteCount.get()),
+                        SafeArg.of("startTs", getStartTimestamp()),
+                        SafeArg.of("commitTs", commitTimestamp),
+                        SafeArg.of("millisForLocks", millisForLocks),
+                        SafeArg.of("millisCheckForConflicts", millisCheckingForConflicts),
+                        SafeArg.of("millisForWrites", millisForWrites),
+                        SafeArg.of("millisForPunch", millisForPunch),
+                        SafeArg.of("millisForCommitTs", millisForCommitTs),
+                        SafeArg.of("millisSinceCreation", millisSinceCreation),
+                        tableRefs.safeTableRefs(),
+                        tableRefs.unsafeTableRefs());
             }
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
@@ -1558,9 +1575,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 conflictingCells.add(cell);
             } else if (log.isInfoEnabled()) {
                 log.info("Another transaction committed to the same cell before us but their value was the same."
-                        + " Cell: {}"
-                        + " Table: {}",
-                        cell, table);
+                        + " Cell: {} Table: {}",
+                        UnsafeArg.of("cell", cell),
+                        LoggingArgs.tableRef(table));
             }
         }
         if (conflictingCells.isEmpty()) {
@@ -1647,7 +1664,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TransactionService transactionService) {
         for (long startTs : Sets.newHashSet(keysToDelete.values())) {
             if (commitTimestamps.get(startTs) == null) {
-                log.warn("Rolling back transaction: {}", startTs);
+                log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
                 if (!rollbackOtherTransaction(startTs, transactionService)) {
                     return false;
                 }
@@ -1657,7 +1674,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            log.debug("For table: {} we are deleting values of an uncommitted transaction: {}", tableRef, keysToDelete);
+            log.debug("For table: {} we are deleting values of an uncommitted transaction: {}",
+                    LoggingArgs.tableRef(tableRef),
+                    UnsafeArg.of("keysToDelete", keysToDelete));
             keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
         } catch (RuntimeException e) {
             final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
@@ -1666,9 +1685,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     + "Failed to delete keys for table: {} from an uncommitted transaction; "
                     + " sweep should eventually clean this when it processes this table.";
             if (log.isDebugEnabled()) {
-                log.warn(msg + " The keys that failed to be deleted during rollback were {}", tableRef, keysToDelete);
+                log.warn(msg + " The keys that failed to be deleted during rollback were {}",
+                        LoggingArgs.tableRef(tableRef),
+                        UnsafeArg.of("keysToDelete", keysToDelete));
             } else {
-                log.warn(msg, tableRef, e);
+                log.warn(msg, LoggingArgs.tableRef(tableRef), e);
             }
         }
 
@@ -1684,9 +1705,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
             return true;
         } catch (KeyAlreadyExistsException e) {
-            String msg = "Two transactions tried to roll back someone else's request with start: " + startTs;
-            log.error("This isn't a bug but it should be very infrequent. {}", msg,
-                    new TransactionFailedRetriableException(msg, e));
+            log.info("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
+                    + " else's request with start: {}",
+                    SafeArg.of("startTs", startTs),
+                    new TransactionFailedRetriableException(
+                            "Two transactions tried to roll back someone else's request with start: " + startTs, e));
             return false;
         }
     }
@@ -1829,11 +1852,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             waitForCommitToComplete(startTimestamps);
             long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
             perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
-                    waitForCommitTsMillis, tableRef);
+                    SafeArg.of("commitTsMillis", waitForCommitTsMillis),
+                    LoggingArgs.tableRef(tableRef));
         }
 
         log.trace("Getting commit timestamps for {} start timestamps in response to read from table {}",
-                gets.size(), tableRef);
+                SafeArg.of("numTimestamps", gets.size()),
+                LoggingArgs.tableRef(tableRef));
         Map<Long, Long> rawResults = loadCommitTimestamps(gets);
 
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
@@ -1907,7 +1932,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } catch (TransactionFailedException e1) {
             throw e1;
         } catch (Exception e1) {
-            log.error("Failed to determine if we can retry this transaction. startTs: {}", getStartTimestamp(), e1);
+            log.error("Failed to determine if we can retry this transaction. startTs: {}",
+                    SafeArg.of("startTs", getStartTimestamp()),
+                    e1);
         }
         String msg = "Our commit was already rolled back at commit time."
                 + " Locking should prevent this from happening, but our locks may have timed out."

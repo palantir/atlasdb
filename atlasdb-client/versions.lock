@@ -168,6 +168,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing"
             ]
@@ -205,6 +206,9 @@
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
+        },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4"
         },
         "com.palantir.tritium:tritium-slf4j": {
             "locked": "0.8.4",
@@ -454,6 +458,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing"
             ]
@@ -491,6 +496,9 @@
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
+        },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4"
         },
         "com.palantir.tritium:tritium-slf4j": {
             "locked": "0.8.4",
