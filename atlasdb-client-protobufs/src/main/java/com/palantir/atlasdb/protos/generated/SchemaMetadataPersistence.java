@@ -22,15 +22,7 @@ public final class SchemaMetadataPersistence {
      */
     NOT_NEEDED(0, 0),
     /**
-     * <code>STREAM_STORE = 1;</code>
-     *
-     * <pre>
-     * Used for stream store meta-tables which don't also have user-defined cleanup tasks.
-     * </pre>
-     */
-    STREAM_STORE(1, 1),
-    /**
-     * <code>ARBITRARY_ASYNC = 2;</code>
+     * <code>ARBITRARY_ASYNC = 64;</code>
      *
      * <pre>
      * Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
@@ -38,17 +30,7 @@ public final class SchemaMetadataPersistence {
      * Examples include cascading deletes and reads from append-only Atlas tables.
      * </pre>
      */
-    ARBITRARY_ASYNC(2, 2),
-    /**
-     * <code>ARBITRARY_SYNC = 3;</code>
-     *
-     * <pre>
-     * Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
-     * that must be processed before cells are actually swept.
-     * Examples include tasks that read other Atlas tables or make RPCs to other services (in the general case).
-     * </pre>
-     */
-    ARBITRARY_SYNC(3, 3),
+    ARBITRARY_ASYNC(1, 64),
     ;
 
     /**
@@ -60,15 +42,7 @@ public final class SchemaMetadataPersistence {
      */
     public static final int NOT_NEEDED_VALUE = 0;
     /**
-     * <code>STREAM_STORE = 1;</code>
-     *
-     * <pre>
-     * Used for stream store meta-tables which don't also have user-defined cleanup tasks.
-     * </pre>
-     */
-    public static final int STREAM_STORE_VALUE = 1;
-    /**
-     * <code>ARBITRARY_ASYNC = 2;</code>
+     * <code>ARBITRARY_ASYNC = 64;</code>
      *
      * <pre>
      * Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
@@ -76,17 +50,7 @@ public final class SchemaMetadataPersistence {
      * Examples include cascading deletes and reads from append-only Atlas tables.
      * </pre>
      */
-    public static final int ARBITRARY_ASYNC_VALUE = 2;
-    /**
-     * <code>ARBITRARY_SYNC = 3;</code>
-     *
-     * <pre>
-     * Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
-     * that must be processed before cells are actually swept.
-     * Examples include tasks that read other Atlas tables or make RPCs to other services (in the general case).
-     * </pre>
-     */
-    public static final int ARBITRARY_SYNC_VALUE = 3;
+    public static final int ARBITRARY_ASYNC_VALUE = 64;
 
 
     public final int getNumber() { return value; }
@@ -94,9 +58,7 @@ public final class SchemaMetadataPersistence {
     public static CleanupRequirement valueOf(int value) {
       switch (value) {
         case 0: return NOT_NEEDED;
-        case 1: return STREAM_STORE;
-        case 2: return ARBITRARY_ASYNC;
-        case 3: return ARBITRARY_SYNC;
+        case 64: return ARBITRARY_ASYNC;
         default: return null;
       }
     }
@@ -2744,10 +2706,9 @@ public final class SchemaMetadataPersistence {
       "ta\022U\n\022cleanupRequirement\030\001 \001(\01629.com.pal" +
       "antir.atlasdb.protos.generated.CleanupRe" +
       "quirement\"6\n\016TableReference\022\021\n\tnamespace" +
-      "\030\001 \001(\t\022\021\n\ttableName\030\002 \001(\t*_\n\022CleanupRequ" +
-      "irement\022\016\n\nNOT_NEEDED\020\000\022\020\n\014STREAM_STORE\020" +
-      "\001\022\023\n\017ARBITRARY_ASYNC\020\002\022\022\n\016ARBITRARY_SYNC" +
-      "\020\003"
+      "\030\001 \001(\t\022\021\n\ttableName\030\002 \001(\t*9\n\022CleanupRequ" +
+      "irement\022\016\n\nNOT_NEEDED\020\000\022\023\n\017ARBITRARY_ASY" +
+      "NC\020@"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {

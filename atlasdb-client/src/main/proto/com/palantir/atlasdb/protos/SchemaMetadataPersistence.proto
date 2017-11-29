@@ -24,16 +24,8 @@ enum CleanupRequirement {
     // Used for tables without cleanup tasks.
     NOT_NEEDED = 0;
 
-    // Used for stream store meta-tables which don't also have user-defined cleanup tasks.
-    STREAM_STORE = 1;
-
     // Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
     // which can safely be processed asynchronously (e.g. via a queue).
     // Examples include cascading deletes and reads from append-only Atlas tables.
-    ARBITRARY_ASYNC = 2;
-
-    // Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
-    // that must be processed before cells are actually swept.
-    // Examples include tasks that read other Atlas tables or make RPCs to other services (in the general case).
-    ARBITRARY_SYNC = 3;
+    ARBITRARY_ASYNC = 64;
 }
