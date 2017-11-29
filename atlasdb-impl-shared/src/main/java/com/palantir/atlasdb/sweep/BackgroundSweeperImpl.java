@@ -29,8 +29,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
+import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -41,6 +43,14 @@ import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+
+    // We've noticed that Sweep increases GC pressure in cassandra when sweeping the VALUE table of a StreamStore.
+    // Thus, we use a reduced config in these scenarios.
+    private static final ImmutableSweepBatchConfig STREAM_STORE_BATCH_CONFIG = ImmutableSweepBatchConfig.builder()
+            .candidateBatchSize(128)
+            .deleteBatchSize(128)
+            .maxCellTsPairsToExamine(128)
+            .build();
 
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
@@ -78,11 +88,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
-        NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
-                specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProviderImpl nextTableToSweepProvider = new NextTableToSweepProviderImpl(
+                specificTableSweeper.getKvs(),
+                specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProvider streamStoreAwareNextTableToSweepProvider =
+                new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweepProvider);
+
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
-                nextTableToSweepProvider,
+                streamStoreAwareNextTableToSweepProvider,
                 sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
@@ -199,16 +213,21 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
 
     @VisibleForTesting
     SweepOutcome runOnce() {
-        Optional<TableToSweep> tableToSweep = getTableToSweep();
-        if (!tableToSweep.isPresent()) {
+        Optional<TableToSweep> tableToSweepOptional = getTableToSweep();
+        if (!tableToSweepOptional.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
             log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return SweepOutcome.NOTHING_TO_SWEEP;
         }
 
+        TableToSweep tableToSweep = tableToSweepOptional.get();
         SweepBatchConfig batchConfig = sweepBatchConfigSource.getAdjustedSweepConfig();
+        if (StreamTableType.isStreamStoreValueTable(tableToSweep.getTableRef())) {
+            batchConfig = SweepBatchConfig.min(batchConfig, STREAM_STORE_BATCH_CONFIG);
+        }
+
         try {
-            specificTableSweeper.runOnceAndSaveResults(tableToSweep.get(), batchConfig);
+            specificTableSweeper.runOnceAndSaveResults(tableToSweep, batchConfig);
             return SweepOutcome.SUCCESS;
         } catch (InsufficientConsistencyException e) {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
@@ -216,7 +235,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         } catch (RuntimeException e) {
             specificTableSweeper.getSweepMetrics().sweepError();
 
-            return determineCauseOfFailure(e, tableToSweep.get());
+            return determineCauseOfFailure(e, tableToSweep);
         }
     }
 

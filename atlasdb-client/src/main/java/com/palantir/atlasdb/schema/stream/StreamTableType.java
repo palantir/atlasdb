@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.render.Renderers;
 
 public enum StreamTableType { // WARNING: do not change these without an upgrade task!
@@ -37,5 +39,18 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
 
     public String getJavaClassName(String prefix) {
         return Renderers.CamelCase(prefix) + javaSuffix;
+    }
+
+    public static boolean isStreamStoreValueTable(TableReference tableReference) {
+        return tableReference.getQualifiedName().contains(StreamTableType.VALUE.tableSuffix);
+    }
+
+    public static TableReference getIndexFromValue(TableReference tableReference) {
+        Preconditions.checkArgument(isStreamStoreValueTable(tableReference),
+                "tableReference should be a StreamStore value table");
+
+        int tableNameLastIndex = tableReference.getQualifiedName().indexOf(StreamTableType.VALUE.tableSuffix);
+        String indexTableName = tableReference.getQualifiedName().substring(0, tableNameLastIndex) + INDEX.tableSuffix;
+        return TableReference.createFromFullyQualifiedName(indexTableName);
     }
 }
