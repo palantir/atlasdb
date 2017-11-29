@@ -51,7 +51,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement;
-import com.palantir.atlasdb.schema.CleanupRequirementTracker;
 import com.palantir.atlasdb.schema.ImmutableSchemaDependentTableMetadata;
 import com.palantir.atlasdb.schema.ImmutableSchemaMetadata;
 import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
@@ -88,8 +87,6 @@ public class Schema {
     private final Map<String, TableDefinition> tableDefinitions = Maps.newHashMap();
     private final Map<String, IndexDefinition> indexDefinitions = Maps.newHashMap();
     private final List<StreamStoreRenderer> streamStoreRenderers = Lists.newArrayList();
-
-    private final CleanupRequirementTracker cleanupRequirements = new CleanupRequirementTracker();
 
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
@@ -199,10 +196,6 @@ public class Schema {
                 packageName, name, renderer, namespace);
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
-        // TODO (jkong): Switch to STREAM_STORE when that actually becomes a thing
-        // Note that users can define their own cleanup tasks with even stricter requirements, so this can't be put.
-        streamStoreCleanupTasks.keySet().forEach(tableWithStreamCleanupTask ->
-                cleanupRequirements.specifyRequirement(tableWithStreamCleanupTask, CleanupRequirement.ARBITRARY_ASYNC));
         streamStoreRenderers.add(renderer);
     }
 
@@ -401,15 +394,7 @@ public class Schema {
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
-        addCleanupTask(rawTableName, task, CleanupRequirement.ARBITRARY_SYNC);
-    }
-
-    public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task, CleanupRequirement requirement) {
-        Preconditions.checkState(requirement == CleanupRequirement.ARBITRARY_SYNC ||
-                requirement == CleanupRequirement.ARBITRARY_ASYNC,
-                "Cannot manually specify a cleanup task with requirement %s", requirement);
         cleanupTasks.put(rawTableName, task);
-        cleanupRequirements.specifyRequirement(rawTableName, requirement);
     }
 
     public Multimap<TableReference, OnCleanupTask> getCleanupTasksByTable() {
@@ -436,17 +421,17 @@ public class Schema {
                         .flatMap(x -> x)
                         .collect(Collectors.toMap(
                                 tableName -> TableReference.create(namespace, tableName),
-                                this::constructSchemaDependentMetadataForTable));
+                                this::constructSchemaDependentTableMetadata));
         builder.putAllSchemaDependentTableMetadata(tableMetadatas);
 
         return builder.build();
     }
 
-    private SchemaDependentTableMetadata constructSchemaDependentMetadataForTable(String tableName) {
-        // TODO (jkong): Stream Stores are different
-        CleanupRequirement requirement = cleanupRequirements.getRequirementForTable(tableName);
+    private SchemaDependentTableMetadata constructSchemaDependentTableMetadata(String tableName) {
         return ImmutableSchemaDependentTableMetadata.builder()
-                .cleanupRequirement(requirement)
+                .cleanupRequirement(cleanupTasks.containsKey(tableName) ?
+                        CleanupRequirement.ARBITRARY_ASYNC :
+                        CleanupRequirement.NOT_NEEDED)
                 .build();
     }
 }

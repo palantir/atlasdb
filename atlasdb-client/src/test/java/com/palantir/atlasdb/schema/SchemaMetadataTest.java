@@ -66,9 +66,7 @@ public class SchemaMetadataTest {
     public void orderingOfCleanupRequirementEnumIsCorrect() {
         List<CleanupRequirement> sortedCleanupRequirements = Lists.newArrayList(
                 CleanupRequirement.NOT_NEEDED,
-                CleanupRequirement.STREAM_STORE,
-                CleanupRequirement.ARBITRARY_ASYNC,
-                CleanupRequirement.ARBITRARY_SYNC);
+                CleanupRequirement.ARBITRARY_ASYNC);
         List<CleanupRequirement> copy = Lists.newArrayList(sortedCleanupRequirements);
         Collections.sort(copy);
         assertThat(copy).isEqualTo(sortedCleanupRequirements);
