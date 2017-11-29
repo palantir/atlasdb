@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.ConnectException;
 import java.net.UnknownHostException;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -37,6 +36,7 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
@@ -52,9 +52,9 @@ public class TimeLockClientTest {
 
     private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
-    private static final Set<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
+    private static final ImmutableSet<LockToken> TOKENS = ImmutableSet.of(TOKEN_1, TOKEN_2);
 
-    private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(StringLockDescriptor.of("foo"));
+    private static final ImmutableSet<LockDescriptor> LOCKS = ImmutableSet.of(StringLockDescriptor.of("foo"));
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);
@@ -152,19 +152,24 @@ public class TimeLockClientTest {
     }
 
     @Test
-    @SuppressWarnings("ThrowableNotThrown")
     public void throwsDependencyUnavailableWhenConnectionToDelegateFails() {
         Throwable cause = new ConnectException("I couldn't connect to TimeLock");
-        Throwable exceptionToThrow = new RuntimeException(cause);
-        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
-
-        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+        assertDependencyUnavailableIsThrownWhenWeCatch(cause);
     }
 
     @Test
-    @SuppressWarnings("ThrowableNotThrown")
     public void throwsDependencyUnavailableWhenDelegateIsUnknown() {
         Throwable cause = new UnknownHostException("I don't know how to talk to TimeLock");
+        assertDependencyUnavailableIsThrownWhenWeCatch(cause);
+    }
+
+    @Test
+    public void throwsDependencyUnavailableWhenDelegateIsNotCurrentLeader() {
+        Throwable cause = new NotCurrentLeaderException("No TimeLock node appears to be the leader");
+        assertDependencyUnavailableIsThrownWhenWeCatch(cause);
+    }
+
+    private void assertDependencyUnavailableIsThrownWhenWeCatch(Throwable cause) {
         Throwable exceptionToThrow = new RuntimeException(cause);
         when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
 
