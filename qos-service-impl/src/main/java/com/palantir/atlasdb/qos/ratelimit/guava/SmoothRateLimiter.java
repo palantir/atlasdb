@@ -203,7 +203,7 @@ public abstract class SmoothRateLimiter extends RateLimiter {
      *        maxPermits = thresholdPermits + 2 * warmupPeriod / (stableInterval + coldInterval).
      */
     static final class SmoothWarmingUp extends SmoothRateLimiter {
-        private final long warmupPeriodMicros;
+        private final long warmupPeriodNanos;
         /**
          * The slope of the line from the stable interval (when permits == 0), to the cold interval
          * (when permits == maxPermits)
@@ -215,18 +215,18 @@ public abstract class SmoothRateLimiter extends RateLimiter {
         SmoothWarmingUp(
                 SleepingStopwatch stopwatch, long warmupPeriod, TimeUnit timeUnit, double coldFactor) {
             super(stopwatch);
-            this.warmupPeriodMicros = timeUnit.toMicros(warmupPeriod);
+            this.warmupPeriodNanos = timeUnit.toNanos(warmupPeriod);
             this.coldFactor = coldFactor;
         }
 
         @Override
-        void doSetRate(double permitsPerSecond, double stableIntervalMicros) {
+        void doSetRate(double permitsPerSecond, double stableIntervalNanos) {
             double oldMaxPermits = maxPermits;
-            double coldIntervalMicros = stableIntervalMicros * coldFactor;
-            thresholdPermits = 0.5 * warmupPeriodMicros / stableIntervalMicros;
+            double coldIntervalNonos = stableIntervalNanos * coldFactor;
+            thresholdPermits = 0.5 * warmupPeriodNanos / stableIntervalNanos;
             maxPermits = thresholdPermits
-                    + 2.0 * warmupPeriodMicros / (stableIntervalMicros + coldIntervalMicros);
-            slope = (coldIntervalMicros - stableIntervalMicros) / (maxPermits - thresholdPermits);
+                    + 2.0 * warmupPeriodNanos / (stableIntervalNanos + coldIntervalNonos);
+            slope = (coldIntervalNonos - stableIntervalNanos) / (maxPermits - thresholdPermits);
             if (oldMaxPermits == Double.POSITIVE_INFINITY) {
                 // if we don't special-case this, we would get storedPermits == NaN, below
                 storedPermits = 0.0;
@@ -240,27 +240,27 @@ public abstract class SmoothRateLimiter extends RateLimiter {
         @Override
         long storedPermitsToWaitTime(double storedPermits, double permitsToTake) {
             double availablePermitsAboveThreshold = storedPermits - thresholdPermits;
-            long micros = 0;
+            long nanos = 0;
             // measuring the integral on the right part of the function (the climbing line)
             if (availablePermitsAboveThreshold > 0.0) {
                 double permitsAboveThresholdToTake = min(availablePermitsAboveThreshold, permitsToTake);
-                micros = (long) (permitsAboveThresholdToTake
+                nanos = (long) (permitsAboveThresholdToTake
                         * (permitsToTime(availablePermitsAboveThreshold)
                         + permitsToTime(availablePermitsAboveThreshold - permitsAboveThresholdToTake)) / 2.0);
                 permitsToTake -= permitsAboveThresholdToTake;
             }
             // measuring the integral on the left part of the function (the horizontal line)
-            micros += (stableIntervalMicros * permitsToTake);
-            return micros;
+            nanos += (stableIntervalNanos * permitsToTake);
+            return nanos;
         }
 
         private double permitsToTime(double permits) {
-            return stableIntervalMicros + permits * slope;
+            return stableIntervalNanos + permits * slope;
         }
 
         @Override
-        double coolDownIntervalMicros() {
-            return warmupPeriodMicros / maxPermits;
+        double coolDownIntervalNanos() {
+            return warmupPeriodNanos / maxPermits;
         }
     }
 
@@ -282,7 +282,7 @@ public abstract class SmoothRateLimiter extends RateLimiter {
         }
 
         @Override
-        void doSetRate(double permitsPerSecond, double stableIntervalMicros) {
+        void doSetRate(double permitsPerSecond, double stableIntervalNanos) {
             double oldMaxPermits = this.maxPermits;
             maxPermits = maxBurstSeconds * permitsPerSecond;
             if (oldMaxPermits == Double.POSITIVE_INFINITY) {
@@ -301,8 +301,8 @@ public abstract class SmoothRateLimiter extends RateLimiter {
         }
 
         @Override
-        double coolDownIntervalMicros() {
-            return stableIntervalMicros;
+        double coolDownIntervalNanos() {
+            return stableIntervalNanos;
         }
     }
 
@@ -320,52 +320,52 @@ public abstract class SmoothRateLimiter extends RateLimiter {
      * The interval between two unit requests, at our stable rate. E.g., a stable rate of 5 permits
      * per second has a stable interval of 200ms.
      */
-    double stableIntervalMicros;
+    double stableIntervalNanos;
 
     /**
      * The time when the next request (no matter its size) will be granted. After granting a
      * request, this is pushed further in the future. Large requests push this further than small
      * requests.
      */
-    private long nextFreeTicketMicros = 0L; // could be either in the past or future
+    private long nextFreeTicketNanos = 0L; // could be either in the past or future
 
     private SmoothRateLimiter(SleepingStopwatch stopwatch) {
         super(stopwatch);
     }
 
     @Override
-    final void doSetRate(double permitsPerSecond, long nowMicros) {
-        resync(nowMicros);
-        double stableIntervalMicros = SECONDS.toMicros(1L) / permitsPerSecond;
-        this.stableIntervalMicros = stableIntervalMicros;
-        doSetRate(permitsPerSecond, stableIntervalMicros);
+    final void doSetRate(double permitsPerSecond, long nowNanos) {
+        resync(nowNanos);
+        double stableIntervalNanos = SECONDS.toNanos(1L) / permitsPerSecond;
+        this.stableIntervalNanos = stableIntervalNanos;
+        doSetRate(permitsPerSecond, stableIntervalNanos);
     }
 
-    abstract void doSetRate(double permitsPerSecond, double stableIntervalMicros);
+    abstract void doSetRate(double permitsPerSecond, double stableIntervalNanos);
 
     @Override
     final double doGetRate() {
-        return SECONDS.toMicros(1L) / stableIntervalMicros;
+        return SECONDS.toNanos(1L) / stableIntervalNanos;
     }
 
     @Override
-    final long queryEarliestAvailable(long nowMicros) {
-        return nextFreeTicketMicros;
+    final long queryEarliestAvailable(long nowNanos) {
+        return nextFreeTicketNanos;
     }
 
     @Override
-    final long reserveEarliestAvailable(int requiredPermits, long nowMicros) {
-        resync(nowMicros);
-        long returnValue = nextFreeTicketMicros;
+    final long reserveEarliestAvailable(long requiredPermits, long nowNanos) {
+        resync(nowNanos);
+        long returnValue = nextFreeTicketNanos;
         double storedPermitsToSpend = min(requiredPermits, this.storedPermits);
         double freshPermits = requiredPermits - storedPermitsToSpend;
-        long waitMicros = storedPermitsToWaitTime(this.storedPermits, storedPermitsToSpend)
-                + (long) (freshPermits * stableIntervalMicros);
+        long waitNanos = storedPermitsToWaitTime(this.storedPermits, storedPermitsToSpend)
+                + (long) (freshPermits * stableIntervalNanos);
 
         try {
-            this.nextFreeTicketMicros = LongMath.checkedAdd(nextFreeTicketMicros, waitMicros);
+            this.nextFreeTicketNanos = LongMath.checkedAdd(nextFreeTicketNanos, waitNanos);
         } catch (ArithmeticException e) {
-            this.nextFreeTicketMicros = Long.MAX_VALUE;
+            this.nextFreeTicketNanos = Long.MAX_VALUE;
         }
         this.storedPermits -= storedPermitsToSpend;
         return returnValue;
@@ -382,20 +382,30 @@ public abstract class SmoothRateLimiter extends RateLimiter {
     abstract long storedPermitsToWaitTime(double storedPermits, double permitsToTake);
 
     /**
-     * Returns the number of microseconds during cool down that we have to wait to get a new permit.
+     * Returns the number of nanoseconds during cool down that we have to wait to get a new permit.
      */
-    abstract double coolDownIntervalMicros();
+    abstract double coolDownIntervalNanos();
 
     /**
-     * Updates {@code storedPermits} and {@code nextFreeTicketMicros} based on the current time.
+     * Updates {@code storedPermits} and {@code nextFreeTicketNanos} based on the current time.
      */
-    void resync(long nowMicros) {
+    void resync(long nowNanos) {
         // if nextFreeTicket is in the past, resync to now
-        if (nowMicros > nextFreeTicketMicros) {
-            storedPermits = min(maxPermits,
-                    storedPermits
-                            + (nowMicros - nextFreeTicketMicros) / coolDownIntervalMicros());
-            nextFreeTicketMicros = nowMicros;
+        if (nowNanos > nextFreeTicketNanos) {
+            storedPermits = min(maxPermits, storedPermits + (nowNanos - nextFreeTicketNanos) / coolDownIntervalNanos());
+            nextFreeTicketNanos = nowNanos;
+        }
+    }
+
+    void returnPermitsConsumedEarlier(double permitsToReturn, long nowNanos) {
+        double permitsReturnedByNanos = 0;
+        if (nextFreeTicketNanos > nowNanos) {
+            double maxPermitsByNanos = (nextFreeTicketNanos - nowNanos) / stableIntervalNanos;
+            permitsReturnedByNanos = min(maxPermitsByNanos, permitsToReturn);
+            nextFreeTicketNanos = nextFreeTicketNanos - (long) (permitsReturnedByNanos * stableIntervalNanos);
+        }
+        if (permitsToReturn > permitsReturnedByNanos) {
+            storedPermits = min(maxPermits, storedPermits + (permitsToReturn - permitsReturnedByNanos));
         }
     }
 }

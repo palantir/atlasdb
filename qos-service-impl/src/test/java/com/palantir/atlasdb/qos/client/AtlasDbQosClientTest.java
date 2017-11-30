@@ -26,11 +26,15 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Collection;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.base.Ticker;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.qos.ImmutableQueryWeight;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.qos.QueryWeight;
@@ -40,10 +44,10 @@ import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 
-public class AtlasDbQosClientTest {
+@RunWith(Parameterized.class)
+public final class AtlasDbQosClientTest {
 
     private static final int ESTIMATED_BYTES = 10;
-    private static final int ACTUAL_BYTES = 51;
     private static final long START_NANOS = 1100L;
     private static final long END_NANOS = 5500L;
     private static final long TOTAL_NANOS = END_NANOS - START_NANOS;
@@ -54,11 +58,9 @@ public class AtlasDbQosClientTest {
             .timeTakenNanos((int) TOTAL_NANOS)
             .build();
 
-    private static final QueryWeight ACTUAL_WEIGHT = ImmutableQueryWeight.builder()
-            .numBytes(ACTUAL_BYTES)
-            .numDistinctRows(10)
-            .timeTakenNanos((int) TOTAL_NANOS)
-            .build();
+    private final int actualBytes;
+
+    private final QueryWeight actualWeight;
 
     private QosClient.QueryWeigher weigher = mock(QosClient.QueryWeigher.class);
 
@@ -71,13 +73,27 @@ public class AtlasDbQosClientTest {
 
     private AtlasDbQosClient qosClient = new AtlasDbQosClient(rateLimiters, metrics, ticker);
 
+    @Parameterized.Parameters
+    public static Collection<Integer> actualBytes() {
+        return ImmutableList.of(51, 5);
+    }
+
+    public AtlasDbQosClientTest(int actualBytes) {
+        this.actualBytes = actualBytes;
+        this.actualWeight = ImmutableQueryWeight.builder()
+                .numBytes(actualBytes)
+                .numDistinctRows(10)
+                .timeTakenNanos((int) TOTAL_NANOS)
+                .build();
+    }
+
     @Before
     public void setUp() {
         when(ticker.read()).thenReturn(START_NANOS).thenReturn(END_NANOS);
 
         when(weigher.estimate()).thenReturn(ESTIMATED_WEIGHT);
-        when(weigher.weighSuccess(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
-        when(weigher.weighFailure(any(), anyLong())).thenReturn(ACTUAL_WEIGHT);
+        when(weigher.weighSuccess(any(), anyLong())).thenReturn(actualWeight);
+        when(weigher.weighFailure(any(), anyLong())).thenReturn(actualWeight);
 
         when(readLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
         when(writeLimiter.consumeWithBackoff(anyLong())).thenReturn(Duration.ZERO);
@@ -88,7 +104,7 @@ public class AtlasDbQosClientTest {
         qosClient.executeRead(() -> "foo", weigher);
 
         verify(readLimiter).consumeWithBackoff(ESTIMATED_BYTES);
-        verify(readLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
+        verify(readLimiter).recordAdjustment(actualBytes - ESTIMATED_BYTES);
         verifyNoMoreInteractions(readLimiter, writeLimiter);
     }
 
@@ -97,7 +113,7 @@ public class AtlasDbQosClientTest {
         qosClient.executeRead(() -> "foo", weigher);
 
         verify(metrics).recordReadEstimate(ESTIMATED_WEIGHT);
-        verify(metrics).recordRead(ACTUAL_WEIGHT);
+        verify(metrics).recordRead(actualWeight);
     }
 
     @Test
@@ -112,7 +128,7 @@ public class AtlasDbQosClientTest {
         qosClient.executeWrite(() -> null, weigher);
 
         verify(writeLimiter).consumeWithBackoff(ESTIMATED_BYTES);
-        verify(writeLimiter).recordAdjustment(ACTUAL_BYTES - ESTIMATED_BYTES);
+        verify(writeLimiter).recordAdjustment(actualBytes - ESTIMATED_BYTES);
         verifyNoMoreInteractions(readLimiter, writeLimiter);
     }
 
@@ -120,7 +136,7 @@ public class AtlasDbQosClientTest {
     public void recordsWriteMetrics() throws TestCheckedException {
         qosClient.executeWrite(() -> null, weigher);
 
-        verify(metrics).recordWrite(ACTUAL_WEIGHT);
+        verify(metrics).recordWrite(actualWeight);
         verify(metrics, never()).recordReadEstimate(any());
     }
 
@@ -131,7 +147,7 @@ public class AtlasDbQosClientTest {
             throw error;
         }, weigher)).isInstanceOf(TestCheckedException.class);
 
-        verify(metrics).recordRead(ACTUAL_WEIGHT);
+        verify(metrics).recordRead(actualWeight);
     }
 
     @Test
@@ -141,7 +157,7 @@ public class AtlasDbQosClientTest {
             throw error;
         }, weigher)).isInstanceOf(TestCheckedException.class);
 
-        verify(metrics).recordWrite(ACTUAL_WEIGHT);
+        verify(metrics).recordWrite(actualWeight);
     }
 
     @Test

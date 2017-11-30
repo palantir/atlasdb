@@ -19,7 +19,7 @@
 package com.palantir.atlasdb.qos.ratelimit.guava;
 
 import static java.lang.Math.max;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -35,6 +35,8 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.google.common.math.LongMath;
+import com.google.common.primitives.Longs;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter.SmoothBursty;
 import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter.SmoothWarmingUp;
@@ -235,11 +237,11 @@ public abstract class RateLimiter {
         checkArgument(
                 permitsPerSecond > 0.0 && !Double.isNaN(permitsPerSecond), "rate must be positive");
         synchronized (mutex()) {
-            doSetRate(permitsPerSecond, stopwatch.readMicros());
+            doSetRate(permitsPerSecond, stopwatch.readNanos());
         }
     }
 
-    abstract void doSetRate(double permitsPerSecond, long nowMicros);
+    abstract void doSetRate(double permitsPerSecond, long nowNanos);
 
     /**
      * Returns the stable rate (as {@code permits per seconds}) with which this
@@ -278,22 +280,23 @@ public abstract class RateLimiter {
      * @throws IllegalArgumentException if the requested number of permits is negative or zero
      * @since 16.0 (present in 13.0 with {@code void} return type})
      */
-    public double acquire(int permits) {
-        long microsToWait = reserve(permits);
-        stopwatch.sleepMicrosUninterruptibly(microsToWait);
-        return 1.0 * microsToWait / SECONDS.toMicros(1L);
+    // CHANGELOG: argument changed from int to long
+    public double acquire(long permits) {
+        long nanosToWait = reserve(permits);
+        stopwatch.sleepNanosUninterruptibly(nanosToWait);
+        return 1.0 * nanosToWait / SECONDS.toNanos(1L);
     }
 
     /**
      * Reserves the given number of permits from this {@code RateLimiter} for future use, returning
-     * the number of microseconds until the reservation can be consumed.
+     * the number of nanoseconds until the reservation can be consumed.
      *
-     * @return time in microseconds to wait until the resource can be acquired, never negative
+     * @return time in nanoseconds to wait until the resource can be acquired, never negative
      */
-    final long reserve(int permits) {
+    final long reserve(long permits) {
         checkPermits(permits);
         synchronized (mutex()) {
-            return reserveAndGetWaitLength(permits, stopwatch.readMicros());
+            return reserveAndGetWaitLength(permits, stopwatch.readNanos());
         }
     }
 
@@ -328,7 +331,7 @@ public abstract class RateLimiter {
      */
     public boolean tryAcquire(int permits) {
         // CHANGELOG: boolean returned value now inferred from Optional presence
-        return tryAcquire(permits, 0, MICROSECONDS).isPresent();
+        return tryAcquire(permits, 0, NANOSECONDS).isPresent();
     }
 
     /**
@@ -343,7 +346,7 @@ public abstract class RateLimiter {
      */
     public boolean tryAcquire() {
         // CHANGELOG: boolean returned value now inferred from Optional presence
-        return tryAcquire(1, 0, MICROSECONDS).isPresent();
+        return tryAcquire(1, 0, NANOSECONDS).isPresent();
     }
 
     /**
@@ -360,22 +363,22 @@ public abstract class RateLimiter {
      * @throws IllegalArgumentException if the requested number of permits is negative or zero
      */
     // CHANGELOG: return value changed from boolean to Optional
-    public Optional<Duration> tryAcquire(int permits, long timeout, TimeUnit unit) {
-        long timeoutMicros = max(unit.toMicros(timeout), 0);
+    public Optional<Duration> tryAcquire(long permits, long timeout, TimeUnit unit) {
+        long timeoutNanos = max(unit.toNanos(timeout), 0);
         checkPermits(permits);
-        long microsToWait;
+        long nanosToWait;
         synchronized (mutex()) {
-            long nowMicros = stopwatch.readMicros();
-            if (!canAcquire(nowMicros, timeoutMicros)) {
+            long nowNanos = stopwatch.readNanos();
+            if (!canAcquire(nowNanos, timeoutNanos)) {
                 // CHANGELOG: return value changed from false to Optional#empty
                 return Optional.empty();
             } else {
-                microsToWait = reserveAndGetWaitLength(permits, nowMicros);
+                nanosToWait = reserveAndGetWaitLength(permits, nowNanos);
             }
         }
-        stopwatch.sleepMicrosUninterruptibly(microsToWait);
+        stopwatch.sleepNanosUninterruptibly(nanosToWait);
         // CHANGELOG: return value changed from true to Optional<Duration>
-        return Optional.of(Duration.ofNanos(TimeUnit.MICROSECONDS.toNanos(microsToWait)));
+        return Optional.of(Duration.ofNanos(TimeUnit.NANOSECONDS.toNanos(nanosToWait)));
     }
 
     // CHANGELOG: new method
@@ -383,12 +386,16 @@ public abstract class RateLimiter {
      * Immediately steals the given number of permits. This will potentially penalize future callers, but has no
      * effect on callers that are already waiting for permits.
      */
-    public void steal(int permits) {
+    public void steal(long permits) {
         reserve(permits);
     }
 
-    private boolean canAcquire(long nowMicros, long timeoutMicros) {
-        return queryEarliestAvailable(nowMicros) - timeoutMicros <= nowMicros;
+    public void returnPermits(long permitsTakenButUnused, long nowNanos) {
+        returnPermitsConsumedEarlier(permitsTakenButUnused, nowNanos);
+    }
+
+    private boolean canAcquire(long nowNanos, long timeoutNanos) {
+        return Longs.compare(queryEarliestAvailable(nowNanos) - timeoutNanos, nowNanos) <= 0;
     }
 
     /**
@@ -396,9 +403,9 @@ public abstract class RateLimiter {
      *
      * @return the required wait time, never negative
      */
-    final long reserveAndGetWaitLength(int permits, long nowMicros) {
-        long momentAvailable = reserveEarliestAvailable(permits, nowMicros);
-        return max(momentAvailable - nowMicros, 0);
+    final long reserveAndGetWaitLength(long permits, long nowNanos) {
+        long momentAvailable = reserveEarliestAvailable(permits, nowNanos);
+        return max(LongMath.checkedSubtract(momentAvailable, nowNanos), 0);
     }
 
     /**
@@ -407,7 +414,7 @@ public abstract class RateLimiter {
      * @return the time that permits are available, or, if permits are available immediately, an
      *     arbitrary past or present time
      */
-    abstract long queryEarliestAvailable(long nowMicros);
+    abstract long queryEarliestAvailable(long nowNanos);
 
     /**
      * Reserves the requested number of permits and returns the time that those permits can be used
@@ -416,7 +423,10 @@ public abstract class RateLimiter {
      * @return the time that the permits may be used, or, if the permits may be used immediately, an
      *     arbitrary past or present time
      */
-    abstract long reserveEarliestAvailable(int permits, long nowMicros);
+    abstract long reserveEarliestAvailable(long permits, long nowNanos);
+
+
+    abstract void returnPermitsConsumedEarlier(double permitsToReturn, long nowNanos);
 
     @Override
     public String toString() {
@@ -432,9 +442,9 @@ public abstract class RateLimiter {
          * Also, is it OK that we don't hold the mutex when sleeping?
          */
         // CHANGELOG: modifier changed from package private to public
-        public abstract long readMicros();
+        public abstract long readNanos();
 
-        abstract void sleepMicrosUninterruptibly(long micros);
+        abstract void sleepNanosUninterruptibly(long nanos);
 
         // CHANGELOG: modifier changed from package private to public
         public static final SleepingStopwatch createFromSystemTimer() {
@@ -443,21 +453,21 @@ public abstract class RateLimiter {
 
                 @Override
                 // CHANGELOG: modifier changed from package private to public
-                public long readMicros() {
-                    return stopwatch.elapsed(MICROSECONDS);
+                public long readNanos() {
+                    return stopwatch.elapsed(NANOSECONDS);
                 }
 
                 @Override
-                void sleepMicrosUninterruptibly(long micros) {
-                    if (micros > 0) {
-                        Uninterruptibles.sleepUninterruptibly(micros, MICROSECONDS);
+                void sleepNanosUninterruptibly(long nanos) {
+                    if (nanos > 0) {
+                        Uninterruptibles.sleepUninterruptibly(nanos, NANOSECONDS);
                     }
                 }
             };
         }
     }
 
-    private static int checkPermits(int permits) {
+    private static long checkPermits(long permits) {
         checkArgument(permits > 0, "Requested permits (%s) must be positive", permits);
         return permits;
     }

@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.primitives.Ints;
+import com.google.common.math.LongMath;
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
 import com.palantir.logsafe.SafeArg;
@@ -79,7 +79,7 @@ public class QosRateLimiter {
         updateRateIfNeeded();
 
         Optional<Duration> waitTime = rateLimiter.tryAcquire(
-                Ints.saturatedCast(estimatedNumUnits), // TODO(nziebart): deal with longs
+                estimatedNumUnits,
                 maxBackoffTimeMillis.get(),
                 TimeUnit.MILLISECONDS);
 
@@ -123,9 +123,14 @@ public class QosRateLimiter {
      */
     public void recordAdjustment(long adjustmentUnits) {
         if (adjustmentUnits > 0) {
-            rateLimiter.steal(Ints.saturatedCast(adjustmentUnits)); // TODO(nziebart): deal with longs
+            rateLimiter.steal(adjustmentUnits);
+        } else {
+            try {
+                rateLimiter.returnPermits(LongMath.checkedMultiply(adjustmentUnits, -1), stopwatch.readNanos());
+            } catch (ArithmeticException e) {
+                rateLimiter.returnPermits(Long.MAX_VALUE, stopwatch.readNanos());
+            }
         }
-        // TODO(nziebart): handle negative case
     }
 
 }
