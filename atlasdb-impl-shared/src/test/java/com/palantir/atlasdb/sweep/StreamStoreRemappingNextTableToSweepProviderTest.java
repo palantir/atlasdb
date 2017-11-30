@@ -48,7 +48,7 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
     private Transaction mockedTransaction = mock(Transaction.class);
 
     @Test
-    public void noValueTableReturnsSameTable() {
+    public void notValueTableReturnsSameTable() {
         Optional<TableReference> selectedTable = Optional.of(NOT_SS_VALUE_TABLE);
         when(delegate.chooseNextTableToSweep(any(), anyLong())).thenReturn(selectedTable);
 
@@ -66,7 +66,7 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void noValueTableAfterSSValueTableIsReturnedCorrectly() {
+    public void notValueTableAfterValueTableIsReturnedCorrectly() {
         Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
         Optional<TableReference> nextSelectedTable = Optional.of(NOT_SS_VALUE_TABLE);
         when(delegate.chooseNextTableToSweep(any(), anyLong())).thenReturn(selectedTable, nextSelectedTable);
