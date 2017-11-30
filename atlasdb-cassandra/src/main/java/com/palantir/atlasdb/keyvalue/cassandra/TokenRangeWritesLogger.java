@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -33,7 +32,6 @@ import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -62,23 +60,23 @@ public final class TokenRangeWritesLogger {
 
     public void updateTokenRanges(Set<Range<LightweightOppToken>> newRanges) {
         Preconditions.checkArgument(!newRanges.isEmpty(), "Set of ranges must not be empty!");
-        if (!Sets.symmetricDifference(ranges, newRanges).isEmpty()) {
+        if (!newRanges.equals(ranges)) {
             ranges = newRanges;
             statsPerTable.clear();
         }
     }
 
-    <V> void  markWritesForTable(Set<Map.Entry<Cell, V>> entries, TableReference tableRef) {
+    void markWritesForTable(Set<Cell> entries, TableReference tableRef) {
         statsPerTable.putIfAbsent(tableRef, new TokenRangeWrites(tableRef, ranges));
         TokenRangeWrites tokenRangeWrites = statsPerTable.get(tableRef);
-        entries.forEach(entry -> tokenRangeWrites.markWrite(entry.getKey()));
+        entries.forEach(entry -> tokenRangeWrites.markWrite(entry));
         tokenRangeWrites.maybeLog();
     }
 
     private static final class TokenRangeWrites {
         private final TableReference tableRef;
         private final RangeMap<LightweightOppToken, AtomicLong> writesPerRange;
-        private final AtomicLong totalWrites = new AtomicLong(0);
+        private final AtomicLong writesSinceLastLog = new AtomicLong(0);
         private long lastLoggedTime = System.currentTimeMillis();
 
         private TokenRangeWrites(TableReference tableRef, Set<Range<LightweightOppToken>> ranges) {
@@ -90,7 +88,7 @@ public final class TokenRangeWritesLogger {
 
         private void markWrite(Cell cell) {
             writesPerRange.get(LightweightOppToken.of(cell)).incrementAndGet();
-            totalWrites.incrementAndGet();
+            writesSinceLastLog.incrementAndGet();
         }
 
         private void maybeLog() {
@@ -106,20 +104,20 @@ public final class TokenRangeWritesLogger {
                 } else {
                     logUniform();
                 }
-                totalWrites.set(0);
+                writesSinceLastLog.set(0);
                 lastLoggedTime = System.currentTimeMillis();
             }
         }
 
         private boolean shouldLog() {
-            return totalWrites.get() > THRESHOLD_WRITES_PER_TABLE
+            return writesSinceLastLog.get() > THRESHOLD_WRITES_PER_TABLE
                     && (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
         }
 
         private boolean distributionNotUniform() {
             List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
                     .collect(Collectors.toList());
-            return MathUtils.confidenceDistributionIsNotUniform(values) > CONFIDENCE_FOR_LOGGING;
+            return MathUtils.calculateConfidenceThatDistributionIsNotUniform(values) > CONFIDENCE_FOR_LOGGING;
         }
 
         private void logNotUniform() {
@@ -132,7 +130,7 @@ public final class TokenRangeWritesLogger {
         private void logUniform() {
             log.info("There were at least {} writes into the table {} since the last statistical analysis. The "
                             + "distribution of writes over token ranges does not appear to be skewed.",
-                    SafeArg.of("numberOfWrites", totalWrites.get()),
+                    SafeArg.of("numberOfWrites", writesSinceLastLog.get()),
                     LoggingArgs.tableRef(tableRef));
         }
 
@@ -160,6 +158,6 @@ public final class TokenRangeWritesLogger {
 
     @VisibleForTesting
     long getNumberOfWritesTotal(TableReference tableRef) {
-        return statsPerTable.get(tableRef).totalWrites.get();
+        return statsPerTable.get(tableRef).writesSinceLastLog.get();
     }
 }

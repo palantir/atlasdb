@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.hamcrest.Matchers;
@@ -26,7 +26,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -76,7 +75,7 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markGetsMarkedInEachRange() {
-        writesLogger.markWritesForTable(writesPerRange(1, 1, 1, 1), TABLE_REFERENCE);
+        markWritesPerRangeForTable(1, 1, 1, 1, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(1, 1, 1, 1, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(4, TABLE_REFERENCE);
@@ -85,7 +84,7 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markAddsWritesToSameRangeAndDifferentRow() {
-        writesLogger.markWritesForTable(writesPerRange(10, 0, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(10, 0, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(10, 0, 0, 0, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(10, TABLE_REFERENCE);
@@ -94,9 +93,9 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markAccumulatesWrites() {
-        writesLogger.markWritesForTable(writesPerRange(1, 0, 10, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 10, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(0, 0, 10, 1), TABLE_REFERENCE);
+        markWritesPerRangeForTable(1, 0, 10, 0, TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 10, 0, TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 0, 10, 1, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(1, 1, 30, 1, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(33, TABLE_REFERENCE);
@@ -105,8 +104,8 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markGetsMarkedSeparatelyForDifferentTables() {
-        writesLogger.markWritesForTable(writesPerRange(0, 0, 20, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(1, 0, 0, 1), TABLE_REFERENCE2);
+        markWritesPerRangeForTable(0, 0, 20, 0, TABLE_REFERENCE);
+        markWritesPerRangeForTable(1, 0, 0, 1, TABLE_REFERENCE2);
 
         assertWritesPerRangeForTable(0, 0, 20, 0, TABLE_REFERENCE);
         assertWritesPerRangeForTable(1, 0, 0, 1, TABLE_REFERENCE2);
@@ -117,9 +116,9 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markDoesNotLogIfNotEnoughTimeHasPassed() {
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(LIMIT, 1, 0, 4), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
+        markWritesPerRangeForTable(LIMIT, 1, 0, 4, TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(LIMIT, 3, 0, 4, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(LIMIT + 7, TABLE_REFERENCE);
@@ -128,9 +127,9 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markDoesNotLogAndDoesNotResetTimeIfInsufficientWrites() {
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
         long lastLoggedTime = setOneDayPassedForTable(TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(0, 2, 0, 0, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(2, TABLE_REFERENCE);
@@ -140,10 +139,10 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markResetsNumberOfWritesAndTimeAndLogsNotUniform() {
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
         setOneDayPassedForTable(TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(LIMIT, 1, 0, 4), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(LIMIT, 1, 0, 4, TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(LIMIT, 3, 0, 4, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
@@ -153,10 +152,10 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markLogsWhenEnoughTimePassesIfEnoughWritesInPast() {
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(LIMIT, 1, 0, 4), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
+        markWritesPerRangeForTable(LIMIT, 1, 0, 4, TABLE_REFERENCE);
         setOneDayPassedForTable(TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(LIMIT, 3, 0, 4, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(0, TABLE_REFERENCE);
@@ -166,10 +165,10 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markResetsNumberOfWritesAndTimeAndLogsUniform() {
-        writesLogger.markWritesForTable(writesPerRange(3, 3, 3, 3), TABLE_REFERENCE);
+        markWritesPerRangeForTable(3, 3, 3, 3, TABLE_REFERENCE);
         setOneDayPassedForTable(TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(QUARTER, QUARTER, QUARTER, QUARTER), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(QUARTER, QUARTER, QUARTER, QUARTER, TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(QUARTER + 3, QUARTER + 4, QUARTER + 3, QUARTER + 3, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(1, TABLE_REFERENCE);
@@ -179,30 +178,30 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void markLogsOnlyForTableThatExceedsThreshold() {
-        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE2);
-        long lastLoggedTime = setOneDayPassedForTable(TABLE_REFERENCE);
+        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
+        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE2);
+        long lastLoggedTimeTableOne = setOneDayPassedForTable(TABLE_REFERENCE);
         setOneDayPassedForTable(TABLE_REFERENCE2);
-        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(LIMIT, 2, 2, 2), TABLE_REFERENCE2);
-        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
-        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE2);
+        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
+        markWritesPerRangeForTable(LIMIT, 2, 2, 2, TABLE_REFERENCE2);
+        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
+        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE2);
 
         assertWritesPerRangeForTable(6, 6, 6, 6, TABLE_REFERENCE);
         assertWritesPerRangeForTable(LIMIT + 4, 6, 6, 6, TABLE_REFERENCE2);
         assertTotalNumberOfWritesForTable(24, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(8, TABLE_REFERENCE2);
-        assertLastLoggedTimeEquals(TABLE_REFERENCE, lastLoggedTime);
+        assertLastLoggedTimeEquals(TABLE_REFERENCE, lastLoggedTimeTableOne);
         assertLastLoggedTimeWithinDeltaOfCurrent(TABLE_REFERENCE2);
         assertLoggedNotUniform(LIMIT + 2, 4, 4, 4, TABLE_REFERENCE2);
     }
 
     @Test
     public void testUpdateDoesNotResetCountsWhenSameRanges() {
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
         long lastLoggedTime = setOneDayPassedForTable(TABLE_REFERENCE);
         writesLogger.updateTokenRanges(ImmutableSet.of(RANGE_2, RANGE_1, RANGE_4, RANGE_3));
-        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
+        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
 
         assertWritesPerRangeForTable(2, 3, 2, 2, TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(9, TABLE_REFERENCE);
@@ -212,10 +211,10 @@ public class TokenRangeWritesLoggerTest {
 
     @Test
     public void testUpdateResetsCountsAndTimeWhenNewRanges() {
-        writesLogger.markWritesForTable(writesPerRange(0, 1, 0, 0), TABLE_REFERENCE);
+        markWritesPerRangeForTable(0, 1, 0, 0, TABLE_REFERENCE);
         setOneDayPassedForTable(TABLE_REFERENCE);
         writesLogger.updateTokenRanges(ImmutableSet.of(Range.all()));
-        writesLogger.markWritesForTable(writesPerRange(2, 2, 2, 2), TABLE_REFERENCE);
+        markWritesPerRangeForTable(2, 2, 2, 2, TABLE_REFERENCE);
 
         assertWritesForRangeAndTable(8, Range.all(), TABLE_REFERENCE);
         assertTotalNumberOfWritesForTable(8, TABLE_REFERENCE);
@@ -223,21 +222,23 @@ public class TokenRangeWritesLoggerTest {
         assertNoLogging();
     }
 
-    private Set<Map.Entry<Cell, Integer>> writesPerRange(long fst, long snd, long trd, long fth) {
-        ImmutableMap.Builder<Cell, Integer> builder = ImmutableMap.builder();
-        builder = writesWithRownamePrefix("a", fst, builder);
-        builder = writesWithRownamePrefix("e", snd, builder);
-        builder = writesWithRownamePrefix("k", trd, builder);
-        builder = writesWithRownamePrefix("s", fth, builder);
-        return builder.build().entrySet();
+    private void markWritesPerRangeForTable(long fst, long snd, long trd, long fth, TableReference tableRef) {
+        writesLogger.markWritesForTable(writesPerRange(fst, snd, trd, fth), tableRef);
     }
 
-    private ImmutableMap.Builder<Cell, Integer> writesWithRownamePrefix(String prefix, long number,
-            ImmutableMap.Builder<Cell, Integer> builder) {
+    private Set<Cell> writesPerRange(long fst, long snd, long trd, long fth) {
+        Set<Cell> result = new HashSet<>();
+        addWritesWithRownamePrefix("a", fst, result);
+        addWritesWithRownamePrefix("e", snd, result);
+        addWritesWithRownamePrefix("k", trd, result);
+        addWritesWithRownamePrefix("s", fth, result);
+        return result;
+    }
+
+    private void addWritesWithRownamePrefix(String prefix, long number, Set<Cell> accumulator) {
         for (long i = 0; i < number; i++) {
-            builder.put(Cell.create(PtBytes.toBytes(prefix + Long.toString(i)), PtBytes.toBytes("a")), 1);
+            accumulator.add(Cell.create(PtBytes.toBytes(prefix + Long.toString(i)), PtBytes.toBytes("a")));
         }
-        return builder;
     }
 
     private long setOneDayPassedForTable(TableReference tableRef) {

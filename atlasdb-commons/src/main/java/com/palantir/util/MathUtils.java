@@ -247,19 +247,19 @@ public class MathUtils {
 
     private MathUtils() {/**/}
 
-    public static double confidenceDistributionIsNotUniform(List<Long> values) {
-        return 1.0 - confidenceDistributionIsUniform(values);
+    public static double calculateConfidenceThatDistributionIsNotUniform(List<Long> values) {
+        return 1.0 - calculateConfidenceThatDistributionIsUniform(values);
     }
 
-    public static double confidenceDistributionIsUniform(List<Long> values) {
+    public static double calculateConfidenceThatDistributionIsUniform(List<Long> values) {
         return Gamma.regularizedGammaQ((values.size() - 1.0) / 2,
                 chiSquareDistance(values) / 2);
     }
 
     private static double chiSquareDistance(List<Long> values) {
-        double mean = values.stream().mapToDouble(Long::doubleValue).reduce(0.0, Double::sum) / values.size();
+        double mean = values.stream().mapToLong(x -> x).reduce(0L, Long::sum) / (double) values.size();
         double distances =  values.stream().mapToDouble(Long::doubleValue)
-                .reduce(0.0, (acc, nextVal) -> acc + Math.pow((nextVal - mean), 2));
+                .reduce(0.0, (acc, nextVal) -> acc + Math.pow(nextVal - mean, 2));
         return distances / mean;
     }
 }

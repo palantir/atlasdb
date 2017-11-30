@@ -240,8 +240,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @Override
-    public <V> void markWritesForTable(Set<Entry<Cell, V>> entries, TableReference tableRef) {
-        tokenRangeWritesLogger.markWritesForTable(entries, tableRef);
+    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
+        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
     }
 
     private void registerAggregateMetrics() {

@@ -27,21 +27,30 @@ import com.google.common.collect.ImmutableList;
 public class MathUtilsTest {
 
     @Test
-    public void universalDistributionConfidenceTest() {
+    public void universalDistributionConfidenceAlmostUniformDistributionTest() {
         List<Long> almostUniformDistribution = ImmutableList.of(199909L, 200065L, 199907L, 200070L, 199949L);
-        Assertions.assertThat(MathUtils.confidenceDistributionIsNotUniform(almostUniformDistribution))
+        Assertions.assertThat(MathUtils.calculateConfidenceThatDistributionIsNotUniform(almostUniformDistribution))
                 .isCloseTo(0.0, Offset.offset(0.01));
+    }
 
+    @Test
+    public void universalDistributionConfidenceRelativelyUniformDistributionTest() {
         List<Long> relativelyUniformDistribution = ImmutableList.of(199809L, 200665L, 199607L, 200270L, 199649L);
-        Assertions.assertThat(MathUtils.confidenceDistributionIsNotUniform(relativelyUniformDistribution))
+        Assertions.assertThat(MathUtils.calculateConfidenceThatDistributionIsNotUniform(relativelyUniformDistribution))
                 .isLessThan(0.7);
+    }
 
+    @Test
+    public void universalDistributionConfidenceSomeWhatSkewedDistributionTest() {
         List<Long> someWhatSkewedDistribution = ImmutableList.of(199609L, 200965L, 199607L, 200270L, 199649L);
-        Assertions.assertThat(MathUtils.confidenceDistributionIsNotUniform(someWhatSkewedDistribution))
+        Assertions.assertThat(MathUtils.calculateConfidenceThatDistributionIsNotUniform(someWhatSkewedDistribution))
                 .isLessThan(0.88);
+    }
 
+    @Test
+    public void universalDistributionConfidenceCompletelySkewedDistributionTest() {
         List<Long> completelySkewedDistribution = ImmutableList.of(522573L, 244456L, 139979L, 71531L, 21461L);
-        Assertions.assertThat(MathUtils.confidenceDistributionIsNotUniform(completelySkewedDistribution))
+        Assertions.assertThat(MathUtils.calculateConfidenceThatDistributionIsNotUniform(completelySkewedDistribution))
                 .isCloseTo(1.0, Offset.offset(0.000001));
     }
 }
