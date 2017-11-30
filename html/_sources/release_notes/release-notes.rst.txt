@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - When BackgroundSweeper decides to sweep a StreamStore VALUE table, first sweep the respective StreamStore
+           INDEX table.
+           Before we just swept the VALUE table, which ended up not deleting any values in the backing store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2756>`__)
+
     *    - |devbreak| |metrics|
          - The method ``AtlasDdMetrics.setMetricsRegistries`` was added, to register both the MetricRegistry and the TaggedMetricRegistry.
            Please use it instead of the old ``AtlasDbMetrics.setMetricsRegistry``.
