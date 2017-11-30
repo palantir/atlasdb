@@ -45,7 +45,6 @@ public interface SweepBatchConfig {
         Preconditions.checkState(deleteBatchSize() > 0, "Delete batch size must be greater than zero");
     }
 
-    @Value.Derived
     static SweepBatchConfig min(SweepBatchConfig first, SweepBatchConfig second) {
         return ImmutableSweepBatchConfig.builder()
                 .candidateBatchSize(Math.min(first.candidateBatchSize(), second.candidateBatchSize()))
