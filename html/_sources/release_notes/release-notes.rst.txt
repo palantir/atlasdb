@@ -66,6 +66,11 @@ develop
            ``TransactionManagers.config().userAgent().metricRegistry().taggedMetricRegistry()``.
            This avoid runtime errors due to failure to specify all required arguments.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
+           
+    *    - |fixed|
+         - Fixed a bug where setting ``compressBlocksInDb` for stream store definitions would result in a much bigger than intended block size.
+           This option is also deprecated, as we recommend ``compressStreamsInClient`` instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2752>`__)
 
     *    - |fixed|
          - Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
