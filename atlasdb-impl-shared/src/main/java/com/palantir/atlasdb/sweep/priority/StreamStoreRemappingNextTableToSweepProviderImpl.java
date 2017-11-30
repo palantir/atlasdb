@@ -50,6 +50,6 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
 
         previousStreamStoreValueTable = tableReference;
         hasRemappedStreamStoreValueTable = true;
-        return Optional.of(StreamTableType.getIndexFromValue(tableReference));
+        return Optional.of(StreamTableType.getIndexTableFromValueTable(tableReference));
     }
 }
