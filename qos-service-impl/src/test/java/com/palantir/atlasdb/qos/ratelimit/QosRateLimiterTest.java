@@ -108,6 +108,9 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(1);
         limiter.recordAdjustment(25);
 
+        // simulate 0.1 seconds passing with no consumption
+        tickMillis(100);
+
         assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
     }
 
@@ -116,7 +119,7 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(100);
         limiter.recordAdjustment(-100);
 
-        assertThat(limiter.consumeWithBackoff(1)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
     }
 
     @Test
@@ -142,6 +145,28 @@ public class QosRateLimiterTest {
     }
 
     @Test
+    public void returningMoreUnitsThanConsumedMakesSleepTimeZeroUntilReturnedPermitsAreConsumedCappedAtMaxPermits() {
+        limiter.consumeWithBackoff(100);
+        limiter.recordAdjustment(-200);
+
+        assertThat(limiter.consumeWithBackoff(50)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(50)).isEqualTo(Duration.ZERO);
+        // As stored permits is capped to 50.
+        assertThat(limiter.consumeWithBackoff(50)).isGreaterThan(Duration.ZERO);
+    }
+
+    @Test
+    public void returningMoreUnitsThanConsumedMakesSleepTimeZeroUntilReturnedPermitsAreConsumed() {
+        limiter.consumeWithBackoff(100);
+        limiter.recordAdjustment(-150);
+
+        assertThat(limiter.consumeWithBackoff(25)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(25)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(25)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(25)).isGreaterThan(Duration.ZERO);
+    }
+
+    @Test
     public void canConsumeBurstUnits() {
         limiter.consumeWithBackoff(100);
 
@@ -159,6 +184,14 @@ public class QosRateLimiterTest {
         limiter.recordAdjustment(Long.MIN_VALUE);
 
         assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
+    }
+
+    @Test
+    public void canRecordAdjustmentOfZero() {
+        limiter.consumeWithBackoff(10);
+        limiter.recordAdjustment(0);
+
+        assertThat(limiter.consumeWithBackoff(10)).isGreaterThan(Duration.ZERO);
     }
 
     @Test

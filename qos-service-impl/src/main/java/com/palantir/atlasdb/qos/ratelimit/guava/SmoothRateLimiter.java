@@ -18,6 +18,7 @@
 // CHANGELOG: package name changed
 package com.palantir.atlasdb.qos.ratelimit.guava;
 
+import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -402,7 +403,8 @@ public abstract class SmoothRateLimiter extends RateLimiter {
         if (nextFreeTicketNanos > nowNanos) {
             double maxPermitsByNanos = (nextFreeTicketNanos - nowNanos) / stableIntervalNanos;
             permitsReturnedByNanos = min(maxPermitsByNanos, permitsToReturn);
-            nextFreeTicketNanos = nextFreeTicketNanos - (long) (permitsReturnedByNanos * stableIntervalNanos);
+            nextFreeTicketNanos = max(nextFreeTicketNanos - (long) (permitsReturnedByNanos * stableIntervalNanos),
+                    nowNanos);
         }
         if (permitsToReturn > permitsReturnedByNanos) {
             storedPermits = min(maxPermits, storedPermits + (permitsToReturn - permitsReturnedByNanos));
