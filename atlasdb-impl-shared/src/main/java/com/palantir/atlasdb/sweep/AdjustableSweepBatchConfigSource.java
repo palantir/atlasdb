@@ -83,7 +83,7 @@ public final class AdjustableSweepBatchConfigSource {
             TableReference tableRef,
             SweepBatchConfig sweepConfig) {
         if (StreamTableType.isStreamStoreValueTable(tableRef)) {
-            sweepConfig = SweepBatchConfig.min(sweepConfig, STREAM_STORE_BATCH_CONFIG);
+            return SweepBatchConfig.min(sweepConfig, STREAM_STORE_BATCH_CONFIG);
         }
         return sweepConfig;
     }

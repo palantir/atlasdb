@@ -29,10 +29,14 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 /**
  * Created by tboam on 03/11/2017.
  */
 public class AdjustableSweepBatchConfigSourceTest {
+
+    private static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test");
 
     private AdjustableSweepBatchConfigSource adjustableConfig;
     private SweepBatchConfig previousConfig;
@@ -135,7 +139,7 @@ public class AdjustableSweepBatchConfigSourceTest {
     }
 
     private void decreasesToOne(Function<SweepBatchConfig, Integer> getValue) {
-        int newValue = getValue.apply(adjustableConfig.getAdjustedSweepConfig());
+        int newValue = getValue.apply(adjustableConfig.getAdjustedSweepConfig(TEST_TABLE));
         int previousValue = getValue.apply(previousConfig);
 
         assertThat(newValue, is(anyOf(equalTo(1), lessThan(previousValue))));
@@ -174,7 +178,7 @@ public class AdjustableSweepBatchConfigSourceTest {
     }
 
     private void increasesBackUpToBaseConfig(Function<SweepBatchConfig, Integer> getValue) {
-        assertThat(getValue.apply(adjustableConfig.getAdjustedSweepConfig()),
+        assertThat(getValue.apply(adjustableConfig.getAdjustedSweepConfig(TEST_TABLE)),
                 is(anyOf(
                         greaterThan(getValue.apply(previousConfig)),
                         lessThanOrEqualTo(getValue.apply(adjustableConfig.getRawSweepConfig()))
@@ -183,6 +187,6 @@ public class AdjustableSweepBatchConfigSourceTest {
 
     private void updatePreviousValues() {
         previousMultiplier = adjustableConfig.getBatchSizeMultiplier();
-        previousConfig = adjustableConfig.getAdjustedSweepConfig();
+        previousConfig = adjustableConfig.getAdjustedSweepConfig(TEST_TABLE);
     }
 }
