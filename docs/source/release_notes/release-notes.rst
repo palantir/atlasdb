@@ -50,6 +50,24 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.70.0
+======
+
+30 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - When BackgroundSweeper decides to sweep a StreamStore VALUE table, first sweep the respective StreamStore
            INDEX table.
@@ -57,12 +75,12 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2756>`__)
 
     *    - |devbreak| |metrics|
-         - The method ``AtlasDdMetrics.setMetricsRegistries`` was added, to register both the MetricRegistry and the TaggedMetricRegistry.
+         - The method ``AtlasDbMetrics.setMetricsRegistries`` was added, to register both the MetricRegistry and the TaggedMetricRegistry.
            Please use it instead of the old ``AtlasDbMetrics.setMetricsRegistry``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
 
-    *    - |improved|
-         - All logging in ``SnapshotTransaction`` now marks its placehold arguments as either safe or unsafe.
+    *    - |improved| |logs|
+         - All logging in ``SnapshotTransaction`` now marks its placeholder log arguments as either safe or unsafe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2755>`__)
 
     *    - |devbreak| |improved|
@@ -74,7 +92,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
            
     *    - |fixed|
-         - Fixed a bug where setting ``compressBlocksInDb` for stream store definitions would result in a much bigger than intended block size.
+         - Fixed a bug where setting ``compressBlocksInDb`` for stream store definitions would result in a much bigger than intended block size.
            This option is also deprecated, as we recommend ``compressStreamsInClient`` instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2752>`__)
 
@@ -82,12 +100,12 @@ develop
          - Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2744>`__)
 
-    *    - |fixed|
+    *    - |fixed| |metrics|
          - ``MetricsManager`` no longer outputs stack traces to WARN when a metric is registered for a second time.
            The stack trace can still be accessed by turning on TRACE logging for ``com.palantir.atlasdb.util.MetricsManager``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2753>`__)
 
-*    - |improved| |devbreak|
+    *    - |improved| |devbreak|
          - AtlasDB now wraps ``NotCurrentLeaderException`` in ``AtlasDbDependencyException`` when this exception is thrown by TimeLock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2716>`__)
            
