@@ -34,6 +34,8 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
 
+    public static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
+
     private final KeyValueService kvs;
     private final SweepPriorityStore sweepPriorityStore;
 
@@ -109,9 +111,16 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         double estimatedCellTsPairsToSweep = previousEfficacy * writeCount;
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
 
-        if (writeCount <= 100 + cellTsPairsExamined / 100
-                && TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS) < 180) {
+        long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
+        if (writeCount <= 100 + cellTsPairsExamined / 100 && daysSinceLastSweep < 180) {
             // Not worth the effort if fewer than 1% of cells are new and we've swept in the last 6 months.
+            return 0.0;
+        }
+
+        if (newPriority.staleValuesDeleted() > WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES
+                && daysSinceLastSweep < 1
+                && kvs.performanceIsSensitiveToTombstones()) {
+            // we created many tombstones on the last run - wait a bit before sweeping again.
             return 0.0;
         }
 
