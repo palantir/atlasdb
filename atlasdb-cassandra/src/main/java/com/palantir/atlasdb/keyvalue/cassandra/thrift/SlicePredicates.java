@@ -85,6 +85,7 @@ public final class SlicePredicates {
     @Value.Immutable
     public interface Limit {
 
+        Limit ZERO = Limit.of(0);
         Limit ONE = Limit.of(1);
         Limit NO_LIMIT = Limit.of(Integer.MAX_VALUE);
 
