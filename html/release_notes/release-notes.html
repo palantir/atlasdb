@@ -1762,11 +1762,18 @@ Previously, calling the referred method more than once could fail an assertion a
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>ErrorProne is enabled and not ignored on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool from this version ownards.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1889">Pull Request</a>)
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1901">Pull Request</a>)
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1902">Pull Request</a>)
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2055">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweep docs</span></a>, in particular, the <a class="reference internal" href="../cluster_management/sweep/background-sweep.html#background-sweep"><span class="std std-ref">background sweep docs</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2104">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Added support for live-reloading sweep configurations.
 <code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> methods now accept a Supplier of <code class="docutils literal"><span class="pre">AtlasDbRuntimeConfig</span></code> in addition to an <code class="docutils literal"><span class="pre">AtlasDbConfig</span></code>.
 If needed, the helper method <code class="docutils literal"><span class="pre">defaultRuntimeConfig()</span></code> can be used to create a runtime config with the default values.
@@ -2199,29 +2206,23 @@ This was added to address a very specific race condition leading to an infinite 
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>ErrorProne is enabled on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1889">Pull Request</a>)
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1901">Pull Request</a>)
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1902">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">PaxosTimestampBoundStore</span></code>, the bound store for Timelock, will now throw <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> instead of <code class="docutils literal"><span class="pre">MultipleRunningTimestampServiceError</span></code> when a bound update fails.
 The cases where this can happen are explained by a race condition that can occur after leadership change, and it is safe to let requests be retried on another server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1934">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>A 500 ms backoff has been added to the our retry logic when the client has queried all the servers of a cluster and received a <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code>.
 Previously in this case, our retry logic would dictate infinitely many retries with a 1 ms backoff.
 The new backoff should reduce contention during leadership elections, when all nodes throw <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1939">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Timelock server can now start with an empty clients list.
 Note that you currently need to restart timelock when adding clients to the configuration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1907">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Default <code class="docutils literal"><span class="pre">gc_grace_seconds</span></code> set by AtlasDB for Cassandra tables has been changed from four days to one hour, allowing Cassandra to start cleaning up swept data sooner after sweeping.</p>
 <p class="last">This parameter is set at table creation time, and it will only apply for new tables.
 Existing customers can update the <code class="docutils literal"><span class="pre">gc_grace_seconds</span></code> of existing tables to be one hour if they would like to receive this benefit now. We will also be adding functionality to auto-update this for existing tables in a future release.
@@ -2229,7 +2230,7 @@ There is no issue with having tables with different values for <code class="docu
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1726">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">ProfilingKeyValueService</span></code> now has some additional logging mechanisms for logging long-running operations on WARN level, enabled by default.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1801">Pull Request</a>)</td>
 </tr>
