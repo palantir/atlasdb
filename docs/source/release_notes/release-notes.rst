@@ -64,6 +64,10 @@ develop
          - ``Throwables.createPalantirRuntimeException`` once again throws ``PalantirInterruptedException`` if the original exception was either ``InterruptedException`` or ``InterruptedIOException``.
            This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
+           
+    *    - |improved|
+         - Sweep now waits 1 day after generating a large number of tombstones before sweeping a table again. This behavior only applies when using Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2733>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
