@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
+import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -78,11 +79,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
-        NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
-                specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProviderImpl nextTableToSweepProvider = new NextTableToSweepProviderImpl(
+                specificTableSweeper.getKvs(),
+                specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProvider streamStoreAwareNextTableToSweepProvider =
+                new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweepProvider);
+
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
-                nextTableToSweepProvider,
+                streamStoreAwareNextTableToSweepProvider,
                 sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
@@ -144,7 +149,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    // Returns milliseconds to sleep
     private void updateBatchSize(SweepOutcome outcome) {
         if (outcome == SweepOutcome.SUCCESS) {
             sweepBatchConfigSource.increaseMultiplier();
