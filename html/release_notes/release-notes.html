@@ -196,6 +196,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1">
+<h2>0.70.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>30 November 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>When BackgroundSweeper decides to sweep a StreamStore VALUE table, first sweep the respective StreamStore
 INDEX table.
@@ -203,12 +223,12 @@ Before we just swept the VALUE table, which ended up not deleting any values in 
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2756">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-metrics">METRICS</span></td>
-<td>The method <code class="docutils literal"><span class="pre">AtlasDdMetrics.setMetricsRegistries</span></code> was added, to register both the MetricRegistry and the TaggedMetricRegistry.
+<td>The method <code class="docutils literal"><span class="pre">AtlasDbMetrics.setMetricsRegistries</span></code> was added, to register both the MetricRegistry and the TaggedMetricRegistry.
 Please use it instead of the old <code class="docutils literal"><span class="pre">AtlasDbMetrics.setMetricsRegistry</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2720">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>All logging in <code class="docutils literal"><span class="pre">SnapshotTransaction</span></code> now marks its placehold arguments as either safe or unsafe.
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>All logging in <code class="docutils literal"><span class="pre">SnapshotTransaction</span></code> now marks its placeholder log arguments as either safe or unsafe.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2755">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
@@ -220,45 +240,29 @@ This avoid runtime errors due to failure to specify all required arguments.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2720">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a bug where setting <code class="docutils literal"><span class="pre">compressBlocksInDb`</span> <span class="pre">for</span> <span class="pre">stream</span> <span class="pre">store</span> <span class="pre">definitions</span> <span class="pre">would</span> <span class="pre">result</span> <span class="pre">in</span> <span class="pre">a</span> <span class="pre">much</span> <span class="pre">bigger</span> <span class="pre">than</span> <span class="pre">intended</span> <span class="pre">block</span> <span class="pre">size.</span>
-<span class="pre">This</span> <span class="pre">option</span> <span class="pre">is</span> <span class="pre">also</span> <span class="pre">deprecated,</span> <span class="pre">as</span> <span class="pre">we</span> <span class="pre">recommend</span> <span class="pre">``compressStreamsInClient</span></code> instead.
+<td>Fixed a bug where setting <code class="docutils literal"><span class="pre">compressBlocksInDb</span></code> for stream store definitions would result in a much bigger than intended block size.
+This option is also deprecated, as we recommend <code class="docutils literal"><span class="pre">compressStreamsInClient</span></code> instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2752">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2744">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td><code class="docutils literal"><span class="pre">MetricsManager</span></code> no longer outputs stack traces to WARN when a metric is registered for a second time.
 The stack trace can still be accessed by turning on TRACE logging for <code class="docutils literal"><span class="pre">com.palantir.atlasdb.util.MetricsManager</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2753">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>AtlasDB now wraps <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> in <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when this exception is thrown by TimeLock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2716">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Sweep no longer fetches any values from Cassandra in CONSERVATIVE mode. This results in significantly less data being transferred from Cassandra to the client when sweeping tables with large values, such as stream store tables.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2754">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
-<ul class="simple">
-<li><ul class="first">
-<li><dl class="first docutils">
-<dt><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></dt>
-<dd><ul class="first last">
-<li>AtlasDB now wraps <code class="docutils literal"><span class="pre">NotCurrentLeaderException</span></code> in <code class="docutils literal"><span class="pre">AtlasDbDependencyException</span></code> when this exception is thrown by TimeLock.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2716">Pull Request</a>)</li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</li>
-</ul>
-<blockquote>
-<div><ul class="simple">
-<li><ul class="first">
-<li><span class="changetype changetype-improved">IMPROVED</span></li>
-<li>Sweep no longer fetches any values from Cassandra in CONSERVATIVE mode. This results in significantly less data being transferred from Cassandra to the client when sweeping tables with large values, such as stream store tables.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2754">Pull Request</a>)</li>
-</ul>
-</li>
-</ul>
-</div></blockquote>
 </div>
 <div class="section" id="v0-69-0">
 <h2>v0.69.0<a class="headerlink" href="#v0-69-0" title="Permalink to this headline">¶</a></h2>
