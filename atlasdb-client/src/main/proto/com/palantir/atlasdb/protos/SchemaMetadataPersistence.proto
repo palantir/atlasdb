@@ -1,0 +1,31 @@
+package com.palantir.atlasdb.protos.generated;
+
+message SchemaMetadata {
+    // Using this rather than map, to avoid introducing a dependency on proto3
+    // TODO (jkong): Eventually coordinate a shift to proto3
+    repeated SchemaDependentTableMetadataEntry tableMetadata = 1;
+}
+
+message SchemaDependentTableMetadataEntry {
+    optional TableReference tableReference = 1;
+    optional SchemaDependentTableMetadata schemaDependentTableMetadata = 2;
+}
+
+message SchemaDependentTableMetadata {
+    optional CleanupRequirement cleanupRequirement = 1;
+}
+
+message TableReference {
+    optional string namespace = 1;
+    optional string tableName = 2;
+}
+
+enum CleanupRequirement {
+    // Used for tables without cleanup tasks.
+    NOT_NEEDED = 0;
+
+    // Used for tables (possibly inclusive of stream-store meta-tables) that have user-defined cleanup tasks
+    // which can safely be processed asynchronously (e.g. via a queue).
+    // Examples include cascading deletes and reads from append-only Atlas tables.
+    ARBITRARY_ASYNC = 64;
+}

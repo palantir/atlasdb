@@ -258,6 +258,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing"
             ]
@@ -290,6 +291,7 @@
         "com.palantir.tritium:tritium-metrics": {
             "locked": "0.8.4",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
@@ -297,6 +299,12 @@
             "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
@@ -743,6 +751,7 @@
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
                 "com.palantir.tritium:tritium-slf4j",
                 "com.palantir.tritium:tritium-tracing"
             ]
@@ -775,6 +784,7 @@
         "com.palantir.tritium:tritium-metrics": {
             "locked": "0.8.4",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
@@ -782,6 +792,12 @@
             "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {

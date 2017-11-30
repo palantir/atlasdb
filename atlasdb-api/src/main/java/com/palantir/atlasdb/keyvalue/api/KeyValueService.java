@@ -681,4 +681,12 @@ public interface KeyValueService extends AutoCloseable {
     default boolean isInitialized() {
         return true;
     }
+
+    /**
+     * Whether or not read performance degrades significantly when many deleted cells are in the requested range.
+     * This is used by sweep to determine if it should wait a while between runs after deleting a large number of cells.
+     */
+    default boolean performanceIsSensitiveToTombstones() {
+        return false;
+    }
 }

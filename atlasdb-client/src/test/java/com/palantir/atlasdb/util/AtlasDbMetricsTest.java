@@ -27,6 +27,8 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class AtlasDbMetricsTest {
 
@@ -52,13 +54,19 @@ public class AtlasDbMetricsTest {
     @Test
     public void metricsIsNotDefaultWhenSet() {
         MetricRegistry metricRegistry = mock(MetricRegistry.class);
-        AtlasDbMetrics.setMetricRegistry(metricRegistry);
+        TaggedMetricRegistry taggedMetricRegistry = mock(TaggedMetricRegistry.class);
+        AtlasDbMetrics.setMetricRegistries(metricRegistry, taggedMetricRegistry);
         assertThat(AtlasDbMetrics.getMetricRegistry(), is(equalTo(metricRegistry)));
     }
 
     @Test(expected = NullPointerException.class)
     public void nullMetricsCannotBeSet() {
-        AtlasDbMetrics.setMetricRegistry(null);
+        AtlasDbMetrics.setMetricRegistries(null, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullTaggedMetricRegistryCannotBeSet() {
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), null);
     }
 
     @Test
@@ -83,7 +91,8 @@ public class AtlasDbMetricsTest {
 
     private MetricRegistry setMetricRegistry() {
         MetricRegistry metrics = MetricRegistries.createWithHdrHistogramReservoirs();
-        AtlasDbMetrics.setMetricRegistry(metrics);
+        TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
+        AtlasDbMetrics.setMetricRegistries(metrics, taggedMetricRegistry);
         return metrics;
     }
 

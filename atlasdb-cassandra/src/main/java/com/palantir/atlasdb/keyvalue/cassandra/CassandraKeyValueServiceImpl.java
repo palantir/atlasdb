@@ -2396,6 +2396,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return cassandraTables;
     }
 
+    @Override
+    public boolean performanceIsSensitiveToTombstones() {
+        return true;
+    }
+
     /**
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      */

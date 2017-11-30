@@ -334,9 +334,6 @@ public class TableMetadata implements Persistable {
         } else if (!rowMetadata.equals(other.rowMetadata)) {
             return false;
         }
-        if (rangeScanAllowed != other.rangeScanAllowed) {
-            return false;
-        }
         if (explicitCompressionBlockSizeKB != other.explicitCompressionBlockSizeKB) {
             return false;
         }

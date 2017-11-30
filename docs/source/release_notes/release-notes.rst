@@ -56,16 +56,98 @@ develop
            These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.70.0
+======
+
+30 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - When BackgroundSweeper decides to sweep a StreamStore VALUE table, first sweep the respective StreamStore
+           INDEX table.
+           Before we just swept the VALUE table, which ended up not deleting any values in the backing store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2756>`__)
+
+    *    - |devbreak| |metrics|
+         - The method ``AtlasDbMetrics.setMetricsRegistries`` was added, to register both the MetricRegistry and the TaggedMetricRegistry.
+           Please use it instead of the old ``AtlasDbMetrics.setMetricsRegistry``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
+
+    *    - |improved| |logs|
+         - All logging in ``SnapshotTransaction`` now marks its placeholder log arguments as either safe or unsafe.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2755>`__)
+
+    *    - |devbreak| |improved|
+         - The previously deprecated ``TransactionManagers.create()`` methods have been removed.
+           To create a ``SerializableTransactionManager`` please use the ``TransactionManagers.builder()`` to create a ``TransactionManagers`` object and then call its ``serializable()`` method.
+           Furthermore, this builder now requires a ``taggedMetricRegistry`` argument, and is a staged builder, requiring all mandatory parameters to be specified in the following order:
+           ``TransactionManagers.config().userAgent().metricRegistry().taggedMetricRegistry()``.
+           This avoid runtime errors due to failure to specify all required arguments.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
+           
+    *    - |fixed|
+         - Fixed a bug where setting ``compressBlocksInDb`` for stream store definitions would result in a much bigger than intended block size.
+           This option is also deprecated, as we recommend ``compressStreamsInClient`` instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2752>`__)
+
+    *    - |fixed|
+         - Fixed an edge case where sweep would loop infinitely on tables that contained only tombstones.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2744>`__)
+
+    *    - |fixed| |metrics|
+         - ``MetricsManager`` no longer outputs stack traces to WARN when a metric is registered for a second time.
+           The stack trace can still be accessed by turning on TRACE logging for ``com.palantir.atlasdb.util.MetricsManager``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2753>`__)
+
+    *    - |improved| |devbreak|
+         - AtlasDB now wraps ``NotCurrentLeaderException`` in ``AtlasDbDependencyException`` when this exception is thrown by TimeLock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2716>`__)
+           
+    *    - |improved|
+         - Sweep no longer fetches any values from Cassandra in CONSERVATIVE mode. This results in significantly less data being transferred from Cassandra to the client when sweeping tables with large values, such as stream store tables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2754>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.69.0
+=======
+
+23 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed the deletion of values from the StreamStore when configured to hash rowComponents.
+           Previously, due to a deserialization bug, we wouldn't delete the streamed data.
+           If you think you're affected by this bug, please contact the AtlasDB team to migrate away from this behavior.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2736>`__)
+
     *    - |fixed|
          - We now avoid Cassandra timeouts caused by running unbounded CQL range scans during sweep.
            In order to assign a bound, we prefetch row keys using thrift, and use these bounds to page internally through rows.
-           This issue affected thoroughly swept tables, which could accumulate many rows entirely made up of tombstones.
+           This issue affected tables configured to use THOROUGH sweep strategy — which could accumulate many rows entirely made up of tombstones —
+           when Cassandra is configured as the backing store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2732>`__)
 
     *    - |improved|
          - Applications can now easily determine whether their AtlasDB cluster is healthy by querying ``TransactionManager.getKeyValueServiceStatus().isHealthy()``.
-           This returns true only if all key value service nodes are up; applications that do not perform schema mutations or deletes (including sweep or scrub) can
-           also treat ``KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES`` as a healthy state.
+           This returns true only if all key value service nodes are up; applications that have sweep and scrub disabled and do not perform schema mutations
+           can also treat ``KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES`` as a healthy state.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2678>`__)
 
     *    - |improved| |devbreak|
@@ -76,17 +158,15 @@ develop
          - ``Throwables.createPalantirRuntimeException`` once again throws ``PalantirInterruptedException`` if the original exception was either ``InterruptedException`` or ``InterruptedIOException``.
            This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
+           
+    *    - |improved|
+         - Sweep now waits 1 day after generating a large number of tombstones before sweeping a table again. This behavior only applies when using Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2733>`__)
 
     *    - |fixed| |logs|
          - ``CassandraKeyValueServiceImpl.compactInternally`` no longer logs an error when no compaction manager is configured.
-           This message is instead logged once, when the KVS is instantiated.
+           This message is instead logged once, when the CKVS is instantiated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2727>`__)
-
-    *    - |fixed|
-         - Fixes the ability of deleting values from the Streaming Store when configured hash rowComponents.
-           Previously, due to a deserialization bug, we'd not issue delete to the correct rows.
-           If you think you're affected by this bug, please contact the AtlasDB team to migrate off of this behavior.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2736>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -156,64 +236,66 @@ v0.67.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
 
     *    - |new| |metrics|
-         - Metrics were added on all Cassandra calls. The ``CassandraClient`` interface was Tritium instrumented:
+         - Metrics were added on all Cassandra calls. The ``CassandraClient`` interface was Tritium instrumented.
+           The following metrics have been added, with the common prefix (package) ``com.palantir.atlasdb.keyvalue.cassandra.``:
 
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.multiget_slice
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get_range_slices
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.batch_mutate
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.get
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.cas
-              - com.palantir.atlasdb.keyvalue.cassandra.CassandraClient.execute_cql3_query
+              - ``CassandraClient.multiget_slice``
+              - ``CassandraClient.get_range_slices``
+              - ``CassandraClient.batch_mutate``
+              - ``CassandraClient.get``
+              - ``CassandraClient.cas``
+              - ``CassandraClient.execute_cql3_query``
 
            Note that the table calls mainly use the first three metrics of the above list.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2673>`__)
 
     *    - |new| |metrics|
          - Metrics recording the number of Cassandra requests, and the amount of bytes read and written from and to Cassandra were added:
+           The following metrics have been added, with the common prefix (package) ``com.palantir.atlasdb.keyvalue.cassandra.``:
 
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numReadRequests
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.numWriteRequests
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesRead
-              - com.palantir.atlasdb.keyvalue.cassandra.QosMetrics.bytesWritten
+              - ``QosMetrics.numReadRequests``
+              - ``QosMetrics.numWriteRequests``
+              - ``QosMetrics.bytesRead``
+              - ``QosMetrics.bytesWritten``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2679>`__)
 
     *    - |new| |metrics|
          - Added metrics for cells read.
            The read cells can be post-filtered at the CassandraKVS layer, when there are multiple versions of the same cell.
-           The filtered cells are recorded in the metric:
+           The filtered cells are recorded in the following metrics have been added, with the common prefix (package) ``com.palantir.atlasdb.keyvalue.cassandra.``:
 
-              - com.palantir.atlasdb.keyvalue.cassandra.TimestampExtractor.notLatestVisibleValueCellFilterCount
-              - com.palantir.atlasdb.keyvalue.cassandra.ValueExtractor.notLatestVisibleValueCellFilterCount
+              - ``TimestampExtractor.notLatestVisibleValueCellFilterCount``
+              - ``ValueExtractor.notLatestVisibleValueCellFilterCount``
 
-           The cells returned from the KVS layer are then recorded at the metric:
+           The cells returned from the KVS layer are then recorded at the metric with the prefix (package) ``com.palantir.atlasdb.transaction.impl.``:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsRead
+              - ``SnapshotTransaction.numCellsRead``
 
            Such cells can also be filtered out at the transaction layer, due to the Transaction Protocol. The filtered out cells are recorded in the metrics:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidStartTsTsCellFilterCount
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.invalidCommitTsCellFilterCount
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.emptyValuesCellFilterCount
+              - ``SnapshotTransaction.commitTsGreaterThatTxTsCellFilterCount``
+              - ``SnapshotTransaction.invalidStartTsTsCellFilterCount``
+              - ``SnapshotTransaction.invalidCommitTsCellFilterCount``
+              - ``SnapshotTransaction.emptyValuesCellFilterCount``
 
            At last, the metric that record the number of cells actually returned to the AtlasDB client is:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.numCellsReturnedAfterFiltering
+              - ``SnapshotTransaction.numCellsReturnedAfterFiltering``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
 
     *    - |new| |metrics|
          - Added metrics for written bytes at the Transaction layer:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten
+              - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.bytesWritten``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
 
     *    - |new| |metrics|
          - A metric was added for the cases where a large read was made:
 
-              - com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead
+              - ``com.palantir.atlasdb.transaction.impl.SnapshotTransaction.tooManyBytesRead``
 
            Note that we also log a warning in these cases, with the message "A single get had quite a few bytes...".
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2671>`__)
@@ -931,6 +1013,10 @@ v0.57.0
     *    - Type
          - Change
 
+    *    - |metrics| |changed|
+         - From this version onwards, AtlasDB's metrics no longer have unbounded multiplicity.
+           This means that AtlasDB can be whitelisted in the internal metrics aggregator tool.
+
     *    - |metrics| |userbreak|
          - AtlasDB no longer embeds Cassandra host names in its metrics.
            Aggregate metrics are retained in both CassandraClientPool and CassandraClientPoolingContainer.
@@ -1468,6 +1554,13 @@ v0.47.0
     *    - Type
          - Change
 
+    *    - |improved|
+         - ErrorProne is enabled and not ignored on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool from this version ownards.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1889>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1901>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1902>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2055>`__)
+
     *    - |new| |improved|
          - Background Sweep is enabled by default on AtlasDB. To understand what Background Sweep is, please check the :ref:`sweep docs<sweep>`, in particular, the :ref:`background sweep docs<background-sweep>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2104>`__)
@@ -1883,12 +1976,6 @@ v0.42.0
 
     *    - Type
          - Change
-
-    *    - |changed|
-         - ErrorProne is enabled on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1889>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1901>`__)
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1902>`__)
 
     *    - |fixed|
          - ``PaxosTimestampBoundStore``, the bound store for Timelock, will now throw ``NotCurrentLeaderException`` instead of ``MultipleRunningTimestampServiceError`` when a bound update fails.
