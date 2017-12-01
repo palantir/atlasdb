@@ -411,6 +411,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.apache.commons:commons-pool2": {
             "locked": "2.4.2",
             "requested": "2.4.2"
@@ -896,6 +902,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.apache.commons:commons-pool2": {

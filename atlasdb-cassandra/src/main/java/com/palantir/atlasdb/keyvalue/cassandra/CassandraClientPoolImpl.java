@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -64,12 +63,13 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
-import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -96,9 +96,9 @@ import com.palantir.remoting3.tracing.Tracers;
  *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
  *   ... this is one of the reasons why there is a new system.
  **/
-@SuppressWarnings("VisibilityModifier")
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 @AutoDelegate(typeToExtend = CassandraClientPool.class)
-public final class CassandraClientPoolImpl implements CassandraClientPool {
+public class CassandraClientPoolImpl implements CassandraClientPool {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
         public CassandraClientPool delegate() {
@@ -146,6 +146,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     private Blacklist blacklist = new Blacklist();
 
+    final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
@@ -169,13 +170,12 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = create(config,
-                StartupChecks.RUN, initializeAsync);
+        CassandraClientPoolImpl cassandraClientPool = create(config, StartupChecks.RUN, initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
-    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks, boolean initializeAsync) {
+    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config, StartupChecks startupChecks,
+            boolean initializeAsync) {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
@@ -237,6 +237,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools() {
         return currentPools;
+    }
+
+    @Override
+    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
+        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
     }
 
     private void registerAggregateMetrics() {
@@ -545,6 +550,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 }
             }
             tokenMap = newTokenRing.build();
+            tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }
@@ -884,43 +890,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         InetSocketAddress getRandomHostInternal(int index) {
             return hosts.higherEntry(index).getValue();
         }
-    }
-
-    public static class LightweightOppToken implements Comparable<LightweightOppToken> {
-
-        final byte[] bytes;
-
-        public LightweightOppToken(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public int compareTo(LightweightOppToken other) {
-            return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null || getClass() != obj.getClass()) {
-                return false;
-            }
-            LightweightOppToken that = (LightweightOppToken) obj;
-            return Arrays.equals(bytes, that.bytes);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(bytes);
-        }
-
-        @Override
-        public String toString() {
-            return BaseEncoding.base16().encode(bytes);
-        }
-
     }
 
     private class RequestMetrics {

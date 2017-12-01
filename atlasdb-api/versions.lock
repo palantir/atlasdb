@@ -88,6 +88,12 @@
         "org.apache.commons:commons-lang3": {
             "locked": "3.1"
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
@@ -184,6 +190,12 @@
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.1"
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
