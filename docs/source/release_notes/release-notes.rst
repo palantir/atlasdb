@@ -72,8 +72,21 @@ develop
          - Change
 
     *    - |devbreak| |improved|
-         - The ``TransactionManagers`` builder now hooks up the metricRegistries passed in so that AtlasDB metrics are registered on the specified metric registries.
+         - The ``TransactionManagers`` builder now hooks up the metric registries passed in so that AtlasDB metrics are registered on the specified metric registries.
            Applications no longer should use the ``AtlasDbMetrics.setMetricRegistry`` method to specify a metric registry for AtlasDB.
+
+            .. code:: java
+
+                TransactionManagers.builder()
+                    .config(config)
+                    .userAgent("ete test")
+                    .globalMetricRegistry(new MetricRegistry())
+                    .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                    .registrar(environment.jersey()::register)
+                    .addAllSchemas(ETE_SCHEMAS)
+                    .build()
+                    .serializable()
+
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2760>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
