@@ -27,6 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 @RunWith(Parameterized.class)
@@ -34,6 +35,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 public class TableMetadataPersistenceTest {
 
     private static final int CUSTOM_COMPRESSION_BLOCK_SIZE = 32;
+    private static final int STREAM_STORE_BLOCK_SIZE_WITH_COMPRESS_IN_DB = 256;
+    private static final int UNSET_BLOCK_SIZE = 0;
 
     private final TableDefinition tableDefinition;
     private final int compressionBlockSizeKB;
@@ -42,11 +45,13 @@ public class TableMetadataPersistenceTest {
     public static Collection<Object[]> testCases() {
         Collection<Object[]> params = Lists.newArrayList();
 
-        params.add(new Object[] {getRangeScanWithoutCompression(), 0});
+        params.add(new Object[] {getRangeScanWithoutCompression(), UNSET_BLOCK_SIZE});
         params.add(new Object[] {getDefaultExplicit(), AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB});
         params.add(new Object[] {getDefaultRangeScanExplicit(), AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB});
         params.add(new Object[] {getCustomExplicitCompression(), CUSTOM_COMPRESSION_BLOCK_SIZE});
         params.add(new Object[] {getCustomTable(), CUSTOM_COMPRESSION_BLOCK_SIZE});
+        params.add(new Object[] {getStreamStoreTableWithCompressInDb(), STREAM_STORE_BLOCK_SIZE_WITH_COMPRESS_IN_DB});
+        params.add(new Object[] {getStreamStoreTableDefault(), UNSET_BLOCK_SIZE});
 
         return params;
     }
@@ -148,6 +153,20 @@ public class TableMetadataPersistenceTest {
             negativeLookups();
             appendHeavyAndReadLight();
         }};
+    }
+
+    private static TableDefinition getStreamStoreTableWithCompressInDb() {
+        return new StreamStoreDefinitionBuilder("t", "test", ValueType.VAR_LONG).compressBlocksInDb()
+                .build()
+                .getTables()
+                .get("t_stream_value");
+    }
+
+    private static TableDefinition getStreamStoreTableDefault() {
+        return new StreamStoreDefinitionBuilder("t", "test", ValueType.VAR_LONG)
+                .build()
+                .getTables()
+                .get("t_stream_value");
     }
 
 }
