@@ -37,6 +37,7 @@ public class CassandraClientPoolMetrics {
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
+        // Keep metrics registered under CassandraClientPool.class rather than move them and potentially break things.
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
                 () -> blacklistSize.get());
