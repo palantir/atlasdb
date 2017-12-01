@@ -390,8 +390,12 @@ public abstract class RateLimiter {
         reserve(permits);
     }
 
-    public void returnPermits(long permitsTakenButUnused, long nowNanos) {
-        returnPermitsConsumedEarlier(permitsTakenButUnused, nowNanos);
+    // CHANGELOG: new method
+    public void returnPermits(long permitsTakenButUnused) {
+        checkPermits(permitsTakenButUnused);
+        synchronized (mutex()) {
+            returnPermitsConsumedEarlier(permitsTakenButUnused, stopwatch.readNanos());
+        }
     }
 
     private boolean canAcquire(long nowNanos, long timeoutNanos) {

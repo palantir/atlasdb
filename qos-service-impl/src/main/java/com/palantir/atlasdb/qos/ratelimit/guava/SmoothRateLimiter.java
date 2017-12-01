@@ -398,6 +398,7 @@ public abstract class SmoothRateLimiter extends RateLimiter {
         }
     }
 
+    // CHANGELOG: method added
     void returnPermitsConsumedEarlier(double permitsToReturn, long nowNanos) {
         double permitsReturnedByNanos = 0;
         if (nextFreeTicketNanos > nowNanos) {

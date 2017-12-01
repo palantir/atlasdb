@@ -124,12 +124,16 @@ public class QosRateLimiter {
     public void recordAdjustment(long adjustmentUnits) {
         if (adjustmentUnits > 0) {
             rateLimiter.steal(adjustmentUnits);
-        } else {
-            try {
-                rateLimiter.returnPermits(LongMath.checkedMultiply(adjustmentUnits, -1), stopwatch.readNanos());
-            } catch (ArithmeticException e) {
-                rateLimiter.returnPermits(Long.MAX_VALUE, stopwatch.readNanos());
-            }
+        } else if (adjustmentUnits < 0) {
+            rateLimiter.returnPermits(safeNegative(adjustmentUnits));
+        }
+    }
+
+    private long safeNegative(long adjustmentUnits) {
+        try {
+            return LongMath.checkedMultiply(-1, adjustmentUnits);
+        } catch (ArithmeticException e) {
+            return Long.MAX_VALUE;
         }
     }
 
