@@ -770,6 +770,12 @@
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.10",
             "transitive": [
@@ -1598,6 +1604,12 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {

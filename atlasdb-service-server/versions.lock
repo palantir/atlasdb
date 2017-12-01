@@ -952,6 +952,12 @@
                 "io.dropwizard:dropwizard-jersey"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.eclipse.jetty.toolchain.setuid:jetty-setuid-java": {
             "locked": "1.0.3",
             "transitive": [
@@ -2329,6 +2335,12 @@
                 "io.dropwizard:dropwizard-configuration",
                 "io.dropwizard:dropwizard-jersey",
                 "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.apache.commons:commons-pool2": {

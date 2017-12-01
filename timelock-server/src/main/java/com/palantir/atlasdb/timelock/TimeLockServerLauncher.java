@@ -57,11 +57,10 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);
         Consumer<Object> registrar = component -> environment.jersey().register(component);
-        TimeLockAgent agent = new TimeLockAgent(
+        TimeLockAgent.create(
                 combined.install(),
                 combined::runtime, // this won't actually live reload
                 combined.deprecated(),
                 registrar);
-        agent.createAndRegisterResources();
     }
 }

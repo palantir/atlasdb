@@ -663,6 +663,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.apache.commons:commons-pool2": {
             "locked": "2.4.2",
             "transitive": [
@@ -1443,6 +1449,12 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.apache.commons:commons-pool2": {

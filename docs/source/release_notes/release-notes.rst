@@ -50,8 +50,48 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new| |logs|
+         - Cassandra KVS now records how many writes have been made into each token range for each table.
+           That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).
+           These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+
+    *    - |new|
+         - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2730>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.70.1
+======
+
+30 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak| |improved|
+         - The ``TransactionManagers`` builder now hooks up the metric registries passed in so that AtlasDB metrics are registered on the specified metric registries.
+           Applications no longer should use the ``AtlasDbMetrics.setMetricRegistry`` method to specify a metric registry for AtlasDB.
+
+            .. code:: java
+
+                TransactionManagers.builder()
+                    .config(config)
+                    .userAgent("ete test")
+                    .globalMetricRegistry(new MetricRegistry())
+                    .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                    .registrar(environment.jersey()::register)
+                    .addAllSchemas(ETE_SCHEMAS)
+                    .build()
+                    .serializable()
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2760>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

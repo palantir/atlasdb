@@ -715,6 +715,12 @@
                 "com.palantir.atlasdb:commons-db"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.assertj:assertj-core": {
             "locked": "3.5.2",
             "transitive": [
@@ -1530,6 +1536,12 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.assertj:assertj-core": {

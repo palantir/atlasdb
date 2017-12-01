@@ -1032,6 +1032,7 @@
         "org.apache.commons:commons-math3": {
             "locked": "3.2",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "org.openjdk.jmh:jmh-core"
             ]
         },
@@ -2225,6 +2226,7 @@
         "org.apache.commons:commons-math3": {
             "locked": "3.2",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "org.openjdk.jmh:jmh-core"
             ]
         },

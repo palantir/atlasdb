@@ -336,6 +336,12 @@
                 "com.palantir.atlasdb:atlasdb-api"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.jvnet:animal-sniffer-annotation": {
             "locked": "1.0",
             "transitive": [
@@ -691,6 +697,12 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.jvnet:animal-sniffer-annotation": {
