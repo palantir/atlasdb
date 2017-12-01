@@ -32,7 +32,7 @@ import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 
 public class QosRateLimiterTest {
 
-    private static final long START_TIME_MICROS = 0L;
+    private static final long START_TIME_NANOS = 0L;
     private static final Supplier<Long> MAX_BACKOFF_TIME_MILLIS = () -> 10_000L;
 
     RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
@@ -41,7 +41,7 @@ public class QosRateLimiterTest {
 
     @Before
     public void before() {
-        when(stopwatch.readMicros()).thenReturn(START_TIME_MICROS);
+        when(stopwatch.readNanos()).thenReturn(START_TIME_NANOS);
         when(currentRate.get()).thenReturn(10L);
 
         limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS, currentRate, "test");
@@ -108,7 +108,62 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(1);
         limiter.recordAdjustment(25);
 
+        // simulate 0.1 seconds passing with no consumption
+        tickMillis(100);
+
         assertThat(limiter.consumeWithBackoff(1)).isGreaterThan(Duration.ZERO);
+    }
+
+    @Test
+    public void returningAllConsumedUnitsAllowsFutureCallersToGoThrough() {
+        limiter.consumeWithBackoff(100);
+        limiter.recordAdjustment(-100);
+
+        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
+    }
+
+    @Test
+    public void returningSmallNumberOfConsumedUnitsStillLimitsFutureCallers() {
+        limiter.consumeWithBackoff(100);
+        limiter.recordAdjustment(-30);
+
+        // simulate 5 seconds passing with no consumption
+        tickMillis(5_000);
+
+        assertThat(limiter.consumeWithBackoff(10)).isGreaterThan(Duration.ZERO);
+    }
+
+    @Test
+    public void returningSmallNumberOfConsumedUnitsMakesSleepTimeZeroEarlier() {
+        limiter.consumeWithBackoff(100);
+        limiter.recordAdjustment(-30);
+
+        // simulate 7 seconds passing with no consumption
+        tickMillis(7_000);
+
+        assertThat(limiter.consumeWithBackoff(10)).isEqualTo(Duration.ZERO);
+    }
+
+    @Test
+    public void returningMoreUnitsThanConsumedMakesSleepTimeZeroUntilReturnedPermitsAreConsumedCappedAtMaxPermits() {
+        limiter.consumeWithBackoff(100);
+        limiter.recordAdjustment(-200);
+
+        assertThat(limiter.consumeWithBackoff(50)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(50)).isEqualTo(Duration.ZERO);
+        // As stored permits is capped to 50.
+        assertThat(limiter.consumeWithBackoff(50)).isGreaterThan(Duration.ZERO);
+    }
+
+    @Test
+    public void returningMoreUnitsThanConsumedMakesSleepTimeZeroUntilReturnedPermitsAreConsumed() {
+        limiter.consumeWithBackoff(100);
+        limiter.recordAdjustment(-150);
+
+        assertThat(limiter.consumeWithBackoff(25)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(25)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(25)).isEqualTo(Duration.ZERO);
+        assertThat(limiter.consumeWithBackoff(25)).isGreaterThan(Duration.ZERO);
     }
 
     @Test
@@ -124,6 +179,22 @@ public class QosRateLimiterTest {
     }
 
     @Test
+    public void canRecordANegativeAdjustmentThatWillOverflowTheLimit() {
+        limiter.consumeWithBackoff(10);
+        limiter.recordAdjustment(Long.MIN_VALUE);
+
+        assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
+    }
+
+    @Test
+    public void canRecordAdjustmentOfZero() {
+        limiter.consumeWithBackoff(10);
+        limiter.recordAdjustment(0);
+
+        assertThat(limiter.consumeWithBackoff(10)).isGreaterThan(Duration.ZERO);
+    }
+
+    @Test
     public void canConsumeImmediatelyAgainAfterBackoff() {
         when(currentRate.get()).thenReturn(10L);
         limiter.consumeWithBackoff(100);
@@ -131,7 +202,7 @@ public class QosRateLimiterTest {
         Duration timeWaited = limiter.consumeWithBackoff(20);
         assertThat(timeWaited).isGreaterThan(Duration.ZERO);
 
-        when(stopwatch.readMicros()).thenReturn(2 * TimeUnit.NANOSECONDS.toMicros(timeWaited.toNanos()));
+        when(stopwatch.readNanos()).thenReturn(2 * timeWaited.toNanos());
 
         assertThat(limiter.consumeWithBackoff(20)).isEqualTo(Duration.ZERO);
     }
@@ -168,7 +239,7 @@ public class QosRateLimiterTest {
     }
 
     private void tickMillis(long millis) {
-        long now = stopwatch.readMicros();
-        when(stopwatch.readMicros()).thenReturn(now + millis * 1_000);
+        long now = stopwatch.readNanos();
+        when(stopwatch.readNanos()).thenReturn(now + TimeUnit.MILLISECONDS.toNanos(millis));
     }
 }
