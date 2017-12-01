@@ -59,6 +59,26 @@ develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
+0.70.1
+======
+
+30 November 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak| |improved|
+         - The ``TransactionManagers`` builder now hooks up the metricRegistries passed in so that AtlasDB metrics are registered on the specified metric registries.
+           Applications no longer should use the ``AtlasDbMetrics.setMetricRegistry`` method to specify a metric registry for AtlasDB.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2760>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
 0.70.0
 ======
 
