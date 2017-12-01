@@ -45,4 +45,9 @@ public abstract class PostgresDdlConfig extends DdlConfig {
     public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
     }
+
+    @Value.Default
+    public long compactIntervalMillis() {
+        return 0L;
+    }
 }

@@ -86,7 +86,9 @@ public final class DbkvsPostgresTestSuite {
 
         return ImmutableDbKeyValueServiceConfig.builder()
                 .connection(connectionConfig)
-                .ddl(ImmutablePostgresDdlConfig.builder().build())
+                .ddl(ImmutablePostgresDdlConfig.builder()
+                        .compactIntervalMillis(10)
+                        .build())
                 .build();
     }
 

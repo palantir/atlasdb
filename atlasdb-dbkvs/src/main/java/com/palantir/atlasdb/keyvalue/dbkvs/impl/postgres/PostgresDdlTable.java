@@ -15,12 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import java.sql.Timestamp;
 import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
@@ -30,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -49,8 +55,8 @@ public class PostgresDdlTable implements DbDdlTable {
     private final PostgresDdlConfig config;
 
     public PostgresDdlTable(TableReference tableName,
-                            ConnectionSupplier conns,
-                            PostgresDdlConfig config) {
+            ConnectionSupplier conns,
+            PostgresDdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
         this.config = config;
@@ -81,7 +87,7 @@ public class PostgresDdlTable implements DbDdlTable {
             } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
                 log.error(FAILED_TO_CREATE_TABLE_MESSAGE, prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT, e);
-                String exceptionMsg = MessageFormatter.arrayFormat(FAILED_TO_CREATE_TABLE_MESSAGE, new Object[]{
+                String exceptionMsg = MessageFormatter.arrayFormat(FAILED_TO_CREATE_TABLE_MESSAGE, new Object[] {
                         prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT, ATLASDB_POSTGRES_TABLE_NAME_LIMIT})
                         .getMessage();
                 throw new RuntimeException(exceptionMsg, e);
@@ -118,8 +124,53 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
+        if (config.compactIntervalMillis() > 0 && checkIfTableHasNotBeenCompactedForCompactIntervalMillis()) {
+            runCompactOnTable();
+        }
+    }
+
+    @VisibleForTesting
+    boolean checkIfTableHasNotBeenCompactedForCompactIntervalMillis() {
+        return getCurrentDatabaseTimestamp().getTime() - getLastVacuumTimestamp().getTime() > config.compactIntervalMillis();
+    }
+
+    private Timestamp getLastVacuumTimestamp() {
+        AgnosticResultSet vaccumTimestamps = conns.get().selectResultSetUnregisteredQuery(
+        "SELECT relname, "
+                + "last_vacuum, "
+                + "last_autovacuum, "
+                + "last_analyze, "
+                + "last_autoanalyze "
+                + "from pg_stat_user_tables where relname = ?",
+            prefixedTableName());
+
+        AgnosticResultRow vacuumTimestampsForTable = Iterables.getOnlyElement(vaccumTimestamps.rows());
+
+        return ImmutableList.of("last_vacuum", "last_autovacuum", "last_analyze", "last_autoanalyze")
+                .stream()
+                .map(str -> getTimestamp(vacuumTimestampsForTable.getObject(str)))
+                .max(Timestamp::compareTo)
+                .orElse(new Timestamp(0));
+    }
+
+    private Timestamp getCurrentDatabaseTimestamp() {
+        AgnosticResultSet currentTimestamp = conns.get().selectResultSetUnregisteredQuery("SELECT CURRENT_TIMESTAMP");
+        return getTimestamp(Iterables.getOnlyElement(currentTimestamp.rows()).getObject("now"));
+    }
+
+    private void runCompactOnTable() {
         // VACUUM FULL is /really/ what we want here, but it takes out a table lock
         conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
+    }
+
+    private Timestamp getTimestamp(Object timestampFromResultSet) {
+        if (timestampFromResultSet == null) {
+            return new Timestamp(0);
+        } else {
+            Preconditions.checkState(timestampFromResultSet instanceof Timestamp,
+                    "Expected the column type to be timestamp");
+            return (Timestamp) timestampFromResultSet;
+        }
     }
 
     private String prefixedTableName() {
