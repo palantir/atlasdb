@@ -196,8 +196,11 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td>Cassandra KVS now records how many writes have been made into each token range for each table.
+That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).
+These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2718">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
