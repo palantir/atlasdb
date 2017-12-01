@@ -50,8 +50,11 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |new| |logs|
+         - Cassandra KVS now records how many writes have been made into each token range for each table.
+           That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).
+           These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

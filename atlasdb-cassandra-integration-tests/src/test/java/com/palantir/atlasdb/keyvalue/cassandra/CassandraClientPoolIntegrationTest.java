@@ -74,12 +74,12 @@ public class CassandraClientPoolIntegrationTest {
     // Pretty legit test if run manually or if we go back to multi-node tests
     @Test
     public void testTokenMapping() {
-        Map<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
+        Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
                 clientPool.tokenMap.asMapOfRanges();
 
-        for (Entry<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> entry :
+        for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry :
                 mapOfRanges.entrySet()) {
-            Range<CassandraClientPoolImpl.LightweightOppToken> tokenRange = entry.getKey();
+            Range<LightweightOppToken> tokenRange = entry.getKey();
             List<InetSocketAddress> hosts = entry.getValue();
 
             clientPool.getRandomHostForKey("A".getBytes(StandardCharsets.UTF_8));

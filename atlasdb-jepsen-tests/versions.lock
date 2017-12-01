@@ -649,6 +649,12 @@
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.clojure:clojure": {
             "locked": "1.8.0"
         },
@@ -1350,6 +1356,12 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.clojure:clojure": {

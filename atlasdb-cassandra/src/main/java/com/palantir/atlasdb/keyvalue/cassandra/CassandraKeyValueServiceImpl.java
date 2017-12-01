@@ -1009,6 +1009,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 tableRef,
                                 entry.getValue().entrySet(),
                                 ttl);
+                        clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
         }
@@ -2127,6 +2128,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 ImmutableList.of(e.getKey()));
                     }
                 }
+                clientPool.markWritesForTable(values, tableRef);
                 return null;
             });
         } catch (Exception e) {

@@ -668,6 +668,12 @@
                 "com.palantir.config.crypto:encrypted-config-value-module"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.codehaus.groovy:groovy-all": {
             "locked": "2.4.4"
         },
@@ -1392,6 +1398,12 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.config.crypto:encrypted-config-value-module"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.codehaus.groovy:groovy-all": {
