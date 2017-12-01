@@ -281,8 +281,8 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent("test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build()
                 .serializable();
@@ -338,8 +338,8 @@ public class TransactionManagersTest {
         SerializableTransactionManager manager = TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent("test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build()
                 .serializable();
@@ -357,8 +357,8 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent("test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build()
                 .serializable();

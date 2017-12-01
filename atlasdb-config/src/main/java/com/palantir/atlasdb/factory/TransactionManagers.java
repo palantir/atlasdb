@@ -148,9 +148,9 @@ public abstract class TransactionManagers {
 
     abstract String userAgent();
 
-    abstract MetricRegistry metricRegistry();
+    abstract MetricRegistry globalMetricsRegistry();
 
-    abstract TaggedMetricRegistry taggedMetricRegistry();
+    abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
         return ImmutableTransactionManagers.builder();
@@ -181,8 +181,8 @@ public abstract class TransactionManagers {
         return builder()
                 .config(config)
                 .userAgent(UserAgents.DEFAULT_USER_AGENT)
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .addAllSchemas(schemas)
                 .build()
                 .serializable();
@@ -191,6 +191,7 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public SerializableTransactionManager serializable() {
+        AtlasDbMetrics.setMetricRegistries(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
 
