@@ -206,7 +206,43 @@ These logs will be invaluable in more easily identifying hotspotting and for usi
 </table>
 </div>
 <div class="section" id="id1">
-<h2>0.70.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<h2>0.70.1<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>30 November 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">The <code class="docutils literal"><span class="pre">TransactionManagers</span></code> builder now hooks up the metric registries passed in so that AtlasDB metrics are registered on the specified metric registries.
+Applications no longer should use the <code class="docutils literal"><span class="pre">AtlasDbMetrics.setMetricRegistry</span></code> method to specify a metric registry for AtlasDB.</p>
+<blockquote>
+<div><div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">TransactionManagers</span><span class="o">.</span><span class="n">builder</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">userAgent</span><span class="p">(</span><span class="s2">&quot;ete test&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">globalMetricRegistry</span><span class="p">(</span><span class="n">new</span> <span class="n">MetricRegistry</span><span class="p">())</span>
+    <span class="o">.</span><span class="n">globalTaggedMetricRegistry</span><span class="p">(</span><span class="n">DefaultTaggedMetricRegistry</span><span class="o">.</span><span class="n">getDefault</span><span class="p">())</span>
+    <span class="o">.</span><span class="n">registrar</span><span class="p">(</span><span class="n">environment</span><span class="o">.</span><span class="n">jersey</span><span class="p">()::</span><span class="n">register</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">addAllSchemas</span><span class="p">(</span><span class="n">ETE_SCHEMAS</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">serializable</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2760">Pull Request</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id2">
+<h2>0.70.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <p>30 November 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
