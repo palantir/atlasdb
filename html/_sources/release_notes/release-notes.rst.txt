@@ -56,6 +56,10 @@ develop
            These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
 
+    *    - |new|
+         - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2730>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
