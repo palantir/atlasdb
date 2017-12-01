@@ -24,7 +24,6 @@ public enum TimeLockStatus {
 
     private final String message;
 
-
     TimeLockStatus(String message) {
         this.message = message;
     }
