@@ -47,8 +47,8 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
         SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config.getConfig())
                 .userAgent("AtlasDbServiceServer")
-                .metricRegistry(environment.metrics())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(environment.metrics())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment.jersey()::register)
                 .build()
                 .serializable();
