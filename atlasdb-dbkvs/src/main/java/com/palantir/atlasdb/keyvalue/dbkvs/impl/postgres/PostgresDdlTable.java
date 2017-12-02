@@ -136,13 +136,13 @@ public class PostgresDdlTable implements DbDdlTable {
 
     private Timestamp getLastVacuumTimestamp() {
         AgnosticResultSet vaccumTimestamps = conns.get().selectResultSetUnregisteredQuery(
-        "SELECT relname, "
-                + "last_vacuum, "
-                + "last_autovacuum, "
-                + "last_analyze, "
-                + "last_autoanalyze "
-                + "from pg_stat_user_tables where relname = ?",
-            prefixedTableName());
+                "SELECT relname, "
+                        + "last_vacuum, "
+                        + "last_autovacuum, "
+                        + "last_analyze, "
+                        + "last_autoanalyze "
+                        + "from pg_stat_user_tables where relname = ?",
+                prefixedTableName());
 
         AgnosticResultRow vacuumTimestampsForTable = Iterables.getOnlyElement(vaccumTimestamps.rows());
 
