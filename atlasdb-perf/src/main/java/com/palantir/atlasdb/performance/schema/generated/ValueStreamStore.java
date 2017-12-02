@@ -347,6 +347,14 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
     }
 
     @Override
+    public void unmarkStreamsAsUsedSync(Transaction t, final Map<Long, byte[]> streamIdsToReference) {
+        if (streamIdsToReference.isEmpty()) {
+            return;
+        }
+
+    }
+
+    @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
         ValueStreamMetadataTable metaTable = tables.getValueStreamMetadataTable(t);
         Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rows = Sets.newHashSet();

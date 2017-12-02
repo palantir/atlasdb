@@ -59,13 +59,13 @@ public class OffsetManagerImpl implements OffsetManager {
     }
 
     @Override
-    public void updateWriteOffset(Transaction tx, byte[] oldOffset) {
+    public void updateWriteOffsetPast(Transaction tx, byte[] oldOffset) {
         tx.put(queueWriteOffsetTable,
                 ImmutableMap.of(getOffsetCellFromQueueKey(queueKey), incrementUnsignedVarLong(oldOffset)));
     }
 
     @Override
-    public void updateReadOffset(Transaction tx, byte[] oldOffset) {
+    public void updateReadOffsetPast(Transaction tx, byte[] oldOffset) {
         tx.put(queueReadOffsetTable,
                 ImmutableMap.of(getOffsetCellFromQueueKey(queueKey), incrementUnsignedVarLong(oldOffset)));
     }

@@ -57,10 +57,6 @@ public class AtlasQueueImpl implements AtlasQueue {
         this.queueKey = queueKey;
     }
 
-    public static AtlasQueueImpl create() {
-        // need to bootstrap the queue
-    }
-
     @Override
     public void enqueue(byte[] value) {
         try {
@@ -68,7 +64,7 @@ public class AtlasQueueImpl implements AtlasQueue {
                     (tx, lockTokens) -> {
                         QueueQuery query = offsetManager.translateWriteQuery(tx);
                         tx.put(queueTable, ImmutableMap.of(query.toCell(), value));
-                        offsetManager.updateWriteOffset(tx, query.offset());
+                        offsetManager.updateWriteOffsetPast(tx, query.offset());
                         return null;
                     });
         } catch (InterruptedException e) {
@@ -103,7 +99,7 @@ public class AtlasQueueImpl implements AtlasQueue {
         try {
             txMgr.runTaskWithLocksWithRetry(() -> LOCK_REQUEST_FUNCTION.apply(queueKey, LockMode.WRITE),
                     (tx, lockTokens) -> {
-                        offsetManager.updateReadOffset(tx, offset);
+                        offsetManager.updateReadOffsetPast(tx, offset);
                         tx.delete(queueTable, ImmutableSet.of(Cell.create(queueKey, offset)));
                         return null;
                     });
