@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
@@ -79,18 +81,22 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config, Environment environment)
             throws InterruptedException {
         if (config.getAtlasDbConfig().initializeAsync()) {
-            return createTransactionManager(config.getAtlasDbConfig(), environment);
+            return createTransactionManager(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), environment);
         } else {
-            return createTransactionManagerWithRetry(config.getAtlasDbConfig(), environment);
+            return createTransactionManagerWithRetry(config.getAtlasDbConfig(),
+                    config.getAtlasDbRuntimeConfig(),
+                    environment);
         }
     }
 
-    private TransactionManager createTransactionManagerWithRetry(AtlasDbConfig config, Environment environment)
+    private TransactionManager createTransactionManagerWithRetry(AtlasDbConfig config,
+            Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig,
+            Environment environment)
             throws InterruptedException {
         Stopwatch sw = Stopwatch.createStarted();
         while (sw.elapsed(TimeUnit.SECONDS) < CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS) {
             try {
-                return createTransactionManager(config, environment);
+                return createTransactionManager(config, atlasDbRuntimeConfig, environment);
             } catch (RuntimeException e) {
                 log.warn("An error occurred while trying to create transaction manager. Retrying...", e);
                 Thread.sleep(CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS);
@@ -99,12 +105,14 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         throw new IllegalStateException("Timed-out because we were unable to create transaction manager");
     }
 
-    private TransactionManager createTransactionManager(AtlasDbConfig config, Environment environment) {
+    private TransactionManager createTransactionManager(AtlasDbConfig config,
+            Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfigOptional, Environment environment) {
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent("ete test")
                 .metricRegistry(new MetricRegistry())
                 .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)
                 .registrar(environment.jersey()::register)
                 .addAllSchemas(ETE_SCHEMAS)
                 .build()
