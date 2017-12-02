@@ -61,9 +61,9 @@ class AtlasCoreModule implements AtlasConsoleModule {
                          following commands:
 
                          - startTransaction() to start a transaction.
-                         - currentTransaction() to view all operations in the current transaction.
-                         - endTransaction() to end and commit the current transaction.
-                         - abortTransaction() to end and abort (undo) the current transaction.
+                         - currentTransaction() to view all operations in the currentValue transaction.
+                         - endTransaction() to end and commit the currentValue transaction.
+                         - abortTransaction() to end and abort (undo) the currentValue transaction.
                          '''.stripIndent(),
 
             'prettyPrint': '''\

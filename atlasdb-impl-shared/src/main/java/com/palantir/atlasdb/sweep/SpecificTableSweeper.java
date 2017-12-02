@@ -31,6 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.sweep.metrics.UpdateEvent;
+import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
@@ -52,7 +54,7 @@ public class SpecificTableSweeper {
     private final SweepPriorityStore sweepPriorityStore;
     private final SweepProgressStore sweepProgressStore;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
-    private final SweepMetrics sweepMetrics;
+    private final SweepMetricsManager sweepMetricsManager;
     private final Clock wallClock;
 
 
@@ -64,7 +66,7 @@ public class SpecificTableSweeper {
             SweepPriorityStore sweepPriorityStore,
             SweepProgressStore sweepProgressStore,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics,
+            SweepMetricsManager sweepMetricsManager,
             Clock wallclock) {
         this.txManager = txManager;
         this.kvs = kvs;
@@ -72,7 +74,7 @@ public class SpecificTableSweeper {
         this.sweepPriorityStore = sweepPriorityStore;
         this.sweepProgressStore = sweepProgressStore;
         this.sweepPerfLogger = sweepPerfLogger;
-        this.sweepMetrics = sweepMetrics;
+        this.sweepMetricsManager = sweepMetricsManager;
         this.wallClock = wallclock;
     }
 
@@ -82,13 +84,13 @@ public class SpecificTableSweeper {
             SweepTaskRunner sweepRunner,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics,
+            SweepMetricsManager sweepMetricsManager,
             boolean initializeAsync) {
         SweepProgressStore sweepProgressStore = SweepProgressStoreImpl.create(kvs, initializeAsync);
         SweepPriorityStore sweepPriorityStore = SweepPriorityStoreImpl.create(kvs, tableFactory, initializeAsync);
         return new SpecificTableSweeper(txManager, kvs, sweepRunner,
                 sweepPriorityStore, sweepProgressStore, sweepPerfLogger,
-                sweepMetrics,
+                sweepMetricsManager,
                 System::currentTimeMillis);
     }
 
@@ -116,8 +118,8 @@ public class SpecificTableSweeper {
         return sweepProgressStore;
     }
 
-    public SweepMetrics getSweepMetrics() {
-        return sweepMetrics;
+    public SweepMetricsManager getSweepMetricsManager() {
+        return sweepMetricsManager;
     }
 
     void runOnceAndSaveResults(TableToSweep tableToSweep, SweepBatchConfig batchConfig) {
@@ -133,7 +135,7 @@ public class SpecificTableSweeper {
             SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
             logSweepPerformance(tableRef, startRow, results);
 
-            sweepMetrics.updateMetricsOneIteration(results);
+            sweepMetricsManager.updateMetrics(results, tableRef, UpdateEvent.ONE_ITERATION);
 
             return results;
         } catch (RuntimeException e) {
@@ -232,7 +234,7 @@ public class SpecificTableSweeper {
                 SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
-        updateMetricsFullTable(cumulativeResults, tableToSweep.getTableRef());
+        sweepMetricsManager.updateMetrics(cumulativeResults, tableToSweep.getTableRef(), UpdateEvent.FULL_TABLE);
         sweepProgressStore.clearProgress();
     }
 
@@ -268,10 +270,6 @@ public class SpecificTableSweeper {
             sweepPriorityStore.update(tx, tableToSweep.getTableRef(), update.build());
             return null;
         });
-    }
-
-    void updateMetricsFullTable(SweepResults cumulativeResults, TableReference tableRef) {
-        sweepMetrics.updateMetricsFullTable(cumulativeResults, tableRef);
     }
 
     private static String startRowToHex(@Nullable byte[] row) {

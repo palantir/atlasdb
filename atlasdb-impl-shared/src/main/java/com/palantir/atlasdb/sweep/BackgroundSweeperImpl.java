@@ -186,7 +186,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 return SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
             }
         } catch (RuntimeException e) {
-            specificTableSweeper.getSweepMetrics().sweepError();
+            specificTableSweeper.getSweepMetricsManager().sweepError();
 
             log.error("Sweep failed", e);
             return SweepOutcome.ERROR;
@@ -214,7 +214,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
             return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
-            specificTableSweeper.getSweepMetrics().sweepError();
+            specificTableSweeper.getSweepMetricsManager().sweepError();
 
             return determineCauseOfFailure(e, tableToSweep.get());
         }

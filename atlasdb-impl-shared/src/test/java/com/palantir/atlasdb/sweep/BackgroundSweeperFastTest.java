@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 
 import java.util.Optional;
 
@@ -28,6 +29,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -48,8 +50,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
                 any(),
-                Mockito.eq(TABLE_REF),
-                Mockito.eq(ImmutableUpdateSweepPriority.builder()
+                eq(TABLE_REF),
+                eq(ImmutableUpdateSweepPriority.builder()
                         .newStaleValuesDeleted(2)
                         .newCellTsPairsExamined(10)
                         .newMinimumSweptTimestamp(12345L)
@@ -81,8 +83,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
                 any(),
-                Mockito.eq(TABLE_REF),
-                Mockito.eq(ImmutableUpdateSweepPriority.builder()
+                eq(TABLE_REF),
+                eq(ImmutableUpdateSweepPriority.builder()
                         .newStaleValuesDeleted(5)
                         .newCellTsPairsExamined(21)
                         .newMinimumSweptTimestamp(4567L)
@@ -149,7 +151,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         backgroundSweeper.runOnce();
 
         Mockito.verify(progressStore).saveProgress(
-                Mockito.eq(ImmutableSweepProgress.builder()
+                eq(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(5)
                         .cellTsPairsExamined(21)
@@ -176,8 +178,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         backgroundSweeper.runOnce();
         Mockito.verify(priorityStore).update(
                 any(),
-                Mockito.eq(TABLE_REF),
-                Mockito.eq(ImmutableUpdateSweepPriority.builder()
+                eq(TABLE_REF),
+                eq(ImmutableUpdateSweepPriority.builder()
                         .newWriteCount(0L)
                         .build()));
     }
@@ -198,9 +200,9 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetrics).updateMetricsOneIteration(intermediateResults);
-        Mockito.verify(sweepMetrics, Mockito.never())
-                .updateMetricsFullTable(any(SweepResults.class), any(TableReference.class));
+        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, SweepMetricsManager.LogEvent.ONE_ITERATION);
+        Mockito.verify(sweepMetricsManager, Mockito.never()).updateMetrics(
+                any(SweepResults.class), any(TableReference.class), eq(SweepMetricsManager.LogEvent.FULL_TABLE));
     }
 
     @Test
@@ -233,8 +235,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetrics).updateMetricsOneIteration(intermediateResults);
-        Mockito.verify(sweepMetrics).updateMetricsFullTable(fullResults, TABLE_REF);
+        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, SweepMetricsManager.LogEvent.ONE_ITERATION);
+        Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF, SweepMetricsManager.LogEvent.FULL_TABLE);
     }
 
     @Test
