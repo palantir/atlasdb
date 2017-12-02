@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.qos.config.QosClientConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
@@ -58,6 +59,11 @@ public abstract class AtlasDbRuntimeConfig {
     @Value.Default
     public long getTimestampCacheSize() {
         return AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
+    }
+
+    @Value.Default
+    public QosClientConfig qos() {
+        return QosClientConfig.DEFAULT;
     }
 
     /**

@@ -120,6 +120,10 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.qos.FakeQosClient;
+import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -127,7 +131,6 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -222,8 +225,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
-        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class),
-                initializeAsync);
+        return create(configManager, leaderConfig, initializeAsync, FakeQosClient.INSTANCE);
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            boolean initializeAsync,
+            QosClient qosClient) {
+        return create(configManager,
+                leaderConfig,
+                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                initializeAsync,
+                qosClient);
     }
 
     @VisibleForTesting
@@ -231,18 +245,25 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log) {
-        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(configManager, leaderConfig, log, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                FakeQosClient.INSTANCE);
     }
 
     private static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
             Logger log,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            QosClient qosClient) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraKeyValueServiceImpl keyValueService =
-                new CassandraKeyValueServiceImpl(log, configManager, compactionManager, leaderConfig, initializeAsync);
+        CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
+                log,
+                configManager,
+                compactionManager,
+                leaderConfig,
+                initializeAsync,
+                qosClient);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
@@ -251,12 +272,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                        CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
                                        Optional<LeaderConfig> leaderConfig,
-                                       boolean initializeAsync) {
+                                       boolean initializeAsync,
+                                       QosClient qosClient) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync);
+        this.clientPool = CassandraClientPoolImpl.create(configManager.getConfig(), initializeAsync, qosClient);
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
@@ -480,7 +502,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ImmutableMap.copyOf(result);
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -550,7 +572,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return builder.build();
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -778,7 +800,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ret;
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -818,7 +840,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         }
                     });
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -958,7 +980,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             putInternal("put", tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -978,7 +1000,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             putInternal("putWithTimestamps", tableRef, values.entries());
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -1268,7 +1290,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 throw new InsufficientConsistencyException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (TException e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
             }
         }
     }
@@ -1400,7 +1422,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
                     e);
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -1620,7 +1642,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throw new InsufficientConsistencyException(
                     "Dropping tables requires all Cassandra nodes to be up and available.", e);
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -1746,7 +1768,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
             }
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
 
         return filteredTables;
@@ -1767,7 +1789,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
                             && !thriftException.getMessage().contains("already existing table")) {
-                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
+                        throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
+                                thriftException);
                     }
                 }
             }
@@ -2009,7 +2032,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -2074,7 +2097,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             putInternal("addGarbageCollectionSentinelValues",
                     tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -2132,7 +2155,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -2168,7 +2191,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (CheckAndSetException e) {
             throw e;
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
@@ -2464,8 +2487,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             try {
                 //Callable<Void> returns null, so can't use immutable list
                 return Collections.singletonList(tasks.get(0).call());
+            } catch (RateLimitExceededException e) {
+                // Prioritise over
+                throw e;
             } catch (Exception e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
             }
         }
 
@@ -2480,7 +2506,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return results;
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         } finally {
             for (Future<V> future : futures) {
                 future.cancel(true);

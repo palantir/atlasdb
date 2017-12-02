@@ -23,7 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ThrowablesTest extends Assert {
-
     @Before
     public void setUp() throws Exception {
         NoUsefulConstructorException.noUsefulConstructorCalled = false;
@@ -31,7 +30,6 @@ public class ThrowablesTest extends Assert {
 
     @Test
     public void testRewrap() {
-
         try {
             throwTwoArgConstructorException();
             fail("Should not get here");
@@ -61,8 +59,8 @@ public class ThrowablesTest extends Assert {
             int sizeAfter = e.getStackTrace().length;
             assertTrue(sizeAfter + " should be > " + sizeBefore, sizeAfter > sizeBefore);
         }
-
     }
+
 
     // only has a (string, throwable) constructor
     public void throwTwoArgConstructorException() throws TwoArgConstructorException {

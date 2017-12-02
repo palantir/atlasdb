@@ -15,7 +15,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -58,7 +58,6 @@
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
-            "requested": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -102,7 +101,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -145,7 +144,6 @@
         },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
-            "requested": "2.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
