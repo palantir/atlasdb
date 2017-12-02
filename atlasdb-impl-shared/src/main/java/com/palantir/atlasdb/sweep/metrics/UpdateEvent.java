@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-public class UpdateEvent extends TagAndLabel {
+public final class UpdateEvent extends TagAndLabel {
     public static final UpdateEvent ONE_ITERATION = new UpdateEvent("period", "perIteration");
     public static final UpdateEvent FULL_TABLE = new UpdateEvent("period", "perTable");
 
-    UpdateEvent(String tag, String label) {
+    private UpdateEvent(String tag, String label) {
         super(tag, label);
     }
 }

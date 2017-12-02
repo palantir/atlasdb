@@ -16,12 +16,12 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-final class MetricType extends TagAndLabel {
+public final class MetricType extends TagAndLabel {
     public static final MetricType METER = new MetricType("metric", "meter");
     public static final MetricType HISTOGRAM = new MetricType("metric", "histogram");
     public static final MetricType CURRENT_VALUE = new MetricType("metric", "currentValue");
 
-    MetricType(String tag, String label) {
+    private MetricType(String tag, String label) {
         super(tag, label);
     }
 }

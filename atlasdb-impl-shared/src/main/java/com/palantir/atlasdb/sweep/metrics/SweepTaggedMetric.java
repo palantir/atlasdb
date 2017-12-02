@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.tritium.metrics.registry.MetricName;
 
-public abstract class SweepTaggedMetric {
+abstract class SweepTaggedMetric {
     final String name;
     final Boolean taggedWithTableName;
 

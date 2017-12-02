@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-public class TagAndLabel {
+abstract class TagAndLabel {
     private final String tag;
     private final String label;
 
