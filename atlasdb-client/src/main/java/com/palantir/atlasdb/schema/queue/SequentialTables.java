@@ -38,8 +38,8 @@ public class SequentialTables {
             allSafeForLoggingByDefault();
             conflictHandler(ConflictHandler.IGNORE_ALL); // Offsets are unique
             rowName();
+                hashFirstRowComponent(); // Can still find all queues by virtue of the offset table
                 rowComponent("queue_key", ValueType.BLOB);
-                rangeScanAllowed();
             dynamicColumns();
                 columnComponent("offset", ValueType.VAR_LONG);
                 value(ValueType.BLOB);
