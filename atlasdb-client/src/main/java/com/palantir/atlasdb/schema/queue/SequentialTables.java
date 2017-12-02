@@ -36,20 +36,21 @@ public class SequentialTables {
     private static TableDefinition getSequentialTableDefinition() {
         return new TableDefinition() {{
             allSafeForLoggingByDefault();
+            conflictHandler(ConflictHandler.IGNORE_ALL); // Offsets are unique
             rowName();
                 rowComponent("queue_key", ValueType.BLOB);
                 rangeScanAllowed();
             dynamicColumns();
                 columnComponent("offset", ValueType.VAR_LONG);
                 value(ValueType.BLOB);
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH); // Needed to avoid cruft
         }};
     }
 
     private static TableDefinition getOffsetTableDefinition() {
         return new TableDefinition() {{
             allSafeForLoggingByDefault();
-            conflictHandler(ConflictHandler.SERIALIZABLE);
+            conflictHandler(ConflictHandler.RETRY_ON_WRITE_WRITE);
             rowName();
                 rowComponent("full_table_name", ValueType.STRING);
             columns();
