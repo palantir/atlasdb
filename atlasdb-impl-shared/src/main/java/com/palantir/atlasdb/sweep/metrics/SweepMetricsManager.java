@@ -15,24 +15,28 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetricsManager {
-    private final SweepMetricsFactory factory = new SweepMetricsFactory();
+    private static final TableReference DUMMY = TableReference.createWithEmptyNamespace("dummy");
 
-    private final SweepMetric cellsSweptMetric = factory.createDefault("cellTimestampPairsExamined");
-    private final SweepMetric cellsDeletedMetric = factory.createDefault("staleValuesDeleted");
-    private final SweepMetric sweepTimeSweepingMetric = factory.createDefault("sweepTimeSweeping");
+    @VisibleForTesting
+    final SweepMetricsFactory factory = new SweepMetricsFactory();
+
+    private final SweepMetric cellsSweptMetric = factory.createDefault(AtlasDbMetricNames.CELLS_EXAMINED);
+    private final SweepMetric cellsDeletedMetric = factory.createDefault(AtlasDbMetricNames.CELLS_SWEPT);
+    private final SweepMetric sweepTimeSweepingMetric = factory.createDefault(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
 
     private final SweepMetric sweepTimeElapsedMetric = new SweepMetricsFactory.ListOfMetrics(
-            factory.createCurrentValue("sweepTimeElapsedSinceStart", UpdateEvent.ONE_ITERATION, false),
-            factory.createHistogram("sweepTimeElapsedSinceStart", UpdateEvent.FULL_TABLE, false));
+            factory.createCurrentValue(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, UpdateEvent.ONE_ITERATION, false),
+            factory.createHistogram(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, UpdateEvent.FULL_TABLE, false));
 
-    private final SweepMetric sweepErrorMetric = factory.createMeter("sweepError", UpdateEvent.ONE_ITERATION, false);
-
-    private static final TableReference DUMMY = TableReference.createWithEmptyNamespace("dummy");
+    private final SweepMetric sweepErrorMetric =
+            factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEvent.ONE_ITERATION, false);
 
     public void updateMetrics(SweepResults sweepResults, TableReference tableRef, UpdateEvent updateEvent) {
         cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);

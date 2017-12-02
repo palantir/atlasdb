@@ -44,6 +44,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.UpdateEvent;
 import com.palantir.atlasdb.util.DropwizardClientRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.remoting.api.errors.RemoteException;
@@ -145,10 +146,10 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         ArgumentCaptor<SweepResults> argumentCaptor = ArgumentCaptor.forClass(SweepResults.class);
 
         Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture(), eq(TABLE_REF),
-                eq(SweepMetricsManager.LogEvent.ONE_ITERATION));
+                eq(UpdateEvent.ONE_ITERATION));
         verifyExpectedArgument(argumentCaptor.getValue());
         Mockito.verify(sweepMetricsManager, times(1)).updateMetrics(argumentCaptor.capture(), eq(TABLE_REF),
-                eq(SweepMetricsManager.LogEvent.FULL_TABLE));
+                eq(UpdateEvent.FULL_TABLE));
         verifyExpectedArgument(argumentCaptor.getValue());
     }
 

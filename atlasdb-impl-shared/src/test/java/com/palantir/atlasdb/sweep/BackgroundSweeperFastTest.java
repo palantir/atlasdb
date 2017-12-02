@@ -29,7 +29,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.UpdateEvent;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -200,9 +200,9 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, SweepMetricsManager.LogEvent.ONE_ITERATION);
+        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, UpdateEvent.ONE_ITERATION);
         Mockito.verify(sweepMetricsManager, Mockito.never()).updateMetrics(
-                any(SweepResults.class), any(TableReference.class), eq(SweepMetricsManager.LogEvent.FULL_TABLE));
+                any(SweepResults.class), any(TableReference.class), eq(UpdateEvent.FULL_TABLE));
     }
 
     @Test
@@ -235,8 +235,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, SweepMetricsManager.LogEvent.ONE_ITERATION);
-        Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF, SweepMetricsManager.LogEvent.FULL_TABLE);
+        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, UpdateEvent.ONE_ITERATION);
+        Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF, UpdateEvent.FULL_TABLE);
     }
 
     @Test

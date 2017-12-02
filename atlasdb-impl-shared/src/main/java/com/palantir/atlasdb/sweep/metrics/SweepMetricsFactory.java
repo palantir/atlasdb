@@ -28,26 +28,26 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 public class SweepMetricsFactory {
     private final TaggedMetricRegistry metricRegistry = new MetricsManager().getTaggedRegistry();
 
-    public SweepMetric createDefault(String name) {
+    SweepMetric createDefault(String name) {
         return new SweepMetricsFactory.ListOfMetrics(
                 createMeter(name, UpdateEvent.ONE_ITERATION, false),
                 createHistogram(name, UpdateEvent.ONE_ITERATION, true),
                 createHistogram(name, UpdateEvent.FULL_TABLE, false));
     }
 
-    public SweepMetric createMeter(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
+    SweepMetric createMeter(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
         return new SweepMetric.SweepMetricForEvent(updateEvent, new SweepMeterMetric(name, taggedWithTableName));
     }
 
-    public SweepMetric createHistogram(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
+    SweepMetric createHistogram(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
         return new SweepMetric.SweepMetricForEvent(updateEvent, new SweepHistogramMetric(name, taggedWithTableName));
     }
 
-    public SweepMetric createCurrentValue(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
+    SweepMetric createCurrentValue(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
         return new SweepMetric.SweepMetricForEvent(updateEvent, new SweepCurrentValueMetric(name, taggedWithTableName));
     }
 
-    public static class ListOfMetrics implements SweepMetric {
+    static class ListOfMetrics implements SweepMetric {
         private final List<SweepMetric> metricsList;
 
         ListOfMetrics(SweepMetric... metrics) {
@@ -60,7 +60,7 @@ public class SweepMetricsFactory {
         }
     }
 
-    private class SweepMeterMetric extends TaggedMetric implements SweepMetric {
+    private class SweepMeterMetric extends SweepTaggedMetric implements SweepMetric {
         SweepMeterMetric(String name, Boolean taggedWithTableName) {
             super(name, taggedWithTableName);
         }
@@ -76,7 +76,7 @@ public class SweepMetricsFactory {
         }
     }
 
-    private class SweepHistogramMetric extends TaggedMetric implements SweepMetric {
+    private class SweepHistogramMetric extends SweepTaggedMetric implements SweepMetric {
 
         SweepHistogramMetric(String name, Boolean taggedWithTableName) {
             super(name, taggedWithTableName);
@@ -94,7 +94,7 @@ public class SweepMetricsFactory {
 
     }
 
-    private class SweepCurrentValueMetric extends TaggedMetric implements SweepMetric {
+    private class SweepCurrentValueMetric extends SweepTaggedMetric implements SweepMetric {
         SweepCurrentValueMetric(String name, Boolean taggedWithTableName) {
             super(name, taggedWithTableName);
         }

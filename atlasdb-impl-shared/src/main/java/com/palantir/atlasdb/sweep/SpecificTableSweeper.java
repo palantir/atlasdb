@@ -31,8 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.sweep.metrics.UpdateEvent;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
+import com.palantir.atlasdb.sweep.metrics.UpdateEvent;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
@@ -118,10 +118,6 @@ public class SpecificTableSweeper {
         return sweepProgressStore;
     }
 
-    public SweepMetricsManager getSweepMetricsManager() {
-        return sweepMetricsManager;
-    }
-
     void runOnceAndSaveResults(TableToSweep tableToSweep, SweepBatchConfig batchConfig) {
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
@@ -135,7 +131,7 @@ public class SpecificTableSweeper {
             SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
             logSweepPerformance(tableRef, startRow, results);
 
-            sweepMetricsManager.updateMetrics(results, tableRef, UpdateEvent.ONE_ITERATION);
+            updateMetricsOneIteration(results, tableRef);
 
             return results;
         } catch (RuntimeException e) {
@@ -234,7 +230,7 @@ public class SpecificTableSweeper {
                 SafeArg.of("cellTs pairs deleted", cumulativeResults.getStaleValuesDeleted()),
                 SafeArg.of("time sweeping table", cumulativeResults.getTimeInMillis()),
                 SafeArg.of("time elapsed", cumulativeResults.getTimeElapsedSinceStartedSweeping()));
-        sweepMetricsManager.updateMetrics(cumulativeResults, tableToSweep.getTableRef(), UpdateEvent.FULL_TABLE);
+        updateMetricsFullTable(cumulativeResults, tableToSweep.getTableRef());
         sweepProgressStore.clearProgress();
     }
 
@@ -278,5 +274,17 @@ public class SpecificTableSweeper {
         } else {
             return PtBytes.encodeHexString(row);
         }
+    }
+
+    void updateMetricsOneIteration(SweepResults sweepResults, TableReference tableRef) {
+        sweepMetricsManager.updateMetrics(sweepResults, tableRef, UpdateEvent.ONE_ITERATION);
+    }
+
+    void updateMetricsFullTable(SweepResults cumulativeResults, TableReference tableRef) {
+        sweepMetricsManager.updateMetrics(cumulativeResults, tableRef, UpdateEvent.FULL_TABLE);
+    }
+
+    void updateSweepErrorMetric() {
+        sweepMetricsManager.sweepError();
     }
 }
