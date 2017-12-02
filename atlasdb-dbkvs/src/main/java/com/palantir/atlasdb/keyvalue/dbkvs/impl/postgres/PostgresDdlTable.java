@@ -131,7 +131,8 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @VisibleForTesting
     boolean checkIfTableHasNotBeenCompactedForCompactIntervalMillis() {
-        return getCurrentDatabaseTimestamp().getTime() - getLastVacuumTimestamp().getTime() > config.compactIntervalMillis();
+        return getCurrentDatabaseTimestamp().getTime() - getLastVacuumTimestamp().getTime()
+                > config.compactIntervalMillis();
     }
 
     private Timestamp getLastVacuumTimestamp() {
