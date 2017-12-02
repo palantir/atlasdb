@@ -30,11 +30,11 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.common.base.Throwables;
 
 public class GetCellTimestamps {
 
@@ -43,8 +43,6 @@ public class GetCellTimestamps {
     private final TableReference tableRef;
     private final byte[] startRowInclusive;
     private final int batchHint;
-
-    private byte[] endRowInclusive;
 
     private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
 
@@ -95,31 +93,30 @@ public class GetCellTimestamps {
      * tombstones (ideally this will involve catching some exception and reducing the range appropriately).
      */
     private void fetchBatchOfTimestampsBeginningAtStartRow() {
-        Optional<byte[]> rangeEnd;
-        for (byte[] rangeStart = startRowInclusive; timestamps.isEmpty(); rangeStart = rangeEnd.get()) {
-            rangeEnd = determineSafeRangeEnd(rangeStart);
+        byte[] rangeStart = startRowInclusive;
+
+        while (timestamps.isEmpty()) {
+            Optional<byte[]> rangeEnd = determineSafeRangeEndInclusive(rangeStart);
             if (!rangeEnd.isPresent()) {
                 return;
             }
 
+            // Note that both ends of this range are *inclusive*
             List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rangeStart, rangeEnd.get(), batchHint);
             timestamps.addAll(batch);
+            rangeStart = RangeRequests.nextLexicographicName(rangeEnd.get());
         }
     }
 
-    private Optional<byte[]> determineSafeRangeEnd(byte[] rangeStart) {
+    private Optional<byte[]> determineSafeRangeEndInclusive(byte[] rangeStart) {
         KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
-        SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ONE);
-        try {
-            List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
-            if (rows.isEmpty()) {
-                return Optional.empty();
-            } else {
-                return Optional.of(Iterables.getLast(rows).getKey());
-            }
-        } catch (Exception e) {
-            // TODO(nziebart): handle QoS exceptions here
-            throw Throwables.throwUncheckedException(e);
+        SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
+
+        List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
+        if (rows.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(Iterables.getLast(rows).getKey());
         }
     }
 

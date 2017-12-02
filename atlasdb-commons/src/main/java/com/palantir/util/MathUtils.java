@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.math3.special.Gamma;
+
 public class MathUtils {
     // =========================
     // COMBINATORICS
@@ -244,4 +246,20 @@ public class MathUtils {
     }
 
     private MathUtils() {/**/}
+
+    public static double calculateConfidenceThatDistributionIsNotUniform(List<Long> values) {
+        return 1.0 - calculateConfidenceThatDistributionIsUniform(values);
+    }
+
+    public static double calculateConfidenceThatDistributionIsUniform(List<Long> values) {
+        return Gamma.regularizedGammaQ((values.size() - 1.0) / 2,
+                chiSquareDistance(values) / 2);
+    }
+
+    private static double chiSquareDistance(List<Long> values) {
+        double mean = values.stream().mapToLong(x -> x).reduce(0L, Long::sum) / (double) values.size();
+        double distances =  values.stream().mapToDouble(Long::doubleValue)
+                .reduce(0.0, (acc, nextVal) -> acc + Math.pow(nextVal - mean, 2));
+        return distances / mean;
+    }
 }

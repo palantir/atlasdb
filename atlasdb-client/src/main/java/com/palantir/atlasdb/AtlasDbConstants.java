@@ -110,9 +110,9 @@ public final class AtlasDbConstants {
     public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
-    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 1_000;
-    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 1024;
-    public static final int DEFAULT_SWEEP_READ_LIMIT = 1_000;
+    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 128;
+    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 128;
+    public static final int DEFAULT_SWEEP_READ_LIMIT = 128;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 

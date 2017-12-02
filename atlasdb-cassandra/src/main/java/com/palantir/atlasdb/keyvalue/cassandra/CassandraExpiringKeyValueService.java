@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 
@@ -68,7 +69,7 @@ public final class CassandraExpiringKeyValueService extends CassandraKeyValueSer
             Optional<LeaderConfig> leaderConfig,
             boolean initializeAsync) {
         super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig,
-                initializeAsync);
+                initializeAsync, FakeQosClient.INSTANCE);
     }
 
     @Override

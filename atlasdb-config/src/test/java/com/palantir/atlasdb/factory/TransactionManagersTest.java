@@ -73,6 +73,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.MetricsRule;
@@ -192,6 +193,7 @@ public class TransactionManagersTest {
 
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
+        when(runtimeConfig.qos()).thenReturn(QosClientConfig.DEFAULT);
         when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
 
         environment = mock(Consumer.class);
@@ -281,8 +283,8 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent("test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build()
                 .serializable();
@@ -338,8 +340,8 @@ public class TransactionManagersTest {
         SerializableTransactionManager manager = TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent("test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build()
                 .serializable();
@@ -357,8 +359,8 @@ public class TransactionManagersTest {
         TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent("test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .build()
                 .serializable();

@@ -3,15 +3,18 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+    compile project(":commons-executors")
+
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.google.code.findbugs', name: 'jsr305'
     compile group: 'com.google.guava', name: 'guava'
-    compile group: 'org.slf4j', name: 'slf4j-api'
-    compile project(":commons-executors")
-    compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-    compile group: 'io.dropwizard.metrics', name: 'metrics-core'
-    compile group: 'net.jpountz.lz4', name: 'lz4'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+    compile group: 'io.dropwizard.metrics', name: 'metrics-core'
+    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
+    compile group: 'net.jpountz.lz4', name: 'lz4'
+    compile group: 'org.slf4j', name: 'slf4j-api'
+    compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.2'
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'

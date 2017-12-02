@@ -92,13 +92,14 @@ public class MetricsManager {
         } catch (Exception e) {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
             log.warn("Unable to register metric {}."
-                            + " This may occur if you are running integration tests that don't clean up completely after "
-                            + " themselves, or if you are trying to use multiple TransactionManagers concurrently in the same"
-                            + " JVM (e.g. in a KVS migration). If this is not the case, this is likely to be a product and/or"
-                            + " an AtlasDB bug. This is no cause for immediate alarm, but it does mean that your telemetry for"
-                            + " the aforementioned metric may be reported incorrectly.",
-                    SafeArg.of("metricName", fullyQualifiedMetricName),
-                    e);
+                    + " This may occur if you are running integration tests that don't clean up completely after "
+                    + " themselves, or if you are trying to use multiple TransactionManagers concurrently in the same"
+                    + " JVM (e.g. in a KVS migration). If this is not the case, this is likely to be a product and/or"
+                    + " an AtlasDB bug. This is no cause for immediate alarm, but it does mean that your telemetry for"
+                    + " the aforementioned metric may be reported incorrectly. Turn on TRACE logging to see the full"
+                    + " exception.",
+                    SafeArg.of("metricName", fullyQualifiedMetricName));
+            log.trace("Full exception follows:", e);
         }
     }
 

@@ -19,6 +19,8 @@ package com.palantir.atlasdb;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -33,15 +35,17 @@ import org.apache.cassandra.thrift.SuperColumn;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.cassandra.ThriftObjectSizeUtils;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.cassandra.qos.ThriftObjectSizeUtils;
 
 public class ThriftObjectSizeUtilsTest {
+    private static final String TEST_MAME = "foo";
+    private static final ByteBuffer TEST_NAME_BYTES = ByteBuffer.wrap(TEST_MAME.getBytes());
+    private static final Column TEST_COLUMN = new Column(TEST_NAME_BYTES);
 
-    private static final String TEST_MAME = "test";
-    private static final Column TEST_COLUMN = new Column(ByteBuffer.wrap(TEST_MAME.getBytes()));
-
-
-    private static final long TEST_COLUMN_SIZE = 4L + TEST_MAME.getBytes().length + 4L + 8L;
+    private static final long TEST_NAME_SIZE = 3L;
+    private static final long TEST_NAME_BYTES_SIZE = TEST_NAME_BYTES.remaining();
+    private static final long TEST_COLUMN_SIZE = TEST_NAME_BYTES_SIZE + 4L + 4L + 8L;
     private static final ColumnOrSuperColumn EMPTY_COLUMN_OR_SUPERCOLUMN = new ColumnOrSuperColumn();
     private static final long EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE = Integer.BYTES * 4;
 
@@ -74,7 +78,7 @@ public class ThriftObjectSizeUtilsTest {
                 .setColumn(TEST_COLUMN)
                 .setSuper_column(new SuperColumn(ByteBuffer.wrap(TEST_MAME.getBytes()),
                         ImmutableList.of(TEST_COLUMN)))))
-                .isEqualTo(Integer.BYTES * 2 + TEST_COLUMN_SIZE + TEST_MAME.getBytes().length + TEST_COLUMN_SIZE);
+                .isEqualTo(Integer.BYTES * 2 + TEST_COLUMN_SIZE + TEST_NAME_BYTES_SIZE + TEST_COLUMN_SIZE);
     }
 
     @Test
@@ -197,5 +201,61 @@ public class ThriftObjectSizeUtilsTest {
                 .setKey(TEST_MAME.getBytes())
                 .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
                 .isEqualTo(TEST_MAME.getBytes().length + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+    }
+
+    @Test
+    public void getSizeForBatchMutate() {
+        Map<ByteBuffer, Map<String, List<Mutation>>> batchMutateMap = ImmutableMap.of(
+                TEST_NAME_BYTES,
+                ImmutableMap.of(
+                        TEST_MAME,
+                        ImmutableList.of(new Mutation().setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN))));
+
+        long expectedSize = TEST_NAME_BYTES_SIZE
+                + TEST_NAME_SIZE
+                + Integer.BYTES
+                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(batchMutateMap)).isEqualTo(expectedSize);
+    }
+
+    @Test
+    public void getStringSize() {
+        assertThat(ThriftObjectSizeUtils.getStringSize(TEST_MAME)).isEqualTo(TEST_NAME_SIZE);
+    }
+
+    @Test
+    public void getMultigetResultSize() {
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> result = ImmutableMap.of(
+                TEST_NAME_BYTES, ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN));
+
+        long expectedSize = TEST_NAME_BYTES_SIZE
+                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColsByKey(result)).isEqualTo(expectedSize);
+    }
+
+    @Test
+    public void getKeySlicesSize() {
+        List<KeySlice> slices = ImmutableList.of(
+                new KeySlice()
+                        .setKey(TEST_NAME_BYTES)
+                        .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN)));
+
+        long expectedSize = TEST_NAME_BYTES_SIZE
+                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfKeySlices(slices)).isEqualTo(expectedSize);
+    }
+
+    @Test
+    public void getCasSize() {
+        List<Column> columns = ImmutableList.of(
+                TEST_COLUMN,
+                TEST_COLUMN);
+
+        long expectedSize = TEST_COLUMN_SIZE * 2;
+
+        assertThat(ThriftObjectSizeUtils.getCasByteCount(columns)).isEqualTo(expectedSize);
     }
 }
