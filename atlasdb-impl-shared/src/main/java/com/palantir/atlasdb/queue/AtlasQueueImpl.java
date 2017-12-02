@@ -16,55 +16,59 @@
 
 package com.palantir.atlasdb.queue;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.io.BaseEncoding;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.queue.AtlasQueue;
+import com.palantir.atlasdb.schema.queue.ImmutableQueueHeadResult;
+import com.palantir.atlasdb.schema.queue.QueueHeadResult;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 
 public class AtlasQueueImpl implements AtlasQueue {
+    private static final BiFunction<byte[], LockMode, LockRequest> LOCK_REQUEST_FUNCTION = (key, lockMode) ->
+            LockRequest.builder(ImmutableSortedMap.of(
+                    StringLockDescriptor.of("_queue" + BaseEncoding.base64().encode(key)), lockMode))
+                    .build();
 
     private final LockAwareTransactionManager txMgr;
     private final TableReference queueTable;
+    private final OffsetManager offsetManager;
+    private final byte[] queueKey;
 
-    public AtlasQueueImpl(LockAwareTransactionManager txMgr, TableReference queueTable,
-            TableReference queueReadOffsetTable, TableReference queueWriteOffsetTable) {
+    private AtlasQueueImpl(
+            LockAwareTransactionManager txMgr,
+            TableReference queueTable,
+            OffsetManager offsetManager,
+            byte[] queueKey) {
         this.txMgr = txMgr;
         this.queueTable = queueTable;
+        this.offsetManager = offsetManager;
+        this.queueKey = queueKey;
+    }
+
+    public static AtlasQueueImpl create() {
+        // need to bootstrap the queue
     }
 
     @Override
-    public void enqueue(byte[] queueKey, byte[] value) {
+    public void enqueue(byte[] value) {
         try {
-            txMgr.runTaskWithLocksWithRetry(
-                    () -> LockRequest.builder(ImmutableSortedMap.of(
-                            StringLockDescriptor.of("queue__" + BaseEncoding.base64().encode(queueKey)), LockMode.WRITE
-                    )).build(),
-                    (tx, heldLocks) -> {
-                        Cell queueOffsetCell = Cell.create(queueKey, PtBytes.toBytes("o"));
-                        long currentOffset = getCurrentOffset(tx, queueWriteOffsetTable, queueOffsetCell);
-
-                        long bucketNumber = currentOffset / MAX_ENTRIES_PER_BUCKET;
-                        byte[] delegateQueue =
-                                EncodingUtils.add(queueKey, EncodingUtils.encodeUnsignedVarLong(bucketNumber));
-
-                        tx.put(queueTable, ImmutableMap.of(
-                                Cell.create(delegateQueue, EncodingUtils.encodeUnsignedVarLong(currentOffset)),
-                                value));
-                        tx.put(queueWriteOffsetTable, ImmutableMap.of(
-                                queueOffsetCell,
-                                EncodingUtils.encodeUnsignedVarLong(currentOffset + 1)));
+            txMgr.runTaskWithLocksWithRetry(() -> LOCK_REQUEST_FUNCTION.apply(queueKey, LockMode.WRITE),
+                    (tx, lockTokens) -> {
+                        QueueQuery query = offsetManager.translateWriteQuery(tx);
+                        tx.put(queueTable, ImmutableMap.of(query.toCell(), value));
+                        offsetManager.updateWriteOffset(tx, query.offset());
                         return null;
                     });
         } catch (InterruptedException e) {
@@ -73,31 +77,35 @@ public class AtlasQueueImpl implements AtlasQueue {
         }
     }
 
+    @Override
+    public Optional<QueueHeadResult> head() {
+        try {
+            return txMgr.runTaskWithLocksWithRetry(() -> LOCK_REQUEST_FUNCTION.apply(queueKey, LockMode.READ),
+                    (tx, lockTokens) -> {
+                        Optional<QueueQuery> queryOptional = offsetManager.translateReadQuery(tx);
+                        return queryOptional.flatMap(query -> {
+                            Map<Cell, byte[]> response = tx.get(queueTable, ImmutableSet.of(query.toCell()));
+                            if (response.isEmpty()) {
+                                // TODO (jkong): Think if this is the right thing to do.
+                                return Optional.empty();
+                            }
+                            return Optional.of(ImmutableQueueHeadResult.of(query.offset(), response.get(query.toCell())));
+                        });
+                    });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Throwables.propagate(e);
+        }
+    }
 
     @Override
-    public Optional<byte[]> dequeue(byte[] queueKey) {
+    public void flush(byte[] offset) {
         try {
-            return txMgr.runTaskWithLocksWithRetry(
-                    () -> LockRequest.builder(ImmutableSortedMap.of(
-                            StringLockDescriptor.of("queue__" + BaseEncoding.base64().encode(queueKey)), LockMode.WRITE
-                    )).build(),
+            txMgr.runTaskWithLocksWithRetry(() -> LOCK_REQUEST_FUNCTION.apply(queueKey, LockMode.WRITE),
                     (tx, lockTokens) -> {
-                        Cell queueOffsetCell = Cell.create(queueKey, PtBytes.toBytes("o"));
-                        long currentReadOffset = getCurrentOffset(tx, queueReadOffsetTable, queueOffsetCell);
-                        long currentWriteOffset = getCurrentOffset(tx, queueWriteOffsetTable, queueOffsetCell);
-                        if (currentReadOffset == currentWriteOffset) {
-                            return Optional.empty();
-                        }
-
-                        long bucketNumber = currentReadOffset / MAX_ENTRIES_PER_BUCKET;
-                        byte[] delegateQueue =
-                                EncodingUtils.add(queueKey, EncodingUtils.encodeUnsignedVarLong(bucketNumber));
-
-                        // There is something to read
-                        tx.get(queueReadOffsetTable,
-                                ImmutableSet.of(Cell.create(delegateQueue, EncodingUtils.encodeUnsignedVarLong(currentReadOffset))));
-
-                        return Optional.empty();
+                        offsetManager.updateReadOffset(tx, offset);
+                        tx.delete(queueTable, ImmutableSet.of(Cell.create(queueKey, offset)));
+                        return null;
                     });
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.queue;
 
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,37 +27,53 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-public class OffsetManager {
+public class OffsetManagerImpl implements OffsetManager {
     private static final long MAX_ENTRIES_PER_BUCKET = 10_000;
 
     private final TableReference queueReadOffsetTable;
     private final TableReference queueWriteOffsetTable;
+    private final byte[] queueKey;
 
-    public OffsetManager(
+    public OffsetManagerImpl(
             TableReference queueReadOffsetTable,
-            TableReference queueWriteOffsetTable) {
+            TableReference queueWriteOffsetTable, byte[] queueKey) {
         this.queueReadOffsetTable = queueReadOffsetTable;
         this.queueWriteOffsetTable = queueWriteOffsetTable;
+        this.queueKey = queueKey;
     }
 
-    public Map<byte[], Long> translateWriteQuery(Transaction tx, byte[] key) {
-        return translateOffsetToQuery(key, getCurrentWriteOffset(tx, key));
+    @Override
+    public QueueQuery translateWriteQuery(Transaction tx) {
+        return translateOffsetToQuery(queueKey, getCurrentWriteOffset(tx, queueKey));
     }
 
-    public Map<byte[], Long> translateReadQuery(Transaction tx, byte[] key) {
-        long readOffset = getCurrentReadOffset(tx, key);
-        long writeOffset = getCurrentWriteOffset(tx, key);
+    @Override
+    public Optional<QueueQuery> translateReadQuery(Transaction tx) {
+        long readOffset = getCurrentReadOffset(tx, queueKey);
+        long writeOffset = getCurrentWriteOffset(tx, queueKey);
 
         if (readOffset == writeOffset) {
-            return ImmutableMap.of();
+            return Optional.empty();
         }
-        return translateOffsetToQuery(key, readOffset);
+        return Optional.of(translateOffsetToQuery(queueKey, readOffset));
     }
 
-    private Map<byte[], Long> translateOffsetToQuery(byte[] key, long offset) {
+    @Override
+    public void updateWriteOffset(Transaction tx, byte[] oldOffset) {
+        tx.put(queueWriteOffsetTable,
+                ImmutableMap.of(getOffsetCellFromQueueKey(queueKey), incrementUnsignedVarLong(oldOffset)));
+    }
+
+    @Override
+    public void updateReadOffset(Transaction tx, byte[] oldOffset) {
+        tx.put(queueReadOffsetTable,
+                ImmutableMap.of(getOffsetCellFromQueueKey(queueKey), incrementUnsignedVarLong(oldOffset)));
+    }
+
+    private QueueQuery translateOffsetToQuery(byte[] key, long offset) {
         long bucketNumber = offset / MAX_ENTRIES_PER_BUCKET;
-        return ImmutableMap.of(EncodingUtils.add(key, EncodingUtils.encodeUnsignedVarLong(bucketNumber)),
-                offset);
+        return ImmutableQueueQuery.of(EncodingUtils.add(key, EncodingUtils.encodeUnsignedVarLong(bucketNumber)),
+                EncodingUtils.encodeUnsignedVarLong(offset));
     }
 
     private long getCurrentWriteOffset(Transaction tx, byte[] key) {
@@ -65,6 +82,10 @@ public class OffsetManager {
 
     private long getCurrentReadOffset(Transaction tx, byte[] key) {
         return getOffsetFromTable(tx, key, queueReadOffsetTable);
+    }
+
+    private static byte[] incrementUnsignedVarLong(byte[] varLongBytes) {
+        return EncodingUtils.encodeUnsignedVarLong(EncodingUtils.decodeUnsignedVarLong(varLongBytes) + 1);
     }
 
     private static long getOffsetFromTable(Transaction tx, byte[] key, TableReference sourceTable) {
