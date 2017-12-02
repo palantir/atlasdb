@@ -53,8 +53,8 @@ public final class TimeLockTestUtils {
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent("test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .build()
                 .serializable();
     }
