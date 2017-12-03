@@ -21,30 +21,74 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class SweepMetricsFactory {
     private final TaggedMetricRegistry metricRegistry = new MetricsManager().getTaggedRegistry();
 
-    SweepMetric createDefault(String name) {
+    SweepMetric createDefault(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
-                createMeter(name, UpdateEvent.ONE_ITERATION, false),
-                createHistogram(name, UpdateEvent.ONE_ITERATION, true),
-                createHistogram(name, UpdateEvent.FULL_TABLE, false));
+                createMeter(namePrefix, UpdateEvent.ONE_ITERATION, false),
+                createHistogram(namePrefix, UpdateEvent.ONE_ITERATION, true),
+                createHistogram(namePrefix, UpdateEvent.FULL_TABLE, false));
     }
 
-    SweepMetric createMeter(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
-        return new SweepMetric.SweepMetricForEvent(updateEvent, new SweepMeterMetric(name, taggedWithTableName));
+    /**
+     * Creates a SweepMetric backed by a Meter.
+     *
+     * @param namePrefix Determines the prefix of the metric name. The metric name will be namePrefix + "Meter"
+     * @param updateEvent Determines on which type of event the metric should be updated. Metric will be tagged
+     *                    with tag defined by the event
+     * @param tagWithTableName If true, metric will also be tagged with the table name
+     * @return SweepMetric backed by a Meter
+     */
+    SweepMetric createMeter(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+        return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
+                .namePrefix(namePrefix)
+                .taggedMetricRegistry(metricRegistry)
+                .updateEvent(updateEvent)
+                .tagWithTableName(tagWithTableName)
+                .metricAdapter(SweepMetricAdapter.METER_ADAPTER)
+                .build());
     }
 
-    SweepMetric createHistogram(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
-        return new SweepMetric.SweepMetricForEvent(updateEvent, new SweepHistogramMetric(name, taggedWithTableName));
+    /**
+     * Creates a SweepMetric backed by a Histogram.
+     *
+     * @param namePrefix Determines the prefix of the metric name. The metric name will be namePrefix + "Histogram"
+     * @param updateEvent Determines on which type of event the metric should be updated. Metric will be tagged
+     *                    with tag defined by the event
+     * @param tagWithTableName If true, metric will also be tagged with the table name
+     * @return SweepMetric backed by a Histogram
+     */
+    SweepMetric createHistogram(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+        return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
+                .namePrefix(namePrefix)
+                .taggedMetricRegistry(metricRegistry)
+                .updateEvent(updateEvent)
+                .tagWithTableName(tagWithTableName)
+                .metricAdapter(SweepMetricAdapter.HISTOGRAM_ADAPTER)
+                .build());
     }
 
-    SweepMetric createCurrentValue(String name, UpdateEvent updateEvent, Boolean taggedWithTableName) {
-        return new SweepMetric.SweepMetricForEvent(updateEvent, new SweepCurrentValueMetric(name, taggedWithTableName));
+    /**
+     * Creates a SweepMetric backed by a CurrentValueMetric.
+     *
+     * @param namePrefix Determines the prefix of the metric name. The metric name will be namePrefix + "CurrentValue"
+     * @param updateEvent Determines on which type of event the metric should be updated. Metric will be tagged
+     *                    with tag defined by the event.
+     * @param tagWithTableName If true, metric will also be tagged with the table name.
+     * @return SweepMetric backed by a CurrentValueMetric
+     */
+    SweepMetric createCurrentValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+        return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
+                .namePrefix(namePrefix)
+                .taggedMetricRegistry(metricRegistry)
+                .updateEvent(updateEvent)
+                .tagWithTableName(tagWithTableName)
+                .metricAdapter(SweepMetricAdapter.CURRENT_VALUE_ADAPTER)
+                .build());
     }
 
     static class ListOfMetrics implements SweepMetric {
@@ -57,57 +101,6 @@ public class SweepMetricsFactory {
         @Override
         public void update(long value, TableReference tableRef, UpdateEvent updateEvent) {
             metricsList.forEach(metric -> metric.update(value, tableRef, updateEvent));
-        }
-    }
-
-    private class SweepMeterMetric extends SweepTaggedMetric implements SweepMetric {
-        SweepMeterMetric(String name, Boolean taggedWithTableName) {
-            super(name, taggedWithTableName);
-        }
-
-        @Override
-        public void update(long value, TableReference tableRef, UpdateEvent updateEvent) {
-            metricRegistry.meter(getMetricName(tableRef, updateEvent)).mark(value);
-        }
-
-        @Override
-        public MetricType getMetricType() {
-            return MetricType.METER;
-        }
-    }
-
-    private class SweepHistogramMetric extends SweepTaggedMetric implements SweepMetric {
-
-        SweepHistogramMetric(String name, Boolean taggedWithTableName) {
-            super(name, taggedWithTableName);
-        }
-
-        @Override
-        public void update(long value, TableReference tableRef, UpdateEvent updateEvent) {
-            metricRegistry.histogram(getMetricName(tableRef, updateEvent)).update(value);
-        }
-
-        @Override
-        public MetricType getMetricType() {
-            return MetricType.HISTOGRAM;
-        }
-
-    }
-
-    private class SweepCurrentValueMetric extends SweepTaggedMetric implements SweepMetric {
-        SweepCurrentValueMetric(String name, Boolean taggedWithTableName) {
-            super(name, taggedWithTableName);
-        }
-
-        @Override
-        public void update(long value, TableReference tableRef, UpdateEvent updateEvent) {
-            ((CurrentValueMetric) metricRegistry.gauge(getMetricName(tableRef, updateEvent), new CurrentValueMetric()))
-                    .setValue(value);
-        }
-
-        @Override
-        public MetricType getMetricType() {
-            return MetricType.CURRENT_VALUE;
         }
     }
 }

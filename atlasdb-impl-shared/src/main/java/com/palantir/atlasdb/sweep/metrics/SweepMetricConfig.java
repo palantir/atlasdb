@@ -16,24 +16,20 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-abstract class TagAndLabel {
-    private final String tag;
-    private final String label;
+import org.immutables.value.Value;
 
-    TagAndLabel(String tag, String label) {
-        this.tag = tag;
-        this.label = label;
-    }
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-    public String getTag() {
-        return tag;
-    }
+@Value.Immutable
+public abstract class SweepMetricConfig {
+    public abstract String namePrefix();
+    public abstract TaggedMetricRegistry taggedMetricRegistry();
+    public abstract UpdateEvent updateEvent();
+    public abstract boolean tagWithTableName();
+    public abstract SweepMetricAdapter<?> metricAdapter();
 
-    public String getLabel() {
-        return label;
+    @Value.Derived
+    public String name() {
+        return namePrefix() + metricAdapter().getNameSuffix();
     }
 }
-
-
-
-

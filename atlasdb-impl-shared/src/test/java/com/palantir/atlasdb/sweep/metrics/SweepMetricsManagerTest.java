@@ -262,20 +262,23 @@ public class SweepMetricsManagerTest {
         assertWithinMarginOfError(histogram, Arrays.asList(timeSweepStarted));
     }
 
-    private Histogram getHistogram(String name, TableReference tableRef, UpdateEvent updateEvent,
+    private Histogram getHistogram(String namePrefix, TableReference tableRef, UpdateEvent updateEvent,
             boolean taggedWithTableName) {
-        return taggedMetricRegistry.histogram(SweepTaggedMetric.getTaggedMetricName(
-                name, MetricType.HISTOGRAM, updateEvent, tableRef, taggedWithTableName));
+        return taggedMetricRegistry.histogram(SweepMetricImpl.getTaggedMetricName(
+                namePrefix + SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameSuffix(),
+                updateEvent, tableRef, taggedWithTableName));
     }
 
-    private Meter getMeter(String name) {
-        return taggedMetricRegistry.meter(SweepTaggedMetric.getTaggedMetricName(
-                name, MetricType.METER, UpdateEvent.ONE_ITERATION, DUMMY, false));
+    private Meter getMeter(String namePrefix) {
+        return taggedMetricRegistry.meter(SweepMetricImpl.getTaggedMetricName(
+                namePrefix + SweepMetricAdapter.METER_ADAPTER.getNameSuffix(),
+                UpdateEvent.ONE_ITERATION, DUMMY, false));
     }
 
-    private Gauge getCurrentValueMetric(String name) {
-        return taggedMetricRegistry.gauge(SweepTaggedMetric.getTaggedMetricName(
-                name, MetricType.CURRENT_VALUE, UpdateEvent.ONE_ITERATION, DUMMY, false), new CurrentValueMetric());
+    private Gauge getCurrentValueMetric(String namePrefix) {
+        return taggedMetricRegistry.gauge(SweepMetricImpl.getTaggedMetricName(
+                namePrefix + SweepMetricAdapter.CURRENT_VALUE_ADAPTER.getNameSuffix(),
+                UpdateEvent.ONE_ITERATION, DUMMY, false), new CurrentValueMetric());
     }
 
     private void assertWithinMarginOfError(Histogram histogram, List<Long> timesStarted) {

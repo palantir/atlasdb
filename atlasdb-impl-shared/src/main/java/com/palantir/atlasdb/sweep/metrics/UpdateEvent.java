@@ -16,11 +16,19 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-public final class UpdateEvent extends TagAndLabel {
-    public static final UpdateEvent ONE_ITERATION = new UpdateEvent("period", "perIteration");
-    public static final UpdateEvent FULL_TABLE = new UpdateEvent("period", "perTable");
+import org.immutables.value.Value;
 
-    private UpdateEvent(String tag, String label) {
-        super(tag, label);
-    }
+@Value.Immutable
+public abstract class UpdateEvent {
+    public abstract String getTag();
+    public abstract String getLabel();
+
+    public static final UpdateEvent ONE_ITERATION = ImmutableUpdateEvent.builder()
+            .tag("period")
+            .label("perIteration")
+            .build();
+    public static final UpdateEvent FULL_TABLE = ImmutableUpdateEvent.builder()
+            .tag("period")
+            .label("perTable")
+            .build();
 }

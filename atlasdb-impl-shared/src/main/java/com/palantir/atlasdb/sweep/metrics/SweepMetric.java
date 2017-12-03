@@ -20,21 +20,4 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface SweepMetric {
     void update(long value, TableReference tableRef, UpdateEvent updateEvent);
-
-    class SweepMetricForEvent implements SweepMetric {
-        private final SweepMetric metric;
-        private final UpdateEvent updateCondition;
-
-        SweepMetricForEvent(UpdateEvent updateCondition, SweepMetric metric) {
-            this.metric = metric;
-            this.updateCondition = updateCondition;
-        }
-
-        @Override
-        public void update(long value, TableReference tableRef, UpdateEvent updateEvent) {
-            if (updateEvent == updateCondition) {
-                metric.update(value, tableRef, updateEvent);
-            }
-        }
-    }
 }
