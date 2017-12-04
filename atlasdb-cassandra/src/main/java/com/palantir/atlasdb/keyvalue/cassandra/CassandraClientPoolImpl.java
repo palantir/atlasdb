@@ -698,13 +698,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             } else {
                 // Only log the actual exception the first time
                 if (numTries > 1) {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+                    log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                             UnsafeArg.of("exceptionMessage", ex.getMessage()));
                 } else {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
+                    log.info("Error occurred talking to cassandra. Attempt {} of {}.",
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             ex);
