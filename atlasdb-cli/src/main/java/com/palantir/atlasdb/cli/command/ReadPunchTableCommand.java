@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cli.command.timestamp.AbstractTimestampCommand;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.logsafe.SafeArg;
 
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
@@ -47,7 +48,10 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
     public int execute(AtlasDbServices services) {
         KeyValueService keyValueService = services.getKeyValueService();
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(keyValueService, false);
-        puncherStore.get(epochTime);
+        Long value = puncherStore.get(epochTime);
+        printer.info("The first timestamp before {} is {}",
+                SafeArg.of("clock time", epochTime),
+                SafeArg.of("timestamp", value));
         return 0;
     }
 }
