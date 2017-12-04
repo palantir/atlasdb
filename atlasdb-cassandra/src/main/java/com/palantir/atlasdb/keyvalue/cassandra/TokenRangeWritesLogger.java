@@ -108,7 +108,7 @@ public final class TokenRangeWritesLogger {
 
         private synchronized void tryLog() {
             if (shouldLog()) {
-                probabilityDistributionIsNotUniform = getProbabilityDistributionNotUniform();
+                refreshProbabilityDistributionNotUniform();
 
                 if (probabilityDistributionIsNotUniform > CONFIDENCE_FOR_LOGGING) {
                     logNotUniform();
@@ -125,10 +125,10 @@ public final class TokenRangeWritesLogger {
                     && (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
         }
 
-        private double getProbabilityDistributionNotUniform() {
+        private void refreshProbabilityDistributionNotUniform() {
             List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
                     .collect(Collectors.toList());
-            return MathUtils.calculateConfidenceThatDistributionIsNotUniform(values);
+            probabilityDistributionIsNotUniform = MathUtils.calculateConfidenceThatDistributionIsNotUniform(values);
         }
 
         private void logNotUniform() {
