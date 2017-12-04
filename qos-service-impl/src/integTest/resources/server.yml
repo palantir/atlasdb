@@ -28,7 +28,3 @@ runtime:
         lowerLimit: 0
         upperLimit: 50
     throttling-strategy: SIMPLE
-
-
-
-
