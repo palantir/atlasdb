@@ -78,10 +78,26 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
                 Long.MAX_VALUE);
 
         Multimap<Cell, Long> toDelete = HashMultimap.create();
+
+        long lastLoggedTs = -1000000;
+        long minTs = Long.MAX_VALUE;
+        long maxTs = Long.MIN_VALUE;
+
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             byte[] rowName = row.getRowName();
             long startTs = TransactionConstants.getTimestampForValue(rowName);
+
+            minTs = Math.min(minTs, startTs);
+            maxTs = Math.max(maxTs, startTs);
+
+            if (startTs >= lastLoggedTs + 100000) {
+                printer.info("Currently at timestamp {}. min: {}, max: {}",
+                        SafeArg.of("startTs", startTs),
+                        SafeArg.of("minTs", minTs),
+                        SafeArg.of("maxTs", maxTs));
+                lastLoggedTs = startTs;
+            }
 
             Value value;
             try {
