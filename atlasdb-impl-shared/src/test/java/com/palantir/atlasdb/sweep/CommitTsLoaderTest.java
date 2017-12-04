@@ -81,11 +81,11 @@ public class CommitTsLoaderTest {
         verify(mockTransactionService).putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void loadShouldThrowIfANullIsToBeReturned() throws Exception {
         doAnswer((invocation) -> NO_TIMESTAMP)
                 .when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
-        loader.load(VALID_START_TIMESTAMP);
+        assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
     }
 }
