@@ -74,7 +74,8 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
         byte[] timestampBytes = TransactionConstants.getValueForTimestamp(timestamp);
 
         if (startBytes.length != timestampBytes.length && !skipStartTimestampCheck) {
-            throw new RuntimeException(String.format("They aren't the same length! %s != %s", startBytes.length, timestampBytes.length));
+            throw new RuntimeException(String.format(
+                    "They aren't the same length! %s != %s", startBytes.length, timestampBytes.length));
         }
 
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
