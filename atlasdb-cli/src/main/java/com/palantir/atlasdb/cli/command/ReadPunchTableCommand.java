@@ -26,9 +26,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
 
+import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 
+@Command(name = "read-punch-table", description = "Given an epoch time in millis, read the timestamp recorded"
+        + " just before it in the punch table.")
 public class ReadPunchTableCommand extends SingleBackendCommand {
     private static final OutputPrinter printer = new OutputPrinter(
             LoggerFactory.getLogger(AbstractTimestampCommand.class));
