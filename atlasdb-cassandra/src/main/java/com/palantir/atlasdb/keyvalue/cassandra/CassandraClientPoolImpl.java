@@ -609,7 +609,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 if (isRetriableWithBackoffException(e)) {
                     // And value between -500 and +500ms to backoff to better spread load on failover
                     int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
-                    log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
+                    log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                             UnsafeArg.of("queryString", fn.toString()),
                             SafeArg.of("sleepDuration", sleepDuration),
                             SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
