@@ -38,7 +38,7 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
 
     @Option(name = {"-e", "--epoch"},
             title = "EPOCH TIME",
-            type = OptionType.GROUP,
+            type = OptionType.COMMAND,
             description = "The epoch time to read the first value from. This should be epoch time in millis.")
     Long epochTime;
 
@@ -49,6 +49,10 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
 
     @Override
     public int execute(AtlasDbServices services) {
+        if (epochTime == null) {
+            throw new IllegalArgumentException("Required option '-e' is missing");
+        }
+
         KeyValueService keyValueService = services.getKeyValueService();
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(keyValueService, false);
         Long value = puncherStore.get(epochTime);
