@@ -43,8 +43,8 @@ public class QosServiceTest {
     public void defaultsToFixedLimit() {
         when(config.get()).thenReturn(configWithLimits(ImmutableMap.of()));
         resource = new QosResource(config);
-        assertThat((int) QosClientLimitsConfig.BYTES_READ_PER_SECOND_PER_CLIENT).isEqualTo(resource.readLimit("foo"));
-        assertThat((int) QosClientLimitsConfig.BYTES_WRITTEN_PER_SECOND_PER_CLIENT).isEqualTo(
+        assertThat(QosClientLimitsConfig.BYTES_READ_PER_SECOND_PER_CLIENT).isEqualTo(resource.readLimit("foo"));
+        assertThat(QosClientLimitsConfig.BYTES_WRITTEN_PER_SECOND_PER_CLIENT).isEqualTo(
                 resource.writeLimit("foo"));
     }
 
