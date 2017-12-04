@@ -76,6 +76,12 @@ public final class CommitTsLoader {
                     new TransactionFailedRetriableException(msg, e));
         }
 
-        return transactionService.get(startTs);
+        Long commitTsAfterRollBack = transactionService.get(startTs);
+        if (commitTsAfterRollBack != null) {
+            return commitTsAfterRollBack;
+        } else {
+            // This can happen if the clean tx table CLI has rolled-back the transaction at the start ts.
+            return TransactionConstants.FAILED_COMMIT_TS;
+        }
     }
 }
