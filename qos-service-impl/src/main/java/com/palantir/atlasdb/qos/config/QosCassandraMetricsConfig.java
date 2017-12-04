@@ -30,15 +30,18 @@ import com.palantir.remoting.api.config.service.ServiceConfiguration;
 @JsonSerialize(as = ImmutableQosCassandraMetricsConfig.class)
 @JsonDeserialize(as = ImmutableQosCassandraMetricsConfig.class)
 public abstract class QosCassandraMetricsConfig {
+    //non-live-reloadable
     @JsonProperty("cassandra-service-config")
     public abstract ServiceConfiguration cassandraServiceConfig();
 
+    //live-reloadable
     @JsonProperty("cassandra-health-metrics")
     @Value.Default
     public List<CassandraHealthMetric> cassandraHealthMetrics() {
         return ImmutableList.of();
     }
 
+    //non-live-reloadable
     @JsonProperty("throttling-strategy")
     public abstract ThrottlingStrategy.ThrottlingStrategies throttlingStrategy();
 }

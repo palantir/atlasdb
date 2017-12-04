@@ -30,12 +30,12 @@ public interface QosService {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    int readLimit(@Safe @PathParam("client") String client);
+    long readLimit(@Safe @PathParam("client") String client);
 
     @Path("{client: [a-zA-Z0-9_-]+}/write-limit")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    int writeLimit(@Safe @PathParam("client") String client);
+    long writeLimit(@Safe @PathParam("client") String client);
 
 }

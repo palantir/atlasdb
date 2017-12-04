@@ -16,77 +16,52 @@
 
 package com.palantir.atlasdb.qos;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
-import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
-import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
-import com.palantir.atlasdb.qos.config.QosCassandraMetricsConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
-import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
+import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
+import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
+import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosResource implements QosService {
 
-    private final Optional<CassandraMetricsService> cassandraMetricClient;
     private Supplier<QosServiceRuntimeConfig> config;
+    private final ClientLimitMultiplier clientLimitMultiplier;
 
     public QosResource(Supplier<QosServiceRuntimeConfig> config) {
         this.config = config;
-        this.cassandraMetricClient = config.get().qosCassandraMetricsConfig()
-                .map(metricsConfig -> Optional.of(JaxRsClient.create(
-                        CassandraMetricsService.class,
-                        "qos-service",
-                        ClientConfigurations.of(metricsConfig.cassandraServiceConfig()))))
-                .orElse(Optional.empty());
+        this.clientLimitMultiplier = getNonLiveReloadableClientLimitMultiplier();
     }
 
-    @Override
-    public int readLimit(String client) {
-        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
-                ImmutableQosClientLimitsConfig.builder().build());
-        return Ints.saturatedCast((long) getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
-                * qosClientLimitsConfig.limits().readBytesPerSecond());
-    }
-
-    @Override
-    public int writeLimit(String client) {
-        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
-                ImmutableQosClientLimitsConfig.builder().build());
-        return Ints.saturatedCast((long) getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
-                * qosClientLimitsConfig.limits().writeBytesPerSecond());
-    }
-
-    private double getClientLimitMultiplier(QosPriority qosPriority) {
-        Optional<QosCassandraMetricsConfig> qosCassandraMetricsConfig = config.get().qosCassandraMetricsConfig();
-        if (qosCassandraMetricsConfig.isPresent() && cassandraMetricClient.isPresent()) {
-            QosCassandraMetricsConfig metricsConfig = qosCassandraMetricsConfig.get();
-
-            List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
-                    metricsConfig.cassandraHealthMetrics().stream().map(metric ->
-                            ImmutableCassandraHealthMetricMeasurement.builder()
-                                    .currentValue(cassandraMetricClient.get().getMetric(
-                                            metric.type(),
-                                            metric.name(),
-                                            metric.attribute(),
-                                            metric.additionalParams()))
-                                    .lowerLimit(metric.lowerLimit())
-                                    .upperLimit(metric.upperLimit())
-                                    .build())
-                            .collect(Collectors.toList());
-
-            return metricsConfig
-                    .throttlingStrategy()
-                    .getThrottlingStrategy()
-                    .clientLimitMultiplier(cassandraHealthMetricMeasurements, qosPriority);
+    private ClientLimitMultiplier getNonLiveReloadableClientLimitMultiplier() {
+        if (config.get().qosCassandraMetricsConfig().isPresent()) {
+            return CassandraMetricsClientLimitMultiplier.create(() -> {
+                Preconditions.checkState(config.get().qosCassandraMetricsConfig().isPresent(),
+                        "The Qos Cassandra metrics config was present before but can not be found now,"
+                                + "removing this config block is not supported live.");
+                return config.get().qosCassandraMetricsConfig().get();
+            });
+        } else {
+            return OneReturningClientLimitMultiplier.create();
         }
-        return 1.0;
+    }
+
+    @Override
+    public long readLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
+                ImmutableQosClientLimitsConfig.builder().build());
+        return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().readBytesPerSecond();
+    }
+
+    @Override
+    public long writeLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
+                ImmutableQosClientLimitsConfig.builder().build());
+        return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
+                * qosClientLimitsConfig.limits().writeBytesPerSecond();
     }
 }

@@ -29,9 +29,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
 public abstract class QosServiceRuntimeConfig {
+    //live-reloadable
     @JsonProperty("client-limits")
     public abstract Map<String, QosClientLimitsConfig> clientLimits();
 
+    //non-live-reloadable (adding and removing this live is not supported)
     @JsonProperty("qos-cassandra-metrics")
     public abstract Optional<QosCassandraMetricsConfig> qosCassandraMetricsConfig();
 }
