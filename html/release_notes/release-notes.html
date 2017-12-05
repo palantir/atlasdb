@@ -212,6 +212,18 @@ These logs will be invaluable in more easily identifying hotspotting and for usi
 <td><code class="docutils literal"><span class="pre">TimeLockAgent</span></code> exposes a new method, <code class="docutils literal"><span class="pre">getStatus()</span></code>, to be used by the internal TimeLock instance in order to provide a health check.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2730">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><p class="first">Removed several utility methods that are used by AtlasDB code. <code class="docutils literal"><span class="pre">MathUtils</span></code> has been moved to our large internal product, which was the only place to use it.</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">MathUtils</span></code> (entire class)</li>
+<li><code class="docutils literal"><span class="pre">IterableUtils</span></code> (<code class="docutils literal"><span class="pre">getFirst(it,</span> <span class="pre">defaultValue)</span></code>, <code class="docutils literal"><span class="pre">mergeIterators</span></code>, <code class="docutils literal"><span class="pre">partitionByHash</span></code>, <code class="docutils literal"><span class="pre">prepend</span></code>, <code class="docutils literal"><span class="pre">transformIterator</span></code>)</li>
+<li><code class="docutils literal"><span class="pre">IteratorUtils.iteratorDifference</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2782">Pull Request</a>)</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
