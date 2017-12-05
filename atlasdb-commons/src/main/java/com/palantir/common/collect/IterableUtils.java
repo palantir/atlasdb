@@ -16,23 +16,17 @@
 package com.palantir.common.collect;
 
 import java.util.AbstractCollection;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.palantir.util.MathUtils;
 import com.palantir.util.Pair;
 
 public class IterableUtils {
@@ -50,16 +44,6 @@ public class IterableUtils {
         return new IterableCollection<T>(iterable, size);
     }
 
-    public static <T> Iterable<T> prepend(T a, Iterable<? extends T> b) {
-        Preconditions.checkNotNull(b);
-        return Iterables.concat(Collections.singleton(a), b);
-    }
-
-    public static <T> Collection<T> prepend(T a, Collection<? extends T> b) {
-        Preconditions.checkNotNull(b);
-        return toCollection(prepend(a, (Iterable<? extends T>)b));
-    }
-
     public static <T> Iterable<T> append(Iterable<? extends T> a, T b) {
         Preconditions.checkNotNull(a);
         return Iterables.concat(a, Collections.singleton(b));
@@ -70,35 +54,11 @@ public class IterableUtils {
         return toCollection(append((Iterable<? extends T>)a, b));
     }
 
-    public static <T> List<List<T>> partitionByHash(List<T> items, int buckets, Function<? super T, Long> f) {
-        Preconditions.checkArgument(Iterables.all(items, Predicates.notNull()));
-        Preconditions.checkArgument(buckets > 0);
-        Preconditions.checkNotNull(f);
-
-        ArrayList<List<T>> ret = Lists.newArrayList();
-        for (int i = 0; i < buckets ; i++) {
-            ret.add(Lists.<T>newArrayList());
-        }
-
-        for (T item : items) {
-            long hash = f.apply(item);
-            int h = (int) (hash ^ (hash >>> 32));
-            int i = MathUtils.mod(h, buckets);
-            ret.get(i).add(item);
-        }
-        assert assertCorrectlyPartitioned(items, ret);
-        return ret;
-    }
-
     /**
      * Get first element or null if the iterable is empty.
      */
     public static <T> T getFirst(Iterable<T> items) {
         return IteratorUtils.getFirst(items.iterator());
-    }
-
-    public static <T> T getFirst(Iterable<? extends T> items, @Nullable T defaultValue) {
-        return IteratorUtils.getFirst(items.iterator(), defaultValue);
     }
 
     /**
@@ -121,37 +81,6 @@ public class IterableUtils {
         };
     }
 
-    public static <T> Iterable<T> mergeIterables(final Iterable<? extends T> one, final Iterable<? extends T> two,
-            final Comparator<? super T> ordering, final Function<? super Pair<T, T>, ? extends T> mergeFunction) {
-        Preconditions.checkNotNull(one);
-        Preconditions.checkNotNull(two);
-        Preconditions.checkNotNull(mergeFunction);
-        Preconditions.checkNotNull(ordering);
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return IteratorUtils.mergeIterators(one.iterator(), two.iterator(), ordering, mergeFunction);
-            }
-            @Override
-            public String toString() {
-                return Iterables.toString(this);
-            }
-        };
-    }
-
-    public static <T> Iterable<T> transformIterator(final Iterable<T> it, final Function<Iterator<T>, Iterator<T>> f) {
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return f.apply(it.iterator());
-            }
-            @Override
-            public String toString() {
-                return Iterables.toString(this);
-            }
-        };
-    }
-
     public static <T, U> Iterable<Pair<T, U>> zip(final Iterable<? extends T> it1, final Iterable<? extends U> it2) {
         return new Iterable<Pair<T,U>>() {
             @Override
@@ -168,15 +97,6 @@ public class IterableUtils {
 
     public static <T, U> Iterable<Pair<T, U>> zip(final Iterable<? extends T> itT, final Function<T, U> transformationToU) {
         return zip(itT, Iterables.transform(itT, transformationToU));
-    }
-
-    private static <T> boolean assertCorrectlyPartitioned(List<T> items, List<List<T>> buckets) {
-        int total = 0;
-        for (List<T> list : buckets) {
-            total += list.size();
-        }
-        assert total == items.size();
-        return true;
     }
 
     static class IterableCollection<T> extends AbstractCollection<T> {

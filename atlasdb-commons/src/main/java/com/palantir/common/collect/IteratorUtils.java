@@ -190,46 +190,6 @@ public class IteratorUtils {
         };
     }
 
-    /**
-     * This will take 2 iterators sorted by the given ordering and will return an iterator that
-     * visits every element in the first one not in the second one.
-     *
-     * @param a must be sorted by ordering.
-     * @param b must be sorted by ordering.
-     * @param ordering
-     */
-    public static <T> Iterator<T> iteratorDifference(final Iterator<? extends T> a,
-                                                     final Iterator<? extends T> b,
-                                                     final Comparator<? super T> ordering) {
-        Preconditions.checkNotNull(ordering);
-        if (!a.hasNext()) {
-            return ImmutableSet.<T>of().iterator();
-        }
-        if (!b.hasNext()) {
-            return IteratorUtils.wrap(a);
-        }
-        return new AbstractIterator<T>() {
-            T currentB = b.next();
-
-            @Override
-            protected T computeNext() {
-                while (a.hasNext()) {
-                    T possibleNext = a.next();
-
-                    // Search for a new currentB that is >= possibleNext
-                    while (b.hasNext() && ordering.compare(possibleNext, currentB) > 0) {
-                        currentB = b.next();
-                    }
-
-                    if (ordering.compare(possibleNext, currentB) != 0) {
-                        return possibleNext;
-                    }
-                }
-                return endOfData();
-            }
-        };
-    }
-
     public static <T, U> Iterator<Pair<T, U>> zip(final Iterator<? extends T> it1, final Iterator<? extends U> it2) {
         return new AbstractIterator<Pair<T,U>>() {
             @Override
