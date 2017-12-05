@@ -68,7 +68,7 @@ public class AtlasDbMetricsTest {
 
     @Test(expected = NullPointerException.class)
     public void nullMetricsCannotBeSet() {
-        AtlasDbMetrics.setMetricRegistries(null, new DefaultTaggedMetricRegistry());
+        AtlasDbMetrics.setMetricRegistries(null, taggedMetricRegistry);
     }
 
     @Test(expected = NullPointerException.class)
@@ -94,8 +94,8 @@ public class AtlasDbMetricsTest {
 
     private MetricRegistry setMetricRegistry() {
         MetricRegistry metrics = SharedMetricRegistries.getOrCreate("AtlasDbTest");
-        TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
-        AtlasDbMetrics.setMetricRegistries(metrics, taggedMetricRegistry);
+        TaggedMetricRegistry taggedMetrics = DefaultTaggedMetricRegistry.getDefault();
+        AtlasDbMetrics.setMetricRegistries(metrics, taggedMetrics);
         return metrics;
     }
 
