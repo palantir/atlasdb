@@ -20,9 +20,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.QosCassandraMetricsConfig;
@@ -33,8 +31,6 @@ import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public final class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
-    private static Logger log = LoggerFactory.getLogger(CassandraMetricsClientLimitMultiplier.class);
-
     private final CassandraMetricsService cassandraMetricClient;
     private Supplier<QosCassandraMetricsConfig> config;
     private ThrottlingStrategy throttlingStrategy;
@@ -59,27 +55,24 @@ public final class CassandraMetricsClientLimitMultiplier implements ClientLimitM
     }
 
     public double getClientLimitMultiplier(QosPriority qosPriority) {
-        QosCassandraMetricsConfig qosCassandraMetricsConfig;
-        try {
-            qosCassandraMetricsConfig = config.get();
-        } catch (IllegalStateException ex) {
-            log.warn("QoS C* metrics config not found.", ex);
-            return 1.0;
-        }
-
         List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
-                qosCassandraMetricsConfig.cassandraHealthMetrics().stream().map(metric ->
-                        ImmutableCassandraHealthMetricMeasurement.builder()
-                                .currentValue(cassandraMetricClient.getMetric(
-                                        metric.type(),
-                                        metric.name(),
-                                        metric.attribute(),
-                                        metric.additionalParams()))
-                                .lowerLimit(metric.lowerLimit())
-                                .upperLimit(metric.upperLimit())
-                                .build())
-                        .collect(Collectors.toList());
+                getCassandraHealthMetricMeasurements(config.get().cassandraHealthMetrics());
 
         return throttlingStrategy.clientLimitMultiplier(cassandraHealthMetricMeasurements, qosPriority);
+    }
+
+    private List<CassandraHealthMetricMeasurement> getCassandraHealthMetricMeasurements(
+            List<CassandraHealthMetric> metricsToMeasure) {
+        return metricsToMeasure.stream().map(metric ->
+                ImmutableCassandraHealthMetricMeasurement.builder()
+                        .currentValue(cassandraMetricClient.getMetric(
+                                metric.type(),
+                                metric.name(),
+                                metric.attribute(),
+                                metric.additionalParams()))
+                        .lowerLimit(metric.lowerLimit())
+                        .upperLimit(metric.upperLimit())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

@@ -29,8 +29,6 @@ import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 public class QosAgent {
     private final Supplier<QosServiceRuntimeConfig> config;
     private final Consumer<Object> registrar;
-    private ClientLimitMultiplier clientLimitMultiplier;
-    private QosClientConfigLoader qosClientConfigLoader;
 
     public QosAgent(Supplier<QosServiceRuntimeConfig> config, Consumer<Object> registrar) {
         this.config = config;
@@ -38,8 +36,8 @@ public class QosAgent {
     }
 
     public void createAndRegisterResources() {
-        qosClientConfigLoader = QosClientConfigLoader.create(() -> config.get().clientLimits());
-        clientLimitMultiplier = getNonLiveReloadableClientLimitMultiplier();
+        QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(() -> config.get().clientLimits());
+        ClientLimitMultiplier clientLimitMultiplier = getNonLiveReloadableClientLimitMultiplier();
         registrar.accept(new QosResource(qosClientConfigLoader, clientLimitMultiplier));
     }
 

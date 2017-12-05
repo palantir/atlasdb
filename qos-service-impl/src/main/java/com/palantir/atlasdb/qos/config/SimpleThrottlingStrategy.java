@@ -17,10 +17,14 @@ package com.palantir.atlasdb.qos.config;
 
 import java.util.List;
 
+import com.google.common.util.concurrent.RateLimiter;
+
 public class SimpleThrottlingStrategy implements ThrottlingStrategy {
+    private final RateLimiter rateLimiter;
     private double multiplier;
 
     public SimpleThrottlingStrategy() {
+        this.rateLimiter = RateLimiter.create(0.1);
         this.multiplier = 1.0;
     }
 
@@ -28,9 +32,10 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     public double clientLimitMultiplier(List<CassandraHealthMetricMeasurement> metricMeasurements,
             QosPriority unused) {
         if (metricMeasurements.stream()
-                .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits())) {
+                .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits())
+                && rateLimiter.tryAcquire()) {
             multiplier = Math.max(0.1, multiplier * 0.5);
-        } else {
+        } else if (rateLimiter.tryAcquire()) {
             multiplier = Math.min(1.0, multiplier * 2);
         }
         return multiplier;
