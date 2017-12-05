@@ -85,7 +85,7 @@ Memory pressure in the backing KVS: decrease candidateBatchHint
 The sweep job works by requesting ``candidateBatchHint`` values from the KVS in each round-trip.
 In some rare cases, the Cassandra KVS will not be able to fetch ``candidateBatchHint`` values, likely due to specific cells being overwritten many times and/or containing very large values.
 If that happens, KVS calls will timeout and sweep will reduce ``candidateBatchHint`` automatically, trying to fetch fewer values in the following round-trips to the KVS.
-If subsequent KVS round-trips are successful, the value of ``candidateBatchHint`` is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the maximum is too high, failures will happen again.
+If subsequent KVS round-trips are successful, the value of ``candidateBatchHint`` is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the configured value is too high, failures will happen again.
 
 You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that the load on the KVS doesn't trigger failures and sweep is able to run.
 
