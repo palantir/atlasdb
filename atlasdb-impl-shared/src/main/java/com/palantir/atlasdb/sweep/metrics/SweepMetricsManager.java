@@ -36,7 +36,7 @@ public class SweepMetricsManager {
             factory.createHistogram(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, UpdateEvent.FULL_TABLE, false));
 
     private final SweepMetric sweepErrorMetric =
-            factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEvent.ONE_ITERATION, false);
+            factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEvent.ERROR, false);
 
     public void updateMetrics(SweepResults sweepResults, TableReference tableRef, UpdateEvent updateEvent) {
         cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);
@@ -46,6 +46,6 @@ public class SweepMetricsManager {
     }
 
     public void sweepError() {
-        sweepErrorMetric.update(1, DUMMY, UpdateEvent.ONE_ITERATION);
+        sweepErrorMetric.update(1, DUMMY, UpdateEvent.ERROR);
     }
 }

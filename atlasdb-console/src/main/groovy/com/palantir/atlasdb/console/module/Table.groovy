@@ -70,7 +70,7 @@ class Table {
      * @param row  A single row to get, where the row is a List of components
      * @param cols Optional List of columns to get, where each column is a
      *             String representing the column name. Defaults to all columns if unspecified.
-     * @param token Optional TransactionToken representing currentValue transaction.
+     * @param token Optional TransactionToken representing current transaction.
      *              Defaults to TransactionToken.autoCommit() if unspecified.
      * @return Returns a Map object.
      *         For named columns:
@@ -106,7 +106,7 @@ class Table {
      * @param rows List of rows to get, where each row is a List of components
      * @param cols Optional List of columns to get, where each column is a
      *             String representing the column name. Defaults to all columns if unspecified.
-     * @param token Optional TransactionToken representing currentValue transaction.
+     * @param token Optional TransactionToken representing current transaction.
      *              Defaults to TransactionToken.autoCommit() if unspecified.
      * @return Returns a List of Map objects.
      *         For named colums:
@@ -163,7 +163,7 @@ class Table {
      *            "row": {componentName1: component1, componentName2: component2, ...},
      *            "col": [{component1}, ...]
      *        ]
-     * @param token Optional TransactionToken representing currentValue transaction.
+     * @param token Optional TransactionToken representing current transaction.
      *              Defaults to TransactionToken.autoCommit() if unspecified.
      * @return List of Objects.
      *         For named columns:

@@ -230,6 +230,15 @@ public class SweepMetricsManagerTest {
         assertSweepTimeElapsedHistogramWithinMarginOfError(OTHER_START_TIME);
     }
 
+    @Test
+    public void testSweepError() {
+        sweepMetricsManager.sweepError();
+        sweepMetricsManager.sweepError();
+
+        Meter meter = getMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEvent.ERROR);
+        assertThat(meter.getCount(), equalTo(2L));
+    }
+
     private void assertRecordedHistogramTaggedSafeOneIteration(String name, TableReference tableRef, Long... values) {
         Histogram histogram = getHistogram(name, tableRef, UpdateEvent.ONE_ITERATION, true);
         assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
@@ -247,7 +256,7 @@ public class SweepMetricsManagerTest {
     }
 
     private void assertRecordedMeterNonTaggedOneIteration(String aggregateMetric, Long... values) {
-        Meter meter = getMeter(aggregateMetric);
+        Meter meter = getMeter(aggregateMetric, UpdateEvent.ONE_ITERATION);
         assertThat(meter.getCount(), equalTo(Arrays.asList(values).stream().reduce(0L, Long::sum)));
     }
 
@@ -269,10 +278,10 @@ public class SweepMetricsManagerTest {
                 updateEvent, tableRef, taggedWithTableName));
     }
 
-    private Meter getMeter(String namePrefix) {
+    private Meter getMeter(String namePrefix, UpdateEvent updateEvent) {
         return taggedMetricRegistry.meter(SweepMetricImpl.getTaggedMetricName(
                 namePrefix + SweepMetricAdapter.METER_ADAPTER.getNameSuffix(),
-                UpdateEvent.ONE_ITERATION, DUMMY, false));
+                updateEvent, DUMMY, false));
     }
 
     private Gauge getCurrentValueMetric(String namePrefix) {

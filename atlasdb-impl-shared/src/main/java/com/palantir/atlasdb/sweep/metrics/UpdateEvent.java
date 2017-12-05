@@ -31,4 +31,8 @@ public abstract class UpdateEvent {
             .tag("period")
             .label("perTable")
             .build();
+    public static final UpdateEvent ERROR = ImmutableUpdateEvent.builder()
+            .tag("trigger")
+            .label("error")
+            .build();
 }
