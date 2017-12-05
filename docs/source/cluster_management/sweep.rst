@@ -74,9 +74,9 @@ Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``candidateBatchHint`` specifies the number of values to load from the KVS on each round-trip. ``readLimit`` specifies the number of values to read from the KVS in a batch.
-If each batch takes little time, it's advisable to increase the ``readLimit`` and ``deleteBatchHint``, to make allow for bigger batches.
+If each batch takes little time, it's advisable to increase the ``readLimit`` and ``deleteBatchHint``, to make sweep's batches bigger.
 If the client is OOMing, it's advisable to decrease the ``readLimit``, to have a lower number of values per batches.
-Since effectively we have at least ``candidateBatchHint`` values per sweep batch, if ``readLimit`` reaches the same value as ``candidateBatchHint``, it' advisable to reduce the two values together from there onwards.
+Since each batch contains at least ``candidateBatchHint`` values, if ``readLimit`` reaches the same value as ``candidateBatchHint`` you should reduce the latter config.
 Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row its trying to sweep is very large. Please contact the AtlasDB team if you think you're hitting this issue.
 
 Memory pressure in Cassandra: decrease candidateBatchHint
@@ -84,7 +84,7 @@ Memory pressure in Cassandra: decrease candidateBatchHint
 
 The sweep job works by requesting ``candidateBatchHint`` values from the KVS in each round-trip.
 In some rare cases, the Cassandra KVS will not be able to fetch ``candidateBatchHint`` values, likely due to specific cells being overwritten many times and/or containing very large values.
-If that happens, KVS calls will timeout and sweep will reduce ``candidateBatchHint`` automatically, trying to fetch less values in the following round-trips.
+If that happens, KVS calls will timeout and sweep will reduce ``candidateBatchHint`` automatically, trying to fetch less values in the following round-trips to the KVS.
 You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that sweep is able to run without failures.
 
 .. toctree::
