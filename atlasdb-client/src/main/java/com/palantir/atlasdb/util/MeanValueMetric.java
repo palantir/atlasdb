@@ -18,24 +18,28 @@ package com.palantir.atlasdb.util;
 
 import com.codahale.metrics.Gauge;
 
-public class CurrentValueMetric implements Gauge<Long> {
-    volatile long value = 0;
+public class MeanValueMetric implements Gauge<Double> {
+    private double mean = 0.0;
+    private double numberOfEntries = 0.0;
 
     @Override
-    public Long getValue() {
-        return value;
+    public Double getValue() {
+        return mean;
     }
 
-    public void setValue(long newValue) {
-        value = newValue;
-    }
-
-    public static class MaximumValueMetric extends CurrentValueMetric {
-        @Override
-        public void setValue(long newValue) {
-            synchronized (this) {
-                super.setValue(Math.max(getValue(), newValue));
-            }
+    public synchronized void addEntry(Long entry) {
+        if (numberOfEntries == 0) {
+            mean = (double) entry;
         }
+        else {
+            double normalizedEntry = entry / numberOfEntries;
+            mean = mean + normalizedEntry;
+            rescaleMean();
+        }
+        numberOfEntries++;
+    }
+
+    private void rescaleMean() {
+        mean = (mean / (numberOfEntries + 1)) * numberOfEntries;
     }
 }

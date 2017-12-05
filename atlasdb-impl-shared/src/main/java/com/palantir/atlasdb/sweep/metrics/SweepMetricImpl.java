@@ -42,6 +42,15 @@ public class SweepMetricImpl implements SweepMetric {
         this.metricAdapter = config.metricAdapter();
     }
 
+    SweepMetricImpl(String namePrefix, TaggedMetricRegistry taggedMetricRegistry, UpdateEvent updateEvent,
+            boolean tagWithTableName, SweepMetricAdapter<?> sweepMetricAdapter) {
+        this.name = namePrefix + sweepMetricAdapter.getNameSuffix();
+        this.metricRegistry = taggedMetricRegistry;
+        this.updateEvent = updateEvent;
+        this.tagWithTableName = tagWithTableName;
+        this.metricAdapter = sweepMetricAdapter;
+    }
+
     @Override
     public void update(long value, TableReference tableRef, UpdateEvent eventInstance) {
         if (updateEvent.equals(eventInstance)) {

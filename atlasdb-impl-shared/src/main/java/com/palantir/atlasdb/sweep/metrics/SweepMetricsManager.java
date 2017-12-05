@@ -31,9 +31,8 @@ public class SweepMetricsManager {
     private final SweepMetric cellsDeletedMetric = factory.createDefault(AtlasDbMetricNames.CELLS_SWEPT);
     private final SweepMetric sweepTimeSweepingMetric = factory.createDefault(AtlasDbMetricNames.TIME_SPENT_SWEEPING);
 
-    private final SweepMetric sweepTimeElapsedMetric = new SweepMetricsFactory.ListOfMetrics(
-            factory.createCurrentValue(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, UpdateEvent.ONE_ITERATION, false),
-            factory.createHistogram(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, UpdateEvent.FULL_TABLE, false));
+    private final SweepMetric sweepTimeElapsedMetric =
+            factory.createMetricsForTimeElapsed(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
 
     private final SweepMetric sweepErrorMetric =
             factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEvent.ERROR, false);

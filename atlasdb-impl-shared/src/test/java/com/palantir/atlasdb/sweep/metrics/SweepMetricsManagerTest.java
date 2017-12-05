@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -45,6 +46,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.CurrentValueMetric;
+import com.palantir.atlasdb.util.MeanValueMetric;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -251,8 +253,12 @@ public class SweepMetricsManagerTest {
     }
 
     private void assertRecordedHistogramNonTaggedFullTable(String name, TableReference tableRef, Long... values) {
-        Histogram histogram = getHistogram(name, tableRef, UpdateEvent.FULL_TABLE, false);
-        assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
+        Gauge<Long> maximumValueMetric = getMaximumValueMetric(name);
+        Gauge<Double> meanValueMetric = getMeanValueMetric(name);
+        long actualMaximum = Arrays.stream(values).max(Long::compare).get();
+        double actualMean = Arrays.stream(values).mapToLong(x -> x).reduce(0L, Long::sum) / (double) values.length;
+        assertThat(maximumValueMetric.getValue(), equalTo(actualMaximum));
+        assertThat(meanValueMetric.getValue(), closeTo(actualMean, 0.1));
     }
 
     private void assertRecordedMeterNonTaggedOneIteration(String aggregateMetric, Long... values) {
@@ -266,9 +272,13 @@ public class SweepMetricsManagerTest {
     }
 
     private void assertSweepTimeElapsedHistogramWithinMarginOfError(Long... timeSweepStarted) {
-        Histogram histogram =
-                getHistogram(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, DUMMY, UpdateEvent.FULL_TABLE, false);
-        assertWithinMarginOfError(histogram, Arrays.asList(timeSweepStarted));
+        Gauge<Long> maximumValueMetric = getMaximumValueMetric(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+        Gauge<Double> meanValueMetric = getMeanValueMetric(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
+        long minTimeStarted = Arrays.stream(timeSweepStarted).min(Long::compare).get();
+        double meanTimeStarted = Arrays.stream(timeSweepStarted).mapToLong(x -> x)
+                .reduce(0L, Long::sum) / (double) timeSweepStarted.length;
+        assertWithinErrorMarginOf(maximumValueMetric.getValue(), System.currentTimeMillis() - minTimeStarted);
+        assertWithinErrorMarginOf(meanValueMetric.getValue(), System.currentTimeMillis() - meanTimeStarted);
     }
 
     private Histogram getHistogram(String namePrefix, TableReference tableRef, UpdateEvent updateEvent,
@@ -290,6 +300,18 @@ public class SweepMetricsManagerTest {
                 UpdateEvent.ONE_ITERATION, DUMMY, false), new CurrentValueMetric());
     }
 
+    private Gauge getMaximumValueMetric(String namePrefix) {
+        return taggedMetricRegistry.gauge(SweepMetricImpl.getTaggedMetricName(
+                namePrefix + SweepMetricAdapter.MAXIMUM_VALUE_ADAPTER.getNameSuffix(),
+                UpdateEvent.FULL_TABLE, DUMMY, false), new CurrentValueMetric.MaximumValueMetric());
+    }
+
+    private Gauge getMeanValueMetric(String namePrefix) {
+        return taggedMetricRegistry.gauge(SweepMetricImpl.getTaggedMetricName(
+                namePrefix + SweepMetricAdapter.MEAN_VALUE_ADAPTER.getNameSuffix(),
+                UpdateEvent.FULL_TABLE, DUMMY, false), new MeanValueMetric());
+    }
+
     private void assertWithinMarginOfError(Histogram histogram, List<Long> timesStarted) {
         List<Long> timesRecorded = Longs.asList(histogram.getSnapshot().getValues());
         timesRecorded.sort(Long::compareTo);
@@ -300,9 +322,14 @@ public class SweepMetricsManagerTest {
         }
     }
 
-    private void assertWithinErrorMarginOf(long value, long expected) {
-        assertThat(value, greaterThan(expected - 1000L));
-        assertThat(value, lessThanOrEqualTo(expected));
+    private void assertWithinErrorMarginOf(double actual, double expected) {
+        assertThat(actual, greaterThan(expected - 1000.0));
+        assertThat(actual, lessThanOrEqualTo(expected));
+    }
+
+    private void assertWithinErrorMarginOf(long actual, long expected) {
+        assertThat(actual, greaterThan(expected - 1000L));
+        assertThat(actual, lessThanOrEqualTo(expected));
     }
 
     private static TableMetadata createTableMetadataWithLogSafety(TableMetadataPersistence.LogSafety safety) {

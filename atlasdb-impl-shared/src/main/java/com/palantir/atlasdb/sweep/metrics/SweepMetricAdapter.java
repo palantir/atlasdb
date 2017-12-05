@@ -25,6 +25,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
+import com.palantir.atlasdb.util.MeanValueMetric;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -58,5 +59,21 @@ public abstract class SweepMetricAdapter<M extends Metric> {
                     .metricConstructor((taggedMetricRegistry, metricName) ->
                             (CurrentValueMetric) taggedMetricRegistry.gauge(metricName, new CurrentValueMetric()))
                     .updateMethod(CurrentValueMetric::setValue)
+                    .build();
+
+    public static final SweepMetricAdapter<CurrentValueMetric.MaximumValueMetric> MAXIMUM_VALUE_ADAPTER =
+            ImmutableSweepMetricAdapter.<CurrentValueMetric.MaximumValueMetric>builder()
+                    .nameSuffix("MaximumValue")
+                    .metricConstructor((taggedMetricRegistry, metricName) -> (CurrentValueMetric.MaximumValueMetric)
+                            taggedMetricRegistry.gauge(metricName, new CurrentValueMetric.MaximumValueMetric()))
+                    .updateMethod(CurrentValueMetric.MaximumValueMetric::setValue)
+                    .build();
+
+    public static final SweepMetricAdapter<MeanValueMetric> MEAN_VALUE_ADAPTER =
+            ImmutableSweepMetricAdapter.<MeanValueMetric>builder()
+                    .nameSuffix("MeanValue")
+                    .metricConstructor((taggedMetricRegistry, metricName) ->
+                            (MeanValueMetric) taggedMetricRegistry.gauge(metricName, new MeanValueMetric()))
+                    .updateMethod(MeanValueMetric::addEntry)
                     .build();
 }

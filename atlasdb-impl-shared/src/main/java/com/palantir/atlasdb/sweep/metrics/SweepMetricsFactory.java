@@ -31,7 +31,15 @@ public class SweepMetricsFactory {
         return new SweepMetricsFactory.ListOfMetrics(
                 createMeter(namePrefix, UpdateEvent.ONE_ITERATION, false),
                 createHistogram(namePrefix, UpdateEvent.ONE_ITERATION, true),
-                createHistogram(namePrefix, UpdateEvent.FULL_TABLE, false));
+                createMaximumValue(namePrefix, UpdateEvent.FULL_TABLE, false),
+                createMeanValue(namePrefix, UpdateEvent.FULL_TABLE, false));
+    }
+
+    SweepMetric createMetricsForTimeElapsed(String namePrefix) {
+        return new SweepMetricsFactory.ListOfMetrics(
+                createCurrentValue(namePrefix, UpdateEvent.ONE_ITERATION, false),
+                createMaximumValue(namePrefix, UpdateEvent.FULL_TABLE, false),
+                createMeanValue(namePrefix, UpdateEvent.FULL_TABLE, false));
     }
 
     /**
@@ -44,13 +52,7 @@ public class SweepMetricsFactory {
      * @return SweepMetric backed by a Meter
      */
     SweepMetric createMeter(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
-        return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
-                .namePrefix(namePrefix)
-                .taggedMetricRegistry(metricRegistry)
-                .updateEvent(updateEvent)
-                .tagWithTableName(tagWithTableName)
-                .metricAdapter(SweepMetricAdapter.METER_ADAPTER)
-                .build());
+        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.METER_ADAPTER);
     }
 
     /**
@@ -63,13 +65,7 @@ public class SweepMetricsFactory {
      * @return SweepMetric backed by a Histogram
      */
     SweepMetric createHistogram(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
-        return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
-                .namePrefix(namePrefix)
-                .taggedMetricRegistry(metricRegistry)
-                .updateEvent(updateEvent)
-                .tagWithTableName(tagWithTableName)
-                .metricAdapter(SweepMetricAdapter.HISTOGRAM_ADAPTER)
-                .build());
+        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.HISTOGRAM_ADAPTER);
     }
 
     /**
@@ -82,12 +78,25 @@ public class SweepMetricsFactory {
      * @return SweepMetric backed by a CurrentValueMetric
      */
     SweepMetric createCurrentValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER);
+    }
+
+    SweepMetric createMaximumValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.MAXIMUM_VALUE_ADAPTER);
+    }
+
+    SweepMetric createMeanValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.MEAN_VALUE_ADAPTER);
+    }
+
+    SweepMetric createMetric(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName,
+            SweepMetricAdapter<?> metricAdapter) {
         return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
                 .namePrefix(namePrefix)
                 .taggedMetricRegistry(metricRegistry)
                 .updateEvent(updateEvent)
                 .tagWithTableName(tagWithTableName)
-                .metricAdapter(SweepMetricAdapter.CURRENT_VALUE_ADAPTER)
+                .metricAdapter(metricAdapter)
                 .build());
     }
 
