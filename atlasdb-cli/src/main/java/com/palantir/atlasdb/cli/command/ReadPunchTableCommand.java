@@ -54,6 +54,10 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
         if (epochTime == null) {
             throw new IllegalArgumentException("Required option '-e' is missing");
         }
+        if (epochTime < 0) {
+            throw new IllegalArgumentException("Option '-e' should be a positive long, as epoch time"
+                    + " is never negative.");
+        }
 
         Date date = new Date(epochTime);
         printer.info("Input {} in epoch millis is {}",
