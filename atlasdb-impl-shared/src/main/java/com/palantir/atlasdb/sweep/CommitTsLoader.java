@@ -82,8 +82,8 @@ public final class CommitTsLoader {
             return commitTsAfterRollBack;
         } else {
             // This can happen if the clean tx table CLI has rolled-back the transaction at the start ts.
-            log.warn("Did not find a commitTs for startTs {} after rollback. "
-                    + "This is possibly due to a delete for this startTs via the clean transaction table CLI.",
+            log.warn("Did not find a commitTs for startTs {} after a rollback. "
+                    + "This is possibly due to a delete at the above startTs via the clean transaction table CLI.",
                     SafeArg.of("startTs", startTs));
             return TransactionConstants.FAILED_COMMIT_TS;
         }
