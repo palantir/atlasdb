@@ -15,16 +15,21 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.SafeArg;
 
@@ -52,13 +57,13 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
         KeyValueService kvs = services.getKeyValueService();
-        TransactionService transactionService = services.getTransactionService();
 
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
                 RangeRequest.all(),
                 Long.MAX_VALUE);
 
+        Map<Cell, byte[]> txTableValuesToWrite =  new HashMap<>();
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             byte[] rowName = row.getRowName();
@@ -82,10 +87,22 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
             printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
                     SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
 
-            transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
+            Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
+            byte[] valueForRollbackTimestamp =
+                    TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS);
+
+            txTableValuesToWrite.put(key, valueForRollbackTimestamp);
         }
 
-        printer.info("Rollback of transactions completed.");
+        if (!txTableValuesToWrite.isEmpty()) {
+            Map<TableReference, Map<Cell, byte[]>> valuesToPut = new HashMap<>();
+            valuesToPut.put(TransactionConstants.TRANSACTION_TABLE, txTableValuesToWrite);
+            kvs.multiPut(valuesToPut, AtlasDbConstants.TRANSACTION_TS);
+            printer.info("Completed rollback of transactions after the given timestamp.");
+        } else {
+            printer.info("Found no transactions after the given timestamp to rollback.");
+        }
+
         return 0;
     }
 }

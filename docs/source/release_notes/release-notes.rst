@@ -53,7 +53,7 @@ develop
     *    - |fixed|
          - Clean Transactions CLI will now rollback the inconsistent transactions rather than deleting non-transactionally from the transactions table.
            This has been known to cause issues with sweep loading the commit Ts and is in general non-intuitive as if a cell is deleted, then
-            ``putUnlessExists`` followed by a ``get`` will not return the value written by the former operation but ``null`` as it thinks the value is deleted.
+           ``putUnlessExists`` followed by a ``get`` will not return the value written by the former operation but ``null`` as it thinks the value is deleted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
 
     *    - |fixed|
