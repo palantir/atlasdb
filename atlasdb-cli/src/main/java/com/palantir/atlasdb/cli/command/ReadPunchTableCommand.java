@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.cli.command;
 
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import org.slf4j.LoggerFactory;
 
@@ -59,16 +61,17 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
                     + " is never negative.");
         }
 
-        Date date = new Date(epochTime);
+        Instant epochTimeInstant = Instant.ofEpochSecond(epochTime);
+        ZonedDateTime date = ZonedDateTime.ofInstant(epochTimeInstant, ZoneId.systemDefault());
         printer.info("Input {} in epoch millis is {}",
                 SafeArg.of("epochMillis", epochTime),
-                SafeArg.of("date", date));
+                SafeArg.of("date", date.toString()));
 
         KeyValueService keyValueService = services.getKeyValueService();
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(keyValueService, false);
         Long value = puncherStore.get(epochTime);
         printer.info("The first timestamp before {} is {}",
-                SafeArg.of("date", date),
+                SafeArg.of("date", date.toString()),
                 SafeArg.of("timestamp", value));
         return 0;
     }
