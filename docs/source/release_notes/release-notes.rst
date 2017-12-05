@@ -51,9 +51,10 @@ develop
          - Change
 
     *    - |fixed|
-         - Sweep can now make progress after a restore and after the clean transactions CLI is run. Earlier, it would fail throwing
-           ``NullPointerException``s due to failure to read the commit ts.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+         - Sweep can now make progress after a restore and after the clean transactions CLI is run.
+           Earlier, it would fail throwing a ``NullPointerException`` due to failure to read the commit ts.
+           This would cause sweep to keep retrying without realising that it will never proceed forward.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2778>`__)
 
     *    - |new| |logs|
          - Cassandra KVS now records how many writes have been made into each token range for each table.
