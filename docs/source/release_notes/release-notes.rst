@@ -56,6 +56,10 @@ develop
            This would cause sweep to keep retrying without realising that it will never proceed forward.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2778>`__)
 
+    *    - |fixed|
+         - Sweep will no longer run during KVS Migrations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2784>`__)
+
     *    - |new| |logs|
          - Cassandra KVS now records how many writes have been made into each token range for each table.
            That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).
