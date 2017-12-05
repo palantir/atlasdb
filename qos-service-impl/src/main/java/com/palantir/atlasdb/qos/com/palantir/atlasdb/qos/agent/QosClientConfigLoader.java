@@ -16,23 +16,26 @@
 package com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 
 public class QosClientConfigLoader {
-    private final Map<String, QosClientLimitsConfig> qosClientLimitsConfigSupplier;
+    private final Supplier<Map<String, QosClientLimitsConfig>> qosClientLimitsConfigSupplier;
 
     public QosClientConfigLoader(
-            Map<String, QosClientLimitsConfig> qosClientLimitsConfigSupplier) {
+            Supplier<Map<String, QosClientLimitsConfig>> qosClientLimitsConfigSupplier) {
         this.qosClientLimitsConfigSupplier = qosClientLimitsConfigSupplier;
     }
 
-    public static QosClientConfigLoader create(Map<String, QosClientLimitsConfig> qosClientLimitsConfigSupplier) {
+    public static QosClientConfigLoader create(
+            Supplier<Map<String, QosClientLimitsConfig>> qosClientLimitsConfigSupplier) {
         return new QosClientConfigLoader(qosClientLimitsConfigSupplier);
     }
 
     public QosClientLimitsConfig getConfigForClient(String client) {
-        return qosClientLimitsConfigSupplier.getOrDefault(client, ImmutableQosClientLimitsConfig.builder().build());
+        return qosClientLimitsConfigSupplier.get()
+                .getOrDefault(client, ImmutableQosClientLimitsConfig.builder().build());
     }
 }

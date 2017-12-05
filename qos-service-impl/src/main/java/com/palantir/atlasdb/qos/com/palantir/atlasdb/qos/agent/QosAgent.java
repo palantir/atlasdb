@@ -38,7 +38,7 @@ public class QosAgent {
     }
 
     public void createAndRegisterResources() {
-        qosClientConfigLoader = QosClientConfigLoader.create(config.get().clientLimits());
+        qosClientConfigLoader = QosClientConfigLoader.create(() -> config.get().clientLimits());
         clientLimitMultiplier = getNonLiveReloadableClientLimitMultiplier();
         registrar.accept(new QosResource(qosClientConfigLoader, clientLimitMultiplier));
     }
