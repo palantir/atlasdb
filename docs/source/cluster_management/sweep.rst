@@ -59,40 +59,33 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
    :widths: 20, 20, 40, 200
 
    ``enabled``, "Only specified in config", "true", "Whether the background sweeper should run."
-   ``readLimit``, ``maxCellTsPairsToExamine``, "1,000", "Target number of (cell, timestamp) pairs to examine in a single run."
-   ``candidateBatchHint``, ``candidateBatchSize``, "1 (Cassandra); 1024 (all other KVSs)", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
-   ``deleteBatchHint``, ``deleteBatchSize``, "1,000", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
+   ``readLimit``, ``maxCellTsPairsToExamine``, "128", "Target number of (cell, timestamp) pairs to examine in a batch of sweep."
+   ``candidateBatchHint``, ``candidateBatchSize``, "128", "Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
+   ``deleteBatchHint``, ``deleteBatchSize``, "128", "Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance."
    ``pauseMillis``, "Only specified in config", "5000 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
-
-.. csv-table::
-   :header: "CasandraKeyValueService Config", "Endpoint Option", "Default", "Description"
-   :widths: 20, 20, 40, 200
-
-   ``timestampsGetterBatchSize``, "Only specified in config", "1,000", "Specify a limit on the maximum number of columns to fetch in a single database query. Set this to a number fewer than your number of columns if your Cassandra OOMs when attempting to run sweep with even a small row batch size. This parameter should be used when tuning Sweep for cells with many historical versions."
 
 Following is more information about when each of the batching parameters is useful.
 In short, the recommendation is:
 
 - Decrease ``candidateBatchHint`` and ``readLimit`` if there is memory pressure on the client.
-- Decrease ``timestampsGetterBatchSize`` if there is memory pressure on Cassandra even after setting ``candidateBatchHint`` down to 1.
+- Decrease ``candidateBatchHint`` if there is memory pressure on the KVS.
 
 Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Since the number of columns per row can vary widely between tables, only setting a row batch size can lead to sweep batches containing different numbers of cells; setting ``candidateBatchHint`` can even this out.
-For example, consider a database that has one table with 1000 rows and 10 columns, a second table with 1000 rows and 100 columns, and that performs best when sweeping at most 10,000 cells at a time.
-In this setup, limiting ``candidateBatchHint`` to 100 would ensure that at most 10,000 cells are swept at a time, but would split the first table in 10 batches when only 1 was necessary.
-Instead, setting ``readLimit`` to 10,000 would allow both tables to be swept in optimal batches.
+``candidateBatchHint`` specifies the number of values to load from the KVS on each round-trip. ``readLimit`` specifies the number of values to read from the KVS in a batch.
+If each batch takes little time, it's advisable to increase the ``readLimit`` and ``deleteBatchHint``, to make allow for bigger batches.
+If the client is OOMing, it's advisable to decrease the ``readLimit``, to have a lower number of values per batches.
+Since effectively we have at least ``candidateBatchHint`` values per sweep batch, if ``readLimit`` reaches the same value as ``candidateBatchHint``, it' advisable to reduce the two values together from there onwards.
+Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row its trying to sweep is very large. Please contact the AtlasDB team if you think you're hitting this issue.
 
-Memory pressure in Cassandra: decrease timestampsGetterBatchSize
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Memory pressure in Cassandra: decrease candidateBatchHint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The sweep job works by requesting at least one full row at a time from the KVS, including all historical versions of each cell in the row.
-In some rare cases, the Cassandra KVS will not be able to construct a single full row in memory, likely due to specific cells being overwritten many times and/or containing very large values.
-This situation will manifest with Cassandra OOMing during sweep even if ``sweepBatchSize`` is set to 1.
-If that happens, you can use ``timestampsGetterBatchSize`` to instruct Cassandra to read a smaller number of columns at a time before aggregating them into a single row metadata to pass on to the sweeper.
-If ``timestampsGetterBatchSize`` is set, Cassandra will read at most one row at a time.
-The other batch parameters are still respected, but their values are unlikely to make a difference because the execution time will be dominated by the single-row reads.
+The sweep job works by requesting ``candidateBatchHint`` values from the KVS in each round-trip.
+In some rare cases, the Cassandra KVS will not be able to fetch ``candidateBatchHint`` values, likely due to specific cells being overwritten many times and/or containing very large values.
+If that happens, KVS calls will timeout and sweep will reduce ``candidateBatchHint`` automatically, trying to fetch less values in the following round-trips.
+You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that sweep is able to run without failures.
 
 .. toctree::
     :maxdepth: 1
