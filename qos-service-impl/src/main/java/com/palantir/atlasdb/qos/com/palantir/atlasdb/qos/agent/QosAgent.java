@@ -19,12 +19,18 @@ package com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.qos.QosResource;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
+import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
+import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosAgent {
     private final Supplier<QosServiceRuntimeConfig> config;
     private final Consumer<Object> registrar;
+    private ClientLimitMultiplier clientLimitMultiplier;
+    private QosClientConfigLoader qosClientConfigLoader;
 
     public QosAgent(Supplier<QosServiceRuntimeConfig> config, Consumer<Object> registrar) {
         this.config = config;
@@ -32,6 +38,21 @@ public class QosAgent {
     }
 
     public void createAndRegisterResources() {
-        registrar.accept(new QosResource(config));
+        qosClientConfigLoader = QosClientConfigLoader.create(config.get().clientLimits());
+        clientLimitMultiplier = getNonLiveReloadableClientLimitMultiplier();
+        registrar.accept(new QosResource(qosClientConfigLoader, clientLimitMultiplier));
+    }
+
+    private ClientLimitMultiplier getNonLiveReloadableClientLimitMultiplier() {
+        if (config.get().qosCassandraMetricsConfig().isPresent()) {
+            return CassandraMetricsClientLimitMultiplier.create(() -> {
+                Preconditions.checkState(config.get().qosCassandraMetricsConfig().isPresent(),
+                        "The Qos Cassandra metrics config was present before but can not be found now,"
+                                + "removing this config block is not supported live.");
+                return config.get().qosCassandraMetricsConfig().get();
+            });
+        } else {
+            return OneReturningClientLimitMultiplier.create();
+        }
     }
 }

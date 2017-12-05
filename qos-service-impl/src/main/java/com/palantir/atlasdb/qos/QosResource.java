@@ -16,51 +16,30 @@
 
 package com.palantir.atlasdb.qos;
 
-import java.util.function.Supplier;
-
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
+import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
-import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
 import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
-import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosResource implements QosService {
 
-    private Supplier<QosServiceRuntimeConfig> config;
+    private final QosClientConfigLoader qosClientConfigLoader;
     private final ClientLimitMultiplier clientLimitMultiplier;
 
-    public QosResource(Supplier<QosServiceRuntimeConfig> config) {
-        this.config = config;
-        this.clientLimitMultiplier = getNonLiveReloadableClientLimitMultiplier();
-    }
-
-    private ClientLimitMultiplier getNonLiveReloadableClientLimitMultiplier() {
-        if (config.get().qosCassandraMetricsConfig().isPresent()) {
-            return CassandraMetricsClientLimitMultiplier.create(() -> {
-                Preconditions.checkState(config.get().qosCassandraMetricsConfig().isPresent(),
-                        "The Qos Cassandra metrics config was present before but can not be found now,"
-                                + "removing this config block is not supported live.");
-                return config.get().qosCassandraMetricsConfig().get();
-            });
-        } else {
-            return OneReturningClientLimitMultiplier.create();
-        }
+    public QosResource(QosClientConfigLoader qosClientConfigLoader, ClientLimitMultiplier clientLimitMultiplier) {
+        this.qosClientConfigLoader = qosClientConfigLoader;
+        this.clientLimitMultiplier = clientLimitMultiplier;
     }
 
     @Override
     public long readLimit(String client) {
-        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
-                ImmutableQosClientLimitsConfig.builder().build());
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
         return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
                 * qosClientLimitsConfig.limits().readBytesPerSecond();
     }
 
     @Override
     public long writeLimit(String client) {
-        QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
-                ImmutableQosClientLimitsConfig.builder().build());
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
         return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
                 * qosClientLimitsConfig.limits().writeBytesPerSecond();
     }
