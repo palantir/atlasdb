@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Sweep can now make progress after a restore and after the clean transactions CLI is run.
+           Earlier, it would fail throwing a ``NullPointerException`` due to failure to read the commit ts.
+           This would cause sweep to keep retrying without realising that it will never proceed forward.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2778>`__)
+
     *    - |new| |logs|
          - Cassandra KVS now records how many writes have been made into each token range for each table.
            That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).
@@ -59,6 +65,15 @@ develop
     *    - |new|
          - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2730>`__)
+
+    *    - |devbreak|
+         - Removed several utility methods that are used by AtlasDB code. ``MathUtils`` has been moved to our large internal product, which was the only place to use it.
+
+              - ``MathUtils`` (entire class)
+              - ``IterableUtils`` (``getFirst(it, defaultValue)``, ``mergeIterators``, ``partitionByHash``, ``prepend``, ``transformIterator``)
+              - ``IteratorUtils.iteratorDifference``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2782>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -130,7 +145,7 @@ develop
            ``TransactionManagers.config().userAgent().metricRegistry().taggedMetricRegistry()``.
            This avoid runtime errors due to failure to specify all required arguments.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
-           
+
     *    - |fixed|
          - Fixed a bug where setting ``compressBlocksInDb`` for stream store definitions would result in a much bigger than intended block size.
            This option is also deprecated, as we recommend ``compressStreamsInClient`` instead.
@@ -148,7 +163,7 @@ develop
     *    - |improved| |devbreak|
          - AtlasDB now wraps ``NotCurrentLeaderException`` in ``AtlasDbDependencyException`` when this exception is thrown by TimeLock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2716>`__)
-           
+
     *    - |improved|
          - Sweep no longer fetches any values from Cassandra in CONSERVATIVE mode. This results in significantly less data being transferred from Cassandra to the client when sweeping tables with large values, such as stream store tables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2754>`__)
@@ -195,7 +210,7 @@ v0.69.0
          - ``Throwables.createPalantirRuntimeException`` once again throws ``PalantirInterruptedException`` if the original exception was either ``InterruptedException`` or ``InterruptedIOException``.
            This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
-           
+
     *    - |improved|
          - Sweep now waits 1 day after generating a large number of tombstones before sweeping a table again. This behavior only applies when using Cassandra.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2733>`__)
