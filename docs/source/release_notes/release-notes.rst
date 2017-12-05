@@ -52,7 +52,7 @@ develop
 
     *    - |improved|
          - AtlasDB publish of new releases is now done through the internal circle build. Before it was done via the external circle build.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2778>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2783>`__)
 
     *    - |fixed|
          - Sweep can now make progress after a restore and after the clean transactions CLI is run.
