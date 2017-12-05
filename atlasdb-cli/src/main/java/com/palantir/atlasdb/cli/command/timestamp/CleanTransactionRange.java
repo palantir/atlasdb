@@ -17,16 +17,14 @@ package com.palantir.atlasdb.cli.command.timestamp;
 
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.SafeArg;
 
@@ -54,13 +52,13 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
         KeyValueService kvs = services.getKeyValueService();
+        TransactionService transactionService = services.getTransactionService();
 
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
                 RangeRequest.all(),
                 Long.MAX_VALUE);
 
-        Multimap<Cell, Long> toDelete = HashMultimap.create();
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             byte[] rowName = row.getRowName();
@@ -84,17 +82,10 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
             printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
                     SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
 
-            Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
-            toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L
+            transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
         }
 
-        if (!toDelete.isEmpty()) {
-            kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-            printer.info("Delete completed.");
-        } else {
-            printer.info("Found no transactions after the given timestamp to delete.");
-        }
-
+        printer.info("Rollback of transactions completed.");
         return 0;
     }
 }

@@ -51,6 +51,12 @@ develop
          - Change
 
     *    - |fixed|
+         - Clean Transactions CLI will now rollback the inconsistent transactions rather than deleting non-transactionally from the transactions table.
+           This has been known to cause issues with sweep loading the commit Ts and is in general non-intuitive as if a cell is deleted, then
+            ``putUnlessExists`` followed by a ``get`` will not return the value written by the former operation but ``null`` as it thinks the value is deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/ABCD>`__)
+
+    *    - |fixed|
          - Sweep can now make progress after a restore and after the clean transactions CLI is run.
            Earlier, it would fail throwing a ``NullPointerException`` due to failure to read the commit ts.
            This would cause sweep to keep retrying without realising that it will never proceed forward.
