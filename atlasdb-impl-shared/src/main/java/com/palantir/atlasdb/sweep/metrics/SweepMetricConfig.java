@@ -18,11 +18,13 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 @Value.Immutable
 public abstract class SweepMetricConfig {
     public abstract String namePrefix();
+    public abstract MetricRegistry metricRegistry();
     public abstract TaggedMetricRegistry taggedMetricRegistry();
     public abstract UpdateEvent updateEvent();
     public abstract boolean tagWithTableName();
@@ -30,6 +32,6 @@ public abstract class SweepMetricConfig {
 
     @Value.Derived
     public String name() {
-        return namePrefix() + metricAdapter().getNameSuffix();
+        return namePrefix() + metricAdapter().getNameComponent() + updateEvent().getNameComponent();
     }
 }

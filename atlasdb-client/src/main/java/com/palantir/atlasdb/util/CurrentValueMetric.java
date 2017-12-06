@@ -29,13 +29,4 @@ public class CurrentValueMetric implements Gauge<Long> {
     public void setValue(long newValue) {
         value = newValue;
     }
-
-    public static class MaximumValueMetric extends CurrentValueMetric {
-        @Override
-        public void setValue(long newValue) {
-            synchronized (this) {
-                super.setValue(Math.max(getValue(), newValue));
-            }
-        }
-    }
 }

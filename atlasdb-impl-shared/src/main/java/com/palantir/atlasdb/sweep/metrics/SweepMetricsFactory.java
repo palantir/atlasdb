@@ -20,80 +20,81 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class SweepMetricsFactory {
-    private final TaggedMetricRegistry metricRegistry = new MetricsManager().getTaggedRegistry();
+    private final MetricRegistry metricRegistry = new MetricsManager().getRegistry();
+    private final TaggedMetricRegistry taggedMetricRegistry = new MetricsManager().getTaggedRegistry();
 
     SweepMetric createDefault(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
                 createMeter(namePrefix, UpdateEvent.ONE_ITERATION, false),
                 createHistogram(namePrefix, UpdateEvent.ONE_ITERATION, true),
-                createMaximumValue(namePrefix, UpdateEvent.FULL_TABLE, false),
-                createMeanValue(namePrefix, UpdateEvent.FULL_TABLE, false));
+                createHistogram(namePrefix, UpdateEvent.FULL_TABLE, false));
     }
 
     SweepMetric createMetricsForTimeElapsed(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
                 createCurrentValue(namePrefix, UpdateEvent.ONE_ITERATION, false),
-                createMaximumValue(namePrefix, UpdateEvent.FULL_TABLE, false),
-                createMeanValue(namePrefix, UpdateEvent.FULL_TABLE, false));
+                createHistogram(namePrefix, UpdateEvent.FULL_TABLE, false));
     }
 
     /**
-     * Creates a SweepMetric backed by a Meter.
+     * Creates a SweepMetric backed by a Meter. The name of the metric is the concatenation
+     * namePrefix + "Meter" + updateEvent.nameComponent().
      *
-     * @param namePrefix Determines the prefix of the metric name. The metric name will be namePrefix + "Meter"
-     * @param updateEvent Determines on which type of event the metric should be updated. Metric will be tagged
-     *                    with tag defined by the event
-     * @param tagWithTableName If true, metric will also be tagged with the table name
-     * @return SweepMetric backed by a Meter
+     * @param namePrefix Determines the prefix of the metric name.
+     * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
+     *                    the metric name.
+     * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
+     *                         taggged.
+     * @return SweepMetric backed by a Meter.
      */
     SweepMetric createMeter(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.METER_ADAPTER);
     }
 
     /**
-     * Creates a SweepMetric backed by a Histogram.
+     * Creates a SweepMetric backed by a Histogram. The name of the metric is the concatenation
+     * namePrefix + "Histogram" + updateEvent.nameComponent().
+     * The tagged histogram is backed by an {@link com.codahale.metrics.ExponentiallyDecayingReservoir}, while the
+     * non-tagged histogram uses an {@link org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir}.
      *
-     * @param namePrefix Determines the prefix of the metric name. The metric name will be namePrefix + "Histogram"
-     * @param updateEvent Determines on which type of event the metric should be updated. Metric will be tagged
-     *                    with tag defined by the event
-     * @param tagWithTableName If true, metric will also be tagged with the table name
-     * @return SweepMetric backed by a Histogram
+     * @param namePrefix Determines the prefix of the metric name.
+     * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
+     *                    the metric name.
+     * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
+     *                         taggged, and will use an HdrHistogramReservoir.
+     * @return SweepMetric backed by a Histogram.
      */
     SweepMetric createHistogram(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.HISTOGRAM_ADAPTER);
     }
 
     /**
-     * Creates a SweepMetric backed by a CurrentValueMetric.
+     * Creates a SweepMetric backed by a CurrentValueMetric. The name of the metric is the concatenation
+     * namePrefix + "CurrentValue" + updateEvent.nameComponent().
      *
-     * @param namePrefix Determines the prefix of the metric name. The metric name will be namePrefix + "CurrentValue"
-     * @param updateEvent Determines on which type of event the metric should be updated. Metric will be tagged
-     *                    with tag defined by the event.
-     * @param tagWithTableName If true, metric will also be tagged with the table name.
-     * @return SweepMetric backed by a CurrentValueMetric
+     * @param namePrefix Determines the prefix of the metric name.
+     * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
+     *                    the metric name.
+     * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
+     *                         taggged.
+     * @return SweepMetric backed by a CurrentValueMetric.
      */
     SweepMetric createCurrentValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER);
-    }
-
-    SweepMetric createMaximumValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
-        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.MAXIMUM_VALUE_ADAPTER);
-    }
-
-    SweepMetric createMeanValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
-        return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.MEAN_VALUE_ADAPTER);
     }
 
     SweepMetric createMetric(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName,
             SweepMetricAdapter<?> metricAdapter) {
         return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
                 .namePrefix(namePrefix)
-                .taggedMetricRegistry(metricRegistry)
+                .metricRegistry(metricRegistry)
+                .taggedMetricRegistry(taggedMetricRegistry)
                 .updateEvent(updateEvent)
                 .tagWithTableName(tagWithTableName)
                 .metricAdapter(metricAdapter)

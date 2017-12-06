@@ -16,23 +16,18 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-import org.immutables.value.Value;
+public enum UpdateEvent {
+    ONE_ITERATION("PerIteration"),
+    FULL_TABLE("PerTable"),
+    ERROR("");
 
-@Value.Immutable
-public abstract class UpdateEvent {
-    public abstract String getTag();
-    public abstract String getLabel();
+    private final String nameComponent;
 
-    public static final UpdateEvent ONE_ITERATION = ImmutableUpdateEvent.builder()
-            .tag("period")
-            .label("perIteration")
-            .build();
-    public static final UpdateEvent FULL_TABLE = ImmutableUpdateEvent.builder()
-            .tag("period")
-            .label("perTable")
-            .build();
-    public static final UpdateEvent ERROR = ImmutableUpdateEvent.builder()
-            .tag("trigger")
-            .label("error")
-            .build();
+    UpdateEvent(String nameComponent) {
+        this.nameComponent = nameComponent;
+    }
+
+    public String getNameComponent() {
+        return nameComponent;
+    }
 }

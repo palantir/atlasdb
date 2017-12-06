@@ -32,6 +32,7 @@ import org.junit.Test;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -46,7 +47,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.CurrentValueMetric;
-import com.palantir.atlasdb.util.MeanValueMetric;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -54,12 +54,12 @@ public class SweepMetricsManagerTest {
     private static final long DELETED = 10L;
     private static final long EXAMINED = 15L;
     private static final long TIME_SWEEPING = 100L;
-    private static final long START_TIME = 100_000L;
+    private static final long START_TIME = System.currentTimeMillis() - 1_000_000L;
 
     private static final long OTHER_DELETED = 12L;
     private static final long OTHER_EXAMINED = 4L;
     private static final long OTHER_TIME_SWEEPING = 200L;
-    private static final long OTHER_START_TIME = 100_000_000L;
+    private static final long OTHER_START_TIME = System.currentTimeMillis() - 100_000L;
 
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("sweep.test");
     private static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("sweep.test2");
@@ -91,6 +91,7 @@ public class SweepMetricsManagerTest {
     private static final byte[] UNSAFE_METADATA = createTableMetadataWithLogSafety(
             TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes();
 
+    private static MetricRegistry metricRegistry;
     private static TaggedMetricRegistry taggedMetricRegistry;
 
     private SweepMetricsManager sweepMetricsManager;
@@ -99,12 +100,13 @@ public class SweepMetricsManagerTest {
     public void setUp() {
         LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, SAFE_METADATA));
         sweepMetricsManager = new SweepMetricsManager();
+        metricRegistry = AtlasDbMetrics.getMetricRegistry();
         taggedMetricRegistry = AtlasDbMetrics.getTaggedMetricRegistry();
     }
 
     @After
     public void tearDown() {
-        AtlasDbMetrics.setMetricRegistries(AtlasDbMetrics.getMetricRegistry(),
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(),
                 new DefaultTaggedMetricRegistry());
     }
 
@@ -253,12 +255,8 @@ public class SweepMetricsManagerTest {
     }
 
     private void assertRecordedHistogramNonTaggedFullTable(String name, TableReference tableRef, Long... values) {
-        Gauge<Long> maximumValueMetric = getMaximumValueMetric(name);
-        Gauge<Double> meanValueMetric = getMeanValueMetric(name);
-        long actualMaximum = Arrays.stream(values).max(Long::compare).get();
-        double actualMean = Arrays.stream(values).mapToLong(x -> x).reduce(0L, Long::sum) / (double) values.length;
-        assertThat(maximumValueMetric.getValue(), equalTo(actualMaximum));
-        assertThat(meanValueMetric.getValue(), closeTo(actualMean, 0.1));
+        Histogram histogram = getHistogram(name, tableRef, UpdateEvent.FULL_TABLE, false);
+        assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
     }
 
     private void assertRecordedMeterNonTaggedOneIteration(String aggregateMetric, Long... values) {
@@ -272,44 +270,30 @@ public class SweepMetricsManagerTest {
     }
 
     private void assertSweepTimeElapsedHistogramWithinMarginOfError(Long... timeSweepStarted) {
-        Gauge<Long> maximumValueMetric = getMaximumValueMetric(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-        Gauge<Double> meanValueMetric = getMeanValueMetric(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
-        long minTimeStarted = Arrays.stream(timeSweepStarted).min(Long::compare).get();
-        double meanTimeStarted = Arrays.stream(timeSweepStarted).mapToLong(x -> x)
-                .reduce(0L, Long::sum) / (double) timeSweepStarted.length;
-        assertWithinErrorMarginOf(maximumValueMetric.getValue(), System.currentTimeMillis() - minTimeStarted);
-        assertWithinErrorMarginOf(meanValueMetric.getValue(), System.currentTimeMillis() - meanTimeStarted);
+        Histogram histogram =
+                getHistogram(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, DUMMY, UpdateEvent.FULL_TABLE, false);
+        assertWithinMarginOfError(histogram, Arrays.asList(timeSweepStarted));
     }
 
     private Histogram getHistogram(String namePrefix, TableReference tableRef, UpdateEvent updateEvent,
             boolean taggedWithTableName) {
-        return taggedMetricRegistry.histogram(SweepMetricImpl.getTaggedMetricName(
-                namePrefix + SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameSuffix(),
-                updateEvent, tableRef, taggedWithTableName));
+        if (taggedWithTableName) {
+            return taggedMetricRegistry.histogram(SweepMetricImpl.getTaggedMetricName(
+                    namePrefix + SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameComponent() + updateEvent.getNameComponent(),
+                    tableRef));
+        }
+        else {
+            return metricRegistry.histogram(namePrefix + SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameComponent() + updateEvent.getNameComponent());
+        }
     }
 
     private Meter getMeter(String namePrefix, UpdateEvent updateEvent) {
-        return taggedMetricRegistry.meter(SweepMetricImpl.getTaggedMetricName(
-                namePrefix + SweepMetricAdapter.METER_ADAPTER.getNameSuffix(),
-                updateEvent, DUMMY, false));
+        return metricRegistry.meter(namePrefix + SweepMetricAdapter.METER_ADAPTER.getNameComponent() + updateEvent.getNameComponent());
     }
 
     private Gauge getCurrentValueMetric(String namePrefix) {
-        return taggedMetricRegistry.gauge(SweepMetricImpl.getTaggedMetricName(
-                namePrefix + SweepMetricAdapter.CURRENT_VALUE_ADAPTER.getNameSuffix(),
-                UpdateEvent.ONE_ITERATION, DUMMY, false), new CurrentValueMetric());
-    }
-
-    private Gauge getMaximumValueMetric(String namePrefix) {
-        return taggedMetricRegistry.gauge(SweepMetricImpl.getTaggedMetricName(
-                namePrefix + SweepMetricAdapter.MAXIMUM_VALUE_ADAPTER.getNameSuffix(),
-                UpdateEvent.FULL_TABLE, DUMMY, false), new CurrentValueMetric.MaximumValueMetric());
-    }
-
-    private Gauge getMeanValueMetric(String namePrefix) {
-        return taggedMetricRegistry.gauge(SweepMetricImpl.getTaggedMetricName(
-                namePrefix + SweepMetricAdapter.MEAN_VALUE_ADAPTER.getNameSuffix(),
-                UpdateEvent.FULL_TABLE, DUMMY, false), new MeanValueMetric());
+        return metricRegistry.gauge(namePrefix + SweepMetricAdapter.CURRENT_VALUE_ADAPTER.getNameComponent() +
+                UpdateEvent.ONE_ITERATION.getNameComponent(), CurrentValueMetric::new);
     }
 
     private void assertWithinMarginOfError(Histogram histogram, List<Long> timesStarted) {
@@ -322,14 +306,9 @@ public class SweepMetricsManagerTest {
         }
     }
 
-    private void assertWithinErrorMarginOf(double actual, double expected) {
-        assertThat(actual, greaterThan(expected - 1000.0));
-        assertThat(actual, lessThanOrEqualTo(expected));
-    }
-
     private void assertWithinErrorMarginOf(long actual, long expected) {
-        assertThat(actual, greaterThan(expected - 1000L));
-        assertThat(actual, lessThanOrEqualTo(expected));
+        assertThat(actual, greaterThan((long) (expected * .95)));
+        assertThat(actual, lessThanOrEqualTo((long) (expected * 1.05)));
     }
 
     private static TableMetadata createTableMetadataWithLogSafety(TableMetadataPersistence.LogSafety safety) {
