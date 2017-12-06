@@ -63,7 +63,7 @@ test:
 deployment:
   publish-docs:
     branch: develop
-    owner: atlasdb
+    owner: palantir
     commands:
       - ./scripts/circle-ci/publish-github-page.sh
   publish-internal-docs:
