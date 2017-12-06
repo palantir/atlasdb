@@ -37,7 +37,7 @@ public abstract class SweepMetricAdapter<M extends Metric> {
     public abstract BiFunction<TaggedMetricRegistry, MetricName, M> getTaggedMetricConstructor();
     public abstract BiConsumer<M, Long> getUpdateMethod();
 
-    public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, Long value){
+    public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, Long value) {
         getUpdateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
     }
 
