@@ -32,6 +32,7 @@ public abstract class SweepMetricConfig {
 
     @Value.Derived
     public String name() {
-        return namePrefix() + metricAdapter().getNameComponent() + updateEvent().getNameComponent();
+        return MetricRegistry.name(SweepMetric.class,
+                namePrefix(), metricAdapter().getNameComponent(), updateEvent().getNameComponent());
     }
 }

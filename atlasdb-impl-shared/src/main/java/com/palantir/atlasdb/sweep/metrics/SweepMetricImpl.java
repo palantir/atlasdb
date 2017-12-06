@@ -51,8 +51,7 @@ public class SweepMetricImpl implements SweepMetric {
     private void updateMetric(long value, TableReference tableRef) {
         if (!tagWithTableName) {
             metricAdapter.updateNonTaggedMetric(metricRegistry, name, value);
-        }
-        else {
+        } else {
             metricAdapter.updateTaggedMetric(taggedMetricRegistry, getTaggedMetricName(name, tableRef), value);
         }
     }

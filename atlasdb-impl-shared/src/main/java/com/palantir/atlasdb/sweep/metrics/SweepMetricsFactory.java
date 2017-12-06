@@ -44,14 +44,14 @@ public class SweepMetricsFactory {
 
     /**
      * Creates a SweepMetric backed by a Meter. The name of the metric is the concatenation
-     * namePrefix + "Meter" + updateEvent.nameComponent().
+     * SweepMetric.class.getName() + namePrefix + "Meter" + updateEvent.nameComponent().
      *
      * @param namePrefix Determines the prefix of the metric name.
      * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
      *                    the metric name.
      * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
      *                         taggged.
-     * @return SweepMetric backed by a Meter.
+     * @return SweepMetric backed by a Meter
      */
     SweepMetric createMeter(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.METER_ADAPTER);
@@ -59,7 +59,7 @@ public class SweepMetricsFactory {
 
     /**
      * Creates a SweepMetric backed by a Histogram. The name of the metric is the concatenation
-     * namePrefix + "Histogram" + updateEvent.nameComponent().
+     * SweepMetric.class.getName() + namePrefix + "Histogram" + updateEvent.nameComponent().
      * The tagged histogram is backed by an {@link com.codahale.metrics.ExponentiallyDecayingReservoir}, while the
      * non-tagged histogram uses an {@link org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir}.
      *
@@ -68,7 +68,7 @@ public class SweepMetricsFactory {
      *                    the metric name.
      * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
      *                         taggged, and will use an HdrHistogramReservoir.
-     * @return SweepMetric backed by a Histogram.
+     * @return SweepMetric backed by a Histogram
      */
     SweepMetric createHistogram(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.HISTOGRAM_ADAPTER);
@@ -76,14 +76,14 @@ public class SweepMetricsFactory {
 
     /**
      * Creates a SweepMetric backed by a CurrentValueMetric. The name of the metric is the concatenation
-     * namePrefix + "CurrentValue" + updateEvent.nameComponent().
+     * SweepMetric.class.getName() + namePrefix + "CurrentValue" + updateEvent.nameComponent().
      *
      * @param namePrefix Determines the prefix of the metric name.
      * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
      *                    the metric name.
      * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
      *                         taggged.
-     * @return SweepMetric backed by a CurrentValueMetric.
+     * @return SweepMetric backed by a CurrentValueMetric
      */
     SweepMetric createCurrentValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER);

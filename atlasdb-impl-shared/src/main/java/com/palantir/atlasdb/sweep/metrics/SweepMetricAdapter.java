@@ -37,7 +37,7 @@ public abstract class SweepMetricAdapter<M extends Metric> {
     public abstract BiFunction<TaggedMetricRegistry, MetricName, M> getTaggedMetricConstructor();
     public abstract BiConsumer<M, Long> getUpdateMethod();
 
-    public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, Long value){
+    public void updateNonTaggedMetric(MetricRegistry metricRegistry, String name, Long value) {
         getUpdateMethod().accept(getMetricConstructor().apply(metricRegistry, name), value);
     }
 
@@ -47,7 +47,7 @@ public abstract class SweepMetricAdapter<M extends Metric> {
 
     public static final SweepMetricAdapter<Meter> METER_ADAPTER =
             ImmutableSweepMetricAdapter.<Meter>builder()
-                    .nameComponent("Meter")
+                    .nameComponent("meter")
                     .metricConstructor(MetricRegistry::meter)
                     .taggedMetricConstructor(TaggedMetricRegistry::meter)
                     .updateMethod(Meter::mark)
@@ -55,7 +55,7 @@ public abstract class SweepMetricAdapter<M extends Metric> {
 
     public static final SweepMetricAdapter<Histogram> HISTOGRAM_ADAPTER =
             ImmutableSweepMetricAdapter.<Histogram>builder()
-                    .nameComponent("Histogram")
+                    .nameComponent("histogram")
                     .metricConstructor((metricRegistry, name) ->
                             metricRegistry.histogram(name, () -> new Histogram(new HdrHistogramReservoir())))
                     .taggedMetricConstructor(TaggedMetricRegistry::histogram)
@@ -64,7 +64,7 @@ public abstract class SweepMetricAdapter<M extends Metric> {
 
     public static final SweepMetricAdapter<CurrentValueMetric> CURRENT_VALUE_ADAPTER =
             ImmutableSweepMetricAdapter.<CurrentValueMetric>builder()
-                    .nameComponent("CurrentValue")
+                    .nameComponent("currentValue")
                     .metricConstructor((metricRegistry, name) ->
                             (CurrentValueMetric) metricRegistry.gauge(name, CurrentValueMetric::new))
                     .taggedMetricConstructor((taggedMetricRegistry, metricName) ->

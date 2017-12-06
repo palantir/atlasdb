@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -54,12 +53,12 @@ public class SweepMetricsManagerTest {
     private static final long DELETED = 10L;
     private static final long EXAMINED = 15L;
     private static final long TIME_SWEEPING = 100L;
-    private static final long START_TIME = System.currentTimeMillis() - 1_000_000L;
+    private static final long START_TIME = 100_000L;
 
     private static final long OTHER_DELETED = 12L;
     private static final long OTHER_EXAMINED = 4L;
     private static final long OTHER_TIME_SWEEPING = 200L;
-    private static final long OTHER_START_TIME = System.currentTimeMillis() - 100_000L;
+    private static final long OTHER_START_TIME = 1_000_000L;
 
     private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("sweep.test");
     private static final TableReference TABLE_REF2 = TableReference.createFromFullyQualifiedName("sweep.test2");
@@ -279,21 +278,26 @@ public class SweepMetricsManagerTest {
             boolean taggedWithTableName) {
         if (taggedWithTableName) {
             return taggedMetricRegistry.histogram(SweepMetricImpl.getTaggedMetricName(
-                    namePrefix + SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameComponent() + updateEvent.getNameComponent(),
+                    MetricRegistry.name(SweepMetric.class, namePrefix,
+                            SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameComponent(), updateEvent.getNameComponent()),
                     tableRef));
-        }
-        else {
-            return metricRegistry.histogram(namePrefix + SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameComponent() + updateEvent.getNameComponent());
+        } else {
+            return metricRegistry.histogram(MetricRegistry.name(SweepMetric.class, namePrefix,
+                    SweepMetricAdapter.HISTOGRAM_ADAPTER.getNameComponent(), updateEvent.getNameComponent()));
         }
     }
 
     private Meter getMeter(String namePrefix, UpdateEvent updateEvent) {
-        return metricRegistry.meter(namePrefix + SweepMetricAdapter.METER_ADAPTER.getNameComponent() + updateEvent.getNameComponent());
+        return metricRegistry.meter(MetricRegistry.name(SweepMetric.class, namePrefix,
+                SweepMetricAdapter.METER_ADAPTER.getNameComponent(), updateEvent.getNameComponent()));
     }
 
     private Gauge getCurrentValueMetric(String namePrefix) {
-        return metricRegistry.gauge(namePrefix + SweepMetricAdapter.CURRENT_VALUE_ADAPTER.getNameComponent() +
-                UpdateEvent.ONE_ITERATION.getNameComponent(), CurrentValueMetric::new);
+        return metricRegistry.gauge(
+                MetricRegistry.name(SweepMetric.class, namePrefix,
+                        SweepMetricAdapter.CURRENT_VALUE_ADAPTER.getNameComponent(),
+                        UpdateEvent.ONE_ITERATION.getNameComponent()),
+                CurrentValueMetric::new);
     }
 
     private void assertWithinMarginOfError(Histogram histogram, List<Long> timesStarted) {

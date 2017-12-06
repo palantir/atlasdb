@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 public enum UpdateEvent {
-    ONE_ITERATION("PerIteration"),
-    FULL_TABLE("PerTable"),
+    ONE_ITERATION("perIteration"),
+    FULL_TABLE("perTable"),
     ERROR("");
 
     private final String nameComponent;
