@@ -83,6 +83,11 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2782>`__)
 
+    *    - |new|
+         - A CLI to read the punch table was added. The CLI receives an epoch time, in millis, and returns the timestamp that was added to the punch table
+           right before it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
