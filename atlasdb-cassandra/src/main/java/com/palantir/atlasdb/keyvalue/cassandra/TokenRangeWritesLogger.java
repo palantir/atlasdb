@@ -37,7 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.util.MathUtils;
+import com.palantir.util.math.Distributions;
 
 public final class TokenRangeWritesLogger {
     private static final Logger log = LoggerFactory.getLogger(TokenRangeWritesLogger.class);
@@ -128,7 +128,7 @@ public final class TokenRangeWritesLogger {
         private void refreshProbabilityDistributionNotUniform() {
             List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
                     .collect(Collectors.toList());
-            probabilityDistributionIsNotUniform = MathUtils.calculateConfidenceThatDistributionIsNotUniform(values);
+            probabilityDistributionIsNotUniform = Distributions.confidenceThatDistributionIsNotUniform(values);
         }
 
         private void logNotUniform() {

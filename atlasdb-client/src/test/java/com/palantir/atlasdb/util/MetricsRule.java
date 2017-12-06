@@ -19,7 +19,7 @@ import org.junit.rules.ExternalResource;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.tritium.metrics.MetricRegistries;
+import com.codahale.metrics.SharedMetricRegistries;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class MetricsRule extends ExternalResource {
@@ -27,7 +27,7 @@ public class MetricsRule extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         super.before();
-        AtlasDbMetrics.setMetricRegistries(MetricRegistries.createWithHdrHistogramReservoirs(),
+        AtlasDbMetrics.setMetricRegistries(SharedMetricRegistries.getOrCreate("AtlasDbTest"),
                 new DefaultTaggedMetricRegistry());
     }
 
@@ -39,6 +39,7 @@ public class MetricsRule extends ExternalResource {
             ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics).build();
             reporter.report();
             reporter.close();
+            SharedMetricRegistries.remove("AtlasDbTest");
         }
     }
 

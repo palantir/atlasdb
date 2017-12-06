@@ -19,6 +19,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -35,6 +36,8 @@ import dagger.Component;
 public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract AtlasDbConfig getAtlasDbConfig();
+
+    public abstract AtlasDbRuntimeConfig getAtlasDbRuntimeConfig();
 
     public abstract TimelockService getTimelockService();
 

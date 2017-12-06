@@ -71,6 +71,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.qos.FakeQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -150,6 +152,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
+    private final QosClient qosClient;
     private final ScheduledExecutorService refreshDaemon;
     private final MetricsManager metricsManager = new MetricsManager();
     private final RequestMetrics aggregateMetrics = new RequestMetrics(null);
@@ -162,28 +165,32 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = create(config, StartupChecks.RUN, initializeAsync);
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync,
+            QosClient qosClient) {
+        CassandraClientPoolImpl cassandraClientPool = create(config, StartupChecks.RUN, initializeAsync, qosClient);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
-    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config, StartupChecks startupChecks,
-            boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks);
+    private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks, boolean initializeAsync, QosClient qosClient) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks, qosClient);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
 
-    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
+
+    private CassandraClientPoolImpl(CassandraKeyValueServiceConfig config, StartupChecks startupChecks,
+            QosClient qosClient) {
         this.config = config;
         this.startupChecks = startupChecks;
+        this.qosClient = qosClient;
         this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
@@ -296,7 +303,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
+        addPool(server, new CassandraClientPoolingContainer(qosClient, server, config, currentPoolNumber));
     }
 
     @VisibleForTesting
@@ -602,7 +609,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 if (isRetriableWithBackoffException(e)) {
                     // And value between -500 and +500ms to backoff to better spread load on failover
                     int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
-                    log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
+                    log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                             UnsafeArg.of("queryString", fn.toString()),
                             SafeArg.of("sleepDuration", sleepDuration),
                             SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
@@ -691,13 +698,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             } else {
                 // Only log the actual exception the first time
                 if (numTries > 1) {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+                    log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                             UnsafeArg.of("exceptionMessage", ex.getMessage()));
                 } else {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
+                    log.info("Error occurred talking to cassandra. Attempt {} of {}.",
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             ex);
