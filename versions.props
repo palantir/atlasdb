@@ -28,7 +28,6 @@ io.atomix:* = 1.0.0-rc9
 io.atomix.catalyst:* = 1.1.2
 io.atomix.copycat:* = 1.2.0
 io.dropwizard.metrics:metrics-* = 3.2.3
-com.codahale.metrics:metrics-* = 3.2.3
 io.dropwizard.modules:* = 0.9.0-1
 io.dropwizard:* = 0.9.3
 javax.validation:validation-api = 1.1.0.Final
