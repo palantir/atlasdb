@@ -196,11 +196,19 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB publish of new releases is now done through the internal circle build. Before it was done via the external circle build.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2783">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Sweep can now make progress after a restore and after the clean transactions CLI is run.
 Earlier, it would fail throwing a <code class="docutils literal"><span class="pre">NullPointerException</span></code> due to failure to read the commit ts.
 This would cause sweep to keep retrying without realising that it will never proceed forward.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2778">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Sweep will no longer run during KVS Migrations.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2784">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td>Cassandra KVS now records how many writes have been made into each token range for each table.
