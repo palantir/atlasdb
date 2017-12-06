@@ -156,7 +156,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
     public AtlasDbServices connectFromServices() throws IOException {
         AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot);
         ServicesConfigModule scm = ServicesConfigModule.create(
-                makeOfflineIfNecessary(fromConfig), AtlasDbRuntimeConfig.withoutSweep());
+                makeOfflineIfNecessary(fromConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
@@ -165,7 +165,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 ? AtlasDbConfigs.load(toConfigFile, configRoot)
                 : AtlasDbConfigs.loadFromString(inlineConfig, null);
         ServicesConfigModule scm = ServicesConfigModule.create(
-                makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withoutSweep());
+                makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withSweepDisabled());
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 

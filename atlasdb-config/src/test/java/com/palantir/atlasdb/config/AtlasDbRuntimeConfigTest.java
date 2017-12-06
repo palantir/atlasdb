@@ -30,7 +30,7 @@ public class AtlasDbRuntimeConfigTest {
 
     @Test
     public void configWithoutSweepHasSweepDisabled() throws Exception {
-        AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.withoutSweep();
+        AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.withSweepDisabled();
         assertFalse(config.sweep().enabled());
     }
 }
