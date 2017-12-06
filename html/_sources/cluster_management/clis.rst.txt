@@ -60,12 +60,21 @@ For more information run ``./bin/atlasdb help migrate`` for more information.
 
 .. code-block:: bash
 
-     ./bin/atlasdb-cli --offline --config-root "/atlas" migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
-     ./bin/atlasdb-cli --offline --config-root "/atlas" migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
-     ./bin/atlasdb-cli --offline --config-root "/atlas" migrate –-fromConfig from.yml --migrateConfig to.yml --validate
+     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --validate
 
 Note that the `migrate` CLI can safely be resumed (with the same arguments) if it fails during a step.
 The CLI will check and skip past tables that have already been processed.
+
+read-punch-table
+----------------
+
+Given an epoch time, in millis, the CLI reads the timestamp added to the punch table right before it.
+
+.. code-block:: bash
+
+     ./bin/atlasdb-cli --config config.yml read-punch-table --epoch
 
 .. _offline-clis:
 

@@ -222,13 +222,20 @@ You will need to supply two different KVS configurations to the script.
 In the general case you first call <code class="docutils literal"><span class="pre">–-setup</span></code>, then <code class="docutils literal"><span class="pre">-–migrate</span></code>, then <code class="docutils literal"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.</p>
 <p>We currently only support doing KVS migrations offline (using the <code class="docutils literal"><span class="pre">--offline</span></code> flag), so you must shut down your AtlasDB backed service to perform the migration.
 For more information run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline --config-root <span class="s2">&quot;/atlas&quot;</span> migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
-./bin/atlasdb-cli --offline --config-root <span class="s2">&quot;/atlas&quot;</span> migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
-./bin/atlasdb-cli --offline --config-root <span class="s2">&quot;/atlas&quot;</span> migrate –-fromConfig from.yml --migrateConfig to.yml --validate
+<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
+./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
 </div>
 <p>Note that the <cite>migrate</cite> CLI can safely be resumed (with the same arguments) if it fails during a step.
 The CLI will check and skip past tables that have already been processed.</p>
+</div>
+<div class="section" id="read-punch-table">
+<h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this headline">¶</a></h3>
+<p>Given an epoch time, in millis, the CLI reads the timestamp added to the punch table right before it.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --config config.yml read-punch-table --epoch
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="offline-clis">
