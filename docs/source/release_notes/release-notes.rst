@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |metrics|
+         - AtlasDB now tags the cassandra hosts when reporting Cassandra connection pool metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2786>`__)
+
     *    - |improved|
          - AtlasDB publish of new releases is now done through the internal circle build. Before it was done via the external circle build.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2783>`__)
