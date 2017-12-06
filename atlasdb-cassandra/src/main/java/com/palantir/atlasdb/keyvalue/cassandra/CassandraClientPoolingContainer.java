@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -59,12 +60,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     public CassandraClientPoolingContainer(QosClient qosClient,
             InetSocketAddress host,
-            CassandraKeyValueServiceConfig config,
-            int poolNumber) {
+            CassandraKeyValueServiceConfig config) {
         this.qosClient = qosClient;
         this.host = host;
         this.config = config;
-        this.clientPool = createClientPool(poolNumber);
+        this.clientPool = createClientPool();
     }
 
     public InetSocketAddress getHost() {
@@ -235,9 +235,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      *
-     * @param poolNumber number of the pool for metric registration.
      */
-    private GenericObjectPool<CassandraClient> createClientPool(int poolNumber) {
+    private GenericObjectPool<CassandraClient> createClientPool() {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(qosClient, host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
@@ -265,28 +264,25 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
         poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
-        registerMetrics(pool, poolNumber);
+        registerMetrics(pool, host.getHostString());
         return pool;
     }
 
-    private void registerMetrics(GenericObjectPool<CassandraClient> pool, int poolNumber) {
-        registerMetric(getMetricName("meanActiveTimeMillis", poolNumber), pool::getMeanActiveTimeMillis);
-        registerMetric(getMetricName("meanIdleTimeMillis", poolNumber), pool::getMeanIdleTimeMillis);
-        registerMetric(getMetricName("meanBorrowWaitTimeMillis", poolNumber), pool::getMeanBorrowWaitTimeMillis);
-        registerMetric(getMetricName("numIdle", poolNumber), pool::getNumIdle);
-        registerMetric(getMetricName("numActive", poolNumber), pool::getNumActive);
-        registerMetric(getMetricName("approximatePoolSize", poolNumber), () -> pool.getNumIdle() + pool.getNumActive());
-        registerMetric(getMetricName("proportionDestroyedByEvictor", poolNumber),
+    private void registerMetrics(GenericObjectPool<CassandraClient> pool, String hostString) {
+        registerMetric("meanActiveTimeMillis", hostString, pool::getMeanActiveTimeMillis);
+        registerMetric("meanIdleTimeMillis", hostString, pool::getMeanIdleTimeMillis);
+        registerMetric("meanBorrowWaitTimeMillis", hostString, pool::getMeanBorrowWaitTimeMillis);
+        registerMetric("numIdle", hostString, pool::getNumIdle);
+        registerMetric("numActive", hostString, pool::getNumActive);
+        registerMetric("approximatePoolSize", hostString, () -> pool.getNumIdle() + pool.getNumActive());
+        registerMetric("proportionDestroyedByEvictor", hostString,
                 () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
-        registerMetric(getMetricName("proportionDestroyedByBorrower", poolNumber),
+        registerMetric("proportionDestroyedByBorrower", hostString,
                 () -> ((double) pool.getDestroyedByBorrowValidationCount()) / ((double) pool.getCreatedCount()));
     }
 
-    private String getMetricName(String metric, int poolNumber) {
-        return "pool" + poolNumber + "." + metric;
-    }
-
-    private void registerMetric(String metricName, Gauge gauge) {
-        metricsManager.registerMetric(CassandraClientPoolingContainer.class, metricName, gauge);
+    private void registerMetric(String metricName, String hostString, Gauge gauge) {
+        metricsManager.registerMetric(CassandraClientPoolingContainer.class, metricName, gauge,
+                ImmutableMap.of("cassandra-host", hostString));
     }
 }

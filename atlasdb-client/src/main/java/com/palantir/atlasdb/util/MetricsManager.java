@@ -40,7 +40,9 @@ public class MetricsManager {
 
     private final MetricRegistry metricRegistry;
     private final TaggedMetricRegistry taggedMetricRegistry;
+
     private final Set<String> registeredMetrics;
+    private final Set<MetricName> registeredTaggedMetrics;
 
     public MetricsManager() {
         this(AtlasDbMetrics.getMetricRegistry(), AtlasDbMetrics.getTaggedMetricRegistry());
@@ -51,6 +53,7 @@ public class MetricsManager {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
         this.registeredMetrics = new HashSet<>();
+        this.registeredTaggedMetrics = new HashSet<>();
     }
 
     public MetricRegistry getRegistry() {
@@ -61,6 +64,7 @@ public class MetricsManager {
         registerMetric(clazz, metricPrefix, metricName, (Metric) gauge);
     }
 
+
     public void registerMetric(Class clazz, String metricPrefix, String metricName, Metric metric) {
         registerMetricWithFqn(MetricRegistry.name(clazz, metricPrefix, metricName), metric);
     }
@@ -70,11 +74,12 @@ public class MetricsManager {
     }
 
     public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        taggedMetricRegistry.gauge(MetricName.builder()
-                        .safeName(MetricRegistry.name(clazz, metricName))
-                        .safeTags(tag)
-                        .build(),
-                gauge);
+        MetricName taggedMetricName = MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build();
+        taggedMetricRegistry.gauge(taggedMetricName, gauge);
+        registeredTaggedMetrics.add(taggedMetricName);
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {
@@ -135,7 +140,9 @@ public class MetricsManager {
 
     public synchronized void deregisterMetrics() {
         registeredMetrics.forEach(metricRegistry::remove);
+        registeredTaggedMetrics.forEach(taggedMetricRegistry::remove);
         registeredMetrics.clear();
+        registeredTaggedMetrics.clear();
     }
 
     private synchronized void deregisterMetric(String fullyQualifiedMetricName) {
