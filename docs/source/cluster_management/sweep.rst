@@ -73,7 +73,7 @@ In short, the recommendation is:
 Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``candidateBatchHint`` specifies the number of values to load from the KVS on each round-trip. ``readLimit`` specifies the number of values to read from the KVS in a batch.
+``candidateBatchHint`` specifies the number of values to load from the KVS on each round-trip. ``readLimit`` specifies the number of values that should be swept in a batch, potentially fetching them through multiple KVS round-trips.
 If each batch takes little time, it's advisable to increase the ``readLimit`` and ``deleteBatchHint``, to make sweep's batches bigger.
 If the client is OOMing, it's advisable to decrease the ``readLimit``, to have a lower number of values per batches.
 Since each batch contains at least ``candidateBatchHint`` values, if ``readLimit`` reaches the same value as ``candidateBatchHint`` you should reduce the ``candidateBatchSize`` config.
@@ -84,7 +84,7 @@ Memory pressure in the backing KVS: decrease candidateBatchHint
 
 The sweep job works by requesting ``candidateBatchHint`` values from the KVS in each round-trip.
 In some rare cases, the Cassandra KVS will not be able to fetch ``candidateBatchHint`` values, likely due to specific cells being overwritten many times and/or containing very large values.
-If that happens, KVS calls will timeout and sweep will reduce ``candidateBatchHint`` automatically, trying to fetch fewer values in the following round-trips to the KVS.
+If that happens, KVS requests from AtlasDB will fail and sweep will reduce ``candidateBatchHint`` automatically, trying to fetch fewer values in the following round-trips to the KVS.
 If subsequent KVS round-trips are successful, the value of ``candidateBatchHint`` is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the configured value is too high, failures will happen again.
 
 You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that the load on the KVS doesn't trigger failures and sweep is able to run.
