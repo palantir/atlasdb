@@ -24,6 +24,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -34,8 +39,10 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +50,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -85,6 +93,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.Expiration
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.sweep.queue.Write;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -285,7 +294,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
                 getRangesExecutor,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueue);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -342,7 +352,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 timestampCache,
                 getRangesExecutor,
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                sweepQueue);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 
@@ -366,7 +377,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 lockService,
                 transactionService,
                 conflictDetectionManager,
-                sweepStrategyManager);
+                sweepStrategyManager,
+                sweepQueue);
 
         ScheduledExecutorService service = Tracers.wrap(PTExecutors.newScheduledThreadPool(20));
 
@@ -753,6 +765,90 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
             assertThat(e.getMessage(), containsString(expectedTokens.toString()));
             assertThat(e.getMessage(), containsString("Retry is not possible."));
+        }
+    }
+
+    @Test
+    public void committedWritesAreAddedToSweepQueue() {
+        List<Write> table1Writes = ImmutableList.of(
+                Write.of(Cell.create("a".getBytes(), "b".getBytes()), false, 2L),
+                Write.of(Cell.create("a".getBytes(), "c".getBytes()), false, 2L),
+                Write.of(Cell.create("a".getBytes(), "d".getBytes()), true, 2L),
+                Write.of(Cell.create("b".getBytes(), "d".getBytes()), false, 2L));
+        List<Write> table2Writes = ImmutableList.of(
+                Write.of(Cell.create("w".getBytes(), "x".getBytes()), false, 2L),
+                Write.of(Cell.create("y".getBytes(), "z".getBytes()), false, 2L),
+                Write.of(Cell.create("z".getBytes(), "z".getBytes()), true, 2L));
+
+        AtomicLong startTs = new AtomicLong(0);
+        txManager.runTaskWithRetry(txn -> {
+            table1Writes.forEach(write -> {
+                put(txn, TABLE1, write);
+            });
+            table2Writes.forEach(write -> {
+                put(txn, TABLE2, write);
+            });
+            return null;
+        });
+
+        verify(sweepQueue).enqueue(eq(TABLE1), eq(table1Writes));
+        verify(sweepQueue).enqueue(eq(TABLE2), eq(table2Writes));
+    }
+
+    private void put(Transaction txn, TableReference table, Write write) {
+        if (write.isTombstone()) {
+            txn.delete(table, ImmutableSet.of(write.cell()));
+        } else {
+            txn.put(table, ImmutableMap.of(write.cell(), new byte[1]));
+        }
+    }
+
+    @Test
+    public void noWritesAddedToSweepQueueOnConflict() {
+        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
+        byte[] value = new byte[1];
+
+        Transaction t1 = txManager.createNewTransaction();
+        Transaction t2 = txManager.createNewTransaction();
+
+        t1.put(TABLE, ImmutableMap.of(cell, value));
+        t2.put(TABLE, ImmutableMap.of(cell, new byte[1]));
+
+        t1.commit();
+        verify(sweepQueue).enqueue(any(), any());
+
+        try {
+            t2.commit();
+            fail();
+        } catch (TransactionConflictException e) {
+            // expected
+        }
+
+        verifyNoMoreInteractions(sweepQueue);
+    }
+
+    @Test
+    public void noWritesAddedToSweepQueueOnException() {
+        Cell cell = Cell.create("foo".getBytes(), "bar".getBytes());
+        byte[] value = new byte[1];
+
+        try {
+            txManager.runTaskWithRetry(txn -> {
+                txn.put(TABLE, ImmutableMap.of(cell, value));
+                throw new RuntimeException("test");
+            });
+        } catch (RuntimeException e) {
+            // expected
+        }
+
+        verifyZeroInteractions(sweepQueue);
+    }
+
+    private void await(CyclicBarrier barrier) {
+        try {
+            barrier.await();
+        } catch (InterruptedException | BrokenBarrierException e) {
+            throw new RuntimeException(e);
         }
     }
 
