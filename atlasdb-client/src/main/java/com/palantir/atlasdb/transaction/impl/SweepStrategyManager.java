@@ -27,8 +27,12 @@ public class SweepStrategyManager {
         this.supplier = supplier;
     }
 
-    public Map<TableReference, SweepStrategy> get() {
-        return supplier.get();
+    public SweepStrategy sweepStrategyForTable(TableReference table) {
+        return supplier.get().getOrDefault(table, SweepStrategy.CONSERVATIVE);
+    }
+
+    public boolean useTargetedSweepForTable(TableReference table) {
+        return false;
     }
 
     public void recompute() {

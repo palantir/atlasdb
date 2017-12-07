@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -183,6 +184,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Supplier<Long> startTimestamp;
     private static final MetricsManager metricsManager = new MetricsManager();
 
+    private final BiConsumer<Map<TableReference, Map<Cell, byte[]>>, Long> committedWritesConsumer;
+
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
     private final AdvisoryLockPreCommitCheck advisoryLockCheck;
@@ -235,7 +238,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                TimestampCache timestampValidationReadCache,
                                long lockAcquireTimeoutMs,
                                ExecutorService getRangesExecutor,
-                               int defaultGetRangesConcurrency) {
+                               int defaultGetRangesConcurrency,
+                               BiConsumer<Map<TableReference, Map<Cell, byte[]>>, Long> committedWritesConsumer) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -254,6 +258,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.committedWritesConsumer = committedWritesConsumer;
     }
 
     // TEST ONLY
@@ -287,6 +292,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.lockAcquireTimeoutMs = AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.committedWritesConsumer = (writes, ts) -> { };
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -318,6 +324,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.committedWritesConsumer = (writes, ts) -> { };
     }
 
     @Override
@@ -773,7 +780,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
-        return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
+        return sweepStrategyManager.sweepStrategyForTable(tableRef) == SweepStrategy.THOROUGH;
     }
 
     private List<Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
@@ -1408,6 +1415,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         tableRefs.safeTableRefs(),
                         tableRefs.unsafeTableRefs());
             }
+
+            committedWritesConsumer.accept((Map)writesByTable, getStartTimestamp());
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }

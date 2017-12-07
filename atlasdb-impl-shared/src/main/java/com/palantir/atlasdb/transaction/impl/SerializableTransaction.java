@@ -137,7 +137,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               timestampCache,
               lockAcquireTimeoutMs,
               getRangesExecutor,
-              defaultGetRangesConcurrency);
+              defaultGetRangesConcurrency,
+              (writes, ts) -> { });
     }
 
     @Override
@@ -714,7 +715,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 timestampValidationReadCache,
                 lockAcquireTimeoutMs,
                 getRangesExecutor,
-                defaultGetRangesConcurrency) {
+                defaultGetRangesConcurrency,
+                (writes, ts) -> { }) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
