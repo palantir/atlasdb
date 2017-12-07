@@ -315,23 +315,28 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public void deleteAllTimestamps(TableReference tableRef,
             Map<Cell, Long> maxTimestampExclusiveByCell) {
-        if (maxTimestampExclusiveByCell.isEmpty()) {
+        deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell);
+    }
+
+    public static void deleteAllTimestampsDefaultImpl(KeyValueService kvs, TableReference tableRef,
+            Map<Cell, Long> maxTimestampByCell) {
+        if (maxTimestampByCell.isEmpty()) {
             return;
         }
 
-        long maxTimestampExclusive = maxTimestampExclusiveByCell.values().stream().max(Long::compare).get();
+        long maxTimestampExclusive = maxTimestampByCell.values().stream().max(Long::compare).get();
 
-        Multimap<Cell, Long> timestampsByCell = getAllTimestamps(tableRef, maxTimestampExclusiveByCell.keySet(),
+        Multimap<Cell, Long> timestampsByCell = kvs.getAllTimestamps(tableRef, maxTimestampByCell.keySet(),
                 maxTimestampExclusive);
 
         Multimap<Cell, Long> timestampsByCellExcludingSentinels = Multimaps.filterEntries(timestampsByCell, entry -> {
-            long maxTimestampForCell = maxTimestampExclusiveByCell.get(entry.getKey());
+            long maxTimestampForCell = maxTimestampByCell.get(entry.getKey());
 
             long timestamp = entry.getValue();
             return timestamp < maxTimestampForCell && timestamp != Value.INVALID_VALUE_TIMESTAMP;
         });
 
-        delete(tableRef, timestampsByCellExcludingSentinels);
+        kvs.delete(tableRef, timestampsByCellExcludingSentinels);
     }
 
     @Override
