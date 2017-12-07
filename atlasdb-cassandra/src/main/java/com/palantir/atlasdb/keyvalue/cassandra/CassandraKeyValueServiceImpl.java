@@ -2113,7 +2113,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 .add(mutation);
                     });
 
-                    batchMutateInternal("delete", client, tableRef, mutationsByRowByTable, deleteConsistency);
+                    batchMutateInternal("deleteAllTimestamps", client, tableRef, mutationsByRowByTable,
+                            deleteConsistency);
 
                     return null;
                 }
