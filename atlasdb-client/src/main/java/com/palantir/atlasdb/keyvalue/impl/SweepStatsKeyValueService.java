@@ -208,9 +208,9 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             if (!shouldFlush()) {
                 log.debug("Not flushing since the total number modifications is less than threshold — {} < {} "
                                 + "— and total size of modifications is less than threshold — {} < {}",
-                        SafeArg.of("totalModifications", totalModifications),
+                        SafeArg.of("total modification count", totalModifications),
                         SafeArg.of("count threshold", WRITE_THRESHOLD),
-                        SafeArg.of("totalModificationsSize", totalModificationsSize),
+                        SafeArg.of("total modifications size", totalModificationsSize),
                         SafeArg.of("size threshold", WRITE_SIZE_THRESHOLD));
                 return;
             }
