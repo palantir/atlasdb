@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
