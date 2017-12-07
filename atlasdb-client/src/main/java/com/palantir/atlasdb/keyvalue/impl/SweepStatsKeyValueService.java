@@ -24,8 +24,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +58,8 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistables;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 
 /**
@@ -68,6 +72,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
     private static final int CLEAR_WEIGHT = 1 << 14;
     private static final int WRITE_THRESHOLD = 1 << 16;
+    private static final long WRITE_SIZE_THRESHOLD = 1 << 30;
     private static final long FLUSH_DELAY_SECONDS = 42;
 
     // This is gross and won't work if someone starts namespacing sweep differently
@@ -81,6 +86,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             new ConcurrentHashMap<TableReference, Boolean>());
 
     private final AtomicInteger totalModifications = new AtomicInteger();
+    private final AtomicLong totalModificationsSize = new AtomicLong();
     private final Lock flushLock = new ReentrantLock();
     private final ScheduledExecutorService flushExecutor = PTExecutors.newSingleThreadScheduledExecutor();
 
@@ -107,17 +113,23 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         delegate().put(tableRef, values, timestamp);
         writesByTable.add(tableRef, values.size());
         recordModifications(values.size());
+        recordModificationsSize(values.entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
+                .sum());
     }
 
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         delegate().multiPut(valuesByTable, timestamp);
         int newWrites = 0;
+        long writesSize = 0;
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> entry : valuesByTable.entrySet()) {
             writesByTable.add(entry.getKey(), entry.getValue().size());
             newWrites += entry.getValue().size();
+            writesSize += entry.getValue().entrySet().stream().mapToLong(cellEntry -> cellEntry.getValue().length)
+                    .sum();
         }
         recordModifications(newWrites);
+        recordModificationsSize(writesSize);
     }
 
     @Override
@@ -125,6 +137,8 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         delegate().putWithTimestamps(tableRef, cellValues);
         writesByTable.add(tableRef, cellValues.size());
         recordModifications(cellValues.size());
+        recordModificationsSize(cellValues.entries().stream()
+                .mapToLong(cellEntry -> cellEntry.getValue().getContents().length).sum());
     }
 
     @Override
@@ -180,6 +194,10 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         totalModifications.addAndGet(newWrites);
     }
 
+    private void recordModificationsSize(long modificationSize) {
+        totalModificationsSize.addAndGet(modificationSize);
+    }
+
     private void recordClear(TableReference tableRef) {
         clearedTables.add(tableRef);
         recordModifications(CLEAR_WEIGHT);
@@ -187,12 +205,23 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     private Runnable createFlushTask() {
         return () -> {
+            if (!shouldFlush()) {
+                log.debug("Not flushing since the total number modifications is less than threshold — {} < {} "
+                                + "— and total size of modifications is less than threshold — {} < {}",
+                        SafeArg.of("totalModifications", totalModifications),
+                        SafeArg.of("count threshold", WRITE_THRESHOLD),
+                        SafeArg.of("totalModificationsSize", totalModificationsSize),
+                        SafeArg.of("size threshold", WRITE_SIZE_THRESHOLD));
+                return;
+            }
+
             try {
-                if (totalModifications.get() >= WRITE_THRESHOLD && flushLock.tryLock()) {
+                if (flushLock.tryLock()) {
                     try {
-                        if (totalModifications.get() >= WRITE_THRESHOLD) {
+                        if (shouldFlush()) {
                             // snapshot current values while holding the lock and flush
                             totalModifications.set(0);
+                            totalModificationsSize.set(0);
                             Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
                             writesByTable.clear();
                             Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
@@ -213,16 +242,21 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         };
     }
 
+    private boolean shouldFlush() {
+        return totalModifications.get() >= WRITE_THRESHOLD || totalModificationsSize.get() >= WRITE_SIZE_THRESHOLD;
+    }
+
     private void flushWrites(Multiset<TableReference> writes, Set<TableReference> clears) {
         if (writes.isEmpty() && clears.isEmpty()) {
-            log.debug("No writes to flush");
+            log.info("No writes to flush");
             return;
         }
 
-        log.debug("Flushing stats for {} writes and {} clears",
-                writes.size(), clears.size());
-        log.trace("Flushing writes: {}", writes);
-        log.trace("Flushing clears: {}", clears);
+        log.info("Flushing stats for {} writes and {} clears",
+                SafeArg.of("writes", writes.size()),
+                SafeArg.of("clears", clears.size()));
+        log.trace("Flushing writes: {}", UnsafeArg.of("writes", writes));
+        log.trace("Flushing clears: {}", UnsafeArg.of("clears", clears));
         try {
             Set<TableReference> tableNames = Sets.difference(writes.elementSet(), clears);
             Collection<byte[]> rows = Collections2.transform(
