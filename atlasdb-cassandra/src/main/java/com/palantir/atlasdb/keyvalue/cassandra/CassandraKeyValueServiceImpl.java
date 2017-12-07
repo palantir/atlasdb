@@ -32,7 +32,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1022,8 +1021,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         putForSingleHostInternal(kvsMethodName,
                                 entry.getKey(),
                                 tableRef,
-                                entry.getValue().entrySet(),
-                                ttl);
+                                entry.getValue().entrySet());
                         clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
