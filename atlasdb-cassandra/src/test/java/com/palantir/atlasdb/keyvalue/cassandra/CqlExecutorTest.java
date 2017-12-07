@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.thrift.CqlResult;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -34,13 +37,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class CqlExecutorTest {
 
-    private final CqlExecutor.QueryExecutor queryExecutor = mock(CqlExecutor.QueryExecutor.class);
-    private final CqlExecutor executor = new CqlExecutor(queryExecutor);
+    private final CqlExecutorImpl.QueryExecutor queryExecutor = mock(CqlExecutorImpl.QueryExecutor.class);
+    private final CqlExecutor executor = new CqlExecutorImpl(queryExecutor);
 
     private long queryDelayMillis = 0L;
 
     private static final TableReference TABLE_REF = TableReference.create(Namespace.create("foo"), "bar");
     private static final byte[] ROW = {0x01, 0x02};
+    private static final byte[] END_ROW = {0x05, 0x09};
     private static final byte[] COLUMN = {0x03, 0x04};
     private static final long TIMESTAMP = 123L;
     private static final int LIMIT = 100;
@@ -57,11 +61,12 @@ public class CqlExecutorTest {
 
     @Test
     public void getTimestamps() {
-        String expected = "SELECT key, column1, column2 FROM \"foo__bar\" WHERE token(key) >= token(0x0102) LIMIT 100;";
+        String expected = "SELECT key, column1, column2 FROM \"foo__bar\""
+                + " WHERE token(key) >= token(0x0102) AND token(key) <= token(0x0509) LIMIT 100;";
 
-        executor.getTimestamps(TABLE_REF, ROW, LIMIT);
+        executor.getTimestamps(TABLE_REF, ROW, END_ROW, LIMIT);
 
-        verify(queryExecutor).execute(ROW, expected);
+        verify(queryExecutor).execute(argThat(cqlQueryMatcher(expected)), eq(ROW));
     }
 
     @Test
@@ -71,7 +76,21 @@ public class CqlExecutorTest {
 
         executor.getTimestampsWithinRow(TABLE_REF, ROW, COLUMN, TIMESTAMP, LIMIT);
 
-        verify(queryExecutor).execute(ROW, expected);
+        verify(queryExecutor).execute(argThat(cqlQueryMatcher(expected)), eq(ROW));
+    }
+
+    private ArgumentMatcher<CqlQuery> cqlQueryMatcher(String expected) {
+        return new ArgumentMatcher<CqlQuery>() {
+            @Override
+            public boolean matches(Object argument) {
+                if (!(argument instanceof CqlQuery)) {
+                    return false;
+                }
+
+                String actualQuery = ((CqlQuery) argument).toString();
+                return expected.equals(actualQuery);
+            }
+        };
     }
 
 }

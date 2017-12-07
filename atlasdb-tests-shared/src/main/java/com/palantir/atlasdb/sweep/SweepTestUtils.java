@@ -15,9 +15,10 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
+
 import com.google.common.base.Supplier;
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -94,8 +95,7 @@ public final class SweepTestUtils {
         Awaitility.await()
                 .timeout(Duration.FIVE_MINUTES)
                 .until(() -> {
-                    kvs.getAllTableNames().stream()
-                            .forEach(tableRef -> kvs.dropTable(tableRef));
+                    kvs.getAllTableNames().forEach(kvs::dropTable);
                     return true;
                 });
         TransactionTables.deleteTables(kvs);

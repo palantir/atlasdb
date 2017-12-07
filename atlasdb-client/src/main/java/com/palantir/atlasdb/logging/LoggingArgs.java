@@ -43,6 +43,13 @@ import com.palantir.logsafe.UnsafeArg;
  * Always returns unsafe, until hydrated.
  */
 public final class LoggingArgs {
+
+    private static final String PLACEHOLDER_TABLE_NAME = "{table}";
+
+    @VisibleForTesting
+    static final TableReference PLACEHOLDER_TABLE_REFERENCE =
+            TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
+
     @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
         SafeArg<List<TableReference>> safeTableRefs();
@@ -82,15 +89,42 @@ public final class LoggingArgs {
                 .build();
     }
 
+    public static Iterable<TableReference> safeTablesOrPlaceholder(Collection<TableReference> tables) {
+        //noinspection StaticPseudoFunctionalStyleMethod - Use lazy iterator.
+        return Iterables.transform(tables, LoggingArgs::safeTableOrPlaceholder);
+    }
+
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
-    public static Arg<TableReference> tableRef(TableReference tableReference) {
+    public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
     }
 
-    public static Arg<TableReference> tableRef(String argName, TableReference tableReference) {
-        return getArg(argName, tableReference, logArbitrator.isTableReferenceSafe(tableReference));
+    /**
+     * If table is safe, returns the table. If unsafe, returns a placeholder.
+     */
+    public static TableReference safeTableOrPlaceholder(TableReference tableReference) {
+        if (logArbitrator.isTableReferenceSafe(tableReference)) {
+            return tableReference;
+        } else {
+            return PLACEHOLDER_TABLE_REFERENCE;
+        }
+    }
+
+    /**
+     * If table is safe, returns the table. If unsafe, returns a placeholder name.
+     */
+    public static String safeInternalTableNameOrPlaceholder(String internalTableReference) {
+        if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
+            return internalTableReference;
+        } else {
+            return PLACEHOLDER_TABLE_NAME;
+        }
+    }
+
+    public static Arg<String> tableRef(String argName, TableReference tableReference) {
+        return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
 
     public static Arg<String> customTableName(TableReference tableReference, String tableName) {

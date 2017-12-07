@@ -48,8 +48,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -57,9 +60,11 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -134,6 +139,44 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Preconditions.checkArgument(!allTables.contains(table3));
     }
 
+
+    @Test
+    public void testTokenRangeWritesLogger() {
+        CassandraKeyValueServiceImpl kvs = (CassandraKeyValueServiceImpl) keyValueService;
+        CassandraClientPoolImpl clientPool = (CassandraClientPoolImpl) kvs.getClientPool();
+        TokenRangeWritesLogger tokenRangeWritesLogger = clientPool.tokenRangeWritesLogger;
+
+        tokenRangeWritesLogger.updateTokenRanges(ImmutableSet.of(
+                Range.atMost(getToken("bcd")),
+                Range.openClosed(getToken("bcd"), getToken("ghi")),
+                Range.openClosed(getToken("ghi"), getToken("opq")),
+                Range.greaterThan(getToken("opq"))));
+
+        kvs.put(TEST_TABLE, ImmutableMap.of(Cell.create(PtBytes.toBytes("a"), column0), PtBytes.toBytes("test")), 100L);
+
+        kvs.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
+                Cell.create(PtBytes.toBytes("g"), column0), Value.create(PtBytes.toBytes("value"), 200L),
+                Cell.create(PtBytes.toBytes("g"), column0), Value.create(PtBytes.toBytes("value"), 300L)));
+
+        kvs.putUnlessExists(TEST_TABLE, ImmutableMap.of(
+                Cell.create(PtBytes.toBytes("za"), column0), value0_t0,
+                Cell.create(PtBytes.toBytes("zg"), column0), value0_t0,
+                Cell.create(PtBytes.toBytes("zz"), column0), value0_t0));
+
+        assertThat(tokenRangeWritesLogger.getNumberOfWritesTotal(TEST_TABLE), equalTo(5L));
+        assertWritesInRangeDefinedBy(1L, "a", tokenRangeWritesLogger);
+        assertWritesInRangeDefinedBy(1L, "g", tokenRangeWritesLogger);
+        assertWritesInRangeDefinedBy(3L, "z", tokenRangeWritesLogger);
+    }
+
+    private LightweightOppToken getToken(String name) {
+        return new LightweightOppToken(PtBytes.toBytes(name));
+    }
+
+    private void assertWritesInRangeDefinedBy(long number, String name, TokenRangeWritesLogger tokenRangeWritesLogger) {
+        assertThat(tokenRangeWritesLogger.getNumberOfWritesFromToken(TEST_TABLE, getToken(name)), equalTo(number));
+    }
+
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
@@ -161,7 +204,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace("atlasdb").getCf_defs());
+                client.rawClient().describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
@@ -185,7 +228,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         kvs.createTable(testTable, tableMetadata);
 
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace("atlasdb").getCf_defs());
+                client.rawClient().describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));

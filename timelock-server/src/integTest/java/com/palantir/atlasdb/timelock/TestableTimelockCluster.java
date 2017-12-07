@@ -26,13 +26,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.awaitility.Awaitility;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;

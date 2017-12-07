@@ -146,7 +146,10 @@ public class StreamTableDefinitionBuilder {
                     appendHeavyAndReadLight();
                 }
                 if (dbSideCompressionForBlocks) {
-                    explicitCompressionBlockSizeKB(Integer.highestOneBit(GenericStreamStore.BLOCK_SIZE_IN_BYTES / 2));
+                    int streamStoreValueSizeKB = GenericStreamStore.BLOCK_SIZE_IN_BYTES / 1_000;
+                    int expectedAverageValueSizeKB = streamStoreValueSizeKB / 2;
+                    int compressionBlockSizeKB = highestPowerOfTwoLessThanOrEqualTo(expectedAverageValueSizeKB);
+                    explicitCompressionBlockSizeKB(compressionBlockSizeKB);
                 }
                 ignoreHotspottingChecks();
             }};
@@ -154,5 +157,9 @@ public class StreamTableDefinitionBuilder {
         default:
             throw new IllegalStateException("Incorrectly supplied stream table type");
         }
+    }
+
+    private static int highestPowerOfTwoLessThanOrEqualTo(int value) {
+        return Integer.highestOneBit(value);
     }
 }

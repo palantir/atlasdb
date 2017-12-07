@@ -35,7 +35,7 @@ public class KvsProfilingLogger {
 
     public static final String SLOW_LOGGER_NAME = "kvs-slow-log";
 
-    private static final Logger slowlogger = LoggerFactory.getLogger(SLOW_LOGGER_NAME);
+    public static final Logger slowlogger = LoggerFactory.getLogger(SLOW_LOGGER_NAME);
     private static final Logger log = LoggerFactory.getLogger(KvsProfilingLogger.class);
 
     public static final int DEFAULT_THRESHOLD_MILLIS = 1000;
@@ -91,26 +91,32 @@ public class KvsProfilingLogger {
         slowLogPredicate = createLogPredicateForThresholdMillis(thresholdMillis);
     }
 
-    public static <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        return maybeLog(action, logger, (loggingFunction, result) -> { });
-    }
-
     public static void maybeLog(Runnable runnable, BiConsumer<LoggingFunction, Stopwatch> logger) {
-        maybeLog(() -> {
+        maybeLog((Supplier<Object>) () -> {
             runnable.run();
             return null;
         }, logger);
     }
 
-    public static  <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
-            BiConsumer<LoggingFunction, T> additonalLoggerWithAccessToResult) {
+    public static <T> T maybeLog(Supplier<T> action, BiConsumer<LoggingFunction, Stopwatch> logger) {
+        return maybeLog(action::get, logger, (loggingFunction, result) -> {});
+    }
+
+    public static <T, E extends Exception> T maybeLog(CallableCheckedException<T, E> action,
+            BiConsumer<LoggingFunction, Stopwatch> primaryLogger) throws E {
+        return maybeLog(action, primaryLogger, ((loggingFunction, result) -> {}));
+    }
+
+    public static <T, E extends Exception> T maybeLog(CallableCheckedException<T, E> action,
+            BiConsumer<LoggingFunction, Stopwatch> primaryLogger,
+            BiConsumer<LoggingFunction, T> additonalLoggerWithAccessToResult) throws E {
         if (log.isTraceEnabled() || slowlogger.isWarnEnabled()) {
             Monitor<T> monitor = Monitor.createMonitor(
                     primaryLogger,
                     additonalLoggerWithAccessToResult,
                     slowLogPredicate);
             try {
-                T res = action.get();
+                T res = action.call();
                 monitor.registerResult(res);
                 return res;
             } catch (Exception ex) {
@@ -120,7 +126,7 @@ public class KvsProfilingLogger {
                 monitor.log();
             }
         } else {
-            return action.get();
+            return action.call();
         }
     }
 
@@ -187,4 +193,7 @@ public class KvsProfilingLogger {
         return stopwatch -> stopwatch.elapsed(TimeUnit.MILLISECONDS) > thresholdMillis;
     }
 
+    public interface CallableCheckedException<T, E extends Exception>  {
+        T call() throws E;
+    }
 }

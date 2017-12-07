@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
@@ -48,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
@@ -64,7 +64,7 @@ public class CassandraClientPoolTest {
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistry(new MetricRegistry());
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault());
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
     }
 
@@ -131,7 +131,7 @@ public class CassandraClientPoolTest {
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1, HOST_2));
-        cassandraClientPool.blacklistedHosts.put(HOST_1, System.currentTimeMillis());
+        cassandraClientPool.getBlacklist().add(HOST_1);
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);
@@ -258,7 +258,7 @@ public class CassandraClientPoolTest {
             int numAttempts) {
         Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
                 .runWithPooledResource(
-                        Mockito.<FunctionCheckedException<Cassandra.Client, Object, RuntimeException>>any());
+                        Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
     }
 
     @Test
@@ -338,7 +338,7 @@ public class CassandraClientPoolTest {
     private void setFailureModeForHost(CassandraClientPoolingContainer poolingContainer, Exception failureMode) {
         try {
             when(poolingContainer.runWithPooledResource(
-                    Mockito.<FunctionCheckedException<Cassandra.Client, Object, Exception>>any()))
+                    Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()))
                     .thenThrow(failureMode);
         } catch (Exception e) {
             throw Throwables.propagate(e);
@@ -371,10 +371,10 @@ public class CassandraClientPoolTest {
         }
     }
 
-    private FunctionCheckedException<Cassandra.Client, Void, RuntimeException> noOp() {
-        return new FunctionCheckedException<Cassandra.Client, Void, RuntimeException>() {
+    private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {
+        return new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
             @Override
-            public Void apply(Cassandra.Client input) throws RuntimeException {
+            public Void apply(CassandraClient input) throws RuntimeException {
                 return null;
             }
 

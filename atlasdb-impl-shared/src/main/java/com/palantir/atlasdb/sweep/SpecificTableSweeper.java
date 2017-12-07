@@ -33,9 +33,11 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgressStore;
+import com.palantir.atlasdb.sweep.progress.SweepProgressStoreImpl;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
@@ -80,13 +82,18 @@ public class SpecificTableSweeper {
             SweepTaskRunner sweepRunner,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            SweepMetrics sweepMetrics) {
-        SweepProgressStore sweepProgressStore = new SweepProgressStore(kvs, tableFactory);
-        SweepPriorityStore sweepPriorityStore = new SweepPriorityStore(tableFactory);
+            SweepMetrics sweepMetrics,
+            boolean initializeAsync) {
+        SweepProgressStore sweepProgressStore = SweepProgressStoreImpl.create(kvs, initializeAsync);
+        SweepPriorityStore sweepPriorityStore = SweepPriorityStoreImpl.create(kvs, tableFactory, initializeAsync);
         return new SpecificTableSweeper(txManager, kvs, sweepRunner,
                 sweepPriorityStore, sweepProgressStore, sweepPerfLogger,
                 sweepMetrics,
                 System::currentTimeMillis);
+    }
+
+    public boolean isInitialized()  {
+        return sweepProgressStore.isInitialized() && sweepPriorityStore.isInitialized();
     }
 
     public LockAwareTransactionManager getTxManager() {
@@ -220,9 +227,10 @@ public class SpecificTableSweeper {
                     .cellTsPairsExamined(results.getCellTsPairsExamined())
                     //noinspection OptionalGetWithoutIsPresent // covered by precondition above
                     .startRow(results.getNextStartRow().get())
+                    .startColumn(PtBytes.toBytes("unused"))
                     .minimumSweptTimestamp(results.getSweptTimestamp())
                     .build();
-            sweepProgressStore.saveProgress(tx, newProgress);
+            sweepProgressStore.saveProgress(newProgress);
             return null;
         });
     }

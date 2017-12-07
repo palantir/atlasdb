@@ -77,6 +77,11 @@ public class StreamStoreDefinitionBuilder {
         return this;
     }
 
+    /**
+     * @deprecated use {@link #compressStreamInClient()} instead, because that will compress before sending the data
+     * over the network to Cassandra.
+     */
+    @Deprecated
     public StreamStoreDefinitionBuilder compressBlocksInDb() {
         streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.compressBlocksInDb());
         return this;

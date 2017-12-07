@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
@@ -42,7 +41,6 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -76,12 +74,12 @@ public class CassandraClientPoolIntegrationTest {
     // Pretty legit test if run manually or if we go back to multi-node tests
     @Test
     public void testTokenMapping() {
-        Map<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
+        Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
                 clientPool.tokenMap.asMapOfRanges();
 
-        for (Entry<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> entry :
+        for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry :
                 mapOfRanges.entrySet()) {
-            Range<CassandraClientPoolImpl.LightweightOppToken> tokenRange = entry.getKey();
+            Range<LightweightOppToken> tokenRange = entry.getKey();
             List<InetSocketAddress> hosts = entry.getValue();
 
             clientPool.getRandomHostForKey("A".getBytes(StandardCharsets.UTF_8));
@@ -99,7 +97,8 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CassandraContainer.KVS_CONFIG);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(),
+                        CassandraContainer.KVS_CONFIG);
             } catch (TException e) {
                 fail("currentRf On Keyspace does not Match DesiredRf");
             }
@@ -111,7 +110,7 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorInConfig() {
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(),
                         ImmutableCassandraKeyValueServiceConfig.copyOf(
                                 CassandraContainer.KVS_CONFIG).withReplicationFactor(
                                 MODIFIED_REPLICATION_FACTOR));
@@ -128,7 +127,8 @@ public class CassandraClientPoolIntegrationTest {
         changeReplicationFactor(MODIFIED_REPLICATION_FACTOR);
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CassandraContainer.KVS_CONFIG);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(),
+                        CassandraContainer.KVS_CONFIG);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
@@ -145,32 +145,32 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     private void changeReplicationFactor(int replicationFactor) throws TException {
-        clientPool.run((FunctionCheckedException<Cassandra.Client, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow());
+        clientPool.run((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
+            KsDef originalKsDef = client.rawClient().describe_keyspace(
+                    CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow());
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
             modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));
             modifiedKsDef.setCf_defs(ImmutableList.of());
-            client.system_update_keyspace(modifiedKsDef);
+            client.rawClient().system_update_keyspace(modifiedKsDef);
             return null;
         });
     }
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        clientPool.blacklistedHosts.putAll(
-                Maps.transformValues(clientPool.getCurrentPools(), clientPoolContainer -> Long.MAX_VALUE));
+        clientPool.getBlacklist().addAll(clientPool.getCurrentPools().keySet());
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
             fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
-        clientPool.blacklistedHosts.clear();
+        clientPool.getBlacklist().removeAll();
     }
 
-    private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing =
-            client -> client.describe_ring("atlasdb");
+    private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
+            client -> client.rawClient().describe_ring("atlasdb");
 
     @Test
     public void testWeightedHostsWithUniformActivity() {

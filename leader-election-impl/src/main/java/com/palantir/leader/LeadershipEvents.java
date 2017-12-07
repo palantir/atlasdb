@@ -54,22 +54,23 @@ class LeadershipEvents {
     }
 
     public void proposedLeadershipFor(long round) {
-        leaderLog.info("Proposing leadership", SafeArg.of("round", round));
+        leaderLog.info("Proposing leadership for {}", SafeArg.of("round", round));
         proposedLeadership.mark();
     }
 
     public void gainedLeadershipFor(PaxosValue value) {
-        leaderLog.info("Gained leadership", SafeArg.of("value", value));
+        leaderLog.info("Gained leadership for {}", SafeArg.of("value", value));
         gainedLeadership.mark();
     }
 
     public void lostLeadershipFor(PaxosValue value) {
-        leaderLog.info("Lost leadership", SafeArg.of("value", value));
+        leaderLog.info("Lost leadership for {}", SafeArg.of("value", value));
         lostLeadership.mark();
     }
 
     public void noQuorum(PaxosValue value) {
-        leaderLog.warn("The most recent known information says this server is the leader, but there is no quorum right now",
+        leaderLog.warn("The most recent known information says this server is the leader,"
+                        + " but there is no quorum right now. The paxos value is {}",
                 SafeArg.of("value", value));
         noQuorum.mark();
     }

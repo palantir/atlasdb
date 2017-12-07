@@ -46,22 +46,12 @@ public final class SweepTableFactory {
         return SweepPriorityTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public SweepProgressTable getSweepProgressTable(Transaction t,
-            SweepProgressTable.SweepProgressTrigger... triggers) {
-        return SweepProgressTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
-    public interface SharedTriggers extends SweepPriorityTable.SweepPriorityTrigger, SweepProgressTable.SweepProgressTrigger {
+    public interface SharedTriggers extends SweepPriorityTable.SweepPriorityTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putSweepPriority(Multimap<SweepPriorityTable.SweepPriorityRow, ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putSweepProgress(Multimap<SweepProgressTable.SweepProgressRow, ? extends SweepProgressTable.SweepProgressNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

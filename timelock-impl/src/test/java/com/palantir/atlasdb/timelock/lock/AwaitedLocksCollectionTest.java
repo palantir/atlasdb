@@ -29,10 +29,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.junit.Test;
-
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 
 public class AwaitedLocksCollectionTest {
 
@@ -107,7 +106,7 @@ public class AwaitedLocksCollectionTest {
         Awaitility.await()
                 .atMost(Duration.ONE_SECOND)
                 .pollInterval(5, TimeUnit.MILLISECONDS)
-                .until(() -> {
+                .untilAsserted(() -> {
                     for (UUID requestId : Arrays.asList(requests)) {
                         assertThat(awaitedLocks.requestsById).doesNotContainKey(requestId);
                     }

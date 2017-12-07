@@ -19,17 +19,22 @@ import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.remoting.api.config.service.ProxyConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public final class AtlasDbHttpClients {
-    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
-    private static final int QUICK_MAX_BACKOFF_MILLIS = 1000;
+    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
+    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -54,6 +59,18 @@ public final class AtlasDbHttpClients {
                 MetricRegistry.name(type));
     }
 
+    public static <T> T createProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            String uri,
+            boolean refreshingHttpClient,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, refreshingHttpClient, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
     /**
      * Constructs a list, corresponding to the iteration order of the supplied endpoints, of dynamic proxies for the
      * specified type, using the supplied SSL factory if it is present.
@@ -71,6 +88,19 @@ public final class AtlasDbHttpClients {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
             ret.add(createProxy(sslSocketFactory, uri, type, userAgent));
+        }
+        return ret;
+    }
+
+    public static <T> List<T> createProxies(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Collection<String> endpointUris,
+            boolean refreshingHttpClient,
+            Class<T> type,
+            String userAgent) {
+        List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
+        for (String uri : endpointUris) {
+            ret.add(createProxy(sslSocketFactory, uri, refreshingHttpClient, type, userAgent));
         }
         return ret;
     }
@@ -140,6 +170,40 @@ public final class AtlasDbHttpClients {
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
                         sslSocketFactory, proxySelector, endpointUris, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
+    public static <T> T createLiveReloadingProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
+                MetricRegistry.name(type));
+    }
+
+    @VisibleForTesting
+    static <T> T createLiveReloadingProxyWithQuickFailoverForTesting(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return AtlasDbMetrics.instrument(
+                type,
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier,
+                        sslSocketFactoryCreator,
+                        proxySelectorCreator,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_FEIGN_TIMEOUT_MILLIS,
+                        QUICK_MAX_BACKOFF_MILLIS,
+                        type,
+                        userAgent),
                 MetricRegistry.name(type));
     }
 

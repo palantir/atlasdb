@@ -88,11 +88,23 @@ public final class FeignOkHttpClients {
      * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
      * specified {@link SSLSocketFactory}.
      */
-    public static <T> Client newOkHttpClient(
+    public static Client newOkHttpClient(
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
         return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+    }
+
+    /**
+     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}, which re-creates
+     * itself periodically (by default, every ScheduledRefreshingClient.STANDARD_REFRESH_INTERVAL time).
+     */
+    public static Client newRefreshingOkHttpClient(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<ProxySelector> proxySelector,
+            String userAgent) {
+        return CounterBackedRefreshingClient.createRefreshingClient(
+                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
     }
 
     @VisibleForTesting

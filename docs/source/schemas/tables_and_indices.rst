@@ -356,14 +356,29 @@ better idea for your table.
    To avoid hot-spotting, the type of the first row component should NOT be
    a VAR\_LONG, a VAR\_SIGNED\_LONG, or a SIZED\_BLOB.
 
-For a safe data distribution it is suggested the usage of
-``hashFirstRowComponent()``:
+For a safe data distribution the usage of ``hashFirstRowComponent()`` is suggested.
 
 .. code:: java
 
     rowName();
-        hashFirstRowComponent()
+        hashFirstRowComponent();
         rowComponent("secondary_row_component_of_any_type", ValueType.VAR_LONG);
+
+Also, in the event that the first row component may not be sufficient for even
+distribution (e.g. it has low cardinality and an uneven distribution, but subsequent
+components are more varied), AtlasDB also offers hashing a prefix of the row key, via
+``hashFirstNRowComponents(int)``. This is useful, for instance, in stream stores.
+
+.. code:: java
+
+    rowName();
+        hashFirstNRowComponents(2);
+        rowComponent("first_component_not_evenly_distributed", ValueType.VAR_LONG);
+        rowComponent("second_component_fairly_distributed", ValueType.UUID);
+        rowComponent("third_component_maybe_expensive_to_hash", ValueType.BLOB);
+
+This will prepend a hash of the first and second components of each row key to
+the table.
 
 Table Named Columns
 -------------------
@@ -479,6 +494,17 @@ For the row definitions section, each ``componentFromRow`` call can be
 succeeded by a ``partitioner()`` call, in the exact same manner as for
 table rows. For more information, see the Partitioners subsection of
 Table Rows.
+
+.. note::
+
+    Internally, index rows are stored including a reference to the source column,
+    but this is stripped out in the generated code before being returned to the user.
+    Thus, if one uses a ``List`` of results returned from an index table (e.g. through ``getRowColumns``,
+    one may encounter multiple values that appear to be the same). The standard workaround is to use
+    a ``Set`` to deduplicate the results.
+
+    Please see discussion on `issue 604 <https://github.com/palantir/atlasdb/issues/604>`__ for more details
+    regarding this behaviour.
 
 Constraints
 -----------

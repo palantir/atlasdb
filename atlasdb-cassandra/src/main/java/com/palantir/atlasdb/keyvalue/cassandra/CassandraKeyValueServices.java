@@ -161,7 +161,7 @@ public final class CassandraKeyValueServices {
             clientPool.run(client -> {
                 waitForSchemaVersions(
                         config,
-                        client,
+                        client.rawClient(),
                         "(none, just an initialization check)",
                         true);
                 return null;

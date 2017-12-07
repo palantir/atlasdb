@@ -45,12 +45,13 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.config.TimeLockClientConfigs;
 import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -68,6 +69,10 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.config.QosClientConfig;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -94,6 +99,7 @@ import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -103,16 +109,18 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.client.LockRefreshingTimelockService;
+import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
+@Value.Style(stagedBuilder = true)
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -145,14 +153,12 @@ public abstract class TransactionManagers {
 
     abstract String userAgent();
 
-    public static Builder builder() {
-        return new Builder();
-    }
+    abstract MetricRegistry globalMetricsRegistry();
 
-    public static class Builder extends ImmutableTransactionManagers.Builder {
-        public SerializableTransactionManager buildSerializable() {
-            return build().serializable();
-        }
+    abstract TaggedMetricRegistry globalTaggedMetricRegistry();
+
+    public static ImmutableTransactionManagers.ConfigBuildStage builder() {
+        return ImmutableTransactionManagers.builder();
     }
 
     @VisibleForTesting
@@ -177,126 +183,20 @@ public abstract class TransactionManagers {
      */
     public static SerializableTransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
-        return builder().config(config).schemas(schemas).userAgent(UserAgents.DEFAULT_USER_AGENT).buildSerializable();
-    }
-
-    // Begin deprecated creation methods
-
-    /**
-     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
-     * generate a {@link SerializableTransactionManager} from it.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Schema schema,
-            Environment env,
-            boolean allowHiddenTableAccess) {
-        return create(config, runtimeConfigSupplier, ImmutableSet.of(schema), env, allowHiddenTableAccess);
-    }
-
-    /**
-     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
-     * generate a {@link SerializableTransactionManager} from it.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            boolean allowHiddenTableAccess) {
-        log.info("Called TransactionManagers.create. This should only happen once.",
-                UnsafeArg.of("thread name", Thread.currentThread().getName()));
-        return create(config, runtimeConfigSupplier, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
-    }
-
-    /**
-     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
-     * generate a {@link SerializableTransactionManager} from it.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess) {
         return builder()
                 .config(config)
-                .runtimeConfigSupplier(runtimeConfigSupplier)
-                .schemas(schemas)
-                .registrar(env::register)
-                .lockServerOptions(lockServerOptions)
-                .allowHiddenTableAccess(allowHiddenTableAccess)
                 .userAgent(UserAgents.DEFAULT_USER_AGENT)
-                .buildSerializable();
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .addAllSchemas(schemas)
+                .build()
+                .serializable();
     }
-
-    /**
-     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
-     * generate a {@link SerializableTransactionManager} from it.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> runtimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess,
-            Class<?> callingClass) {
-        return builder()
-                .config(config)
-                .runtimeConfigSupplier(runtimeConfigSupplier)
-                .schemas(schemas)
-                .registrar(env::register)
-                .lockServerOptions(lockServerOptions)
-                .allowHiddenTableAccess(allowHiddenTableAccess)
-                .userAgent(UserAgents.fromClass(callingClass))
-                .buildSerializable();
-    }
-
-    /**
-     * @deprecated Use {@link #builder()} to create a {@link Builder}, and use {@link Builder#buildSerializable()} to
-     * generate a {@link SerializableTransactionManager} from it.
-     */
-    @Deprecated
-    public static SerializableTransactionManager create(
-            AtlasDbConfig config,
-            Supplier<java.util.Optional<AtlasDbRuntimeConfig>> optionalRuntimeConfigSupplier,
-            Set<Schema> schemas,
-            Environment env,
-            LockServerOptions lockServerOptions,
-            boolean allowHiddenTableAccess,
-            String userAgent) {
-        return builder()
-                .config(config)
-                .runtimeConfigSupplier(optionalRuntimeConfigSupplier)
-                .schemas(schemas)
-                .registrar(env::register)
-                .lockServerOptions(lockServerOptions)
-                .allowHiddenTableAccess(allowHiddenTableAccess)
-                .userAgent(userAgent)
-                .buildSerializable();
-    }
-
-    /**
-     * @deprecated This interface is deprecated and is not meant for use publicly. When creating a
-     * {@link SerializableTransactionManager} via the {@link Builder}, specify a {@link Consumer}.
-     */
-    @Deprecated
-    public interface Environment {
-        void register(Object resource);
-    }
-
-    // End deprecated creation methods
 
     @JsonIgnore
     @Value.Derived
-    SerializableTransactionManager serializable() {
+    public SerializableTransactionManager serializable() {
+        AtlasDbMetrics.setMetricRegistries(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
 
@@ -304,16 +204,22 @@ public abstract class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
+        QosClient qosClient = getQosClient(JavaSuppliers.compose(conf -> conf.qos(), runtimeConfigSupplier));
+
         ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader(), config.namespace(),
-                        config.initializeAsync());
+                new ServiceDiscoveringAtlasSupplier(
+                        config.keyValueService(),
+                        config.leader(),
+                        config.namespace(),
+                        config.initializeAsync(),
+                        qosClient);
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 config,
-                () -> runtimeConfigSupplier.get().timestampClient(),
+                runtimeConfigSupplier,
                 registrar(),
                 () -> LockServiceImpl.create(lockServerOptions()),
                 atlasFactory::getTimestampService,
@@ -392,6 +298,13 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
+    private QosClient getQosClient(Supplier<QosClientConfig> config) {
+        QosRateLimiters rateLimiters = QosRateLimiters.create(
+                JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
+                JavaSuppliers.compose(QosClientConfig::limits, config));
+        return AtlasDbQosClient.create(rateLimiters);
+    }
+
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
             AsyncInitializer initializer,
             LockAndTimestampServices lockAndTimestampServices) {
@@ -449,6 +362,7 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 sweepPerfLogger,
                 sweepMetrics,
+                config.initializeAsync(),
                 sweepBatchConfigSource);
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
@@ -469,6 +383,7 @@ public abstract class TransactionManagers {
             SweepTaskRunner sweepRunner,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
             SweepMetrics sweepMetrics,
+            boolean initializeAsync,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
@@ -476,7 +391,8 @@ public abstract class TransactionManagers {
                 sweepRunner,
                 SweepTableFactory.of(),
                 sweepPerfLogger,
-                sweepMetrics);
+                sweepMetrics,
+                initializeAsync);
         env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
         return specificTableSweeper;
     }
@@ -485,17 +401,9 @@ public abstract class TransactionManagers {
         return ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(sweepConfig.readLimit())
                 .candidateBatchSize(sweepConfig.candidateBatchHint()
-                        .orElse(getDefaultSweepCandidateBatchHint(kvsConfig)))
+                        .orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .deleteBatchSize(sweepConfig.deleteBatchHint())
                 .build();
-    }
-
-    // TODO(nziebart): this is a hack until we fix cassandra's getCandidateCellsForSweep to behave like the other KVSs
-    private static int getDefaultSweepCandidateBatchHint(KeyValueServiceConfig kvsConfig) {
-        if (kvsConfig.type().equals("cassandra")) {
-            return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_CASSANDRA;
-        }
-        return AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_NON_CASSANDRA;
     }
 
     private static PersistentLockService createAndRegisterPersistentLockService(
@@ -526,6 +434,7 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(config,
+                        () -> ImmutableAtlasDbRuntimeConfig.builder().build(),
                         env,
                         lock,
                         time,
@@ -540,16 +449,16 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
-            java.util.function.Supplier<TimestampClientConfig> runtimeConfigSupplier,
+            java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawInstrumentedServices(config, env, lock, time, invalidator, userAgent);
+                createRawInstrumentedServices(config, runtimeConfigSupplier, env, lock, time, invalidator, userAgent);
         return withRequestBatchingTimestampService(
-                runtimeConfigSupplier,
+                () -> runtimeConfigSupplier.get().timestampClient(),
                 withRefreshingLockService(lockAndTimestampServices));
     }
 
@@ -557,7 +466,7 @@ public abstract class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timelock(LockRefreshingTimelockService.createDefault(lockAndTimestampServices.timelock()))
+                .timelock(TimeLockClient.createDefault(lockAndTimestampServices.timelock()))
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .build();
     }
@@ -580,6 +489,7 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static LockAndTimestampServices createRawInstrumentedServices(
             AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
@@ -590,7 +500,7 @@ public abstract class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config, userAgent);
         } else if (config.timelock().isPresent()) {
-            return createRawServicesFromTimeLock(config, invalidator, userAgent);
+            return createRawServicesFromTimeLock(config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(env, lock, time);
         }
@@ -598,36 +508,39 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices createRawServicesFromTimeLock(
             AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
+        Supplier<ServerListConfig> serverListConfigSupplier =
+                getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
+        TimeLockMigrator migrator =
+                TimeLockMigrator.create(serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
+        migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+        return ImmutableLockAndTimestampServices.copyOf(
+                getLockAndTimestampServices(serverListConfigSupplier, userAgent))
+                .withMigrator(migrator);
+    }
+
+    private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
+            AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Preconditions.checkState(config.timelock().isPresent(),
                 "Cannot create raw services from timelock without a timelock block!");
         TimeLockClientConfig clientConfig = config.timelock().get();
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
-        TimeLockClientConfig timeLockClientConfig =
-                TimeLockClientConfigs.copyWithClient(config.timelock().get(), resolvedClient);
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(timeLockClientConfig, invalidator, userAgent, config.initializeAsync());
-        migrator.migrate(); // This can proceed async if config.initializeAsync() was set
-        return ImmutableLockAndTimestampServices.copyOf(
-                createNamespacedRawRemoteServices(timeLockClientConfig, userAgent))
-                .withMigrator(migrator);
-    }
-
-    private static LockAndTimestampServices createNamespacedRawRemoteServices(
-            TimeLockClientConfig config,
-            String userAgent) {
-        ServerListConfig namespacedServerListConfig = config.toNamespacedServerList();
-        return getLockAndTimestampServices(namespacedServerListConfig, userAgent);
+        return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
+                clientConfig,
+                () -> runtimeConfigSupplier.get().timelockRuntime(),
+                resolvedClient);
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(
-            ServerListConfig timelockServerListConfig,
+            Supplier<ServerListConfig> timelockServerListConfig,
             String userAgent) {
         LockService lockService = new ServiceCreator<>(LockService.class, userAgent)
-                .apply(timelockServerListConfig);
+                .applyDynamic(timelockServerListConfig);
         TimelockService timelockService = new ServiceCreator<>(TimelockService.class, userAgent)
-                .apply(timelockServerListConfig);
+                .applyDynamic(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -753,6 +666,7 @@ public abstract class TransactionManagers {
     }
 
     @Value.Immutable
+    @Value.Style(stagedBuilder = false)
     public interface LockAndTimestampServices {
         LockService lock();
         TimestampService timestamp();

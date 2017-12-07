@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.sweep;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +32,7 @@ public final class AdjustableSweepBatchConfigSource {
     private final Supplier<SweepBatchConfig> rawSweepBatchConfig;
 
     private static volatile double batchSizeMultiplier = 1.0;
+    private final AtomicInteger successiveIncreases = new AtomicInteger(0);
 
     private AdjustableSweepBatchConfigSource(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         this.rawSweepBatchConfig = rawSweepBatchConfig;
@@ -67,14 +71,21 @@ public final class AdjustableSweepBatchConfigSource {
     }
 
     public void increaseMultiplier() {
-        batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 1.01);
+        if (batchSizeMultiplier == 1.0) {
+            return;
+        }
+
+        if (successiveIncreases.incrementAndGet() > 25) {
+            batchSizeMultiplier = Math.min(1.0, batchSizeMultiplier * 2);
+        }
     }
 
     public void decreaseMultiplier() {
+        successiveIncreases.set(0);
         SweepBatchConfig lastBatchConfig = getAdjustedSweepConfig();
 
-        // Cut batch size in half, always sweep at least one row (we round down).
-        batchSizeMultiplier = Math.max(batchSizeMultiplier / 2, 1.5 / lastBatchConfig.candidateBatchSize());
+        // Cut batch size in half, always sweep at least one row.
+        reduceBatchSizeMultiplier();
 
         log.warn("Sweep failed unexpectedly with candidate batch size {},"
                         + " delete batch size {},"
@@ -84,5 +95,26 @@ public final class AdjustableSweepBatchConfigSource {
                 SafeArg.of("deleteBatchSize", lastBatchConfig.deleteBatchSize()),
                 SafeArg.of("maxCellTsPairsToExamine", lastBatchConfig.maxCellTsPairsToExamine()),
                 SafeArg.of("batchSizeMultiplier", batchSizeMultiplier));
+    }
+
+    private void reduceBatchSizeMultiplier() {
+        SweepBatchConfig config = getRawSweepConfig();
+        double smallestSensibleBatchSizeMultiplier =
+                1.0 / NumberUtils.max(
+                        config.maxCellTsPairsToExamine(), config.candidateBatchSize(), config.deleteBatchSize());
+
+        if (batchSizeMultiplier == smallestSensibleBatchSizeMultiplier) {
+            return;
+        }
+
+        double newBatchSizeMultiplier = batchSizeMultiplier / 2;
+        if (newBatchSizeMultiplier < smallestSensibleBatchSizeMultiplier) {
+            log.info("batchSizeMultiplier reached the smallest sensible value for the current sweep config ({}), "
+                            + "will not reduce further.",
+                    SafeArg.of("batchSizeMultiplier", smallestSensibleBatchSizeMultiplier));
+            batchSizeMultiplier = smallestSensibleBatchSizeMultiplier;
+        } else {
+            batchSizeMultiplier = newBatchSizeMultiplier;
+        }
     }
 }

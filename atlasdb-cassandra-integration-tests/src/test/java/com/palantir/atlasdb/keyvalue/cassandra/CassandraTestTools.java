@@ -29,10 +29,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.joda.time.Duration;
 
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.core.ConditionTimeoutException;
 import com.palantir.common.base.Throwables;
 
 /**

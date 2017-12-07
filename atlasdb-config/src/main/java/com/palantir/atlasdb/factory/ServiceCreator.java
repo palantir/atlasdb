@@ -23,7 +23,7 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -49,9 +49,18 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
 
     @Override
     public T apply(ServerListConfig input) {
-        Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(input.sslConfiguration());
-        Optional<ProxySelector> proxySelector = input.proxyConfiguration().map(ServiceCreator::createProxySelector);
-        return createService(sslSocketFactory, proxySelector, input.servers(), serviceClass, userAgent);
+        return applyDynamic(() -> input);
+    }
+
+    // Semi-horrible, but given that we create ServiceCreators explicitly and I'd rather not API break our
+    // implementation of Function, leaving this here for now.
+    public T applyDynamic(Supplier<ServerListConfig> input) {
+        return createService(
+                input,
+                SslSocketFactories::createSslSocketFactory,
+                ServiceCreator::createProxySelector,
+                serviceClass,
+                userAgent);
     }
 
     /**
@@ -62,13 +71,13 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     }
 
     private static <T> T createService(
-            Optional<SSLSocketFactory> sslSocketFactory,
-            Optional<ProxySelector> proxySelector,
-            Set<String> uris,
-            Class<T> serviceClass,
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            java.util.function.Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            java.util.function.Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
             String userAgent) {
-        return AtlasDbHttpClients.createProxyWithFailover(
-                sslSocketFactory, proxySelector, uris, serviceClass, userAgent);
+        return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
+                serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
     }
 
     public static <T> T createInstrumentedService(T service, Class<T> serviceClass) {

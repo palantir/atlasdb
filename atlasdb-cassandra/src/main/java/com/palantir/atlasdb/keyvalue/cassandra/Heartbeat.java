@@ -18,14 +18,15 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.List;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
@@ -66,7 +67,7 @@ class Heartbeat implements Runnable {
         }
     }
 
-    private Void beat(Client client) throws TException {
+    private Void beat(CassandraClient client) throws TException {
         Column ourUpdate = SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount + 1);
 
         List<Column> expected = ImmutableList.of(
@@ -88,15 +89,21 @@ class Heartbeat implements Runnable {
         return null;
     }
 
-    private CASResult writeDdlLockWithCas(Client client, Column ourUpdate, List<Column> expected) throws TException {
-        return queryRunner.run(client, lockTable,
-                () -> client.cas(
-                        SchemaMutationLock.getGlobalDdlLockRowName(),
-                        lockTable.getQualifiedName(),
-                        expected,
-                        ImmutableList.of(ourUpdate),
-                        ConsistencyLevel.SERIAL,
-                        writeConsistency));
+    private CASResult writeDdlLockWithCas(CassandraClient client, Column ourUpdate, List<Column> expected)
+            throws TException {
+        try {
+            return queryRunner.run(client, lockTable,
+                    () -> client.cas(
+                            lockTable,
+                            SchemaMutationLock.getGlobalDdlLockRowName(),
+                            expected,
+                            ImmutableList.of(ourUpdate),
+                            ConsistencyLevel.SERIAL,
+                            writeConsistency));
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "CAS for the heartbeat requires " + writeConsistency + "Cassandra nodes to be available.", e);
+        }
     }
 
     @Override

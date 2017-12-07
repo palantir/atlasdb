@@ -19,11 +19,19 @@ package com.palantir.atlasdb.http;
 import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.reflect.Reflection;
+import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.remoting.api.config.service.ProxyConfiguration;
+import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.remoting3.ext.refresh.RefreshableProxyInvocationHandler;
 
 import feign.Client;
 import feign.Contract;
@@ -59,13 +67,24 @@ public final class AtlasDbFeignTargetFactory {
             String uri,
             Class<T> type,
             String userAgent) {
+        return createProxy(sslSocketFactory, uri, false, type, userAgent);
+    }
+
+    public static <T> T createProxy(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            String uri,
+            boolean refreshingHttpClient,
+            Class<T> type,
+            String userAgent) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
-                .client(FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
+                .client(refreshingHttpClient
+                        ? FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, Optional.empty(), userAgent)
+                        : FeignOkHttpClients.newOkHttpClient(sslSocketFactory, Optional.empty(), userAgent))
                 .target(type, uri);
     }
 
@@ -140,4 +159,58 @@ public final class AtlasDbFeignTargetFactory {
                 .target(failoverFeignTarget);
     }
 
+    public static <T> T createLiveReloadingProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Class<T> type,
+            String userAgent) {
+        return createLiveReloadingProxyWithFailover(
+                serverListConfigSupplier,
+                sslSocketFactoryCreator,
+                proxySelectorCreator,
+                DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
+                DEFAULT_FEIGN_OPTIONS.readTimeoutMillis(),
+                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
+                type,
+                userAgent);
+    }
+
+    public static <T> T createLiveReloadingProxyWithFailover(
+            Supplier<ServerListConfig> serverListConfigSupplier,
+            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            int feignConnectTimeout,
+            int feignReadTimeout,
+            int maxBackoffMillis,
+            Class<T> type,
+            String userAgent) {
+        PollingRefreshable<ServerListConfig> configPollingRefreshable =
+                PollingRefreshable.create(serverListConfigSupplier);
+        return Reflection.newProxy(
+                type,
+                RefreshableProxyInvocationHandler.create(
+                        configPollingRefreshable.getRefreshable(),
+                        serverListConfig -> {
+                            if (serverListConfig.hasAtLeastOneServer()) {
+                                return createProxyWithFailover(
+                                        serverListConfig.sslConfiguration().map(sslSocketFactoryCreator),
+                                        serverListConfig.proxyConfiguration().map(proxySelectorCreator),
+                                        serverListConfig.servers(),
+                                        feignConnectTimeout,
+                                        feignReadTimeout,
+                                        maxBackoffMillis,
+                                        type,
+                                        userAgent);
+                            }
+                            return createProxyForZeroNodes(type);
+                        }));
+    }
+
+    private static <T> T createProxyForZeroNodes(Class<T> type) {
+        return Reflection.newProxy(type, (unused1, unused2, unused3) -> {
+            throw new ServiceNotAvailableException("The " + type.getSimpleName() + " is currently unavailable,"
+                    + " because configuration contains zero servers.");
+        });
+    }
 }

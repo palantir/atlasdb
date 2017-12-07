@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
+import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -78,11 +79,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
-        NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
-                specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProviderImpl nextTableToSweepProvider = new NextTableToSweepProviderImpl(
+                specificTableSweeper.getKvs(),
+                specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProvider streamStoreAwareNextTableToSweepProvider =
+                new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweepProvider);
+
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
-                nextTableToSweepProvider,
+                streamStoreAwareNextTableToSweepProvider,
                 sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
@@ -117,6 +122,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     public void run() {
         try (SweepLocks locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
+            waitUntilSpecificTableSweeperIsInitialized();
             Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper.");
             while (true) {
@@ -131,6 +137,15 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             }
         } catch (InterruptedException e) {
             log.warn("Shutting down background sweeper. Please restart the service to rerun background sweep.");
+        }
+    }
+
+    private void waitUntilSpecificTableSweeperIsInitialized() throws InterruptedException {
+        while (!specificTableSweeper.isInitialized()) {
+            log.info("Sweep Priority Table and Sweep Progress Table are not initialized yet. If you have enabled "
+                    + "asynchronous initialization, these tables are being initialized asynchronously. Background "
+                    + "sweeper will start once the initialization is complete.");
+            Thread.sleep(getBackoffTimeWhenSweepHasNotRun());
         }
     }
 
@@ -216,8 +231,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
                     @Override
                     public Optional<TableToSweep> execute(Transaction tx) {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress(
-                                tx);
+                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
                         if (progress.isPresent()) {
                             return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
@@ -278,7 +292,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    private enum SweepOutcome {
+    public enum SweepOutcome {
         SUCCESS, NOTHING_TO_SWEEP, DISABLED, UNABLE_TO_ACQUIRE_LOCKS,
         NOT_ENOUGH_DB_NODES_ONLINE, TABLE_DROPPED_WHILE_SWEEPING, ERROR
     }

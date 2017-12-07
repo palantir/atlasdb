@@ -25,11 +25,14 @@ dependencies {
 
 task longTest(type: Test) {
     include '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
-    include '**/CassandraKeyValueServiceSweeperIntegrationTest.class'
+}
+
+task memorySensitiveTest(type: Test) {
+    include '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
 }
 
 test {
     dependsOn longTest
     exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
-    exclude '**/CassandraKeyValueServiceSweeperIntegrationTest.class'
+    exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
 }

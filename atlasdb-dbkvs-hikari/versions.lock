@@ -67,7 +67,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -179,12 +179,6 @@
                 "com.palantir.atlasdb:commons-db"
             ]
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
-            ]
-        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -195,6 +189,12 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.postgresql:postgresql": {
@@ -282,7 +282,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons"
             ]
@@ -394,12 +394,6 @@
                 "com.palantir.atlasdb:commons-db"
             ]
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
-            ]
-        },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0",
             "transitive": [
@@ -410,6 +404,12 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.postgresql:postgresql": {

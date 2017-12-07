@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.ws.rs.BadRequestException;
 
 import org.assertj.core.util.Lists;
+import org.awaitility.Awaitility;
 import org.eclipse.jetty.http.HttpStatus;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -52,7 +53,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;

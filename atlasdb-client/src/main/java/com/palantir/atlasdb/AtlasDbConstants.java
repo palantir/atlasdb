@@ -34,6 +34,7 @@ public final class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+    public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.createWithEmptyNamespace("_sweep_progress2");
     public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
@@ -79,7 +80,8 @@ public final class AtlasDbConstants {
             SCRUB_TABLE,
             NAMESPACE_TABLE,
             PARTITION_MAP_TABLE,
-            PERSISTED_LOCKS_TABLE);
+            PERSISTED_LOCKS_TABLE,
+            SWEEP_PROGRESS_TABLE);
 
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
@@ -108,11 +110,9 @@ public final class AtlasDbConstants {
     public static final boolean DEFAULT_ENABLE_SWEEP = true;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
-    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 1_000;
-    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_CASSANDRA = 1;
-    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_NON_CASSANDRA = 1024;
-    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT_MINIMUM = 1;
-    public static final int DEFAULT_SWEEP_READ_LIMIT = 1_000;
+    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 128;
+    public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 128;
+    public static final int DEFAULT_SWEEP_READ_LIMIT = 128;
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 

@@ -17,9 +17,10 @@ package com.palantir.atlasdb.performance.backend;
 
 import java.util.List;
 
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
+
 import com.google.common.collect.Lists;
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 
 public final class DatabasesContainer implements AutoCloseable {
 

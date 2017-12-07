@@ -41,9 +41,9 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownGetTest {
+    private static final String REQUIRES_ALL_CASSANDRA_NODES = "requires ALL Cassandra nodes to be up and available.";
 
     ImmutableMap<Cell, Value> expectedRow = ImmutableMap.of(
             OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_VALUE,
@@ -113,13 +113,14 @@ public class OneNodeDownGetTest {
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
         assertThatThrownBy(() -> it.next())
                 .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessage("This operation requires all Cassandra nodes to be up and available.");
+                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
     }
 
     @Test
     public void getAllTimestampsThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
-                .isExactlyInstanceOf(PalantirRuntimeException.class);
+                .isExactlyInstanceOf(InsufficientConsistencyException.class)
+                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
     }
 }

@@ -20,6 +20,7 @@ import java.util.Optional;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
@@ -56,6 +57,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .cellTsPairsExamined(11)
                 .minimumSweptTimestamp(4567L)
                 .startRow(new byte[] {1, 2, 3})
+                .startColumn(PtBytes.toBytes("unused"))
                 .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
@@ -87,13 +89,13 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
         Mockito.verify(progressStore).saveProgress(
-                Mockito.any(),
                 Mockito.eq(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(2)
                         .cellTsPairsExamined(10)
                         .minimumSweptTimestamp(12345L)
                         .startRow(new byte[] {1, 2, 3})
+                        .startColumn(PtBytes.toBytes("unused"))
                         .build()));
     }
 
@@ -140,6 +142,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                         .cellTsPairsExamined(11)
                         .minimumSweptTimestamp(4567L)
                         .startRow(new byte[] {1, 2, 3})
+                        .startColumn(PtBytes.toBytes("unused"))
                         .build());
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)

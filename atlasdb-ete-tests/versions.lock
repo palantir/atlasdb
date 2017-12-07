@@ -73,11 +73,13 @@
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
+                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
@@ -122,6 +124,7 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -226,6 +229,8 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
+                "com.palantir.atlasdb:qos-service-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl",
@@ -234,17 +239,19 @@
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing",
                 "io.airlift:airline"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
-                "io.dropwizard:dropwizard-util",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:refresh-utils",
+                "io.dropwizard:dropwizard-util"
             ]
         },
         "com.google.guava:guava": {
@@ -260,7 +267,10 @@
                 "com.palantir.config.crypto:encrypted-config-value-module",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
                 "com.palantir.remoting3:keystores",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -304,6 +314,39 @@
                 "com.palantir.remoting3:jersey-servers"
             ]
         },
+        "com.netflix.feign:feign-core": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.netflix.feign:feign-jackson",
+                "com.netflix.feign:feign-jaxrs",
+                "com.netflix.feign:feign-okhttp",
+                "com.netflix.feign:feign-slf4j"
+            ]
+        },
+        "com.netflix.feign:feign-jackson": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.netflix.feign:feign-jaxrs": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.netflix.feign:feign-okhttp": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.netflix.feign:feign-slf4j": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
@@ -332,6 +375,7 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
+                "com.palantir.atlasdb:qos-service-impl",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -477,6 +521,21 @@
                 "com.palantir.atlasdb:atlasdb-service"
             ]
         },
+        "com.palantir.atlasdb:qos-service-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:qos-service-impl"
+            ]
+        },
+        "com.palantir.atlasdb:qos-service-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
@@ -537,7 +596,9 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign",
+                "com.palantir.remoting3:http-clients"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -570,14 +631,31 @@
         "com.palantir.remoting3:error-handling": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:jersey-servers",
+                "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
+        "com.palantir.remoting3:http-clients": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:okhttp-clients"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
                 "com.palantir.remoting3:tracing"
+            ]
+        },
+        "com.palantir.remoting3:jaxrs-clients": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:qos-service-api"
             ]
         },
         "com.palantir.remoting3:jersey-servers": {
@@ -590,7 +668,22 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.remoting3:http-clients",
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.palantir.remoting3:okhttp-clients": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.palantir.remoting3:refresh-utils": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
+                "com.palantir.remoting3:jaxrs-clients"
             ]
         },
         "com.palantir.remoting3:tracing": {
@@ -598,10 +691,20 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:jersey-servers",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.palantir.tritium:tritium-tracing"
+            ]
+        },
+        "com.palantir.remoting3:tracing-okhttp3": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:okhttp-clients"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -615,11 +718,18 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
+                "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.palantir.tokens:auth-tokens": {
@@ -629,37 +739,58 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j"
+                "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j"
+                "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-proxy": {
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-tracing": {
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -670,10 +801,20 @@
                 "io.dropwizard.metrics:metrics-servlets"
             ]
         },
+        "com.squareup.okhttp3:logging-interceptor": {
+            "locked": "3.8.1",
+            "transitive": [
+                "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-feign"
+                "com.netflix.feign:feign-okhttp",
+                "com.palantir.atlasdb:atlasdb-feign",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.squareup.okhttp3:logging-interceptor"
             ]
         },
         "com.squareup.okio:okio": {
@@ -750,6 +891,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dropwizard-bundle",
+                "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
@@ -759,8 +901,7 @@
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics",
-                "io.dropwizard:dropwizard-servlets",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "io.dropwizard:dropwizard-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
@@ -948,6 +1089,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign",
                 "org.glassfish.jersey.core:jersey-server",
                 "org.glassfish.jersey.ext:jersey-bean-validation",
                 "org.hibernate:hibernate-validator"
@@ -961,10 +1103,12 @@
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
                 "org.glassfish.jersey.core:jersey-client",
@@ -1017,6 +1161,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.apache.commons:commons-pool2": {
             "locked": "2.4.2",
             "transitive": [
@@ -1041,6 +1191,9 @@
             "transitive": [
                 "org.apache.cassandra:cassandra-thrift"
             ]
+        },
+        "org.awaitility:awaitility": {
+            "locked": "3.0.0"
         },
         "org.codehaus.groovy:groovy-all": {
             "locked": "2.4.4",
@@ -1253,11 +1406,25 @@
                 "io.dropwizard:dropwizard-validation"
             ]
         },
-        "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.9",
+        "org.hamcrest:hamcrest-core": {
+            "locked": "1.3",
             "transitive": [
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "org.awaitility:awaitility",
+                "org.hamcrest:hamcrest-library"
+            ]
+        },
+        "org.hamcrest:hamcrest-library": {
+            "locked": "1.3",
+            "transitive": [
+                "org.awaitility:awaitility"
+            ]
+        },
+        "org.hdrhistogram:HdrHistogram": {
+            "locked": "2.1.10",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "org.hibernate:hibernate-validator": {
@@ -1290,6 +1457,12 @@
                 "com.palantir.atlasdb:atlasdb-jdbc"
             ]
         },
+        "org.jvnet:animal-sniffer-annotation": {
+            "locked": "1.0",
+            "transitive": [
+                "com.netflix.feign:feign-core"
+            ]
+        },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
             "transitive": [
@@ -1300,6 +1473,12 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "org.awaitility:awaitility"
             ]
         },
         "org.slf4j:jcl-over-slf4j": {
@@ -1325,15 +1504,19 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
+                "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing",
                 "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-annotation",
                 "io.dropwizard.metrics:metrics-core",
@@ -1437,12 +1620,14 @@
                 "com.fasterxml.jackson.jaxrs:jackson-jaxrs-cbor-provider",
                 "com.fasterxml.jackson.module:jackson-module-afterburner",
                 "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
+                "com.netflix.feign:feign-jackson",
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
@@ -1489,6 +1674,7 @@
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk7": {
             "locked": "2.6.7",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-config",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -1599,6 +1785,8 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
+                "com.palantir.atlasdb:qos-service-impl",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.atlasdb:timestamp-impl",
@@ -1607,17 +1795,19 @@
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing",
                 "io.airlift:airline"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9",
+            "locked": "3.0.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
-                "io.dropwizard:dropwizard-util",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:refresh-utils",
+                "io.dropwizard:dropwizard-util"
             ]
         },
         "com.google.guava:guava": {
@@ -1634,7 +1824,10 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
                 "com.palantir.remoting3:keystores",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:refresh-utils",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -1690,6 +1883,39 @@
                 "com.mchange:c3p0"
             ]
         },
+        "com.netflix.feign:feign-core": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.netflix.feign:feign-jackson",
+                "com.netflix.feign:feign-jaxrs",
+                "com.netflix.feign:feign-okhttp",
+                "com.netflix.feign:feign-slf4j"
+            ]
+        },
+        "com.netflix.feign:feign-jackson": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.netflix.feign:feign-jaxrs": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.netflix.feign:feign-okhttp": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.netflix.feign:feign-slf4j": {
+            "locked": "8.17.0",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
         "com.palantir.atlasdb:atlasdb-api": {
             "project": true,
             "transitive": [
@@ -1720,6 +1946,7 @@
                 "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
+                "com.palantir.atlasdb:qos-service-impl",
                 "com.palantir.atlasdb:timestamp-impl"
             ]
         },
@@ -1890,6 +2117,21 @@
                 "com.palantir.atlasdb:atlasdb-service"
             ]
         },
+        "com.palantir.atlasdb:qos-service-api": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-impl-shared",
+                "com.palantir.atlasdb:qos-service-impl"
+            ]
+        },
+        "com.palantir.atlasdb:qos-service-impl": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-config"
+            ]
+        },
         "com.palantir.atlasdb:timestamp-api": {
             "project": true,
             "transitive": [
@@ -1951,7 +2193,9 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign",
+                "com.palantir.remoting3:http-clients"
             ]
         },
         "com.palantir.remoting-api:ssl-config": {
@@ -1991,14 +2235,31 @@
         "com.palantir.remoting3:error-handling": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:jersey-servers",
+                "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
+        "com.palantir.remoting3:http-clients": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:okhttp-clients"
             ]
         },
         "com.palantir.remoting3:jackson-support": {
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
                 "com.palantir.remoting3:tracing"
+            ]
+        },
+        "com.palantir.remoting3:jaxrs-clients": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-api",
+                "com.palantir.atlasdb:qos-service-api"
             ]
         },
         "com.palantir.remoting3:jersey-servers": {
@@ -2011,7 +2272,22 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-config"
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.remoting3:http-clients",
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.palantir.remoting3:okhttp-clients": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients"
+            ]
+        },
+        "com.palantir.remoting3:refresh-utils": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-feign",
+                "com.palantir.remoting3:jaxrs-clients"
             ]
         },
         "com.palantir.remoting3:tracing": {
@@ -2019,10 +2295,20 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.remoting3:jersey-servers"
+                "com.palantir.remoting3:jersey-servers",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.palantir.tritium:tritium-tracing"
+            ]
+        },
+        "com.palantir.remoting3:tracing-okhttp3": {
+            "locked": "3.5.1",
+            "transitive": [
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:okhttp-clients"
             ]
         },
         "com.palantir.safe-logging:safe-logging": {
@@ -2036,11 +2322,18 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.atlasdb:timestamp-impl",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting3:jersey-servers",
-                "com.palantir.remoting3:tracing"
+                "com.palantir.remoting3:tracing",
+                "com.palantir.tritium:tritium-core",
+                "com.palantir.tritium:tritium-lib",
+                "com.palantir.tritium:tritium-metrics",
+                "com.palantir.tritium:tritium-registry",
+                "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.palantir.tokens:auth-tokens": {
@@ -2050,37 +2343,58 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j"
+                "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
-                "com.palantir.tritium:tritium-slf4j"
+                "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing"
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-proxy": {
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
+        "com.palantir.tritium:tritium-registry": {
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.6.0",
+            "locked": "0.8.4",
+            "transitive": [
+                "com.palantir.tritium:tritium-lib"
+            ]
+        },
+        "com.palantir.tritium:tritium-tracing": {
+            "locked": "0.8.4",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -2091,10 +2405,20 @@
                 "io.dropwizard.metrics:metrics-servlets"
             ]
         },
+        "com.squareup.okhttp3:logging-interceptor": {
+            "locked": "3.8.1",
+            "transitive": [
+                "com.palantir.remoting3:okhttp-clients"
+            ]
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-feign"
+                "com.netflix.feign:feign-okhttp",
+                "com.palantir.atlasdb:atlasdb-feign",
+                "com.palantir.remoting3:okhttp-clients",
+                "com.palantir.remoting3:tracing-okhttp3",
+                "com.squareup.okhttp3:logging-interceptor"
             ]
         },
         "com.squareup.okio:okio": {
@@ -2180,6 +2504,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari",
                 "com.palantir.atlasdb:atlasdb-dropwizard-bundle",
+                "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.tritium:tritium-metrics",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
@@ -2189,8 +2514,7 @@
                 "io.dropwizard.metrics:metrics-servlets",
                 "io.dropwizard:dropwizard-core",
                 "io.dropwizard:dropwizard-metrics",
-                "io.dropwizard:dropwizard-servlets",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "io.dropwizard:dropwizard-servlets"
             ]
         },
         "io.dropwizard.metrics:metrics-healthchecks": {
@@ -2378,6 +2702,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-feign",
                 "org.glassfish.jersey.core:jersey-server",
                 "org.glassfish.jersey.ext:jersey-bean-validation",
                 "org.hibernate:hibernate-validator"
@@ -2391,10 +2716,12 @@
                 "com.palantir.atlasdb:atlasdb-persistent-lock-api",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:lock-api",
+                "com.palantir.atlasdb:qos-service-api",
                 "com.palantir.atlasdb:timestamp-api",
                 "com.palantir.remoting-api:errors",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
                 "org.glassfish.jersey.containers:jersey-container-servlet",
                 "org.glassfish.jersey.containers:jersey-container-servlet-core",
                 "org.glassfish.jersey.core:jersey-client",
@@ -2417,12 +2744,6 @@
                 "com.palantir.atlasdb:lock-impl",
                 "com.papertrail:profiler",
                 "io.dropwizard:dropwizard-util"
-            ]
-        },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "com.palantir.atlasdb:commons-db"
             ]
         },
         "net.jpountz.lz4:lz4": {
@@ -2455,6 +2776,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.apache.commons:commons-pool2": {
             "locked": "2.4.2",
             "transitive": [
@@ -2479,6 +2806,9 @@
             "transitive": [
                 "org.apache.cassandra:cassandra-thrift"
             ]
+        },
+        "org.awaitility:awaitility": {
+            "locked": "3.0.0"
         },
         "org.codehaus.groovy:groovy-all": {
             "locked": "2.4.4",
@@ -2691,11 +3021,25 @@
                 "io.dropwizard:dropwizard-validation"
             ]
         },
-        "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.9",
+        "org.hamcrest:hamcrest-core": {
+            "locked": "1.3",
             "transitive": [
-                "com.palantir.tritium:tritium-metrics",
-                "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir"
+                "org.awaitility:awaitility",
+                "org.hamcrest:hamcrest-library"
+            ]
+        },
+        "org.hamcrest:hamcrest-library": {
+            "locked": "1.3",
+            "transitive": [
+                "org.awaitility:awaitility"
+            ]
+        },
+        "org.hdrhistogram:HdrHistogram": {
+            "locked": "2.1.10",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-client",
+                "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.tritium:tritium-metrics"
             ]
         },
         "org.hibernate:hibernate-validator": {
@@ -2728,6 +3072,12 @@
                 "com.palantir.atlasdb:atlasdb-jdbc"
             ]
         },
+        "org.jvnet:animal-sniffer-annotation": {
+            "locked": "1.0",
+            "transitive": [
+                "com.netflix.feign:feign-core"
+            ]
+        },
         "org.mortbay.jetty.alpn:jetty-alpn-agent": {
             "locked": "2.0.6",
             "transitive": [
@@ -2738,6 +3088,12 @@
             "locked": "1.1.2",
             "transitive": [
                 "com.palantir.tritium:tritium-metrics"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "org.awaitility:awaitility"
             ]
         },
         "org.postgresql:postgresql": {
@@ -2769,17 +3125,21 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
+                "com.netflix.feign:feign-slf4j",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing",
                 "com.palantir.remoting3:error-handling",
+                "com.palantir.remoting3:jaxrs-clients",
+                "com.palantir.remoting3:okhttp-clients",
                 "com.palantir.remoting3:tracing",
                 "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
                 "com.palantir.tritium:tritium-slf4j",
+                "com.palantir.tritium:tritium-tracing",
                 "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-annotation",
                 "io.dropwizard.metrics:metrics-core",

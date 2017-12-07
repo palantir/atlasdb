@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -55,8 +54,8 @@ public class SchemaMutationLockTables {
         return lockTables;
     }
 
-    private Set<TableReference> getAllLockTablesInternal(Cassandra.Client client) throws TException {
-        return client.describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
+    private Set<TableReference> getAllLockTablesInternal(CassandraClient client) throws TException {
+        return client.rawClient().describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
                 .map(CfDef::getName)
                 .filter(IS_LOCK_TABLE)
                 .map(TableReference::createWithEmptyNamespace)
@@ -67,7 +66,7 @@ public class SchemaMutationLockTables {
         return clientPool.runWithRetry(this::createLockTable);
     }
 
-    private TableReference createLockTable(Cassandra.Client client) throws TException {
+    private TableReference createLockTable(CassandraClient client) throws TException {
         String lockTableName = LOCK_TABLE_PREFIX + "_" + getUniqueSuffix();
         TableReference lockTable = TableReference.createWithEmptyNamespace(lockTableName);
         log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable));
@@ -80,14 +79,14 @@ public class SchemaMutationLockTables {
         return UUID.randomUUID().toString().replace('-', '_');
     }
 
-    private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
+    private void createTableInternal(CassandraClient client, TableReference tableRef) throws TException {
         CfDef cf = ColumnFamilyDefinitions.getStandardCfDef(
                 config.getKeyspaceOrThrow(),
                 CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        client.system_add_column_family(cf);
+        client.rawClient().system_add_column_family(cf);
         CassandraKeyValueServices.waitForSchemaVersions(
                 config,
-                client,
+                client.rawClient(),
                 tableRef.getQualifiedName(),
                 true);
     }

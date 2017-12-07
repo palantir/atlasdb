@@ -10,7 +10,7 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check' ':atlasdb-cassandra-integration-tests:memorySensitiveTest')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
@@ -65,16 +65,21 @@ fi
 
 ETE_EXCLUDES=('-x :atlasdb-ete-tests:longTest')
 
-# Timelock and Startup ordering require Docker 1.12; currently unavailable on external Circle. Might not be needed if
-# we move to CircleCI 2.0.
 if [[ $INTERNAL_BUILD != true ]]; then
+    # Timelock and Startup ordering require Docker 1.12; currently unavailable on external Circle. Might not be needed
+    # if we move to CircleCI 2.0.
     ETE_EXCLUDES+=('-x :atlasdb-ete-tests:timeLockTest')
     ETE_EXCLUDES+=('-x :atlasdb-ete-tests:startupIndependenceTest')
+
+    # Sweep tests include a test that we do not OOM when writing a lot of data.
+    # Running this test is not feasible on external Circle owing to small size of the containers, but it gives good
+    # signal so it's worth keeping it around on internal runs.
+    ETE_EXCLUDES+=('-x :atlasdb-cassandra-integration-tests:memorySensitiveTest')
 fi
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
     2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-ete-tests:startupIndependenceTest;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;

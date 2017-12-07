@@ -17,14 +17,21 @@ package com.palantir.atlasdb.sweep.progress;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+@JsonSerialize(as = ImmutableSweepProgress.class)
+@JsonDeserialize(as = ImmutableSweepProgress.class)
 @Value.Immutable
 public interface SweepProgress {
 
     TableReference tableRef();
 
     byte[] startRow();
+
+    // This is currently not used, but it is included for potential future sweep optimizations
+    byte[] startColumn();
 
     long staleValuesDeleted();
 
