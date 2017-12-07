@@ -1415,6 +1415,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         tableRefs.safeTableRefs(),
                         tableRefs.unsafeTableRefs());
             }
+
+            committedWritesConsumer.accept((Map)writesByTable, getStartTimestamp());
         } finally {
             timelockService.unlock(ImmutableSet.of(commitLocksToken));
         }
