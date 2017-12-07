@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.OptionalInt;
-import java.util.Set;
 
 import org.immutables.value.Value;
 
@@ -37,9 +36,19 @@ public interface CandidateCellForSweepingRequest {
     boolean shouldCheckIfLatestValueIsEmpty();
 
     /*
-     *  In practice, this is the empty set if for the THOROUGH sweep strategy and { -1 } for CONSERVATIVE.
+     *  Whether GC sentinels (values written at timestamp -1) should be swept. In practice, this is true for the
+     *  THOROUGH sweep strategy and false for CONSERVATIVE.
      */
-    Set<Long> timestampsToIgnore();
+    boolean ignoreGarbageCollectionSentinels();
+
+    default boolean shouldSweep(long timestamp) {
+        if (ignoreGarbageCollectionSentinels()
+                && timestamp == com.palantir.atlasdb.keyvalue.api.Value.INVALID_VALUE_TIMESTAMP) {
+            return false;
+        }
+
+        return timestamp < maxTimestampExclusive();
+    }
 
     default CandidateCellForSweepingRequest withStartRow(byte[] startRow) {
         return ImmutableCandidateCellForSweepingRequest.builder()

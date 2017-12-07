@@ -18,8 +18,10 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Collection;
 
-public interface SweepQueueWriter {
+public interface SweepDeleter {
 
-    void enqueue(Collection<WriteInfo> writes);
+    SweepDeleter NO_OP = writes -> { };
+
+    void sweep(Collection<WriteInfo> writes);
 
 }

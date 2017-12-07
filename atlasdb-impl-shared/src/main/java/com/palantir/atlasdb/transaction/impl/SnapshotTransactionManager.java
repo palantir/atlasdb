@@ -36,7 +36,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -73,7 +73,7 @@ import com.palantir.timestamp.TimestampService;
     final ExecutorService getRangesExecutor;
     final TimestampTracker timestampTracker;
     final int defaultGetRangesConcurrency;
-    final SweepQueueWriter sweepQueueWriter;
+    final MultiTableSweepQueueWriter sweepQueueWriter;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -93,7 +93,7 @@ import com.palantir.timestamp.TimestampService;
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             Supplier<Long> timestampCacheSize,
-            SweepQueueWriter sweepQueueWriter) {
+            MultiTableSweepQueueWriter sweepQueueWriter) {
         super(timestampCacheSize);
 
         this.keyValueService = keyValueService;

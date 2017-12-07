@@ -28,7 +28,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -42,7 +41,6 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractGetCandidateCellsForSweepingTest {
@@ -216,7 +214,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                         .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
                         .maxTimestampExclusive(40L)
                         .shouldCheckIfLatestValueIsEmpty(checkIfLatestValueIsEmpty)
-                        .addTimestampsToIgnore(Value.INVALID_VALUE_TIMESTAMP)
+                        .ignoreGarbageCollectionSentinels(true)
                         .batchSizeHint(1)
                         .build());
         assertEquals(expectedCells,
@@ -240,7 +238,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .startRowInclusive(startRow)
                 .maxTimestampExclusive(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(false)
-                .addTimestampsToIgnore(Value.INVALID_VALUE_TIMESTAMP)
+                .ignoreGarbageCollectionSentinels(true)
                 .batchSizeHint(batchSizeHint)
                 .build();
     }
@@ -250,7 +248,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .startRowInclusive(startRow)
                 .maxTimestampExclusive(sweepTs)
                 .shouldCheckIfLatestValueIsEmpty(true)
-                .timestampsToIgnore(ImmutableSet.of())
+                .ignoreGarbageCollectionSentinels(false)
                 .batchSizeHint(batchSizeHint)
                 .build();
     }
