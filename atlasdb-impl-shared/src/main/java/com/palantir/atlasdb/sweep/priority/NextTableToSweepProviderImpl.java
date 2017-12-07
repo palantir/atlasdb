@@ -25,15 +25,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.logsafe.SafeArg;
 
 public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProviderImpl.class);
 
     public static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
     public static final int DAYS_TO_WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = 3;
@@ -70,7 +77,10 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         List<TableReference> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet())
                 .stream().sorted(Comparator.comparing(TableReference::getTablename)).collect(Collectors.toList());
         if (!unsweptTables.isEmpty()) {
-            return Optional.of(unsweptTables.get(0));
+            TableReference nextTableToSweep = unsweptTables.get(0);
+            log.debug("Choosing to sweep unswept table {}",
+                    LoggingArgs.tableRef(nextTableToSweep));
+            return Optional.of(nextTableToSweep);
         } else {
             double maxPriority = 0.0;
             Optional<TableReference> toSweep = Optional.empty();
@@ -78,7 +88,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
             for (SweepPriority oldPriority : oldPriorities) {
                 if (allTables.contains(oldPriority.tableRef())) {
                     SweepPriority newPriority = newPrioritiesByTableName.get(oldPriority.tableRef());
-                    double priority = getSweepPriority(oldPriority, newPriority);
+                    double priority = getSweepPriorityLogging(oldPriority, newPriority);
                     if (priority > maxPriority) {
                         maxPriority = priority;
                         toSweep = Optional.of(oldPriority.tableRef());
@@ -94,13 +104,21 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         }
     }
 
+    private double getSweepPriorityLogging(SweepPriority oldPriority, SweepPriority newPriority) {
+        double priority = getSweepPriority(oldPriority, newPriority);
+        log.debug("Priority for table {} is {}",
+                LoggingArgs.tableRef(newPriority.tableRef()),
+                SafeArg.of("priority", priority));
+        return priority;
+    }
+
     private double getSweepPriority(SweepPriority oldPriority, SweepPriority newPriority) {
         if (AtlasDbConstants.hiddenTables.contains(newPriority.tableRef())) {
-            // Never sweep hidden tables
+            // Never sweep hidden tables.
             return 0.0;
         }
         if (!newPriority.lastSweepTimeMillis().isPresent()) {
-            // Highest priority if we've never swept it before
+            // Highest priority if we've never swept it before.
             return Double.MAX_VALUE;
         }
         if (oldPriority.writeCount() > newPriority.writeCount()) {
@@ -118,8 +136,8 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
     private double getStreamStorePriority(SweepPriority newPriority) {
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
 
-        if (TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS) <
-                DAYS_TO_WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE) {
+        if (TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS)
+                < DAYS_TO_WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE) {
             return 0L;
         }
         if (newPriority.writeCount() > STREAM_STORE_VALUES_TO_SWEEP) {
