@@ -73,7 +73,7 @@ develop
            AtlasDB clients will receive a ``RateLimitExceededException`` for requests that are throttled and should handle them appropriately.
            We provide an exception mapper ``RateLimitExceededExceptionMapper`` to map the throttling exceptions to ``429``, but it is upto the application to register the exception mapper.
            Note that this is an experimental feature and applications should generally not enable it by default yet, unless the application has hard read-write limits.
-           This should allow us to throttle dynamically in situations where the load on Cassandra is high. In the future, once applications have
+           This should allow us to throttle dynamically in situations where the load on Cassandra is high.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2629>`__)
 
     *    - |improved|
@@ -114,7 +114,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2782>`__)
 
     *    - |new|
-         - Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns the latest AtlasDB timestamp before it.
+         - Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
