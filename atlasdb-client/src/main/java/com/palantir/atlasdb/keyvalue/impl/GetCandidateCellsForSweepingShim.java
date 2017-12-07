@@ -64,7 +64,7 @@ public class GetCandidateCellsForSweepingShim {
              ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults = new ReleasableCloseable<>(
                      keyValueService.getRangeOfTimestamps(tableRef, range, request.maxTimestampExclusive()))) {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults.get());
-            Set<Long> timestampsToIgnore = request.timestampsToIgnore();
+
             Iterator<List<RowResult<Set<Long>>>> tsBatches = Iterators.partition(tsResults.get(), range.getBatchHint());
             Iterator<List<CandidateCellForSweeping>> candidates = Iterators.transform(tsBatches, tsBatch -> {
                 List<CandidateCellForSweeping> candidateBatch = Lists.newArrayList();
@@ -72,7 +72,7 @@ public class GetCandidateCellsForSweepingShim {
                     for (Map.Entry<byte[], Set<Long>> e : rr.getColumns().entrySet()) {
                         byte[] colName = e.getKey();
                         List<Long> sortedTimestamps = e.getValue().stream()
-                                .filter(ts -> !timestampsToIgnore.contains(ts))
+                                .filter(request::shouldSweep)
                                 .sorted()
                                 .collect(Collectors.toList());
                         Cell cell = Cell.create(rr.getRowName(), colName);

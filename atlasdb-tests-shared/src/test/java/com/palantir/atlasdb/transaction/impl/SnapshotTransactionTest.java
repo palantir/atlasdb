@@ -87,6 +87,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -863,6 +864,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 0,
                 false,
                 sweepStrategy,
+                ExpirationStrategy.NEVER,
                 false);
     }
 

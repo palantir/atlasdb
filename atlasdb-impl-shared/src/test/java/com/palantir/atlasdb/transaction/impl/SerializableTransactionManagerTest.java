@@ -28,7 +28,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.lock.v2.TimelockService;
 
 public class SerializableTransactionManagerTest {
@@ -58,7 +58,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 true, // initializeAsync
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                SweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP);
 
         when(mockKvs.isInitialized()).thenReturn(true);
         when(mockTimelockService.isInitialized()).thenReturn(true);
@@ -119,7 +119,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 false, // initializeAsync
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                SweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP);
 
         when(mockKvs.isInitialized()).thenReturn(false);
         when(mockTimelockService.isInitialized()).thenReturn(false);
