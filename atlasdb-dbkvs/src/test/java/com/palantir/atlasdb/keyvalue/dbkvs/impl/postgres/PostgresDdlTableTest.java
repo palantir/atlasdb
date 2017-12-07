@@ -22,6 +22,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,18 +60,24 @@ public class PostgresDdlTableTest {
     @Test
     public void shouldCompactIfVacuumWasNeverPerformed() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(null, null, null, null);
+        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
+
         assertThatVacuumWasPerformed(sqlConnection);
     }
 
     @Test
     public void shouldCompactIfVacuumWasPerformedBeforeCompactInterval() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(10), null, new Timestamp(9), null);
+        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
+
         assertThatVacuumWasPerformed(sqlConnection);
     }
 
     @Test
     public void shouldCompactIfAutoVacuumWasPerformedBeforeCompactInterval() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(null, new Timestamp(10), null, new Timestamp(9));
+        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
+
         assertThatVacuumWasPerformed(sqlConnection);
     }
 
@@ -91,7 +98,19 @@ public class PostgresDdlTableTest {
     @Test
     public void shouldNotCompactIfVacuumDidOccurInLastCompactMillis() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(5), null, new Timestamp(90), new Timestamp(10));
+
         assertThatVacuumWasNotPerformed(sqlConnection);
+    }
+
+    @Test
+    public void shouldCompactIfCompactMillisIsSetToZero() throws Exception {
+        postgresDdlTable = new PostgresDdlTable(TEST_TABLE,
+                connectionSupplier,
+                ImmutablePostgresDdlConfig.builder().compactIntervalMillis(0).build());
+        SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(5), null, new Timestamp(90), new Timestamp(10));
+        assertThatVacuumWasPerformed(sqlConnection);
+        verify(sqlConnection, never()).selectResultSetUnregisteredQuery(eq("SELECT CURRENT_TIMESTAMP"));
+        verify(sqlConnection, never()).selectResultSetUnregisteredQuery(startsWith("SELECT relname"), any());
     }
 
     private SqlConnection setUpSqlConnection(Timestamp lastVacuumTimestamp, Timestamp lastAutoVacuumTimestamp,
@@ -135,7 +154,6 @@ public class PostgresDdlTableTest {
     }
 
     private void assertThatVacuumWasPerformed(SqlConnection sqlConnection) {
-        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
         postgresDdlTable.compactInternally();
 
         verify(sqlConnection).executeUnregisteredQuery(eq("VACUUM ANALYZE " + DbKvs.internalTableName(TEST_TABLE)));
@@ -144,6 +162,9 @@ public class PostgresDdlTableTest {
     private void assertThatVacuumWasNotPerformed(SqlConnection sqlConnection) {
         assertFalse(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
         postgresDdlTable.compactInternally();
+
+        verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(eq("SELECT CURRENT_TIMESTAMP"));
+        verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT relname"), any());
 
         verify(sqlConnection, never()).executeUnregisteredQuery(
                 eq("VACUUM ANALYZE " + DbKvs.internalTableName(TEST_TABLE)));

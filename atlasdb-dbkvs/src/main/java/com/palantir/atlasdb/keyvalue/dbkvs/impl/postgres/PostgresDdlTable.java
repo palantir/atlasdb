@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import java.sql.Timestamp;
+import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
 
 import org.slf4j.Logger;
@@ -53,6 +54,7 @@ public class PostgresDdlTable implements DbDdlTable {
     private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final PostgresDdlConfig config;
+    private final Semaphore compactionSemaphore = new Semaphore(1);
 
     public PostgresDdlTable(TableReference tableName,
             ConnectionSupplier conns,
@@ -124,8 +126,17 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
-        if (config.compactIntervalMillis() > 0 && checkIfTableHasNotBeenCompactedForCompactIntervalMillis()) {
-            runCompactOnTable();
+        try {
+            if (compactionSemaphore.tryAcquire()) {
+                if (config.compactIntervalMillis() == 0) {
+                    runCompactOnTable();
+                } else if (config.compactIntervalMillis() > 0
+                        && checkIfTableHasNotBeenCompactedForCompactIntervalMillis()) {
+                    runCompactOnTable();
+                }
+            }
+        } finally {
+            compactionSemaphore.release();
         }
     }
 
