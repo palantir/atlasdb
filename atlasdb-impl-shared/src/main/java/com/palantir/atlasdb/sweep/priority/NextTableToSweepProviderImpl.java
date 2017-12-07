@@ -30,11 +30,14 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
 
     public static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
+    public static final int DAYS_TO_WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = 3;
+    public static final int STREAM_STORE_VALUES_TO_SWEEP = 1_000;
 
     private final KeyValueService kvs;
     private final SweepPriorityStore sweepPriorityStore;
@@ -104,6 +107,31 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
             // We just swept this, or it got truncated.
             return 0.0;
         }
+
+        if (StreamTableType.isStreamStoreValueTable(newPriority.tableRef())) {
+            return getStreamStorePriority(newPriority);
+        } else {
+            return getNonStreamStorePriority(oldPriority, newPriority);
+        }
+    }
+
+    private double getStreamStorePriority(SweepPriority newPriority) {
+        long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
+
+        if (TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS) <
+                DAYS_TO_WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE) {
+            return 0L;
+        }
+        if (newPriority.writeCount() > STREAM_STORE_VALUES_TO_SWEEP) {
+            return Double.MAX_VALUE;
+        }
+
+        // Since almost every stream store cell has 1MB, give it a weight of 1k. It should grow up to just 1M anyway
+        // due to the above check.
+        return 1_000 * newPriority.writeCount();
+    }
+
+    private double getNonStreamStorePriority(SweepPriority oldPriority, SweepPriority newPriority) {
         long staleValuesDeleted = Math.max(1, oldPriority.staleValuesDeleted());
         long cellTsPairsExamined = Math.max(1, oldPriority.cellTsPairsExamined());
         long writeCount = Math.max(1, oldPriority.writeCount());
