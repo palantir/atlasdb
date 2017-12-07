@@ -19,9 +19,11 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,6 +92,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -937,7 +940,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 : Range.startOfColumn(startColOrEmpty, startTs);
         ByteBuffer end = endColExlusiveOrEmpty.length == 0
                 ? Range.UNBOUND_END
-                : Range.endOfColumn(RangeRequests.previousLexicographicName(endColExlusiveOrEmpty));
+                : Range.endOfColumnIncludingSentinels(RangeRequests.previousLexicographicName(endColExlusiveOrEmpty));
         return Range.of(start, end);
     }
 
@@ -2021,6 +2024,60 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
         } else {
             super.deleteRange(tableRef, range);
+        }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef,
+            Map<Cell, Long> maxTimestampExclusiveByCell) {
+        if (maxTimestampExclusiveByCell.isEmpty()) {
+            return;
+        }
+
+        InetSocketAddress host = clientPool.getRandomHostForKey(
+                maxTimestampExclusiveByCell.keySet().iterator().next().getRowName());
+
+        try {
+            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
+
+                @Override
+                public Void apply(CassandraClient client) throws Exception {
+                    Map<ByteBuffer, Map<String, List<Mutation>>> mutationsByRowByTable = Maps.newHashMap();
+
+                    maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
+                        SlicePredicate pred = SlicePredicates.rangeTombstoneForColumn(
+                                cell.getColumnName(), maxTimestampExclusive);
+
+                        Deletion del = new Deletion();
+                        del.setPredicate(pred);
+                        // TODO(nziebart): figure out if/why we can't use the provided max timestamp for the cell here
+                        del.setTimestamp(Long.MAX_VALUE);
+
+                        Mutation mutation = new Mutation();
+                        mutation.setDeletion(del);
+
+                        mutationsByRowByTable
+                                .computeIfAbsent(ByteBuffer.wrap(cell.getRowName()), ignored -> new HashMap<>())
+                                .computeIfAbsent(internalTableName(tableRef), ignored -> new ArrayList<>())
+                                .add(mutation);
+                    });
+
+                    batchMutateInternal("delete", client, tableRef, mutationsByRowByTable, deleteConsistency);
+
+                    return null;
+                }
+
+                @Override
+                public String toString() {
+                    return "delete_timestamp_ranges_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
+                            + maxTimestampExclusiveByCell.size() + " column timestamp ranges)";
+                }
+            });
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
+                    e);
+        } catch (Exception e) {
+            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
     }
 
