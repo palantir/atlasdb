@@ -51,14 +51,38 @@ develop
          - Change
 
     *    - |new| |improved| |metrics| |logs|
-         - Sweep now exposes tagged metrics per table indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started for each full run of sweep on a given table.
+         - Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
+           Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
            Logs will also include the new timing information.
+           Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
+
+              - ``cellTimestampPairsExamined.meter.perIteration``
+              - ``cellTimestampPairsExamined.histogram.perTable``
+              - ``cellTimestampPairsExamined.histogram.perIteration`` (tagged)
+              - ``staleValuesDeleted.meter.perIteration``
+              - ``staleValuesDeleted.histogram.perTable``
+              - ``staleValuesDeleted.histogram.perIteration`` (tagged)
+              - ``sweepTimeSweeping.meter.perIteration``
+              - ``sweepTimeSweeping.histogram.perTable``
+              - ``sweepTimeSweeping.histogram.perIteration`` (tagged)
+              - ``sweepTimeElapsedSinceStart.currentValue.perIteration``
+              - ``sweepTimeElapsedSinceStart.histogram.perTable``
+
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
 
-    *    - |new| |improved| |metrics| |logs|
-         - Sweep now exposes metrics for time spent sweeping an iteration, and time elapsed since sweep started sweeping the current table that are updated after each iteration of sweep.
-           Logs will also include the new timing information.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
+    *    - |improved|
+         - AtlasDB publish of new releases is now done through the internal circle build. Before it was done via the external circle build.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2783>`__)
+
+    *    - |fixed|
+         - Sweep can now make progress after a restore and after the clean transactions CLI is run.
+           Earlier, it would fail throwing a ``NullPointerException`` due to failure to read the commit ts.
+           This would cause sweep to keep retrying without realising that it will never proceed forward.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2778>`__)
+
+    *    - |fixed|
+         - Sweep will no longer run during KVS Migrations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2784>`__)
 
     *    - |new| |logs|
          - Cassandra KVS now records how many writes have been made into each token range for each table.
@@ -69,6 +93,20 @@ develop
     *    - |new|
          - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2730>`__)
+
+    *    - |devbreak|
+         - Removed several utility methods that are used by AtlasDB code. ``MathUtils`` has been moved to our large internal product, which was the only place to use it.
+
+              - ``MathUtils`` (entire class)
+              - ``IterableUtils`` (``getFirst(it, defaultValue)``, ``mergeIterators``, ``partitionByHash``, ``prepend``, ``transformIterator``)
+              - ``IteratorUtils.iteratorDifference``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2782>`__)
+
+    *    - |new|
+         - A CLI to read the punch table was added. The CLI receives an epoch time, in millis, and returns the timestamp that was added to the punch table
+           right before it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -140,7 +178,7 @@ develop
            ``TransactionManagers.config().userAgent().metricRegistry().taggedMetricRegistry()``.
            This avoid runtime errors due to failure to specify all required arguments.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2720>`__)
-           
+
     *    - |fixed|
          - Fixed a bug where setting ``compressBlocksInDb`` for stream store definitions would result in a much bigger than intended block size.
            This option is also deprecated, as we recommend ``compressStreamsInClient`` instead.
@@ -158,7 +196,7 @@ develop
     *    - |improved| |devbreak|
          - AtlasDB now wraps ``NotCurrentLeaderException`` in ``AtlasDbDependencyException`` when this exception is thrown by TimeLock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2716>`__)
-           
+
     *    - |improved|
          - Sweep no longer fetches any values from Cassandra in CONSERVATIVE mode. This results in significantly less data being transferred from Cassandra to the client when sweeping tables with large values, such as stream store tables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2754>`__)
@@ -205,7 +243,7 @@ v0.69.0
          - ``Throwables.createPalantirRuntimeException`` once again throws ``PalantirInterruptedException`` if the original exception was either ``InterruptedException`` or ``InterruptedIOException``.
            This reverts behaviour introduced in 0.67.0, where we instead threw ``PalantirRuntimeException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2702>`__)
-           
+
     *    - |improved|
          - Sweep now waits 1 day after generating a large number of tombstones before sweeping a table again. This behavior only applies when using Cassandra.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2733>`__)
