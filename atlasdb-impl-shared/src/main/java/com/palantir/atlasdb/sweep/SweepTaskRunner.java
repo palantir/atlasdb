@@ -129,7 +129,7 @@ public class SweepTaskRunner {
                     LoggingArgs.tableRef("tableRef", tableRef));
             return SweepResults.createEmptySweepResult();
         }
-        SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
+        SweepStrategy sweepStrategy = sweepStrategyManager.sweepStrategyForTable(tableRef);
         Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
         if (!sweeper.isPresent()) {
             return SweepResults.createEmptySweepResult();

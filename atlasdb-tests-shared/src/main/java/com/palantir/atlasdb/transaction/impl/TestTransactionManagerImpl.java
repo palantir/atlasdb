@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTrackerImpl;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -61,7 +62,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                SweepQueueWriter.NO_OP);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -85,7 +87,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY);
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                SweepQueueWriter.NO_OP);
     }
 
     @Override
