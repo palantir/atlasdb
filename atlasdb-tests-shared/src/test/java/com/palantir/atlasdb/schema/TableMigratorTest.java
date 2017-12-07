@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.atlasdb.sweep.queue.SweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -97,7 +98,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 lockService,
                 transactionService,
                 cdm2,
-                ssm2);
+                ssm2,
+                SweepQueueWriter.NO_OP);
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
@@ -131,7 +133,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 lockService,
                 transactionService,
                 verifyCdm,
-                verifySsm);
+                verifySsm,
+                SweepQueueWriter.NO_OP);
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             verifyTxManager.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {
