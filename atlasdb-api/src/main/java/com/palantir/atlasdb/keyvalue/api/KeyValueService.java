@@ -374,6 +374,17 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
 
     /**
+     * For each cell, deletes all timestamps prior to the associated maximum timestamp, excluding garbage collection
+     * sentinels. Depending on the implementation, this may result in a range tombstone in the underlying KVS.
+     */
+    @POST
+    @Path("delete-all-timestamps")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
+    void deleteAllTimestamps(@QueryParam("tableRef") TableReference tableRef,
+            Map<Cell, Long> maxTimestampExclusiveByCell);
+
+    /**
      * Truncate a table in the key-value store.
      * <p>
      * This is preferred to dropping and re-adding a table, as live schema changes can

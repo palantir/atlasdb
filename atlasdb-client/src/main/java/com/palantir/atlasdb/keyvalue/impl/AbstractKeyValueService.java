@@ -44,6 +44,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.Futures;
@@ -309,6 +310,28 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                 delete(tableRef, cellsToDelete);
             }
         }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef,
+            Map<Cell, Long> maxTimestampExclusiveByCell) {
+        if (maxTimestampExclusiveByCell.isEmpty()) {
+            return;
+        }
+
+        long maxTimestampExclusive = maxTimestampExclusiveByCell.values().stream().max(Long::compare).get();
+
+        Multimap<Cell, Long> timestampsByCell = getAllTimestamps(tableRef, maxTimestampExclusiveByCell.keySet(),
+                maxTimestampExclusive);
+
+        Multimap<Cell, Long> timestampsByCellExcludingSentinels = Multimaps.filterEntries(timestampsByCell, entry -> {
+            long maxTimestampForCell = maxTimestampExclusiveByCell.get(entry.getKey());
+
+            long timestamp = entry.getValue();
+            return timestamp < maxTimestampForCell && timestamp != Value.INVALID_VALUE_TIMESTAMP;
+        });
+
+        delete(tableRef, timestampsByCellExcludingSentinels);
     }
 
     @Override
