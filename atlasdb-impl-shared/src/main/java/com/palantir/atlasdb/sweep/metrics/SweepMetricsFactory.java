@@ -105,7 +105,7 @@ public class SweepMetricsFactory {
         private final List<SweepMetric> metricsList;
 
         ListOfMetrics(SweepMetric... metrics) {
-            this.metricsList = Arrays.stream(metrics).collect(Collectors.toList());
+            this.metricsList = Arrays.asList(metrics);
         }
 
         @Override
