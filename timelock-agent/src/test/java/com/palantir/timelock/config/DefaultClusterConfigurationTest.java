@@ -25,19 +25,19 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
 
-public class ClusterConfigurationTest {
+public class DefaultClusterConfigurationTest {
     private static final String ADDRESS_1 = "localhost:1";
     private static final String ADDRESS_2 = "localhost:2";
 
     @Test
     public void shouldThrowIfLocalServerNotSpecified() {
-        assertThatThrownBy(ImmutableClusterConfiguration.builder()::build)
+        assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()::build)
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldThrowIfNoServersSpecified() {
-        assertThatThrownBy(ImmutableClusterConfiguration.builder()
+        assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
                 .localServer(ADDRESS_1)
                 ::build)
                 .isInstanceOf(IllegalStateException.class);
@@ -45,7 +45,7 @@ public class ClusterConfigurationTest {
 
     @Test
     public void shouldThrowIfLocalServerNotInServers() {
-        assertThatThrownBy(ImmutableClusterConfiguration.builder()
+        assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
                 .localServer(ADDRESS_1)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()))
                 ::build)
