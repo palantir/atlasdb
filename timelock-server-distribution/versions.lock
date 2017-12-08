@@ -597,6 +597,7 @@
             "locked": "1.4.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-config",
+                "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-feign",
                 "com.palantir.atlasdb:timelock-agent"
             ]

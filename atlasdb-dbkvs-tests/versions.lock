@@ -368,6 +368,7 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
@@ -1078,6 +1079,7 @@
         "com.palantir.remoting-api:service-config": {
             "locked": "1.4.0",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs",
                 "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
