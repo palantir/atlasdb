@@ -1010,7 +1010,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private void putInternal(final String kvsMethodName,
             final TableReference tableRef,
-            Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
