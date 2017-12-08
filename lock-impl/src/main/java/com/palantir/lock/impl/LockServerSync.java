@@ -61,9 +61,14 @@ class LockServerSync extends AbstractQueuedSynchronizer {
             setState(writeCount + 1);
             return true;
         }
-        if (hasBlockedPredecessors()) {
-            return false;
-        }
+        // See https://bugs.openjdk.java.net/browse/JDK-8191483
+        // AbstractQueuedSynchronizer has a bug where simultaneous cancelAcquire() calls can cause
+        // future invocations of hasQueuedThreads() to return true, when in fact there are no queued threads.
+        // This causes us to spin indefinitely in LockServerLock#tryLock. To get around this, we just allow
+        // unfair acquires.
+        // if (hasBlockedPredecessors()) {
+        //    return false;
+        // }
         if (writeCount == 0 && !isReadLockHeld()) {
             setState(1);
             writeLockHolder = clientIndex;
@@ -213,12 +218,6 @@ class LockServerSync extends AbstractQueuedSynchronizer {
 
     public int getClientIndex(LockClient client) {
         return clients.toIndex(client);
-    }
-
-    // Note: Replace with hasQueuesPredecessors when lock server
-    // no longer needs to run on java 6.
-    private boolean hasBlockedPredecessors() {
-        return getFirstQueuedThread() != Thread.currentThread() && hasQueuedThreads();
     }
 
     synchronized boolean isFrozen() {
