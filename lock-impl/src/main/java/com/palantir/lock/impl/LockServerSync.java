@@ -15,6 +15,8 @@
  */
 package com.palantir.lock.impl;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.primitives.Ints;
 
@@ -24,7 +26,8 @@ import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 
-public class LockServerSync {
+class LockServerSync {
+
     // All our state is managed in indices, but we use this for diagnostics
     // (exception messages, toString())
     private final LockClientIndices clients;
@@ -72,7 +75,7 @@ public class LockServerSync {
         }
     }
 
-    private boolean tryAcquire(Node node, int clientIndex, boolean shared) {
+    private boolean tryAcquire(@Nullable Node node, int clientIndex, boolean shared) {
         assert Thread.holdsLock(this);
 
         if (frozen) {
@@ -141,7 +144,7 @@ public class LockServerSync {
         return readLockHoldersFirstKeyOrZero();
     }
 
-    private void notifyNode(Node node) {
+    private void notifyNode(@Nullable Node node) {
         assert Thread.holdsLock(this);
 
         if (node == null) {
