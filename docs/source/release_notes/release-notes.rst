@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB now provides a configurable ``compactInterval`` option for Postgres, in the Postgres DDL Config.
+           A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.
+           This will prevent increasing load on Postgres due to queued up vacuums.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+
     *    - |new| |logs|
          - Cassandra KVS now records how many writes have been made into each token range for each table.
            That information is logged at info every time a table is written to more than a threshold of times (currently 100 000 writes).

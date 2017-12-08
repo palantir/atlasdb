@@ -139,8 +139,8 @@ public class PostgresDdlTableTest {
                 .thenReturn(
                         new AgnosticResultSetImpl(selectResults,
                                 DBType.POSTGRESQL,
-                                // This is the columnName to position in the results map. Column Names are both uppercase
-                                // and lowercase, as postgres allows the query to have either of them.
+                                // This is the columnName to position mapping in the results map. Column Names are both
+                                // upper-case and lower-case, as postgres allows the query to have either of them.
                                 new ImmutableMap.Builder<String, Integer>()
                                         .put("relname", 0)
                                         .put("RELNAME", 0)
