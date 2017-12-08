@@ -61,7 +61,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
             setState(writeCount + 1);
             return true;
         }
-        if (shouldYieldDueToBlockedPrecedessors()) {
+        if (hasBlockedPredecessors()) {
             return false;
         }
         if (writeCount == 0 && !isReadLockHeld()) {
@@ -98,7 +98,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
             return -1;
         }
         int writeCount = getState();
-        if (writeCount == 0 && !holdsReadLock(clientIndex) && shouldYieldDueToBlockedPrecedessors()) {
+        if (writeCount == 0 && !holdsReadLock(clientIndex) && hasBlockedPredecessors()) {
             return -1;
         }
         if (writeCount > 0 && !holdsWriteLock(clientIndex)) {
@@ -217,11 +217,12 @@ class LockServerSync extends AbstractQueuedSynchronizer {
 
     // See https://bugs.openjdk.java.net/browse/JDK-8191483
     // AbstractQueuedSynchronizer has a bug where simultaneous cancelAcquire() calls can cause
-    // future invocations of hasQueuedThreads() to return true, when in fact there are no queued threads.
-    // This causes us to spin indefinitely in LockServerLock#tryLock. To get around this, we just allow
-    // unfair acquires.
-    private boolean shouldYieldDueToBlockedPrecedessors() {
-        return false;
+    // future invocations of hasQueuedThreads() and hasQueuedPredecessors() to return true, when in fact there are no
+    // queued threads. This causes us to spin indefinitely in LockServerLock#tryLock.
+    // To get around this, we use getFirstQueuedThread(), which is not vulnerable to this bug.
+    private boolean hasBlockedPredecessors() {
+        Thread queuedThread = getFirstQueuedThread();
+        return queuedThread != null && queuedThread != Thread.currentThread();
     }
 
     synchronized boolean isFrozen() {

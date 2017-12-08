@@ -182,7 +182,7 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that a timed try lock can fail and wake up blocking threads. */
-    @Test @Ignore public void testTimedTryLockCanFail() throws Exception {
+    @Test public void testTimedTryLockCanFail() throws Exception {
         anonymousReadLock.lock();
         Assert.assertNull(anonymousReadLock.tryLock());
         anonymousReadLock.unlock();
