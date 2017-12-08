@@ -17,15 +17,19 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTableToSweepProvider {
+    private static final long MILLIS_TO_WAIT_BEFORE_SWEEP_VALUE_TABLE = TimeUnit.HOURS.toMillis(1);
+
     private NextTableToSweepProviderImpl delegate;
-    private boolean hasRemappedStreamStoreValueTable = false;
-    private TableReference previousStreamStoreValueTable = null;
+    private State state = State.DEFAULT;
+    private TableReference streamStoreValueTable = null;
+    private long instantIndexTableWasSwept = 0L;
 
     public StreamStoreRemappingNextTableToSweepProviderImpl(NextTableToSweepProviderImpl delegate) {
         this.delegate = delegate;
@@ -33,23 +37,42 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
 
     @Override
     public Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs) {
-        if (hasRemappedStreamStoreValueTable) {
-            hasRemappedStreamStoreValueTable = false;
-            return Optional.of(previousStreamStoreValueTable);
+        switch (state) {
+            case DEFAULT:
+                Optional<TableReference> tableReferenceOptional =
+                        delegate.chooseNextTableToSweep(tx, conservativeSweepTs);
+                if (!tableReferenceOptional.isPresent()) {
+                    return tableReferenceOptional;
+                }
+
+                TableReference tableReference = tableReferenceOptional.get();
+                if (!StreamTableType.isStreamStoreValueTable(tableReference)) {
+                    return Optional.of(tableReference);
+                }
+
+                streamStoreValueTable = tableReference;
+                state = State.SWEEPING_INDEX_TABLE;
+                return Optional.of(StreamTableType.getIndexTableFromValueTable(tableReference));
+
+            case SWEEPING_INDEX_TABLE:
+                instantIndexTableWasSwept = System.currentTimeMillis();
+                state = State.WAITING_TO_SWEEP_VALUE_TABLE;
+                return delegate.chooseNextTableToSweep(tx, conservativeSweepTs);
+
+            case WAITING_TO_SWEEP_VALUE_TABLE:
+                if (System.currentTimeMillis() - instantIndexTableWasSwept < MILLIS_TO_WAIT_BEFORE_SWEEP_VALUE_TABLE) {
+                    return delegate.chooseNextTableToSweep(tx, conservativeSweepTs);
+                }
+                state = State.DEFAULT;
+                return Optional.of(streamStoreValueTable);
         }
 
-        Optional<TableReference> tableReferenceOptional = delegate.chooseNextTableToSweep(tx, conservativeSweepTs);
-        if (!tableReferenceOptional.isPresent()) {
-            return tableReferenceOptional;
-        }
+        return Optional.empty();
+    }
 
-        TableReference tableReference = tableReferenceOptional.get();
-        if (!StreamTableType.isStreamStoreValueTable(tableReference)) {
-            return Optional.of(tableReference);
-        }
-
-        previousStreamStoreValueTable = tableReference;
-        hasRemappedStreamStoreValueTable = true;
-        return Optional.of(StreamTableType.getIndexTableFromValueTable(tableReference));
+    private enum State {
+        DEFAULT,
+        SWEEPING_INDEX_TABLE,
+        WAITING_TO_SWEEP_VALUE_TABLE,
     }
 }
