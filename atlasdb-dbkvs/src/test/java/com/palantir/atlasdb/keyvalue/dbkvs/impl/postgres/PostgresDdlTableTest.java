@@ -45,7 +45,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
 
 public class PostgresDdlTableTest {
-    private static PostgresDdlTable postgresDdlTable;
+    private PostgresDdlTable postgresDdlTable;
     private static final ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.test");
     private static final int NOW_MILLIS = 100;
@@ -138,6 +138,8 @@ public class PostgresDdlTableTest {
                 .thenReturn(
                         new AgnosticResultSetImpl(selectResults,
                                 DBType.POSTGRESQL,
+                                // This is the columnName to position in the results map. Column Names are both uppercase
+                                // and lowercase, as postgres allows the query to have either of them.
                                 new ImmutableMap.Builder<String, Integer>()
                                         .put("relname", 0)
                                         .put("RELNAME", 0)

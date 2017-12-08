@@ -128,15 +128,17 @@ public class PostgresDdlTable implements DbDdlTable {
     public void compactInternally() {
         try {
             if (compactionSemaphore.tryAcquire()) {
-                if (config.compactIntervalMillis() == 0) {
-                    runCompactOnTable();
-                } else if (config.compactIntervalMillis() > 0
-                        && checkIfTableHasNotBeenCompactedForCompactIntervalMillis()) {
-                    runCompactOnTable();
-                }
+                checkLastCompactionTimeAndRunCompact();
             }
         } finally {
             compactionSemaphore.release();
+        }
+    }
+
+    private void checkLastCompactionTimeAndRunCompact() {
+        if (config.compactIntervalMillis() == 0 || (config.compactIntervalMillis() > 0
+                && checkIfTableHasNotBeenCompactedForCompactIntervalMillis())) {
+            runCompactOnTable();
         }
     }
 
@@ -147,7 +149,7 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     private Timestamp getLastVacuumTimestamp() {
-        AgnosticResultSet vaccumTimestamps = conns.get().selectResultSetUnregisteredQuery(
+        AgnosticResultSet vacuumTimestamps = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT relname, "
                         + "last_vacuum, "
                         + "last_autovacuum, "
@@ -156,7 +158,7 @@ public class PostgresDdlTable implements DbDdlTable {
                         + "from pg_stat_user_tables where relname = ?",
                 prefixedTableName());
 
-        AgnosticResultRow vacuumTimestampsForTable = Iterables.getOnlyElement(vaccumTimestamps.rows());
+        AgnosticResultRow vacuumTimestampsForTable = Iterables.getOnlyElement(vacuumTimestamps.rows());
 
         return ImmutableList.of("last_vacuum", "last_autovacuum", "last_analyze", "last_autoanalyze")
                 .stream()
