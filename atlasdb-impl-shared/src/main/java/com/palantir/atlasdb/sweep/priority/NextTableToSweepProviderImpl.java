@@ -144,9 +144,9 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
             return Double.MAX_VALUE;
         }
 
-        // Since almost every stream store cell has 1MB, give it a weight of 1k. It should grow up to just 1M anyway
-        // due to the above check.
-        return 1_000 * newPriority.writeCount();
+        // Since almost every stream store value is 1MB long, give each cell a weight of 100.
+        // It should grow up to just 100 * STREAM_STORE_VALUES_TO_SWEEP = 100k anyway due to the above check.
+        return 100 * newPriority.writeCount();
     }
 
     private double getNonStreamStorePriority(SweepPriority oldPriority, SweepPriority newPriority) {
