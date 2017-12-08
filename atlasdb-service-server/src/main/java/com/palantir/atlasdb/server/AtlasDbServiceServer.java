@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.server;
 
+import com.codahale.metrics.SharedMetricRegistries;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import io.dropwizard.Application;
@@ -37,7 +37,7 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     @Override
     public void initialize(Bootstrap<AtlasDbServiceServerConfiguration> bootstrap) {
         super.initialize(bootstrap);
-        bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
+        bootstrap.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
     }
 
     @Override
@@ -47,8 +47,8 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
         SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config.getConfig())
                 .userAgent("AtlasDbServiceServer")
-                .metricRegistry(environment.metrics())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(environment.metrics())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment.jersey()::register)
                 .build()
                 .serializable();

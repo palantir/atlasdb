@@ -69,6 +69,10 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.qos.QosClient;
+import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
+import com.palantir.atlasdb.qos.config.QosClientConfig;
+import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -95,6 +99,7 @@ import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -148,9 +153,9 @@ public abstract class TransactionManagers {
 
     abstract String userAgent();
 
-    abstract MetricRegistry metricRegistry();
+    abstract MetricRegistry globalMetricsRegistry();
 
-    abstract TaggedMetricRegistry taggedMetricRegistry();
+    abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
         return ImmutableTransactionManagers.builder();
@@ -181,8 +186,8 @@ public abstract class TransactionManagers {
         return builder()
                 .config(config)
                 .userAgent(UserAgents.DEFAULT_USER_AGENT)
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .addAllSchemas(schemas)
                 .build()
                 .serializable();
@@ -191,6 +196,7 @@ public abstract class TransactionManagers {
     @JsonIgnore
     @Value.Derived
     public SerializableTransactionManager serializable() {
+        AtlasDbMetrics.setMetricRegistries(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
         checkInstallConfig(config);
 
@@ -198,9 +204,15 @@ public abstract class TransactionManagers {
         java.util.function.Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
+        QosClient qosClient = getQosClient(JavaSuppliers.compose(conf -> conf.qos(), runtimeConfigSupplier));
+
         ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader(), config.namespace(),
-                        config.initializeAsync());
+                new ServiceDiscoveringAtlasSupplier(
+                        config.keyValueService(),
+                        config.leader(),
+                        config.namespace(),
+                        config.initializeAsync(),
+                        qosClient);
 
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
         LockRequest.setDefaultLockTimeout(
@@ -284,6 +296,13 @@ public abstract class TransactionManagers {
                 persistentLockManager);
 
         return transactionManager;
+    }
+
+    private QosClient getQosClient(Supplier<QosClientConfig> config) {
+        QosRateLimiters rateLimiters = QosRateLimiters.create(
+                JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
+                JavaSuppliers.compose(QosClientConfig::limits, config));
+        return AtlasDbQosClient.create(rateLimiters);
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(

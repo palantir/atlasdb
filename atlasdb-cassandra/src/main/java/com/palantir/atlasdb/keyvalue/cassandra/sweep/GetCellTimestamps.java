@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.common.base.Throwables;
 
 public class GetCellTimestamps {
 
@@ -44,8 +43,6 @@ public class GetCellTimestamps {
     private final TableReference tableRef;
     private final byte[] startRowInclusive;
     private final int batchHint;
-
-    private byte[] endRowInclusive;
 
     private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
 
@@ -114,16 +111,12 @@ public class GetCellTimestamps {
     private Optional<byte[]> determineSafeRangeEndInclusive(byte[] rangeStart) {
         KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
         SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
-        try {
-            List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
-            if (rows.isEmpty()) {
-                return Optional.empty();
-            } else {
-                return Optional.of(Iterables.getLast(rows).getKey());
-            }
-        } catch (Exception e) {
-            // TODO(nziebart): handle QoS exceptions here
-            throw Throwables.throwUncheckedException(e);
+
+        List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
+        if (rows.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(Iterables.getLast(rows).getKey());
         }
     }
 
