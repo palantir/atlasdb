@@ -15,16 +15,19 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +48,10 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
     public static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
     public static final int DAYS_TO_WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = 3;
     public static final int STREAM_STORE_VALUES_TO_SWEEP = 1_000;
+
+    // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
+    private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT =
+            100_000.0 / TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS);
 
     private final KeyValueService kvs;
     private final SweepPriorityStore sweepPriorityStore;
@@ -78,21 +85,22 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
                 .stream().sorted(Comparator.comparing(TableReference::getTablename)).collect(Collectors.toList());
         if (!unsweptTables.isEmpty()) {
             TableReference nextTableToSweep = unsweptTables.get(0);
-            log.debug("Choosing to sweep unswept table {}",
+            LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafeTableReferences =
+                    LoggingArgs.tableRefs(unsweptTables);
+            log.debug("Found {} and {} unswept tables, choosing to sweep table {}",
+                    safeAndUnsafeTableReferences.safeTableRefs(),
+                    safeAndUnsafeTableReferences.unsafeTableRefs(),
                     LoggingArgs.tableRef(nextTableToSweep));
             return Optional.of(nextTableToSweep);
         } else {
-            double maxPriority = 0.0;
-            Optional<TableReference> toSweep = Optional.empty();
             Collection<TableReference> toDelete = Lists.newArrayList();
+            List<TableWithPriority> tablesWithPriority = new ArrayList<>(oldPriorities.size());
+
             for (SweepPriority oldPriority : oldPriorities) {
                 if (allTables.contains(oldPriority.tableRef())) {
                     SweepPriority newPriority = newPrioritiesByTableName.get(oldPriority.tableRef());
-                    double priority = getSweepPriorityLogging(oldPriority, newPriority);
-                    if (priority > maxPriority) {
-                        maxPriority = priority;
-                        toSweep = Optional.of(oldPriority.tableRef());
-                    }
+                    double priority = getSweepPriority(oldPriority, newPriority);
+                    tablesWithPriority.add(TableWithPriority.create(oldPriority.tableRef(), priority));
                 } else {
                     toDelete.add(oldPriority.tableRef());
                 }
@@ -100,16 +108,58 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
 
             // Clean up rows for tables that no longer exist.
             sweepPriorityStore.delete(tx, toDelete);
-            return toSweep;
+
+            tablesWithPriority.sort((o1, o2) -> {
+                if (o1.priority() > o2.priority()) {
+                    return 1;
+                }
+                if (o1.priority() < o2.priority()) {
+                    return -1;
+                }
+                return 0;
+            });
+
+            logPrioritiesByTable(tablesWithPriority);
+
+            // TODO(ssouza): move this to the BackgroundSweeperImpl when we make this method return a list.
+            Optional<TableReference> toSweep = Optional.empty();
+            List<TableReference> tablesWithMaxPriority = Lists.newArrayList();
+            double maxValue = 0;
+            for (TableWithPriority tableWithPriority : tablesWithPriority) {
+                if (tableWithPriority.priority() == Double.MAX_VALUE) {
+                    tablesWithMaxPriority.add(tableWithPriority.tableRefence());
+                }
+                if (tableWithPriority.priority() > maxValue) {
+                    maxValue = tableWithPriority.priority();
+                    toSweep = Optional.of(tableWithPriority.tableRefence());
+                }
+            }
+
+            return tablesWithMaxPriority.size() > 0 ?
+                    Optional.of(getRandomValueFromList(tablesWithMaxPriority)) :
+                    toSweep;
         }
     }
 
-    private double getSweepPriorityLogging(SweepPriority oldPriority, SweepPriority newPriority) {
-        double priority = getSweepPriority(oldPriority, newPriority);
-        log.debug("Priority for table {} is {}",
-                LoggingArgs.tableRef(newPriority.tableRef()),
-                SafeArg.of("priority", priority));
-        return priority;
+    private void logPrioritiesByTable(List<TableWithPriority> tableWithPriorities) {
+        List<TableWithPriority> safeTables = new ArrayList<>();
+        List<TableWithPriority> unsafeTables = new ArrayList<>();
+
+        for (TableWithPriority tableWithPriority : tableWithPriorities) {
+            if (LoggingArgs.tableRef(tableWithPriority.tableRefence()).isSafeForLogging()) {
+                safeTables.add(tableWithPriority);
+            } else {
+                unsafeTables.add(tableWithPriority);
+            }
+        }
+
+        log.debug("Sweep priorities per table: {} and {}",
+                SafeArg.of("tableWithPriorities", safeTables.toString()),
+                SafeArg.of("unsafeTableWithPriorities", unsafeTables.toString()));
+    }
+
+    private TableReference getRandomValueFromList(List<TableReference> tablesWithMaxPriority) {
+        return tablesWithMaxPriority.get(ThreadLocalRandom.current().nextInt(tablesWithMaxPriority.size()));
     }
 
     private double getSweepPriority(SweepPriority oldPriority, SweepPriority newPriority) {
@@ -175,8 +225,16 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         return estimatedCellTsPairsToSweep + millisSinceSweep * MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT;
     }
 
-    // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
-    private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT =
-            100_000.0 / TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS);
+    @Value.Immutable
+    public interface TableWithPriority {
+        TableReference tableRefence();
+        Double priority();
 
+        static TableWithPriority create(TableReference tableReference, Double priority) {
+            return ImmutableTableWithPriority.builder()
+                    .tableRefence(tableReference)
+                    .priority(priority)
+                    .build();
+        }
+    }
 }
