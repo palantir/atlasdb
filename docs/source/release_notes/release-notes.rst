@@ -88,6 +88,12 @@ develop
            right before it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
 
+    *    - |devbreak|
+         - Deleted the TTL duration field from the ``Cell`` class.
+           The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
+           Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
@@ -567,10 +573,6 @@ v0.64.0
            You should be affected by this bug only if you had ``AtlasDbConfig.initializeAsync = true``.
            Previously, we would shut down the executors after a successful initialization, which could lead to a race condition with the submission of a ``cancelInitialization`` task.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2547>`__)
-
-    *    - |devbreak|
-         - Deleted the TTL duration field from the ``Cell`` class.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
