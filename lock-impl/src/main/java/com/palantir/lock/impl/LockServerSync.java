@@ -32,7 +32,7 @@ class LockServerSync {
     // (exception messages, toString())
     private final LockClientIndices clients;
 
-    public LockServerSync(LockClientIndices clients) {
+    LockServerSync(LockClientIndices clients) {
         this.clients = clients;
     }
 
