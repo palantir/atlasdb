@@ -37,15 +37,20 @@ import com.palantir.lock.SimpleHeldLocksToken;
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingLockService extends ForwardingLockService {
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
+    private static final long DEFAULT_FREFRESH_FREQUENCY_MILLIS = 5000;
 
     final LockService delegate;
     final Set<LockRefreshToken> toRefresh;
     final ScheduledExecutorService exec;
-    final long refreshFrequencyMillis = 5000;
+    final long refreshFrequencyMillis;
     volatile boolean isClosed = false;
 
     public static LockRefreshingLockService create(LockService delegate) {
-        final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
+        return create(delegate, DEFAULT_FREFRESH_FREQUENCY_MILLIS);
+    }
+
+    public static LockRefreshingLockService create(LockService delegate, long refreshFrequencyMillis) {
+        final LockRefreshingLockService ret = new LockRefreshingLockService(delegate, refreshFrequencyMillis);
         ret.exec.scheduleWithFixedDelay(() -> {
             long startTime = System.currentTimeMillis();
             try {
@@ -67,8 +72,9 @@ public class LockRefreshingLockService extends ForwardingLockService {
         return ret;
     }
 
-    private LockRefreshingLockService(LockService delegate) {
+    private LockRefreshingLockService(LockService delegate, long refreshFrequencyMillis) {
         this.delegate = delegate;
+        this.refreshFrequencyMillis = refreshFrequencyMillis;
         toRefresh = Sets.newConcurrentHashSet();
         exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     }
