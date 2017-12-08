@@ -126,26 +126,26 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void compactInternally() {
-        try {
-            if (compactionSemaphore.tryAcquire()) {
+        if (compactionSemaphore.tryAcquire()) {
+            try {
                 checkLastCompactionTimeAndRunCompact();
+            } finally {
+                compactionSemaphore.release();
             }
-        } finally {
-            compactionSemaphore.release();
         }
     }
 
     private void checkLastCompactionTimeAndRunCompact() {
-        if (config.compactIntervalMillis() == 0 || (config.compactIntervalMillis() > 0
-                && checkIfTableHasNotBeenCompactedForCompactIntervalMillis())) {
+        if (config.compactInterval().toMilliseconds() == 0 || (config.compactInterval().toMilliseconds() > 0
+                && checkIfTableHasNotBeenCompactedForCompactInterval())) {
             runCompactOnTable();
         }
     }
 
     @VisibleForTesting
-    boolean checkIfTableHasNotBeenCompactedForCompactIntervalMillis() {
+    boolean checkIfTableHasNotBeenCompactedForCompactInterval() {
         return getCurrentDatabaseTimestamp().getTime() - getLastVacuumTimestamp().getTime()
-                > config.compactIntervalMillis();
+                > config.compactInterval().toMilliseconds();
     }
 
     private Timestamp getLastVacuumTimestamp() {
@@ -164,7 +164,7 @@ public class PostgresDdlTable implements DbDdlTable {
                 .stream()
                 .map(str -> getTimestamp(vacuumTimestampsForTable.getObject(str)))
                 .max(Timestamp::compareTo)
-                .orElse(new Timestamp(0));
+                .orElseGet(() -> new Timestamp(0));
     }
 
     private Timestamp getCurrentDatabaseTimestamp() {

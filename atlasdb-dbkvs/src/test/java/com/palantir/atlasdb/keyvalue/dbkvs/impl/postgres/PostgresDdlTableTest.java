@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
+import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 public class PostgresDdlTableTest {
     private PostgresDdlTable postgresDdlTable;
@@ -54,13 +55,13 @@ public class PostgresDdlTableTest {
     public void setUp() {
         postgresDdlTable = new PostgresDdlTable(TEST_TABLE,
                 connectionSupplier,
-                ImmutablePostgresDdlConfig.builder().compactIntervalMillis(10).build());
+                ImmutablePostgresDdlConfig.builder().compactInterval(HumanReadableDuration.valueOf("10 ms")).build());
     }
 
     @Test
     public void shouldCompactIfVacuumWasNeverPerformed() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(null, null, null, null);
-        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
+        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
 
         assertThatVacuumWasPerformed(sqlConnection);
     }
@@ -68,7 +69,7 @@ public class PostgresDdlTableTest {
     @Test
     public void shouldCompactIfVacuumWasPerformedBeforeCompactInterval() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(10), null, new Timestamp(9), null);
-        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
+        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
 
         assertThatVacuumWasPerformed(sqlConnection);
     }
@@ -76,7 +77,7 @@ public class PostgresDdlTableTest {
     @Test
     public void shouldCompactIfAutoVacuumWasPerformedBeforeCompactInterval() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(null, new Timestamp(10), null, new Timestamp(9));
-        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
+        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
 
         assertThatVacuumWasPerformed(sqlConnection);
     }
@@ -106,7 +107,7 @@ public class PostgresDdlTableTest {
     public void shouldCompactIfCompactMillisIsSetToZero() throws Exception {
         postgresDdlTable = new PostgresDdlTable(TEST_TABLE,
                 connectionSupplier,
-                ImmutablePostgresDdlConfig.builder().compactIntervalMillis(0).build());
+                ImmutablePostgresDdlConfig.builder().compactInterval(HumanReadableDuration.valueOf("0 ms")).build());
         SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(5), null, new Timestamp(90), new Timestamp(10));
         assertThatVacuumWasPerformed(sqlConnection);
         verify(sqlConnection, never()).selectResultSetUnregisteredQuery(eq("SELECT CURRENT_TIMESTAMP"));
@@ -162,7 +163,7 @@ public class PostgresDdlTableTest {
     }
 
     private void assertThatVacuumWasNotPerformed(SqlConnection sqlConnection) {
-        assertFalse(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactIntervalMillis());
+        assertFalse(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
         postgresDdlTable.compactInternally();
 
         verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(eq("SELECT CURRENT_TIMESTAMP"));
