@@ -179,7 +179,11 @@ public final class LockServiceImpl
 
     private final LockClientIndices clientIndices = new LockClientIndices();
 
-    /** The backing client-aware read write lock for each lock descriptor. */
+    /**
+     * The backing client-aware read write lock for each lock descriptor.
+     * This map holds weak references - strong references are held by the
+     * heldLocksTokenMap and heldLocksGrantMap.
+     */
     private final LoadingCache<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap =
             CacheBuilder.newBuilder().weakValues().build(
                     new CacheLoader<LockDescriptor, ClientAwareReadWriteLock>() {

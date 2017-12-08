@@ -26,6 +26,24 @@ import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 
+/**
+ * Main synchronization logic for LockServer read-write locks.
+ *
+ * LockServer read-write locks have the following semantics in addition to standard read-write ones:
+ * <ul>
+ *     <li>Non-anonymous lock client lock requests are reentrant.</li>
+ *     <li>A non-anonymous lock client which holds a write lock can also reentrantly be granted a read lock.</li>
+ *     <li>Requests are fair (no-barging) and ordered by when the client's first request was received.</li>
+ *     <li>Write locks can be <i>frozen</i> by a client, which disables additional reentrant lock requests.</li>
+ *     <li>A lock client can transfer its lock hold to another client, unless doing so would violate read-write client invariants.</li>
+ * </ul>
+ *
+ * Thread safety is maintained by <pre>synchronized</pre> methods --
+ * state cannot be modified without first grabbing the object lock.
+ *
+ * This class is based originally on {@link java.util.concurrent.locks.AbstractQueuedSynchronizer},
+ * but no longer extends it due to JDK-8191483.
+ */
 class LockServerSync {
 
     // All our state is managed in indices, but we use this for diagnostics
@@ -40,13 +58,38 @@ class LockServerSync {
     private int writeLockHolder = 0;
     private int writeLockCount = 0;
 
+    // Queue of clients waiting for the lock.
+    // clients which are not anonymous will also have an entry in waitingReads/waitingWrites
     private int queueLength = 0;
     private Node head;
     private Node tail;
 
+    // The following fields MUST NOT be accessed directly!
+    // Access must be through the utility methods located at the bottom of this class,
+    // Which are prefixed by the field name. (e.g. readLockHoldersContainsKey()
+    private TIntIntMap readLockHolders = null; // client index -> re-entrance count
+    private TIntObjectMap<Node> waitingReads = null;
+    private TIntObjectMap<Node> waitingWrites = null;
+
+    /**
+     * Doubly-linked-list node,
+     * representing a given lock client's request for the lock.
+     *
+     * Requesters will await() on this node until it is possible to grab the lock,
+     * at which point they will be notify()'d when they have reached the front of the line
+     * and can re-contend for the lock.
+     *
+     * You must hold the owning LockServerSync object lock before accessing or calling
+     * methods on a Node object.
+     */
     private static final class Node {
         public Node prev = null;
         public Node next = null;
+
+        /**
+         * Number of reentrant requests from the client. Should always be 1 for anonymous clients.
+         * There will be exactly <pre>count</pre> threads await()'ing on this node.
+         */
         public int count = 0;
 
         private long signalCount = 0;
@@ -186,6 +229,10 @@ class LockServerSync {
         return node;
     }
 
+    /**
+     * Leave the line of waiting nodes, and if by doing so you change who's first in line,
+     * notify() them.
+     */
     private void unrefNode(int clientIndex, boolean shared, Node node) {
         assert Thread.holdsLock(this);
 
@@ -216,6 +263,9 @@ class LockServerSync {
         --queueLength;
     }
 
+    /**
+     * @return returns 0 if the lock was acquired successfully, otherwise the client index of one of the current holders.
+     */
     private int acquireCommon(int clientIndex, boolean shared, long nanos, boolean allowInterrupt) throws InterruptedException {
         long t0 = System.nanoTime();
 
@@ -441,7 +491,7 @@ class LockServerSync {
     }
 
 
-    private TIntIntMap readLockHolders = null;
+    // methods for using readLockHolders
 
     private boolean readLockHoldersContainsKey(int clientIndex) {
         return readLockHolders != null && readLockHolders.containsKey(clientIndex);
@@ -485,7 +535,7 @@ class LockServerSync {
     }
 
 
-    private TIntObjectMap<Node> waitingReads = null;
+    // methods for using waitingReads
 
     private Node waitingReadsGet(int clientIndex) {
         if (waitingReads == null) {
@@ -510,7 +560,7 @@ class LockServerSync {
     }
 
 
-    private TIntObjectMap<Node> waitingWrites = null;
+    // methods for using waitingWrites
 
     private Node waitingWritesGet(int clientIndex) {
         if (waitingWrites == null) {

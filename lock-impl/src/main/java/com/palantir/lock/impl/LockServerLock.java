@@ -26,7 +26,11 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 
-public class LockServerLock implements ClientAwareReadWriteLock {
+/**
+ * Methods on this class can be called by multiple threads,
+ * with synchronization handled by {@link LockServerSync}.
+ */
+class LockServerLock implements ClientAwareReadWriteLock {
     private static final Logger log = LoggerFactory.getLogger(LockServerLock.class);
 
     private final LockDescriptor descriptor;

@@ -25,6 +25,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.lock.LockClient;
 
+/**
+ * Maps {@link LockClient}'s to unique integers.
+ * There may only be one LockClientIndices object per {@link LockServiceImpl}.
+ */
 @ThreadSafe
 @VisibleForTesting
 public class LockClientIndices {
@@ -36,6 +40,14 @@ public class LockClientIndices {
         clientByIndex.put(-1, LockClient.ANONYMOUS);
     }
 
+    /**
+     * Look up the index for a client.
+     * If the client has not been seen before, create an index for it.
+     * @return -1 if the client is the anonymous client,
+     * a positive integer otherwise.
+     *
+     * Note that 0 is NOT a valid lock client index.
+     */
     int toIndex(LockClient client) {
         Integer index = indexByClient.get(client);
         if (index != null) {
@@ -53,6 +65,10 @@ public class LockClientIndices {
         }
     }
 
+    /**
+     * Get the lock client associated with the given index.
+     * @throws NullPointerException if the index doesn't exist on this map.
+     */
     LockClient fromIndex(int index) {
         return Preconditions.checkNotNull(clientByIndex.get(index));
     }
