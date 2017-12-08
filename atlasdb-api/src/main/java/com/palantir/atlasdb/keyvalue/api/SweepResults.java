@@ -44,7 +44,10 @@ public abstract class SweepResults {
      */
     public abstract long getStaleValuesDeleted();
 
-    public abstract long getSweptTimestamp();
+    /**
+     * The minimum sweep timestamp while sweeping this table.
+     */
+    public abstract long getMinSweptTimestamp();
 
     /**
      * Time spent sweeping this iteration in milliseconds.
@@ -66,24 +69,17 @@ public abstract class SweepResults {
      */
     public SweepResults accumulateWith(SweepResults other) {
         return SweepResults.builder()
-                .nextStartRow(minRowOptional(getNextStartRow(), other.getNextStartRow()))
+                .nextStartRow(maxRowOptional(getNextStartRow(), other.getNextStartRow()))
                 .cellTsPairsExamined(getCellTsPairsExamined() + other.getCellTsPairsExamined())
                 .staleValuesDeleted(getStaleValuesDeleted() + other.getStaleValuesDeleted())
-                .sweptTimestamp(Math.min(getSweptTimestamp(), other.getSweptTimestamp()))
+                .minSweptTimestamp(Math.min(getMinSweptTimestamp(), other.getMinSweptTimestamp()))
                 .timeInMillis(getTimeInMillis() + other.getTimeInMillis())
                 .timeSweepStarted(Math.min(getTimeSweepStarted(), other.getTimeSweepStarted()))
                 .build();
     }
 
-    private Optional<byte[]> minRowOptional(Optional<byte[]> fst, Optional<byte[]> snd) {
-        if (!fst.isPresent() || !snd.isPresent()) {
-            return Optional.empty();
-        }
-        if (PtBytes.compareTo(fst.get(), snd.get()) > 0) {
-            return fst;
-        } else {
-            return snd;
-        }
+    private Optional<byte[]> maxRowOptional(Optional<byte[]> fst, Optional<byte[]> snd) {
+        return fst.flatMap(row1 -> snd.map(row2 -> PtBytes.BYTES_COMPARATOR.max(row1, row2)));
     }
 
     public static ImmutableSweepResults.Builder builder() {
@@ -102,7 +98,7 @@ public abstract class SweepResults {
         return builder()
                 .cellTsPairsExamined(0)
                 .staleValuesDeleted(0)
-                .sweptTimestamp(Long.MAX_VALUE)
+                .minSweptTimestamp(Long.MAX_VALUE)
                 .nextStartRow(startRow)
                 .timeInMillis(0)
                 .timeSweepStarted(System.currentTimeMillis())

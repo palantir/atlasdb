@@ -579,7 +579,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                             .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                             .build(),
                     startRow);
-            assertEquals(ts, results.getSweptTimestamp());
+            assertEquals(ts, results.getMinSweptTimestamp());
             assertArrayEquals(startRow, results.getPreviousStartRow().orElse(null));
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
@@ -588,7 +588,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                 return ImmutableSweepResults.builder()
                         .staleValuesDeleted(totalStaleValuesDeleted)
                         .cellTsPairsExamined(totalCellsExamined)
-                        .sweptTimestamp(ts)
+                        .minSweptTimestamp(ts)
                         .timeInMillis(totalTime)
                         .timeSweepStarted(0L)
                         .build();

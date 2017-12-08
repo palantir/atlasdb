@@ -32,7 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
-import com.palantir.atlasdb.sweep.metrics.UpdateEvent;
+import com.palantir.atlasdb.sweep.metrics.UpdateEventType;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStoreImpl;
@@ -153,7 +153,7 @@ public class SpecificTableSweeper {
                 UnsafeArg.of("startRow", startRowToHex(startRow)),
                 SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()),
                 SafeArg.of("time taken", results.getTimeInMillis()),
-                SafeArg.of("last swept timestamp", results.getSweptTimestamp()));
+                SafeArg.of("last swept timestamp", results.getMinSweptTimestamp()));
 
         SweepPerformanceResults performanceResults = SweepPerformanceResults.builder()
                 .sweepResults(results)
@@ -211,7 +211,7 @@ public class SpecificTableSweeper {
                     //noinspection OptionalGetWithoutIsPresent // covered by precondition above
                     .startRow(results.getNextStartRow().get())
                     .startColumn(PtBytes.toBytes("unused"))
-                    .minimumSweptTimestamp(results.getSweptTimestamp())
+                    .minimumSweptTimestamp(results.getMinSweptTimestamp())
                     .timeInMillis(results.getTimeInMillis())
                     .startTimeInMillis(results.getTimeSweepStarted())
                     .build();
@@ -258,7 +258,7 @@ public class SpecificTableSweeper {
                     .newStaleValuesDeleted(finalSweepResults.getStaleValuesDeleted())
                     .newCellTsPairsExamined(finalSweepResults.getCellTsPairsExamined())
                     .newLastSweepTimeMillis(wallClock.getTimeMillis())
-                    .newMinimumSweptTimestamp(finalSweepResults.getSweptTimestamp());
+                    .newMinimumSweptTimestamp(finalSweepResults.getMinSweptTimestamp());
             if (!tableToSweep.hasPreviousProgress()) {
                 // This is the first (and only) set of results being written for this table.
                 update.newWriteCount(0L);
@@ -277,11 +277,11 @@ public class SpecificTableSweeper {
     }
 
     void updateMetricsOneIteration(SweepResults sweepResults, TableReference tableRef) {
-        sweepMetricsManager.updateMetrics(sweepResults, tableRef, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(sweepResults, tableRef, UpdateEventType.ONE_ITERATION);
     }
 
     void updateMetricsFullTable(SweepResults cumulativeResults, TableReference tableRef) {
-        sweepMetricsManager.updateMetrics(cumulativeResults, tableRef, UpdateEvent.FULL_TABLE);
+        sweepMetricsManager.updateMetrics(cumulativeResults, tableRef, UpdateEventType.FULL_TABLE);
     }
 
     void updateSweepErrorMetric() {

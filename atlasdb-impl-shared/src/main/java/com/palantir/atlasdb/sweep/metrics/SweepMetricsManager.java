@@ -20,6 +20,7 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+// Not final for Mockito
 @SuppressWarnings("checkstyle:FinalClass")
 public class SweepMetricsManager {
     private static final TableReference DUMMY = TableReference.createWithEmptyNamespace("dummy");
@@ -35,9 +36,9 @@ public class SweepMetricsManager {
             factory.createMetricsForTimeElapsed(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING);
 
     private final SweepMetric sweepErrorMetric =
-            factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEvent.ERROR, false);
+            factory.createMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEventType.ERROR, false);
 
-    public void updateMetrics(SweepResults sweepResults, TableReference tableRef, UpdateEvent updateEvent) {
+    public void updateMetrics(SweepResults sweepResults, TableReference tableRef, UpdateEventType updateEvent) {
         cellsSweptMetric.update(sweepResults.getCellTsPairsExamined(), tableRef, updateEvent);
         cellsDeletedMetric.update(sweepResults.getStaleValuesDeleted(), tableRef, updateEvent);
         sweepTimeSweepingMetric.update(sweepResults.getTimeInMillis(), tableRef, updateEvent);
@@ -45,6 +46,6 @@ public class SweepMetricsManager {
     }
 
     public void sweepError() {
-        sweepErrorMetric.update(1, DUMMY, UpdateEvent.ERROR);
+        sweepErrorMetric.update(1, DUMMY, UpdateEventType.ERROR);
     }
 }

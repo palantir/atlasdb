@@ -30,15 +30,15 @@ public class SweepMetricsFactory {
 
     SweepMetric createDefault(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
-                createMeter(namePrefix, UpdateEvent.ONE_ITERATION, false),
-                createHistogram(namePrefix, UpdateEvent.ONE_ITERATION, true),
-                createHistogram(namePrefix, UpdateEvent.FULL_TABLE, false));
+                createMeter(namePrefix, UpdateEventType.ONE_ITERATION, false),
+                createHistogram(namePrefix, UpdateEventType.ONE_ITERATION, true),
+                createHistogram(namePrefix, UpdateEventType.FULL_TABLE, false));
     }
 
     SweepMetric createMetricsForTimeElapsed(String namePrefix) {
         return new SweepMetricsFactory.ListOfMetrics(
-                createCurrentValue(namePrefix, UpdateEvent.ONE_ITERATION, false),
-                createHistogram(namePrefix, UpdateEvent.FULL_TABLE, false));
+                createCurrentValue(namePrefix, UpdateEventType.ONE_ITERATION, false),
+                createHistogram(namePrefix, UpdateEventType.FULL_TABLE, false));
     }
 
     /**
@@ -49,10 +49,10 @@ public class SweepMetricsFactory {
      * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
      *                    the metric name.
      * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
-     *                         taggged.
+     *                         tagged.
      * @return SweepMetric backed by a Meter
      */
-    SweepMetric createMeter(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+    SweepMetric createMeter(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.METER_ADAPTER);
     }
 
@@ -66,10 +66,10 @@ public class SweepMetricsFactory {
      * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
      *                    the metric name.
      * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
-     *                         taggged, and will use an HdrHistogramReservoir.
+     *                         tagged, and will use an HdrHistogramReservoir.
      * @return SweepMetric backed by a Histogram
      */
-    SweepMetric createHistogram(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+    SweepMetric createHistogram(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.HISTOGRAM_ADAPTER);
     }
 
@@ -81,14 +81,14 @@ public class SweepMetricsFactory {
      * @param updateEvent Determines on which type of event the metric should be updated and determines the suffix of
      *                    the metric name.
      * @param tagWithTableName If true, metric will also be tagged with the table name. If false, the metric will not be
-     *                         taggged.
+     *                         tagged.
      * @return SweepMetric backed by a CurrentValueMetric
      */
-    SweepMetric createCurrentValue(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName) {
+    SweepMetric createCurrentValue(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName) {
         return createMetric(namePrefix, updateEvent, tagWithTableName, SweepMetricAdapter.CURRENT_VALUE_ADAPTER);
     }
 
-    SweepMetric createMetric(String namePrefix, UpdateEvent updateEvent, boolean tagWithTableName,
+    private SweepMetric createMetric(String namePrefix, UpdateEventType updateEvent, boolean tagWithTableName,
             SweepMetricAdapter<?> metricAdapter) {
         return new SweepMetricImpl(ImmutableSweepMetricConfig.builder()
                 .namePrefix(namePrefix)
@@ -108,7 +108,7 @@ public class SweepMetricsFactory {
         }
 
         @Override
-        public void update(long value, TableReference tableRef, UpdateEvent updateEvent) {
+        public void update(long value, TableReference tableRef, UpdateEventType updateEvent) {
             metricsList.forEach(metric -> metric.update(value, tableRef, updateEvent));
         }
     }

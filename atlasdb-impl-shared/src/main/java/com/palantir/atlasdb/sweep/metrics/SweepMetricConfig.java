@@ -26,7 +26,7 @@ public abstract class SweepMetricConfig {
     public abstract String namePrefix();
     public abstract MetricRegistry metricRegistry();
     public abstract TaggedMetricRegistry taggedMetricRegistry();
-    public abstract UpdateEvent updateEvent();
+    public abstract UpdateEventType updateEvent();
     public abstract boolean tagWithTableName();
     public abstract SweepMetricAdapter<?> metricAdapter();
 

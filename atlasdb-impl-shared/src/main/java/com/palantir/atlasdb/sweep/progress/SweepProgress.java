@@ -52,7 +52,7 @@ public interface SweepProgress {
         return SweepResults.builder()
                 .staleValuesDeleted(staleValuesDeleted())
                 .cellTsPairsExamined(cellTsPairsExamined())
-                .sweptTimestamp(minimumSweptTimestamp())
+                .minSweptTimestamp(minimumSweptTimestamp())
                 .nextStartRow(Optional.of(startRow()))
                 .timeInMillis(timeInMillis())
                 .timeSweepStarted(startTimeInMillis())

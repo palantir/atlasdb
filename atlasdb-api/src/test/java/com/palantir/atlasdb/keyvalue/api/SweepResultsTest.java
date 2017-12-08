@@ -29,7 +29,7 @@ public class SweepResultsTest {
             .nextStartRow(Optional.of(PtBytes.toBytes("ABC")))
             .cellTsPairsExamined(1000L)
             .staleValuesDeleted(100L)
-            .sweptTimestamp(10L)
+            .minSweptTimestamp(10L)
             .timeInMillis(1L)
             .timeSweepStarted(1_000L)
             .build();
@@ -40,7 +40,7 @@ public class SweepResultsTest {
             .nextStartRow(B_WITH_FIXED_REFERENCE)
             .cellTsPairsExamined(2000L)
             .staleValuesDeleted(200L)
-            .sweptTimestamp(20L)
+            .minSweptTimestamp(20L)
             .timeInMillis(2L)
             .timeSweepStarted(10_000L)
             .build();
@@ -49,7 +49,7 @@ public class SweepResultsTest {
             .nextStartRow(Optional.empty())
             .cellTsPairsExamined(3000L)
             .staleValuesDeleted(300L)
-            .sweptTimestamp(30L)
+            .minSweptTimestamp(30L)
             .timeInMillis(3L)
             .timeSweepStarted(100_000L)
             .build();
@@ -58,7 +58,7 @@ public class SweepResultsTest {
             .nextStartRow(B_WITH_FIXED_REFERENCE)
             .cellTsPairsExamined(1000L + 2000L)
             .staleValuesDeleted(100L + 200L)
-            .sweptTimestamp(10L)
+            .minSweptTimestamp(10L)
             .timeInMillis(1L + 2L)
             .timeSweepStarted(1_000L)
             .build();
@@ -80,7 +80,7 @@ public class SweepResultsTest {
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 3000L)
                         .staleValuesDeleted(100L + 300L)
-                        .sweptTimestamp(10L)
+                        .minSweptTimestamp(10L)
                         .timeInMillis(1L + 3L)
                         .timeSweepStarted(1_000L)
                         .build()));
@@ -94,7 +94,7 @@ public class SweepResultsTest {
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(2000L + 3000L)
                         .staleValuesDeleted(200L + 300L)
-                        .sweptTimestamp(20L)
+                        .minSweptTimestamp(20L)
                         .timeInMillis(2L + 3L)
                         .timeSweepStarted(10_000L)
                         .build()));
@@ -107,7 +107,7 @@ public class SweepResultsTest {
                         .nextStartRow(Optional.empty())
                         .cellTsPairsExamined(1000L + 2000L + 3000L)
                         .staleValuesDeleted(100L + 200L + 300L)
-                        .sweptTimestamp(10L)
+                        .minSweptTimestamp(10L)
                         .timeInMillis(1L + 2L + 3L)
                         .timeSweepStarted(1_000L)
                         .build()));

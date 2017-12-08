@@ -200,7 +200,7 @@ public class SweepTaskRunner {
                     .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.empty() : Optional.of(lastRow))
                     .cellTsPairsExamined(totalCellTsPairsExamined)
                     .staleValuesDeleted(totalCellTsPairsDeleted)
-                    .sweptTimestamp(sweepTs)
+                    .minSweptTimestamp(sweepTs)
                     .timeInMillis(watch.elapsed(TimeUnit.MILLISECONDS))
                     .timeSweepStarted(timeSweepStarted)
                     .build();

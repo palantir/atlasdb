@@ -16,14 +16,14 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-public enum UpdateEvent {
+public enum UpdateEventType {
     ONE_ITERATION("perIteration"),
     FULL_TABLE("perTable"),
     ERROR("");
 
     private final String nameComponent;
 
-    UpdateEvent(String nameComponent) {
+    UpdateEventType(String nameComponent) {
         this.nameComponent = nameComponent;
     }
 

@@ -73,7 +73,7 @@ public class SweepMetricsManagerTest {
             .staleValuesDeleted(DELETED)
             .timeInMillis(TIME_SWEEPING)
             .timeSweepStarted(START_TIME)
-            .sweptTimestamp(0L)
+            .minSweptTimestamp(0L)
             .build();
 
     private static final SweepResults OTHER_SWEEP_RESULTS = ImmutableSweepResults.builder()
@@ -81,7 +81,7 @@ public class SweepMetricsManagerTest {
             .staleValuesDeleted(OTHER_DELETED)
             .timeInMillis(OTHER_TIME_SWEEPING)
             .timeSweepStarted(OTHER_START_TIME)
-            .sweptTimestamp(0L)
+            .minSweptTimestamp(0L)
             .build();
 
     private static final byte[] SAFE_METADATA = createTableMetadataWithLogSafety(
@@ -111,7 +111,7 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void allTaggedHistogramsAreRecordedForOneIterationAndSafeTable() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
         assertRecordedHistogramTaggedSafeOneIteration(CELLS_EXAMINED, TABLE_REF, EXAMINED);
         assertRecordedHistogramTaggedSafeOneIteration(CELLS_SWEPT, TABLE_REF, DELETED);
@@ -121,7 +121,7 @@ public class SweepMetricsManagerTest {
     @Test
     public void allTaggedHistogramsAreRecordedForOneIterationAndUnSafeTable() {
         LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA));
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
         assertRecordedHistogramTaggedUnSafeOneIteration(CELLS_EXAMINED, EXAMINED);
         assertRecordedHistogramTaggedUnSafeOneIteration(CELLS_SWEPT, DELETED);
@@ -130,7 +130,7 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void allTaggedHistogramsAreRecordedAsUnsafeIfMetadataUnavailable() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF2, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
 
         assertRecordedHistogramTaggedUnSafeOneIteration(CELLS_EXAMINED, EXAMINED);
         assertRecordedHistogramTaggedUnSafeOneIteration(CELLS_SWEPT, DELETED);
@@ -139,7 +139,7 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void allMetersAreRecordedForOneIteration() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
         assertRecordedMeterNonTaggedOneIteration(CELLS_EXAMINED, EXAMINED);
         assertRecordedMeterNonTaggedOneIteration(CELLS_SWEPT, DELETED);
@@ -148,14 +148,14 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void timeElapsedCurrentValueIsRecordedForOneIteration() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(START_TIME);
     }
 
     @Test
     public void allNonTaggedHistogramsAreRecordedForFulTable() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.FULL_TABLE);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.FULL_TABLE);
 
         assertRecordedHistogramNonTaggedFullTable(CELLS_EXAMINED, TABLE_REF, EXAMINED);
         assertRecordedHistogramNonTaggedFullTable(CELLS_SWEPT, TABLE_REF, DELETED);
@@ -165,8 +165,8 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void allTaggedHistogramsAreAggregatedForSafeTable() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
 
         assertRecordedHistogramTaggedSafeOneIteration(CELLS_EXAMINED, TABLE_REF, EXAMINED, OTHER_EXAMINED);
         assertRecordedHistogramTaggedSafeOneIteration(CELLS_SWEPT, TABLE_REF, DELETED, OTHER_DELETED);
@@ -177,8 +177,8 @@ public class SweepMetricsManagerTest {
     @Test
     public void allTaggedHistogramsAreAggregatedForAllUnSafeTables() {
         LoggingArgs.hydrate(ImmutableMap.of(TABLE_REF, UNSAFE_METADATA, TABLE_REF2, UNSAFE_METADATA));
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
 
         assertRecordedHistogramTaggedUnSafeOneIteration(CELLS_EXAMINED, EXAMINED, OTHER_EXAMINED);
         assertRecordedHistogramTaggedUnSafeOneIteration(CELLS_SWEPT, DELETED, OTHER_DELETED);
@@ -187,8 +187,8 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void allMetersAreAggregated() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
 
         assertRecordedMeterNonTaggedOneIteration(CELLS_EXAMINED, EXAMINED, OTHER_EXAMINED);
         assertRecordedMeterNonTaggedOneIteration(CELLS_SWEPT, DELETED, OTHER_DELETED);
@@ -197,16 +197,16 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void timeElapsedGaugeIsUpdatedToNewestValueForOneIteration() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEvent.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.ONE_ITERATION);
 
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(OTHER_START_TIME);
     }
 
     @Test
     public void allNonTaggedHistogramsAreAggregatedForFulTable() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.FULL_TABLE);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEvent.FULL_TABLE);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.FULL_TABLE);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF2, UpdateEventType.FULL_TABLE);
 
         assertRecordedHistogramNonTaggedFullTable(CELLS_EXAMINED, TABLE_REF, EXAMINED, OTHER_EXAMINED);
         assertRecordedHistogramNonTaggedFullTable(CELLS_SWEPT, TABLE_REF, DELETED, OTHER_DELETED);
@@ -216,8 +216,8 @@ public class SweepMetricsManagerTest {
 
     @Test
     public void noCrossContaminationOfMetrics() {
-        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEvent.ONE_ITERATION);
-        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF, UpdateEvent.FULL_TABLE);
+        sweepMetricsManager.updateMetrics(SWEEP_RESULTS, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        sweepMetricsManager.updateMetrics(OTHER_SWEEP_RESULTS, TABLE_REF, UpdateEventType.FULL_TABLE);
 
         assertRecordedHistogramTaggedSafeOneIteration(CELLS_EXAMINED, TABLE_REF, EXAMINED);
         assertRecordedHistogramTaggedSafeOneIteration(CELLS_SWEPT, TABLE_REF, DELETED);
@@ -238,28 +238,28 @@ public class SweepMetricsManagerTest {
         sweepMetricsManager.sweepError();
         sweepMetricsManager.sweepError();
 
-        Meter meter = getMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEvent.ERROR);
+        Meter meter = getMeter(AtlasDbMetricNames.SWEEP_ERROR, UpdateEventType.ERROR);
         assertThat(meter.getCount(), equalTo(2L));
     }
 
     private void assertRecordedHistogramTaggedSafeOneIteration(String name, TableReference tableRef, Long... values) {
-        Histogram histogram = getHistogram(name, tableRef, UpdateEvent.ONE_ITERATION, true);
+        Histogram histogram = getHistogram(name, tableRef, UpdateEventType.ONE_ITERATION, true);
         assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
     }
 
     private void assertRecordedHistogramTaggedUnSafeOneIteration(String name, Long... values) {
         Histogram histogram =
-                getHistogram(name, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE, UpdateEvent.ONE_ITERATION, true);
+                getHistogram(name, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE, UpdateEventType.ONE_ITERATION, true);
         assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
     }
 
     private void assertRecordedHistogramNonTaggedFullTable(String name, TableReference tableRef, Long... values) {
-        Histogram histogram = getHistogram(name, tableRef, UpdateEvent.FULL_TABLE, false);
+        Histogram histogram = getHistogram(name, tableRef, UpdateEventType.FULL_TABLE, false);
         assertThat(Longs.asList(histogram.getSnapshot().getValues()), containsInAnyOrder(values));
     }
 
     private void assertRecordedMeterNonTaggedOneIteration(String aggregateMetric, Long... values) {
-        Meter meter = getMeter(aggregateMetric, UpdateEvent.ONE_ITERATION);
+        Meter meter = getMeter(aggregateMetric, UpdateEventType.ONE_ITERATION);
         assertThat(meter.getCount(), equalTo(Arrays.asList(values).stream().reduce(0L, Long::sum)));
     }
 
@@ -270,11 +270,11 @@ public class SweepMetricsManagerTest {
 
     private void assertSweepTimeElapsedHistogramWithinMarginOfError(Long... timeSweepStarted) {
         Histogram histogram =
-                getHistogram(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, DUMMY, UpdateEvent.FULL_TABLE, false);
+                getHistogram(AtlasDbMetricNames.TIME_ELAPSED_SWEEPING, DUMMY, UpdateEventType.FULL_TABLE, false);
         assertWithinMarginOfError(histogram, Arrays.asList(timeSweepStarted));
     }
 
-    private Histogram getHistogram(String namePrefix, TableReference tableRef, UpdateEvent updateEvent,
+    private Histogram getHistogram(String namePrefix, TableReference tableRef, UpdateEventType updateEvent,
             boolean taggedWithTableName) {
         if (taggedWithTableName) {
             return taggedMetricRegistry.histogram(SweepMetricImpl.getTaggedMetricName(
@@ -287,7 +287,7 @@ public class SweepMetricsManagerTest {
         }
     }
 
-    private Meter getMeter(String namePrefix, UpdateEvent updateEvent) {
+    private Meter getMeter(String namePrefix, UpdateEventType updateEvent) {
         return metricRegistry.meter(MetricRegistry.name(SweepMetric.class, namePrefix,
                 SweepMetricAdapter.METER_ADAPTER.getNameComponent(), updateEvent.getNameComponent()));
     }
@@ -296,7 +296,7 @@ public class SweepMetricsManagerTest {
         return metricRegistry.gauge(
                 MetricRegistry.name(SweepMetric.class, namePrefix,
                         SweepMetricAdapter.CURRENT_VALUE_ADAPTER.getNameComponent(),
-                        UpdateEvent.ONE_ITERATION.getNameComponent()),
+                        UpdateEventType.ONE_ITERATION.getNameComponent()),
                 CurrentValueMetric::new);
     }
 

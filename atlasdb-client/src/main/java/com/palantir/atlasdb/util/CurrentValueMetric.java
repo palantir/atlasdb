@@ -18,15 +18,15 @@ package com.palantir.atlasdb.util;
 
 import com.codahale.metrics.Gauge;
 
-public class CurrentValueMetric implements Gauge<Long> {
-    volatile long value = 0;
+public class CurrentValueMetric<T> implements Gauge<T> {
+    volatile T value = null;
 
     @Override
-    public Long getValue() {
+    public T getValue() {
         return value;
     }
 
-    public void setValue(long newValue) {
+    public void setValue(T newValue) {
         value = newValue;
     }
 }

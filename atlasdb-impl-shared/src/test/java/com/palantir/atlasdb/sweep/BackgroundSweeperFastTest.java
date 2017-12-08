@@ -29,7 +29,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.sweep.metrics.UpdateEvent;
+import com.palantir.atlasdb.sweep.metrics.UpdateEventType;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -43,7 +43,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .timeInMillis(10L)
                 .timeSweepStarted(20L)
                 .build());
@@ -75,7 +75,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(9999L)
+                .minSweptTimestamp(9999L)
                 .previousStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .timeInMillis(0L)
                 .timeSweepStarted(0L)
@@ -99,7 +99,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .timeInMillis(10L)
                 .timeSweepStarted(Long.MAX_VALUE)
@@ -143,7 +143,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .nextStartRow(Optional.of(new byte[] {4, 5, 6}))
                 .timeInMillis(20L)
                 .timeSweepStarted(50L)
@@ -170,7 +170,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .timeInMillis(10L)
                 .timeSweepStarted(20L)
@@ -192,7 +192,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         SweepResults intermediateResults = ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .nextStartRow(Optional.of(new byte[] {1, 2, 3}))
                 .timeInMillis(10L)
                 .timeSweepStarted(20L)
@@ -200,9 +200,10 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, UpdateEvent.ONE_ITERATION);
+        Mockito.verify(sweepMetricsManager)
+                .updateMetrics(intermediateResults, TABLE_REF, UpdateEventType.ONE_ITERATION);
         Mockito.verify(sweepMetricsManager, Mockito.never()).updateMetrics(
-                any(SweepResults.class), any(TableReference.class), eq(UpdateEvent.FULL_TABLE));
+                any(SweepResults.class), any(TableReference.class), eq(UpdateEventType.FULL_TABLE));
     }
 
     @Test
@@ -221,22 +222,23 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         SweepResults intermediateResults = ImmutableSweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .timeInMillis(20L)
                 .timeSweepStarted(50L)
                 .build();
         SweepResults fullResults = ImmutableSweepResults.builder()
                 .staleValuesDeleted(5)
                 .cellTsPairsExamined(21)
-                .sweptTimestamp(4567L)
+                .minSweptTimestamp(4567L)
                 .timeInMillis(30L)
                 .timeSweepStarted(20L)
                 .build();
 
         setupTaskRunner(intermediateResults);
         backgroundSweeper.runOnce();
-        Mockito.verify(sweepMetricsManager).updateMetrics(intermediateResults, TABLE_REF, UpdateEvent.ONE_ITERATION);
-        Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF, UpdateEvent.FULL_TABLE);
+        Mockito.verify(sweepMetricsManager)
+                .updateMetrics(intermediateResults, TABLE_REF, UpdateEventType.ONE_ITERATION);
+        Mockito.verify(sweepMetricsManager).updateMetrics(fullResults, TABLE_REF, UpdateEventType.FULL_TABLE);
     }
 
     @Test
@@ -246,7 +248,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(1)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .timeInMillis(0L)
                 .timeSweepStarted(0L)
                 .build());
@@ -261,7 +263,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setupTaskRunner(ImmutableSweepResults.builder()
                 .staleValuesDeleted(0)
                 .cellTsPairsExamined(10)
-                .sweptTimestamp(12345L)
+                .minSweptTimestamp(12345L)
                 .timeInMillis(0L)
                 .timeSweepStarted(0L)
                 .build());

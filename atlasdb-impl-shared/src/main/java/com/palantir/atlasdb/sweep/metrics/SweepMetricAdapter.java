@@ -62,13 +62,15 @@ public abstract class SweepMetricAdapter<M extends Metric> {
                     .updateMethod(Histogram::update)
                     .build();
 
-    public static final SweepMetricAdapter<CurrentValueMetric> CURRENT_VALUE_ADAPTER =
-            ImmutableSweepMetricAdapter.<CurrentValueMetric>builder()
+    // We know that the unchecked casts will be fine.
+    @SuppressWarnings("unchecked")
+    public static final SweepMetricAdapter<CurrentValueMetric<Long>> CURRENT_VALUE_ADAPTER =
+            ImmutableSweepMetricAdapter.<CurrentValueMetric<Long>>builder()
                     .nameComponent("currentValue")
                     .metricConstructor((metricRegistry, name) ->
-                            (CurrentValueMetric) metricRegistry.gauge(name, CurrentValueMetric::new))
-                    .taggedMetricConstructor((taggedMetricRegistry, metricName) ->
-                            (CurrentValueMetric) taggedMetricRegistry.gauge(metricName, new CurrentValueMetric()))
+                            (CurrentValueMetric<Long>) metricRegistry.gauge(name, CurrentValueMetric::new))
+                    .taggedMetricConstructor((taggedMetricRegistry, metricName) -> (CurrentValueMetric<Long>)
+                            taggedMetricRegistry.gauge(metricName, new CurrentValueMetric<Long>()))
                     .updateMethod(CurrentValueMetric::setValue)
                     .build();
 }
