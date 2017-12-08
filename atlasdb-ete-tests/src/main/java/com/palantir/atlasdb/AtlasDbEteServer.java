@@ -18,6 +18,7 @@ package com.palantir.atlasdb;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
@@ -34,10 +36,13 @@ import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbBundle;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
+import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
@@ -59,6 +64,15 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     public static void main(String[] args) throws Exception {
         new AtlasDbEteServer().run(args);
+
+        TodoResource proxy = AtlasDbHttpClients.createProxy(Optional.empty(), "http://localhost:3828", TodoResource.class);
+
+        proxy.addTodo(ImmutableTodo.of("newTODO"));
+
+        IntStream.range(0, 10000).forEach(i -> {
+            proxy.addTodo(ImmutableTodo.of("new TODO"));
+            Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+        });
     }
 
     @Override
