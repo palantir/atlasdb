@@ -31,7 +31,7 @@ public class AtlasDbConstants {
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
     public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.createWithEmptyNamespace(
-            "_sweep_progress_0_39_fixed");
+            "_sweep_progress1_5");
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
