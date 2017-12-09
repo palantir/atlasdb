@@ -781,7 +781,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
-        return sweepStrategyManager.sweepStrategyForTable(tableRef) == SweepStrategy.THOROUGH;
+        return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
     private List<Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(final TableReference tableRef,
