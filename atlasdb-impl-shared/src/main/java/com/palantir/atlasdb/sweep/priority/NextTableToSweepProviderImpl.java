@@ -65,7 +65,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
     }
 
     @Override
-    public Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs) {
+    public Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs) {
         Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
 
         // We read priorities from the past because we should prioritize based on what the sweeper will
@@ -78,7 +78,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         return getTableToSweep(tx, allTables, oldPriorities, newPrioritiesByTableName);
     }
 
-    private Optional<TableReference> getTableToSweep(
+    private Map<TableReference, Double> getTableToSweep(
             Transaction tx,
             Set<TableReference> allTables,
             List<SweepPriority> oldPriorities,
@@ -109,10 +109,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
 
         logPrioritiesByTable(tableToPriority);
 
-        List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(tableToPriority);
-        return tablesWithHighestPriority.size() > 0 ?
-                Optional.of(getRandomValueFromList(tablesWithHighestPriority)) :
-                Optional.empty();
+        return tableToPriority;
     }
 
     private void logUnsweptTables(Set<TableReference> unsweptTables) {
@@ -150,20 +147,6 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         log.debug("Sweep priorities per table: {} and {}",
                 SafeArg.of("tables", safeTablesEntries.toString()),
                 SafeArg.of("unsafeTables", unsafeTablesEntries.toString()));
-    }
-
-    // TODO(ssouza): move this to the BackgroundSweeperImpl when we make this method return a list.
-    private List<TableReference> findTablesWithHighestPriority(
-            Map<TableReference, Double> tableToPriority) {
-        Double maxPriority = Collections.max(tableToPriority.values());
-        return tableToPriority.entrySet().stream()
-                .filter(entry -> Objects.equals(entry.getValue(), maxPriority))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-    }
-
-    private TableReference getRandomValueFromList(List<TableReference> tablesWithMaxPriority) {
-        return tablesWithMaxPriority.get(ThreadLocalRandom.current().nextInt(tablesWithMaxPriority.size()));
     }
 
     private double getSweepPriority(SweepPriority oldPriority, SweepPriority newPriority) {

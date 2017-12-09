@@ -15,11 +15,25 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public interface NextTableToSweepProvider {
-    Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs);
+    Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs);
+
+    static List<TableReference> findTablesWithHighestPriority(
+            Map<TableReference, Double> tableToPriority) {
+        Double maxPriority = Collections.max(tableToPriority.values());
+        return tableToPriority.entrySet().stream()
+                .filter(entry -> Objects.equals(entry.getValue(), maxPriority))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+    }
 }

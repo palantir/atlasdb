@@ -16,8 +16,11 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -235,8 +238,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         if (progress.isPresent()) {
                             return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
-                            Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
+                            Optional<TableReference> nextTable = getNextTableToSweepFromPriorityTable(tx);
                             if (nextTable.isPresent()) {
                                 return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
                             } else {
@@ -245,6 +247,20 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         }
                     }
                 });
+    }
+
+    private Optional<TableReference> getNextTableToSweepFromPriorityTable(Transaction tx) {
+        Map<TableReference, Double> tableToPriority = nextTableToSweepProvider.computeSweepPriorities(
+                tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
+        List<TableReference> tablesWithHighestPriority = NextTableToSweepProvider.findTablesWithHighestPriority(
+                tableToPriority);
+        return tablesWithHighestPriority.size() > 0 ?
+                Optional.of(getRandomValueFromList(tablesWithHighestPriority)) :
+                Optional.empty();
+    }
+
+    private TableReference getRandomValueFromList(List<TableReference> tablesWithMaxPriority) {
+        return tablesWithMaxPriority.get(ThreadLocalRandom.current().nextInt(tablesWithMaxPriority.size()));
     }
 
     private SweepOutcome determineCauseOfFailure(Exception originalException, TableToSweep tableToSweep) {

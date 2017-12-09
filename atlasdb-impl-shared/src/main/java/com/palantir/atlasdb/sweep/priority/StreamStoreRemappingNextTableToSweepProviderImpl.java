@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.priority;
 
+import java.util.Map;
 import java.util.Optional;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -32,13 +33,13 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
     }
 
     @Override
-    public Optional<TableReference> chooseNextTableToSweep(Transaction tx, long conservativeSweepTs) {
+    public Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs) {
         if (hasRemappedStreamStoreValueTable) {
             hasRemappedStreamStoreValueTable = false;
             return Optional.of(previousStreamStoreValueTable);
         }
 
-        Optional<TableReference> tableReferenceOptional = delegate.chooseNextTableToSweep(tx, conservativeSweepTs);
+        Optional<TableReference> tableReferenceOptional = delegate.computeSweepPriorities(tx, conservativeSweepTs);
         if (!tableReferenceOptional.isPresent()) {
             return tableReferenceOptional;
         }
