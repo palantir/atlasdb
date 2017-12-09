@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
+/**
+ * Contains information about a committed write, for use by the sweep queue.
+ */
 @Value.Immutable
 @JsonSerialize(as=ImmutableWrite.class)
 @JsonDeserialize(as=ImmutableWrite.class)
