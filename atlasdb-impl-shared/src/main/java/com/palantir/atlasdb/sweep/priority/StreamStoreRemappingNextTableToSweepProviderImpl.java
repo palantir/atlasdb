@@ -16,41 +16,100 @@
 
 package com.palantir.atlasdb.sweep.priority;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.common.annotation.Output;
 
 public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTableToSweepProvider {
     private NextTableToSweepProviderImpl delegate;
-    private boolean hasRemappedStreamStoreValueTable = false;
-    private TableReference previousStreamStoreValueTable = null;
+    private SweepPriorityStore sweepPriorityStore;
 
-    public StreamStoreRemappingNextTableToSweepProviderImpl(NextTableToSweepProviderImpl delegate) {
+    public StreamStoreRemappingNextTableToSweepProviderImpl(NextTableToSweepProviderImpl delegate,
+            SweepPriorityStore sweepPriorityStore) {
         this.delegate = delegate;
+        this.sweepPriorityStore = sweepPriorityStore;
     }
 
     @Override
     public Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs) {
-        if (hasRemappedStreamStoreValueTable) {
-            hasRemappedStreamStoreValueTable = false;
-            return Optional.of(previousStreamStoreValueTable);
+        Map<TableReference, Double> tableToPriority = delegate.computeSweepPriorities(tx, conservativeSweepTs);
+        List<TableReference> tablesWithHighestPriority = NextTableToSweepProvider.findTablesWithHighestPriority(
+                tableToPriority);
+
+        List<TableReference> valueTablesWithHighestPriority = tablesWithHighestPriority.stream()
+                .filter(StreamTableType::isStreamStoreValueTable)
+                .collect(Collectors.toList());
+        if (valueTablesWithHighestPriority.size() == 0) {
+            return tableToPriority;
         }
 
-        Optional<TableReference> tableReferenceOptional = delegate.computeSweepPriorities(tx, conservativeSweepTs);
-        if (!tableReferenceOptional.isPresent()) {
-            return tableReferenceOptional;
+        Map<TableReference, SweepPriority> indexToPriority = new HashMap<>(valueTablesWithHighestPriority.size());
+        Map<TableReference, SweepPriority> valueToPriority = new HashMap<>(valueTablesWithHighestPriority.size());
+
+        for (SweepPriority sweepPriority : sweepPriorityStore.loadNewPriorities(tx)) {
+            if (StreamTableType.isStreamStoreIndexTable(sweepPriority.tableRef())) {
+                indexToPriority.put(sweepPriority.tableRef(), sweepPriority);
+            } else if (StreamTableType.isStreamStoreValueTable(sweepPriority.tableRef())) {
+                valueToPriority.put(sweepPriority.tableRef(), sweepPriority);
+            }
         }
 
-        TableReference tableReference = tableReferenceOptional.get();
-        if (!StreamTableType.isStreamStoreValueTable(tableReference)) {
-            return Optional.of(tableReference);
+        if (!didSweepAllIndexAndValueTables(indexToPriority, valueToPriority)) {
+            return tableToPriority;
         }
 
-        previousStreamStoreValueTable = tableReference;
-        hasRemappedStreamStoreValueTable = true;
-        return Optional.of(StreamTableType.getIndexTableFromValueTable(tableReference));
+        for (Map.Entry<TableReference, SweepPriority> valueEntry : valueToPriority.entrySet()) {
+            adjustStreamStorePriority(tableToPriority, indexToPriority, valueEntry);
+        }
+
+        return tableToPriority;
+    }
+
+    private boolean didSweepAllIndexAndValueTables(
+            Map<TableReference, SweepPriority> indexToPriority,
+            Map<TableReference, SweepPriority> valueToPriority) {
+        return indexToPriority.size() == valueToPriority.size() && indexToPriority.size() != 0;
+    }
+
+    // if ss.value > ss.index -> ignore value and sweep index
+    // if ss.index > ss.value && ss.index <= 1 hour ago -> ignore value
+    // if ss.index > ss.value && ss.index > 1 hour ago -> sweep value
+    private void adjustStreamStorePriority(@Output Map<TableReference, Double> tableToPriority,
+            Map<TableReference, SweepPriority> indexToPriority,
+            Map.Entry<TableReference, SweepPriority> valueEntry) {
+
+        TableReference valueTable = valueEntry.getKey();
+        long lastSweptTimeOfValueTable = valueEntry.getValue().lastSweepTimeMillis().orElse(0L);
+        TableReference indexTable = StreamTableType.getIndexTableFromValueTable(valueTable);
+        long lastSweptTimeOfIndexTable = indexToPriority.get(indexTable).lastSweepTimeMillis().orElse(0L);
+
+        if (lastSweptTimeOfIndexTable == 0L ||
+                lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
+            bumpIndexTablePriority(tableToPriority, valueTable, indexTable);
+            return;
+        }
+
+        if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= TimeUnit.HOURS.toMillis(1)) {
+            ignoreValueTable(tableToPriority, valueTable);
+        }
+    }
+
+    private void bumpIndexTablePriority(@Output Map<TableReference, Double> tableToPriority,
+            TableReference valueTable,
+            TableReference indexTable) {
+        ignoreValueTable(tableToPriority, valueTable);
+        tableToPriority.put(indexTable, Double.MAX_VALUE);
+    }
+
+    private void ignoreValueTable(@Output Map<TableReference, Double> tableToPriority,
+            TableReference valueTable) {
+        tableToPriority.put(valueTable, 0.0);
     }
 }

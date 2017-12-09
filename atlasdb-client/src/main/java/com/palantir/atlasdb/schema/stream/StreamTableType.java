@@ -45,6 +45,10 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
         return tableReference.getQualifiedName().endsWith(StreamTableType.VALUE.tableSuffix);
     }
 
+    public static boolean isStreamStoreIndexTable(TableReference tableReference) {
+        return tableReference.getQualifiedName().endsWith(StreamTableType.INDEX.tableSuffix);
+    }
+
     public static TableReference getIndexTableFromValueTable(TableReference tableReference) {
         Preconditions.checkArgument(isStreamStoreValueTable(tableReference),
                 "tableReference should be a StreamStore value table");
