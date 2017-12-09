@@ -23,6 +23,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
+/**
+ * Adds {@link Write}s to a global queue to be swept.
+ */
 public interface SweepQueueWriter {
 
     SweepQueueWriter NO_OP = (table, writes) -> { };
