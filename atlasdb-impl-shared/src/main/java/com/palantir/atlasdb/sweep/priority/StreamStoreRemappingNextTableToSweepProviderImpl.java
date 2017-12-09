@@ -93,10 +93,7 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
         if (lastSweptTimeOfIndexTable == 0L ||
                 lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
             bumpIndexTablePriority(tableToPriority, valueTable, indexTable);
-            return;
-        }
-
-        if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= TimeUnit.HOURS.toMillis(1)) {
+        } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= TimeUnit.HOURS.toMillis(1)) {
             ignoreValueTable(tableToPriority, valueTable);
         }
     }
