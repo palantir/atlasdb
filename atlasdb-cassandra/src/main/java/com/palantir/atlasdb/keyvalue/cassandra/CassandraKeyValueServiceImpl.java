@@ -92,7 +92,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -115,6 +114,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.Mutations;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
@@ -2048,29 +2048,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    Map<ByteBuffer, Map<String, List<Mutation>>> mutationsByRowByTable = Maps.newHashMap();
-
-                    maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-                        SlicePredicate pred = SlicePredicates.rangeTombstoneForColumn(
-                                cell.getColumnName(), maxTimestampExclusive);
-
-                        Deletion del = new Deletion();
-                        del.setPredicate(pred);
-                        // TODO(nziebart): figure out if/why we can't use the provided max timestamp for the cell here
-                        del.setTimestamp(Long.MAX_VALUE);
-
-                        Mutation mutation = new Mutation();
-                        mutation.setDeletion(del);
-
-                        mutationsByRowByTable
-                                .computeIfAbsent(ByteBuffer.wrap(cell.getRowName()), ignored -> new HashMap<>())
-                                .computeIfAbsent(internalTableName(tableRef), ignored -> new ArrayList<>())
-                                .add(mutation);
-                    });
-
-                    batchMutateInternal("deleteAllTimestamps", client, tableRef, mutationsByRowByTable,
-                            deleteConsistency);
-
+                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef);
                     return null;
                 }
 
@@ -2086,6 +2064,25 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
+    }
+
+    private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
+            TableReference tableRef) throws TException {
+        Map<ByteBuffer, Map<String, List<Mutation>>> mutationsByRowByTable = Maps.newHashMap();
+
+        maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
+            Mutation mutation = Mutations.rangeTombstoneForColumn(
+                    cell.getColumnName(),
+                    maxTimestampExclusive);
+
+            mutationsByRowByTable
+                    .computeIfAbsent(ByteBuffer.wrap(cell.getRowName()), ignored -> new HashMap<>())
+                    .computeIfAbsent(internalTableName(tableRef), ignored -> new ArrayList<>())
+                    .add(mutation);
+        });
+
+        batchMutateInternal("deleteAllTimestamps", client, tableRef, mutationsByRowByTable,
+                deleteConsistency);
     }
 
     /**
