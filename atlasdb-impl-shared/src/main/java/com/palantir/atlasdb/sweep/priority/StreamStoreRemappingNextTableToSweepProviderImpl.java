@@ -78,9 +78,9 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
         return indexToPriority.size() == valueToPriority.size() && indexToPriority.size() != 0;
     }
 
-    // if ss.value > ss.index -> ignore value and sweep index
-    // if ss.index > ss.value && ss.index <= 1 hour ago -> ignore value
-    // if ss.index > ss.value && ss.index > 1 hour ago -> sweep value
+    // if ss.value >= ss.index -> ignore value and sweep index
+    // if ss.value <  ss.index && ss.index <= 1 hour ago -> ignore value
+    // if ss.value <  ss.index && ss.index >  1 hour ago -> sweep value
     private void adjustStreamStorePriority(@Output Map<TableReference, Double> tableToPriority,
             Map<TableReference, SweepPriority> indexToPriority,
             Map.Entry<TableReference, SweepPriority> valueEntry) {
@@ -90,22 +90,21 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
         TableReference indexTable = StreamTableType.getIndexTableFromValueTable(valueTable);
         long lastSweptTimeOfIndexTable = indexToPriority.get(indexTable).lastSweepTimeMillis().orElse(0L);
 
-        if (lastSweptTimeOfIndexTable == 0L ||
-                lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
-            bumpIndexTablePriority(tableToPriority, valueTable, indexTable);
+        if (lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
+            bumpIndexTablePriorityAndIgnoreValueTablePriority(tableToPriority, valueTable, indexTable);
         } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= TimeUnit.HOURS.toMillis(1)) {
-            ignoreValueTable(tableToPriority, valueTable);
+            ignoreValueTablePriority(tableToPriority, valueTable);
         }
     }
 
-    private void bumpIndexTablePriority(@Output Map<TableReference, Double> tableToPriority,
+    private void bumpIndexTablePriorityAndIgnoreValueTablePriority(@Output Map<TableReference, Double> tableToPriority,
             TableReference valueTable,
             TableReference indexTable) {
-        ignoreValueTable(tableToPriority, valueTable);
+        ignoreValueTablePriority(tableToPriority, valueTable);
         tableToPriority.put(indexTable, Double.MAX_VALUE);
     }
 
-    private void ignoreValueTable(@Output Map<TableReference, Double> tableToPriority,
+    private void ignoreValueTablePriority(@Output Map<TableReference, Double> tableToPriority,
             TableReference valueTable) {
         tableToPriority.put(valueTable, 0.0);
     }
