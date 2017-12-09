@@ -68,10 +68,11 @@ public class ReadTransactionShould {
     public void setUp() throws Exception {
         delegateTransaction = Mockito.mock(AbstractTransaction.class);
         SweepStrategyManager sweepStrategies = Mockito.mock(SweepStrategyManager.class);
-        when(sweepStrategies.sweepStrategyForTable(DUMMY_CONSERVATIVE_TABLE)).thenReturn(
-                TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-        when(sweepStrategies.sweepStrategyForTable(DUMMY_THOROUGH_TABLE)).thenReturn(
-                TableMetadataPersistence.SweepStrategy.THOROUGH);
+        when(sweepStrategies.get()).thenReturn(ImmutableMap.of(
+                DUMMY_CONSERVATIVE_TABLE,
+                TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
+                DUMMY_THOROUGH_TABLE,
+                TableMetadataPersistence.SweepStrategy.THOROUGH));
         readTransaction = new ReadTransaction(delegateTransaction, sweepStrategies);
     }
 
