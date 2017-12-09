@@ -25,6 +25,7 @@ public final class Mutations {
 
     public static Mutation rangeTombstoneForColumn(byte[] columnName, long maxTimestampExclusive) {
         Deletion deletion = new Deletion()
+                .setTimestamp(Long.MAX_VALUE)
                 .setPredicate(SlicePredicates.rangeTombstoneForColumn(columnName, maxTimestampExclusive));
 
         return new Mutation().setDeletion(deletion);
