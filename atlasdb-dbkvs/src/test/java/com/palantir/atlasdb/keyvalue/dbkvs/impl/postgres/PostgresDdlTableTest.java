@@ -26,7 +26,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,57 +48,67 @@ public class PostgresDdlTableTest {
     private PostgresDdlTable postgresDdlTable;
     private static final ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.test");
-    private static final int NOW_MILLIS = 100;
+
+    private static final long NOW_MILLIS = 1000;
+    private static final long COMPACT_INTERVAL_MILLIS = 100;
+    private static final long SMALL_POSITIVE_FACTOR = 10;
 
     @Before
     public void setUp() {
         postgresDdlTable = new PostgresDdlTable(TEST_TABLE,
                 connectionSupplier,
-                ImmutablePostgresDdlConfig.builder().compactInterval(HumanReadableDuration.valueOf("10 ms")).build());
+                ImmutablePostgresDdlConfig.builder()
+                        .compactInterval(HumanReadableDuration.milliseconds(COMPACT_INTERVAL_MILLIS))
+                        .build());
     }
 
     @Test
-    public void shouldCompactIfVacuumWasNeverPerformed() throws Exception {
-        SqlConnection sqlConnection = setUpSqlConnection(null, null, null, null);
-        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
+    public void shouldCompactIfVacuumWasNeverPerformedAndTheDbTimeIsLessThanCompactInterval() throws Exception {
+        SqlConnection sqlConnection = setUpSqlConnection(null, COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR);
 
-        assertThatVacuumWasPerformed(sqlConnection);
+        assertThatVacuumWasPerformed(sqlConnection, true);
+    }
+
+    @Test
+    public void shouldCompactIfVacuumWasNeverPerformedAndTheDbTimeIsMoreThanCompactInterval() throws Exception {
+        SqlConnection sqlConnection = setUpSqlConnection(null, COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR);
+
+        assertThatVacuumWasPerformed(sqlConnection, true);
+    }
+
+    @Test
+    public void shouldCompactIfVacuumWasPerformedExactlyBeforeCompactInterval() throws Exception {
+        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS, NOW_MILLIS);
+
+        assertThatVacuumWasPerformed(sqlConnection, true);
     }
 
     @Test
     public void shouldCompactIfVacuumWasPerformedBeforeCompactInterval() throws Exception {
-        SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(10), null, new Timestamp(9), null);
-        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
+        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR,
+                NOW_MILLIS);
 
-        assertThatVacuumWasPerformed(sqlConnection);
+        assertThatVacuumWasPerformed(sqlConnection, true);
     }
 
     @Test
-    public void shouldCompactIfAutoVacuumWasPerformedBeforeCompactInterval() throws Exception {
-        SqlConnection sqlConnection = setUpSqlConnection(null, new Timestamp(10), null, new Timestamp(9));
-        assertTrue(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
-
-        assertThatVacuumWasPerformed(sqlConnection);
-    }
-
-
-    @Test
-    public void shouldNotCompactIfAutoVacuumWasPerformedWithinCompactInterval() throws Exception {
-        SqlConnection sqlConnection = setUpSqlConnection(null, new Timestamp(95), null, new Timestamp(92));
-        assertThatVacuumWasNotPerformed(sqlConnection);
-    }
-
-
-    @Test
-    public void shouldNotCompactIfVacuumWasPerformedWithinCompactInterval() throws Exception {
-        SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(95), null, new Timestamp(92), null);
+    public void shouldNotCompactIfVacuumWasPerformedWithinCompactInterval() {
+        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR,
+                NOW_MILLIS);
         assertThatVacuumWasNotPerformed(sqlConnection);
     }
 
     @Test
-    public void shouldNotCompactIfVacuumDidOccurInLastCompactMillis() throws Exception {
-        SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(5), null, new Timestamp(90), new Timestamp(10));
+    public void shouldNotCompactIfVacuumTimestampExceedsNowTimestampByLessThanCompactInterval() {
+        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR,
+                NOW_MILLIS);
+        assertThatVacuumWasNotPerformed(sqlConnection);
+    }
 
+    @Test
+    public void shouldNotCompactIfVacuumTimestampExceedsNowTimestampByMoreThanCompactInterval() {
+        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR,
+                NOW_MILLIS);
         assertThatVacuumWasNotPerformed(sqlConnection);
     }
 
@@ -108,66 +117,50 @@ public class PostgresDdlTableTest {
         postgresDdlTable = new PostgresDdlTable(TEST_TABLE,
                 connectionSupplier,
                 ImmutablePostgresDdlConfig.builder().compactInterval(HumanReadableDuration.valueOf("0 ms")).build());
-        SqlConnection sqlConnection = setUpSqlConnection(new Timestamp(5), null, new Timestamp(90), new Timestamp(10));
-        assertThatVacuumWasPerformed(sqlConnection);
-        verify(sqlConnection, never()).selectResultSetUnregisteredQuery(eq("SELECT CURRENT_TIMESTAMP"));
-        verify(sqlConnection, never()).selectResultSetUnregisteredQuery(startsWith("SELECT relname"), any());
+        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - SMALL_POSITIVE_FACTOR, NOW_MILLIS);
+        assertThatVacuumWasPerformed(sqlConnection, false);
+
+        verify(sqlConnection, never()).selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any());
     }
 
-    private SqlConnection setUpSqlConnection(Timestamp lastVacuumTimestamp, Timestamp lastAutoVacuumTimestamp,
-            Timestamp lastAnalyzeTimestamp, Timestamp lastAutoAnalyzeTimestamp) {
+    private SqlConnection setUpSqlConnection(Long lastVacuumTimestamp, Long currentTimestamp) {
         SqlConnection sqlConnection = mock(SqlConnection.class);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
 
         List<List<Object>> selectResults = new ArrayList<>();
-        selectResults.add(Arrays.asList(
-                new Object[] {"ns__test", lastVacuumTimestamp, lastAutoVacuumTimestamp, lastAnalyzeTimestamp,
-                              lastAutoAnalyzeTimestamp}));
+        selectResults.add(Arrays.asList(new Object[] {lastVacuumTimestamp, currentTimestamp}));
 
-        List<List<Object>> timestampList = new ArrayList<>();
-        timestampList.add(Arrays.asList(new Object[] {new Timestamp(NOW_MILLIS)}));
-
-        when(sqlConnection.selectResultSetUnregisteredQuery(eq("SELECT CURRENT_TIMESTAMP")))
-                .thenReturn(new AgnosticResultSetImpl(timestampList,
-                        DBType.POSTGRESQL,
-                        new ImmutableMap.Builder<String, Integer>()
-                                .put("now", 0)
-                                .put("NOW", 0)
-                                .build()));
-
-        Mockito.when(sqlConnection.selectResultSetUnregisteredQuery(startsWith("SELECT relname"), any()))
+        Mockito.when(sqlConnection.selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any()))
                 .thenReturn(
                         new AgnosticResultSetImpl(selectResults,
                                 DBType.POSTGRESQL,
                                 // This is the columnName to position mapping in the results map. Column Names are both
                                 // upper-case and lower-case, as postgres allows the query to have either of them.
                                 new ImmutableMap.Builder<String, Integer>()
-                                        .put("relname", 0)
-                                        .put("RELNAME", 0)
-                                        .put("LAST_AUTOVACUUM", 2)
-                                        .put("last_autovacuum", 2)
-                                        .put("last_analyze", 3)
-                                        .put("LAST_ANALYZE", 3)
-                                        .put("last_vacuum", 1)
-                                        .put("LAST_VACUUM", 1)
-                                        .put("last_autoanalyze", 4)
-                                        .put("LAST_AUTOANALYZE", 4)
+                                        .put("last", 0)
+                                        .put("LAST", 0)
+                                        .put("current", 1)
+                                        .put("CURRENT", 1)
                                         .build()));
         return sqlConnection;
     }
 
-    private void assertThatVacuumWasPerformed(SqlConnection sqlConnection) {
+    private void assertThatVacuumWasPerformed(SqlConnection sqlConnection, boolean assertThatTimestampsWereChecked) {
+        assertTrue(postgresDdlTable.shouldRunCompaction());
         postgresDdlTable.compactInternally();
+
+        if (assertThatTimestampsWereChecked) {
+            verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any());
+        }
 
         verify(sqlConnection).executeUnregisteredQuery(eq("VACUUM ANALYZE " + DbKvs.internalTableName(TEST_TABLE)));
     }
 
     private void assertThatVacuumWasNotPerformed(SqlConnection sqlConnection) {
-        assertFalse(postgresDdlTable.checkIfTableHasNotBeenCompactedForCompactInterval());
+        assertFalse(postgresDdlTable.shouldRunCompaction());
         postgresDdlTable.compactInternally();
 
-        verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(eq("SELECT CURRENT_TIMESTAMP"));
-        verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT relname"), any());
+        verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any());
 
         verify(sqlConnection, never()).executeUnregisteredQuery(
                 eq("VACUUM ANALYZE " + DbKvs.internalTableName(TEST_TABLE)));

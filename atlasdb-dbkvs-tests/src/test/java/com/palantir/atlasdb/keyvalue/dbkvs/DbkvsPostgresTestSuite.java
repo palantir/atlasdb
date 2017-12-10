@@ -88,7 +88,7 @@ public final class DbkvsPostgresTestSuite {
         return ImmutableDbKeyValueServiceConfig.builder()
                 .connection(connectionConfig)
                 .ddl(ImmutablePostgresDdlConfig.builder()
-                        .compactInterval(HumanReadableDuration.milliseconds(10))
+                        .compactInterval(HumanReadableDuration.days(2))
                         .build())
                 .build();
     }
