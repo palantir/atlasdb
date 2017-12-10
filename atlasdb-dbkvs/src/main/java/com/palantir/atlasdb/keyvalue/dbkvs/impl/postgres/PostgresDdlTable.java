@@ -25,7 +25,6 @@ import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -128,48 +127,43 @@ public class PostgresDdlTable implements DbDdlTable {
     public void compactInternally() {
         if (compactionSemaphore.tryAcquire()) {
             try {
-                checkLastCompactionTimeAndRunCompact();
+                if (shouldRunCompaction()) {
+                    runCompactOnTable();
+                }
             } finally {
                 compactionSemaphore.release();
             }
         }
     }
 
-    private void checkLastCompactionTimeAndRunCompact() {
-        if (config.compactInterval().toMilliseconds() == 0 || (config.compactInterval().toMilliseconds() > 0
-                && checkIfTableHasNotBeenCompactedForCompactInterval())) {
-            runCompactOnTable();
-        }
-    }
-
     @VisibleForTesting
-    boolean checkIfTableHasNotBeenCompactedForCompactInterval() {
-        return getCurrentDatabaseTimestamp().getTime() - getLastVacuumTimestamp().getTime()
-                > config.compactInterval().toMilliseconds();
+    boolean shouldRunCompaction() {
+        long compactIntervalMillis = config.compactInterval().toMilliseconds();
+        return compactIntervalMillis <= 0 || getMillisSinceLastCompact() >= compactIntervalMillis;
     }
 
-    private Timestamp getLastVacuumTimestamp() {
-        AgnosticResultSet vacuumTimestamps = conns.get().selectResultSetUnregisteredQuery(
-                "SELECT relname, "
-                        + "last_vacuum, "
-                        + "last_autovacuum, "
-                        + "last_analyze, "
-                        + "last_autoanalyze "
-                        + "from pg_stat_user_tables where relname = ?",
+    /**
+     * Returns the number of milliseconds since the last compaction, or Long.MAX_VALUE if
+     * compaction has never run.
+     */
+    private long getMillisSinceLastCompact() {
+        AgnosticResultSet rs = conns.get().selectResultSetUnregisteredQuery(
+                "SELECT FLOOR(EXTRACT(EPOCH FROM GREATEST( "
+                        + "  last_vacuum, last_autovacuum, last_analyze, last_autoanalyze"
+                        + "))*1000) AS last, "
+                        + "FLOOR(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)*1000) AS current "
+                        + "FROM pg_stat_user_tables WHERE relname = ?",
                 prefixedTableName());
 
-        AgnosticResultRow vacuumTimestampsForTable = Iterables.getOnlyElement(vacuumTimestamps.rows());
+        AgnosticResultRow row = Iterables.getOnlyElement(rs.rows());
 
-        return ImmutableList.of("last_vacuum", "last_autovacuum", "last_analyze", "last_autoanalyze")
-                .stream()
-                .map(str -> getTimestamp(vacuumTimestampsForTable.getObject(str)))
-                .max(Timestamp::compareTo)
-                .orElseGet(() -> new Timestamp(0));
-    }
-
-    private Timestamp getCurrentDatabaseTimestamp() {
-        AgnosticResultSet currentTimestamp = conns.get().selectResultSetUnregisteredQuery("SELECT CURRENT_TIMESTAMP");
-        return getTimestamp(Iterables.getOnlyElement(currentTimestamp.rows()).getObject("now"));
+        // last could be null if vacuum has never run
+        long last = row.getLong("last", -1);
+        if (last == -1) {
+            return Long.MAX_VALUE;
+        }
+        long current = row.getLong("current");
+        return current - last;
     }
 
     private void runCompactOnTable() {
