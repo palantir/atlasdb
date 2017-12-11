@@ -200,7 +200,7 @@ import com.palantir.timestamp.TimestampService;
                 lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                sweepQueueWriter::enqueue);
+                sweepQueueWriter);
     }
 
     @Override

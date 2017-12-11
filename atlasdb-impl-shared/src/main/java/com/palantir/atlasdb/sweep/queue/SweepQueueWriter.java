@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 /**
- * Adds {@link Write}s to a global queue to be swept.
+ * Adds {@link WriteInfo}s to a global queue to be swept.
  */
 public interface SweepQueueWriter {
 
@@ -36,7 +36,7 @@ public interface SweepQueueWriter {
 
     default void enqueue(TableReference table, Map<Cell, byte[]> writes, long timestamp) {
         enqueue(table, writes.entrySet().stream()
-                .map(entry -> ImmutableWrite.builder()
+                .map(entry -> ImmutableWriteInfo.builder()
                         .cell(entry.getKey())
                         .isTombstone(Value.isTombstone(entry.getValue()))
                         .timestamp(timestamp)
@@ -44,6 +44,6 @@ public interface SweepQueueWriter {
                 .collect(Collectors.toList()));
     }
 
-    void enqueue(TableReference table, Iterable<Write> writes);
+    void enqueue(TableReference table, Iterable<WriteInfo> writes);
 
 }

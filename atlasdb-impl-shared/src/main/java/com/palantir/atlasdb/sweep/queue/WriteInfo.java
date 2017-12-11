@@ -27,9 +27,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
  * Contains information about a committed write, for use by the sweep queue.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableWrite.class)
-@JsonDeserialize(as = ImmutableWrite.class)
-public interface Write {
+@JsonSerialize(as = ImmutableWriteInfo.class)
+@JsonDeserialize(as = ImmutableWriteInfo.class)
+public interface WriteInfo {
 
     @JsonProperty("ts")
     long timestamp();
@@ -40,8 +40,8 @@ public interface Write {
     @JsonProperty("d")
     boolean isTombstone();
 
-    static Write of(Cell cell, boolean isTombstone, long timestamp) {
-        return ImmutableWrite.builder().cell(cell).isTombstone(isTombstone).timestamp(timestamp).build();
+    static WriteInfo of(Cell cell, boolean isTombstone, long timestamp) {
+        return ImmutableWriteInfo.builder().cell(cell).isTombstone(isTombstone).timestamp(timestamp).build();
     }
 
 }
