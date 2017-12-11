@@ -31,6 +31,8 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.SafeArg;
 
 import io.airlift.airline.Command;
+import io.airlift.airline.Option;
+import io.airlift.airline.OptionType;
 
 @Command(name = "clean-transactions", description = "Clean out the entries in a _transactions table for the "
         + "purpose of deleting potentially inconsistent transactions from an underlying database that lacks "
@@ -40,6 +42,19 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
 
     private static final OutputPrinter printer = new OutputPrinter(
             LoggerFactory.getLogger(CleanTransactionRange.class));
+
+    @Option(name = {"-s", "--start-timestamp"},
+            title = "TIMESTAMP",
+            type = OptionType.GROUP,
+            description = "The timestamp for to use for this command")
+    Long startTimestamp;
+
+    @Option(name = {"--skip-start-timestamp-check"},
+            title = "TIMESTAMP",
+            type = OptionType.GROUP,
+            description = "Skip start timestamp check")
+    boolean skipStartTimestampCheck;
+
 
     @Override
     public boolean isOnlineRunSupported() {
@@ -55,16 +70,45 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
     protected int executeTimestampCommand(AtlasDbServices services) {
         KeyValueService kvs = services.getKeyValueService();
 
+        byte[] startBytes = TransactionConstants.getValueForTimestamp(startTimestamp);
+        byte[] timestampBytes = TransactionConstants.getValueForTimestamp(timestamp);
+
+        if (startBytes.length != timestampBytes.length && !skipStartTimestampCheck) {
+            throw new RuntimeException(String.format(
+                    "They aren't the same length! %s != %s", startBytes.length, timestampBytes.length));
+        }
+
         ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
-                RangeRequest.all(),
+                startTimestamp == null
+                        ? RangeRequest.all()
+                        : RangeRequest.builder()
+                                .startRowInclusive(startBytes)
+                                .build(),
                 Long.MAX_VALUE);
 
         Multimap<Cell, Long> toDelete = HashMultimap.create();
+
+        long lastLoggedTsCountdown = 0;
+        long minTs = Long.MAX_VALUE;
+        long maxTs = Long.MIN_VALUE;
+
         while (range.hasNext()) {
             RowResult<Value> row = range.next();
             byte[] rowName = row.getRowName();
             long startTs = TransactionConstants.getTimestampForValue(rowName);
+
+            minTs = Math.min(minTs, startTs);
+            maxTs = Math.max(maxTs, startTs);
+
+            if (lastLoggedTsCountdown == 0) {
+                printer.info("Currently at timestamp {}. min: {}, max: {}",
+                        SafeArg.of("startTs", startTs),
+                        SafeArg.of("minTs", minTs),
+                        SafeArg.of("maxTs", maxTs));
+                lastLoggedTsCountdown = 100000;
+            }
+            lastLoggedTsCountdown -= 1;
 
             Value value;
             try {
