@@ -74,7 +74,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final PaxosProposer proposer;
     final PaxosLearner knowledge;
 
-    final Map<PingableLeader, HostAndPort> potentialLeadersToHosts;
+    final Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts;
     final ImmutableList<PaxosAcceptor> acceptors;
     final ImmutableList<PaxosLearner> learners;
 
@@ -91,21 +91,21 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     @Deprecated // Use PaxosLeaderElectionServiceBuilder instead.
     public PaxosLeaderElectionService(PaxosProposer proposer,
                                       PaxosLearner knowledge,
-                                      Map<PingableLeader, HostAndPort> potentialLeadersToHosts,
+                                      Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
                                       List<PaxosAcceptor> acceptors,
                                       List<PaxosLearner> learners,
                                       ExecutorService executor,
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
                                       long leaderPingResponseWaitMs) {
-        this(proposer, knowledge, potentialLeadersToHosts, acceptors, learners, executor,
+        this(proposer, knowledge, otherPotentialLeadersToHosts, acceptors, learners, executor,
                 updatePollingWaitInMs, randomWaitBeforeProposingLeadership, leaderPingResponseWaitMs,
                 PaxosLeaderElectionEventRecorder.NO_OP);
     }
 
     PaxosLeaderElectionService(PaxosProposer proposer,
             PaxosLearner knowledge,
-            Map<PingableLeader, HostAndPort> potentialLeadersToHosts,
+            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
             List<PaxosAcceptor> acceptors,
             List<PaxosLearner> learners,
             ExecutorService executor,
@@ -116,7 +116,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
-        this.potentialLeadersToHosts = Collections.unmodifiableMap(potentialLeadersToHosts);
+        this.otherPotentialLeadersToHosts = Collections.unmodifiableMap(otherPotentialLeadersToHosts);
         this.acceptors = copyOf(acceptors);
         this.learners = copyOf(learners);
         this.executor = executor;
@@ -227,7 +227,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         if (!maybeLeader.isPresent()) {
             return Optional.empty();
         }
-        return Optional.of(potentialLeadersToHosts.get(maybeLeader.get()));
+        return Optional.of(otherPotentialLeadersToHosts.get(maybeLeader.get()));
     }
 
     private Optional<PingableLeader> getSuspectedLeader(boolean useNetwork) {
@@ -255,7 +255,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         // kick off requests to get leader uuids
         List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
-        for (final PingableLeader potentialLeader : potentialLeadersToHosts.keySet()) {
+        for (final PingableLeader potentialLeader : otherPotentialLeadersToHosts.keySet()) {
             allFutures.add(pingService.submit(() -> new AbstractMap.SimpleEntry<String, PingableLeader>(
                     potentialLeader.getUUID(),
                     potentialLeader)));
@@ -352,7 +352,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public Set<PingableLeader> getPotentialLeaders() {
-        return Sets.union(potentialLeadersToHosts.keySet(), ImmutableSet.of(this));
+        return Sets.union(otherPotentialLeadersToHosts.keySet(), ImmutableSet.of(this));
     }
 
     @Override
