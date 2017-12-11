@@ -1,0 +1,28 @@
+atlasdb:
+  keyValueService:
+    type: cassandra
+    servers:
+      - 127.0.0.1:9160
+      - 127.0.0.2:9160
+      - 127.0.0.3:9160
+    credentials:
+      username: cassandra
+      password: cassandra
+    ssl: false
+    replicationFactor: 3
+    ignoreNodeTopologyChecks: true
+    ignoreInconsistentRingChecks: true
+    ignoreDatacenterConfigurationChecks: true
+    ignorePartitionerChecks: true
+
+
+  namespace: atlasete
+
+  leader:
+    quorumSize: 1
+    learnerLogDir: var/data/paxosLog/learner1
+    acceptorLogDir: var/data/paxosLog/acceptor1
+    localServer: http://localhost:3828
+    leaders:
+      - http://localhost:3828
+

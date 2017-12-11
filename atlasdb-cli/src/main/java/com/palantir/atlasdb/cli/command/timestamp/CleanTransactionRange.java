@@ -20,7 +20,6 @@ import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -97,7 +96,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
         if (!txTableValuesToWrite.isEmpty()) {
             Map<TableReference, Map<Cell, byte[]>> valuesToPut = new HashMap<>();
             valuesToPut.put(TransactionConstants.TRANSACTION_TABLE, txTableValuesToWrite);
-            kvs.multiPut(valuesToPut, AtlasDbConstants.TRANSACTION_TS);
+            kvs.put(TransactionConstants.TRANSACTION_TABLE, txTableValuesToWrite, services.getTimestampService().getFreshTimestamp());
             printer.info("Completed rollback of transactions after the given timestamp.");
         } else {
             printer.info("Found no transactions after the given timestamp to rollback.");
