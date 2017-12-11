@@ -196,9 +196,41 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>AtlasDB publish of new releases is now done through the internal circle build. Before it was done via the external circle build.
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1">
+<h2>0.71.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>7 December 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><strong>AtlasDB QoS</strong>: AtlasDB now allows clients to live-reloadably configure read and write limits (in terms of bytes) to rate-limit requests to Cassandra.
+AtlasDB clients will receive a <code class="docutils literal"><span class="pre">RateLimitExceededException</span></code> for requests that are throttled and should handle them appropriately.
+We provide an exception mapper <code class="docutils literal"><span class="pre">RateLimitExceededExceptionMapper</span></code> to map the throttling exceptions to <code class="docutils literal"><span class="pre">429</span></code>, but it is upto the application to register the exception mapper.
+Note that this is an experimental feature and applications should generally not enable it by default yet, unless the application has hard read-write limits.
+This should allow us to throttle dynamically in situations where the load on Cassandra is high.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2629">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB publish of new releases is now done through the internal circleCI build instead of external circleCI.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2783">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB no longer logs Cassandra retries at level WARN, thus reducing the volume of WARN logs by a significant factor. These logs are now available at INFO.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2776">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Sweep can now make progress after a restore and after the clean transactions CLI is run.
@@ -233,15 +265,14 @@ These logs will be invaluable in more easily identifying hotspotting and for usi
 </td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>A CLI to read the punch table was added. The CLI receives an epoch time, in millis, and returns the timestamp that was added to the punch table
-right before it.
+<td>Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2775">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="id1">
-<h2>0.70.1<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h2>0.70.1<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <p>30 November 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -276,8 +307,8 @@ Applications no longer should use the <code class="docutils literal"><span class
 </tbody>
 </table>
 </div>
-<div class="section" id="id2">
-<h2>0.70.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h2>0.70.0<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>30 November 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
