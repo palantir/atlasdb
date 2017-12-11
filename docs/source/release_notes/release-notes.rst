@@ -57,6 +57,11 @@ develop
            and would encourage impls to test this out and report the results back. We will modify the defaults once we have this field tested.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
 
+    *    - |fixed|
+         - The ``LeaderPingHealthCheck`` supplied by ``PaxosLeadershipCreator`` now correctly reports the leadership state of nodes that believe themselves to be the leader.
+           Previously, the health check would ping every *other* node in the cluster, resulting in leader nodes reporting that there are no leaders.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2805>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
@@ -120,6 +125,12 @@ develop
     *    - |new|
          - Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
+
+    *    - |devbreak|
+         - Deleted the TTL duration field from the ``Cell`` class.
+           The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
+           Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

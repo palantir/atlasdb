@@ -20,7 +20,6 @@ import static java.lang.Math.min;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -33,7 +32,6 @@ public class StreamTableDefinitionBuilder {
     private final String prefix;
     private final ValueType idType;
 
-    private ExpirationStrategy expirationStrategy = ExpirationStrategy.NEVER;
     private boolean hashFirstRowComponent = false;
     private boolean appendHeavyAndReadLight = false;
     private boolean dbSideCompressionForBlocks = false;
@@ -45,20 +43,14 @@ public class StreamTableDefinitionBuilder {
         this.idType = idType;
     }
 
-    public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent, boolean appendHeavyAndReadLight, boolean dbSideCompressionForBlocks) {
+    public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType, boolean hashFirstRowComponent, boolean appendHeavyAndReadLight, boolean dbSideCompressionForBlocks) {
         this.streamTableType = type;
         this.prefix = prefix;
         this.idType = idType;
 
-        this.expirationStrategy = expirationStrategy;
         this.hashFirstRowComponent = hashFirstRowComponent;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
         this.dbSideCompressionForBlocks = dbSideCompressionForBlocks;
-    }
-
-    public StreamTableDefinitionBuilder expirationStrategy(ExpirationStrategy expirationStrategy) {
-        this.expirationStrategy = expirationStrategy;
-        return this;
     }
 
     public StreamTableDefinitionBuilder hashFirstNRowComponents(int numberOfComponentsHashed) {
@@ -94,7 +86,6 @@ public class StreamTableDefinitionBuilder {
                 maxValueSize(1);
                 explicitCompressionRequested();
                 negativeLookups();
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
@@ -114,7 +105,6 @@ public class StreamTableDefinitionBuilder {
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(1);
                 explicitCompressionRequested();
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
@@ -134,7 +124,6 @@ public class StreamTableDefinitionBuilder {
                 conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
                 explicitCompressionRequested();
                 negativeLookups();
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
@@ -153,7 +142,6 @@ public class StreamTableDefinitionBuilder {
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);
                 cachePriority(CachePriority.COLD);
-                expirationStrategy(expirationStrategy);
                 if (appendHeavyAndReadLight) {
                     appendHeavyAndReadLight();
                 }
