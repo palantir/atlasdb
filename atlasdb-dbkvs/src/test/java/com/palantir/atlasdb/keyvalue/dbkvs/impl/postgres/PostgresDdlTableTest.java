@@ -66,21 +66,21 @@ public class PostgresDdlTableTest {
     public void shouldCompactIfVacuumWasNeverPerformedAndTheDbTimeIsLessThanCompactInterval() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(null, COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR);
 
-        assertThatVacuumWasPerformed(sqlConnection, true);
+        assertThatVacuumWasPerformed(sqlConnection);
     }
 
     @Test
     public void shouldCompactIfVacuumWasNeverPerformedAndTheDbTimeIsMoreThanCompactInterval() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(null, COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR);
 
-        assertThatVacuumWasPerformed(sqlConnection, true);
+        assertThatVacuumWasPerformed(sqlConnection);
     }
 
     @Test
     public void shouldCompactIfVacuumWasPerformedExactlyBeforeCompactInterval() throws Exception {
         SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS, NOW_MILLIS);
 
-        assertThatVacuumWasPerformed(sqlConnection, true);
+        assertThatVacuumWasPerformed(sqlConnection);
     }
 
     @Test
@@ -88,7 +88,7 @@ public class PostgresDdlTableTest {
         SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR,
                 NOW_MILLIS);
 
-        assertThatVacuumWasPerformed(sqlConnection, true);
+        assertThatVacuumWasPerformed(sqlConnection);
     }
 
     @Test
@@ -106,7 +106,7 @@ public class PostgresDdlTableTest {
     }
 
     @Test
-    public void shouldNotCompactIfVacuumTimestampExceedsNowTimestampByMoreThanCompactInterval() {
+    public void shouldCompactIfVacuumTimestampExceedsNowTimestampByMoreThanCompactInterval() {
         SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR,
                 NOW_MILLIS);
         assertThatVacuumWasNotPerformed(sqlConnection);
@@ -143,6 +143,10 @@ public class PostgresDdlTableTest {
                                         .put("CURRENT", 1)
                                         .build()));
         return sqlConnection;
+    }
+
+    private void assertThatVacuumWasPerformed(SqlConnection sqlConnection) {
+        assertThatVacuumWasPerformed(sqlConnection, true);
     }
 
     private void assertThatVacuumWasPerformed(SqlConnection sqlConnection, boolean assertThatTimestampsWereChecked) {
