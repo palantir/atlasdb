@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - The ``LeaderPingHealthCheck`` supplied by ``PaxosLeadershipCreator`` now correctly reports the leadership state of nodes that believe themselves to be the leader.
+           Previously, the health check would ping every *other* node in the cluster, resulting in leader nodes reporting that there are no leaders.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2805>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
