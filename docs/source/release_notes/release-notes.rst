@@ -50,9 +50,39 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.71.0
+======
+
+7 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - **AtlasDB QoS**: AtlasDB now allows clients to live-reloadably configure read and write limits (in terms of bytes) to rate-limit requests to Cassandra.
+           AtlasDB clients will receive a ``RateLimitExceededException`` for requests that are throttled and should handle them appropriately.
+           We provide an exception mapper ``RateLimitExceededExceptionMapper`` to map the throttling exceptions to ``429``, but it is upto the application to register the exception mapper.
+           Note that this is an experimental feature and applications should generally not enable it by default yet, unless the application has hard read-write limits.
+           This should allow us to throttle dynamically in situations where the load on Cassandra is high.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2629>`__)
+
     *    - |improved|
-         - AtlasDB publish of new releases is now done through the internal circle build. Before it was done via the external circle build.
+         - AtlasDB publish of new releases is now done through the internal circleCI build instead of external circleCI.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2783>`__)
+
+    *    - |improved|
+         - AtlasDB no longer logs Cassandra retries at level WARN, thus reducing the volume of WARN logs by a significant factor. These logs are now available at INFO.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2776>`__)
 
     *    - |fixed|
          - Sweep can now make progress after a restore and after the clean transactions CLI is run.
@@ -82,6 +112,10 @@ develop
               - ``IteratorUtils.iteratorDifference``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2782>`__)
+
+    *    - |new|
+         - Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
