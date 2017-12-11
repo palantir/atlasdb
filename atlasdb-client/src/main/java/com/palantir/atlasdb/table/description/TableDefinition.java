@@ -412,7 +412,6 @@ public class TableDefinition extends AbstractDefinition {
                 explicitCompressionBlockSizeKb,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
                 tableNameSafety);
     }

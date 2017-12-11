@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -44,16 +43,11 @@ public final class ColumnValues {
     }
 
     public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map) {
-        return toCellValues(map, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
-    }
-
-    public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map,
-            long duration, TimeUnit durationTimeUnit) {
         Map<Cell, byte[]> ret = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<T, Collection<V>> e : map.asMap().entrySet()) {
             byte[] rowName = e.getKey().persistToBytes();
             for (V val : e.getValue()) {
-                ret.put(Cell.create(rowName, val.persistColumnName(), duration, durationTimeUnit), val.persistValue());
+                ret.put(Cell.create(rowName, val.persistColumnName()), val.persistValue());
             }
         }
         return ret;
