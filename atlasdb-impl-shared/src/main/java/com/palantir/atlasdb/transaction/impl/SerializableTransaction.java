@@ -718,7 +718,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 lockAcquireTimeoutMs,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                (writes, ts) -> { }) {
+                SweepQueueWriter.NO_OP) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
