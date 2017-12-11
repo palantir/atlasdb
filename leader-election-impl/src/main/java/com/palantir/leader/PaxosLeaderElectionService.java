@@ -43,8 +43,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
@@ -350,7 +352,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public Set<PingableLeader> getPotentialLeaders() {
-        return potentialLeadersToHosts.keySet();
+        return Sets.union(potentialLeadersToHosts.keySet(), ImmutableSet.of(this));
     }
 
     @Override
