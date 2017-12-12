@@ -66,6 +66,14 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     /**
+     * Ignore failure when updating table-related settings
+    */
+    @Value.Default
+    public boolean ignoreInternalSchemaUpdateFailures() {
+        return true;
+    }
+
+    /**
      * The proportion of {@link #poolSize()} connections that are checked approximately
      * every {@link #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least
      * {@link #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the

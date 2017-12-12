@@ -2008,19 +2008,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            log.error("Failed to apply the table metadata changes for the following Cfdefs {}",
-                    SafeArg.of("cfdef", getAllCfdefsString(updatedCfs)), e);
-
-//            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            if (configManager.getConfig().ignoreInternalSchemaUpdateFailures()) {
+                log.error("Failed to apply the table metadata changes for the following Cfdefs {}",
+                        SafeArg.of("cfdef", getAllCfdefsString(updatedCfs)), e);
+            } else {
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            }
         }
     }
 
     private String getAllCfdefsString(Collection<CfDef> updatedCfs) {
-        StringBuilder sb = new StringBuilder("CfDefs(");
-        updatedCfs.stream()
-                .forEach(def -> sb.append(def.toString()).append(", "));
-        sb.append(")");
-        return sb.toString();
+        return updatedCfs.stream().map(CfDef::toString).collect(Collectors.joining(","));
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
