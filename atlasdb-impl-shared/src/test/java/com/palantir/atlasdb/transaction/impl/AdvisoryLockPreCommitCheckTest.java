@@ -35,6 +35,7 @@ import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
@@ -63,6 +64,26 @@ public class AdvisoryLockPreCommitCheckTest {
         ArgumentCaptor<Iterable> captor = ArgumentCaptor.forClass(Iterable.class);
         verify(happyLockService).refreshLockRefreshTokens(captor.capture());
         assertThat((Iterable<LockRefreshToken>) captor.getValue()).hasSameElementsAs(TOKENS);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked") // we know throughout that we refer to Iterables of LockRefreshToken
+    public void lockTokensUsedForCheckAreTheTokensPassedAtCreationTime() {
+        LockService happyLockService = mock(LockService.class);
+        when(happyLockService.refreshLockRefreshTokens(any())).thenAnswer(invocation -> invocation.getArguments()[0]);
+
+        Set<LockRefreshToken> lockTokens = Sets.newHashSet(TOKENS);
+
+        AdvisoryLockPreCommitCheck preCommitCheck =
+                AdvisoryLockPreCommitCheck.forLockServiceLocks(lockTokens, happyLockService);
+        lockTokens.add(new LockRefreshToken(new BigInteger("3"), Long.MAX_VALUE));
+        preCommitCheck.throwIfLocksExpired();
+
+        // We need to check that the element contains-exactly-in-any-order the same elements
+        // but eq is too strong, because the check is allowed to (and does!) wrap the tokens in a different collection.
+        ArgumentCaptor<Iterable> captor = ArgumentCaptor.forClass(Iterable.class);
+        verify(happyLockService).refreshLockRefreshTokens(captor.capture());
+        assertThat((Iterable<LockRefreshToken>) captor.getValue()).hasSameElementsAs(TOKENS); // only the first two
     }
 
     @Test
