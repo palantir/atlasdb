@@ -66,7 +66,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     /**
-     * Ignore failure when updating table-related settings
+     * Ignore failure when updating table-related settings.
     */
     @Value.Default
     public boolean ignoreInternalSchemaUpdateFailures() {

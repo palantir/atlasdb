@@ -15,7 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
@@ -29,7 +28,6 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class OneNodeDownMetadataTest {
 
@@ -48,27 +46,21 @@ public class OneNodeDownMetadataTest {
     }
 
     @Test
-    public void putMetadataForTableThrows() {
+    public void putMetadataForTableDoesNotThrow() {
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
-                newTableMetadata.persistToBytes()))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .hasStackTraceContaining("At schema version UNREACHABLE");
+        OneNodeDownTestSuite.kvs.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
+                newTableMetadata.persistToBytes());
 
         canGetMetadataForTable();
     }
 
     @Test
-    public void putMetadataForTablesThrows() {
+    public void putMetadataForTablesDoesNotThrows() {
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTables(
-                ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .hasStackTraceContaining("At schema version UNREACHABLE");
+        OneNodeDownTestSuite.kvs.putMetadataForTables(
+                ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes()));
 
         canGetMetadataForTable();
     }
