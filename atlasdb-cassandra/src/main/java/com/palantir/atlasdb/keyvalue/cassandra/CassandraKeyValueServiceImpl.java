@@ -2008,8 +2008,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            if (configManager.getConfig().ignoreInternalSchemaUpdateFailures()) {
+                log.error("Failed to apply the table metadata changes for the following Cfdefs {}",
+                        SafeArg.of("cfdef", getAllCfdefsString(updatedCfs)), e);
+            } else {
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            }
         }
+    }
+
+    private String getAllCfdefsString(Collection<CfDef> updatedCfs) {
+        return updatedCfs.stream().map(CfDef::toString).collect(Collectors.joining(","));
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
