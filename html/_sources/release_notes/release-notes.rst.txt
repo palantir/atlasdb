@@ -50,6 +50,13 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB now provides a configurable ``compactInterval`` (0 by default) option for Postgres, in the Postgres DDL Config.
+           A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.
+           This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days for this config option
+           and would encourage impls to test this out and report the results back. We will modify the defaults once we have this field tested.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+
     *    - |fixed|
          - The ``LeaderPingHealthCheck`` supplied by ``PaxosLeadershipCreator`` now correctly reports the leadership state of nodes that believe themselves to be the leader.
            Previously, the health check would ping every *other* node in the cluster, resulting in leader nodes reporting that there are no leaders.

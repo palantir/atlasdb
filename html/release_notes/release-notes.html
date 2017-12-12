@@ -196,7 +196,14 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB now provides a configurable <code class="docutils literal"><span class="pre">compactInterval</span></code> (0 by default) option for Postgres, in the Postgres DDL Config.
+A vacuum will be kicked off an a table only if there hasn’t been one on the same table in the last <code class="docutils literal"><span class="pre">compactInterval</span></code>.
+This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days for this config option
+and would encourage impls to test this out and report the results back. We will modify the defaults once we have this field tested.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2718">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal"><span class="pre">LeaderPingHealthCheck</span></code> supplied by <code class="docutils literal"><span class="pre">PaxosLeadershipCreator</span></code> now correctly reports the leadership state of nodes that believe themselves to be the leader.
 Previously, the health check would ping every <em>other</em> node in the cluster, resulting in leader nodes reporting that there are no leaders.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2805">Pull Request</a>)</td>
