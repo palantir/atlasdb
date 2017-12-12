@@ -99,7 +99,7 @@ public class AdvisoryLockPreCommitCheckTest {
     }
 
     @Test
-    public void checkDelegatesAndFailsOnlyWhenChecked() {
+    public void checksDelegateAndFailsOnlyWhenChecked() {
         LockService sadLockService = mock(LockService.class);
         when(sadLockService.refreshLockRefreshTokens(any())).thenReturn(ImmutableSet.of());
 
