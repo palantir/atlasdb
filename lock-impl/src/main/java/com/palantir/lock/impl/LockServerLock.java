@@ -30,11 +30,13 @@ public class LockServerLock implements ClientAwareReadWriteLock {
     private static final Logger log = LoggerFactory.getLogger(LockServerLock.class);
 
     private final LockDescriptor descriptor;
+    private final LockClientIndices clients;
     private final LockServerSync sync;
 
     public LockServerLock(LockDescriptor descriptor,
                           LockClientIndices clients) {
         this.descriptor = Preconditions.checkNotNull(descriptor);
+        this.clients = clients;
         this.sync = new LockServerSync(clients);
     }
 
@@ -72,13 +74,20 @@ public class LockServerLock implements ClientAwareReadWriteLock {
         throw ex;
     }
 
-    private static class ReadLock implements KnownClientLock {
+    private LockClient clientFromIndex(int clientIndex) {
+        if (clientIndex == 0) {
+            return null;
+        }
+        return clients.fromIndex(clientIndex);
+    }
+
+    private class ReadLock implements KnownClientLock {
         private final LockServerSync sync;
         private final int clientIndex;
 
         public ReadLock(LockServerSync sync, LockClient client) {
             this.sync = sync;
-            this.clientIndex = sync.getClientIndex(client);
+            this.clientIndex = clients.toIndex(client);
         }
 
         @Override
@@ -98,35 +107,17 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
         @Override
         public LockClient tryLock() {
-            while (true) {
-                synchronized (sync) {
-                    if (sync.tryAcquireShared(clientIndex) > 0) {
-                        return null;
-                    }
-                    LockClient lockHolder = sync.getLockHolder();
-                    if (lockHolder != null) {
-                        return lockHolder;
-                    }
-                }
-                // the lock was free, but we couldn't acquire it because
-                // someone else was waiting for it (no barging). Yield
-                // to give them a chance to grab it.
-                Thread.yield();
-            }
+            return clientFromIndex(sync.tryAcquireShared(clientIndex));
         }
 
         @Override
         public LockClient tryLock(long time, TimeUnit unit) throws InterruptedException {
-            LockClient client = tryLock();
-            if (client != null && sync.tryAcquireSharedNanos(clientIndex, unit.toNanos(time))) {
-                return null;
-            }
-            return client;
+            return clientFromIndex(sync.tryAcquireSharedNanos(clientIndex, unit.toNanos(time)));
         }
 
         @Override
         public void changeOwner(LockClient newOwner) {
-            sync.changeOwnerShared(clientIndex, newOwner);
+            sync.changeOwnerShared(clientIndex, clients.toIndex(newOwner));
         }
 
         @Override
@@ -143,19 +134,19 @@ public class LockServerLock implements ClientAwareReadWriteLock {
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("mode", getMode())
-                    .add("client", sync.getClient(clientIndex))
+                    .add("client", clients.fromIndex(clientIndex))
                     .add("sync", sync)
                     .toString();
         }
     }
 
-    private static class WriteLock implements KnownClientLock {
+    private class WriteLock implements KnownClientLock {
         private final LockServerSync sync;
         private final int clientIndex;
 
         public WriteLock(LockServerSync sync, LockClient client) {
             this.sync = sync;
-            this.clientIndex = sync.getClientIndex(client);
+            this.clientIndex = clients.toIndex(client);
         }
 
         @Override
@@ -175,35 +166,17 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
         @Override
         public LockClient tryLock() {
-            while (true) {
-                synchronized (sync) {
-                    if (sync.tryAcquire(clientIndex)) {
-                        return null;
-                    }
-                    LockClient lockHolder = sync.getLockHolder();
-                    if (lockHolder != null) {
-                        return lockHolder;
-                    }
-                }
-                // the lock was free, but we couldn't acquire it because
-                // someone else was waiting for it (no barging). Yield
-                // to give them a chance to grab it.
-                Thread.yield();
-            }
+            return clientFromIndex(sync.tryAcquire(clientIndex));
         }
 
         @Override
         public LockClient tryLock(long time, TimeUnit unit) throws InterruptedException {
-            LockClient client = tryLock();
-            if (client != null && sync.tryAcquireNanos(clientIndex, unit.toNanos(time))) {
-                return null;
-            }
-            return client;
+            return clientFromIndex(sync.tryAcquireNanos(clientIndex, unit.toNanos(time)));
         }
 
         @Override
         public void changeOwner(LockClient newOwner) {
-            sync.changeOwner(clientIndex, newOwner);
+            sync.changeOwner(clientIndex, clients.toIndex(newOwner));
         }
 
         @Override
@@ -220,7 +193,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("mode", getMode())
-                    .add("client", sync.getClient(clientIndex))
+                    .add("client", clients.fromIndex(clientIndex))
                     .add("sync", sync)
                     .toString();
         }

@@ -15,213 +15,413 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
-import com.palantir.lock.LockClient;
 
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.map.TIntIntMap;
+import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 
-class LockServerSync extends AbstractQueuedSynchronizer {
-    private static final long serialVersionUID = 1L;
-
+public class LockServerSync {
+    // All our state is managed in indices, but we use this for diagnostics
+    // (exception messages, toString())
     private final LockClientIndices clients;
-    private @GuardedBy("this") boolean frozen;
-    private @GuardedBy("this") int writeLockHolder = 0;
-    private @GuardedBy("this") TIntIntMap readLockHolders;
 
     public LockServerSync(LockClientIndices clients) {
-        this.clients = Preconditions.checkNotNull(clients);
+        this.clients = clients;
     }
 
-    private boolean isAnonymous(int clientIndex) {
-        return clientIndex < 0;
+    private boolean frozen = false;
+    private int writeLockHolder = 0;
+    private int writeLockCount = 0;
+
+    private int queueLength = 0;
+    private Node head;
+    private Node tail;
+
+    private static final class Node {
+        public Node prev = null;
+        public Node next = null;
+        public int count = 0;
+
+        private long signalCount = 0;
+
+        public synchronized void signal() {
+            ++signalCount;
+            notifyAll();
+        }
+
+        public synchronized long prepAwait() {
+            return signalCount;
+        }
+
+        public synchronized void await(long oldSignalCount, long nanos) throws InterruptedException {
+            long t0 = System.nanoTime();
+            while (true) {
+                if (signalCount != oldSignalCount) {
+                    return;
+                }
+                long left = nanos - Math.max(0, System.nanoTime() - t0);
+                if (left <= 0) {
+                    return;
+                }
+                wait(left / 1000000, (int) (left % 1000000));
+            }
+        }
     }
 
-    private synchronized boolean holdsWriteLock(int clientIndex) {
-        Preconditions.checkState(getState() > 0);
-        return clientIndex == writeLockHolder && !isAnonymous(clientIndex);
-    }
+    private boolean tryAcquire(Node node, int clientIndex, boolean shared) {
+        assert Thread.holdsLock(this);
 
-    @Override
-    protected synchronized boolean tryAcquire(int clientIndex) {
         if (frozen) {
             return false;
         }
-        int writeCount = getState();
-        if (writeCount > 0 && holdsWriteLock(clientIndex)) {
-            setState(writeCount + 1);
+
+        if (shared) {
+            if (clientIndex != -1 && readLockHoldersContainsKey(clientIndex)) {
+                // reentrant read lock
+                readLockHoldersInc(clientIndex);
+                return true;
+            }
+
+            if (clientIndex != -1 && writeLockHolder == clientIndex) {
+                // reentrant write -> read lock
+                readLockHoldersInc(clientIndex);
+                return true;
+            }
+
+            if (writeLockCount > 0) {
+                return false;
+            }
+
+            if (head != null && head != node) {
+                return false;
+            }
+
+            readLockHoldersInc(clientIndex);
             return true;
-        }
-        if (hasBlockedPredecessors()) {
-            return false;
-        }
-        if (writeCount == 0 && !isReadLockHeld()) {
-            setState(1);
+        } else {
+            if (clientIndex != -1 && writeLockHolder == clientIndex) {
+                // reentrant write lock
+                ++writeLockCount;
+                return true;
+            }
+
+            if (clientIndex != -1 && readLockHoldersContainsKey(clientIndex)) {
+                // reentrant read -> write, conspicuously we fail this
+                throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(clientIndex) + " currently holds the read lock");
+            }
+
+            if (!readLockHoldersIsEmpty()) {
+                return false;
+            }
+
+            if (head != null && head != node) {
+                return false;
+            }
+
+            if (writeLockCount > 0) {
+                return false;
+            }
+
             writeLockHolder = clientIndex;
+            writeLockCount = 1;
             return true;
         }
-        if (holdsReadLock(clientIndex)) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " currently holds the read lock");
-        }
-        return false;
     }
 
-    @Override
-    protected synchronized boolean tryRelease(int clientIndex) {
-        int newWriteCount = getState() - 1;
-        if (writeLockHolder != clientIndex || newWriteCount < 0) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the write lock");
+    private int getCurrentHolder() {
+        assert Thread.holdsLock(this);
+
+        if (writeLockCount > 0) {
+            return writeLockHolder;
         }
-        setState(newWriteCount);
-        if (newWriteCount == 0 && !isReadLockHeld()) {
+        return readLockHoldersFirstKeyOrZero();
+    }
+
+    private void notifyNode(Node node) {
+        assert Thread.holdsLock(this);
+
+        if (node == null) {
+            return;
+        }
+        node.signal();
+    }
+
+    private Node refNode(int clientIndex, boolean shared) {
+        assert Thread.holdsLock(this);
+
+        Node node;
+        if (clientIndex == -1) {
+            node = null;
+        } else if (shared) {
+            node = waitingReadsGet(clientIndex);
+        } else {
+            node = waitingWritesGet(clientIndex);
+        }
+        if (node == null) {
+            node = new Node();
+            if (clientIndex == -1) {
+                // no coalescion
+            } else if (shared) {
+                waitingReadsPut(clientIndex, node);
+            } else {
+                waitingWritesPut(clientIndex, node);
+            }
+            if (tail == null) {
+                head = node;
+            } else {
+                tail.next = node;
+            }
+            node.prev = tail;
+            tail = node;
+            ++queueLength;
+        }
+        ++node.count;
+        return node;
+    }
+
+    private void unrefNode(int clientIndex, boolean shared, Node node) {
+        assert Thread.holdsLock(this);
+
+        if (--node.count > 0) {
+            return;
+        }
+
+        if (clientIndex == -1) {
+            // not in either waiting map
+        } else if (shared) {
+            waitingReadsRemove(clientIndex);
+        } else {
+            waitingWritesRemove(clientIndex);
+        }
+        if (node.prev == null) {
+            head = node.next;
+            notifyNode(head);
+        } else {
+            node.prev.next = node.next;
+        }
+
+        if (node.next == null) {
+            tail = node.prev;
+        } else {
+            node.next.prev = node.prev;
+        }
+
+        --queueLength;
+    }
+
+    private int acquireCommon(int clientIndex, boolean shared, long nanos, boolean allowInterrupt) throws InterruptedException {
+        long t0 = System.nanoTime();
+
+        // Try to hit/miss quickly (without enqueueing)...
+        Node node;
+        synchronized (this) {
+            if (tryAcquire(null, clientIndex, shared)) {
+                // We got our lock, great.
+                return 0;
+            }
+
+            // We didn't get our lock.  Are we supposed to wait?
+            if (nanos == 0) {
+                // If not, see if we can figure out who holds it.
+                int blocker = getCurrentHolder();
+                if (blocker != 0) {
+                    // We have a holder, we're good to go.
+                    return blocker;
+                }
+
+                // Couldn't take it, but no one holds?  Presumably someone is in
+                // line and they need to process first.  We go the long way and
+                // enqueue, even though nanos == 0 was given.
+            } else {
+                // Fall through to enqueue...
+            }
+
+            // Get in line or join a node already in line.
+            node = refNode(clientIndex, shared);
+        }
+
+        boolean wasInterrupted = false;
+        try {
+            while (true) {
+                // Either acquire, fail to acquire, or figure out the
+                // parameters of our wait...
+                long signalCount;
+                long left;
+                synchronized (this) {
+                    if (tryAcquire(node, clientIndex, shared)) {
+                        // Successful acquire, return.
+                        return 0;
+                    }
+
+                    left = nanos - Math.max(0, System.nanoTime() - t0);
+
+                    if (left <= 0) {
+                        // Out of time!  Try to figure out who has it.
+                        int blocker = getCurrentHolder();
+                        if (blocker != 0) {
+                            return blocker;
+                        }
+
+                        // Again, we couldn't take it, but no one holds?  Spin and
+                        // wait for the line to process.
+                        left = Long.MAX_VALUE;
+                    }
+
+                    // We want to node.wait() here but don't want to hold lock
+                    // on sync itself during.  We note the current signalCount
+                    // so if a signal happens between here and below where we
+                    // would wait we'll actually know (and not wait()).
+                    signalCount = node.prepAwait();
+                }
+
+                try {
+                    // Wait up to however long for an update.
+                    node.await(signalCount, left);
+                } catch (InterruptedException e) {
+                    if (allowInterrupt) {
+                        throw e;
+                    } else {
+                        wasInterrupted = true;
+                    }
+                }
+            }
+        } finally {
+            synchronized (this) {
+                // Leave line on the way out no matter why/how we're returning.
+                unrefNode(clientIndex, shared, node);
+            }
+            if (wasInterrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private int acquireCommon(int clientIndex, boolean shared, long nanos) {
+        try {
+            return acquireCommon(clientIndex, shared, nanos, false);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private int acquireCommonInterruptibly(int clientIndex, boolean shared, long nanos) throws InterruptedException {
+        return acquireCommon(clientIndex, shared, nanos, true);
+    }
+
+    public void acquire(int clientIndex) {
+        acquireCommon(clientIndex, false, Long.MAX_VALUE);
+    }
+
+    public void acquireInterruptibly(int clientIndex) throws InterruptedException {
+        acquireCommonInterruptibly(clientIndex, false, Long.MAX_VALUE);
+    }
+
+    public void acquireShared(int clientIndex) {
+        acquireCommon(clientIndex, true, Long.MAX_VALUE);
+    }
+
+    public void acquireSharedInterruptibly(int clientIndex) throws InterruptedException {
+        acquireCommonInterruptibly(clientIndex, true, Long.MAX_VALUE);
+    }
+
+    public int tryAcquire(int clientIndex) {
+        return acquireCommon(clientIndex, false, 0);
+    }
+
+    public int tryAcquireNanos(int clientIndex, long nanos) throws InterruptedException {
+        return acquireCommonInterruptibly(clientIndex, false, nanos);
+    }
+
+    public int tryAcquireShared(int clientIndex) {
+        return acquireCommon(clientIndex, true, 0);
+    }
+
+    public int tryAcquireSharedNanos(int clientIndex, long nanos) throws InterruptedException {
+        return acquireCommonInterruptibly(clientIndex, true, nanos);
+    }
+
+    public synchronized void release(int clientIndex) {
+        if (writeLockHolder != clientIndex) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(clientIndex) + " does not hold the write lock");
+        }
+        if (--writeLockCount == 0) {
+            writeLockHolder = 0;
             frozen = false;
+            notifyNode(head);
         }
-        return newWriteCount == 0;
     }
 
-    @Override
-    protected synchronized int tryAcquireShared(int clientIndex) {
-        if (frozen) {
-            return -1;
+    public synchronized void releaseShared(int clientIndex) {
+        if (!readLockHoldersContainsKey(clientIndex)) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(clientIndex) + " does not hold a read lock");
         }
-        int writeCount = getState();
-        if (writeCount == 0 && !holdsReadLock(clientIndex) && hasBlockedPredecessors()) {
-            return -1;
-        }
-        if (writeCount > 0 && !holdsWriteLock(clientIndex)) {
-            return -1;
-        }
-        incrementReadCount(clientIndex);
-        return 1;
-    }
-
-    @Override
-    protected synchronized boolean tryReleaseShared(int clientIndex) {
-        decrementReadCount(clientIndex);
-        if (!isReadLockHeld() && getState() == 0) {
+        if (readLockHoldersDec(clientIndex) == 0) {
             frozen = false;
-            return true;
+            notifyNode(head);
         }
-        return false;
     }
 
-    synchronized void unlockAndFreeze(int clientIndex) {
-        if (isAnonymous(clientIndex)) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "anonymous clients cannot call unlockAndFreeze()");
+    public synchronized void unlockAndFreeze(int clientIndex) {
+        if (writeLockHolder != clientIndex) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(clientIndex) + " does not hold the write lock");
         }
-        if (writeLockHolder != clientIndex || getState() == 0) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the write lock");
+        if (clientIndex == -1) {
+            throw LockServerLock.throwIllegalMonitorStateException("anonymous clients cannot call unlockAndFreeze()");
         }
-        if (!release(clientIndex) || isReadLockHeld()) {
+        if (--writeLockCount == 0) {
+            writeLockHolder = 0;
+            frozen = false;
+            notifyNode(head);
+        } else {
             frozen = true;
         }
     }
 
-    synchronized void changeOwnerShared(int oldClient, LockClient newClient) {
-        int newIndex = clients.toIndex(newClient);
-        if (oldClient == newIndex) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "new owner must be different  from old owner, owner=" +
-                    clients.fromIndex(oldClient));
-        }
+    public synchronized void changeOwner(int oldIndex, int newIndex) {
         if (frozen) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "cannot change owner because the lock is frozen");
+            throw LockServerLock.throwIllegalMonitorStateException("cannot change owner because the lock is frozen");
         }
-        if (!holdsReadLock(oldClient)) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " does not hold the read lock");
+        if (writeLockHolder != oldIndex) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(oldIndex) + " does not hold a write lock");
         }
-        if (getState() > 0) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " currently holds both the read and write locks");
+        if (!readLockHoldersIsEmpty()) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(oldIndex) + " currently holds both the read and write locks");
         }
-        decrementReadCount(oldClient);
-        incrementReadCount(newIndex);
-    }
+        if (writeLockCount > 1) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(oldIndex) + " is attempting to create a lock grant while being supported by multiple clients.  This is not currently supported.");
+        }
 
-    synchronized void changeOwner(int oldClient, LockClient newClient) {
-        int newIndex = clients.toIndex(newClient);
-        if (oldClient == newIndex) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "new owner must be different from old owner, owner=" +
-                    clients.fromIndex(oldClient));
-        }
-        if (frozen) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "Cannot change owner because the lock is frozen");
-        }
-        int writeCount = getState();
-        if (writeCount == 0 || writeLockHolder != oldClient) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " does not hold the write lock");
-        }
-        if (holdsReadLock(oldClient)) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " currently holds both the read and write locks");
-        }
-        if (writeCount > 1) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " is attempting to create a lock grant" +
-                    " while being supported by multiple clients." +
-                    " This is not currently supported.");
-        }
         writeLockHolder = newIndex;
+        // may have to wake up waiters that are now reentrant
+        notifyNode(waitingReadsGet(newIndex));
+        notifyNode(waitingWritesGet(newIndex));
     }
 
-    // Returns null if there is no lock holder. Note: There
-    // may be no lock holder even if tryAcquire or tryAcquireShared
-    // failed because those methods may fail in order to prevent
-    // barging.
-    @GuardedBy("this") @Nullable LockClient getLockHolder() {
-        if (getState() > 0) {
-            return clients.fromIndex(writeLockHolder);
+    public synchronized void changeOwnerShared(int oldIndex, int newIndex) {
+        if (frozen) {
+            throw LockServerLock.throwIllegalMonitorStateException("cannot change owner because the lock is frozen");
         }
-        if (!isReadLockHeld()) {
-            return null;
+        if (!readLockHoldersContainsKey(oldIndex)) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(oldIndex) + " does not hold a read lock");
         }
-        TIntIntIterator iter = readLockHolders.iterator();
-        Preconditions.checkState(iter.hasNext());
-        iter.advance();
-        return clients.fromIndex(iter.key());
+        if (writeLockCount > 0) {
+            throw LockServerLock.throwIllegalMonitorStateException(clients.fromIndex(oldIndex) + " currently holds both a read and a write locks");
+        }
+
+        readLockHoldersDec(oldIndex);
+
+        if (readLockHoldersInc(newIndex) == 1) {
+            // first lock for new client, may have to wake up waiters that are
+            // now reentrant reads
+            notifyNode(waitingReadsGet(newIndex));
+        }
     }
 
-    LockClient getClient(int clientIndex) {
-        return clients.fromIndex(clientIndex);
-    }
-
-    public int getClientIndex(LockClient client) {
-        return clients.toIndex(client);
-    }
-
-    // Note: Replace with hasQueuesPredecessors when lock server
-    // no longer needs to run on java 6.
-    private boolean hasBlockedPredecessors() {
-        return getFirstQueuedThread() != Thread.currentThread() && hasQueuedThreads();
-    }
-
-    synchronized boolean isFrozen() {
+    public synchronized boolean isFrozen() {
         return frozen;
     }
 
@@ -229,49 +429,105 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     public synchronized String toString() {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("hashCode", hashCode())
-                .add("writeLockCount", getState())
+                .add("writeLockCount", writeLockCount)
                 .add("writeClient", writeLockHolder == 0 ? null : clients.fromIndex(writeLockHolder))
-                .add("readClients", clients.fromIndices(getReadClients()))
-                .add("queuedThreads", getQueueLength())
+                .add("readClients", clients.fromIndices(Ints.asList(readLockHoldersKeys())))
+                .add("queuedThreads", queueLength)
                 .add("isFrozen", frozen)
                 .toString();
     }
 
-    private synchronized boolean isReadLockHeld() {
-        return readLockHolders != null && !readLockHolders.isEmpty();
+
+    private TIntIntMap readLockHolders = null;
+
+    private boolean readLockHoldersContainsKey(int clientIndex) {
+        return readLockHolders != null && readLockHolders.containsKey(clientIndex);
     }
 
-    private synchronized boolean holdsReadLock(int clientIndex) {
-        return !isAnonymous(clientIndex) && readLockHolders != null && readLockHolders.get(clientIndex) > 0;
+    private int[] readLockHoldersKeys() {
+        return readLockHolders == null ? new int[0] : readLockHolders.keys();
     }
 
-    private synchronized void incrementReadCount(int clientIndex) {
+    private boolean readLockHoldersIsEmpty() {
+        return readLockHolders == null;
+    }
+
+    private int readLockHoldersFirstKeyOrZero() {
+        if (readLockHolders == null) {
+            return 0;
+        }
+        TIntIntIterator i = readLockHolders.iterator();
+        i.advance();
+        return i.key();
+    }
+
+    private int readLockHoldersInc(int clientIndex) {
         if (readLockHolders == null) {
             readLockHolders = new TIntIntHashMap(1);
         }
-        readLockHolders.adjustOrPutValue(clientIndex, 1, 1);
+        return readLockHolders.adjustOrPutValue(clientIndex, 1, 1);
     }
 
-    private synchronized void decrementReadCount(int clientIndex) {
-        if (readLockHolders == null) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the read lock");
+    private int readLockHoldersDec(int clientIndex) {
+        assert readLockHolders != null;
+        int ret = readLockHolders.adjustOrPutValue(clientIndex, -1, -1);
+        assert ret >= 0;
+        if (ret == 0) {
+            readLockHolders.remove(clientIndex);
         }
-        int readCount = readLockHolders.remove(clientIndex);
-        if (readCount > 1) {
-            readLockHolders.put(clientIndex, readCount - 1);
-        } else if (readCount == 0) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the read lock");
+        if (readLockHolders.isEmpty()) {
+            readLockHolders = null;
+        }
+        return ret;
+    }
+
+
+    private TIntObjectMap<Node> waitingReads = null;
+
+    private Node waitingReadsGet(int clientIndex) {
+        if (waitingReads == null) {
+            return null;
+        }
+        return waitingReads.get(clientIndex);
+    }
+
+    private void waitingReadsPut(int clientIndex, Node node) {
+        if (waitingReads == null) {
+            waitingReads = new TIntObjectHashMap<>(1);
+        }
+        waitingReads.put(clientIndex, node);
+    }
+
+    private void waitingReadsRemove(int clientIndex) {
+        assert waitingReads != null;
+        waitingReads.remove(clientIndex);
+        if (waitingReads.isEmpty()) {
+            waitingReads = null;
         }
     }
 
-    private synchronized Iterable<Integer> getReadClients() {
-        if (readLockHolders == null) {
-            return ImmutableList.of();
+
+    private TIntObjectMap<Node> waitingWrites = null;
+
+    private Node waitingWritesGet(int clientIndex) {
+        if (waitingWrites == null) {
+            return null;
         }
-        return Ints.asList(readLockHolders.keys()); // (authorized)
+        return waitingWrites.get(clientIndex);
+    }
+
+    private void waitingWritesPut(int clientIndex, Node node) {
+        if (waitingWrites == null) {
+            waitingWrites = new TIntObjectHashMap<>(1);
+        }
+        waitingWrites.put(clientIndex, node);
+    }
+
+    private void waitingWritesRemove(int clientIndex) {
+        assert waitingWrites != null;
+        waitingWrites.remove(clientIndex);
+        if (waitingWrites.isEmpty()) {
+            waitingWrites = null;
+        }
     }
 }
