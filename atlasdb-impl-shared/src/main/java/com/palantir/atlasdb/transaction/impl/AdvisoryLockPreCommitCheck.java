@@ -46,15 +46,16 @@ final class AdvisoryLockPreCommitCheck {
 
     public static final AdvisoryLockPreCommitCheck NO_OP = new AdvisoryLockPreCommitCheck(() -> { });
 
-    public static AdvisoryLockPreCommitCheck forLockServiceLocks(Iterable<LockRefreshToken> tokens,
+    public static AdvisoryLockPreCommitCheck forLockServiceLocks(
+            Iterable<LockRefreshToken> tokens,
             LockService lockService) {
         return getLockServiceBasedPreCommitCheck(lockService::refreshLockRefreshTokens, ImmutableSet.copyOf(tokens));
     }
 
     public static AdvisoryLockPreCommitCheck forAsyncLockServiceLocks(
-            Set<LockToken> lockTokens,
+            Iterable<LockToken> lockTokens,
             TimelockService timelockService) {
-        return getLockServiceBasedPreCommitCheck(timelockService::refreshLockLeases, lockTokens);
+        return getLockServiceBasedPreCommitCheck(timelockService::refreshLockLeases, ImmutableSet.copyOf(lockTokens));
     }
 
     private static <T> AdvisoryLockPreCommitCheck getLockServiceBasedPreCommitCheck(
