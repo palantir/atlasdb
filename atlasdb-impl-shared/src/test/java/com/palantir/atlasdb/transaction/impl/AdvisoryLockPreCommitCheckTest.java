@@ -16,9 +16,10 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,7 +32,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -52,7 +52,6 @@ public class AdvisoryLockPreCommitCheckTest {
     private static final List<LockToken> TOKENS_V2 = ImmutableList.of(TOKEN_V2_1, TOKEN_V2_2);
 
     @Test
-    @SuppressWarnings("unchecked") // we know throughout that we refer to Iterables of LockRefreshToken
     public void checkPassesIfLegacyLocksAreRefreshed() throws InterruptedException {
         LockService happyLockService = mock(LockService.class);
         when(happyLockService.refreshLockRefreshTokens(any())).thenAnswer(invocation -> invocation.getArguments()[0]);
@@ -61,13 +60,10 @@ public class AdvisoryLockPreCommitCheckTest {
 
         // We need to check that the element contains-exactly-in-any-order the same elements
         // but eq is too strong, because the check is allowed to (and does!) wrap the tokens in a different collection.
-        ArgumentCaptor<Iterable> captor = ArgumentCaptor.forClass(Iterable.class);
-        verify(happyLockService).refreshLockRefreshTokens(captor.capture());
-        assertThat((Iterable<LockRefreshToken>) captor.getValue()).hasSameElementsAs(TOKENS);
+        checkCalledWithLegacyTokens(happyLockService);
     }
 
     @Test
-    @SuppressWarnings("unchecked") // we know throughout that we refer to Iterables of LockRefreshToken
     public void lockTokensUsedForCheckAreTheTokensPassedAtCreationTime() {
         LockService happyLockService = mock(LockService.class);
         when(happyLockService.refreshLockRefreshTokens(any())).thenAnswer(invocation -> invocation.getArguments()[0]);
@@ -81,9 +77,7 @@ public class AdvisoryLockPreCommitCheckTest {
 
         // We need to check that the element contains-exactly-in-any-order the same elements
         // but eq is too strong, because the check is allowed to (and does!) wrap the tokens in a different collection.
-        ArgumentCaptor<Iterable> captor = ArgumentCaptor.forClass(Iterable.class);
-        verify(happyLockService).refreshLockRefreshTokens(captor.capture());
-        assertThat((Iterable<LockRefreshToken>) captor.getValue()).hasSameElementsAs(TOKENS); // only the first two
+        checkCalledWithLegacyTokens(happyLockService);
     }
 
     @Test
@@ -149,9 +143,7 @@ public class AdvisoryLockPreCommitCheckTest {
 
         // We need to check that the element contains-exactly-in-any-order the same elements
         // but eq is too strong, because the check is allowed to (and does!) wrap the tokens in a different collection.
-        ArgumentCaptor<Set> captor = ArgumentCaptor.forClass(Set.class);
-        verify(timelockService).refreshLockLeases(captor.capture());
-        assertThat((Set<LockToken>) captor.getValue()).hasSameElementsAs(TOKENS_V2);
+        verify(timelockService).refreshLockLeases((Set<LockToken>) argThat(containsInAnyOrder(TOKENS_V2.toArray())));
     }
 
     @Test
@@ -191,5 +183,12 @@ public class AdvisoryLockPreCommitCheckTest {
         LockService lockService = mock(LockService.class);
         AdvisoryLockPreCommitCheck.forLockServiceLocks(ImmutableList.of(), lockService).throwIfLocksExpired();
         verifyNoMoreInteractions(lockService);
+    }
+
+    @SuppressWarnings("unchecked") // we know throughout that we refer to Iterables of LockRefreshToken
+    private void checkCalledWithLegacyTokens(LockService lockService) {
+        // Note: eq is too strong, because it requires that the collection type is an ImmutableList
+        verify(lockService).refreshLockRefreshTokens(
+                (Set<LockRefreshToken>) argThat(containsInAnyOrder(TOKENS.toArray())));
     }
 }
