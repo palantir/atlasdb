@@ -86,7 +86,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 specificTableSweeper.getKvs(),
                 specificTableSweeper.getSweepPriorityStore());
         NextTableToSweepProvider streamStoreAwareNextTableToSweepProvider =
-                new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweepProvider);
+                new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweepProvider,
+                        specificTableSweeper.getSweepPriorityStore());
 
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),

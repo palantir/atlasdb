@@ -22,14 +22,20 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
 import java.util.Optional;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class StreamStoreRemappingNextTableToSweepProviderTest {
@@ -41,47 +47,81 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
     private static final TableReference SS_VALUE_TABLE = TableReference.createWithEmptyNamespace(SS_VALUE_TABLE_NAME);
     private static final TableReference SS_INDEX_TABLE = TableReference.createWithEmptyNamespace(SS_INDEX_TABLE_NAME);
 
-    private NextTableToSweepProviderImpl delegate = mock(NextTableToSweepProviderImpl.class);
-    private StreamStoreRemappingNextTableToSweepProviderImpl provider =
-            new StreamStoreRemappingNextTableToSweepProviderImpl(delegate);
+    private KeyValueService kvs;
+    private SweepPriorityStore sweepPriorityStore;
+    private Transaction mockedTransaction;
 
-    private Transaction mockedTransaction = mock(Transaction.class);
+    private StreamStoreRemappingNextTableToSweepProviderImpl provider;
 
-    @Test
-    public void notValueTableReturnsSameTable() {
-        Optional<TableReference> selectedTable = Optional.of(NOT_SS_VALUE_TABLE);
-        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable);
+    @Before
+    public void setup() {
+        kvs = mock(KeyValueService.class);
+        sweepPriorityStore = mock(SweepPriorityStore.class);
+        mockedTransaction = mock(Transaction.class);
 
-        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-        assertThat(returnedTable).isEqualTo(selectedTable);
+        NextTableToSweepProviderImpl nextTableToSweep = new NextTableToSweepProviderImpl(kvs, sweepPriorityStore);
+        provider = new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweep, sweepPriorityStore);
     }
 
     @Test
-    public void valueTableReturnsIndexThenValueTables() {
-        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
-        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable);
+    public void unsweptTableIsAlwaysPrioritised() {
+        given(UNSWEPT_TABLE);
 
-        assertReturnsIndexThenValueTable();
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void notValueTableAfterValueTableIsReturnedCorrectly() {
-        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
-        Optional<TableReference> nextSelectedTable = Optional.of(NOT_SS_VALUE_TABLE);
-        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable, nextSelectedTable);
+    public void singleTableIsAlwaysPrioritised() {
+        given(UNSWEPT_TABLE);
 
-        assertReturnsIndexThenValueTable();
-
-        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-        assertThat(followupReturnedTable).isEqualTo(Optional.of(NOT_SS_VALUE_TABLE));
     }
 
-    private void assertReturnsIndexThenValueTable() {
-        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-        assertThat(returnedTable).isEqualTo(Optional.of(SS_INDEX_TABLE));
+    @Test
+    public void singleTable_caseToIgnore() {
+        given(UNSWEPT_TABLE);
 
-        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-        assertThat(followupReturnedTable).isEqualTo(Optional.of(SS_VALUE_TABLE));
     }
+
+    @Test
+    public void unsweptTableAndNormalTable_prioritiseUnsweptTable() {
+        given(UNSWEPT_TABLE);
+
+    }
+
+//    @Test
+//    public void notValueTableReturnsSameTable() {
+//        Map<TableReference, Double> singleNonStreamStoreTable = ImmutableMap.of(NOT_SS_VALUE_TABLE, 1.0);
+//        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(singleNonStreamStoreTable);
+//
+//        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+//        assertThat(returnedTable).isEqualTo(selectedTable);
+//    }
+//
+//    @Test
+//    public void valueTableReturnsIndexThenValueTables() {
+//        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
+//        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable);
+//
+//        assertReturnsIndexThenValueTable();
+//    }
+//
+//    @Test
+//    @SuppressWarnings("unchecked")
+//    public void notValueTableAfterValueTableIsReturnedCorrectly() {
+//        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
+//        Optional<TableReference> nextSelectedTable = Optional.of(NOT_SS_VALUE_TABLE);
+//        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable, nextSelectedTable);
+//
+//        assertReturnsIndexThenValueTable();
+//
+//        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+//        assertThat(followupReturnedTable).isEqualTo(Optional.of(NOT_SS_VALUE_TABLE));
+//    }
+//
+//    private void assertReturnsIndexThenValueTable() {
+//        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+//        assertThat(returnedTable).isEqualTo(Optional.of(SS_INDEX_TABLE));
+//
+//        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+//        assertThat(followupReturnedTable).isEqualTo(Optional.of(SS_VALUE_TABLE));
+//    }
 }
