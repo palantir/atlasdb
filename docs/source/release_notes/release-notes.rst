@@ -78,7 +78,7 @@ develop
          - Change
 
     *    - |fixed|
-         - Removed an unused dependency from `atlasdb-api``, fixing a dependency clash in a downstream product.
+         - Removed an unused dependency from ``atlasdb-api``, fixing a dependency clash in a downstream product.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2798>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
