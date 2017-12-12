@@ -65,6 +65,25 @@ develop
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
+0.71.1
+======
+
+8 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Removed an unused dependency from `atlasdb-api``, fixing a dependency clash in a downstream product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2798>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
 0.71.0
 ======
 
