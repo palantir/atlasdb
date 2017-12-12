@@ -1052,10 +1052,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         Mutation mutation = new Mutation();
                         mutation.setColumn_or_supercolumn(colOrSup);
 
-                        // TODO maybe pass cell to mutation map?
-                        ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
-
-                        map.addMutationForRow(rowName, tableRef, mutation);
+                        map.addMutationForCell(cell, tableRef, mutation);
                     }
                     batchMutateInternal(kvsMethodName, client, tableRef, map.get(), writeConsistency);
                 }
@@ -1158,9 +1155,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Mutation mutation = new Mutation();
             mutation.setColumn_or_supercolumn(colOrSup);
 
-            ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
-
-            mutationMap.addMutationForRow(rowName, tableCellAndValue.tableRef, mutation);
+            mutationMap.addMutationForCell(cell, tableCellAndValue.tableRef, mutation);
         }
         return mutationMap;
     }
@@ -1358,8 +1353,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             del.setTimestamp(Long.MAX_VALUE);
                             Mutation mutation = new Mutation();
                             mutation.setDeletion(del);
-                            ByteBuffer rowName = ByteBuffer.wrap(cellVersions.getKey().getRowName());
-                            mutationMap.addMutationForRow(rowName, tableRef, mutation);
+
+                            mutationMap.addMutationForCell(cellVersions.getKey(), tableRef, mutation);
                             mapIndex++;
                             numVersions += cellVersions.getValue().size();
                         }

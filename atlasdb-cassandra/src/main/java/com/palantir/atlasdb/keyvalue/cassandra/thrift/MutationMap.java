@@ -24,6 +24,7 @@ import org.apache.cassandra.thrift.Mutation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
@@ -34,7 +35,8 @@ public class MutationMap {
         this.mutationMap = Maps.newHashMap();
     }
 
-    public void addMutationForRow(ByteBuffer rowName, TableReference tableRef, Mutation mutation) {
+    public void addMutationForCell(Cell cell, TableReference tableRef, Mutation mutation) {
+        ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
         Map<String, List<Mutation>> rowPuts = mutationMap.computeIfAbsent(rowName, row -> Maps.newHashMap());
 
         List<Mutation> tableMutations = rowPuts.computeIfAbsent(
