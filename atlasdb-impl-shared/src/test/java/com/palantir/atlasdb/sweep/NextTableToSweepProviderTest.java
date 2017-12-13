@@ -44,7 +44,6 @@ import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.priority.SweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
-import com.palantir.util.Pair;
 
 public class NextTableToSweepProviderTest {
     private KeyValueService kvs;
@@ -97,25 +96,25 @@ public class NextTableToSweepProviderTest {
 
     @Test
     public void tableCleared_isLowPriority() {
-        Pair<SweepPriority, SweepPriority> clearedTable = Pair.create(
-                sweepPriority("clearedTable").writeCount(100).build(),
-                sweepPriority("clearedTable").writeCount(50).build());
+        SweepPriorityHistory clearedTable = new SweepPriorityHistory("clearedTable")
+                .withOld(sweepPriority().writeCount(100).build())
+                .withNew(sweepPriority().writeCount(50).build());
 
         given(clearedTable);
 
         whenGettingTablesToSweep();
 
-        thenOnlyTablePrioritisedIs(clearedTable.getLhSide().tableRef());
-        thenTableHasZeroPriority(clearedTable.getLhSide().tableRef());
+        thenOnlyTablePrioritisedIs(clearedTable);
+        thenTableHasZeroPriority(clearedTable);
     }
 
     @Test
     public void unsweptTableAndNormalTable_prioritiseUnsweptTable() {
         TableReference unsweptTable = table("unswept1");
 
-        Pair<SweepPriority, SweepPriority> normalTable = Pair.create(
-                sweepPriority("normalTable").writeCount(50).build(),
-                sweepPriority("normalTable").writeCount(100).build());
+        SweepPriorityHistory normalTable = new SweepPriorityHistory("normalTable")
+                .withOld(sweepPriority().writeCount(50).build())
+                .withNew(sweepPriority().writeCount(100).build());
 
         given(unsweptTable);
         given(normalTable);
@@ -127,131 +126,140 @@ public class NextTableToSweepProviderTest {
 
     @Test
     public void tableDidNotChangeMuchLastTimeWeSweptIt_doNotPrioritise() {
-        Pair<SweepPriority, SweepPriority> rarelyUpdatedTable = Pair.create(
-                sweepPriority("rarelyUpdatedTable").cellTsPairsExamined(10000).writeCount(50)
-                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
-                        .build(),
-                sweepPriority("rarelyUpdatedTable")
-                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
-                        .build());
+        SweepPriorityHistory rarelyUpdatedTable =
+                new SweepPriorityHistory("rarelyUpdatedTable")
+                        .withOld(sweepPriority().cellTsPairsExamined(10000).writeCount(50)
+                                .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                                .build())
+                        .withNew(
+                                sweepPriority()
+                                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                                        .build());
 
         given(rarelyUpdatedTable);
 
         whenGettingTablesToSweep();
 
-        thenOnlyTablePrioritisedIs(rarelyUpdatedTable.getLhSide().tableRef());
-        thenTableHasZeroPriority(rarelyUpdatedTable.getLhSide().tableRef());
+        thenOnlyTablePrioritisedIs(rarelyUpdatedTable);
+        thenTableHasZeroPriority(rarelyUpdatedTable);
     }
 
     @Test
     public void tableHasNotChangedMuch_butSweptLongAgo_hasPriority() {
-        Pair<SweepPriority, SweepPriority> rarelyUpdatedTable = Pair.create(
-                sweepPriority("rarelyUpdatedTable").cellTsPairsExamined(10000).writeCount(50)
-                        .lastSweepTimeMillis(DateTime.now().minusMonths(7).toDateTime().getMillis())
-                        .build(),
-                sweepPriority("rarelyUpdatedTable")
-                        .lastSweepTimeMillis(DateTime.now().minusMonths(7).toDateTime().getMillis())
-                        .build());
+        SweepPriorityHistory rarelyUpdatedTable =
+                new SweepPriorityHistory("rarelyUpdatedTable")
+                        .withOld(sweepPriority().cellTsPairsExamined(10000).writeCount(50)
+                                .lastSweepTimeMillis(DateTime.now().minusMonths(7).toDateTime().getMillis())
+                                .build())
+                        .withNew(sweepPriority()
+                                .lastSweepTimeMillis(DateTime.now().minusMonths(7).toDateTime().getMillis())
+                                .build());
 
         given(rarelyUpdatedTable);
 
         whenGettingTablesToSweep();
 
-        thenOnlyTablePrioritisedIs(rarelyUpdatedTable.getLhSide().tableRef());
-        thenTableHasPriority(rarelyUpdatedTable.getLhSide().tableRef());
+        thenOnlyTablePrioritisedIs(rarelyUpdatedTable);
+        thenTableHasPriority(rarelyUpdatedTable);
     }
 
     @Test
     public void ifWeDeletedManyValuesOnCassandra_andLessThanOneDayHasPassed_doNotSweep() {
-        Pair<SweepPriority, SweepPriority> tableWithManyDeletes = Pair.create(
-                sweepPriority("tableWithManyDeletes")
-                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
-                        .build(),
-                sweepPriority("tableWithManyDeletes")
-                        .staleValuesDeleted(1_500_000)
-                        .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
-                        .build());
+        SweepPriorityHistory tableWithManyDeletes =
+                new SweepPriorityHistory("tableWithManyDeletes")
+                        .withOld(sweepPriority()
+                                .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                                .build())
+                        .withNew(sweepPriority()
+                                .staleValuesDeleted(1_500_000)
+                                .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
+                                .build());
 
         given(tableWithManyDeletes);
 
         whenGettingTablesToSweep();
 
-        thenOnlyTablePrioritisedIs(tableWithManyDeletes.getLhSide().tableRef());
-        thenTableHasZeroPriority(tableWithManyDeletes.getLhSide().tableRef());
+        thenOnlyTablePrioritisedIs(tableWithManyDeletes);
+        thenTableHasZeroPriority(tableWithManyDeletes);
     }
 
     @Test
     public void ifWeDeletedManyValuesOnCassandra_andMoreThanOneDayHasPassed_tableIsPrioritised() {
-        Pair<SweepPriority, SweepPriority> tableWithManyDeletes = Pair.create(
-                sweepPriority("tableWithManyDeletes")
-                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
-                        .build(),
-                sweepPriority("tableWithManyDeletes")
-                        .staleValuesDeleted(1_500_000)
-                        .lastSweepTimeMillis(DateTime.now().minusHours(30).toDateTime().getMillis())
-                        .build());
+        SweepPriorityHistory tableWithManyDeletes =
+                new SweepPriorityHistory("tableWithManyDeletes")
+                        .withOld(sweepPriority()
+                                .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                                .build())
+                        .withNew(sweepPriority()
+                                .staleValuesDeleted(1_500_000)
+                                .lastSweepTimeMillis(DateTime.now().minusHours(30).toDateTime().getMillis())
+                                .build());
 
         given(tableWithManyDeletes);
 
         whenGettingTablesToSweep();
 
-        thenOnlyTablePrioritisedIs(tableWithManyDeletes.getLhSide().tableRef());
-        thenTableHasPriority(tableWithManyDeletes.getLhSide().tableRef());
+        thenOnlyTablePrioritisedIs(tableWithManyDeletes);
+        thenTableHasPriority(tableWithManyDeletes);
     }
 
     @Test
     public void ifWeDeletedManyValuesNotOnCassandra_andLessThanOneDayHasPassed_tableIsPrioritised() {
-        Pair<SweepPriority, SweepPriority> tableWithManyDeletes = Pair.create(
-                sweepPriority("tableWithManyDeletes")
-                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
-                        .build(),
-                sweepPriority("tableWithManyDeletes")
-                        .staleValuesDeleted(1_500_000)
-                        .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
-                        .build());
+        SweepPriorityHistory tableWithManyDeletes =
+                new SweepPriorityHistory("tableWithManyDeletes")
+                        .withOld(sweepPriority()
+                                .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                                .build())
+                        .withNew(sweepPriority()
+                                .staleValuesDeleted(1_500_000)
+                                .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
+                                .build());
 
         given(tableWithManyDeletes);
         givenNotCassandra();
 
         whenGettingTablesToSweep();
 
-        thenOnlyTablePrioritisedIs(tableWithManyDeletes.getLhSide().tableRef());
-        thenTableHasPriority(tableWithManyDeletes.getLhSide().tableRef());
+        thenOnlyTablePrioritisedIs(tableWithManyDeletes);
+        thenTableHasPriority(tableWithManyDeletes);
     }
 
     @Test
     public void standardEstimatedTablePriorities() {
-        Pair<SweepPriority, SweepPriority> tableWithLikelyManyValuesToSweep = Pair.create(
-                sweepPriority("tableWithLikelyManyValuesToSweep")
+        SweepPriorityHistory tableWithLikelyManyValuesToSweep =
+                new SweepPriorityHistory("tableWithLikelyManyValuesToSweep")
+                .withOld(sweepPriority()
                         .staleValuesDeleted(1_000_000)
                         .cellTsPairsExamined(10_000_000)
                         .writeCount(200_000)
-                        .build(),
-                sweepPriority("tableWithLikelyManyValuesToSweep")
+                        .build())
+                .withNew(sweepPriority()
                         .writeCount(200_000)
                         .build());
 
-        Pair<SweepPriority, SweepPriority> tableNotSweptInALongTime = Pair.create(
-                sweepPriority("tableNotSweptInALongTime")
-                        .staleValuesDeleted(10)
-                        .cellTsPairsExamined(1_000_000)
-                        .writeCount(20_000)
-                        .build(),
-                sweepPriority("tableNotSweptInALongTime")
-                        .lastSweepTimeMillis(DateTime.now().minusDays(5).toDateTime().getMillis())
-                        .writeCount(20_0000)
-                        .build());
+        SweepPriorityHistory tableNotSweptInALongTime =
+                new SweepPriorityHistory("tableNotSweptInALongTime")
+                        .withOld(sweepPriority()
+                                .staleValuesDeleted(10)
+                                .cellTsPairsExamined(1_000_000)
+                                .writeCount(20_000)
+                                .build())
+                        .withNew( sweepPriority()
+                                .lastSweepTimeMillis(DateTime.now().minusDays(5).toDateTime().getMillis())
+                                .writeCount(20_0000)
+                                .build());
 
-        Pair<SweepPriority, SweepPriority> recentlySweptTableWithFewWrites = Pair.create(
-                sweepPriority("recentlySweptTableWithFewWrites")
-                        .staleValuesDeleted(10)
-                        .cellTsPairsExamined(1_000_000)
-                        .writeCount(20_000)
-                        .build(),
-                sweepPriority("recentlySweptTableWithFewWrites")
-                        .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
-                        .writeCount(20_000)
-                        .build());
+        SweepPriorityHistory recentlySweptTableWithFewWrites =
+                new SweepPriorityHistory("recentlySweptTableWithFewWrites")
+                        .withOld(sweepPriority()
+                                .staleValuesDeleted(10)
+                                .cellTsPairsExamined(1_000_000)
+                                .writeCount(20_000)
+                                .build())
+                        .withNew( sweepPriority()
+                                .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
+                                .writeCount(20_000)
+                                .build());
 
         given(tableWithLikelyManyValuesToSweep);
         given(tableNotSweptInALongTime);
@@ -265,42 +273,42 @@ public class NextTableToSweepProviderTest {
     }
 
     //    @Test
-//    public void notValueTableReturnsSameTable() {
-//        Map<TableReference, Double> singleNonStreamStoreTable = ImmutableMap.of(NOT_SS_VALUE_TABLE, 1.0);
-//        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(singleNonStreamStoreTable);
-//
-//        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-//        assertThat(returnedTable).isEqualTo(selectedTable);
-//    }
-//
-//    @Test
-//    public void valueTableReturnsIndexThenValueTables() {
-//        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
-//        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable);
-//
-//        assertReturnsIndexThenValueTable();
-//    }
-//
-//    @Test
-//    @SuppressWarnings("unchecked")
-//    public void notValueTableAfterValueTableIsReturnedCorrectly() {
-//        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
-//        Optional<TableReference> nextSelectedTable = Optional.of(NOT_SS_VALUE_TABLE);
-//        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable, nextSelectedTable);
-//
-//        assertReturnsIndexThenValueTable();
-//
-//        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-//        assertThat(followupReturnedTable).isEqualTo(Optional.of(NOT_SS_VALUE_TABLE));
-//    }
-//
-//    private void assertReturnsIndexThenValueTable() {
-//        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-//        assertThat(returnedTable).isEqualTo(Optional.of(SS_INDEX_TABLE));
-//
-//        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
-//        assertThat(followupReturnedTable).isEqualTo(Optional.of(SS_VALUE_TABLE));
-//    }
+    //    public void notValueTableReturnsSameTable() {
+    //        Map<TableReference, Double> singleNonStreamStoreTable = ImmutableMap.of(NOT_SS_VALUE_TABLE, 1.0);
+    //        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(singleNonStreamStoreTable);
+    //
+    //        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+    //        assertThat(returnedTable).isEqualTo(selectedTable);
+    //    }
+    //
+    //    @Test
+    //    public void valueTableReturnsIndexThenValueTables() {
+    //        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
+    //        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable);
+    //
+    //        assertReturnsIndexThenValueTable();
+    //    }
+    //
+    //    @Test
+    //    @SuppressWarnings("unchecked")
+    //    public void notValueTableAfterValueTableIsReturnedCorrectly() {
+    //        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
+    //        Optional<TableReference> nextSelectedTable = Optional.of(NOT_SS_VALUE_TABLE);
+    //        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(selectedTable, nextSelectedTable);
+    //
+    //        assertReturnsIndexThenValueTable();
+    //
+    //        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+    //        assertThat(followupReturnedTable).isEqualTo(Optional.of(NOT_SS_VALUE_TABLE));
+    //    }
+    //
+    //    private void assertReturnsIndexThenValueTable() {
+    //        Optional<TableReference> returnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+    //        assertThat(returnedTable).isEqualTo(Optional.of(SS_INDEX_TABLE));
+    //
+    //        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
+    //        assertThat(followupReturnedTable).isEqualTo(Optional.of(SS_VALUE_TABLE));
+    //    }
 
     private void givenNoTables() {
         // Nothing to do
@@ -310,11 +318,11 @@ public class NextTableToSweepProviderTest {
         allTables.addAll(Arrays.asList(tableRefs));
     }
 
-    private void given(Pair<SweepPriority, SweepPriority> priorities) {
-        allTables.add(priorities.getLhSide().tableRef());
+    private void given(SweepPriorityHistory priority) {
+        allTables.add(priority.tableRef);
 
-        oldPriorities.add(priorities.getLhSide());
-        newPriorities.add(priorities.getRhSide());
+        oldPriorities.add(priority.oldPriority);
+        newPriorities.add(priority.newPriority);
     }
 
     private void givenNotCassandra() {
@@ -339,22 +347,31 @@ public class NextTableToSweepProviderTest {
         Assert.assertThat(priorities.containsKey(table), CoreMatchers.is(true));
     }
 
+    private void thenOnlyTablePrioritisedIs(SweepPriorityHistory sweepPriorityHistory) {
+        Assert.assertThat(priorities.size(), CoreMatchers.is(1));
+        Assert.assertThat(priorities.containsKey(sweepPriorityHistory.tableRef), CoreMatchers.is(true));
+    }
+
     private void thenTableHasPriority(TableReference table) {
         Assert.assertThat(priorities.get(table), Matchers.greaterThan(0.0));
     }
 
-    private void thenTableHasZeroPriority(TableReference table) {
-        Assert.assertThat(priorities.get(table), CoreMatchers.is(0.0));
+    private void thenTableHasPriority(SweepPriorityHistory sweepPriorityHistory) {
+        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), Matchers.greaterThan(0.0));
+    }
+
+    private void thenTableHasZeroPriority(SweepPriorityHistory sweepPriorityHistory) {
+        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), CoreMatchers.is(0.0));
     }
 
     private void thenNumberOfTablesPrioritisedIs(int expectedNumberOfTables) {
         Assert.assertThat(priorities.size(), CoreMatchers.is(expectedNumberOfTables));
     }
 
-    private void thenFirstTableHasHigherPriorityThanSecond(Pair<SweepPriority, SweepPriority> higherPriorityTable,
-            Pair<SweepPriority, SweepPriority> lowerPriorityTable) {
-        double priority1 = priorities.get(higherPriorityTable.getLhSide().tableRef());
-        double priority2 = priorities.get(lowerPriorityTable.getLhSide().tableRef());
+    private void thenFirstTableHasHigherPriorityThanSecond(SweepPriorityHistory higherPriorityTable,
+            SweepPriorityHistory lowerPriorityTable) {
+        double priority1 = priorities.get(higherPriorityTable.tableRef);
+        double priority2 = priorities.get(lowerPriorityTable.tableRef);
         Assert.assertThat(priority1, Matchers.greaterThan(priority2));
     }
 
@@ -363,13 +380,33 @@ public class NextTableToSweepProviderTest {
         return TableReference.create(Namespace.create("test"), name);
     }
 
-    private ImmutableSweepPriority.Builder sweepPriority(String tableName) {
+    private ImmutableSweepPriority.Builder sweepPriority() {
         return ImmutableSweepPriority.builder()
-                .tableRef(table(tableName))
+                .tableRef(table("placeholder"))
                 .writeCount(1000)
                 .lastSweepTimeMillis(DateTime.now().getMillis())
                 .minimumSweptTimestamp(100)
                 .staleValuesDeleted(10)
                 .cellTsPairsExamined(10000);
+    }
+
+    private class SweepPriorityHistory {
+        final TableReference tableRef;
+        ImmutableSweepPriority oldPriority;
+        ImmutableSweepPriority newPriority;
+
+        SweepPriorityHistory(String tableName) {
+            this.tableRef = table(tableName);
+        }
+
+        SweepPriorityHistory withOld(ImmutableSweepPriority priority) {
+            this.oldPriority = priority.withTableRef(tableRef);
+            return this;
+        }
+
+        SweepPriorityHistory withNew(ImmutableSweepPriority priority) {
+            this.newPriority = priority.withTableRef(tableRef);
+            return this;
+        }
     }
 }
