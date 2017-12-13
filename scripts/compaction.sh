@@ -1,4 +1,5 @@
-lineOfKeyspaces=`./service/bin/cqlsh -e "describe keyspaces; "`
+#!/bin/bash
+lineOfKeyspaces=`./service/bin/cqlsh -e "describe keyspaces;"`
 echo $lineOfKeyspaces
 
 for keyspace in ${lineOfKeyspaces[@]}
@@ -11,7 +12,6 @@ do
                 continue;
         fi
         txTable=" _transactions"
-        ./service/bin/cqlsh -e "use $keyspace; alter table \"_transactions\" with gc_grace_seconds = 0;"
-        ./service/bin/nodetool flush && ./service/bin/nodetool compact $keyspaceWithoutQuotes
-        echo "Compacted the $txTable in keyspace $keyspace!"
+        ./service/bin/nodetool flush && ./service/bin/nodetool compact $keyspaceWithoutQuotes$txTable
+        echo "Compacted the $txTable table in keyspace $keyspace!"
 done
