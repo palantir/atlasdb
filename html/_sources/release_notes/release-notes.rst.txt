@@ -132,6 +132,10 @@ develop
            These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
 
+    *    - |new| |metrics|
+         - New metric added which reports the probability that a table is being written to unevenly.  ``com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger.probabilityDistributionIsNotUniform`` is tagged with the table reference (where safe) and is a probability from 0.0 to 1.0 that the token ranges are being written to unevenly.  Cassandra KVS only.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2764>`__)
+
     *    - |new|
          - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2730>`__)

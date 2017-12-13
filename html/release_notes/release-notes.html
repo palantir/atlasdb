@@ -282,11 +282,15 @@ That information is logged at info every time a table is written to more than a 
 These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2718">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>New metric added which reports the probability that a table is being written to unevenly.  <code class="docutils literal"><span class="pre">com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger.probabilityDistributionIsNotUniform</span></code> is tagged with the table reference (where safe) and is a probability from 0.0 to 1.0 that the token ranges are being written to unevenly.  Cassandra KVS only.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2764">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td><code class="docutils literal"><span class="pre">TimeLockAgent</span></code> exposes a new method, <code class="docutils literal"><span class="pre">getStatus()</span></code>, to be used by the internal TimeLock instance in order to provide a health check.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2730">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><p class="first">Removed several utility methods that are used by AtlasDB code. <code class="docutils literal"><span class="pre">MathUtils</span></code> has been moved to our large internal product, which was the only place to use it.</p>
 <blockquote>
 <div><ul class="simple">
@@ -298,11 +302,11 @@ These logs will be invaluable in more easily identifying hotspotting and for usi
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2782">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2775">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Deleted the TTL duration field from the <code class="docutils literal"><span class="pre">Cell</span></code> class.
 The interface <code class="docutils literal"><span class="pre">ExpiringKeyValueService</span></code> and implementations <code class="docutils literal"><span class="pre">CassandraExpiringKeyValueService</span></code> and <code class="docutils literal"><span class="pre">CqlExpiringKeyValueService</span></code> have also been removed.
 Additionally, <code class="docutils literal"><span class="pre">StreamTableDefinitionBuilder.expirationStrategy</span></code> has been removed.
