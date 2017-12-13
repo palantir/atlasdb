@@ -50,6 +50,26 @@ develop
     *    - Type
          - Change
 
+    *    - |new| |improved| |metrics| |logs|
+         - Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
+           Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
+           Logs will also include the new timing information.
+           Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
+
+              - ``cellTimestampPairsExamined.meter.currentIteration``
+              - ``cellTimestampPairsExamined.histogram.currentTable``
+              - ``cellTimestampPairsExamined.histogram.currentIteration`` (tagged)
+              - ``staleValuesDeleted.meter.currentIteration``
+              - ``staleValuesDeleted.histogram.currentTable``
+              - ``staleValuesDeleted.histogram.currentIteration`` (tagged)
+              - ``sweepTimeSweeping.meter.currentIteration``
+              - ``sweepTimeSweeping.histogram.currentTable``
+              - ``sweepTimeSweeping.histogram.currentIteration`` (tagged)
+              - ``sweepTimeElapsedSinceStart.currentValue.currentIteration``
+              - ``sweepTimeElapsedSinceStart.histogram.currentTable``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
+
     *    - |improved|
          - AtlasDB now provides a configurable ``compactInterval`` (0 by default) option for Postgres, in the Postgres DDL Config.
            A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.

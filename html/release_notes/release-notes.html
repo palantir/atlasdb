@@ -196,19 +196,42 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-logs">LOGS</span></td>
+<td><p class="first">Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
+Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
+Logs will also include the new timing information.
+Sweep now exposes the following metrics with the common prefix <code class="docutils literal"><span class="pre">com.palantir.atlasdb.sweep.metrics.SweepMetric.</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">cellTimestampPairsExamined.meter.currentIteration</span></code></li>
+<li><code class="docutils literal"><span class="pre">cellTimestampPairsExamined.histogram.currentTable</span></code></li>
+<li><code class="docutils literal"><span class="pre">cellTimestampPairsExamined.histogram.currentIteration</span></code> (tagged)</li>
+<li><code class="docutils literal"><span class="pre">staleValuesDeleted.meter.currentIteration</span></code></li>
+<li><code class="docutils literal"><span class="pre">staleValuesDeleted.histogram.currentTable</span></code></li>
+<li><code class="docutils literal"><span class="pre">staleValuesDeleted.histogram.currentIteration</span></code> (tagged)</li>
+<li><code class="docutils literal"><span class="pre">sweepTimeSweeping.meter.currentIteration</span></code></li>
+<li><code class="docutils literal"><span class="pre">sweepTimeSweeping.histogram.currentTable</span></code></li>
+<li><code class="docutils literal"><span class="pre">sweepTimeSweeping.histogram.currentIteration</span></code> (tagged)</li>
+<li><code class="docutils literal"><span class="pre">sweepTimeElapsedSinceStart.currentValue.currentIteration</span></code></li>
+<li><code class="docutils literal"><span class="pre">sweepTimeElapsedSinceStart.histogram.currentTable</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2672">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now provides a configurable <code class="docutils literal"><span class="pre">compactInterval</span></code> (0 by default) option for Postgres, in the Postgres DDL Config.
 A vacuum will be kicked off an a table only if there hasn’t been one on the same table in the last <code class="docutils literal"><span class="pre">compactInterval</span></code>.
 This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days for this config option
 and would encourage impls to test this out and report the results back. We will modify the defaults once we have this field tested.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2718">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal"><span class="pre">LeaderPingHealthCheck</span></code> supplied by <code class="docutils literal"><span class="pre">PaxosLeadershipCreator</span></code> now correctly reports the leadership state of nodes that believe themselves to be the leader.
 Previously, the health check would ping every <em>other</em> node in the cluster, resulting in leader nodes reporting that there are no leaders.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2805">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2799">Pull Request</a>)</td>
 </tr>
