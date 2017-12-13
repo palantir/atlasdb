@@ -73,7 +73,7 @@ public interface LeaderElectionService {
      * Get the set of potential leaders known by this leader election service. This will not do any network
      * calls and is meant to be callable without major performance implications.
      *
-     * @return the set of potential leaders known by this leader election service
+     * @return the set of potential leaders known by this leader election service, including itself
      */
     Set<PingableLeader> getPotentialLeaders();
 }

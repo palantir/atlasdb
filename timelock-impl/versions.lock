@@ -173,9 +173,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting2:error-handling",
-                "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:refresh-utils"
+                "com.palantir.remoting2:error-handling"
             ]
         },
         "com.google.guava:guava": {
@@ -487,7 +485,6 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
@@ -633,11 +630,7 @@
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.1",
             "transitive": [
-                "com.netflix.feign:feign-okhttp",
-                "com.palantir.atlasdb:atlasdb-feign",
-                "com.palantir.remoting3:okhttp-clients",
-                "com.palantir.remoting3:tracing-okhttp3",
-                "com.squareup.okhttp3:logging-interceptor"
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {
@@ -954,9 +947,7 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.remoting-api:errors",
-                "com.palantir.remoting2:error-handling",
-                "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:refresh-utils"
+                "com.palantir.remoting2:error-handling"
             ]
         },
         "com.google.guava:guava": {
@@ -1268,7 +1259,6 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
@@ -1414,11 +1404,7 @@
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.1",
             "transitive": [
-                "com.netflix.feign:feign-okhttp",
-                "com.palantir.atlasdb:atlasdb-feign",
-                "com.palantir.remoting3:okhttp-clients",
-                "com.palantir.remoting3:tracing-okhttp3",
-                "com.squareup.okhttp3:logging-interceptor"
+                "com.palantir.atlasdb:atlasdb-feign"
             ]
         },
         "com.squareup.okio:okio": {

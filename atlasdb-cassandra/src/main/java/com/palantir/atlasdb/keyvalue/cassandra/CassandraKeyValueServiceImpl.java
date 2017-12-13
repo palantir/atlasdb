@@ -32,7 +32,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1012,13 +1011,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void putInternal(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
-        putInternal(kvsMethodName, tableRef, values, CassandraConstants.NO_TTL);
-    }
-
-    protected void putInternal(String kvsMethodName,
-            final TableReference tableRef,
-            Iterable<Entry<Cell, Value>> values,
-            final int ttl) throws Exception {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
@@ -1029,8 +1021,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         putForSingleHostInternal(kvsMethodName,
                                 entry.getKey(),
                                 tableRef,
-                                entry.getValue().entrySet(),
-                                ttl);
+                                entry.getValue().entrySet());
                         clientPool.markWritesForTable(entry.getValue(), tableRef);
                         return null;
                     }));
@@ -1041,8 +1032,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void putForSingleHostInternal(String kvsMethodName,
             final InetSocketAddress host,
             final TableReference tableRef,
-            final Iterable<Entry<Cell, Value>> values,
-            final int ttl) throws Exception {
+            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
@@ -1054,7 +1044,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
                     for (Map.Entry<Cell, Value> e : partition) {
                         Cell cell = e.getKey();
-                        Column col = createColumn(cell, e.getValue(), ttl);
+                        Column col = createColumn(cell, e.getValue());
 
                         ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                         colOrSup.setColumn(col);
@@ -1079,7 +1069,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             @Override
             public String toString() {
                 return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
-                        + Iterables.size(values) + " values, " + ttl + " ttl sec)";
+                        + Iterables.size(values) + " values)";
             }
         });
     }
@@ -1166,10 +1156,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
         for (TableCellAndValue tableCellAndValue : batch) {
             Cell cell = tableCellAndValue.cell;
-            Column col = createColumn(
-                    cell,
-                    Value.create(tableCellAndValue.value, timestamp),
-                    CassandraConstants.NO_TTL);
+            Column col = createColumn(cell, Value.create(tableCellAndValue.value, timestamp));
 
             ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
             colOrSup.setColumn(col);
@@ -1190,7 +1177,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return map;
     }
 
-    private Column createColumn(Cell cell, Value value, final int ttl) {
+    private Column createColumn(Cell cell, Value value) {
         byte[] contents = value.getContents();
         long timestamp = value.getTimestamp();
         ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(cell.getColumnName(), timestamp);
@@ -1198,15 +1185,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         col.setName(colName);
         col.setValue(contents);
         col.setTimestamp(timestamp);
-
-        if (cell.getTtlDurationMillis() > 0) {
-            col.setTtl(CassandraKeyValueServices.convertTtl(cell.getTtlDurationMillis(), TimeUnit.MILLISECONDS));
-        }
-
-        if (ttl > 0) {
-            col.setTtl(ttl);
-        }
-
         return col;
     }
 

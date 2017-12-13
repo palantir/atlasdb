@@ -827,88 +827,6 @@ public final class TableMetadataPersistence {
   }
 
   /**
-   * Protobuf enum {@code com.palantir.atlasdb.protos.generated.ExpirationStrategy}
-   */
-  public enum ExpirationStrategy
-      implements com.google.protobuf.ProtocolMessageEnum {
-    /**
-     * <code>NEVER = 0;</code>
-     */
-    NEVER(0, 0),
-    /**
-     * <code>INDIVIDUALLY_SPECIFIED = 1;</code>
-     */
-    INDIVIDUALLY_SPECIFIED(1, 1),
-    ;
-
-    /**
-     * <code>NEVER = 0;</code>
-     */
-    public static final int NEVER_VALUE = 0;
-    /**
-     * <code>INDIVIDUALLY_SPECIFIED = 1;</code>
-     */
-    public static final int INDIVIDUALLY_SPECIFIED_VALUE = 1;
-
-
-    public final int getNumber() { return value; }
-
-    public static ExpirationStrategy valueOf(int value) {
-      switch (value) {
-        case 0: return NEVER;
-        case 1: return INDIVIDUALLY_SPECIFIED;
-        default: return null;
-      }
-    }
-
-    public static com.google.protobuf.Internal.EnumLiteMap<ExpirationStrategy>
-        internalGetValueMap() {
-      return internalValueMap;
-    }
-    private static com.google.protobuf.Internal.EnumLiteMap<ExpirationStrategy>
-        internalValueMap =
-          new com.google.protobuf.Internal.EnumLiteMap<ExpirationStrategy>() {
-            public ExpirationStrategy findValueByNumber(int number) {
-              return ExpirationStrategy.valueOf(number);
-            }
-          };
-
-    public final com.google.protobuf.Descriptors.EnumValueDescriptor
-        getValueDescriptor() {
-      return getDescriptor().getValues().get(index);
-    }
-    public final com.google.protobuf.Descriptors.EnumDescriptor
-        getDescriptorForType() {
-      return getDescriptor();
-    }
-    public static final com.google.protobuf.Descriptors.EnumDescriptor
-        getDescriptor() {
-      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(8);
-    }
-
-    private static final ExpirationStrategy[] VALUES = values();
-
-    public static ExpirationStrategy valueOf(
-        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
-      if (desc.getType() != getDescriptor()) {
-        throw new java.lang.IllegalArgumentException(
-          "EnumValueDescriptor is not for this type.");
-      }
-      return VALUES[desc.getIndex()];
-    }
-
-    private final int index;
-    private final int value;
-
-    private ExpirationStrategy(int index, int value) {
-      this.index = index;
-      this.value = value;
-    }
-
-    // @@protoc_insertion_point(enum_scope:com.palantir.atlasdb.protos.generated.ExpirationStrategy)
-  }
-
-  /**
    * Protobuf enum {@code com.palantir.atlasdb.protos.generated.LogSafety}
    */
   public enum LogSafety
@@ -965,7 +883,7 @@ public final class TableMetadataPersistence {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(9);
+      return com.palantir.atlasdb.protos.generated.TableMetadataPersistence.getDescriptor().getEnumTypes().get(8);
     }
 
     private static final LogSafety[] VALUES = values();
@@ -9314,10 +9232,8 @@ public final class TableMetadataPersistence {
       "\020\000\022\010\n\004COLD\020 \022\010\n\004WARM\020@\022\007\n\003HOT\020`\022\013\n\007HOTTE" +
       "ST\020\177**\n\021PartitionStrategy\022\013\n\007ORDERED\020\000\022\010",
       "\n\004HASH\020\001*<\n\rSweepStrategy\022\013\n\007NOTHING\020\000\022\020" +
-      "\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*;\n\022Expira" +
-      "tionStrategy\022\t\n\005NEVER\020\000\022\032\n\026INDIVIDUALLY_" +
-      "SPECIFIED\020\001*!\n\tLogSafety\022\010\n\004SAFE\020\000\022\n\n\006UN" +
-      "SAFE\020\001"
+      "\n\014CONSERVATIVE\020\001\022\014\n\010THOROUGH\020\002*!\n\tLogSaf" +
+      "ety\022\010\n\004SAFE\020\000\022\n\n\006UNSAFE\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
