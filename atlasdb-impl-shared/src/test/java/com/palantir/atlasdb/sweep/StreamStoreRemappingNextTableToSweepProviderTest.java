@@ -21,6 +21,7 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,6 +31,8 @@ import java.util.Set;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
+import org.joda.time.DateTime;
+import org.joda.time.Period;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,19 +105,18 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
     }
 
     @Test
-    public void tableHasShrunk_isLowPriority() {
-        Pair<SweepPriority, SweepPriority> shrunkTable = Pair.create(
-                sweepPriority("shrunkTable").writeCount(100).build(),
-                sweepPriority("shrunkTable").writeCount(50).build());
+    public void tableCleared_isLowPriority() {
+        Pair<SweepPriority, SweepPriority> clearedTable = Pair.create(
+                sweepPriority("clearedTable").writeCount(100).build(),
+                sweepPriority("clearedTable").writeCount(50).build());
 
-        given(shrunkTable);
+        given(clearedTable);
 
         whenGettingTablesToSweep();
 
-        thenOnlyTablePrioritisedIs(shrunkTable.getLhSide().tableRef());
-        thenTableHasZeroPriority(shrunkTable.getLhSide().tableRef());
+        thenOnlyTablePrioritisedIs(clearedTable.getLhSide().tableRef());
+        thenTableHasZeroPriority(clearedTable.getLhSide().tableRef());
     }
-
 
     @Test
     public void unsweptTableAndNormalTable_prioritiseUnsweptTable() {
@@ -130,6 +132,42 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
         whenGettingTablesToSweep();
 
         thenOnlyTablePrioritisedIs(unsweptTable);
+    }
+
+    @Test
+    public void tableDidNotChangeMuchLastTimeWeSweptIt_doNotPrioritise() {
+        Pair<SweepPriority, SweepPriority> rarelyUpdatedTable = Pair.create(
+                sweepPriority("rarelyUpdatedTable").cellTsPairsExamined(10000).writeCount(50)
+                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                        .build(),
+                sweepPriority("rarelyUpdatedTable")
+                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                        .build());
+
+        given(rarelyUpdatedTable);
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(rarelyUpdatedTable.getLhSide().tableRef());
+        thenTableHasZeroPriority(rarelyUpdatedTable.getLhSide().tableRef());
+    }
+
+    @Test
+    public void tableHasNotChangedMuch_butSweptLongAgo_hasPriority() {
+        Pair<SweepPriority, SweepPriority> rarelyUpdatedTable = Pair.create(
+                sweepPriority("rarelyUpdatedTable").cellTsPairsExamined(10000).writeCount(50)
+                        .lastSweepTimeMillis(DateTime.now().minusMonths(7).toDateTime().getMillis())
+                        .build(),
+                sweepPriority("rarelyUpdatedTable")
+                        .lastSweepTimeMillis(DateTime.now().minusMonths(7).toDateTime().getMillis())
+                        .build());
+
+        given(rarelyUpdatedTable);
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(rarelyUpdatedTable.getLhSide().tableRef());
+        thenTableHasPriority(rarelyUpdatedTable.getLhSide().tableRef());
     }
 
 //    @Test
@@ -219,7 +257,7 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
         return ImmutableSweepPriority.builder()
                 .tableRef(table(tableName))
                 .writeCount(100)
-                .lastSweepTimeMillis(100)
+                .lastSweepTimeMillis(DateTime.now().getMillis())
                 .minimumSweptTimestamp(100)
                 .staleValuesDeleted(100)
                 .cellTsPairsExamined(100);
