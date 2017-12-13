@@ -208,6 +208,10 @@ and would encourage impls to test this out and report the results back. We will 
 Previously, the health check would ping every <em>other</em> node in the cluster, resulting in leader nodes reporting that there are no leaders.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2805">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2799">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
