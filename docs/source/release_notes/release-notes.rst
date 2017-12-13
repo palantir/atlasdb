@@ -44,6 +44,10 @@ v0.61.9
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2799>`__)
+
     *    - |improved|
          - Added logging for leadership election code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3275>`__)
