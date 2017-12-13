@@ -62,6 +62,10 @@ develop
            Previously, the health check would ping every *other* node in the cluster, resulting in leader nodes reporting that there are no leaders.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2805>`__)
 
+    *    - |fixed|
+         - Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2799>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 ======
