@@ -26,7 +26,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -188,7 +187,7 @@ public final class ClientAwareLockTest {
     }
 
     /** Tests that a timed try lock can fail and wake up blocking threads. */
-    @Test @Ignore public void testTimedTryLockCanFail() throws Exception {
+    @Test public void testTimedTryLockCanFail() throws Exception {
         anonymousReadLock.lock();
         Assert.assertNull(anonymousReadLock.tryLock());
         anonymousReadLock.unlock();
@@ -317,9 +316,9 @@ public final class ClientAwareLockTest {
             /* Expected. */
         }
         futureToCancel.cancel(true);
+        futureToCancel.get(1000, TimeUnit.MILLISECONDS);
         anonymousWriteLock.unlock();
         futureToSucceed.get(1000, TimeUnit.MILLISECONDS);
-        futureToCancel.get(1000, TimeUnit.MILLISECONDS);
         anonymousReadLock.unlock();
         Assert.assertNull(knownClientWriteLock.tryLock());
         knownClientWriteLock.unlock();
