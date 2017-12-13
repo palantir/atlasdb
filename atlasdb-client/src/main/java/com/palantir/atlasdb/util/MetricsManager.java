@@ -30,6 +30,9 @@ import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -75,6 +78,20 @@ public class MetricsManager {
                         .safeTags(tag)
                         .build(),
                 gauge);
+    }
+
+    public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
+        Map<String, String> tag = getTagFor(tableRef);
+
+        taggedMetricRegistry.gauge(MetricName.builder()
+                        .safeName(MetricRegistry.name(clazz, metricName))
+                        .safeTags(tag)
+                        .build(),
+                gauge);
+    }
+
+    private Map<String, String> getTagFor(TableReference tableRef) {
+        return ImmutableMap.of("tableName", LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {
