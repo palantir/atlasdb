@@ -1,6 +1,11 @@
+sudo ifconfig lo0 alias 127.0.0.2 up
+sudo ifconfig lo0 alias 127.0.0.3 up
+
+ccm start
+
 cd ~/code/atlasdb4
 rm -rf atlasdb-cli-distribution/build
-rm -rf "atlasdb-cli-distribution-0.70.0.*"
+ls | grep "atlasdb-cli-0.70.0.*" | xargs rm -rf
 
 ./gradlew distTar
 

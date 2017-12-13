@@ -318,7 +318,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public long getUnreadableTimestamp() {
-        return cleaner.getUnreadableTimestamp();
+        return getImmutableTimestamp();
     }
 
     public Cleaner getCleaner() {

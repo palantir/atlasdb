@@ -70,7 +70,12 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         proxy.addTodo(ImmutableTodo.of("newTODO"));
 
         IntStream.range(0, 10000).forEach(i -> {
-            proxy.addTodo(ImmutableTodo.of("new TODO"));
+            if (i % 10 == 0) {
+//                List<Todo> todoList = proxy.getTodoList();
+//                System.out.println(todoList.size());
+            } else {
+                proxy.addTodo(ImmutableTodo.of("new TODO"));
+            }
             Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
         });
     }
