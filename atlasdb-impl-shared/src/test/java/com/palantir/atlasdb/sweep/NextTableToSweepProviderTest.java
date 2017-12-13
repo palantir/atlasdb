@@ -39,7 +39,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.sweep.priority.ImmutableSweepPriority;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
@@ -47,15 +46,7 @@ import com.palantir.atlasdb.sweep.priority.SweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.util.Pair;
 
-public class StreamStoreRemappingNextTableToSweepProviderTest {
-    private static final String TEST_TABLE = "test";
-    private static final String SS_VALUE_TABLE_NAME = StreamTableType.VALUE.getTableName(TEST_TABLE);
-    private static final String SS_INDEX_TABLE_NAME = StreamTableType.INDEX.getTableName(TEST_TABLE);
-
-    private static final TableReference NOT_SS_VALUE_TABLE = TableReference.createWithEmptyNamespace("test");
-    private static final TableReference SS_VALUE_TABLE = TableReference.createWithEmptyNamespace(SS_VALUE_TABLE_NAME);
-    private static final TableReference SS_INDEX_TABLE = TableReference.createWithEmptyNamespace(SS_INDEX_TABLE_NAME);
-
+public class NextTableToSweepProviderTest {
     private KeyValueService kvs;
     private SweepPriorityStore sweepPriorityStore;
 
@@ -312,7 +303,7 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
     }
 
     // helpers
-    private static final TableReference table(String name) {
+    private static TableReference table(String name) {
         return TableReference.create(Namespace.create("test"), name);
     }
 
