@@ -18,16 +18,11 @@ package com.palantir.atlasdb.sweep.priority;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -193,7 +188,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
     private double getNonStreamStorePriority(SweepPriority oldPriority, SweepPriority newPriority) {
         long staleValuesDeleted = Math.max(1, oldPriority.staleValuesDeleted());
         long cellTsPairsExamined = Math.max(1, oldPriority.cellTsPairsExamined());
-        long writeCount = Math.max(1, oldPriority.writeCount());
+        long writeCount = Math.max(1, oldPriority.writeCount()); //TODO(tboam): should this be newPriority?
         double previousEfficacy = 1.0 * staleValuesDeleted / cellTsPairsExamined;
         double estimatedCellTsPairsToSweep = previousEfficacy * writeCount;
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
@@ -201,6 +196,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
         if (writeCount <= 100 + cellTsPairsExamined / 100 && daysSinceLastSweep < 180) {
             // Not worth the effort if fewer than 1% of cells are new and we've swept in the last 6 months.
+            // TODO(tboam): is this really 1%?
             return 0.0;
         }
 
