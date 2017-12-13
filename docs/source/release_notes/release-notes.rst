@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+======
+0.72.0
+======
+
+13 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new| |improved| |metrics| |logs|
          - Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
            Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
