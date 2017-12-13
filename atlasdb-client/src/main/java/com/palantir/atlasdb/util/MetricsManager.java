@@ -60,6 +60,10 @@ public class MetricsManager {
         return metricRegistry;
     }
 
+    public TaggedMetricRegistry getTaggedRegistry() {
+        return taggedMetricRegistry;
+    }
+
     public void registerMetric(Class clazz, String metricPrefix, String metricName, Gauge gauge) {
         registerMetric(clazz, metricPrefix, metricName, (Metric) gauge);
     }

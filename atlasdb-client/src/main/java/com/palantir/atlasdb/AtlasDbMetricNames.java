@@ -37,4 +37,10 @@ public final class AtlasDbMetricNames {
     public static final String SNAPSHOT_TRANSACTION_CELLS_RETURNED = "numCellsReturnedAfterFiltering";
     public static final String SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ = "tooManyBytesRead";
     public static final String SNAPSHOT_TRANSACTION_BYTES_WRITTEN = "bytesWritten";
+
+    public static final String CELLS_EXAMINED = "cellTimestampPairsExamined";
+    public static final String CELLS_SWEPT = "staleValuesDeleted";
+    public static final String TIME_SPENT_SWEEPING = "sweepTimeSweeping";
+    public static final String TIME_ELAPSED_SWEEPING = "sweepTimeElapsedSinceStart";
+    public static final String SWEEP_ERROR = "sweepError";
 }
