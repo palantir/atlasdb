@@ -873,18 +873,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-                switch (getReadSentinelBehavior()) {
-                    case IGNORE:
-                        break;
-                    case THROW_EXCEPTION:
-                        throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. " +
-                                " This can be caused by hard delete transactions using the type " +
-                                TransactionType.AGGRESSIVE_HARD_DELETE +
-                                ". It can also be caused by transactions taking too long, or" +
-                                " its locks expired. Retrying it should work.");
-                    default:
-                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
-                }
+                log.warn("Read a sentinel value for cell {}. Ignoring.", key);
             } else {
                 Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
                 if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
