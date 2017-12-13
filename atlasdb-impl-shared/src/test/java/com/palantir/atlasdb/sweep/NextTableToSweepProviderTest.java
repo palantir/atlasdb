@@ -219,6 +219,51 @@ public class NextTableToSweepProviderTest {
         thenTableHasPriority(tableWithManyDeletes.getLhSide().tableRef());
     }
 
+    @Test
+    public void standardEstimatedTablePriorities() {
+        Pair<SweepPriority, SweepPriority> tableWithLikelyManyValuesToSweep = Pair.create(
+                sweepPriority("tableWithLikelyManyValuesToSweep")
+                        .staleValuesDeleted(1_000_000)
+                        .cellTsPairsExamined(10_000_000)
+                        .writeCount(200_000)
+                        .build(),
+                sweepPriority("tableWithLikelyManyValuesToSweep")
+                        .writeCount(200_000)
+                        .build());
+
+        Pair<SweepPriority, SweepPriority> tableNotSweptInALongTime = Pair.create(
+                sweepPriority("tableNotSweptInALongTime")
+                        .staleValuesDeleted(10)
+                        .cellTsPairsExamined(1_000_000)
+                        .writeCount(20_000)
+                        .build(),
+                sweepPriority("tableNotSweptInALongTime")
+                        .lastSweepTimeMillis(DateTime.now().minusDays(5).toDateTime().getMillis())
+                        .writeCount(20_0000)
+                        .build());
+
+        Pair<SweepPriority, SweepPriority> recentlySweptTableWithFewWrites = Pair.create(
+                sweepPriority("recentlySweptTableWithFewWrites")
+                        .staleValuesDeleted(10)
+                        .cellTsPairsExamined(1_000_000)
+                        .writeCount(20_000)
+                        .build(),
+                sweepPriority("recentlySweptTableWithFewWrites")
+                        .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
+                        .writeCount(20_000)
+                        .build());
+
+        given(tableWithLikelyManyValuesToSweep);
+        given(tableNotSweptInALongTime);
+        given(recentlySweptTableWithFewWrites);
+
+        whenGettingTablesToSweep();
+
+        thenNumberOfTablesPrioritisedIs(3);
+        thenFirstTableHasHigherPriorityThanSecond(tableWithLikelyManyValuesToSweep, tableNotSweptInALongTime);
+        thenFirstTableHasHigherPriorityThanSecond(tableNotSweptInALongTime, recentlySweptTableWithFewWrites);
+    }
+
     //    @Test
 //    public void notValueTableReturnsSameTable() {
 //        Map<TableReference, Double> singleNonStreamStoreTable = ImmutableMap.of(NOT_SS_VALUE_TABLE, 1.0);
@@ -300,6 +345,17 @@ public class NextTableToSweepProviderTest {
 
     private void thenTableHasZeroPriority(TableReference table) {
         Assert.assertThat(priorities.get(table), CoreMatchers.is(0.0));
+    }
+
+    private void thenNumberOfTablesPrioritisedIs(int expectedNumberOfTables) {
+        Assert.assertThat(priorities.size(), CoreMatchers.is(expectedNumberOfTables));
+    }
+
+    private void thenFirstTableHasHigherPriorityThanSecond(Pair<SweepPriority, SweepPriority> higherPriorityTable,
+            Pair<SweepPriority, SweepPriority> lowerPriorityTable) {
+        double priority1 = priorities.get(higherPriorityTable.getLhSide().tableRef());
+        double priority2 = priorities.get(lowerPriorityTable.getLhSide().tableRef());
+        Assert.assertThat(priority1, Matchers.greaterThan(priority2));
     }
 
     // helpers
