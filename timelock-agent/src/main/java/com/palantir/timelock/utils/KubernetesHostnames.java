@@ -91,7 +91,6 @@ public final class KubernetesHostnames {
         log.info("Using hostname.", SafeArg.of("hostname", canonicalHostName));
         Matcher matcher = POD_HOSTNAME_TEMPLATE_REGEX.matcher(canonicalHostName);
         Preconditions.checkState(matcher.matches(), "Not running in a k8s stateful set.");
-        log.info("Hostname matcher results.", SafeArg.of("matcher", matcher));
         return matcher;
     }
 

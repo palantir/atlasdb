@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.palantir.timelock.utils.KubernetesHostnames;
 
 /**
@@ -65,4 +66,10 @@ public interface KubernetesClusterConfiguration extends ClusterConfiguration {
         return String.format("%s:%s%s", KubernetesHostnames.INSTANCE.getCurrentHostname(), port(), path());
     }
 
+    @Value.Check
+    default void k8sCheck() {
+        Preconditions.checkState(expectedClusterSize() > 0,
+                "expected-cluster-size must be a positive integer; provided: %s.", expectedClusterSize());
+        Preconditions.checkState(port() > 0 && port() < 65535, "Invalid port specified: %s", port());
+    }
 }
