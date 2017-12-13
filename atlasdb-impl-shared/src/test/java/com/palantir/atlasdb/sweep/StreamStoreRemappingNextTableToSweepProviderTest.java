@@ -16,27 +16,35 @@
 
 package com.palantir.atlasdb.sweep;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
+import com.palantir.atlasdb.sweep.priority.ImmutableSweepPriority;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
+import com.palantir.atlasdb.sweep.priority.SweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
-import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.util.Pair;
 
 public class StreamStoreRemappingNextTableToSweepProviderTest {
     private static final String TEST_TABLE = "test";
@@ -49,42 +57,79 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
 
     private KeyValueService kvs;
     private SweepPriorityStore sweepPriorityStore;
-    private Transaction mockedTransaction;
 
     private StreamStoreRemappingNextTableToSweepProviderImpl provider;
+
+    private Set<TableReference> allTables;
+    private List<SweepPriority> oldPriorities;
+    private List<SweepPriority> newPriorities;
+
+    private Map<TableReference, Double> priorities;
 
     @Before
     public void setup() {
         kvs = mock(KeyValueService.class);
         sweepPriorityStore = mock(SweepPriorityStore.class);
-        mockedTransaction = mock(Transaction.class);
 
         NextTableToSweepProviderImpl nextTableToSweep = new NextTableToSweepProviderImpl(kvs, sweepPriorityStore);
         provider = new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweep, sweepPriorityStore);
+
+        allTables = new HashSet<>(AtlasDbConstants.hiddenTables);
+        oldPriorities = new ArrayList<>();
+        newPriorities = new ArrayList<>();
+    }
+
+
+    @Test
+    public void noTables() {
+        givenNoTables();
+
+        whenGettingTablesToSweep();
+
+        thenNoTablesToSweep();
     }
 
     @Test
     public void unsweptTableIsAlwaysPrioritised() {
-        given(UNSWEPT_TABLE);
+        TableReference unsweptTable = table("unswept1");
 
+        given(unsweptTable);
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(unsweptTable);
+        thenTableHasPriority(unsweptTable);
     }
 
     @Test
-    public void singleTableIsAlwaysPrioritised() {
-        given(UNSWEPT_TABLE);
+    public void tableHasShrunk_isLowPriority() {
+        Pair<SweepPriority, SweepPriority> shrunkTable = Pair.create(
+                sweepPriority("shrunkTable").writeCount(100).build(),
+                sweepPriority("shrunkTable").writeCount(50).build());
 
+        given(shrunkTable);
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(shrunkTable.getLhSide().tableRef());
+        thenTableHasZeroPriority(shrunkTable.getLhSide().tableRef());
     }
 
-    @Test
-    public void singleTable_caseToIgnore() {
-        given(UNSWEPT_TABLE);
-
-    }
 
     @Test
     public void unsweptTableAndNormalTable_prioritiseUnsweptTable() {
-        given(UNSWEPT_TABLE);
+        TableReference unsweptTable = table("unswept1");
 
+        Pair<SweepPriority, SweepPriority> normalTable = Pair.create(
+                sweepPriority("normalTable").writeCount(50).build(),
+                sweepPriority("normalTable").writeCount(100).build());
+
+        given(unsweptTable);
+        given(normalTable);
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(unsweptTable);
     }
 
 //    @Test
@@ -124,4 +169,59 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
 //        Optional<TableReference> followupReturnedTable = provider.computeSweepPriorities(mockedTransaction, 1L);
 //        assertThat(followupReturnedTable).isEqualTo(Optional.of(SS_VALUE_TABLE));
 //    }
+
+    private void givenNoTables() {
+        // Nothing to do
+    }
+
+    private void given(TableReference... tableRefs) {
+        allTables.addAll(Arrays.asList(tableRefs));
+    }
+
+    private void given(Pair<SweepPriority, SweepPriority> priorities) {
+        allTables.add(priorities.getLhSide().tableRef());
+
+        oldPriorities.add(priorities.getLhSide());
+        newPriorities.add(priorities.getRhSide());
+    }
+
+    private void whenGettingTablesToSweep() {
+        when(kvs.getAllTableNames()).thenReturn(allTables);
+        when(sweepPriorityStore.loadOldPriorities(any(), anyLong())).thenReturn(oldPriorities);
+        when(sweepPriorityStore.loadNewPriorities(any())).thenReturn(newPriorities);
+
+        priorities = provider.computeSweepPriorities(null, 0L);
+    }
+
+    private void thenNoTablesToSweep() {
+        Assert.assertThat(priorities.isEmpty(), CoreMatchers.is(true));
+    }
+
+    private void thenOnlyTablePrioritisedIs(TableReference table) {
+        Assert.assertThat(priorities.size(), CoreMatchers.is(1));
+        Assert.assertThat(priorities.containsKey(table), CoreMatchers.is(true));
+    }
+
+    private void thenTableHasPriority(TableReference table) {
+        Assert.assertThat(priorities.get(table), Matchers.greaterThan(0.0));
+    }
+
+    private void thenTableHasZeroPriority(TableReference table) {
+        Assert.assertThat(priorities.get(table), CoreMatchers.is(0.0));
+    }
+
+    // helpers
+    private static final TableReference table(String name) {
+        return TableReference.create(Namespace.create("test"), name);
+    }
+
+    private ImmutableSweepPriority.Builder sweepPriority(String tableName) {
+        return ImmutableSweepPriority.builder()
+                .tableRef(table(tableName))
+                .writeCount(100)
+                .lastSweepTimeMillis(100)
+                .minimumSweptTimestamp(100)
+                .staleValuesDeleted(100)
+                .cellTsPairsExamined(100);
+    }
 }

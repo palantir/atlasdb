@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -73,34 +74,38 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
         // sweep the same table while waiting for the past to catch up.
         List<SweepPriority> oldPriorities = sweepPriorityStore.loadOldPriorities(tx, conservativeSweepTs);
         List<SweepPriority> newPriorities = sweepPriorityStore.loadNewPriorities(tx);
-        Map<TableReference, SweepPriority> newPrioritiesByTableName = newPriorities.stream().collect(
-                Collectors.toMap(SweepPriority::tableRef, Function.identity()));
-        return getTableToSweep(tx, allTables, oldPriorities, newPrioritiesByTableName);
+
+        return getTableToSweep(tx, allTables, oldPriorities, newPriorities);
     }
 
     private Map<TableReference, Double> getTableToSweep(
             Transaction tx,
             Set<TableReference> allTables,
             List<SweepPriority> oldPriorities,
-            Map<TableReference, SweepPriority> newPrioritiesByTableName) {
-        Map<TableReference, Double> tableToPriority = new HashMap<>(oldPriorities.size());
+            List<SweepPriority> newPriorities) {
 
-        // If there are any unswept tables, give them highest priority.
-        Map<TableReference, Double> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet())
-                .stream()
-                .collect(Collectors.toMap(Function.identity(), tableReference -> Double.MAX_VALUE));
-        logUnsweptTables(unsweptTables.keySet());
-        tableToPriority.putAll(unsweptTables);
+        Set<TableReference> unsweptTables = Sets.difference(allTables,
+                newPriorities.stream().map(SweepPriority::tableRef).collect(Collectors.toSet()));
+        if (!unsweptTables.isEmpty()) {
+            // Always sweep unswept tables first
+            logUnsweptTables(unsweptTables);
+            return unsweptTables.stream().collect(Collectors.toMap(Function.identity(), tableReference -> 100.0));
+        }
+
+        Map<TableReference, SweepPriority> newPrioritiesByTableName = newPriorities.stream().collect(
+                Collectors.toMap(SweepPriority::tableRef, Function.identity()));
 
         // Compute priority for tables that do have a priority table.
+        Map<TableReference, Double> tableToPriority = new HashMap<>(oldPriorities.size());
         Collection<TableReference> toDelete = Lists.newArrayList();
         for (SweepPriority oldPriority : oldPriorities) {
-            if (allTables.contains(oldPriority.tableRef())) {
-                SweepPriority newPriority = newPrioritiesByTableName.get(oldPriority.tableRef());
-                double priority = getSweepPriority(oldPriority, newPriority);
-                tableToPriority.put(oldPriority.tableRef(), priority);
+            TableReference tableReference = oldPriority.tableRef();
+
+            if (allTables.contains(tableReference)) {
+                SweepPriority newPriority = newPrioritiesByTableName.get(tableReference);
+                tableToPriority.put(tableReference, getSweepPriority(oldPriority, newPriority));
             } else {
-                toDelete.add(oldPriority.tableRef());
+                toDelete.add(tableReference);
             }
         }
 
