@@ -56,19 +56,54 @@ develop
            Logs will also include the new timing information.
            Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
 
-              - ``cellTimestampPairsExamined.meter.perIteration``
-              - ``cellTimestampPairsExamined.histogram.perTable``
-              - ``cellTimestampPairsExamined.histogram.perIteration`` (tagged)
-              - ``staleValuesDeleted.meter.perIteration``
-              - ``staleValuesDeleted.histogram.perTable``
-              - ``staleValuesDeleted.histogram.perIteration`` (tagged)
-              - ``sweepTimeSweeping.meter.perIteration``
-              - ``sweepTimeSweeping.histogram.perTable``
-              - ``sweepTimeSweeping.histogram.perIteration`` (tagged)
-              - ``sweepTimeElapsedSinceStart.currentValue.perIteration``
-              - ``sweepTimeElapsedSinceStart.histogram.perTable``
+              - ``cellTimestampPairsExamined.meter.currentIteration``
+              - ``cellTimestampPairsExamined.histogram.currentTable``
+              - ``cellTimestampPairsExamined.histogram.currentIteration`` (tagged)
+              - ``staleValuesDeleted.meter.currentIteration``
+              - ``staleValuesDeleted.histogram.currentTable``
+              - ``staleValuesDeleted.histogram.currentIteration`` (tagged)
+              - ``sweepTimeSweeping.meter.currentIteration``
+              - ``sweepTimeSweeping.histogram.currentTable``
+              - ``sweepTimeSweeping.histogram.currentIteration`` (tagged)
+              - ``sweepTimeElapsedSinceStart.currentValue.currentIteration``
+              - ``sweepTimeElapsedSinceStart.histogram.currentTable``
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
+
+    *    - |improved|
+         - AtlasDB now provides a configurable ``compactInterval`` (0 by default) option for Postgres, in the Postgres DDL Config.
+           A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.
+           This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days for this config option
+           and would encourage impls to test this out and report the results back. We will modify the defaults once we have this field tested.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+
+    *    - |fixed|
+         - The ``LeaderPingHealthCheck`` supplied by ``PaxosLeadershipCreator`` now correctly reports the leadership state of nodes that believe themselves to be the leader.
+           Previously, the health check would ping every *other* node in the cluster, resulting in leader nodes reporting that there are no leaders.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2805>`__)
+
+    *    - |fixed|
+         - Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2799>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.71.1
+======
+
+8 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Removed an unused dependency from ``atlasdb-api``, fixing a dependency clash in a downstream product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2798>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -117,6 +152,10 @@ develop
            These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
 
+    *    - |new| |metrics|
+         - New metric added which reports the probability that a table is being written to unevenly.  ``com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger.probabilityDistributionIsNotUniform`` is tagged with the table reference (where safe) and is a probability from 0.0 to 1.0 that the token ranges are being written to unevenly.  Cassandra KVS only.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2764>`__)
+
     *    - |new|
          - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2730>`__)
@@ -133,6 +172,12 @@ develop
     *    - |new|
          - Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
+
+    *    - |devbreak|
+         - Deleted the TTL duration field from the ``Cell`` class.
+           The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
+           Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

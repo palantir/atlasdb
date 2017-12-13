@@ -35,6 +35,7 @@ import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.math.Distributions;
 
@@ -78,12 +79,20 @@ public final class TokenRangeWritesLogger {
         private final RangeMap<LightweightOppToken, AtomicLong> writesPerRange;
         private final AtomicLong writesSinceLastLog = new AtomicLong(0);
         private long lastLoggedTime = System.currentTimeMillis();
+        private double probabilityDistributionIsNotUniform = 0.0;
 
         private TokenRangeWrites(TableReference tableRef, Set<Range<LightweightOppToken>> ranges) {
             this.tableRef = tableRef;
             ImmutableRangeMap.Builder<LightweightOppToken, AtomicLong> builder = ImmutableRangeMap.builder();
             ranges.forEach(range -> builder.put(range, new AtomicLong(0)));
             this.writesPerRange = builder.build();
+            new MetricsManager()
+                    .registerGaugeForTable(TokenRangeWritesLogger.class, "probabilityDistributionIsNotUniform",
+                            tableRef, this::getProbabilityDistributionIsNotUniform);
+        }
+
+        private double getProbabilityDistributionIsNotUniform() {
+            return probabilityDistributionIsNotUniform;
         }
 
         private void markWrite(Cell cell) {
@@ -99,7 +108,9 @@ public final class TokenRangeWritesLogger {
 
         private synchronized void tryLog() {
             if (shouldLog()) {
-                if (distributionNotUniform()) {
+                refreshProbabilityDistributionNotUniform();
+
+                if (probabilityDistributionIsNotUniform > CONFIDENCE_FOR_LOGGING) {
                     logNotUniform();
                 } else {
                     logUniform();
@@ -114,10 +125,10 @@ public final class TokenRangeWritesLogger {
                     && (System.currentTimeMillis() - lastLoggedTime) > TIME_UNTIL_LOG_MILLIS;
         }
 
-        private boolean distributionNotUniform() {
+        private void refreshProbabilityDistributionNotUniform() {
             List<Long> values = writesPerRange.asMapOfRanges().values().stream().map(AtomicLong::get)
                     .collect(Collectors.toList());
-            return Distributions.confidenceThatDistributionIsNotUniform(values) > CONFIDENCE_FOR_LOGGING;
+            probabilityDistributionIsNotUniform = Distributions.confidenceThatDistributionIsNotUniform(values);
         }
 
         private void logNotUniform() {

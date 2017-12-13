@@ -326,7 +326,6 @@ public class SweepMetricsManagerTest {
                 0,
                 false,
                 TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                TableMetadataPersistence.ExpirationStrategy.NEVER,
                 false,
                 safety);
     }
