@@ -40,6 +40,10 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
     @Override
     public Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs) {
         Map<TableReference, Double> tableToPriority = delegate.computeSweepPriorities(tx, conservativeSweepTs);
+        if (tableToPriority.isEmpty()) {
+            return tableToPriority;
+        }
+
         List<TableReference> tablesWithHighestPriority = NextTableToSweepProvider.findTablesWithHighestPriority(
                 tableToPriority);
 
