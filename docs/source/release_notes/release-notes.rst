@@ -90,7 +90,7 @@ develop
          - AtlasDB now provides a configurable ``compactInterval`` (0 by default) option for Postgres, in the Postgres DDL Config.
            A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.
            This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days (e.g. ``2d`` or ``2 days``) for this config option
-           and would encourage users to test this out and report the results back. We will modify the defaults once we this has been field tested.
+           and would encourage users to test this out and report the results back. We will modify the defaults once this has been field tested.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2767>`__)
 
     *    - |fixed|
@@ -106,6 +106,7 @@ develop
          - Deleted the TTL duration field from the ``Cell`` class.
            The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
            Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
+           We don't believe that any of these fields or classes were used.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
