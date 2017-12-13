@@ -91,11 +91,7 @@ public class MetricsManager {
     }
 
     private Map<String, String> getTagFor(TableReference tableRef) {
-        if (LoggingArgs.tableRef(tableRef).isSafeForLogging()) {
-            return ImmutableMap.of("tableName", tableRef.getQualifiedName());
-        } else {
-            return ImmutableMap.of("tableName", "suppressed");
-        }
+        return ImmutableMap.of("tableName", LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {
