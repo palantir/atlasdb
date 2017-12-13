@@ -21,7 +21,6 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.time.Month;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -32,7 +31,6 @@ import java.util.Set;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
-import org.joda.time.Period;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,6 +64,7 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
     private Set<TableReference> allTables;
     private List<SweepPriority> oldPriorities;
     private List<SweepPriority> newPriorities;
+    private boolean isCassandra;
 
     private Map<TableReference, Double> priorities;
 
@@ -80,6 +79,7 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
         allTables = new HashSet<>(AtlasDbConstants.hiddenTables);
         oldPriorities = new ArrayList<>();
         newPriorities = new ArrayList<>();
+        isCassandra = true;
     }
 
 
@@ -170,7 +170,65 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
         thenTableHasPriority(rarelyUpdatedTable.getLhSide().tableRef());
     }
 
-//    @Test
+    @Test
+    public void ifWeDeletedManyValuesOnCassandra_andLessThanOneDayHasPassed_doNotSweep() {
+        Pair<SweepPriority, SweepPriority> tableWithManyDeletes = Pair.create(
+                sweepPriority("tableWithManyDeletes")
+                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                        .build(),
+                sweepPriority("tableWithManyDeletes")
+                        .staleValuesDeleted(1_500_000)
+                        .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
+                        .build());
+
+        given(tableWithManyDeletes);
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(tableWithManyDeletes.getLhSide().tableRef());
+        thenTableHasZeroPriority(tableWithManyDeletes.getLhSide().tableRef());
+    }
+
+    @Test
+    public void ifWeDeletedManyValuesOnCassandra_andMoreThanOneDayHasPassed_tableIsPrioritised() {
+        Pair<SweepPriority, SweepPriority> tableWithManyDeletes = Pair.create(
+                sweepPriority("tableWithManyDeletes")
+                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                        .build(),
+                sweepPriority("tableWithManyDeletes")
+                        .staleValuesDeleted(1_500_000)
+                        .lastSweepTimeMillis(DateTime.now().minusHours(30).toDateTime().getMillis())
+                        .build());
+
+        given(tableWithManyDeletes);
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(tableWithManyDeletes.getLhSide().tableRef());
+        thenTableHasPriority(tableWithManyDeletes.getLhSide().tableRef());
+    }
+
+    @Test
+    public void ifWeDeletedManyValuesNotOnCassandra_andLessThanOneDayHasPassed_tableIsPrioritised() {
+        Pair<SweepPriority, SweepPriority> tableWithManyDeletes = Pair.create(
+                sweepPriority("tableWithManyDeletes")
+                        .lastSweepTimeMillis(DateTime.now().minusMonths(1).toDateTime().getMillis())
+                        .build(),
+                sweepPriority("tableWithManyDeletes")
+                        .staleValuesDeleted(1_500_000)
+                        .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
+                        .build());
+
+        given(tableWithManyDeletes);
+        givenNotCassandra();
+
+        whenGettingTablesToSweep();
+
+        thenOnlyTablePrioritisedIs(tableWithManyDeletes.getLhSide().tableRef());
+        thenTableHasPriority(tableWithManyDeletes.getLhSide().tableRef());
+    }
+
+    //    @Test
 //    public void notValueTableReturnsSameTable() {
 //        Map<TableReference, Double> singleNonStreamStoreTable = ImmutableMap.of(NOT_SS_VALUE_TABLE, 1.0);
 //        when(delegate.computeSweepPriorities(any(), anyLong())).thenReturn(singleNonStreamStoreTable);
@@ -223,10 +281,15 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
         newPriorities.add(priorities.getRhSide());
     }
 
+    private void givenNotCassandra() {
+        isCassandra = false;
+    }
+
     private void whenGettingTablesToSweep() {
         when(kvs.getAllTableNames()).thenReturn(allTables);
         when(sweepPriorityStore.loadOldPriorities(any(), anyLong())).thenReturn(oldPriorities);
         when(sweepPriorityStore.loadNewPriorities(any())).thenReturn(newPriorities);
+        when(kvs.performanceIsSensitiveToTombstones()).thenReturn(isCassandra);
 
         priorities = provider.computeSweepPriorities(null, 0L);
     }
@@ -256,10 +319,10 @@ public class StreamStoreRemappingNextTableToSweepProviderTest {
     private ImmutableSweepPriority.Builder sweepPriority(String tableName) {
         return ImmutableSweepPriority.builder()
                 .tableRef(table(tableName))
-                .writeCount(100)
+                .writeCount(1000)
                 .lastSweepTimeMillis(DateTime.now().getMillis())
                 .minimumSweptTimestamp(100)
-                .staleValuesDeleted(100)
-                .cellTsPairsExamined(100);
+                .staleValuesDeleted(10)
+                .cellTsPairsExamined(10000);
     }
 }
