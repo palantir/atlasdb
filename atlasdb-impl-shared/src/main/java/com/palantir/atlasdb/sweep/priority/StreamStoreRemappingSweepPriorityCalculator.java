@@ -43,18 +43,8 @@ public class StreamStoreRemappingSweepPriorityCalculator {
             return tableToPriority;
         }
 
-        List<TableReference> tablesWithHighestPriority = NextTableToSweepProvider.findTablesWithHighestPriority(
-                tableToPriority);
-
-        List<TableReference> valueTablesWithHighestPriority = tablesWithHighestPriority.stream()
-                .filter(StreamTableType::isStreamStoreValueTable)
-                .collect(Collectors.toList());
-        if (valueTablesWithHighestPriority.size() == 0) {
-            return tableToPriority;
-        }
-
-        Map<TableReference, SweepPriority> indexToPriority = new HashMap<>(valueTablesWithHighestPriority.size());
-        Map<TableReference, SweepPriority> valueToPriority = new HashMap<>(valueTablesWithHighestPriority.size());
+        Map<TableReference, SweepPriority> indexToPriority = new HashMap<>();
+        Map<TableReference, SweepPriority> valueToPriority = new HashMap<>();
 
         for (SweepPriority sweepPriority : sweepPriorityStore.loadNewPriorities(tx)) {
             if (StreamTableType.isStreamStoreIndexTable(sweepPriority.tableRef())) {
@@ -104,8 +94,8 @@ public class StreamStoreRemappingSweepPriorityCalculator {
     private void bumpIndexTablePriorityAndIgnoreValueTablePriority(@Output Map<TableReference, Double> tableToPriority,
             TableReference valueTable,
             TableReference indexTable) {
+        tableToPriority.put(indexTable, tableToPriority.get(valueTable));
         doNotSweepTable(tableToPriority, valueTable);
-        tableToPriority.put(indexTable, Double.MAX_VALUE);
     }
 
     private void doNotSweepTable(@Output Map<TableReference, Double> tableToPriority, TableReference valueTable) {
