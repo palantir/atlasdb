@@ -152,7 +152,7 @@ public class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
-        List<String> uris = install.cluster().cluster().uris();
+        List<String> uris = install.cluster().clusterMembers();
         ImmutableLeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[uris.size()]))
                 .localServer(install.cluster().localServer())
