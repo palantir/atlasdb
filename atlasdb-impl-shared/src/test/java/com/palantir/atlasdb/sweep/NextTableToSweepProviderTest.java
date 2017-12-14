@@ -47,6 +47,14 @@ import com.palantir.atlasdb.sweep.priority.SweepPriority;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 
 public class NextTableToSweepProviderTest {
+    private static final long NOW = ZonedDateTime.now().toInstant().toEpochMilli();
+    private static final long TWELVE_HOURS_AGO = ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli();
+    private static final long THIRTY_HOURS_AGO = ZonedDateTime.now().minusHours(30).toInstant().toEpochMilli();
+    private static final long FIVE_DAYS_AGO = ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli();
+    private static final long SIX_DAYS_AGO = ZonedDateTime.now().minusDays(6).toInstant().toEpochMilli();
+    private static final long ONE_MONTH_AGO = ZonedDateTime.now().minusMonths(1).toInstant().toEpochMilli();
+    private static final long SEVEN_MONTHS_AGO = ZonedDateTime.now().minusMonths(7).toInstant().toEpochMilli();
+
     private KeyValueService kvs;
     private SweepPriorityStore sweepPriorityStore;
 
@@ -130,12 +138,12 @@ public class NextTableToSweepProviderTest {
         SweepPriorityHistory rarelyUpdatedTable =
                 new SweepPriorityHistory("rarelyUpdatedTable")
                         .withOld(sweepPriority().cellTsPairsExamined(10000).writeCount(50)
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusMonths(1).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(ONE_MONTH_AGO)
                                 .build())
                         .withNew(
                                 sweepPriority()
                                         .lastSweepTimeMillis(
-                                                ZonedDateTime.now().minusMonths(1).toInstant().toEpochMilli())
+                                                ONE_MONTH_AGO)
                                         .build());
 
         given(rarelyUpdatedTable);
@@ -151,10 +159,10 @@ public class NextTableToSweepProviderTest {
         SweepPriorityHistory rarelyUpdatedTable =
                 new SweepPriorityHistory("rarelyUpdatedTable")
                         .withOld(sweepPriority().cellTsPairsExamined(10000).writeCount(50)
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusMonths(7).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(SEVEN_MONTHS_AGO)
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusMonths(7).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(SEVEN_MONTHS_AGO)
                                 .build());
 
         given(rarelyUpdatedTable);
@@ -170,11 +178,11 @@ public class NextTableToSweepProviderTest {
         SweepPriorityHistory tableWithManyDeletes =
                 new SweepPriorityHistory("tableWithManyDeletes")
                         .withOld(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusMonths(1).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(ONE_MONTH_AGO)
                                 .build())
                         .withNew(sweepPriority()
                                 .staleValuesDeleted(1_500_000)
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(TWELVE_HOURS_AGO)
                                 .build());
 
         given(tableWithManyDeletes);
@@ -190,11 +198,11 @@ public class NextTableToSweepProviderTest {
         SweepPriorityHistory tableWithManyDeletes =
                 new SweepPriorityHistory("tableWithManyDeletes")
                         .withOld(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusMonths(1).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(ONE_MONTH_AGO)
                                 .build())
                         .withNew(sweepPriority()
                                 .staleValuesDeleted(1_500_000)
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusHours(30).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(THIRTY_HOURS_AGO)
                                 .build());
 
         given(tableWithManyDeletes);
@@ -210,11 +218,11 @@ public class NextTableToSweepProviderTest {
         SweepPriorityHistory tableWithManyDeletes =
                 new SweepPriorityHistory("tableWithManyDeletes")
                         .withOld(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusMonths(1).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(ONE_MONTH_AGO)
                                 .build())
                         .withNew(sweepPriority()
                                 .staleValuesDeleted(1_500_000)
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(TWELVE_HOURS_AGO)
                                 .build());
 
         given(tableWithManyDeletes);
@@ -247,7 +255,7 @@ public class NextTableToSweepProviderTest {
                                 .writeCount(20_000)
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(FIVE_DAYS_AGO)
                                 .writeCount(200_000)
                                 .build());
 
@@ -259,7 +267,7 @@ public class NextTableToSweepProviderTest {
                                 .writeCount(20_000)
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(TWELVE_HOURS_AGO)
                                 .writeCount(20_000)
                                 .build());
 
@@ -281,14 +289,14 @@ public class NextTableToSweepProviderTest {
                         .withOld(sweepPriority()
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(TWELVE_HOURS_AGO)
                                 .build());
         SweepPriorityHistory notRecentlySweptStreamStore =
                 new SweepPriorityHistory(StreamTableType.VALUE.getTableName("notRecentlySweptStreamStore"))
                         .withOld(sweepPriority()
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(FIVE_DAYS_AGO)
                                 .build());
 
         given(notRecentlySweptStreamStore);
@@ -309,7 +317,7 @@ public class NextTableToSweepProviderTest {
                                 .writeCount(10)
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(FIVE_DAYS_AGO)
                                 .writeCount(200)
                                 .build());
         SweepPriorityHistory streamStoreValuesFewWrites =
@@ -318,7 +326,7 @@ public class NextTableToSweepProviderTest {
                                 .writeCount(10)
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(FIVE_DAYS_AGO)
                                 .writeCount(100)
                                 .build());
 
@@ -338,7 +346,7 @@ public class NextTableToSweepProviderTest {
                         .withOld(sweepPriority()
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(FIVE_DAYS_AGO)
                                 .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
 
@@ -357,7 +365,7 @@ public class NextTableToSweepProviderTest {
                         .withOld(sweepPriority()
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(FIVE_DAYS_AGO)
                                 .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
         SweepPriorityHistory streamStoreIndexManyWrites =
@@ -365,7 +373,7 @@ public class NextTableToSweepProviderTest {
                         .withOld(sweepPriority()
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(6).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(SIX_DAYS_AGO)
                                 .build());
 
         given(streamStoreValuesManyWrites);
@@ -384,7 +392,7 @@ public class NextTableToSweepProviderTest {
                         .withOld(sweepPriority()
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(6).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(SIX_DAYS_AGO)
                                 .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
         SweepPriorityHistory streamStoreIndexManyWrites =
@@ -392,7 +400,7 @@ public class NextTableToSweepProviderTest {
                         .withOld(sweepPriority()
                                 .build())
                         .withNew(sweepPriority()
-                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .lastSweepTimeMillis(FIVE_DAYS_AGO)
                                 .build());
 
         given(streamStoreValuesManyWrites);
@@ -513,7 +521,7 @@ public class NextTableToSweepProviderTest {
         return ImmutableSweepPriority.builder()
                 .tableRef(table("placeholder"))
                 .writeCount(1000)
-                .lastSweepTimeMillis(ZonedDateTime.now().toInstant().toEpochMilli())
+                .lastSweepTimeMillis(NOW)
                 .minimumSweptTimestamp(100)
                 .staleValuesDeleted(10)
                 .cellTsPairsExamined(10000);
