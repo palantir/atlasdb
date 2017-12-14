@@ -196,6 +196,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1">
+<h2>0.72.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>13 December 2017</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td><p class="first">Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
 Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
@@ -222,9 +242,9 @@ Sweep now exposes the following metrics with the common prefix <code class="docu
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now provides a configurable <code class="docutils literal"><span class="pre">compactInterval</span></code> (0 by default) option for Postgres, in the Postgres DDL Config.
 A vacuum will be kicked off an a table only if there hasn’t been one on the same table in the last <code class="docutils literal"><span class="pre">compactInterval</span></code>.
-This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days for this config option
-and would encourage impls to test this out and report the results back. We will modify the defaults once we have this field tested.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2718">Pull Request</a>)</td>
+This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days (e.g. <code class="docutils literal"><span class="pre">2d</span></code> or <code class="docutils literal"><span class="pre">2</span> <span class="pre">days</span></code>) for this config option
+and would encourage users to test this out and report the results back. We will modify the defaults once this has been field tested.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2767">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal"><span class="pre">LeaderPingHealthCheck</span></code> supplied by <code class="docutils literal"><span class="pre">PaxosLeadershipCreator</span></code> now correctly reports the leadership state of nodes that believe themselves to be the leader.
@@ -235,11 +255,18 @@ Previously, the health check would ping every <em>other</em> node in the cluster
 <td>Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2799">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Deleted the TTL duration field from the <code class="docutils literal"><span class="pre">Cell</span></code> class.
+The interface <code class="docutils literal"><span class="pre">ExpiringKeyValueService</span></code> and implementations <code class="docutils literal"><span class="pre">CassandraExpiringKeyValueService</span></code> and <code class="docutils literal"><span class="pre">CqlExpiringKeyValueService</span></code> have also been removed.
+Additionally, <code class="docutils literal"><span class="pre">StreamTableDefinitionBuilder.expirationStrategy</span></code> has been removed.
+We don’t believe that any of these fields or classes were used.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2599">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="id1">
-<h2>0.71.1<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h2>0.71.1<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <p>8 December 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -259,8 +286,8 @@ Previously, the health check would ping every <em>other</em> node in the cluster
 </tbody>
 </table>
 </div>
-<div class="section" id="id2">
-<h2>0.71.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h2>0.71.0<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>7 December 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -329,17 +356,11 @@ These logs will be invaluable in more easily identifying hotspotting and for usi
 <td>Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2775">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Deleted the TTL duration field from the <code class="docutils literal"><span class="pre">Cell</span></code> class.
-The interface <code class="docutils literal"><span class="pre">ExpiringKeyValueService</span></code> and implementations <code class="docutils literal"><span class="pre">CassandraExpiringKeyValueService</span></code> and <code class="docutils literal"><span class="pre">CqlExpiringKeyValueService</span></code> have also been removed.
-Additionally, <code class="docutils literal"><span class="pre">StreamTableDefinitionBuilder.expirationStrategy</span></code> has been removed.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2599">Pull Request</a>)</td>
-</tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="id3">
-<h2>0.70.1<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id4">
+<h2>0.70.1<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
 <p>30 November 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
@@ -374,8 +395,8 @@ Applications no longer should use the <code class="docutils literal"><span class
 </tbody>
 </table>
 </div>
-<div class="section" id="id4">
-<h2>0.70.0<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h2>0.70.0<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
 <p>30 November 2017</p>
 <table border="1" class="colwidths-given docutils">
 <colgroup>

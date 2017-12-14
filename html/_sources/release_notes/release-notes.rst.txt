@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+======
+0.72.0
+======
+
+13 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new| |improved| |metrics| |logs|
          - Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
            Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
@@ -73,9 +89,9 @@ develop
     *    - |improved|
          - AtlasDB now provides a configurable ``compactInterval`` (0 by default) option for Postgres, in the Postgres DDL Config.
            A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.
-           This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days for this config option
-           and would encourage impls to test this out and report the results back. We will modify the defaults once we have this field tested.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
+           This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days (e.g. ``2d`` or ``2 days``) for this config option
+           and would encourage users to test this out and report the results back. We will modify the defaults once this has been field tested.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2767>`__)
 
     *    - |fixed|
          - The ``LeaderPingHealthCheck`` supplied by ``PaxosLeadershipCreator`` now correctly reports the leadership state of nodes that believe themselves to be the leader.
@@ -85,6 +101,13 @@ develop
     *    - |fixed|
          - Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2799>`__)
+
+    *    - |devbreak|
+         - Deleted the TTL duration field from the ``Cell`` class.
+           The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
+           Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
+           We don't believe that any of these fields or classes were used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -172,12 +195,6 @@ develop
     *    - |new|
          - Added a CLI to read the punch table. The CLI receives an epoch time, in millis, and returns an approximation of the AtlasDB timestamp strictly before the given timestamp.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2775>`__)
-
-    *    - |devbreak|
-         - Deleted the TTL duration field from the ``Cell`` class.
-           The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
-           Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
