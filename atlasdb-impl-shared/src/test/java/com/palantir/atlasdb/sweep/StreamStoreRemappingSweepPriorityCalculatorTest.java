@@ -41,12 +41,12 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.sweep.priority.ImmutableSweepPriority;
-import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
-import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
+import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingSweepPriorityCalculator;
 import com.palantir.atlasdb.sweep.priority.SweepPriority;
+import com.palantir.atlasdb.sweep.priority.SweepPriorityCalculator;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 
-public class NextTableToSweepProviderTest {
+public class StreamStoreRemappingSweepPriorityCalculatorTest {
     private static final long NOW = ZonedDateTime.now().toInstant().toEpochMilli();
     private static final long THIRTY_MINUTES_AGO = ZonedDateTime.now().minusMinutes(30).toInstant().toEpochMilli();
     private static final long TWELVE_HOURS_AGO = ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli();
@@ -59,7 +59,7 @@ public class NextTableToSweepProviderTest {
     private KeyValueService kvs;
     private SweepPriorityStore sweepPriorityStore;
 
-    private StreamStoreRemappingNextTableToSweepProviderImpl provider;
+    private StreamStoreRemappingSweepPriorityCalculator calculator;
 
     private Set<TableReference> allTables;
     private List<SweepPriority> oldPriorities;
@@ -73,8 +73,8 @@ public class NextTableToSweepProviderTest {
         kvs = mock(KeyValueService.class);
         sweepPriorityStore = mock(SweepPriorityStore.class);
 
-        NextTableToSweepProviderImpl nextTableToSweep = new NextTableToSweepProviderImpl(kvs, sweepPriorityStore);
-        provider = new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweep, sweepPriorityStore);
+        SweepPriorityCalculator nextTableToSweep = new SweepPriorityCalculator(kvs, sweepPriorityStore);
+        calculator = new StreamStoreRemappingSweepPriorityCalculator(nextTableToSweep, sweepPriorityStore);
 
         allTables = new HashSet<>(AtlasDbConstants.hiddenTables);
         oldPriorities = new ArrayList<>();
@@ -87,7 +87,7 @@ public class NextTableToSweepProviderTest {
     public void noTables() {
         givenNoTables();
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNoTablesToSweep();
     }
@@ -98,7 +98,7 @@ public class NextTableToSweepProviderTest {
 
         given(unsweptTable);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(unsweptTable);
         thenTableHasPriority(unsweptTable);
@@ -112,7 +112,7 @@ public class NextTableToSweepProviderTest {
 
         given(clearedTable);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(clearedTable);
         thenTableHasZeroPriority(clearedTable);
@@ -129,7 +129,7 @@ public class NextTableToSweepProviderTest {
         given(unsweptTable);
         given(normalTable);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(unsweptTable);
     }
@@ -149,7 +149,7 @@ public class NextTableToSweepProviderTest {
 
         given(rarelyUpdatedTable);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(rarelyUpdatedTable);
         thenTableHasZeroPriority(rarelyUpdatedTable);
@@ -168,7 +168,7 @@ public class NextTableToSweepProviderTest {
 
         given(rarelyUpdatedTable);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(rarelyUpdatedTable);
         thenTableHasPriority(rarelyUpdatedTable);
@@ -188,7 +188,7 @@ public class NextTableToSweepProviderTest {
 
         given(tableWithManyDeletes);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(tableWithManyDeletes);
         thenTableHasZeroPriority(tableWithManyDeletes);
@@ -208,7 +208,7 @@ public class NextTableToSweepProviderTest {
 
         given(tableWithManyDeletes);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(tableWithManyDeletes);
         thenTableHasPriority(tableWithManyDeletes);
@@ -229,7 +229,7 @@ public class NextTableToSweepProviderTest {
         given(tableWithManyDeletes);
         givenNotCassandra();
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenOnlyTablePrioritisedIs(tableWithManyDeletes);
         thenTableHasPriority(tableWithManyDeletes);
@@ -276,7 +276,7 @@ public class NextTableToSweepProviderTest {
         given(tableNotSweptInALongTime);
         given(recentlySweptTableWithFewWrites);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(3);
         thenFirstTableHasHigherPriorityThanSecond(tableWithLikelyManyValuesToSweep, tableNotSweptInALongTime);
@@ -303,7 +303,7 @@ public class NextTableToSweepProviderTest {
         given(notRecentlySweptStreamStore);
         given(recentlySweptStreamStore);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(2);
         thenTableHasZeroPriority(recentlySweptStreamStore);
@@ -334,7 +334,7 @@ public class NextTableToSweepProviderTest {
         given(streamStoreValuesManyWrites);
         given(streamStoreValuesFewWrites);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(2);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreValuesFewWrites);
@@ -348,12 +348,12 @@ public class NextTableToSweepProviderTest {
                                 .build())
                         .withNew(sweepPriority()
                                 .lastSweepTimeMillis(FIVE_DAYS_AGO)
-                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .writeCount(SweepPriorityCalculator.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
 
         given(streamStoreValuesManyWrites);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(1);
         thenHasHighestPriority(streamStoreValuesManyWrites);
@@ -367,7 +367,7 @@ public class NextTableToSweepProviderTest {
                                 .build())
                         .withNew(sweepPriority()
                                 .lastSweepTimeMillis(FIVE_DAYS_AGO)
-                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .writeCount(SweepPriorityCalculator.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
         SweepPriorityHistory streamStoreIndexManyWrites =
                 new SweepPriorityHistory(StreamTableType.INDEX.getTableName("streamStoreValuesManyWrites"))
@@ -380,7 +380,7 @@ public class NextTableToSweepProviderTest {
         given(streamStoreValuesManyWrites);
         given(streamStoreIndexManyWrites);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(2);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreIndexManyWrites, streamStoreValuesManyWrites);
@@ -394,7 +394,7 @@ public class NextTableToSweepProviderTest {
                                 .build())
                         .withNew(sweepPriority()
                                 .lastSweepTimeMillis(SIX_DAYS_AGO)
-                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .writeCount(SweepPriorityCalculator.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
         SweepPriorityHistory streamStoreIndexManyWrites =
                 new SweepPriorityHistory(StreamTableType.INDEX.getTableName("streamStoreValuesManyWrites"))
@@ -407,7 +407,7 @@ public class NextTableToSweepProviderTest {
         given(streamStoreValuesManyWrites);
         given(streamStoreIndexManyWrites);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(2);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreIndexManyWrites);
@@ -421,7 +421,7 @@ public class NextTableToSweepProviderTest {
                                 .build())
                         .withNew(sweepPriority()
                                 .lastSweepTimeMillis(SIX_DAYS_AGO)
-                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .writeCount(SweepPriorityCalculator.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
         SweepPriorityHistory streamStoreIndexManyWrites =
                 new SweepPriorityHistory(StreamTableType.INDEX.getTableName("streamStoreValuesManyWrites"))
@@ -434,7 +434,7 @@ public class NextTableToSweepProviderTest {
         given(streamStoreValuesManyWrites);
         given(streamStoreIndexManyWrites);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(2);
         thenTableHasZeroPriority(streamStoreValuesManyWrites);
@@ -475,7 +475,7 @@ public class NextTableToSweepProviderTest {
         given(streamStoreIndexManyWrites);
         given(highPriorityTable);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(3);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreIndexManyWrites);
@@ -516,7 +516,7 @@ public class NextTableToSweepProviderTest {
         given(streamStoreIndexManyWrites);
         given(highPriorityTable);
 
-        whenGettingTablesToSweep();
+        whenCalculatingSweepPriorities();
 
         thenNumberOfTablesPrioritisedIs(3);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreIndexManyWrites, streamStoreValuesManyWrites);
@@ -544,13 +544,13 @@ public class NextTableToSweepProviderTest {
     }
 
     //When
-    private void whenGettingTablesToSweep() {
+    private void whenCalculatingSweepPriorities() {
         when(kvs.getAllTableNames()).thenReturn(allTables);
         when(sweepPriorityStore.loadOldPriorities(any(), anyLong())).thenReturn(oldPriorities);
         when(sweepPriorityStore.loadNewPriorities(any())).thenReturn(newPriorities);
         when(kvs.performanceIsSensitiveToTombstones()).thenReturn(isCassandra);
 
-        priorities = provider.computeSweepPriorities(null, 0L);
+        priorities = calculator.calculateSweepPriorities(null, 0L);
     }
 
     //Then

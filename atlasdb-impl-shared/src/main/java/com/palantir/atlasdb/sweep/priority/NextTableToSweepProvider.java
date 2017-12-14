@@ -19,20 +19,54 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-public interface NextTableToSweepProvider {
-    Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs);
+public class NextTableToSweepProvider {
+    private final StreamStoreRemappingSweepPriorityCalculator calculator;
+
+    @VisibleForTesting
+    NextTableToSweepProvider(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
+        SweepPriorityCalculator nextTableToSweepProvider = new SweepPriorityCalculator(kvs, sweepPriorityStore);
+
+        this.calculator = new StreamStoreRemappingSweepPriorityCalculator(nextTableToSweepProvider, sweepPriorityStore);
+    }
+
+    public static NextTableToSweepProvider create(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
+        return new NextTableToSweepProvider(kvs, sweepPriorityStore);
+    }
+
+    public Optional<TableReference> getNextTableToSweep(Transaction tx, long conservativeSweepTimestamp) {
+        Map<TableReference, Double> priorities = calculator.calculateSweepPriorities(tx, conservativeSweepTimestamp);
+
+        List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(priorities);
+
+        Optional<TableReference> chosenTable = tablesWithHighestPriority.size() > 0
+                ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
+                : Optional.empty();
+
+        // TODO (tboam): add logging
+
+        return chosenTable;
+    }
 
     static List<TableReference> findTablesWithHighestPriority(
             Map<TableReference, Double> tableToPriority) {
         Double maxPriority = Collections.max(tableToPriority.values());
+
         return tableToPriority.entrySet().stream()
                 .filter(entry -> Objects.equals(entry.getValue(), maxPriority))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
+    }
+
+    private TableReference getRandomValueFromList(List<TableReference> tables) {
+        return tables.get(ThreadLocalRandom.current().nextInt(tables.size()));
     }
 }

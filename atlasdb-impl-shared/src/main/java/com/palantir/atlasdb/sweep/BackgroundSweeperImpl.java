@@ -16,11 +16,8 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -33,8 +30,6 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
-import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
-import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingNextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -82,16 +77,12 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
-        NextTableToSweepProviderImpl nextTableToSweepProvider = new NextTableToSweepProviderImpl(
-                specificTableSweeper.getKvs(),
-                specificTableSweeper.getSweepPriorityStore());
-        NextTableToSweepProvider streamStoreAwareNextTableToSweepProvider =
-                new StreamStoreRemappingNextTableToSweepProviderImpl(nextTableToSweepProvider,
-                        specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
+                .create(specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
 
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
-                streamStoreAwareNextTableToSweepProvider,
+                nextTableToSweepProvider,
                 sweepBatchConfigSource,
                 isSweepEnabled,
                 sweepPauseMillis,
@@ -239,7 +230,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         if (progress.isPresent()) {
                             return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
-                            Optional<TableReference> nextTable = getNextTableToSweepFromPriorityTable(tx);
+                            Optional<TableReference> nextTable = getNextTableToSweep(tx);
                             if (nextTable.isPresent()) {
                                 return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
                             } else {
@@ -250,18 +241,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 });
     }
 
-    private Optional<TableReference> getNextTableToSweepFromPriorityTable(Transaction tx) {
-        Map<TableReference, Double> tableToPriority = nextTableToSweepProvider.computeSweepPriorities(
-                tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
-        List<TableReference> tablesWithHighestPriority = NextTableToSweepProvider.findTablesWithHighestPriority(
-                tableToPriority);
-        return tablesWithHighestPriority.size() > 0
-                ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
-                : Optional.empty();
-    }
-
-    private TableReference getRandomValueFromList(List<TableReference> tablesWithMaxPriority) {
-        return tablesWithMaxPriority.get(ThreadLocalRandom.current().nextInt(tablesWithMaxPriority.size()));
+    private Optional<TableReference> getNextTableToSweep(Transaction tx) {
+        return nextTableToSweepProvider
+                .getNextTableToSweep(tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
     }
 
     private SweepOutcome determineCauseOfFailure(Exception originalException, TableToSweep tableToSweep) {
