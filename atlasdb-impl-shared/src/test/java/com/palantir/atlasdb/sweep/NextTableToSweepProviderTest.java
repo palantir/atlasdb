@@ -48,6 +48,7 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 
 public class NextTableToSweepProviderTest {
     private static final long NOW = ZonedDateTime.now().toInstant().toEpochMilli();
+    private static final long THIRTY_MINUTES_AGO = ZonedDateTime.now().minusMinutes(30).toInstant().toEpochMilli();
     private static final long TWELVE_HOURS_AGO = ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli();
     private static final long THIRTY_HOURS_AGO = ZonedDateTime.now().minusHours(30).toInstant().toEpochMilli();
     private static final long FIVE_DAYS_AGO = ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli();
@@ -410,6 +411,34 @@ public class NextTableToSweepProviderTest {
 
         thenNumberOfTablesPrioritisedIs(2);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreIndexManyWrites);
+    }
+
+    @Test
+    public void doNotSweepStreamStoreValueTableWithinOneHourOfIndexTableBeingSwept() {
+        SweepPriorityHistory streamStoreValuesManyWrites =
+                new SweepPriorityHistory(StreamTableType.VALUE.getTableName("streamStoreValuesManyWrites"))
+                        .withOld(sweepPriority()
+                                .build())
+                        .withNew(sweepPriority()
+                                .lastSweepTimeMillis(SIX_DAYS_AGO)
+                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .build());
+        SweepPriorityHistory streamStoreIndexManyWrites =
+                new SweepPriorityHistory(StreamTableType.INDEX.getTableName("streamStoreValuesManyWrites"))
+                        .withOld(sweepPriority()
+                                .build())
+                        .withNew(sweepPriority()
+                                .lastSweepTimeMillis(THIRTY_MINUTES_AGO)
+                                .build());
+
+        given(streamStoreValuesManyWrites);
+        given(streamStoreIndexManyWrites);
+
+        whenGettingTablesToSweep();
+
+        thenNumberOfTablesPrioritisedIs(2);
+        thenTableHasZeroPriority(streamStoreValuesManyWrites);
+        thenTableHasZeroPriority(streamStoreIndexManyWrites);
     }
 
     @Test
