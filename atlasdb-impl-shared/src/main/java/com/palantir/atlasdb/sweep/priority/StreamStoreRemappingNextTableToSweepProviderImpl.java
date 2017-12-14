@@ -97,19 +97,19 @@ public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTab
         if (lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
             bumpIndexTablePriorityAndIgnoreValueTablePriority(tableToPriority, valueTable, indexTable);
         } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= TimeUnit.HOURS.toMillis(1)) {
-            ignoreValueTablePriority(tableToPriority, valueTable);
+            doNotSweepTable(tableToPriority, valueTable);
+            doNotSweepTable(tableToPriority, indexTable);
         }
     }
 
     private void bumpIndexTablePriorityAndIgnoreValueTablePriority(@Output Map<TableReference, Double> tableToPriority,
             TableReference valueTable,
             TableReference indexTable) {
-        ignoreValueTablePriority(tableToPriority, valueTable);
+        doNotSweepTable(tableToPriority, valueTable);
         tableToPriority.put(indexTable, Double.MAX_VALUE);
     }
 
-    private void ignoreValueTablePriority(@Output Map<TableReference, Double> tableToPriority,
-            TableReference valueTable) {
+    private void doNotSweepTable(@Output Map<TableReference, Double> tableToPriority, TableReference valueTable) {
         tableToPriority.put(valueTable, 0.0);
     }
 }
