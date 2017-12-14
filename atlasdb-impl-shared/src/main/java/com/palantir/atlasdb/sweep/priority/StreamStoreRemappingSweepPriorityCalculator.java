@@ -27,19 +27,18 @@ import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Output;
 
-public class StreamStoreRemappingNextTableToSweepProviderImpl implements NextTableToSweepProvider {
-    private NextTableToSweepProviderImpl delegate;
+public class StreamStoreRemappingSweepPriorityCalculator {
+    private SweepPriorityCalculator delegate;
     private SweepPriorityStore sweepPriorityStore;
 
-    public StreamStoreRemappingNextTableToSweepProviderImpl(NextTableToSweepProviderImpl delegate,
+    public StreamStoreRemappingSweepPriorityCalculator(SweepPriorityCalculator delegate,
             SweepPriorityStore sweepPriorityStore) {
         this.delegate = delegate;
         this.sweepPriorityStore = sweepPriorityStore;
     }
 
-    @Override
-    public Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs) {
-        Map<TableReference, Double> tableToPriority = delegate.computeSweepPriorities(tx, conservativeSweepTs);
+    public Map<TableReference, Double> calculateSweepPriorities(Transaction tx, long conservativeSweepTs) {
+        Map<TableReference, Double> tableToPriority = delegate.calculateSweepPriorities(tx, conservativeSweepTs);
         if (tableToPriority.isEmpty()) {
             return tableToPriority;
         }

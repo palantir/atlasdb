@@ -40,9 +40,8 @@ import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.logsafe.SafeArg;
 
-public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProviderImpl.class);
+public class SweepPriorityCalculator {
+    private static final Logger log = LoggerFactory.getLogger(SweepPriorityCalculator.class);
 
     public static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
     public static final Duration WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = Duration.ofDays(3);
@@ -55,13 +54,12 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
     private final KeyValueService kvs;
     private final SweepPriorityStore sweepPriorityStore;
 
-    public NextTableToSweepProviderImpl(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
+    public SweepPriorityCalculator(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
         this.kvs = kvs;
         this.sweepPriorityStore = sweepPriorityStore;
     }
 
-    @Override
-    public Map<TableReference, Double> computeSweepPriorities(Transaction tx, long conservativeSweepTs) {
+    public Map<TableReference, Double> calculateSweepPriorities(Transaction tx, long conservativeSweepTs) {
         Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
 
         // We read priorities from the past because we should prioritize based on what the sweeper will
