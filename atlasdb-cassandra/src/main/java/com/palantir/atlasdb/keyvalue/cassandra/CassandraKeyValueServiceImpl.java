@@ -1186,7 +1186,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                      ConsistencyLevel consistency) throws TException {
         try {
             return queryRunner.run(client, tableRefs, () -> {
-                client.batch_mutate(kvsMethodName, map.get(), consistency);
+                client.batch_mutate(kvsMethodName, map.toMap(), consistency);
                 return null;
             });
         } catch (UnavailableException e) {
