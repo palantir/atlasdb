@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
 
 =======
 v0.72.0
