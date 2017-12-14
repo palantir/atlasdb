@@ -24,6 +24,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -32,20 +35,27 @@ public class NextTableToSweepProvider {
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
 
     @VisibleForTesting
-    NextTableToSweepProvider(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
-        SweepPriorityCalculator nextTableToSweepProvider = new SweepPriorityCalculator(kvs, sweepPriorityStore);
-
-        this.calculator = new StreamStoreRemappingSweepPriorityCalculator(nextTableToSweepProvider, sweepPriorityStore);
+    NextTableToSweepProvider(StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator) {
+        this.calculator = streamStoreRemappingSweepPriorityCalculator;
     }
 
     public static NextTableToSweepProvider create(KeyValueService kvs, SweepPriorityStore sweepPriorityStore) {
-        return new NextTableToSweepProvider(kvs, sweepPriorityStore);
+        SweepPriorityCalculator basicCalculator = new SweepPriorityCalculator(kvs, sweepPriorityStore);
+        StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator =
+                new StreamStoreRemappingSweepPriorityCalculator(basicCalculator, sweepPriorityStore);
+
+        return new NextTableToSweepProvider(streamStoreRemappingSweepPriorityCalculator);
     }
 
     public Optional<TableReference> getNextTableToSweep(Transaction tx, long conservativeSweepTimestamp) {
         Map<TableReference, Double> priorities = calculator.calculateSweepPriorities(tx, conservativeSweepTimestamp);
 
-        List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(priorities);
+        Map<TableReference, Double> tablesWithNonZeroPriority = Maps.filterValues(priorities, notEqualTo(0.0));
+        if (tablesWithNonZeroPriority.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(tablesWithNonZeroPriority);
 
         Optional<TableReference> chosenTable = tablesWithHighestPriority.size() > 0
                 ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
@@ -56,7 +66,11 @@ public class NextTableToSweepProvider {
         return chosenTable;
     }
 
-    static List<TableReference> findTablesWithHighestPriority(
+    private Predicate<Double> notEqualTo(Double target) {
+        return Predicates.not(target::equals);
+    }
+
+    public static List<TableReference> findTablesWithHighestPriority(
             Map<TableReference, Double> tableToPriority) {
         Double maxPriority = Collections.max(tableToPriority.values());
 
