@@ -255,9 +255,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
         List<TableReference> tablesWithHighestPriority = NextTableToSweepProvider.findTablesWithHighestPriority(
                 tableToPriority);
-        return tablesWithHighestPriority.size() > 0 ?
-                Optional.of(getRandomValueFromList(tablesWithHighestPriority)) :
-                Optional.empty();
+        return tablesWithHighestPriority.size() > 0
+                ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
+                : Optional.empty();
     }
 
     private TableReference getRandomValueFromList(List<TableReference> tablesWithMaxPriority) {
