@@ -21,8 +21,6 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -247,9 +245,9 @@ public class NextTableToSweepProviderTest {
                                 .cellTsPairsExamined(1_000_000)
                                 .writeCount(20_000)
                                 .build())
-                        .withNew( sweepPriority()
+                        .withNew(sweepPriority()
                                 .lastSweepTimeMillis(DateTime.now().minusDays(5).toDateTime().getMillis())
-                                .writeCount(20_0000)
+                                .writeCount(200_000)
                                 .build());
 
         SweepPriorityHistory recentlySweptTableWithFewWrites =
@@ -259,7 +257,7 @@ public class NextTableToSweepProviderTest {
                                 .cellTsPairsExamined(1_000_000)
                                 .writeCount(20_000)
                                 .build())
-                        .withNew( sweepPriority()
+                        .withNew(sweepPriority()
                                 .lastSweepTimeMillis(DateTime.now().minusHours(12).toDateTime().getMillis())
                                 .writeCount(20_000)
                                 .build());
@@ -340,7 +338,7 @@ public class NextTableToSweepProviderTest {
                                 .build())
                         .withNew(sweepPriority()
                                 .lastSweepTimeMillis(DateTime.now().minusDays(5).getMillis())
-                                .writeCount(STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
                                 .build());
 
         given(streamStoreValuesManyWrites);

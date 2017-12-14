@@ -188,7 +188,7 @@ public class NextTableToSweepProviderImpl implements NextTableToSweepProvider {
     private double getNonStreamStorePriority(SweepPriority oldPriority, SweepPriority newPriority) {
         long staleValuesDeleted = Math.max(1, oldPriority.staleValuesDeleted());
         long cellTsPairsExamined = Math.max(1, oldPriority.cellTsPairsExamined());
-        long writeCount = Math.max(1, oldPriority.writeCount()); //TODO(tboam): should this be newPriority?
+        long writeCount = Math.max(1, oldPriority.writeCount()); // TODO(tboam): should this be newPriority?
         double previousEfficacy = 1.0 * staleValuesDeleted / cellTsPairsExamined;
         double estimatedCellTsPairsToSweep = previousEfficacy * writeCount;
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
