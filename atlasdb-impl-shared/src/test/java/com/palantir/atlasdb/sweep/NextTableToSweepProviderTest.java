@@ -350,6 +350,60 @@ public class NextTableToSweepProviderTest {
         thenHasHighestPriority(streamStoreValuesManyWrites);
     }
 
+    @Test
+    public void ifStreamStoreValueTableIsPriority_indexTableIsSweptFirst() {
+        SweepPriorityHistory streamStoreValuesManyWrites =
+                new SweepPriorityHistory(StreamTableType.VALUE.getTableName("streamStoreValuesManyWrites"))
+                        .withOld(sweepPriority()
+                                .build())
+                        .withNew(sweepPriority()
+                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .build());
+        SweepPriorityHistory streamStoreIndexManyWrites =
+                new SweepPriorityHistory(StreamTableType.INDEX.getTableName("streamStoreValuesManyWrites"))
+                        .withOld(sweepPriority()
+                                .build())
+                        .withNew(sweepPriority()
+                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(6).toInstant().toEpochMilli())
+                                .build());
+
+        given(streamStoreValuesManyWrites);
+        given(streamStoreIndexManyWrites);
+
+        whenGettingTablesToSweep();
+
+        thenNumberOfTablesPrioritisedIs(2);
+        thenFirstTableHasHigherPriorityThanSecond(streamStoreIndexManyWrites, streamStoreValuesManyWrites);
+    }
+
+    @Test
+    public void ifStreamStoreValueTableIsPriority_andIndexIsRecentlySwept_thenValuesTableIsHigherPriority() {
+        SweepPriorityHistory streamStoreValuesManyWrites =
+                new SweepPriorityHistory(StreamTableType.VALUE.getTableName("streamStoreValuesManyWrites"))
+                        .withOld(sweepPriority()
+                                .build())
+                        .withNew(sweepPriority()
+                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(6).toInstant().toEpochMilli())
+                                .writeCount(NextTableToSweepProviderImpl.STREAM_STORE_VALUES_TO_SWEEP + 10)
+                                .build());
+        SweepPriorityHistory streamStoreIndexManyWrites =
+                new SweepPriorityHistory(StreamTableType.INDEX.getTableName("streamStoreValuesManyWrites"))
+                        .withOld(sweepPriority()
+                                .build())
+                        .withNew(sweepPriority()
+                                .lastSweepTimeMillis(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli())
+                                .build());
+
+        given(streamStoreValuesManyWrites);
+        given(streamStoreIndexManyWrites);
+
+        whenGettingTablesToSweep();
+
+        thenNumberOfTablesPrioritisedIs(2);
+        thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreIndexManyWrites);
+    }
+
     //    @Test
     //    public void valueTableReturnsIndexThenValueTables() {
     //        Optional<TableReference> selectedTable = Optional.of(SS_VALUE_TABLE);
