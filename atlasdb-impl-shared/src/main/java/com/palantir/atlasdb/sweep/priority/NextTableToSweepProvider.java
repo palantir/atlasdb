@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,15 +24,22 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.logsafe.SafeArg;
 
 public class NextTableToSweepProvider {
+    private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
+
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
 
     @VisibleForTesting
@@ -61,7 +69,7 @@ public class NextTableToSweepProvider {
                 ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
                 : Optional.empty();
 
-        // TODO (tboam): add logging
+        logDecision(chosenTable, priorities);
 
         return chosenTable;
     }
@@ -82,5 +90,24 @@ public class NextTableToSweepProvider {
 
     private TableReference getRandomValueFromList(List<TableReference> tables) {
         return tables.get(ThreadLocalRandom.current().nextInt(tables.size()));
+    }
+
+    private void logDecision(Optional<TableReference> chosenTable, Map<TableReference, Double> tableToPriority) {
+        if (!log.isDebugEnabled()) {
+            return;
+        }
+
+        String safeTableNamesToPriority = tableToPriority.entrySet().stream()
+                .sorted(Comparator.comparingDouble(Map.Entry::getValue))
+                .map(entry -> LoggingArgs.safeTableOrPlaceholder(entry.getKey()) + "->" + entry.getValue())
+                .collect(Collectors.joining(", ", "[", "]"));
+
+        String chosenTableString = chosenTable.isPresent()
+                ? LoggingArgs.safeTableOrPlaceholder(chosenTable.get()).toString()
+                : "no table";
+
+        log.debug("Chose {} from priorities {}",
+                SafeArg.of("chosenTable", chosenTableString),
+                SafeArg.of("priorities", safeTableNamesToPriority));
     }
 }
