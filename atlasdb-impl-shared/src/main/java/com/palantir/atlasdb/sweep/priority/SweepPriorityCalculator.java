@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -43,7 +44,7 @@ public class SweepPriorityCalculator {
 
     private static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
     private static final Duration WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = Duration.ofDays(3);
-    public static final int STREAM_STORE_VALUES_TO_SWEEP = 1_000;
+    @VisibleForTesting static final int STREAM_STORE_VALUES_TO_SWEEP = 1_000;
 
     // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
     private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT =

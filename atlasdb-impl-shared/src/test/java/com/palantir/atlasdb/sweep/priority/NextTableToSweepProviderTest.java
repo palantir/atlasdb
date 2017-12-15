@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep.priority;
 
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -25,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,8 +93,7 @@ public class NextTableToSweepProviderTest {
         whenGettingNextTableToSweep();
 
         Assert.assertTrue(tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get(), CoreMatchers.anyOf(
-                CoreMatchers.is(table("table2")), CoreMatchers.is(table("table3")), CoreMatchers.is(table("table4"))));
+        Assert.assertThat(tableToSweep.get(), anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
     }
 
     private void givenNoPrioritiesReturned() {
@@ -116,7 +116,7 @@ public class NextTableToSweepProviderTest {
 
     private void thenTableChosenIs(TableReference table) {
         Assert.assertTrue(tableToSweep.isPresent());
-        Assert.assertThat(tableToSweep.get(), CoreMatchers.is(table));
+        Assert.assertThat(tableToSweep.get(), is(table));
     }
 
     // helpers

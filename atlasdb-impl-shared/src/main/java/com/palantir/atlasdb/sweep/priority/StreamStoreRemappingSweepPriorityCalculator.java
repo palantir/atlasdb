@@ -71,9 +71,12 @@ public class StreamStoreRemappingSweepPriorityCalculator {
 
         if (lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
             // We want to sweep the value table but haven't yet done the index table.  Do the index table first.
-            bumpIndexTableAndIgnoreValueTable(valueTable, indexTable, scores);
+            scores.put(indexTable, scores.get(valueTable));
+            doNotSweepTable(valueTable, scores);
         } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= INDEX_TO_VALUE_TABLE_SLEEP_TIME) {
-            // We've done the index table to recently, wait a bit before we do the value table.
+            // We've done the index table recently:
+            // 1) wait a bit before we do the value table so that the immutable timestamp has passed.
+            // 2) ensure we don't sweep index table again as we could starve the value table if index sweeps too often
             doNotSweepTable(valueTable, scores);
             doNotSweepTable(indexTable, scores);
         } else {
@@ -86,12 +89,6 @@ public class StreamStoreRemappingSweepPriorityCalculator {
             return 0L;
         }
         return tableToSweepPriority.get(table).lastSweepTimeMillis().orElse(0L);
-    }
-
-    private void bumpIndexTableAndIgnoreValueTable(
-            TableReference valueTable, TableReference indexTable, @Output Map<TableReference, Double> scores) {
-        scores.put(indexTable, scores.get(valueTable));
-        doNotSweepTable(valueTable, scores);
     }
 
     private void doNotSweepTable(TableReference table, @Output Map<TableReference, Double> scores) {

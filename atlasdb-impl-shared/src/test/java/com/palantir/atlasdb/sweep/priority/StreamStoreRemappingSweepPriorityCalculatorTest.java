@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep;
+package com.palantir.atlasdb.sweep.priority;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -40,11 +40,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
-import com.palantir.atlasdb.sweep.priority.ImmutableSweepPriority;
-import com.palantir.atlasdb.sweep.priority.StreamStoreRemappingSweepPriorityCalculator;
-import com.palantir.atlasdb.sweep.priority.SweepPriority;
-import com.palantir.atlasdb.sweep.priority.SweepPriorityCalculator;
-import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 
 public class StreamStoreRemappingSweepPriorityCalculatorTest {
     private static final long THIRTY_MINUTES_AGO = ZonedDateTime.now().minusMinutes(30).toInstant().toEpochMilli();
