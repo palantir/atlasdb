@@ -29,8 +29,9 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class ClusterConfigurationDeserializationTest {
     private static final String LOCAL_SERVER = "https://server-2:8421";
@@ -42,7 +43,9 @@ public class ClusterConfigurationDeserializationTest {
     private static final File CLUSTER_CONFIG_INVALID_TYPE_INFO = getClusterConfigFile("invalid-type-info");
     private static final File CLUSTER_CONFIG_MALFORMED = getClusterConfigFile("malformed");
     private static final File CLUSTER_CONFIG_KUBERNETES = getClusterConfigFile("kubernetes");
-    private static final ObjectMapper OBJECT_MAPPER = AtlasDbConfigs.OBJECT_MAPPER;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
+            .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
 
     @BeforeClass
     public static void setUp() {
