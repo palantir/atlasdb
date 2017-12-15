@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,9 +60,9 @@ public class NextTableToSweepProvider {
     public Optional<TableReference> getNextTableToSweep(Transaction tx, long conservativeSweepTimestamp) {
         Map<TableReference, Double> priorities = calculator.calculateSweepPriorities(tx, conservativeSweepTimestamp);
 
-        Map<TableReference, Double> tablesWithNonZeroPriority = Maps.filterValues(priorities, notEqualTo(0.0));
+        Map<TableReference, Double> tablesWithNonZeroPriority = Maps.filterValues(priorities, score -> score > 0.0);
         if (tablesWithNonZeroPriority.isEmpty()) {
-            return Optional.empty();
+            return logDecision(Optional.empty(), priorities);
         }
 
         List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(tablesWithNonZeroPriority);
@@ -69,13 +71,7 @@ public class NextTableToSweepProvider {
                 ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
                 : Optional.empty();
 
-        logDecision(chosenTable, priorities);
-
-        return chosenTable;
-    }
-
-    private Predicate<Double> notEqualTo(Double target) {
-        return Predicates.not(target::equals);
+        return logDecision(chosenTable, priorities);
     }
 
     public static List<TableReference> findTablesWithHighestPriority(
@@ -92,9 +88,9 @@ public class NextTableToSweepProvider {
         return tables.get(ThreadLocalRandom.current().nextInt(tables.size()));
     }
 
-    private void logDecision(Optional<TableReference> chosenTable, Map<TableReference, Double> tableToPriority) {
+    private Optional<TableReference> logDecision(Optional<TableReference> chosenTable, Map<TableReference, Double> tableToPriority) {
         if (!log.isDebugEnabled()) {
-            return;
+            return chosenTable;
         }
 
         String safeTableNamesToPriority = tableToPriority.entrySet().stream()
@@ -109,5 +105,7 @@ public class NextTableToSweepProvider {
         log.debug("Chose {} from priorities {}",
                 SafeArg.of("chosenTable", chosenTableString),
                 SafeArg.of("priorities", safeTableNamesToPriority));
+
+        return chosenTable;
     }
 }
