@@ -105,7 +105,7 @@ public class NextTableToSweepProviderTest {
     }
 
     private void whenGettingNextTableToSweep() {
-        when(calculator.calculateSweepPriorities(any(), anyLong())).thenReturn(priorities);
+        when(calculator.calculateSweepPriorityScores(any(), anyLong())).thenReturn(priorities);
 
         tableToSweep = provider.getNextTableToSweep(null, 0L);
     }

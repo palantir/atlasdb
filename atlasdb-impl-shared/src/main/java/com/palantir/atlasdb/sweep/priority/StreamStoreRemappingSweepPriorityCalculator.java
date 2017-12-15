@@ -37,18 +37,18 @@ public class StreamStoreRemappingSweepPriorityCalculator {
         this.sweepPriorityStore = sweepPriorityStore;
     }
 
-    public Map<TableReference, Double> calculateSweepPriorities(Transaction tx, long conservativeSweepTs) {
-        Map<TableReference, Double> tableToScore = delegate.calculateSweepPriorities(tx, conservativeSweepTs);
+    public Map<TableReference, Double> calculateSweepPriorityScores(Transaction tx, long conservativeSweepTs) {
+        Map<TableReference, Double> scores = delegate.calculateSweepPriorityScores(tx, conservativeSweepTs);
 
         Map<TableReference, SweepPriority> tableToSweepPriority = getSweepPriorityMap(tx);
 
-        for (TableReference table : tableToScore.keySet()) {
+        for (TableReference table : scores.keySet()) {
             if (StreamTableType.isStreamStoreValueTable(table)) {
-                adjustStreamStorePriority(table, tableToScore, tableToSweepPriority);
+                adjustStreamStoreScores(table, scores, tableToSweepPriority);
             }
         }
 
-        return tableToScore;
+        return scores;
     }
 
     private Map<TableReference, SweepPriority> getSweepPriorityMap(Transaction tx) {
@@ -56,12 +56,12 @@ public class StreamStoreRemappingSweepPriorityCalculator {
                 .collect(Collectors.toMap(SweepPriority::tableRef, Function.identity()));
     }
 
-    private void adjustStreamStorePriority(TableReference valueTable,
-            @Output Map<TableReference, Double> tableToScore,
+    private void adjustStreamStoreScores(TableReference valueTable,
+            @Output Map<TableReference, Double> scores,
             Map<TableReference, SweepPriority> tableToSweepPriority) {
 
         TableReference indexTable = StreamTableType.getIndexTableFromValueTable(valueTable);
-        if (!tableToScore.containsKey(indexTable)) {
+        if (!scores.containsKey(indexTable)) {
             // unlikely, but don't alter the score of something that hasn't been included as a candidate
             return;
         }
@@ -71,11 +71,11 @@ public class StreamStoreRemappingSweepPriorityCalculator {
 
         if (lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
             // We want to sweep the value table but haven't yet done the index table.  Do the index table first.
-            bumpIndexTablePriorityAndIgnoreValueTablePriority(valueTable, indexTable, tableToScore);
+            bumpIndexTableAndIgnoreValueTable(valueTable, indexTable, scores);
         } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= INDEX_TO_VALUE_TABLE_SLEEP_TIME) {
             // We've done the index table to recently, wait a bit before we do the value table.
-            doNotSweepTable(valueTable, tableToScore);
-            doNotSweepTable(indexTable, tableToScore);
+            doNotSweepTable(valueTable, scores);
+            doNotSweepTable(indexTable, scores);
         } else {
             // The index table has been swept long enough ago that we can now sweep the value table
         }
@@ -88,13 +88,13 @@ public class StreamStoreRemappingSweepPriorityCalculator {
         return tableToSweepPriority.get(table).lastSweepTimeMillis().orElse(0L);
     }
 
-    private void bumpIndexTablePriorityAndIgnoreValueTablePriority(
-            TableReference valueTable, TableReference indexTable, @Output Map<TableReference, Double> tableToScore) {
-        tableToScore.put(indexTable, tableToScore.get(valueTable));
-        doNotSweepTable(valueTable, tableToScore);
+    private void bumpIndexTableAndIgnoreValueTable(
+            TableReference valueTable, TableReference indexTable, @Output Map<TableReference, Double> scores) {
+        scores.put(indexTable, scores.get(valueTable));
+        doNotSweepTable(valueTable, scores);
     }
 
-    private void doNotSweepTable(TableReference table, @Output Map<TableReference, Double> tableToScore) {
-        tableToScore.put(table, 0.0);
+    private void doNotSweepTable(TableReference table, @Output Map<TableReference, Double> scores) {
+        scores.put(table, 0.0);
     }
 }

@@ -550,7 +550,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
         when(sweepPriorityStore.loadNewPriorities(any())).thenReturn(newPriorities);
         when(kvs.performanceIsSensitiveToTombstones()).thenReturn(isCassandra);
 
-        priorities = calculator.calculateSweepPriorities(null, 0L);
+        priorities = calculator.calculateSweepPriorityScores(null, 0L);
     }
 
     //Then

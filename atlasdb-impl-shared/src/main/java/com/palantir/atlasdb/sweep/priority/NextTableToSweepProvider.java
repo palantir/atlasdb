@@ -24,14 +24,10 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -58,11 +54,11 @@ public class NextTableToSweepProvider {
     }
 
     public Optional<TableReference> getNextTableToSweep(Transaction tx, long conservativeSweepTimestamp) {
-        Map<TableReference, Double> priorities = calculator.calculateSweepPriorities(tx, conservativeSweepTimestamp);
+        Map<TableReference, Double> scores = calculator.calculateSweepPriorityScores(tx, conservativeSweepTimestamp);
 
-        Map<TableReference, Double> tablesWithNonZeroPriority = Maps.filterValues(priorities, score -> score > 0.0);
+        Map<TableReference, Double> tablesWithNonZeroPriority = Maps.filterValues(scores, score -> score > 0.0);
         if (tablesWithNonZeroPriority.isEmpty()) {
-            return logDecision(Optional.empty(), priorities);
+            return logDecision(Optional.empty(), scores);
         }
 
         List<TableReference> tablesWithHighestPriority = findTablesWithHighestPriority(tablesWithNonZeroPriority);
@@ -71,14 +67,14 @@ public class NextTableToSweepProvider {
                 ? Optional.of(getRandomValueFromList(tablesWithHighestPriority))
                 : Optional.empty();
 
-        return logDecision(chosenTable, priorities);
+        return logDecision(chosenTable, scores);
     }
 
-    public static List<TableReference> findTablesWithHighestPriority(
-            Map<TableReference, Double> tableToPriority) {
-        Double maxPriority = Collections.max(tableToPriority.values());
+    private static List<TableReference> findTablesWithHighestPriority(
+            Map<TableReference, Double> scores) {
+        Double maxPriority = Collections.max(scores.values());
 
-        return tableToPriority.entrySet().stream()
+        return scores.entrySet().stream()
                 .filter(entry -> Objects.equals(entry.getValue(), maxPriority))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
@@ -88,12 +84,13 @@ public class NextTableToSweepProvider {
         return tables.get(ThreadLocalRandom.current().nextInt(tables.size()));
     }
 
-    private Optional<TableReference> logDecision(Optional<TableReference> chosenTable, Map<TableReference, Double> tableToPriority) {
+    private Optional<TableReference> logDecision(Optional<TableReference> chosenTable,
+            Map<TableReference, Double> scores) {
         if (!log.isDebugEnabled()) {
             return chosenTable;
         }
 
-        String safeTableNamesToPriority = tableToPriority.entrySet().stream()
+        String safeTableNamesToScore = scores.entrySet().stream()
                 .sorted(Comparator.comparingDouble(Map.Entry::getValue))
                 .map(entry -> LoggingArgs.safeTableOrPlaceholder(entry.getKey()) + "->" + entry.getValue())
                 .collect(Collectors.joining(", ", "[", "]"));
@@ -104,7 +101,7 @@ public class NextTableToSweepProvider {
 
         log.debug("Chose {} from priorities {}",
                 SafeArg.of("chosenTable", chosenTableString),
-                SafeArg.of("priorities", safeTableNamesToPriority));
+                SafeArg.of("priorities", safeTableNamesToScore));
 
         return chosenTable;
     }

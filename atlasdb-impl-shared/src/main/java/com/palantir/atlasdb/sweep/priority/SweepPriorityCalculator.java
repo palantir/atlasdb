@@ -16,9 +16,7 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +41,8 @@ import com.palantir.logsafe.SafeArg;
 public class SweepPriorityCalculator {
     private static final Logger log = LoggerFactory.getLogger(SweepPriorityCalculator.class);
 
-    public static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
-    public static final Duration WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = Duration.ofDays(3);
+    private static final int WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES = 1_000_000;
+    private static final Duration WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE = Duration.ofDays(3);
     public static final int STREAM_STORE_VALUES_TO_SWEEP = 1_000;
 
     // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
@@ -59,7 +57,7 @@ public class SweepPriorityCalculator {
         this.sweepPriorityStore = sweepPriorityStore;
     }
 
-    public Map<TableReference, Double> calculateSweepPriorities(Transaction tx, long conservativeSweepTs) {
+    Map<TableReference, Double> calculateSweepPriorityScores(Transaction tx, long conservativeSweepTs) {
         Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
 
         // We read priorities from the past because we should prioritize based on what the sweeper will
@@ -68,10 +66,10 @@ public class SweepPriorityCalculator {
         List<SweepPriority> oldPriorities = sweepPriorityStore.loadOldPriorities(tx, conservativeSweepTs);
         List<SweepPriority> newPriorities = sweepPriorityStore.loadNewPriorities(tx);
 
-        return getTableToSweep(tx, allTables, oldPriorities, newPriorities);
+        return getSweepScores(tx, allTables, oldPriorities, newPriorities);
     }
 
-    private Map<TableReference, Double> getTableToSweep(
+    private Map<TableReference, Double> getSweepScores(
             Transaction tx,
             Set<TableReference> allTables,
             List<SweepPriority> oldPriorities,
@@ -89,14 +87,14 @@ public class SweepPriorityCalculator {
                 Collectors.toMap(SweepPriority::tableRef, Function.identity()));
 
         // Compute priority for tables that do have a priority table.
-        Map<TableReference, Double> tableToPriority = new HashMap<>(oldPriorities.size());
+        Map<TableReference, Double> scores = new HashMap<>(oldPriorities.size());
         Collection<TableReference> toDelete = Lists.newArrayList();
         for (SweepPriority oldPriority : oldPriorities) {
             TableReference tableReference = oldPriority.tableRef();
 
             if (allTables.contains(tableReference)) {
                 SweepPriority newPriority = newPrioritiesByTableName.get(tableReference);
-                tableToPriority.put(tableReference, getSweepPriority(oldPriority, newPriority));
+                scores.put(tableReference, getSweepPriorityScore(oldPriority, newPriority));
             } else {
                 toDelete.add(tableReference);
             }
@@ -105,9 +103,7 @@ public class SweepPriorityCalculator {
         // Clean up rows for tables that no longer exist.
         sweepPriorityStore.delete(tx, toDelete);
 
-        logPrioritiesByTable(tableToPriority);
-
-        return tableToPriority;
+        return scores;
     }
 
     private void logUnsweptTables(Set<TableReference> unsweptTables) {
@@ -122,32 +118,7 @@ public class SweepPriorityCalculator {
                 SafeArg.of("unsafeTables", safeAndUnsafeTableReferences.unsafeTableRefs()));
     }
 
-    private void logPrioritiesByTable(Map<TableReference, Double> tableToPriority) {
-        if (!log.isDebugEnabled()) {
-            return;
-        }
-
-        List<Map.Entry<TableReference, Double>> tablesSortedByPriority = tableToPriority.entrySet().stream()
-                .sorted(Comparator.comparingDouble(Map.Entry::getValue))
-                .collect(Collectors.toList());
-
-        List<Map.Entry<TableReference, Double>> safeTablesEntries = new ArrayList<>();
-        List<Map.Entry<TableReference, Double>> unsafeTablesEntries = new ArrayList<>();
-
-        for (Map.Entry<TableReference, Double> tableEntry : tablesSortedByPriority) {
-            if (LoggingArgs.tableRef(tableEntry.getKey()).isSafeForLogging()) {
-                safeTablesEntries.add(tableEntry);
-            } else {
-                unsafeTablesEntries.add(tableEntry);
-            }
-        }
-
-        log.debug("Sweep priorities per table: {} and {}",
-                SafeArg.of("tables", safeTablesEntries.toString()),
-                SafeArg.of("unsafeTables", unsafeTablesEntries.toString()));
-    }
-
-    private double getSweepPriority(SweepPriority oldPriority, SweepPriority newPriority) {
+    private double getSweepPriorityScore(SweepPriority oldPriority, SweepPriority newPriority) {
         if (AtlasDbConstants.hiddenTables.contains(newPriority.tableRef())) {
             // Never sweep hidden tables.
             return 0.0;
@@ -162,13 +133,13 @@ public class SweepPriorityCalculator {
         }
 
         if (StreamTableType.isStreamStoreValueTable(newPriority.tableRef())) {
-            return getStreamStorePriority(newPriority);
+            return getStreamStorePriorityScore(newPriority);
         } else {
-            return getNonStreamStorePriority(oldPriority, newPriority);
+            return getNonStreamStorePriorityScore(oldPriority, newPriority);
         }
     }
 
-    private double getStreamStorePriority(SweepPriority newPriority) {
+    private double getStreamStorePriorityScore(SweepPriority newPriority) {
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
 
         if (millisSinceSweep < WAIT_BEFORE_SWEEPING_STREAM_STORE_VALUE_TABLE.toMillis()) {
@@ -183,10 +154,10 @@ public class SweepPriorityCalculator {
         return 100 * newPriority.writeCount();
     }
 
-    private double getNonStreamStorePriority(SweepPriority oldPriority, SweepPriority newPriority) {
+    private double getNonStreamStorePriorityScore(SweepPriority oldPriority, SweepPriority newPriority) {
         long staleValuesDeleted = Math.max(1, oldPriority.staleValuesDeleted());
         long cellTsPairsExamined = Math.max(1, oldPriority.cellTsPairsExamined());
-        long writeCount = Math.max(1, oldPriority.writeCount()); // TODO(tboam): should this be newPriority?
+        long writeCount = Math.max(1, oldPriority.writeCount()); // TODO(tboam): bug? should this be newPriority?
         double previousEfficacy = 1.0 * staleValuesDeleted / cellTsPairsExamined;
         double estimatedCellTsPairsToSweep = previousEfficacy * writeCount;
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
@@ -194,7 +165,7 @@ public class SweepPriorityCalculator {
         long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
         if (writeCount <= 100 + cellTsPairsExamined / 100 && daysSinceLastSweep < 180) {
             // Not worth the effort if fewer than 1% of cells are new and we've swept in the last 6 months.
-            // TODO(tboam): is this really 1%?
+            // TODO(tboam): bug? is this really 1%?
             return 0.0;
         }
 
