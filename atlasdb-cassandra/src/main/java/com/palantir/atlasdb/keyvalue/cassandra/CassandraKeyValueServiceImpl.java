@@ -111,6 +111,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
@@ -1041,7 +1042,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 int mutationBatchSizeBytes = config.mutationBatchSizeBytes();
                 for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(values, mutationBatchCount,
                         mutationBatchSizeBytes, tableRef, ENTRY_SIZING_FUNCTION)) {
-                    Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
+                    MutationMap map = new MutationMap();
                     for (Map.Entry<Cell, Value> e : partition) {
                         Cell cell = e.getKey();
                         Column col = createColumn(cell, e.getValue());
@@ -1051,15 +1052,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         Mutation mutation = new Mutation();
                         mutation.setColumn_or_supercolumn(colOrSup);
 
-                        ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
-
-                        Map<String, List<Mutation>> rowPuts = map.computeIfAbsent(rowName, row -> Maps.newHashMap());
-
-                        List<Mutation> tableMutations = rowPuts.computeIfAbsent(
-                                internalTableName(tableRef),
-                                k -> Lists.newArrayList());
-
-                        tableMutations.add(mutation);
+                        map.addMutationForCell(cell, tableRef, mutation);
                     }
                     batchMutateInternal(kvsMethodName, client, tableRef, map, writeConsistency);
                 }
@@ -1137,11 +1130,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                final Set<TableReference> tableRefs,
                                                final List<TableCellAndValue> batch,
                                                long timestamp) throws Exception {
-        final Map<ByteBuffer, Map<String, List<Mutation>>> map = convertToMutations(batch, timestamp);
+        final MutationMap mutationMap = convertToMutations(batch, timestamp);
         return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
             @Override
             public Void apply(CassandraClient client) throws Exception {
-                return batchMutateInternal("multiPut", client, tableRefs, map, writeConsistency);
+                return batchMutateInternal("multiPut", client, tableRefs, mutationMap, writeConsistency);
             }
 
             @Override
@@ -1151,9 +1144,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         });
     }
 
-    private Map<ByteBuffer, Map<String, List<Mutation>>> convertToMutations(List<TableCellAndValue> batch,
-                                                                            long timestamp) {
-        Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
+    private MutationMap convertToMutations(List<TableCellAndValue> batch, long timestamp) {
+        MutationMap mutationMap = new MutationMap();
         for (TableCellAndValue tableCellAndValue : batch) {
             Cell cell = tableCellAndValue.cell;
             Column col = createColumn(cell, Value.create(tableCellAndValue.value, timestamp));
@@ -1163,18 +1155,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Mutation mutation = new Mutation();
             mutation.setColumn_or_supercolumn(colOrSup);
 
-            ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
-
-            Map<String, List<Mutation>> rowPuts = map.computeIfAbsent(rowName,
-                    row -> Maps.<String, List<Mutation>>newHashMap());
-
-            List<Mutation> tableMutations = rowPuts.computeIfAbsent(
-                    internalTableName(tableCellAndValue.tableRef),
-                    k -> Lists.<Mutation>newArrayList());
-
-            tableMutations.add(mutation);
+            mutationMap.addMutationForCell(cell, tableCellAndValue.tableRef, mutation);
         }
-        return map;
+        return mutationMap;
     }
 
     private Column createColumn(Cell cell, Value value) {
@@ -1191,7 +1174,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private void batchMutateInternal(String kvsMethodName,
             CassandraClient client,
             TableReference tableRef,
-            Map<ByteBuffer, Map<String, List<Mutation>>> map,
+            MutationMap map,
             ConsistencyLevel consistency) throws TException {
         batchMutateInternal(kvsMethodName, client, ImmutableSet.of(tableRef), map, consistency);
     }
@@ -1199,11 +1182,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private Void batchMutateInternal(String kvsMethodName,
                                      CassandraClient client,
                                      Set<TableReference> tableRefs,
-                                     Map<ByteBuffer, Map<String, List<Mutation>>> map,
+                                     MutationMap map,
                                      ConsistencyLevel consistency) throws TException {
         try {
             return queryRunner.run(client, tableRefs, () -> {
-                client.batch_mutate(kvsMethodName, map, consistency);
+                client.batch_mutate(kvsMethodName, map.toMap(), consistency);
                 return null;
             });
         } catch (UnavailableException e) {
@@ -1351,14 +1334,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
                     // atomically so we have to potentially do many deletes if there are many timestamps for the
                     // same key.
-                    Map<Integer, Map<ByteBuffer, Map<String, List<Mutation>>>> maps = Maps.newTreeMap();
+                    Map<Integer, MutationMap> mutationMaps = Maps.newTreeMap();
+
                     for (Entry<Cell, Collection<Long>> cellVersions : cellVersionsMap.entrySet()) {
                         int mapIndex = 0;
                         for (long ts : Ordering.natural().immutableSortedCopy(cellVersions.getValue())) {
-                            if (!maps.containsKey(mapIndex)) {
-                                maps.put(mapIndex, Maps.<ByteBuffer, Map<String, List<Mutation>>>newHashMap());
+                            if (!mutationMaps.containsKey(mapIndex)) {
+                                mutationMaps.put(mapIndex, new MutationMap());
                             }
-                            Map<ByteBuffer, Map<String, List<Mutation>>> map = maps.get(mapIndex);
+                            MutationMap mutationMap = mutationMaps.get(mapIndex);
                             ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(
                                     cellVersions.getKey().getColumnName(),
                                     ts);
@@ -1369,20 +1353,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             del.setTimestamp(Long.MAX_VALUE);
                             Mutation mutation = new Mutation();
                             mutation.setDeletion(del);
-                            ByteBuffer rowName = ByteBuffer.wrap(cellVersions.getKey().getRowName());
-                            if (!map.containsKey(rowName)) {
-                                map.put(rowName, Maps.<String, List<Mutation>>newHashMap());
-                            }
-                            Map<String, List<Mutation>> rowPuts = map.get(rowName);
-                            if (!rowPuts.containsKey(internalTableName(tableRef))) {
-                                rowPuts.put(internalTableName(tableRef), Lists.<Mutation>newArrayList());
-                            }
-                            rowPuts.get(internalTableName(tableRef)).add(mutation);
+
+                            mutationMap.addMutationForCell(cellVersions.getKey(), tableRef, mutation);
                             mapIndex++;
                             numVersions += cellVersions.getValue().size();
                         }
                     }
-                    for (Map<ByteBuffer, Map<String, List<Mutation>>> map : maps.values()) {
+                    for (MutationMap map : mutationMaps.values()) {
                         // NOTE: we run with ConsistencyLevel.ALL here instead of ConsistencyLevel.QUORUM
                         // because we want to remove all copies of this data
                         batchMutateInternal("delete", client, tableRef, map, deleteConsistency);
