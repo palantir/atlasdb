@@ -56,6 +56,8 @@ public class MutationMap {
     }
 
     /**
+     * Gets the MutationMap's internal map object, for use by Thrift's batch_mutate API.
+     *
      * @return a reference to (not a copy of) the map wrapped by the MutationMap object
      */
     public Map<ByteBuffer, Map<String, List<Mutation>>> toMap() {
