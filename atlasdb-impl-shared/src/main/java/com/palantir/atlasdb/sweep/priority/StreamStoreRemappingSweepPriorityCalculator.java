@@ -16,9 +16,10 @@
 
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
@@ -26,6 +27,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Output;
 
 public class StreamStoreRemappingSweepPriorityCalculator {
+    public static final long INDEX_TO_VALUE_TABLE_SLEEP_TIME = TimeUnit.HOURS.toMillis(1);
     private SweepPriorityCalculator delegate;
     private SweepPriorityStore sweepPriorityStore;
 
@@ -37,17 +39,10 @@ public class StreamStoreRemappingSweepPriorityCalculator {
 
     public Map<TableReference, Double> calculateSweepPriorities(Transaction tx, long conservativeSweepTs) {
         Map<TableReference, Double> tableToScore = delegate.calculateSweepPriorities(tx, conservativeSweepTs);
-        if (tableToScore.isEmpty()) {
-            return tableToScore;
-        }
 
-        Map<TableReference, SweepPriority> tableToSweepPriority = new HashMap<>();
+        Map<TableReference, SweepPriority> tableToSweepPriority = getSweepPriorityMap(tx);
 
-        for (SweepPriority sweepPriority : sweepPriorityStore.loadNewPriorities(tx)) {
-            tableToSweepPriority.put(sweepPriority.tableRef(), sweepPriority);
-        }
-
-        for (TableReference table : tableToSweepPriority.keySet()) {
+        for (TableReference table : tableToScore.keySet()) {
             if (StreamTableType.isStreamStoreValueTable(table)) {
                 adjustStreamStorePriority(table, tableToScore, tableToSweepPriority);
             }
@@ -56,31 +51,37 @@ public class StreamStoreRemappingSweepPriorityCalculator {
         return tableToScore;
     }
 
-    // if ss.value >= ss.index -> ignore value and sweep index
-    // if ss.value <  ss.index && ss.index <= 1 hour ago -> ignore value
-    // if ss.value <  ss.index && ss.index >  1 hour ago -> sweep value
+    private Map<TableReference, SweepPriority> getSweepPriorityMap(Transaction tx) {
+        return sweepPriorityStore.loadNewPriorities(tx).stream()
+                .collect(Collectors.toMap(SweepPriority::tableRef, Function.identity()));
+    }
+
     private void adjustStreamStorePriority(TableReference valueTable,
             @Output Map<TableReference, Double> tableToScore,
             Map<TableReference, SweepPriority> tableToSweepPriority) {
 
         TableReference indexTable = StreamTableType.getIndexTableFromValueTable(valueTable);
         if (!tableToScore.containsKey(indexTable)) {
-            // unlikely, but don't boost the score of something that hasn't been included as a candidate
+            // unlikely, but don't alter the score of something that hasn't been included as a candidate
             return;
         }
 
-        long lastSweptTimeOfValueTable = getLastSweptTime(tableToSweepPriority, valueTable);
-        long lastSweptTimeOfIndexTable = getLastSweptTime(tableToSweepPriority, indexTable);
+        long lastSweptTimeOfValueTable = getLastSweptTime(valueTable, tableToSweepPriority);
+        long lastSweptTimeOfIndexTable = getLastSweptTime(indexTable, tableToSweepPriority);
 
         if (lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
-            bumpIndexTablePriorityAndIgnoreValueTablePriority(tableToScore, valueTable, indexTable);
-        } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= TimeUnit.HOURS.toMillis(1)) {
-            doNotSweepTable(tableToScore, valueTable);
-            doNotSweepTable(tableToScore, indexTable);
+            // We want to sweep the value table but haven't yet done the index table.  Do the index table first.
+            bumpIndexTablePriorityAndIgnoreValueTablePriority(valueTable, indexTable, tableToScore);
+        } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= INDEX_TO_VALUE_TABLE_SLEEP_TIME) {
+            // We've done the index table to recently, wait a bit before we do the value table.
+            doNotSweepTable(valueTable, tableToScore);
+            doNotSweepTable(indexTable, tableToScore);
+        } else {
+            // The index table has been swept long enough ago that we can now sweep the value table
         }
     }
 
-    private long getLastSweptTime(Map<TableReference, SweepPriority> tableToSweepPriority, TableReference table) {
+    private long getLastSweptTime(TableReference table, Map<TableReference, SweepPriority> tableToSweepPriority) {
         if (!tableToSweepPriority.containsKey(table)) {
             return 0L;
         }
@@ -88,14 +89,12 @@ public class StreamStoreRemappingSweepPriorityCalculator {
     }
 
     private void bumpIndexTablePriorityAndIgnoreValueTablePriority(
-            @Output Map<TableReference, Double> tableToPriority,
-            TableReference valueTable,
-            TableReference indexTable) {
-        tableToPriority.put(indexTable, tableToPriority.get(valueTable));
-        doNotSweepTable(tableToPriority, valueTable);
+            TableReference valueTable, TableReference indexTable, @Output Map<TableReference, Double> tableToScore) {
+        tableToScore.put(indexTable, tableToScore.get(valueTable));
+        doNotSweepTable(valueTable, tableToScore);
     }
 
-    private void doNotSweepTable(@Output Map<TableReference, Double> tableToPriority, TableReference table) {
-        tableToPriority.put(table, 0.0);
+    private void doNotSweepTable(TableReference table, @Output Map<TableReference, Double> tableToScore) {
+        tableToScore.put(table, 0.0);
     }
 }
