@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,9 +54,11 @@ public class ClusterConfigurationDeserializationTest {
     }
 
     @Test
-    public void canDeserializeClusterConfigurationWithInvalidTypeInformation() throws IOException {
-        // TODO (jkong): This case should fail, or at least log an informative warning; but for now it passes.
-        assertDefaultClusterConfigurationCorrect(deserializeClusterConfiguration(CLUSTER_CONFIG_INVALID_TYPE_INFO));
+    @Ignore // TODO (jkong): Reenable if/when we find a good solution
+    public void throwsWhenDeserializingClusterConfigurationWithInvalidTypeInformation() throws IOException {
+        assertThatThrownBy(() -> assertDefaultClusterConfigurationCorrect(
+                deserializeClusterConfiguration(CLUSTER_CONFIG_INVALID_TYPE_INFO)))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
