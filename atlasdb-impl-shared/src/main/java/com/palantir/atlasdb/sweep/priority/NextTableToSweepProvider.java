@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class NextTableToSweepProvider {
     private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
@@ -99,9 +100,10 @@ public class NextTableToSweepProvider {
                 ? LoggingArgs.safeTableOrPlaceholder(chosenTable.get()).toString()
                 : "no table";
 
-        log.debug("Chose {} from priorities {}",
+        log.debug("Chose {} from scores: {}, unsafeScores: {}",
                 SafeArg.of("chosenTable", chosenTableString),
-                SafeArg.of("priorities", safeTableNamesToScore));
+                SafeArg.of("scores", safeTableNamesToScore),
+                UnsafeArg.of("unsafeScores", scores));
 
         return chosenTable;
     }
