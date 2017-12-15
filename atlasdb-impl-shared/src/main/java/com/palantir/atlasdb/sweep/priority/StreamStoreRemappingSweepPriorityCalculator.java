@@ -17,10 +17,8 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
@@ -38,67 +36,66 @@ public class StreamStoreRemappingSweepPriorityCalculator {
     }
 
     public Map<TableReference, Double> calculateSweepPriorities(Transaction tx, long conservativeSweepTs) {
-        Map<TableReference, Double> tableToPriority = delegate.calculateSweepPriorities(tx, conservativeSweepTs);
-        if (tableToPriority.isEmpty()) {
-            return tableToPriority;
+        Map<TableReference, Double> tableToScore = delegate.calculateSweepPriorities(tx, conservativeSweepTs);
+        if (tableToScore.isEmpty()) {
+            return tableToScore;
         }
 
-        Map<TableReference, SweepPriority> indexToPriority = new HashMap<>();
-        Map<TableReference, SweepPriority> valueToPriority = new HashMap<>();
+        Map<TableReference, SweepPriority> tableToSweepPriority = new HashMap<>();
 
         for (SweepPriority sweepPriority : sweepPriorityStore.loadNewPriorities(tx)) {
-            if (StreamTableType.isStreamStoreIndexTable(sweepPriority.tableRef())) {
-                indexToPriority.put(sweepPriority.tableRef(), sweepPriority);
-            } else if (StreamTableType.isStreamStoreValueTable(sweepPriority.tableRef())) {
-                valueToPriority.put(sweepPriority.tableRef(), sweepPriority);
+            tableToSweepPriority.put(sweepPriority.tableRef(), sweepPriority);
+        }
+
+        for (TableReference table : tableToSweepPriority.keySet()) {
+            if (StreamTableType.isStreamStoreValueTable(table)) {
+                adjustStreamStorePriority(table, tableToScore, tableToSweepPriority);
             }
         }
 
-        if (!didSweepAllIndexAndValueTables(indexToPriority, valueToPriority)) {
-            return tableToPriority;
-        }
-
-        for (Map.Entry<TableReference, SweepPriority> valueEntry : valueToPriority.entrySet()) {
-            adjustStreamStorePriority(tableToPriority, indexToPriority, valueEntry);
-        }
-
-        return tableToPriority;
-    }
-
-    private boolean didSweepAllIndexAndValueTables(
-            Map<TableReference, SweepPriority> indexToPriority,
-            Map<TableReference, SweepPriority> valueToPriority) {
-        return indexToPriority.size() == valueToPriority.size() && indexToPriority.size() != 0;
+        return tableToScore;
     }
 
     // if ss.value >= ss.index -> ignore value and sweep index
     // if ss.value <  ss.index && ss.index <= 1 hour ago -> ignore value
     // if ss.value <  ss.index && ss.index >  1 hour ago -> sweep value
-    private void adjustStreamStorePriority(@Output Map<TableReference, Double> tableToPriority,
-            Map<TableReference, SweepPriority> indexToPriority,
-            Map.Entry<TableReference, SweepPriority> valueEntry) {
+    private void adjustStreamStorePriority(TableReference valueTable,
+            @Output Map<TableReference, Double> tableToScore,
+            Map<TableReference, SweepPriority> tableToSweepPriority) {
 
-        TableReference valueTable = valueEntry.getKey();
-        long lastSweptTimeOfValueTable = valueEntry.getValue().lastSweepTimeMillis().orElse(0L);
         TableReference indexTable = StreamTableType.getIndexTableFromValueTable(valueTable);
-        long lastSweptTimeOfIndexTable = indexToPriority.get(indexTable).lastSweepTimeMillis().orElse(0L);
+        if (!tableToScore.containsKey(indexTable)) {
+            // unlikely, but don't boost the score of something that hasn't been included as a candidate
+            return;
+        }
+
+        long lastSweptTimeOfValueTable = getLastSweptTime(tableToSweepPriority, valueTable);
+        long lastSweptTimeOfIndexTable = getLastSweptTime(tableToSweepPriority, indexTable);
 
         if (lastSweptTimeOfValueTable >= lastSweptTimeOfIndexTable) {
-            bumpIndexTablePriorityAndIgnoreValueTablePriority(tableToPriority, valueTable, indexTable);
+            bumpIndexTablePriorityAndIgnoreValueTablePriority(tableToScore, valueTable, indexTable);
         } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= TimeUnit.HOURS.toMillis(1)) {
-            doNotSweepTable(tableToPriority, valueTable);
-            doNotSweepTable(tableToPriority, indexTable);
+            doNotSweepTable(tableToScore, valueTable);
+            doNotSweepTable(tableToScore, indexTable);
         }
     }
 
-    private void bumpIndexTablePriorityAndIgnoreValueTablePriority(@Output Map<TableReference, Double> tableToPriority,
+    private long getLastSweptTime(Map<TableReference, SweepPriority> tableToSweepPriority, TableReference table) {
+        if (!tableToSweepPriority.containsKey(table)) {
+            return 0L;
+        }
+        return tableToSweepPriority.get(table).lastSweepTimeMillis().orElse(0L);
+    }
+
+    private void bumpIndexTablePriorityAndIgnoreValueTablePriority(
+            @Output Map<TableReference, Double> tableToPriority,
             TableReference valueTable,
             TableReference indexTable) {
         tableToPriority.put(indexTable, tableToPriority.get(valueTable));
         doNotSweepTable(tableToPriority, valueTable);
     }
 
-    private void doNotSweepTable(@Output Map<TableReference, Double> tableToPriority, TableReference valueTable) {
-        tableToPriority.put(valueTable, 0.0);
+    private void doNotSweepTable(@Output Map<TableReference, Double> tableToPriority, TableReference table) {
+        tableToPriority.put(table, 0.0);
     }
 }

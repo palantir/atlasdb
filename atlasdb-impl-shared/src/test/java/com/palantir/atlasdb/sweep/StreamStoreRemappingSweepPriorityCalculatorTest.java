@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep;
 
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -29,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,8 +47,8 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityCalculator;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 
 public class StreamStoreRemappingSweepPriorityCalculatorTest {
-    private static final long NOW = ZonedDateTime.now().toInstant().toEpochMilli();
     private static final long THIRTY_MINUTES_AGO = ZonedDateTime.now().minusMinutes(30).toInstant().toEpochMilli();
+    private static final long TWO_HOURS_AGO = ZonedDateTime.now().minusHours(2).toInstant().toEpochMilli();
     private static final long TWELVE_HOURS_AGO = ZonedDateTime.now().minusHours(12).toInstant().toEpochMilli();
     private static final long THIRTY_HOURS_AGO = ZonedDateTime.now().minusHours(30).toInstant().toEpochMilli();
     private static final long FIVE_DAYS_AGO = ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli();
@@ -278,7 +278,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(3);
+        thenNumberOfTablesIs(3);
         thenFirstTableHasHigherPriorityThanSecond(tableWithLikelyManyValuesToSweep, tableNotSweptInALongTime);
         thenFirstTableHasHigherPriorityThanSecond(tableNotSweptInALongTime, recentlySweptTableWithFewWrites);
     }
@@ -305,7 +305,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(2);
+        thenNumberOfTablesIs(2);
         thenTableHasZeroPriority(recentlySweptStreamStore);
         thenFirstTableHasHigherPriorityThanSecond(notRecentlySweptStreamStore, recentlySweptStreamStore);
     }
@@ -336,7 +336,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(2);
+        thenNumberOfTablesIs(2);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreValuesFewWrites);
     }
 
@@ -355,7 +355,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(1);
+        thenNumberOfTablesIs(1);
         thenHasHighestPriority(streamStoreValuesManyWrites);
     }
 
@@ -382,7 +382,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(2);
+        thenNumberOfTablesIs(2);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreIndexManyWrites, streamStoreValuesManyWrites);
     }
 
@@ -409,7 +409,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(2);
+        thenNumberOfTablesIs(2);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreIndexManyWrites);
     }
 
@@ -436,7 +436,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(2);
+        thenNumberOfTablesIs(2);
         thenTableHasZeroPriority(streamStoreValuesManyWrites);
         thenTableHasZeroPriority(streamStoreIndexManyWrites);
     }
@@ -477,7 +477,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(3);
+        thenNumberOfTablesIs(3);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreValuesManyWrites, streamStoreIndexManyWrites);
         thenFirstTableHasHigherPriorityThanSecond(highPriorityTable, streamStoreValuesManyWrites);
     }
@@ -518,7 +518,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
         whenCalculatingSweepPriorities();
 
-        thenNumberOfTablesPrioritisedIs(3);
+        thenNumberOfTablesIs(3);
         thenFirstTableHasHigherPriorityThanSecond(streamStoreIndexManyWrites, streamStoreValuesManyWrites);
         thenFirstTableHasHigherPriorityThanSecond(highPriorityTable, streamStoreIndexManyWrites);
     }
@@ -555,46 +555,46 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
     //Then
     private void thenNoTablesToSweep() {
-        Assert.assertThat(priorities.isEmpty(), CoreMatchers.is(true));
+        Assert.assertThat(priorities.isEmpty(), is(true));
     }
 
     private void thenOnlyTablePrioritisedIs(TableReference table) {
-        Assert.assertThat(priorities.size(), CoreMatchers.is(1));
-        Assert.assertThat(priorities.containsKey(table), CoreMatchers.is(true));
+        Assert.assertThat(priorities.size(), is(1));
+        Assert.assertThat(priorities.containsKey(table), is(true));
     }
 
     private void thenOnlyTablePrioritisedIs(SweepPriorityHistory sweepPriorityHistory) {
-        Assert.assertThat(priorities.size(), CoreMatchers.is(1));
-        Assert.assertThat(priorities.containsKey(sweepPriorityHistory.tableRef), CoreMatchers.is(true));
+        Assert.assertThat(priorities.size(), is(1));
+        Assert.assertThat(priorities.containsKey(sweepPriorityHistory.tableRef), is(true));
     }
 
     private void thenTableHasPriority(TableReference table) {
-        Assert.assertThat(priorities.get(table), Matchers.greaterThan(0.0));
+        Assert.assertThat(priorities.get(table), greaterThan(0.0));
     }
 
     private void thenTableHasPriority(SweepPriorityHistory sweepPriorityHistory) {
-        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), Matchers.greaterThan(0.0));
+        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), greaterThan(0.0));
     }
 
     private void thenTableHasZeroPriority(SweepPriorityHistory sweepPriorityHistory) {
-        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), CoreMatchers.is(0.0));
+        Assert.assertThat(priorities.get(sweepPriorityHistory.tableRef), is(0.0));
     }
 
-    private void thenNumberOfTablesPrioritisedIs(int expectedNumberOfTables) {
-        Assert.assertThat(priorities.size(), CoreMatchers.is(expectedNumberOfTables));
+    private void thenNumberOfTablesIs(int expectedNumberOfTables) {
+        Assert.assertThat(priorities.size(), is(expectedNumberOfTables));
     }
 
     private void thenFirstTableHasHigherPriorityThanSecond(SweepPriorityHistory higherPriorityTable,
             SweepPriorityHistory lowerPriorityTable) {
         double priority1 = priorities.get(higherPriorityTable.tableRef);
         double priority2 = priorities.get(lowerPriorityTable.tableRef);
-        Assert.assertThat(priority1, Matchers.greaterThan(priority2));
+        Assert.assertThat(priority1, greaterThan(priority2));
     }
 
     private void thenHasHighestPriority(SweepPriorityHistory highPriorityTable) {
         // Don't want to constrain implementation to use MAX_DOUBLE in case we do something more nuanced in the future.
         double priority = priorities.get(highPriorityTable.tableRef);
-        Assert.assertThat(priority, Matchers.greaterThan(1_000_000.0));
+        Assert.assertThat(priority, greaterThan(1_000_000.0));
     }
 
     // helpers
@@ -606,7 +606,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
         return ImmutableSweepPriority.builder()
                 .tableRef(table("placeholder"))
                 .writeCount(1000)
-                .lastSweepTimeMillis(NOW)
+                .lastSweepTimeMillis(TWO_HOURS_AGO)
                 .minimumSweptTimestamp(100)
                 .staleValuesDeleted(10)
                 .cellTsPairsExamined(10000);
