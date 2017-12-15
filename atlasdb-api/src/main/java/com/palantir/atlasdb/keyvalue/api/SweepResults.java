@@ -19,6 +19,8 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.encoding.PtBytes;
+
 @Value.Immutable
 public abstract class SweepResults {
 
@@ -34,37 +36,61 @@ public abstract class SweepResults {
 
     /**
      * The approximate number of (cell, timestamp) pairs examined.
-     * TODO: we should rename this method to something like getCellTsPairsExamined()
      */
     public abstract long getCellTsPairsExamined();
 
     /**
      * The number of (cell, timestamp) pairs deleted.
-     * TODO: we should rename this method to something like getCellTsPairsDeleted() or staleValuesDeleted()
      */
     public abstract long getStaleValuesDeleted();
 
-    public abstract long getSweptTimestamp();
+    /**
+     * The minimum sweep timestamp while sweeping this table.
+     */
+    public abstract long getMinSweptTimestamp();
 
     /**
-     * Returns a new {@link SweepResults} representing cumulative results from this instance and {@code other}. Assumes
-     * that {@code other} represents results from subsequent iteration of sweep (i.e., it happened after the run that
-     * produced this instance).
+     * Time spent sweeping this iteration in milliseconds.
+     */
+    public abstract long getTimeInMillis();
+
+    /**
+     * Time in milliseconds when we started sweeping this table.
+     */
+    public abstract long getTimeSweepStarted();
+
+    public long getTimeElapsedSinceStartedSweeping() {
+        return System.currentTimeMillis() - getTimeSweepStarted();
+    }
+
+    /**
+     * Returns a new {@link SweepResults} representing cumulative results from this instance and {@code other}.
+     * The operation is commutative.
      */
     public SweepResults accumulateWith(SweepResults other) {
         return SweepResults.builder()
+                .nextStartRow(maxRowOptional(getNextStartRow(), other.getNextStartRow()))
                 .cellTsPairsExamined(getCellTsPairsExamined() + other.getCellTsPairsExamined())
                 .staleValuesDeleted(getStaleValuesDeleted() + other.getStaleValuesDeleted())
-                .sweptTimestamp(other.getSweptTimestamp())
-                .nextStartRow(other.getNextStartRow())
+                .minSweptTimestamp(Math.min(getMinSweptTimestamp(), other.getMinSweptTimestamp()))
+                .timeInMillis(getTimeInMillis() + other.getTimeInMillis())
+                .timeSweepStarted(Math.min(getTimeSweepStarted(), other.getTimeSweepStarted()))
                 .build();
+    }
+
+    private Optional<byte[]> maxRowOptional(Optional<byte[]> fst, Optional<byte[]> snd) {
+        return fst.flatMap(row1 -> snd.map(row2 -> PtBytes.BYTES_COMPARATOR.max(row1, row2)));
     }
 
     public static ImmutableSweepResults.Builder builder() {
         return ImmutableSweepResults.builder();
     }
 
-    public static SweepResults createEmptySweepResult() {
+    public static SweepResults createEmptySweepResultWithMoreToSweep() {
+        return createEmptySweepResult(Optional.of(PtBytes.EMPTY_BYTE_ARRAY));
+    }
+
+    public static SweepResults createEmptySweepResultWithNoMoreToSweep() {
         return createEmptySweepResult(Optional.empty());
     }
 
@@ -72,8 +98,10 @@ public abstract class SweepResults {
         return builder()
                 .cellTsPairsExamined(0)
                 .staleValuesDeleted(0)
-                .sweptTimestamp(0)
+                .minSweptTimestamp(Long.MAX_VALUE)
                 .nextStartRow(startRow)
+                .timeInMillis(0)
+                .timeSweepStarted(System.currentTimeMillis())
                 .build();
     }
 

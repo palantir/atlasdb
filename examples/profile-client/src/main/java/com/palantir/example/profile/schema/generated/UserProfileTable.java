@@ -57,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -3276,11 +3273,8 @@ public final class UserProfileTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -3355,5 +3349,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "i4ubDZ10Q8TP6mjH1iLMJw==";
+    static String __CLASS_HASH = "2l6vERmYIdNq6v0h//tMEw==";
 }

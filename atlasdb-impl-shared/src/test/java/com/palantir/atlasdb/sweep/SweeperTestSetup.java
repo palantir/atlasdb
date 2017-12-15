@@ -26,6 +26,7 @@ import org.mockito.stubbing.Answer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.sweep.metrics.SweepMetricsManager;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityStore;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -50,7 +51,7 @@ public class SweeperTestSetup {
     private NextTableToSweepProvider nextTableToSweepProvider = Mockito.mock(NextTableToSweepProvider.class);
     protected SweepTaskRunner sweepTaskRunner = Mockito.mock(SweepTaskRunner.class);
     private boolean sweepEnabled = true;
-    protected SweepMetrics sweepMetrics = Mockito.mock(SweepMetrics.class);
+    protected SweepMetricsManager sweepMetricsManager = Mockito.mock(SweepMetricsManager.class);
     protected long currentTimeMillis = 1000200300L;
 
     @BeforeClass
@@ -86,7 +87,7 @@ public class SweeperTestSetup {
                 priorityStore,
                 progressStore,
                 Mockito.mock(BackgroundSweeperPerformanceLogger.class),
-                sweepMetrics,
+                sweepMetricsManager,
                 () -> currentTimeMillis);
     }
 
