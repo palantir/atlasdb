@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -42,6 +43,13 @@ public class ClusterConfigurationDeserializationTest {
     private static final File CLUSTER_CONFIG_MALFORMED = getClusterConfigFile("malformed");
     private static final File CLUSTER_CONFIG_KUBERNETES = getClusterConfigFile("kubernetes");
     private static final ObjectMapper OBJECT_MAPPER = AtlasDbConfigs.OBJECT_MAPPER;
+
+    @BeforeClass
+    public static void setUp() {
+        OBJECT_MAPPER.registerSubtypes(
+                DefaultClusterConfiguration.class,
+                KubernetesClusterConfiguration.class);
+    }
 
     @Test
     public void canDeserializeClusterConfigurationWithoutTypeInformation() throws IOException {
