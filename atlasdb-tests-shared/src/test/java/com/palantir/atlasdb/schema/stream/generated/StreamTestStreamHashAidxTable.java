@@ -604,12 +604,12 @@ public final class StreamTestStreamHashAidxTable implements
     }
 
     @Override
-    public Map<StreamTestStreamHashAidxRow, BatchingVisitable<StreamTestStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<StreamTestStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestStreamHashAidxRow, BatchingVisitable<StreamTestStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<StreamTestStreamHashAidxRow, Iterator<StreamTestStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<StreamTestStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestStreamHashAidxRow, Iterator<StreamTestStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             StreamTestStreamHashAidxRow row = StreamTestStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestStreamHashAidxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<StreamTestStreamHashAidxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 StreamTestStreamHashAidxColumn col = StreamTestStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = StreamTestStreamHashAidxColumnValue.hydrateValue(result.getValue());
                 return StreamTestStreamHashAidxColumnValue.of(col, val);
@@ -742,5 +742,5 @@ public final class StreamTestStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vkNT3miQX3y36smWBpFp0g==";
+    static String __CLASS_HASH = "0zXUHZKc60/OunAFHpAa+A==";
 }

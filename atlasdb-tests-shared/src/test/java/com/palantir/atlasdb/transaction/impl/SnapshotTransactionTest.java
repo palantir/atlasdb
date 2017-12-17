@@ -28,6 +28,7 @@ import static org.junit.Assert.fail;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -601,11 +602,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, BatchColumnRangeSelection)",
                 (t, heldLocks) -> {
-                    Collection<BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+                    Collection<Iterator<Map.Entry<Cell, byte[]>>> results =
                             t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton(PtBytes.toBytes("row1")),
                                     BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
                                     .values();
-                    results.forEach(result -> result.batchAccept(batchHint, AbortingVisitors.alwaysTrue()));
+                    results.forEach(result -> result.forEachRemaining(x -> {}));
                     return null;
                 }));
 

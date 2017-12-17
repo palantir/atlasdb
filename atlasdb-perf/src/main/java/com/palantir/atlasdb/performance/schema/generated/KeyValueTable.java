@@ -543,12 +543,12 @@ public final class KeyValueTable implements
     }
 
     @Override
-    public Map<KeyValueRow, BatchingVisitable<KeyValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<KeyValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<KeyValueRow, BatchingVisitable<KeyValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<KeyValueRow, Iterator<KeyValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<KeyValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<KeyValueRow, Iterator<KeyValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             KeyValueRow row = KeyValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<KeyValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<KeyValueNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);

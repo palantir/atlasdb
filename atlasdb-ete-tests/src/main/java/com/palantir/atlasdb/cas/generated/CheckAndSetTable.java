@@ -549,12 +549,12 @@ public final class CheckAndSetTable implements
     }
 
     @Override
-    public Map<CheckAndSetRow, BatchingVisitable<CheckAndSetNamedColumnValue<?>>> getRowsColumnRange(Iterable<CheckAndSetRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<CheckAndSetRow, BatchingVisitable<CheckAndSetNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<CheckAndSetRow, Iterator<CheckAndSetNamedColumnValue<?>>> getRowsColumnRange(Iterable<CheckAndSetRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<CheckAndSetRow, Iterator<CheckAndSetNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             CheckAndSetRow row = CheckAndSetRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<CheckAndSetNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<CheckAndSetNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -683,5 +683,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DzljiQET0fm0b2LYV3eYnA==";
+    static String __CLASS_HASH = "EATF2jA6tiBpPL+T7m2e+g==";
 }

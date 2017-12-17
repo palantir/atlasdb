@@ -575,12 +575,12 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     @Override
-    public Map<StreamTestWithHashStreamValueRow, BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestWithHashStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestWithHashStreamValueRow, BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<StreamTestWithHashStreamValueRow, Iterator<StreamTestWithHashStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestWithHashStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestWithHashStreamValueRow, Iterator<StreamTestWithHashStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestWithHashStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<StreamTestWithHashStreamValueNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -709,5 +709,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "a5h4Wt77pKGNzadQqGcK4A==";
+    static String __CLASS_HASH = "lU4+cRWi8b+oM1AwKYJJPw==";
 }

@@ -41,7 +41,7 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
      * This returns visitables for each row. It should be used if you want to visit a number of the first 
      * matched columns instead of all the columns per row.
      */ 
-    Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
+    Map<ROW, Iterator<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
                                                                  BatchColumnRangeSelection columnRangeSelection);
 
     /*

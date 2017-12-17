@@ -604,12 +604,12 @@ public final class StreamTestMaxMemStreamIdxTable implements
     }
 
     @Override
-    public Map<StreamTestMaxMemStreamIdxRow, BatchingVisitable<StreamTestMaxMemStreamIdxColumnValue>> getRowsColumnRange(Iterable<StreamTestMaxMemStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestMaxMemStreamIdxRow, BatchingVisitable<StreamTestMaxMemStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<StreamTestMaxMemStreamIdxRow, Iterator<StreamTestMaxMemStreamIdxColumnValue>> getRowsColumnRange(Iterable<StreamTestMaxMemStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestMaxMemStreamIdxRow, Iterator<StreamTestMaxMemStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             StreamTestMaxMemStreamIdxRow row = StreamTestMaxMemStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestMaxMemStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<StreamTestMaxMemStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 StreamTestMaxMemStreamIdxColumn col = StreamTestMaxMemStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = StreamTestMaxMemStreamIdxColumnValue.hydrateValue(result.getValue());
                 return StreamTestMaxMemStreamIdxColumnValue.of(col, val);
@@ -742,5 +742,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2P9w/8T7vYym1uXqoKwZfQ==";
+    static String __CLASS_HASH = "fKVs6UcwgEV6XmZ6GVRVwQ==";
 }

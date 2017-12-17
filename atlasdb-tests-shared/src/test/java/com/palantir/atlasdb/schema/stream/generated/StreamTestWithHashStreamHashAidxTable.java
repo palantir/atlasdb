@@ -604,12 +604,12 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     }
 
     @Override
-    public Map<StreamTestWithHashStreamHashAidxRow, BatchingVisitable<StreamTestWithHashStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<StreamTestWithHashStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestWithHashStreamHashAidxRow, BatchingVisitable<StreamTestWithHashStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<StreamTestWithHashStreamHashAidxRow, Iterator<StreamTestWithHashStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<StreamTestWithHashStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestWithHashStreamHashAidxRow, Iterator<StreamTestWithHashStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             StreamTestWithHashStreamHashAidxRow row = StreamTestWithHashStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestWithHashStreamHashAidxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<StreamTestWithHashStreamHashAidxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 StreamTestWithHashStreamHashAidxColumn col = StreamTestWithHashStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = StreamTestWithHashStreamHashAidxColumnValue.hydrateValue(result.getValue());
                 return StreamTestWithHashStreamHashAidxColumnValue.of(col, val);
@@ -742,5 +742,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "koqPx/EZezCVdQklPhLMuQ==";
+    static String __CLASS_HASH = "AdVDvBPWkkXW2TORWWQbNw==";
 }

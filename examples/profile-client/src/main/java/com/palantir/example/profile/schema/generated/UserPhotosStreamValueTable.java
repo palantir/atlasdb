@@ -561,12 +561,12 @@ public final class UserPhotosStreamValueTable implements
     }
 
     @Override
-    public Map<UserPhotosStreamValueRow, BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserPhotosStreamValueRow, BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<UserPhotosStreamValueRow, Iterator<UserPhotosStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamValueRow, Iterator<UserPhotosStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserPhotosStreamValueRow row = UserPhotosStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<UserPhotosStreamValueNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -695,5 +695,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "irQPf+iC8Kagft1QMRC2Cw==";
+    static String __CLASS_HASH = "jW6uOhcOYBQ6tA6byk6AMg==";
 }

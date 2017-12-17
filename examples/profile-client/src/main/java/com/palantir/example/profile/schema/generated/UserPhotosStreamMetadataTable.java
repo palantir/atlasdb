@@ -573,12 +573,12 @@ public final class UserPhotosStreamMetadataTable implements
     }
 
     @Override
-    public Map<UserPhotosStreamMetadataRow, BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserPhotosStreamMetadataRow, BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<UserPhotosStreamMetadataRow, Iterator<UserPhotosStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamMetadataRow, Iterator<UserPhotosStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserPhotosStreamMetadataRow row = UserPhotosStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<UserPhotosStreamMetadataNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<UserPhotosStreamMetadataNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -707,5 +707,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7iwDT85x7QJRRwZVqWTd9A==";
+    static String __CLASS_HASH = "6KTRhZo6+vVGEo91o5QVCQ==";
 }

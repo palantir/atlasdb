@@ -604,12 +604,12 @@ public final class TestHashComponentsStreamHashAidxTable implements
     }
 
     @Override
-    public Map<TestHashComponentsStreamHashAidxRow, BatchingVisitable<TestHashComponentsStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<TestHashComponentsStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<TestHashComponentsStreamHashAidxRow, BatchingVisitable<TestHashComponentsStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<TestHashComponentsStreamHashAidxRow, Iterator<TestHashComponentsStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<TestHashComponentsStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<TestHashComponentsStreamHashAidxRow, Iterator<TestHashComponentsStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             TestHashComponentsStreamHashAidxRow row = TestHashComponentsStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<TestHashComponentsStreamHashAidxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<TestHashComponentsStreamHashAidxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 TestHashComponentsStreamHashAidxColumn col = TestHashComponentsStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = TestHashComponentsStreamHashAidxColumnValue.hydrateValue(result.getValue());
                 return TestHashComponentsStreamHashAidxColumnValue.of(col, val);
@@ -742,5 +742,5 @@ public final class TestHashComponentsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lUM1vDkJ6ut7msUTfZ0uAA==";
+    static String __CLASS_HASH = "Ghv4pnZ8szNj1i086HD7VQ==";
 }

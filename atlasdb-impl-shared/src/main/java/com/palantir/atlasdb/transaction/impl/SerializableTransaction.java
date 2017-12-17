@@ -16,10 +16,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -72,6 +75,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
@@ -151,29 +155,39 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     @Override
-    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> ret =
+        Map<byte[], Iterator<Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
-        return Maps.transformEntries(ret, (row, visitable) -> new BatchingVisitable<Entry<Cell, byte[]>>() {
+        return Maps.transformEntries(ret, (row, iterator) -> new Iterator<Entry<Cell, byte[]>>() {
+            Entry<Cell, byte[]> next = null;
+
             @Override
-            public <K extends Exception> boolean batchAccept(
-                    int batchSize,
-                    AbortingVisitor<? super List<Entry<Cell, byte[]>>, K> visitor)
-                    throws K {
-                boolean hitEnd = visitable.batchAccept(batchSize, items -> {
-                    if (items.size() < batchSize) {
-                        reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                    }
-                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
-                    return visitor.visit(items);
-                });
-                if (hitEnd) {
-                    reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
                 }
-                return hitEnd;
+
+                if (iterator.hasNext()) {
+                    next = iterator.next();
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, Collections.singletonList(next));
+                    return true;
+                }
+
+                reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                return false;
+            }
+
+            @Override
+            public Entry<Cell, byte[]> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Entry<Cell, byte[]> result = next;
+                next = null;
+                return result;
             }
         });
     }
@@ -631,11 +645,12 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Entry<BatchColumnRangeSelection, List<byte[]>> e : rangesToRows.entrySet()) {
                 BatchColumnRangeSelection range = e.getKey();
                 List<byte[]> rows = e.getValue();
-                Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result =
+                Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> result =
                         readOnlyTransaction.getRowsColumnRange(table, rows, range);
-                for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> res : result.entrySet()) {
+                for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> res : result.entrySet()) {
                     byte[] row = res.getKey();
-                    BatchingVisitableView<Entry<Cell, byte[]>> bv = BatchingVisitableView.of(res.getValue());
+                    BatchingVisitableView<Entry<Cell, byte[]>> bv = BatchingVisitableView.of(
+                            BatchingVisitableFromIterable.create(res::getValue));
                     NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
                             getReadsInColumnRange(table, row, range),
                             input -> ByteBuffer.wrap(input));

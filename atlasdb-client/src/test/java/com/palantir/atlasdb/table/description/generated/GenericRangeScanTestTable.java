@@ -604,12 +604,12 @@ public final class GenericRangeScanTestTable implements
     }
 
     @Override
-    public Map<GenericRangeScanTestRow, BatchingVisitable<GenericRangeScanTestColumnValue>> getRowsColumnRange(Iterable<GenericRangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<GenericRangeScanTestRow, BatchingVisitable<GenericRangeScanTestColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<GenericRangeScanTestRow, Iterator<GenericRangeScanTestColumnValue>> getRowsColumnRange(Iterable<GenericRangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<GenericRangeScanTestRow, Iterator<GenericRangeScanTestColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             GenericRangeScanTestRow row = GenericRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<GenericRangeScanTestColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<GenericRangeScanTestColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 GenericRangeScanTestColumn col = GenericRangeScanTestColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 String val = GenericRangeScanTestColumnValue.hydrateValue(result.getValue());
                 return GenericRangeScanTestColumnValue.of(col, val);
@@ -795,5 +795,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "4fCBdR4I71aAK8klRZ7Hqw==";
+    static String __CLASS_HASH = "lJ8ZEYk51Mw7ZroGgUA/3g==";
 }

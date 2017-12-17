@@ -618,12 +618,12 @@ public final class StreamTestWithHashStreamIdxTable implements
     }
 
     @Override
-    public Map<StreamTestWithHashStreamIdxRow, BatchingVisitable<StreamTestWithHashStreamIdxColumnValue>> getRowsColumnRange(Iterable<StreamTestWithHashStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestWithHashStreamIdxRow, BatchingVisitable<StreamTestWithHashStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<StreamTestWithHashStreamIdxRow, Iterator<StreamTestWithHashStreamIdxColumnValue>> getRowsColumnRange(Iterable<StreamTestWithHashStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestWithHashStreamIdxRow, Iterator<StreamTestWithHashStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             StreamTestWithHashStreamIdxRow row = StreamTestWithHashStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestWithHashStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<StreamTestWithHashStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 StreamTestWithHashStreamIdxColumn col = StreamTestWithHashStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = StreamTestWithHashStreamIdxColumnValue.hydrateValue(result.getValue());
                 return StreamTestWithHashStreamIdxColumnValue.of(col, val);
@@ -756,5 +756,5 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cssCFH1Pz34681laVu6sLA==";
+    static String __CLASS_HASH = "lLWWxwGhFIEbbyjtTOmNZA==";
 }

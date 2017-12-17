@@ -688,12 +688,12 @@ public final class SchemaApiTestTable implements
     }
 
     @Override
-    public Map<SchemaApiTestRow, BatchingVisitable<SchemaApiTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<SchemaApiTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<SchemaApiTestRow, BatchingVisitable<SchemaApiTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<SchemaApiTestRow, Iterator<SchemaApiTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<SchemaApiTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SchemaApiTestRow, Iterator<SchemaApiTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<SchemaApiTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<SchemaApiTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -871,5 +871,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5qdVJNmNbPw5F+15Dz/tGw==";
+    static String __CLASS_HASH = "WT9REms2LhTiOtuTsHql0Q==";
 }

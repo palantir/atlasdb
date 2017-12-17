@@ -1105,12 +1105,12 @@ public final class SweepPriorityTable implements
     }
 
     @Override
-    public Map<SweepPriorityRow, BatchingVisitable<SweepPriorityNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepPriorityRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<SweepPriorityRow, BatchingVisitable<SweepPriorityNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<SweepPriorityRow, Iterator<SweepPriorityNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepPriorityRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SweepPriorityRow, Iterator<SweepPriorityNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             SweepPriorityRow row = SweepPriorityRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<SweepPriorityNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<SweepPriorityNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -1239,5 +1239,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Fy5OQz2p3OpBl5iG2MX60w==";
+    static String __CLASS_HASH = "yt2m+1YSzqhvS+K1cOvlVw==";
 }

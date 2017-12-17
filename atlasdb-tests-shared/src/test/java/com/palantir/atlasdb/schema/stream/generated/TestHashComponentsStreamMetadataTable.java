@@ -587,12 +587,12 @@ public final class TestHashComponentsStreamMetadataTable implements
     }
 
     @Override
-    public Map<TestHashComponentsStreamMetadataRow, BatchingVisitable<TestHashComponentsStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<TestHashComponentsStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<TestHashComponentsStreamMetadataRow, BatchingVisitable<TestHashComponentsStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<TestHashComponentsStreamMetadataRow, Iterator<TestHashComponentsStreamMetadataNamedColumnValue<?>>> getRowsColumnRange(Iterable<TestHashComponentsStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<TestHashComponentsStreamMetadataRow, Iterator<TestHashComponentsStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<TestHashComponentsStreamMetadataNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<TestHashComponentsStreamMetadataNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -721,5 +721,5 @@ public final class TestHashComponentsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DXJHSYLkTQ5VVV8ipxZ9JA==";
+    static String __CLASS_HASH = "9toZHhVmKJZ93hME5SFicQ==";
 }

@@ -380,7 +380,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
@@ -390,14 +390,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
                 columnRangeSelection, getStartTimestamp());
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> postFilteredResults =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
                 Maps.newHashMapWithExpectedSize(rawResults.size());
         for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
             Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-            postFilteredResults.put(row, BatchingVisitableFromIterable.create(postFilteredIterator));
+            postFilteredResults.put(row, postFilteredIterator);
         }
         return postFilteredResults;
     }

@@ -549,12 +549,12 @@ public final class RangeScanTestTable implements
     }
 
     @Override
-    public Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<RangeScanTestRow, Iterator<RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<RangeScanTestRow, Iterator<RangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<RangeScanTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<RangeScanTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -732,5 +732,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uM9vE+quytC6Gzz3VgTqZQ==";
+    static String __CLASS_HASH = "fMHkEvhy1+BF3eKvdoYyWg==";
 }

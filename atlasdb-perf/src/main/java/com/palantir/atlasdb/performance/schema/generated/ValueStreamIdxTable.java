@@ -594,12 +594,12 @@ public final class ValueStreamIdxTable implements
     }
 
     @Override
-    public Map<ValueStreamIdxRow, BatchingVisitable<ValueStreamIdxColumnValue>> getRowsColumnRange(Iterable<ValueStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<ValueStreamIdxRow, BatchingVisitable<ValueStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<ValueStreamIdxRow, Iterator<ValueStreamIdxColumnValue>> getRowsColumnRange(Iterable<ValueStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<ValueStreamIdxRow, Iterator<ValueStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             ValueStreamIdxRow row = ValueStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<ValueStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<ValueStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 ValueStreamIdxColumn col = ValueStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = ValueStreamIdxColumnValue.hydrateValue(result.getValue());
                 return ValueStreamIdxColumnValue.of(col, val);

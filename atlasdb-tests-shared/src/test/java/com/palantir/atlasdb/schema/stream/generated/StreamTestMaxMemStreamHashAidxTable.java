@@ -604,12 +604,12 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
     }
 
     @Override
-    public Map<StreamTestMaxMemStreamHashAidxRow, BatchingVisitable<StreamTestMaxMemStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<StreamTestMaxMemStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestMaxMemStreamHashAidxRow, BatchingVisitable<StreamTestMaxMemStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<StreamTestMaxMemStreamHashAidxRow, Iterator<StreamTestMaxMemStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<StreamTestMaxMemStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestMaxMemStreamHashAidxRow, Iterator<StreamTestMaxMemStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             StreamTestMaxMemStreamHashAidxRow row = StreamTestMaxMemStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestMaxMemStreamHashAidxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<StreamTestMaxMemStreamHashAidxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 StreamTestMaxMemStreamHashAidxColumn col = StreamTestMaxMemStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = StreamTestMaxMemStreamHashAidxColumnValue.hydrateValue(result.getValue());
                 return StreamTestMaxMemStreamHashAidxColumnValue.of(col, val);
@@ -742,5 +742,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Z9DahI01RLfpmtQLstmkYw==";
+    static String __CLASS_HASH = "LkUQxZ86pwv/50V+7FNXwA==";
 }

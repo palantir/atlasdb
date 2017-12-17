@@ -618,12 +618,12 @@ public final class TestHashComponentsStreamIdxTable implements
     }
 
     @Override
-    public Map<TestHashComponentsStreamIdxRow, BatchingVisitable<TestHashComponentsStreamIdxColumnValue>> getRowsColumnRange(Iterable<TestHashComponentsStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<TestHashComponentsStreamIdxRow, BatchingVisitable<TestHashComponentsStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<TestHashComponentsStreamIdxRow, Iterator<TestHashComponentsStreamIdxColumnValue>> getRowsColumnRange(Iterable<TestHashComponentsStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<TestHashComponentsStreamIdxRow, Iterator<TestHashComponentsStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             TestHashComponentsStreamIdxRow row = TestHashComponentsStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<TestHashComponentsStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<TestHashComponentsStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 TestHashComponentsStreamIdxColumn col = TestHashComponentsStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = TestHashComponentsStreamIdxColumnValue.hydrateValue(result.getValue());
                 return TestHashComponentsStreamIdxColumnValue.of(col, val);
@@ -756,5 +756,5 @@ public final class TestHashComponentsStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8j9kVIm6NGSvRIEXxFUTQw==";
+    static String __CLASS_HASH = "a9ejalKgCApivY4Lcvwq1Q==";
 }

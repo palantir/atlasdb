@@ -1087,12 +1087,12 @@ public final class UserProfileTable implements
     }
 
     @Override
-    public Map<UserProfileRow, BatchingVisitable<UserProfileNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserProfileRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserProfileRow, BatchingVisitable<UserProfileNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<UserProfileRow, Iterator<UserProfileNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserProfileRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserProfileRow, Iterator<UserProfileNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<UserProfileNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<UserProfileNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -1784,12 +1784,12 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Map<CookiesIdxRow, BatchingVisitable<CookiesIdxColumnValue>> getRowsColumnRange(Iterable<CookiesIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<CookiesIdxRow, BatchingVisitable<CookiesIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+        public Map<CookiesIdxRow, Iterator<CookiesIdxColumnValue>> getRowsColumnRange(Iterable<CookiesIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<CookiesIdxRow, Iterator<CookiesIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
                 CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<CookiesIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                Iterator<CookiesIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                     CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                     Long val = CookiesIdxColumnValue.hydrateValue(result.getValue());
                     return CookiesIdxColumnValue.of(col, val);
@@ -2470,12 +2470,12 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Map<CreatedIdxRow, BatchingVisitable<CreatedIdxColumnValue>> getRowsColumnRange(Iterable<CreatedIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<CreatedIdxRow, BatchingVisitable<CreatedIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+        public Map<CreatedIdxRow, Iterator<CreatedIdxColumnValue>> getRowsColumnRange(Iterable<CreatedIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<CreatedIdxRow, Iterator<CreatedIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
                 CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<CreatedIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                Iterator<CreatedIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                     CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                     Long val = CreatedIdxColumnValue.hydrateValue(result.getValue());
                     return CreatedIdxColumnValue.of(col, val);
@@ -3156,12 +3156,12 @@ public final class UserProfileTable implements
         }
 
         @Override
-        public Map<UserBirthdaysIdxRow, BatchingVisitable<UserBirthdaysIdxColumnValue>> getRowsColumnRange(Iterable<UserBirthdaysIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<UserBirthdaysIdxRow, BatchingVisitable<UserBirthdaysIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+        public Map<UserBirthdaysIdxRow, Iterator<UserBirthdaysIdxColumnValue>> getRowsColumnRange(Iterable<UserBirthdaysIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+            Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<UserBirthdaysIdxRow, Iterator<UserBirthdaysIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
                 UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<UserBirthdaysIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                Iterator<UserBirthdaysIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                     UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                     Long val = UserBirthdaysIdxColumnValue.hydrateValue(result.getValue());
                     return UserBirthdaysIdxColumnValue.of(col, val);
@@ -3349,5 +3349,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2l6vERmYIdNq6v0h//tMEw==";
+    static String __CLASS_HASH = "wmhhkRov9/P426AfwS9knw==";
 }

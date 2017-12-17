@@ -16,9 +16,11 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
@@ -526,11 +528,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         writeColumns();
 
         Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
                 t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
-        Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
+        Map.Entry<Cell, byte[]> read = Iterables.getOnlyElement(columnRange.values()).next();
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
@@ -553,11 +555,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         writeColumns();
 
         Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
                 t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
-        Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
+        Map.Entry<Cell, byte[]> read = Iterables.getOnlyElement(columnRange.values()).next();
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
@@ -581,11 +583,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         writeColumns();
 
         Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
                 t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
-        Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
+        Map.Entry<Cell, byte[]> read = Iterables.getOnlyElement(columnRange.values()).next();
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
@@ -602,10 +604,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         byte[] row = PtBytes.toBytes("row1");
 
         Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
                 t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
                         BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        assertNull(BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values())));
+        assertFalse(Iterables.getOnlyElement(columnRange.values()).hasNext());
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
 
@@ -626,7 +628,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         byte[] row = PtBytes.toBytes("row1");
 
         Transaction t1 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
                 t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
                         BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         // Intentionally not reading anything from the result, so we shouldn't get a conflict.

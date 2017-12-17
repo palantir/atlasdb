@@ -604,12 +604,12 @@ public final class UserPhotosStreamHashAidxTable implements
     }
 
     @Override
-    public Map<UserPhotosStreamHashAidxRow, BatchingVisitable<UserPhotosStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserPhotosStreamHashAidxRow, BatchingVisitable<UserPhotosStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<UserPhotosStreamHashAidxRow, Iterator<UserPhotosStreamHashAidxColumnValue>> getRowsColumnRange(Iterable<UserPhotosStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamHashAidxRow, Iterator<UserPhotosStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             UserPhotosStreamHashAidxRow row = UserPhotosStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<UserPhotosStreamHashAidxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<UserPhotosStreamHashAidxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
                 UserPhotosStreamHashAidxColumn col = UserPhotosStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
                 Long val = UserPhotosStreamHashAidxColumnValue.hydrateValue(result.getValue());
                 return UserPhotosStreamHashAidxColumnValue.of(col, val);
@@ -742,5 +742,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "E1bDB21bXYt+7zZhi1WklA==";
+    static String __CLASS_HASH = "LGXlIlwzudUWLNaNIi7jhA==";
 }

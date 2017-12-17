@@ -47,7 +47,7 @@ public interface Transaction {
             ColumnSelection columnSelection);
 
     @Idempotent
-    Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
+    Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection);

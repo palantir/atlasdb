@@ -561,12 +561,12 @@ public final class StreamTestMaxMemStreamValueTable implements
     }
 
     @Override
-    public Map<StreamTestMaxMemStreamValueRow, BatchingVisitable<StreamTestMaxMemStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestMaxMemStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<StreamTestMaxMemStreamValueRow, BatchingVisitable<StreamTestMaxMemStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+    public Map<StreamTestMaxMemStreamValueRow, Iterator<StreamTestMaxMemStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestMaxMemStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestMaxMemStreamValueRow, Iterator<StreamTestMaxMemStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             StreamTestMaxMemStreamValueRow row = StreamTestMaxMemStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<StreamTestMaxMemStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            Iterator<StreamTestMaxMemStreamValueNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -695,5 +695,5 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "bal2oiOBpr1av1T36Zsb4A==";
+    static String __CLASS_HASH = "DwkrXVIbtYokjxb6At/+qA==";
 }

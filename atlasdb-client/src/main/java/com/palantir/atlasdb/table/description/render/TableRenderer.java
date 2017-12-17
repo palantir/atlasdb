@@ -1123,12 +1123,12 @@ public class TableRenderer {
 
         private void renderGetRowsColumnRange(boolean isDynamic) {
             line("@Override");
-            line("public Map<", Row, ", BatchingVisitable<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
-                line("Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
-                line("Map<", Row, ", BatchingVisitable<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
-                line("for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
+            line("public Map<", Row, ", Iterator<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
+                line("Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
+                line("Map<", Row, ", Iterator<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
+                line("for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                    line("BatchingVisitable<", ColumnValue, "> bv = BatchingVisitables.transform(e.getValue(), result -> {"); {
+                    line("Iterator<", ColumnValue, "> bv = Iterators.transform(e.getValue(), result -> {"); {
                         if (isDynamic) {
                             line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
                             line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
