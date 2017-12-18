@@ -163,22 +163,35 @@ public class SweepPriorityCalculator {
         double estimatedCellTsPairsToSweep = previousEfficacy * writeCount;
         long millisSinceSweep = System.currentTimeMillis() - newPriority.lastSweepTimeMillis().getAsLong();
 
-        long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
-        if (writeCount <= 100 + cellTsPairsExamined / 100 && daysSinceLastSweep < 180) {
-            // Not worth the effort if fewer than 1% of cells are new and we've swept in the last 6 months.
-            // TODO(tboam): bug? is this really 1%?
+        if (tooFewWritesToBother(writeCount, cellTsPairsExamined, millisSinceSweep)) {
             return 0.0;
         }
 
-        if (newPriority.staleValuesDeleted() > WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES
-                && daysSinceLastSweep < 1
-                && kvs.performanceIsSensitiveToTombstones()) {
-            // we created many tombstones on the last run - wait a bit before sweeping again.
+        if (weWantToAvoidOverloadingTheStoreWithTombstones(newPriority, millisSinceSweep)) {
             return 0.0;
         }
 
         // This ordering function weights one month of no sweeping
         // with the same priority as about 100000 expected cells to sweep.
         return estimatedCellTsPairsToSweep + millisSinceSweep * MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT;
+    }
+
+    private boolean tooFewWritesToBother(long writeCount, long cellTsPairsExamined, long millisSinceSweep) {
+        // don't bother sweeping a table that has had very few writes compared to its size last time sweep ran
+        // for large tables we're essentially just comparing writeCount <= cellTsPairsExamined / 100
+        boolean fewWrites = writeCount <= 100 + cellTsPairsExamined / 100;
+
+        long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
+
+        return fewWrites && daysSinceLastSweep < 180;
+    }
+
+    private boolean weWantToAvoidOverloadingTheStoreWithTombstones(SweepPriority newPriority,
+            long millisSinceSweep) {
+        long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
+
+        return newPriority.staleValuesDeleted() > WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES
+                && daysSinceLastSweep < 1
+                && kvs.performanceIsSensitiveToTombstones();
     }
 }
