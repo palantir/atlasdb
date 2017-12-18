@@ -27,7 +27,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Output;
 
 public class StreamStoreRemappingSweepPriorityCalculator {
-    public static final long INDEX_TO_VALUE_TABLE_SLEEP_TIME = TimeUnit.HOURS.toMillis(1);
+    public static final long INDEX_TO_VALUE_TABLE_SLEEP_TIME = TimeUnit.MINUTES.toMillis(65);
     private SweepPriorityCalculator delegate;
     private SweepPriorityStore sweepPriorityStore;
 
@@ -75,7 +75,7 @@ public class StreamStoreRemappingSweepPriorityCalculator {
             doNotSweepTable(valueTable, scores);
         } else if (System.currentTimeMillis() - lastSweptTimeOfIndexTable <= INDEX_TO_VALUE_TABLE_SLEEP_TIME) {
             // We've done the index table recently:
-            // 1) wait a bit before we do the value table so that the immutable timestamp has passed.
+            // 1) wait a bit before we do the value table so that the unreadable timestamp has passed (wait > 1 hour).
             // 2) ensure we don't sweep index table again as we could starve the value table if index sweeps too often
             doNotSweepTable(valueTable, scores);
             doNotSweepTable(indexTable, scores);
