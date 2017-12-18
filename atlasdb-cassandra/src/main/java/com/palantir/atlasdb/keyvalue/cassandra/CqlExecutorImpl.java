@@ -80,6 +80,32 @@ public class CqlExecutorImpl implements CqlExecutor {
         return executeAndGetCells(query, startRowInclusive, CqlExecutorImpl::getCellFromRow);
     }
 
+    @Override
+    public List<CellWithTimestamp> getTimestamps(
+            TableReference tableRef,
+            List<byte[]> rowsAscending,
+            int limit) {
+        String selQuery = "SELECT key, column1, column2 FROM %s"
+                + " WHERE token(key) IN (%s) LIMIT %s;";
+        CqlQuery query = new CqlQuery(
+                selQuery,
+                quotedTableName(tableRef),
+                keys(rowsAscending),
+                limit(limit));
+
+        return executeAndGetCells(query, rowsAscending.get(0), CqlExecutorImpl::getCellFromRow);
+    }
+
+    private Arg<String> keys(List<byte[]> rowsAscending) {
+        return UnsafeArg.of("keys",
+                rowsAscending.stream().map(CqlExecutorImpl::getKey).map(CqlExecutorImpl::token)
+                        .collect(Collectors.joining(",")));
+    }
+
+    private static String token(String key) {
+        return String.format("token(%s)", key);
+    }
+
     /**
      * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the (column, timestamp)
      * pair represented by ({@code startColumnInclusive}, {@code startTimestampExclusive}).
@@ -135,7 +161,11 @@ public class CqlExecutorImpl implements CqlExecutor {
     }
 
     private static Arg<String> key(byte[] row) {
-        return UnsafeArg.of("key", CassandraKeyValueServices.encodeAsHex(row));
+        return UnsafeArg.of("key", getKey(row));
+    }
+
+    private static String getKey(byte[] row) {
+        return CassandraKeyValueServices.encodeAsHex(row);
     }
 
     private static Arg<String> column1(byte[] column) {

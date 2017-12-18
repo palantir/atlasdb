@@ -70,6 +70,17 @@ public class CqlExecutorTest {
     }
 
     @Test
+    public void getTimestampsForGivenRows() {
+        String expected = "SELECT key, column1, column2 FROM \"foo__bar\""
+                + " WHERE token(key) IN (token(0x0102),token(0x0509)) LIMIT 100;";
+
+        executor.getTimestamps(TABLE_REF, ImmutableList.of(ROW, END_ROW), LIMIT);
+
+        verify(queryExecutor).execute(argThat(cqlQueryMatcher(expected)), eq(ROW));
+
+    }
+
+    @Test
     public void getTimestampsWithinRow() {
         String expected = "SELECT column1, column2 FROM \"foo__bar\" WHERE key = 0x0102"
                 + " AND (column1, column2) > (0x0304, -124) LIMIT 100;";

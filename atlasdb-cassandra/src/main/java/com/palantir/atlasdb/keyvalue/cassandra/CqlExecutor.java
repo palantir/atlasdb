@@ -41,4 +41,9 @@ public interface CqlExecutor {
             byte[] startRowInclusive,
             byte[] endRowInclusive,
             int limit);
+
+    List<CellWithTimestamp> getTimestamps(
+            TableReference tableRef,
+            List<byte[]> rows,
+            int limit);
 }
