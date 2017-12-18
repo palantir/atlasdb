@@ -86,7 +86,7 @@ public class CqlExecutorImpl implements CqlExecutor {
             List<byte[]> rowsAscending,
             int limit) {
         String selQuery = "SELECT key, column1, column2 FROM %s"
-                + " WHERE token(key) IN (%s) LIMIT %s;";
+                + " WHERE key IN (%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(
                 selQuery,
                 quotedTableName(tableRef),
@@ -98,12 +98,8 @@ public class CqlExecutorImpl implements CqlExecutor {
 
     private Arg<String> keys(List<byte[]> rowsAscending) {
         return UnsafeArg.of("keys",
-                rowsAscending.stream().map(CqlExecutorImpl::getKey).map(CqlExecutorImpl::token)
+                rowsAscending.stream().map(CqlExecutorImpl::getKey)
                         .collect(Collectors.joining(",")));
-    }
-
-    private static String token(String key) {
-        return String.format("token(%s)", key);
     }
 
     /**
