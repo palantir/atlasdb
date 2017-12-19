@@ -77,10 +77,12 @@
                 "com.palantir.atlasdb:timestamp-client",
                 "com.palantir.config.crypto:encrypted-config-value",
                 "com.palantir.config.crypto:encrypted-config-value-module",
+                "com.palantir.remoting-api:ssl-config",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -98,6 +100,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:jackson-support",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -204,6 +207,7 @@
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:ssl-config",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -469,6 +473,18 @@
                 "com.palantir.atlasdb:lock-impl"
             ]
         },
+        "com.palantir.remoting-api:service-config": {
+            "locked": "1.4.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-dbkvs"
+            ]
+        },
+        "com.palantir.remoting-api:ssl-config": {
+            "locked": "1.4.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
+            ]
+        },
         "com.palantir.remoting2:error-handling": {
             "locked": "2.3.0",
             "transitive": [
@@ -519,6 +535,12 @@
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
                 "com.palantir.atlasdb:timestamp-impl"
+            ]
+        },
+        "com.palantir.tokens:auth-tokens": {
+            "locked": "1.0.0",
+            "transitive": [
+                "com.palantir.remoting-api:service-config"
             ]
         },
         "com.palantir.tritium:tritium-api": {
@@ -809,6 +831,7 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.remoting2:error-handling",
                 "com.palantir.remoting2:tracing",
+                "com.palantir.tokens:auth-tokens",
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
