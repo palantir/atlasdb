@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |logs|
+         - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`.
+           Increased logging level of messages to the `slow-lock-log` from `INFO` to `WARN`, these messages can indicate a problem so we should be sure they are visible.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2827>`__)
+
     *    -
          -
 
