@@ -108,7 +108,7 @@ public class LockServerOptions implements Serializable {
     }
 
     /**
-     * Info level logging for any lock request that receives a response after given time.
+     * Warn level logging for any lock request that receives a response after given time.
      * If the duration is zero or negative, slow lock logging will be disabled.
      */
     @JsonProperty("slowLogTriggerMillis")
