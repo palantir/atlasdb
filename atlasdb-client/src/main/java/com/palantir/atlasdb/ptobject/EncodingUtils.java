@@ -15,16 +15,23 @@
  */
 package com.palantir.atlasdb.ptobject;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.CodedOutputStream;
@@ -32,6 +39,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
+import com.palantir.util.Pair;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class EncodingUtils {
@@ -463,5 +471,54 @@ public class EncodingUtils {
         } else {
             return ArrayUtils.addAll(new byte[] { 1 }, PtBytes.toBytes(Long.MIN_VALUE ^ value));
         }
+    }
+
+    public static void main(String[] args) throws IOException {
+        if (args.length <= 1) {
+            System.err.println("No key components specified");
+            System.exit(1);
+        }
+
+        List<ValueType> components = Lists.newLinkedList();
+        for (int i = 1; i < args.length; i++) {
+            components.add(ValueType.valueOf(args[i]));
+        }
+
+        List<String> lines = Files.readAllLines(Paths.get(args[0]), StandardCharsets.UTF_8);
+        Map<String, List<String>> sstableToKeys = Maps.newHashMap();
+        List<String> current = null;
+
+        for (String line : lines) {
+            if (line.startsWith("SSTable:")) {
+                String sstable = line.split(" ")[1];
+                current = Lists.newLinkedList();
+                sstableToKeys.put(sstable, current);
+                continue;
+            }
+
+            current.add(line);
+        }
+
+        for (String sstable : sstableToKeys.keySet()) {
+            List<String> hexBlobs = sstableToKeys.get(sstable);
+            System.out.println("SSTable: " + sstable);
+
+            for (String hexBlob : hexBlobs) {
+                System.out.println("Blob:");
+                byte[] bytesBlob = EncodingUtils.hexToBytes(hexBlob);
+
+                int offset = 0;
+                for (int i = 0; i < components.size(); i++) {
+                    ValueType type = components.get(i);
+                    Pair<String, Integer> pair = type.convertToString(bytesBlob, offset);
+                    System.out.println(i + ": " + pair.lhSide);
+                    offset += pair.rhSide;
+                }
+            }
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        return BaseEncoding.base16().lowerCase().decode(hex);
     }
 }
