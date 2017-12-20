@@ -64,6 +64,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.Pair;
 
 public abstract class AbstractSweepTaskRunnerTest {
     private static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
@@ -73,12 +74,15 @@ public abstract class AbstractSweepTaskRunnerTest {
 
     private static final List<Cell> SMALL_LIST_OF_CELLS = Lists.newArrayList();
     private static final List<Cell> BIG_LIST_OF_CELLS = Lists.newArrayList();
+    private static final List<Cell> BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS = Lists.newArrayList();
 
     static {
         for (int i = 0; i < 10; i++) {
-            String colName = String.format("c%d", i);
+            String zeroPaddedIndex = String.format("%05d", i);
             BIG_LIST_OF_CELLS.add(
-                    Cell.create("row".getBytes(StandardCharsets.UTF_8), colName.getBytes(StandardCharsets.UTF_8)));
+                    Cell.create("row".getBytes(StandardCharsets.UTF_8), (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
+            BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.add(
+                    Cell.create(("row" + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8), (COL + zeroPaddedIndex).getBytes(StandardCharsets.UTF_8)));
         }
         SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
     }
@@ -474,8 +478,9 @@ public abstract class AbstractSweepTaskRunnerTest {
         putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
 
         int deleteBatchSize = 1;
-        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
+        Pair<List<List<Cell>>,SweepResults> sweptCellsAndSweepResults = runSweep(cellsSweeper, spiedSweepRunner,
                 8, 8, deleteBatchSize);
+        List<List<Cell>> sweptCells = sweptCellsAndSweepResults.getLhSide();
         assertThat(sweptCells).allMatch(list -> list.size() <= 2 * deleteBatchSize);
         assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(SMALL_LIST_OF_CELLS);
     }
@@ -488,7 +493,8 @@ public abstract class AbstractSweepTaskRunnerTest {
 
         putTwoValuesInEachCell(SMALL_LIST_OF_CELLS);
 
-        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner, 8, 1, 4);
+        Pair<List<List<Cell>>,SweepResults> sweptCellsAndSweepResults = runSweep(cellsSweeper, spiedSweepRunner, 8, 1, 4);
+        List<List<Cell>> sweptCells = sweptCellsAndSweepResults.getLhSide();
 
         assertEquals(1, sweptCells.size());
         assertEquals(SMALL_LIST_OF_CELLS, sweptCells.get(0));
@@ -503,8 +509,10 @@ public abstract class AbstractSweepTaskRunnerTest {
         putTwoValuesInEachCell(BIG_LIST_OF_CELLS);
 
         int deleteBatchSize = 2;
-        List<List<Cell>> sweptCells = runSweep(cellsSweeper, spiedSweepRunner,
+        Pair<List<List<Cell>>,SweepResults> sweptCellsAndSweepResults = runSweep(cellsSweeper, spiedSweepRunner,
                 1000, 1, deleteBatchSize);
+        List<List<Cell>> sweptCells = sweptCellsAndSweepResults.getLhSide();
+        SweepResults sweepResults = sweptCellsAndSweepResults.getRhSide();
         assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(BIG_LIST_OF_CELLS);
         for (List<Cell> sweptBatch : sweptCells.subList(0, sweptCells.size() - 1)) {
             // We requested deleteBatchSize = 2, so we expect between 2 and 4 timestamps deleted at a time.
@@ -513,6 +521,35 @@ public abstract class AbstractSweepTaskRunnerTest {
         }
         // The last batch can be smaller than deleteBatchSize
         assertThat(sweptCells.get(sweptCells.size() - 1).size()).isLessThanOrEqualTo(2 * deleteBatchSize);
+
+        assertEquals("Expected Ts Pairs Examined should add up to entire table (2 values in each cell)",
+                2 * BIG_LIST_OF_CELLS.size(), sweepResults.getCellTsPairsExamined());
+    }
+
+    @Test(timeout = 50000)
+    public void testSweepBatchesInDifferentRows() {
+        CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
+        SweepTaskRunner spiedSweepRunner =
+                new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+
+        putTwoValuesInEachCell(BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS);
+
+        int deleteBatchSize = 2;
+        Pair<List<List<Cell>>,SweepResults> sweptCellsAndSweepResults = runSweep(cellsSweeper, spiedSweepRunner,
+                10, 1, deleteBatchSize);
+        List<List<Cell>> sweptCells = sweptCellsAndSweepResults.getLhSide();
+        SweepResults sweepResults = sweptCellsAndSweepResults.getRhSide();
+        assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS);
+        for (List<Cell> sweptBatch : sweptCells.subList(0, sweptCells.size() - 1)) {
+            // We requested deleteBatchSize = 2, so we expect between 2 and 4 timestamps deleted at a time.
+            // We also expect a single timestamp to be swept per each cell.
+            assertThat(sweptBatch.size()).isBetween(deleteBatchSize, 2 * deleteBatchSize);
+        }
+        // The last batch can be smaller than deleteBatchSize
+        assertThat(sweptCells.get(sweptCells.size() - 1).size()).isLessThanOrEqualTo(2 * deleteBatchSize);
+
+        assertEquals("Expected Ts Pairs Examined should add up to entire table (2 values in each cell)",
+                2 * BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.size(), sweepResults.getCellTsPairsExamined());
     }
 
     private void putTwoValuesInEachCell(List<Cell> cells) {
@@ -529,7 +566,7 @@ public abstract class AbstractSweepTaskRunnerTest {
     }
 
     @SuppressWarnings("unchecked")
-    private List<List<Cell>> runSweep(CellsSweeper cellsSweeper, SweepTaskRunner spiedSweepRunner,
+    private Pair<List<List<Cell>>,SweepResults> runSweep(CellsSweeper cellsSweeper, SweepTaskRunner spiedSweepRunner,
             int maxCellTsPairsToExamine, int candidateBatchSize, int deleteBatchSize) {
         List<List<Cell>> sweptCells = Lists.newArrayList();
 
@@ -540,13 +577,13 @@ public abstract class AbstractSweepTaskRunnerTest {
             return null;
         }).when(cellsSweeper).sweepCells(eq(TABLE_NAME), any(), any());
 
-        spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
+        SweepResults sweepResults = spiedSweepRunner.run(TABLE_NAME, ImmutableSweepBatchConfig.builder()
                 .maxCellTsPairsToExamine(maxCellTsPairsToExamine)
                 .candidateBatchSize(candidateBatchSize)
                 .deleteBatchSize(deleteBatchSize)
                 .build(), PtBytes.EMPTY_BYTE_ARRAY);
 
-        return sweptCells;
+        return new Pair(sweptCells, sweepResults);
     }
 
     private void testSweepManyRows(SweepStrategy strategy) {
