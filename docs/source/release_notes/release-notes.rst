@@ -41,7 +41,7 @@ Changelog
 develop
 =======
 
-.. replace this with the release date
+.. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
 
 .. list-table::
     :widths: 5 40
@@ -55,14 +55,94 @@ develop
            ``SweepStatsKVS`` now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.  Previously sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.  We now also track the size of the writes and if this is greater than 1GB we flush the stats.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2792>`__)
 
+    *    - |improved|
+         - Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
+           Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
+
     *    -
          -
 
+=======
+v0.72.0
+=======
+
+13 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new| |improved| |metrics| |logs|
+         - Sweep metrics were reworked. Sweep now exposes metrics indicating the total number of cells examined, cells deleted, time spent sweeping, and time elapsed since sweep started on the current table that are updated after each iteration of sweep and separate metrics that are updated after each table is fully swept.
+           Additionally, sweep now exposes metrics tagged with table names that expose the total number of cells examined, cells deleted, time spent sweeping per iteration for each table separately.
+           Logs will also include the new timing information.
+           Sweep now exposes the following metrics with the common prefix ``com.palantir.atlasdb.sweep.metrics.SweepMetric.``:
+
+              - ``cellTimestampPairsExamined.meter.currentIteration``
+              - ``cellTimestampPairsExamined.histogram.currentTable``
+              - ``cellTimestampPairsExamined.histogram.currentIteration`` (tagged)
+              - ``staleValuesDeleted.meter.currentIteration``
+              - ``staleValuesDeleted.histogram.currentTable``
+              - ``staleValuesDeleted.histogram.currentIteration`` (tagged)
+              - ``sweepTimeSweeping.meter.currentIteration``
+              - ``sweepTimeSweeping.histogram.currentTable``
+              - ``sweepTimeSweeping.histogram.currentIteration`` (tagged)
+              - ``sweepTimeElapsedSinceStart.currentValue.currentIteration``
+              - ``sweepTimeElapsedSinceStart.histogram.currentTable``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2672>`__)
+
+    *    - |improved|
+         - AtlasDB now provides a configurable ``compactInterval`` (0 by default) option for Postgres, in the Postgres DDL Config.
+           A vacuum will be kicked off an a table only if there hasn't been one on the same table in the last ``compactInterval``.
+           This will prevent increasing load on Postgres due to queued up vacuums. We would suggest a value of 1-2 days (e.g. ``2d`` or ``2 days``) for this config option
+           and would encourage users to test this out and report the results back. We will modify the defaults once this has been field tested.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2767>`__)
+
+    *    - |fixed|
+         - The ``LeaderPingHealthCheck`` supplied by ``PaxosLeadershipCreator`` now correctly reports the leadership state of nodes that believe themselves to be the leader.
+           Previously, the health check would ping every *other* node in the cluster, resulting in leader nodes reporting that there are no leaders.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2805>`__)
+
+    *    - |fixed|
+         - Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2799>`__)
+
+    *    - |devbreak|
+         - Deleted the TTL duration field from the ``Cell`` class.
+           The interface ``ExpiringKeyValueService`` and implementations ``CassandraExpiringKeyValueService`` and ``CqlExpiringKeyValueService`` have also been removed.
+           Additionally, ``StreamTableDefinitionBuilder.expirationStrategy`` has been removed.
+           We don't believe that any of these fields or classes were used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2599>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.71.0
-======
+=======
+v0.71.1
+=======
+
+8 December 2017
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Removed an unused dependency from ``atlasdb-api``, fixing a dependency clash in a downstream product.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2798>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.71.0
+=======
 
 7 December 2017
 
@@ -105,6 +185,10 @@ develop
            These logs will be invaluable in more easily identifying hotspotting and for using targeted sweep.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2718>`__)
 
+    *    - |new| |metrics|
+         - New metric added which reports the probability that a table is being written to unevenly.  ``com.palantir.atlasdb.keyvalue.cassandra.TokenRangeWritesLogger.probabilityDistributionIsNotUniform`` is tagged with the table reference (where safe) and is a probability from 0.0 to 1.0 that the token ranges are being written to unevenly.  Cassandra KVS only.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2764>`__)
+
     *    - |new|
          - ``TimeLockAgent`` exposes a new method, ``getStatus()``, to be used by the internal TimeLock instance in order to provide a health check.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2730>`__)
@@ -124,9 +208,9 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.70.1
-======
+=======
+v0.70.1
+=======
 
 30 November 2017
 
@@ -157,9 +241,9 @@ develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-======
-0.70.0
-======
+=======
+v0.70.0
+=======
 
 30 November 2017
 

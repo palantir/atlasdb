@@ -97,10 +97,7 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:refresh-utils"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.google.guava:guava": {
@@ -259,7 +256,6 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },
@@ -577,10 +573,7 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
-                "com.palantir.remoting-api:errors",
-                "com.palantir.remoting3:jaxrs-clients",
-                "com.palantir.remoting3:refresh-utils"
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.google.guava:guava": {
@@ -739,7 +732,6 @@
         "com.palantir.remoting3:jaxrs-clients": {
             "locked": "3.5.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.atlasdb:qos-service-api"
             ]
         },

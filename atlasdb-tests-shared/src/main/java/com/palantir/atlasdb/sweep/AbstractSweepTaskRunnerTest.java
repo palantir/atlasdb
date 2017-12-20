@@ -400,7 +400,7 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 PtBytes.EMPTY_BYTE_ARRAY);
-        assertEquals(SweepResults.createEmptySweepResult(), results);
+        assertEmptyResultWithNoMoreToSweep(results);
         assertEquals(ImmutableSet.of(50L, 75L, 100L, 125L, 150L), getAllTsFromDefaultColumn("foo"));
     }
 
@@ -423,7 +423,19 @@ public abstract class AbstractSweepTaskRunnerTest {
                         .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                         .build(),
                 nextStartRow);
-        assertEquals(SweepResults.createEmptySweepResult(), results);
+        assertEmptyResultWithNoMoreToSweep(results);
+    }
+
+    @Test
+    public void testSweepTimers() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo2", "bang", 75);
+        putIntoDefaultColumn("foo3", "baz", 100);
+        putIntoDefaultColumn("foo4", "buzz", 125);
+        SweepResults sweepResults = partialSweep(150);
+
+        assertTimeSweepStartedWithinDeltaOfSystemTime(sweepResults);
     }
 
     @Test(timeout = 50000)
@@ -557,6 +569,7 @@ public abstract class AbstractSweepTaskRunnerTest {
         byte[] startRow = PtBytes.EMPTY_BYTE_ARRAY;
         long totalStaleValuesDeleted = 0;
         long totalCellsExamined = 0;
+        long totalTime = 0;
         for (int run = 0; run < 100; ++run) {
             SweepResults results = sweepRunner.run(
                     tableReference,
@@ -566,15 +579,18 @@ public abstract class AbstractSweepTaskRunnerTest {
                             .maxCellTsPairsToExamine(DEFAULT_BATCH_SIZE)
                             .build(),
                     startRow);
-            assertEquals(ts, results.getSweptTimestamp());
+            assertEquals(ts, results.getMinSweptTimestamp());
             assertArrayEquals(startRow, results.getPreviousStartRow().orElse(null));
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
+            totalTime += results.getTimeInMillis();
             if (!results.getNextStartRow().isPresent()) {
                 return ImmutableSweepResults.builder()
                         .staleValuesDeleted(totalStaleValuesDeleted)
                         .cellTsPairsExamined(totalCellsExamined)
-                        .sweptTimestamp(ts)
+                        .minSweptTimestamp(ts)
+                        .timeInMillis(totalTime)
+                        .timeSweepStarted(0L)
                         .build();
             }
             startRow = results.getNextStartRow().get();
@@ -669,5 +685,23 @@ public abstract class AbstractSweepTaskRunnerTest {
                     }
                 }.toTableMetadata().persistToBytes()
         );
+    }
+
+    private void assertEmptyResultWithNoMoreToSweep(SweepResults results) {
+        assertTimeSweepStartedWithinDeltaOfSystemTime(results);
+        assertThat(results.getTimeInMillis()).isLessThanOrEqualTo(1000L);
+        assertThat(results.getTimeInMillis()).isGreaterThanOrEqualTo(0L);
+        assertEquals(results, SweepResults.builder()
+                .from(SweepResults.createEmptySweepResultWithNoMoreToSweep())
+                .timeSweepStarted(results.getTimeSweepStarted())
+                .timeInMillis(results.getTimeInMillis())
+                .build());
+    }
+
+    private void assertTimeSweepStartedWithinDeltaOfSystemTime(SweepResults results) {
+        assertThat(results.getTimeSweepStarted() + results.getTimeInMillis())
+                .isLessThanOrEqualTo(System.currentTimeMillis());
+        assertThat(results.getTimeSweepStarted() + results.getTimeInMillis())
+                .isGreaterThan(System.currentTimeMillis() - 1000L);
     }
 }

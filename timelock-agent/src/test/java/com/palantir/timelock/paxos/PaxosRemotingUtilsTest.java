@@ -33,7 +33,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.ClusterConfiguration;
-import com.palantir.timelock.config.ImmutableClusterConfiguration;
+import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -41,7 +41,7 @@ import com.palantir.timelock.config.TimeLockInstallConfiguration;
 public class PaxosRemotingUtilsTest {
     private static final List<String> CLUSTER_URIS = ImmutableList.of("foo:1", "bar:2", "baz:3");
 
-    private static final ClusterConfiguration NO_SSL_CLUSTER = ImmutableClusterConfiguration.builder()
+    private static final ClusterConfiguration NO_SSL_CLUSTER = ImmutableDefaultClusterConfiguration.builder()
             .localServer("foo:1")
             .cluster(PartialServiceConfiguration.builder().addAllUris(CLUSTER_URIS).build())
             .build();
@@ -51,7 +51,7 @@ public class PaxosRemotingUtilsTest {
             .build();
 
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(Paths.get("dev", "null"));
-    private static final ClusterConfiguration SSL_CLUSTER = ImmutableClusterConfiguration.builder()
+    private static final ClusterConfiguration SSL_CLUSTER = ImmutableDefaultClusterConfiguration.builder()
             .localServer("foo:1")
             .cluster(PartialServiceConfiguration.builder()
                     .addAllUris(CLUSTER_URIS)

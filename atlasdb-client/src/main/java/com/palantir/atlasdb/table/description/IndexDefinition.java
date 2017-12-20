@@ -295,7 +295,6 @@ public class IndexDefinition extends AbstractDefinition {
                     indexCondition,
                     indexType,
                     sweepStrategy,
-                    expirationStrategy,
                     appendHeavyAndReadLight,
                     numberOfComponentsHashed);
         } else {
@@ -313,7 +312,6 @@ public class IndexDefinition extends AbstractDefinition {
                     indexCondition,
                     indexType,
                     sweepStrategy,
-                    expirationStrategy,
                     appendHeavyAndReadLight,
                     numberOfComponentsHashed);
         }
