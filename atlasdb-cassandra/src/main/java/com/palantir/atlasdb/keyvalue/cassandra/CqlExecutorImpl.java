@@ -58,41 +58,13 @@ public class CqlExecutorImpl implements CqlExecutor {
         this.queryExecutor = queryExecutor;
     }
 
-    /**
-     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
-     * {@code startRowInclusive}, potentially spanning across multiple rows.
-     */
-    @Override
-    public List<CellWithTimestamp> getTimestamps(
-            TableReference tableRef,
-            byte[] startRowInclusive,
-            byte[] endRowInclusive,
-            int limit) {
-        String selQuery = "SELECT key, column1, column2 FROM %s"
-                + " WHERE token(key) >= token(%s) AND token(key) <= token(%s) LIMIT %s;";
-        CqlQuery query = new CqlQuery(
-                selQuery,
-                quotedTableName(tableRef),
-                key(startRowInclusive),
-                key(endRowInclusive),
-                limit(limit));
-
-        return executeAndGetCells(query, startRowInclusive, CqlExecutorImpl::getCellFromRow);
-    }
-
     @Override
     public List<CellWithTimestamp> getTimestamps(
             TableReference tableRef,
             List<byte[]> rowsAscending,
             int limit) {
-        String selQuery = "SELECT key, column1, column2 FROM %s"
-                + " WHERE key IN (%s) LIMIT %s;";
-        CqlQuery query = new CqlQuery(
-                selQuery,
-                quotedTableName(tableRef),
-                keys(rowsAscending),
-                limit(limit));
-
+        String selQuery = "SELECT key, column1, column2 FROM %s WHERE key IN (%s) LIMIT %s;";
+        CqlQuery query = new CqlQuery(selQuery, quotedTableName(tableRef), keys(rowsAscending), limit(limit));
         return executeAndGetCells(query, rowsAscending.get(0), CqlExecutorImpl::getCellFromRow);
     }
 

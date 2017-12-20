@@ -32,18 +32,11 @@ public interface CqlExecutor {
             byte[] startColumnInclusive,
             long startTimestampExclusive,
             int limit);
-    /**
-     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
-     * {@code startRowInclusive}, potentially spanning across multiple rows.
-     */
-    List<CellWithTimestamp> getTimestamps(
-            TableReference tableRef,
-            byte[] startRowInclusive,
-            byte[] endRowInclusive,
-            int limit);
 
-    List<CellWithTimestamp> getTimestamps(
-            TableReference tableRef,
-            List<byte[]> rows,
-            int limit);
+    /**
+     * Returns a list of {@link CellWithTimestamp}s from cells within the given {@code rows}, starting at the given
+     * {@code startRowInclusive}, potentially spanning across multiple rows. Will only return {@code limit} values,
+     * so may not return cells from all of the rows provided.
+     */
+    List<CellWithTimestamp> getTimestamps(TableReference tableRef, List<byte[]> rows, int limit);
 }
