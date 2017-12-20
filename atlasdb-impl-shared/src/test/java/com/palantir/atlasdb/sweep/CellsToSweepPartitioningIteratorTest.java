@@ -78,9 +78,9 @@ public class CellsToSweepPartitioningIteratorTest {
     public void examinedCellLimit() {
         List<BatchOfCellsToSweep> batches = partition(
                 ImmutableList.of(
-                        batchWithExaminedCells(0, 20, 30),
-                        batchWithExaminedCells(20, 20, 30),
-                        batchWithExaminedCells(40, 20, 30)),
+                        batchWithThreeTssPerCell(0, 20, 30),
+                        batchWithThreeTssPerCell(20, 20, 30),
+                        batchWithThreeTssPerCell(40, 20, 30)),
                 // A large timestamp batch size. Without the examined cell limit, we would
                 // combine all three input batches in one.
                 100000,
@@ -89,7 +89,7 @@ public class CellsToSweepPartitioningIteratorTest {
         // The first input batch examines 30 cells and is not sufficient to satisfy the limit (50).
         // However, the first two batches combined together examine 60 cells, which covers the limit.
         // Hence we expect one output batch which is the concatenation of the first two input batches.
-        assertThat(batches).containsExactly(batchWithExaminedCells(0, 40, 60));
+        assertThat(batches).containsExactly(batchWithThreeTssPerCell(0, 40, 60));
     }
 
     @Test
@@ -133,7 +133,8 @@ public class CellsToSweepPartitioningIteratorTest {
                 new CellsToSweepPartitioningIterator.ExaminedCellLimit(startRow, maxCellsToExamine)));
     }
 
-    private static BatchOfCellsToSweep batchWithThreeTssPerCell(int firstCell, int numCells, int numCellsExaminedInBatch) {
+    private static BatchOfCellsToSweep batchWithThreeTssPerCell(int firstCell, int numCells,
+            int numCellsExaminedInBatch) {
         List<CellToSweep> cells = Lists.newArrayList();
         for (int i = 0; i < numCells; ++i) {
             cells.add(cellWithThreeTimestamps(firstCell + i, 0));
@@ -143,11 +144,6 @@ public class CellsToSweepPartitioningIteratorTest {
                 .numCellTsPairsExamined(numCellsExaminedInBatch)
                 .lastCellExamined(cell(firstCell + numCells, 0))
                 .build();
-    }
-
-    private static BatchOfCellsToSweep batchWithExaminedCells(int firstCell, int numCells, int numCellsExamined) {
-        return ImmutableBatchOfCellsToSweep.copyOf(batchWithThreeTssPerCell(firstCell, numCells, (firstCell + numCells) * 5))//TODO
-                .withNumCellTsPairsExamined(numCellsExamined);
     }
 
     private static BatchOfCellsToSweep batch(List<CellToSweep> cells, int numCellTsPairsExamined, Cell lastExamined) {
