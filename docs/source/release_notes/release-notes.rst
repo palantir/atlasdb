@@ -54,6 +54,11 @@ develop
          - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
+    *    - |improved|
+         - Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
+           Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
+
     *    -
          -
 
