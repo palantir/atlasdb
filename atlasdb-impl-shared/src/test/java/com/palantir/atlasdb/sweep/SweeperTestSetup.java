@@ -113,7 +113,7 @@ public class SweeperTestSetup {
 
     protected void setNextTableToSweep(TableReference tableRef) {
         Mockito.doReturn(Optional.of(tableRef)).when(nextTableToSweepProvider)
-                .chooseNextTableToSweep(Mockito.any(), Mockito.anyLong());
+                .getNextTableToSweep(Mockito.any(), Mockito.anyLong());
     }
 
     protected void setupTaskRunner(SweepResults results) {
