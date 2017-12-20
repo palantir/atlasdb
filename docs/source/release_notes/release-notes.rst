@@ -55,6 +55,10 @@ develop
            Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
 
+    *    - |improved| |logs|
+         - Added logging of the values used to determine which table to sweep, provides more insight into why tables are being swept and others aren't.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2829>`__)
+
     *    -
          -
 
