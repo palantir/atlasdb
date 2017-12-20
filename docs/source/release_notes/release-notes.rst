@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
+           This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2826>`__)
 
 =======
 v0.72.0
