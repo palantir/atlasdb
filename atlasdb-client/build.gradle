@@ -1,9 +1,16 @@
+apply plugin: 'com.palantir.sls-java-service-distribution'
+
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'org.inferred.processors'
+
+distribution {
+  serviceName 'sstable-key-decoder'
+  mainClass 'com.palantir.atlasdb.ptobject.EncodingUtils'
+}
 
 repositories {
     mavenCentral()
