@@ -27,7 +27,7 @@ public interface BatchOfCellsToSweep {
     List<CellToSweep> cells();
 
     /**
-     * Returns the total number of (cell, ts) pairs examined so far, for all batches up to and including this one.
+     * Returns the total number of (cell, ts) pairs examined in this batch.
      */
     long numCellTsPairsExamined();
 
