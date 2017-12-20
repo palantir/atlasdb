@@ -56,6 +56,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2826>`__)
 
     *    - |improved|
+         - Sweep stats are updated more often when large writes are being made.
+           ``SweepStatsKVS`` now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.  Previously sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.  We now also track the size of the writes and if this is greater than 1GB we flush the stats.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2792>`__)
+
+    *    - |improved|
          - Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
            Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
