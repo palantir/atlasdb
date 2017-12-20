@@ -192,7 +192,7 @@ public class SweepTaskRunner {
                 totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType,
                         2 * batchConfig.deleteBatchSize());
 
-                totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
+                totalCellTsPairsExamined += batch.numCellTsPairsExamined();
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()

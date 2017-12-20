@@ -29,7 +29,7 @@ public interface BatchOfCellsToSweep {
     /**
      * Returns the total number of (cell, ts) pairs examined so far, for all batches up to and including this one.
      */
-    long numCellTsPairsExaminedSoFar();
+    long numCellTsPairsExamined();
 
     Cell lastCellExamined();
 }
