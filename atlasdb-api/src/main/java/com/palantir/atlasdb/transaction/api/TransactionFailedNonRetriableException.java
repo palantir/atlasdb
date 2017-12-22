@@ -16,17 +16,19 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-public interface PreCommitCondition {
+public class TransactionFailedNonRetriableException extends TransactionFailedException {
+    private static final long serialVersionUID = 1L;
 
-    void throwIfConditionInvalid(long timestamp);
+    public TransactionFailedNonRetriableException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-    void cleanup();
+    public TransactionFailedNonRetriableException(String message) {
+        super(message);
+    }
 
-    PreCommitCondition NO_OP = new PreCommitCondition() {
-        @Override
-        public void throwIfConditionInvalid(long timestamp) {}
-
-        @Override
-        public void cleanup() {}
-    };
+    @Override
+    public final boolean canTransactionBeRetried() {
+        return false;
+    }
 }

@@ -14,19 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.impl;
 
-public interface PreCommitCondition {
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.lock.HeldLocksToken;
 
-    void throwIfConditionInvalid(long timestamp);
-
-    void cleanup();
-
-    PreCommitCondition NO_OP = new PreCommitCondition() {
-        @Override
-        public void throwIfConditionInvalid(long timestamp) {}
-
-        @Override
-        public void cleanup() {}
-    };
+public interface AdvisoryLocksCondition extends PreCommitCondition {
+    Iterable<HeldLocksToken> getLocks();
 }

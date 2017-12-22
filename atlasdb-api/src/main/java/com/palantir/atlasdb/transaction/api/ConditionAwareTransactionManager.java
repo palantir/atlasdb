@@ -35,17 +35,15 @@ public interface ConditionAwareTransactionManager extends TransactionManager {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
-            Supplier<PreCommitCondition> conditionSupplier,
-            ConditionAwareTransactionTask<T, C, E> task) throws E, InterruptedException;
+            Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
     /**
-     * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it will
-     * acquire a {@link PreCommitCondition} right before the transaction is created and check it
-     * immediately before the transaction commits.
+     * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes
+     * a {@link PreCommitCondition} and checks it immediately before the transaction commits.
      * <p>
      * The created transaction will not commit successfully if the check fails.
      *
-     * @param conditionSupplier supplier for the condition
+     * @param condition condition associated with the transaction
      * @param task task to run
      *
      * @return value returned by task
@@ -53,19 +51,17 @@ public interface ConditionAwareTransactionManager extends TransactionManager {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
-            Supplier<PreCommitCondition> conditionSupplier,
-            ConditionAwareTransactionTask<T, C, E> task)
-            throws E, InterruptedException, TransactionFailedRetriableException;
+            C condition, ConditionAwareTransactionTask<T, C, E> task)
+            throws E, TransactionFailedRetriableException;
 
     /**
-     * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it will
-     * acquire a {@link PreCommitCondition} right before the transaction is created and check it
-     * immediately after fetching a read timestamp.
+     * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it takes
+     * a {@link PreCommitCondition} and checks it for validity before executing reads.
      * <p>
      * The created transaction will fail if the check is no longer valid after fetching the read
      * timestamp.
      *
-     * @param conditionSupplier supplier for the condition
+     * @param condition condition associated with the transaction
      * @param task task to run
      *
      * @return value returned by task
@@ -73,6 +69,5 @@ public interface ConditionAwareTransactionManager extends TransactionManager {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     <T, C extends PreCommitCondition, E extends Exception> T runTaskReadOnlyWithCondition(
-            Supplier<PreCommitCondition> conditionSupplier,
-            ConditionAwareTransactionTask<T, C, E> task) throws E;
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E;
 }

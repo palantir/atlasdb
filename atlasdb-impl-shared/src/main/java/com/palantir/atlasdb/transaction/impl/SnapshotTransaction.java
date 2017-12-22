@@ -106,6 +106,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -185,7 +186,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
-    private final AdvisoryLockPreCommitCheck advisoryLockCheck;
+    private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
@@ -215,8 +216,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
-     * @param advisoryLockCheck This check must pass for this transaction to commit.  If these locks have
-     *                          expired then the commit will fail.
+     * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(KeyValueService keyValueService,
                                TimelockService timelockService,
@@ -227,7 +227,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                SweepStrategyManager sweepStrategyManager,
                                long immutableTimestamp,
                                Optional<LockToken> immutableTimestampLock,
-                               AdvisoryLockPreCommitCheck advisoryLockCheck,
+                               PreCommitCondition preCommitCondition,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                Long transactionTimeoutMillis,
                                TransactionReadSentinelBehavior readSentinelBehavior,
@@ -245,7 +245,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
         this.immutableTimestampLock = immutableTimestampLock;
-        this.advisoryLockCheck = advisoryLockCheck;
+        this.preCommitCondition = preCommitCondition;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -278,7 +278,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = 0;
         this.immutableTimestampLock = Optional.empty();
-        this.advisoryLockCheck = AdvisoryLockPreCommitCheck.NO_OP;
+        this.preCommitCondition = PreCommitCondition.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -309,7 +309,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         this.immutableTimestamp = startTimeStamp;
         this.immutableTimestampLock = Optional.empty();
-        this.advisoryLockCheck = AdvisoryLockPreCommitCheck.NO_OP;
+        this.preCommitCondition = PreCommitCondition.NO_OP;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -375,7 +375,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableRef, Iterables.size(rows), results.size(), getRowsMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return results;
     }
 
@@ -418,7 +418,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    batchHint,
                                                    getStartTimestamp());
         if (!rawResults.hasNext()) {
-            validateExternalAndCommitLocksIfNecessary(tableRef);
+            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
@@ -471,7 +471,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
-                validateExternalAndCommitLocksIfNecessary(tableRef);
+                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
@@ -546,7 +546,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return filterRowResults(tableRef, rawResults, Maps.newHashMap());
     }
 
@@ -603,7 +603,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
                     tableRef, cells.size(), result.size(), getMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
 
@@ -615,7 +615,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
-        validateExternalAndCommitLocksIfNecessary(tableRef);
+        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
 
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
@@ -658,7 +658,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     Timer.Context timer = getTimer("processedRangeMillis").time();
                     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
-                    validateExternalAndCommitLocksIfNecessary(tableRef);
+                    validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
@@ -765,11 +765,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         };
     }
 
-    private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef) {
+    private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef, long timestamp) {
         if (!isValidationNecessary(tableRef)) {
             return;
         }
-        throwIfPreCommitRequirementsNotMet(null);
+        throwIfPreCommitRequirementsNotMet(null, timestamp);
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
@@ -919,7 +919,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
-                validateExternalAndCommitLocksIfNecessary(tableRef);
+                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -1142,7 +1142,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (!keysToReload.isEmpty()) {
             Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
-            validateExternalAndCommitLocksIfNecessary(tableRef);
+            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
             return nextRawResults;
         } else {
             return ImmutableMap.of();
@@ -1246,7 +1246,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
-                    throwIfPreCommitRequirementsNotMet(null);
+                    throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
                 return;
             }
@@ -1371,9 +1371,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             throwIfReadWriteConflictForSerializable(commitTimestamp);
 
-            // Verify that our locks are still valid before we actually commit;
+            // Verify that our locks and pre-commit conditions are still valid before we actually commit;
             // this throwIfLocksExpired is required by the transaction protocol for correctness
-            throwIfPreCommitRequirementsNotMet(commitLocksToken);
+            throwIfPreCommitRequirementsNotMet(commitLocksToken, commitTimestamp);
 
             Timer.Context commitTsTimer = getTimer("commitPutCommitTs").time();
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
@@ -1441,9 +1441,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             + "; the following locks are no longer valid: " + expiredLocks;
     }
 
-    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken) {
+    private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        advisoryLockCheck.throwIfLocksExpired();
+        preCommitCondition.throwIfConditionInvalid(timestamp);
     }
 
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
@@ -1556,13 +1556,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken);
+                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(false, "Missing conflicting value for cell: " + cellToConflict.get(cell)
                         + " for table " + table);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
-                throwIfPreCommitRequirementsNotMet(commitLocksToken);
+                throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(false, "Wrong timestamp for cell in table " + table
                         + " Expected: " + cellToConflict.get(cell)
                         + " Actual: " + conflictingValues.get(cell));
