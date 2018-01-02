@@ -196,26 +196,31 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>For clarity, we renamed <cite>ForwardingLockService</cite> to <cite>SimplifyingLockService</cite>, since this class also overwrote some of its parents methods.
+Also, its <cite>delegate</cite> methods now is public.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2729">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2823">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
 This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2826">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Sweep stats are updated more often when large writes are being made.
 <code class="docutils literal"><span class="pre">SweepStatsKVS</span></code> now tracks the size of modifications being made to the underlying KVS and will write when a threshold is passed.  Previously sweep stats were updated every 65536 writes, but this could be a significant amount of data if written to the stream store.  We now also track the size of the writes and if this is greater than 1GB we flush the stats.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2792">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Improvements to how sweep prioritises which tables to sweep, should allow better reclaiming of space from stream stores.
 Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2793">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span></td>
 <td>Messages to the <cite>slow-lock-log</cite> now log at <cite>WARN</cite> rather than <cite>INFO</cite>, these messages can indicate a problem so we should be sure they are visible.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2828">Pull Request</a>)</td>
 </tr>

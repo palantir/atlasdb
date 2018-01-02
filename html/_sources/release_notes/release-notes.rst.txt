@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - For clarity, we renamed `ForwardingLockService` to `SimplifyingLockService`, since this class also overwrote some of its parents methods.
+           Also, its `delegate` methods now is public.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2729>`__)
+
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
