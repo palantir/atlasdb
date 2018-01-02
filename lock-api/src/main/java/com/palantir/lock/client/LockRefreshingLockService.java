@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.SimplifyingLockService;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
@@ -33,6 +32,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.lock.SimplifyingLockService;
 
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingLockService extends SimplifyingLockService {
