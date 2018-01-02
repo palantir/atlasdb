@@ -115,7 +115,7 @@ Clear with cURL
 
 .. code-block:: bash
 
-   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/persistent-lock/release-backup-lock' -d '"427eb02a-f017-40cd-8d08-0a163315029a"'
+   $ curl -X POST --header 'content-type: application/json' '<product-base-url>/api/persistent-lock/release-backup-lock' -d '"427eb02a-f017-40cd-8d08-0a163315029a"'
 
 Clear with CQL
 --------------
