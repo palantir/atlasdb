@@ -19,16 +19,20 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 
 public final class TableToSweep {
     private final TableReference tableRef;
-    private final Optional<SweepProgress> progress;
+    private final boolean hasPreviousProgress;
+    private final SweepResults previousResults;
 
     TableToSweep(TableReference tableRef, Optional<SweepProgress> progress) {
         this.tableRef = tableRef;
-        this.progress = progress;
+        this.hasPreviousProgress = progress.isPresent();
+        this.previousResults = progress.map(SweepProgress::getPreviousResults)
+                .orElse(SweepResults.createEmptySweepResultWithMoreToSweep());
     }
 
     TableReference getTableRef() {
@@ -36,22 +40,14 @@ public final class TableToSweep {
     }
 
     boolean hasPreviousProgress() {
-        return progress.isPresent();
+        return hasPreviousProgress;
     }
 
-    long getStaleValuesDeletedPreviously() {
-        return progress.map(SweepProgress::staleValuesDeleted).orElse(0L);
+    public byte[] getStartRow() {
+        return previousResults.getNextStartRow().orElse(PtBytes.EMPTY_BYTE_ARRAY);
     }
 
-    long getCellsExaminedPreviously() {
-        return progress.map(SweepProgress::cellTsPairsExamined).orElse(0L);
-    }
-
-    Optional<Long> getPreviousMinimumSweptTimestamp() {
-        return progress.map(SweepProgress::minimumSweptTimestamp);
-    }
-
-    byte[] getStartRow() {
-        return progress.map(SweepProgress::startRow).orElse(PtBytes.EMPTY_BYTE_ARRAY);
+    SweepResults getPreviousSweepResults() {
+        return previousResults;
     }
 }

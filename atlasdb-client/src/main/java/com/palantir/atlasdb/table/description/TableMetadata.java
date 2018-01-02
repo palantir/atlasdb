@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
@@ -41,7 +40,6 @@ public class TableMetadata implements Persistable {
     final int explicitCompressionBlockSizeKB;
     final boolean negativeLookups;
     final SweepStrategy sweepStrategy;
-    final ExpirationStrategy expirationStrategy;
     final boolean appendHeavyAndReadLight;
     final LogSafety nameLogSafety;
 
@@ -65,7 +63,6 @@ public class TableMetadata implements Persistable {
                 0,
                 false,
                 SweepStrategy.CONSERVATIVE,
-                ExpirationStrategy.NEVER,
                 false);
     }
 
@@ -78,7 +75,6 @@ public class TableMetadata implements Persistable {
                          int explicitCompressionBlockSizeKB,
                          boolean negativeLookups,
                          SweepStrategy sweepStrategy,
-                         ExpirationStrategy expirationStrategy,
                          boolean appendHeavyAndReadLight) {
         this(
                 rowMetadata,
@@ -90,7 +86,6 @@ public class TableMetadata implements Persistable {
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
                 LogSafety.UNSAFE);
     }
@@ -104,7 +99,6 @@ public class TableMetadata implements Persistable {
                          int explicitCompressionBlockSizeKB,
                          boolean negativeLookups,
                          SweepStrategy sweepStrategy,
-                         ExpirationStrategy expirationStrategy,
                          boolean appendHeavyAndReadLight,
                          LogSafety nameLogSafety) {
         if (rangeScanAllowed) {
@@ -121,7 +115,6 @@ public class TableMetadata implements Persistable {
         this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
         this.negativeLookups = negativeLookups;
         this.sweepStrategy = sweepStrategy;
-        this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
         this.nameLogSafety = nameLogSafety;
     }
@@ -164,10 +157,6 @@ public class TableMetadata implements Persistable {
 
     public SweepStrategy getSweepStrategy() {
         return sweepStrategy;
-    }
-
-    public ExpirationStrategy getExpirationStrategy() {
-        return expirationStrategy;
     }
 
     public boolean isAppendHeavyAndReadLight() {
@@ -255,7 +244,6 @@ public class TableMetadata implements Persistable {
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                ExpirationStrategy.NEVER,
                 appendHeavyAndReadLight,
                 nameLogSafety);
     }
@@ -332,9 +320,6 @@ public class TableMetadata implements Persistable {
                 return false;
             }
         } else if (!rowMetadata.equals(other.rowMetadata)) {
-            return false;
-        }
-        if (rangeScanAllowed != other.rangeScanAllowed) {
             return false;
         }
         if (explicitCompressionBlockSizeKB != other.explicitCompressionBlockSizeKB) {

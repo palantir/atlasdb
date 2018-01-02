@@ -46,6 +46,8 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.qos.QosCassandraClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
@@ -67,10 +69,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 }
             });
 
+    private final QosClient qosClient;
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
 
-    public CassandraClientFactory(InetSocketAddress addr, CassandraKeyValueServiceConfig config) {
+    public CassandraClientFactory(QosClient qosClient,
+            InetSocketAddress addr,
+            CassandraKeyValueServiceConfig config) {
+        this.qosClient = qosClient;
         this.addr = addr;
         this.config = config;
     }
@@ -94,7 +100,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         client = new TracingCassandraClient(client);
         // TODO(ssouza): use the kvsMethodName to tag the timers.
         client = AtlasDbMetrics.instrument(CassandraClient.class, client);
-        client = new QosCassandraClient(client);
+        client = new QosCassandraClient(client, qosClient);
         return client;
     }
 

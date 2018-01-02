@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.util;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,27 +30,38 @@ import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class MetricsManager {
 
     private static final Logger log = LoggerFactory.getLogger(MetricsManager.class);
 
     private final MetricRegistry metricRegistry;
+    private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
 
     public MetricsManager() {
-        this(AtlasDbMetrics.getMetricRegistry());
+        this(AtlasDbMetrics.getMetricRegistry(), AtlasDbMetrics.getTaggedMetricRegistry());
     }
 
     @VisibleForTesting
-    MetricsManager(MetricRegistry metricRegistry) {
+    MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry) {
         this.metricRegistry = metricRegistry;
+        this.taggedMetricRegistry = taggedMetricRegistry;
         this.registeredMetrics = new HashSet<>();
     }
 
     public MetricRegistry getRegistry() {
         return metricRegistry;
+    }
+
+    public TaggedMetricRegistry getTaggedRegistry() {
+        return taggedMetricRegistry;
     }
 
     public void registerMetric(Class clazz, String metricPrefix, String metricName, Gauge gauge) {
@@ -62,6 +74,29 @@ public class MetricsManager {
 
     public void registerMetric(Class clazz, String metricName, Gauge gauge) {
         registerMetric(clazz, metricName, (Metric) gauge);
+    }
+
+    public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
+        Map<String, String> tag = getTableNameTagFor(tableRef);
+        registerMetric(clazz, metricName, gauge, tag);
+    }
+
+    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+        MetricName metricToAdd = MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build();
+        if (taggedMetricRegistry.getMetrics().containsKey(metricToAdd)) {
+            log.warn("Replacing the metric [ {} ]. This will happen if you are trying to re-register metrics "
+                            + "or have two tagged metrics with the same name across the application.",
+                    SafeArg.of("metricName", metricName));
+            taggedMetricRegistry.remove(metricToAdd);
+        }
+        taggedMetricRegistry.gauge(metricToAdd, gauge);
+    }
+
+    private Map<String, String> getTableNameTagFor(TableReference tableRef) {
+        return ImmutableMap.of("tableName", LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
     }
 
     public void registerMetric(Class clazz, String metricName, Metric metric) {
@@ -79,9 +114,10 @@ public class MetricsManager {
                     + " themselves, or if you are trying to use multiple TransactionManagers concurrently in the same"
                     + " JVM (e.g. in a KVS migration). If this is not the case, this is likely to be a product and/or"
                     + " an AtlasDB bug. This is no cause for immediate alarm, but it does mean that your telemetry for"
-                    + " the aforementioned metric may be reported incorrectly.",
-                    SafeArg.of("metricName", fullyQualifiedMetricName),
-                    e);
+                    + " the aforementioned metric may be reported incorrectly. Turn on TRACE logging to see the full"
+                    + " exception.",
+                    SafeArg.of("metricName", fullyQualifiedMetricName));
+            log.trace("Full exception follows:", e);
         }
     }
 

@@ -19,8 +19,7 @@
             "locked": "2.0.3"
         },
         "javax.ws.rs:javax.ws.rs-api": {
-            "locked": "2.0.1",
-            "requested": "2.0.1"
+            "locked": "2.0.1"
         }
     },
     "runtime": {
@@ -43,8 +42,7 @@
             "locked": "2.0.3"
         },
         "javax.ws.rs:javax.ws.rs-api": {
-            "locked": "2.0.1",
-            "requested": "2.0.1"
+            "locked": "2.0.1"
         }
     }
 }

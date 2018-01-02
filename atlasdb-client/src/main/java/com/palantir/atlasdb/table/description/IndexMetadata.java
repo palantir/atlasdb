@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
@@ -47,7 +46,6 @@ public class IndexMetadata {
     final IndexCondition indexCondition;
     IndexType indexType;
     final SweepStrategy sweepStrategy;
-    private final ExpirationStrategy expirationStrategy;
     private boolean appendHeavyAndReadLight;
     private final int numberOfComponentsHashed;
 
@@ -63,7 +61,6 @@ public class IndexMetadata {
                                             IndexCondition indexCondition,
                                             IndexType indexType,
                                             SweepStrategy sweepStrategy,
-                                            ExpirationStrategy expirationStrategy,
                                             boolean appendHeavyAndReadLight,
                                             int numberOfComponentsHashed) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
@@ -83,7 +80,6 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
                 numberOfComponentsHashed);
     }
@@ -101,7 +97,6 @@ public class IndexMetadata {
                                                    IndexCondition indexCondition,
                                                    IndexType indexType,
                                                    SweepStrategy sweepStrategy,
-                                                   ExpirationStrategy expirationStrategy,
                                                    boolean appendHeavyAndReadLight,
                                                    int numberOfComponentsHashed) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
@@ -121,7 +116,6 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
                 numberOfComponentsHashed);
     }
@@ -140,7 +134,6 @@ public class IndexMetadata {
                           IndexCondition indexCondition,
                           IndexType indexType,
                           SweepStrategy sweepStrategy,
-                          ExpirationStrategy expirationStrategy,
                           boolean appendHeavyAndReadLight,
                           int numberOfComponentsHashed) {
         this.name = name;
@@ -157,7 +150,6 @@ public class IndexMetadata {
         this.indexCondition = indexCondition;
         this.indexType = indexType;
         this.sweepStrategy = sweepStrategy;
-        this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
         this.numberOfComponentsHashed = numberOfComponentsHashed;
     }
@@ -229,7 +221,6 @@ public class IndexMetadata {
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight);
     }
 

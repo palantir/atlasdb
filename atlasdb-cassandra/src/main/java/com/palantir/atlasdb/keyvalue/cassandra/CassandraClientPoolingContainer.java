@@ -39,6 +39,7 @@ import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
@@ -48,17 +49,19 @@ import com.palantir.logsafe.UnsafeArg;
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
+    private final QosClient qosClient;
     private final InetSocketAddress host;
-    private CassandraKeyValueServiceConfig config;
+    private final CassandraKeyValueServiceConfig config;
     private final MetricsManager metricsManager = new MetricsManager();
     private final AtomicLong count = new AtomicLong();
     private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<CassandraClient> clientPool;
 
-    public CassandraClientPoolingContainer(
+    public CassandraClientPoolingContainer(QosClient qosClient,
             InetSocketAddress host,
             CassandraKeyValueServiceConfig config,
             int poolNumber) {
+        this.qosClient = qosClient;
         this.host = host;
         this.config = config;
         this.clientPool = createClientPool(poolNumber);
@@ -235,7 +238,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      * @param poolNumber number of the pool for metric registration.
      */
     private GenericObjectPool<CassandraClient> createClientPool(int poolNumber) {
-        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(host, config);
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(qosClient, host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
         poolConfig.setMinIdle(config.poolSize());

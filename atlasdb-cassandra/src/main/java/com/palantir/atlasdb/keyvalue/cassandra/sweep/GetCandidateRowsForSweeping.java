@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 
 public class GetCandidateRowsForSweeping {
 
@@ -39,6 +40,7 @@ public class GetCandidateRowsForSweeping {
 
     private final ValuesLoader valuesLoader;
     private final CqlExecutor cqlExecutor;
+    private final RowGetter rowGetter;
     private final TableReference table;
     private final CandidateCellForSweepingRequest request;
     private final int timestampsBatchSize;
@@ -50,10 +52,12 @@ public class GetCandidateRowsForSweeping {
     public GetCandidateRowsForSweeping(
             ValuesLoader valuesLoader,
             CqlExecutor cqlExecutor,
+            RowGetter rowGetter,
             TableReference table,
             CandidateCellForSweepingRequest request) {
         this.table = table;
         this.cqlExecutor = cqlExecutor;
+        this.rowGetter = rowGetter;
         this.request = request;
         this.valuesLoader = valuesLoader;
 
@@ -74,8 +78,8 @@ public class GetCandidateRowsForSweeping {
     }
 
     private void fetchCellTimestamps() {
-        cellTimestamps = new GetCellTimestamps(cqlExecutor, table, request.startRowInclusive(), timestampsBatchSize)
-                .execute();
+        cellTimestamps = new GetCellTimestamps(cqlExecutor, rowGetter, table, request.startRowInclusive(),
+                timestampsBatchSize).execute();
     }
 
     public void findCellsWithEmptyValuesIfNeeded() {

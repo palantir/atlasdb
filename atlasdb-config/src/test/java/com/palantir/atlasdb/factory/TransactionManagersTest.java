@@ -73,13 +73,13 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.util.MetricsRule;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
@@ -91,6 +91,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
@@ -148,7 +149,6 @@ public class TransactionManagersTest {
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
     private Supplier<Optional<AtlasDbRuntimeConfig>> configSupplier;
-    private TransactionManagers.Environment env;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -163,7 +163,7 @@ public class TransactionManagersTest {
     public void setup() throws JsonProcessingException {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
-        TransactionManagers.runAsync = task -> Awaitility.await().atMost(2, TimeUnit.SECONDS).untilAsserted(task::run);
+        TransactionManagers.runAsync = task -> Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(task::run);
 
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
                 ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
@@ -193,6 +193,7 @@ public class TransactionManagersTest {
 
         runtimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
+        when(runtimeConfig.qos()).thenReturn(QosClientConfig.DEFAULT);
         when(runtimeConfig.timelockRuntime()).thenReturn(Optional.empty());
 
         environment = mock(Consumer.class);
@@ -206,7 +207,6 @@ public class TransactionManagersTest {
                 .addServers(getUriForPort(availablePort))
                 .build();
         configSupplier = () -> Optional.of(runtimeConfig);
-        env = mock(TransactionManagers.Environment.class);
     }
 
     @After
@@ -282,9 +282,12 @@ public class TransactionManagersTest {
                 .build();
         TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .registrar(environment)
                 .userAgent("test")
-                .buildSerializable();
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .build()
+                .serializable();
 
         assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
 
@@ -303,35 +306,6 @@ public class TransactionManagersTest {
     public void canCreateInMemoryWithSetOfSchemas() {
         TransactionManagers.createInMemory(ImmutableSet.of(
                 GenericTestSchema.getSchema()));
-    }
-
-    // TODO (tpetracca): remove the deprecated methods (and tests) by November 15th, 2017
-    @Test
-    public void canCreateUsingDeprecatedMethodWithSingleSchema() {
-        TransactionManagers.create(REAL_CONFIG, configSupplier, GenericTestSchema.getSchema(), env, false);
-    }
-
-    @Test
-    public void canCreateUsingDeprecatedMethodWithSetOfSchemas() {
-        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, false);
-    }
-
-    @Test
-    public void canCreateUsingDeprecatedMethodWithLockServerOptions() {
-        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, LockServerOptions.DEFAULT,
-                false);
-    }
-
-    @Test
-    public void canCreateUsingDeprecatedMethodWithCallingClass() {
-        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, LockServerOptions.DEFAULT,
-                false, this.getClass());
-    }
-
-    @Test
-    public void canCreateUsingDeprecatedMethodWithUserAgent() {
-        TransactionManagers.create(REAL_CONFIG, configSupplier, ImmutableSet.of(), env, LockServerOptions.DEFAULT,
-                false, "test-user-agent");
     }
 
     @Test
@@ -365,9 +339,12 @@ public class TransactionManagersTest {
 
         SerializableTransactionManager manager = TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .registrar(environment)
                 .userAgent("test")
-                .buildSerializable();
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .build()
+                .serializable();
         manager.registerClosingCallback(callback);
         manager.close();
         verify(callback, times(1)).run();
@@ -381,9 +358,12 @@ public class TransactionManagersTest {
 
         TransactionManagers.builder()
                 .config(atlasDbConfig)
-                .registrar(environment)
                 .userAgent("test")
-                .buildSerializable();
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .build()
+                .serializable();
         assertThat(metricsRule.metrics().getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
     }
