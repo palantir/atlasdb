@@ -17,6 +17,7 @@ package com.palantir.atlasdb.util;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,25 +77,26 @@ public class MetricsManager {
         registerMetric(clazz, metricName, (Metric) gauge);
     }
 
-    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        taggedMetricRegistry.gauge(MetricName.builder()
-                        .safeName(MetricRegistry.name(clazz, metricName))
-                        .safeTags(tag)
-                        .build(),
-                gauge);
-    }
-
     public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
-        Map<String, String> tag = getTagFor(tableRef);
-
-        taggedMetricRegistry.gauge(MetricName.builder()
-                        .safeName(MetricRegistry.name(clazz, metricName))
-                        .safeTags(tag)
-                        .build(),
-                gauge);
+        Map<String, String> tag = getTableNameTagFor(tableRef);
+        registerMetric(clazz, metricName, gauge, tag);
     }
 
-    private Map<String, String> getTagFor(TableReference tableRef) {
+    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+        MetricName metricToAdd = MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tag)
+                .build();
+        if (taggedMetricRegistry.getMetrics().containsKey(metricToAdd)) {
+            log.warn("Replacing the metric [ {} ]. This will happen if you are trying to re-register metrics "
+                            + "or have two tagged metrics with the same name across the application.",
+                    SafeArg.of("metricName", metricName));
+            taggedMetricRegistry.remove(metricToAdd);
+        }
+        taggedMetricRegistry.gauge(metricToAdd, gauge);
+    }
+
+    private Map<String, String> getTableNameTagFor(TableReference tableRef) {
         return ImmutableMap.of("tableName", LoggingArgs.safeTableOrPlaceholder(tableRef).getQualifiedName());
     }
 
