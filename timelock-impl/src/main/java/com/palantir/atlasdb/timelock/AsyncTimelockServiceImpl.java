@@ -19,18 +19,56 @@ package com.palantir.atlasdb.timelock;
 import java.io.IOException;
 import java.util.Set;
 
+import com.google.common.base.Supplier;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.proxy.AwaitingLeadershipDelegate;
 import com.palantir.lock.v2.LockImmutableTimestampRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
+@AutoDelegate(typeToExtend = AsyncTimelockService.class, exceptions = {
+        NotCurrentLeaderException.class, ServiceNotAvailableException.class})
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
+
+    public static class Wrapper implements AutoDelegate_AsyncTimelockService {
+
+        private AwaitingLeadershipDelegate<AsyncTimelockService> proxy;
+
+        public AwaitingLeadershipDelegate<AsyncTimelockService> newProxyInstance(
+                Supplier<AsyncTimelockService> delegateSupplier,
+                LeaderElectionService leaderElectionService) {
+             proxy = AwaitingLeadershipDelegate.newProxyInstance(
+                    AsyncTimelockService.class,
+                    delegateSupplier,
+                    leaderElectionService);
+             return proxy;
+        }
+
+        @Override
+        public AsyncTimelockService delegate() {
+            return proxy.getDelegate();
+        }
+
+        @Override
+        public ServiceNotAvailableException handleServiceNotAvailableException(ServiceNotAvailableException exception) {
+            return proxy.handleServiceNotAvailableException(exception);
+        }
+
+        @Override
+        public NotCurrentLeaderException handleNotCurrentLeaderException(NotCurrentLeaderException exception) {
+            return proxy.handleNotCurrentLeaderException(exception);
+        }
+    }
 
     private final AsyncLockService lockService;
     private final ManagedTimestampService timestampService;

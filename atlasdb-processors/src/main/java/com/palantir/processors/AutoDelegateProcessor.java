@@ -51,6 +51,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Sets;
 import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -258,6 +259,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             MethodSpec.Builder exceptionMethod = MethodSpec
                     .methodBuilder(String.format("handle%s", exception.getSimpleName().toString()))
                     .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .returns(TypeName.get(exception.asType()))
                     .addParameter(TypeName.get(exception.asType()), "exception");
             typeBuilder.addMethod(exceptionMethod.build());
         }
@@ -272,23 +274,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 method.addModifiers(Modifier.DEFAULT);
             }
 
-            if (exceptions.size() > 0) {
-                method.beginControlFlow("try");
-            }
-            method.addStatement("$L$L().$L($L)",
-                    returnStatement,
-                    DELEGATE_METHOD,
-                    methodElement.getSimpleName(),
-                    methodElement.getParameters());
-            for (int i = 0; i < exceptions.size(); i++) {
-                TypeElement exception = exceptions.get(i);
-                String exceptionName = "exception" + i;
-                method.nextControlFlow("catch($T $L)", exception, exceptionName);
-                method.addStatement("handle$T($L)", exception, exceptionName);
-            }
-            if (exceptions.size() > 0) {
-                method.endControlFlow();
-            }
+            generateMethodBody(exceptions, methodElement, returnStatement, method);
 
             typeBuilder.addMethod(method.build());
         }
@@ -297,6 +283,27 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 .builder(typeToExtend.getPackageName(), typeBuilder.build())
                 .build()
                 .writeTo(filer);
+    }
+
+    private void generateMethodBody(List<TypeElement> exceptions, ExecutableElement methodElement,
+            String returnStatement, MethodSpec.Builder method) {
+        if (exceptions.size() > 0) {
+            method.beginControlFlow("try");
+        }
+        method.addStatement("$L$L().$L($L)",
+                returnStatement,
+                DELEGATE_METHOD,
+                methodElement.getSimpleName(),
+                methodElement.getParameters());
+        for (int i = 0; i < exceptions.size(); i++) {
+            TypeElement exception = exceptions.get(i);
+            String exceptionName = "exception" + i;
+            method.nextControlFlow("catch($T $L)", exception, exceptionName);
+            method.addStatement("throw handle$T($L)", exception, exceptionName);
+        }
+        if (exceptions.size() > 0) {
+            method.endControlFlow();
+        }
     }
 
     /**

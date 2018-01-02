@@ -2,7 +2,7 @@ clients:
   - test
 
 cluster:
-  localServer: <HOSTNAME>:8080
+  localServer: n1:8080
   servers:
     - n1:8080
     - n2:8080

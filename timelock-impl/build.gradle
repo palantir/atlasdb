@@ -21,6 +21,7 @@ dependencies {
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
     processor group: 'org.immutables', name: 'value'
+    processor project(":atlasdb-processors")
 
     testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
     testCompile project(":atlasdb-tests-shared")
