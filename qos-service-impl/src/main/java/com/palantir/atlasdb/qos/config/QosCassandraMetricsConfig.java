@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
 @Value.Immutable
@@ -43,5 +44,5 @@ public abstract class QosCassandraMetricsConfig {
 
     //non-live-reloadable
     @JsonProperty("throttling-strategy")
-    public abstract ThrottlingStrategy.ThrottlingStrategies throttlingStrategy();
+    public abstract ThrottlingStrategyEnum throttlingStrategy();
 }

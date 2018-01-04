@@ -33,7 +33,8 @@ public abstract class QosServiceRuntimeConfig {
     @JsonProperty("client-limits")
     public abstract Map<String, QosClientLimitsConfig> clientLimits();
 
-    //non-live-reloadable (adding and removing this live is not supported)
+    // non-live-reloadable (adding and removing this live is not supported)
+    // TODO: make this per client?
     @JsonProperty("qos-cassandra-metrics")
     public abstract Optional<QosCassandraMetricsConfig> qosCassandraMetricsConfig();
 }

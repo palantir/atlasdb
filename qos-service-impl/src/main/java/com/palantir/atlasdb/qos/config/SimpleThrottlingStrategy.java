@@ -25,7 +25,7 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     }
 
     @Override
-    public double clientLimitMultiplier(List<CassandraHealthMetricMeasurement> metricMeasurements,
+    public double getClientLimitMultiplier(List<CassandraHealthMetricMeasurement> metricMeasurements,
             QosPriority unused) {
         if (metricMeasurements.stream()
                 .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits())) {

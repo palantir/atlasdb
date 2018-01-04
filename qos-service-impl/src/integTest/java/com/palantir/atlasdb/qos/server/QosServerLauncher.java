@@ -46,7 +46,7 @@ public class QosServerLauncher extends Application<QosServerConfig> {
     public void run(QosServerConfig configuration, Environment environment) {
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
 
-        QosAgent agent = new QosAgent(() -> configuration.runtime(), environment.jersey()::register);
+        QosAgent agent = new QosAgent(configuration::runtime, environment.jersey()::register);
         agent.createAndRegisterResources();
     }
 }
