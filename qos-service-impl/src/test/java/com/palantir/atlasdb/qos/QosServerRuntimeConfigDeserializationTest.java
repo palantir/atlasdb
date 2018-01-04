@@ -31,13 +31,13 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
-import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsConfig;
+import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
+import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.remoting3.ext.jackson.ShimJdk7Module;
@@ -69,7 +69,7 @@ public class QosServerRuntimeConfigDeserializationTest {
 
         assertThat(ImmutableQosServiceRuntimeConfig.builder()
                 .clientLimits(getTestClientLimits())
-                .qosCassandraMetricsConfig(ImmutableQosCassandraMetricsConfig.builder()
+                .qosCassandraMetricsConfig(ImmutableQosCassandraMetricsRuntimeConfig.builder()
                         .cassandraServiceConfig(ServiceConfiguration.builder()
                                 .addUris("https://localhost:9161/cassandra-sidecar/api/")
                                 .security(SslConfiguration.of(Paths.get("trustStore.jks")))
@@ -81,7 +81,7 @@ public class QosServerRuntimeConfigDeserializationTest {
                                 .lowerLimit(0)
                                 .upperLimit(50)
                                 .build()))
-                        .throttlingStrategy(ThrottlingStrategy.ThrottlingStrategies.SIMPLE)
+                        .throttlingStrategy(ThrottlingStrategyEnum.SIMPLE)
                         .build())
                 .build())
                 .isEqualTo(configuration);

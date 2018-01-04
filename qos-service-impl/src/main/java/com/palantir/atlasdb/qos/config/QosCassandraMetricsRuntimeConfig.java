@@ -28,9 +28,9 @@ import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableQosCassandraMetricsConfig.class)
-@JsonDeserialize(as = ImmutableQosCassandraMetricsConfig.class)
-public abstract class QosCassandraMetricsConfig {
+@JsonSerialize(as = ImmutableQosCassandraMetricsRuntimeConfig.class)
+@JsonDeserialize(as = ImmutableQosCassandraMetricsRuntimeConfig.class)
+public abstract class QosCassandraMetricsRuntimeConfig {
     //non-live-reloadable
     @JsonProperty("cassandra-service-config")
     public abstract ServiceConfiguration cassandraServiceConfig();

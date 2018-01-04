@@ -23,12 +23,12 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetric;
-import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsConfig;
+import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
-import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
+import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
@@ -77,8 +77,8 @@ public class QosServiceRuntimeConfigTest {
                 .build();
     }
 
-    private ImmutableQosCassandraMetricsConfig getCassandraMetricsConfig() {
-        return ImmutableQosCassandraMetricsConfig.builder()
+    private ImmutableQosCassandraMetricsRuntimeConfig getCassandraMetricsConfig() {
+        return ImmutableQosCassandraMetricsRuntimeConfig.builder()
                 .cassandraServiceConfig(ServiceConfiguration.builder()
                         .addUris("https://localhost:9161/cassandra-sidecar/api/")
                         .security(SslConfiguration.of(Paths.get("trustStore.jks")))
@@ -90,7 +90,7 @@ public class QosServiceRuntimeConfigTest {
                         .lowerLimit(0)
                         .upperLimit(50)
                         .build()))
-                .throttlingStrategy(ThrottlingStrategy.ThrottlingStrategies.SIMPLE)
+                .throttlingStrategy(ThrottlingStrategyEnum.SIMPLE)
                 .build();
     }
 

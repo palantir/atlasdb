@@ -17,22 +17,47 @@ package com.palantir.atlasdb.qos.config;
 
 import java.util.List;
 
+import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
+import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
+
 public class SimpleThrottlingStrategy implements ThrottlingStrategy {
+    private static final double ONCE_EVERY_HUNDRED_SECONDS = 1 / 100;
+
     private double multiplier;
+    private SmoothRateLimiter.SmoothBursty rateLimiter;
 
     public SimpleThrottlingStrategy() {
         this.multiplier = 1.0;
+
+        SmoothRateLimiter.SmoothBursty smoothBursty = new SmoothRateLimiter.SmoothBursty(
+                RateLimiter.SleepingStopwatch.createFromSystemTimer(), 1.0);
+        smoothBursty.setRate(ONCE_EVERY_HUNDRED_SECONDS);
+        rateLimiter = smoothBursty;
     }
 
     @Override
     public double getClientLimitMultiplier(List<CassandraHealthMetricMeasurement> metricMeasurements,
             QosPriority unused) {
-        if (metricMeasurements.stream()
-                .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits())) {
-            multiplier = Math.max(0.1, multiplier * 0.5);
-        } else {
-            multiplier = Math.min(1.0, multiplier * 2);
+        if (rateLimiter.tryAcquire()) {
+            if (cassandraIsUnhealthy(metricMeasurements)) {
+                multiplier = halveTheRateMultiplier();
+            } else {
+                multiplier = increaseTheRateMultiplier();
+            }
         }
         return multiplier;
+    }
+
+    private double increaseTheRateMultiplier() {
+        return Math.min(2.0, multiplier * 1.1);
+    }
+
+    private double halveTheRateMultiplier() {
+        return Math.max(0.1, multiplier * 0.5);
+    }
+
+    private boolean cassandraIsUnhealthy(List<CassandraHealthMetricMeasurement> metricMeasurements) {
+        return metricMeasurements.stream()
+                .anyMatch(metricMeasurement -> !metricMeasurement.isMeasurementWithinLimits());
     }
 }

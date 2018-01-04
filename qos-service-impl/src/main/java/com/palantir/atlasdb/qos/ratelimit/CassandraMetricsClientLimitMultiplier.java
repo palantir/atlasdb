@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
-import com.palantir.atlasdb.qos.config.QosCassandraMetricsConfig;
+import com.palantir.atlasdb.qos.config.QosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
 import com.palantir.cassandra.sidecar.metrics.CassandraMetricsService;
@@ -30,19 +30,19 @@ import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public final class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
     private final CassandraMetricsService cassandraMetricClient;
-    private QosCassandraMetricsConfig config;
+    private QosCassandraMetricsRuntimeConfig config;
     private ThrottlingStrategy throttlingStrategy;
 
     private CassandraMetricsClientLimitMultiplier(
             CassandraMetricsService cassandraMetricsService,
-            QosCassandraMetricsConfig config,
+            QosCassandraMetricsRuntimeConfig config,
             ThrottlingStrategy throttlingStrategy) {
         this.cassandraMetricClient = cassandraMetricsService;
         this.config = config;
         this.throttlingStrategy = throttlingStrategy;
     }
 
-    public static ClientLimitMultiplier create(QosCassandraMetricsConfig config) {
+    public static ClientLimitMultiplier create(QosCassandraMetricsRuntimeConfig config) {
         CassandraMetricsService metricsService = JaxRsClient.create(
                 CassandraMetricsService.class,
                 "qos-service",
@@ -53,6 +53,10 @@ public final class CassandraMetricsClientLimitMultiplier implements ClientLimitM
     }
 
     public double getClientLimitMultiplier(QosPriority qosPriority) {
+        if (qosPriority == QosPriority.HIGH) {
+            return 1.0; // don't lower the limit for HIGH priority clients.
+        }
+
         List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
                 config.cassandraHealthMetrics().stream().map(metric ->
                         ImmutableCassandraHealthMetricMeasurement.builder()

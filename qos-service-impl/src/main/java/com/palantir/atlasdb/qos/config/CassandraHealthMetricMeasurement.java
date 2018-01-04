@@ -32,7 +32,6 @@ public abstract class CassandraHealthMetricMeasurement {
             // TODO(hsaraogi): The metric is not a number, should we throw here?
             return true;
         }
-        return Double.compare(lowerLimit(), measurement) <= 0
-                && Double.compare(upperLimit(), measurement) >= 0;
+        return lowerLimit() <= measurement && measurement <= upperLimit();
     }
 }

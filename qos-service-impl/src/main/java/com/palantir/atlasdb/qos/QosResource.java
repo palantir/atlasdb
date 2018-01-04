@@ -20,7 +20,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
-import com.palantir.atlasdb.qos.config.QosCassandraMetricsConfig;
+import com.palantir.atlasdb.qos.config.QosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
@@ -29,6 +29,8 @@ import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosResource implements QosService {
 
+    private static final ImmutableQosClientLimitsConfig DEFAULT_CLIENT_LIMITS_CONFIG =
+            ImmutableQosClientLimitsConfig.builder().build();
     private Supplier<QosServiceRuntimeConfig> config;
     private final ClientLimitMultiplier clientLimitMultiplier;
 
@@ -38,7 +40,7 @@ public class QosResource implements QosService {
     }
 
     private ClientLimitMultiplier getNonLiveReloadableClientLimitMultiplier() {
-        Optional<QosCassandraMetricsConfig> qosCassandraMetricsConfig = config.get().qosCassandraMetricsConfig();
+        Optional<QosCassandraMetricsRuntimeConfig> qosCassandraMetricsConfig = config.get().qosCassandraMetricsConfig();
         if (qosCassandraMetricsConfig.isPresent()) {
             return CassandraMetricsClientLimitMultiplier.create(qosCassandraMetricsConfig.get());
         } else {
@@ -49,7 +51,7 @@ public class QosResource implements QosService {
     @Override
     public long readLimit(String client) {
         QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
-                ImmutableQosClientLimitsConfig.builder().build());
+                DEFAULT_CLIENT_LIMITS_CONFIG);
         return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
                 * qosClientLimitsConfig.limits().readBytesPerSecond();
     }
@@ -57,7 +59,7 @@ public class QosResource implements QosService {
     @Override
     public long writeLimit(String client) {
         QosClientLimitsConfig qosClientLimitsConfig = config.get().clientLimits().getOrDefault(client,
-                ImmutableQosClientLimitsConfig.builder().build());
+                DEFAULT_CLIENT_LIMITS_CONFIG);
         return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
                 * qosClientLimitsConfig.limits().writeBytesPerSecond();
     }

@@ -19,7 +19,11 @@ package com.palantir.atlasdb.qos.ratelimit;
 import com.palantir.atlasdb.qos.config.SimpleThrottlingStrategy;
 import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
 
-public class ThrottlingStrategyFactory {
+public final class ThrottlingStrategyFactory {
+
+    private ThrottlingStrategyFactory() {
+        //utility class
+    }
 
     public static ThrottlingStrategy getThrottlingStrategy(ThrottlingStrategyEnum throttlingStrategy) {
         if (throttlingStrategy == ThrottlingStrategyEnum.SIMPLE) {
