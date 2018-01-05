@@ -40,6 +40,10 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
 
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
+        return getKeyValueServiceConfig(addr, true);
+    }
+
+    private KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr, boolean useCql) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(addr)
                 .poolSize(20)
@@ -54,7 +58,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
                 .autoRefreshNodes(false)
-                .useCql(true)
+                .useCql(useCql)
                 .build();
     }
 
@@ -62,7 +66,8 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     public boolean canConnect(InetSocketAddress addr) {
         return CassandraKeyValueServiceImpl.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
+                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(
+                                new InetSocketAddress(addr.getHostString(), 9160), false)),
                 Optional.of(ImmutableLeaderConfig.builder()
                         .quorumSize(1)
                         .localServer(addr.getHostString())
