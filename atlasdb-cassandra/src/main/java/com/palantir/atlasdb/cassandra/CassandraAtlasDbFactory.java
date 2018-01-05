@@ -40,6 +40,12 @@ import com.palantir.util.OptionalResolver;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
+    private KeyValueServiceConfig config;
+    private Optional<LeaderConfig> leaderConfig;
+    private Optional<String> namespace;
+    private boolean initializeAsync;
+    private QosClient qosClient;
+
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
@@ -47,6 +53,12 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient) {
+        this.config = config;
+        this.leaderConfig = leaderConfig;
+        this.namespace = namespace;
+        this.initializeAsync = initializeAsync;
+        this.qosClient = qosClient;
+
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
         CassandraKeyValueServiceConfigManager cassandraConfigManager =
@@ -82,17 +94,27 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<TableReference> timestampTable,
             boolean initializeAsync) {
 
-        Preconditions.checkArgument(!timestampTable.isPresent()
-                        || timestampTable.get().equals(AtlasDbConstants.TIMESTAMP_TABLE),
-                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table found: "
-                        + timestampTable.map(TableReference::getQualifiedName).orElse("unknown table")
-                        + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"
-                        + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
-                        + " persistence. However, if you are need to persist the timestamp service state in the"
-                        + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
-                        + "\nNote that if the service has already been running, you will have to migrate the timestamp"
-                        + " table to Postgres/Oracle and rename it to %s.",
-                AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE);
+        AtlasDbVersion.ensureVersionReported();
+        CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
+        CassandraKeyValueServiceConfigManager cassandraConfigManager =
+                CassandraKeyValueServiceConfigManager.createSimpleManager(preprocessedConfig);
+        rawKvs = CassandraKeyValueServiceImpl.create(
+                cassandraConfigManager,
+                leaderConfig,
+                initializeAsync,
+                qosClient);
+
+//        Preconditions.checkArgument(!timestampTable.isPresent()
+//                        || timestampTable.get().equals(AtlasDbConstants.TIMESTAMP_TABLE),
+//                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table found: "
+//                        + timestampTable.map(TableReference::getQualifiedName).orElse("unknown table")
+//                        + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"
+//                        + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
+//                        + " persistence. However, if you are need to persist the timestamp service state in the"
+//                        + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
+//                        + "\nNote that if the service has already been running, you will have to migrate the timestamp"
+//                        + " table to Postgres/Oracle and rename it to %s.",
+//                AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE);
 
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
