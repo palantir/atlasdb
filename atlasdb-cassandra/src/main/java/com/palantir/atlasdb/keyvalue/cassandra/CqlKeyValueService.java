@@ -210,6 +210,9 @@ public class CqlKeyValueService extends AbstractKeyValueService {
             clusterBuilder.withSSL();
         }
 
+        config.credentials().ifPresent(credentials ->
+                clusterBuilder.withCredentials(credentials.username(), credentials.password()));
+
         PoolingOptions poolingOptions = new PoolingOptions();
         poolingOptions.setMaxRequestsPerConnection(HostDistance.LOCAL, config.poolSize());
         poolingOptions.setMaxRequestsPerConnection(HostDistance.REMOTE, config.poolSize());
