@@ -453,7 +453,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -463,7 +463,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -472,38 +472,38 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -661,6 +661,12 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.apache.commons:commons-pool2": {
@@ -1235,7 +1241,7 @@
             ]
         },
         "com.palantir.tritium:tritium-api": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-core",
                 "com.palantir.tritium:tritium-lib",
@@ -1245,7 +1251,7 @@
             ]
         },
         "com.palantir.tritium:tritium-core": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib",
                 "com.palantir.tritium:tritium-metrics",
@@ -1254,38 +1260,38 @@
             ]
         },
         "com.palantir.tritium:tritium-lib": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-metrics": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-proxy": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-registry": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
         "com.palantir.tritium:tritium-slf4j": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
         },
         "com.palantir.tritium:tritium-tracing": {
-            "locked": "0.8.4",
+            "locked": "0.9.0",
             "transitive": [
                 "com.palantir.tritium:tritium-lib"
             ]
@@ -1443,6 +1449,12 @@
                 "com.palantir.atlasdb:atlasdb-api",
                 "com.palantir.docker.compose:docker-compose-rule-core",
                 "org.apache.cassandra:cassandra-thrift"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.apache.commons:commons-pool2": {

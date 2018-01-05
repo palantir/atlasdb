@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,8 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.UnsafeArg;
 
 /**
@@ -43,16 +46,28 @@ final class AdvisoryLockPreCommitCheck {
 
     public static final AdvisoryLockPreCommitCheck NO_OP = new AdvisoryLockPreCommitCheck(() -> { });
 
-    public static AdvisoryLockPreCommitCheck forLockServiceLocks(Iterable<LockRefreshToken> tokens,
+    public static AdvisoryLockPreCommitCheck forLockServiceLocks(
+            Iterable<LockRefreshToken> tokens,
             LockService lockService) {
-        Set<LockRefreshToken> toRefresh = ImmutableSet.copyOf(tokens);
+        return getLockServiceBasedPreCommitCheck(lockService::refreshLockRefreshTokens, ImmutableSet.copyOf(tokens));
+    }
+
+    public static AdvisoryLockPreCommitCheck forAsyncLockServiceLocks(
+            Iterable<LockToken> lockTokens,
+            TimelockService timelockService) {
+        return getLockServiceBasedPreCommitCheck(timelockService::refreshLockLeases, ImmutableSet.copyOf(lockTokens));
+    }
+
+    private static <T> AdvisoryLockPreCommitCheck getLockServiceBasedPreCommitCheck(
+            Function<Set<T>, Set<T>> refreshingFunction,
+            Set<T> toRefresh) {
         if (toRefresh.isEmpty()) {
             return NO_OP;
         }
 
         return new AdvisoryLockPreCommitCheck(() -> {
-            Set<LockRefreshToken> refreshed = lockService.refreshLockRefreshTokens(toRefresh);
-            Set<LockRefreshToken> notRefreshed = Sets.difference(toRefresh, refreshed).immutableCopy();
+            Set<T> refreshed = refreshingFunction.apply(toRefresh);
+            Set<T> notRefreshed = Sets.difference(toRefresh, refreshed);
             if (!notRefreshed.isEmpty()) {
                 log.warn("Lock service locks were no longer valid at commit time",
                         UnsafeArg.of("invalidTokens", notRefreshed));

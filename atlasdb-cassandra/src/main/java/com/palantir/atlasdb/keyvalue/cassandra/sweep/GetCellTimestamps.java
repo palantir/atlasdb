@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.KeyRange;
@@ -30,11 +29,11 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.common.base.Throwables;
 
 public class GetCellTimestamps {
 
@@ -43,8 +42,6 @@ public class GetCellTimestamps {
     private final TableReference tableRef;
     private final byte[] startRowInclusive;
     private final int batchHint;
-
-    private byte[] endRowInclusive;
 
     private final Collection<CellWithTimestamp> timestamps = Lists.newArrayList();
 
@@ -95,32 +92,27 @@ public class GetCellTimestamps {
      * tombstones (ideally this will involve catching some exception and reducing the range appropriately).
      */
     private void fetchBatchOfTimestampsBeginningAtStartRow() {
-        Optional<byte[]> rangeEnd;
-        for (byte[] rangeStart = startRowInclusive; timestamps.isEmpty(); rangeStart = rangeEnd.get()) {
-            rangeEnd = determineSafeRangeEnd(rangeStart);
-            if (!rangeEnd.isPresent()) {
+        byte[] rangeStart = startRowInclusive;
+
+        while (timestamps.isEmpty()) {
+            List<byte[]> rows = getRows(rangeStart);
+            if (rows.isEmpty()) {
                 return;
             }
 
-            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rangeStart, rangeEnd.get(), batchHint);
+            // Note that both ends of this range are *inclusive*
+            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint);
             timestamps.addAll(batch);
+            rangeStart = RangeRequests.nextLexicographicName(Iterables.getLast(rows));
         }
     }
 
-    private Optional<byte[]> determineSafeRangeEnd(byte[] rangeStart) {
+    private List<byte[]> getRows(byte[] rangeStart) {
         KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
-        SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ONE);
-        try {
-            List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
-            if (rows.isEmpty()) {
-                return Optional.empty();
-            } else {
-                return Optional.of(Iterables.getLast(rows).getKey());
-            }
-        } catch (Exception e) {
-            // TODO(nziebart): handle QoS exceptions here
-            throw Throwables.throwUncheckedException(e);
-        }
+        SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
+
+        List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
+        return rows.stream().map(KeySlice::getKey).collect(Collectors.toList());
     }
 
     private void fetchRemainingTimestampsForLastRow() {

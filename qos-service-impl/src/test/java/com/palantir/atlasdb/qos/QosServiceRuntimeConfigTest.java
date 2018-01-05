@@ -43,8 +43,8 @@ public class QosServiceRuntimeConfigTest {
     public void canBuildFromSingleClientLimitWithoutCasandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
                 .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW)))
-                .qosCassandraMetricsConfig(getCassandraMetricsConfig())
-                .build();
+                .qosCassandraMetricsConfig(getCassandraMetricsConfig());
+
     }
 
     @Test

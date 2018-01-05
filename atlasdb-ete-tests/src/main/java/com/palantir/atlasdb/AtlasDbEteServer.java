@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
@@ -40,7 +41,6 @@ import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
-import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import io.dropwizard.Application;
@@ -63,7 +63,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
-        bootstrap.setMetricRegistry(MetricRegistries.createWithHdrHistogramReservoirs());
+        bootstrap.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
         enableEnvironmentVariablesInConfig(bootstrap);
         bootstrap.addBundle(new AtlasDbBundle<>());
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
@@ -110,9 +110,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         return TransactionManagers.builder()
                 .config(config)
                 .userAgent("ete test")
-                .metricRegistry(new MetricRegistry())
-                .taggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment.jersey()::register)
                 .addAllSchemas(ETE_SCHEMAS)
                 .build()

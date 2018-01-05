@@ -191,6 +191,12 @@
                 "com.palantir.atlasdb:commons-db"
             ]
         },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "org.postgresql:postgresql": {
             "locked": "9.4.1209",
             "transitive": [
@@ -398,6 +404,12 @@
             "locked": "3.1",
             "transitive": [
                 "com.palantir.atlasdb:commons-db"
+            ]
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "org.postgresql:postgresql": {

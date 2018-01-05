@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.primitives.Ints;
+import com.google.common.math.LongMath;
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
 import com.palantir.logsafe.SafeArg;
@@ -45,23 +45,26 @@ public class QosRateLimiter {
     private static final long MAX_BURST_SECONDS = 5;
 
     private final Supplier<Long> maxBackoffTimeMillis;
+    private final String rateLimiterName;
     private final Supplier<Long> unitsPerSecond;
     private final RateLimiter.SleepingStopwatch stopwatch;
 
     private volatile RateLimiter rateLimiter;
     private volatile long currentRate;
 
-    public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond) {
+    public static QosRateLimiter create(Supplier<Long> maxBackoffTimeMillis, Supplier<Long> unitsPerSecond,
+            String rateLimiterType) {
         return new QosRateLimiter(RateLimiter.SleepingStopwatch.createFromSystemTimer(), maxBackoffTimeMillis,
-                unitsPerSecond);
+                unitsPerSecond, rateLimiterType);
     }
 
     @VisibleForTesting
     QosRateLimiter(RateLimiter.SleepingStopwatch stopwatch, Supplier<Long> maxBackoffTimeMillis,
-            Supplier<Long> unitsPerSecond) {
+            Supplier<Long> unitsPerSecond, String rateLimiterName) {
         this.stopwatch = stopwatch;
         this.unitsPerSecond = unitsPerSecond;
         this.maxBackoffTimeMillis = maxBackoffTimeMillis;
+        this.rateLimiterName = rateLimiterName;
 
         createRateLimiterAtomically();
     }
@@ -76,7 +79,7 @@ public class QosRateLimiter {
         updateRateIfNeeded();
 
         Optional<Duration> waitTime = rateLimiter.tryAcquire(
-                Ints.saturatedCast(estimatedNumUnits), // TODO(nziebart): deal with longs
+                estimatedNumUnits,
                 maxBackoffTimeMillis.get(),
                 TimeUnit.MILLISECONDS);
 
@@ -108,8 +111,9 @@ public class QosRateLimiter {
         rateLimiter = new SmoothRateLimiter.SmoothBursty(stopwatch, MAX_BURST_SECONDS);
         rateLimiter.setRate(currentRate);
 
-        // TODO(nziebart): distinguish between read/write rate limiters
-        log.info("Units per second set to {}", SafeArg.of("unitsPerSecond", currentRate));
+        log.info("Units per second set to {} for rate limiter {}",
+                SafeArg.of("unitsPerSecond", currentRate),
+                SafeArg.of("rateLimiterName", rateLimiterName));
     }
 
     /**
@@ -119,9 +123,18 @@ public class QosRateLimiter {
      */
     public void recordAdjustment(long adjustmentUnits) {
         if (adjustmentUnits > 0) {
-            rateLimiter.steal(Ints.saturatedCast(adjustmentUnits)); // TODO(nziebart): deal with longs
+            rateLimiter.steal(adjustmentUnits);
+        } else if (adjustmentUnits < 0) {
+            rateLimiter.returnPermits(safeNegative(adjustmentUnits));
         }
-        // TODO(nziebart): handle negative case
+    }
+
+    private long safeNegative(long adjustmentUnits) {
+        try {
+            return LongMath.checkedMultiply(-1, adjustmentUnits);
+        } catch (ArithmeticException e) {
+            return Long.MAX_VALUE;
+        }
     }
 
 }

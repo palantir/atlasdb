@@ -49,15 +49,13 @@ public class RowGetter {
         this.tableRef = tableRef;
     }
 
-    public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate)
-            throws Exception {
-
+    public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
-                new FunctionCheckedException<CassandraClient, List<KeySlice>, Exception>() {
+                new FunctionCheckedException<CassandraClient, List<KeySlice>, RuntimeException>() {
                     @Override
-                    public List<KeySlice> apply(CassandraClient client) throws Exception {
+                    public List<KeySlice> apply(CassandraClient client) {
                         try {
                             return queryRunner.run(client, tableRef,
                                     () -> client.get_range_slices(kvsMethodName,

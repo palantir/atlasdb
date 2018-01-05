@@ -37,5 +37,4 @@ public interface QosService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     long writeLimit(@Safe @PathParam("client") String client);
-
 }

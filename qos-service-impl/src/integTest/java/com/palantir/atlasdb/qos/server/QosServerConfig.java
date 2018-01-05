@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,11 +22,11 @@ import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 import io.dropwizard.Configuration;
 
 public class QosServerConfig extends Configuration {
-
     private final QosServiceRuntimeConfig runtime;
     private final QosServiceInstallConfig install;
 
-    public QosServerConfig(@JsonProperty("runtime") QosServiceRuntimeConfig runtime, @JsonProperty("install") QosServiceInstallConfig install) {
+    public QosServerConfig(@JsonProperty("runtime") QosServiceRuntimeConfig runtime,
+            @JsonProperty("install") QosServiceInstallConfig install) {
         this.runtime = runtime;
         this.install = install;
     }

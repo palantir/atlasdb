@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.server;
 
 import com.fasterxml.jackson.datatype.guava.GuavaModule;

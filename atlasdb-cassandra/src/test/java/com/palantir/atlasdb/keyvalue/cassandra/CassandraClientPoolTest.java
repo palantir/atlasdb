@@ -64,7 +64,7 @@ public class CassandraClientPoolTest {
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault());
+        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), new DefaultTaggedMetricRegistry());
         this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
     }
 

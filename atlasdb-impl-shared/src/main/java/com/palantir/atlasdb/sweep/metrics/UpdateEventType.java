@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.table.api;
 
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+package com.palantir.atlasdb.sweep.metrics;
 
-public interface AtlasDbNamedExpiringSet<ROW> {
-    void add(Set<ROW> rows, long duration, TimeUnit durationUnit);
-    void add(ROW row, long duration, TimeUnit durationUnit);
-    void addUnlessExists(ROW row, long duration, TimeUnit durationUnit);
-    void addUnlessExists(Set<ROW> rows, long duration, TimeUnit durationUnit);
+public enum UpdateEventType {
+    ONE_ITERATION("currentIteration"),
+    FULL_TABLE("currentTable"),
+    ERROR("");
+
+    private final String nameComponent;
+
+    UpdateEventType(String nameComponent) {
+        this.nameComponent = nameComponent;
+    }
+
+    public String getNameComponent() {
+        return nameComponent;
+    }
 }
