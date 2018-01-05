@@ -22,9 +22,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,28 +35,33 @@ import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
+import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 public class QosServiceTest {
     private Supplier<QosServiceRuntimeConfig> config = mock(Supplier.class);
     private QosResource resource;
+    private static QosServiceInstallConfig installConfig = mock(QosServiceInstallConfig.class);
+
+    @BeforeClass
+    public static void setUp() {
+        when(installConfig.qosCassandraMetricsConfig()).thenReturn(Optional.empty());
+    }
 
     @Test
     public void defaultsToFixedLimit() {
         when(config.get()).thenReturn(configWithLimits(ImmutableMap.of()));
-        resource = new QosResource(config);
+        resource = new QosResource(config, installConfig);
         assertThat(QosClientLimitsConfig.BYTES_READ_PER_SECOND_PER_CLIENT).isEqualTo(resource.readLimit("foo"));
-        assertThat(QosClientLimitsConfig.BYTES_WRITTEN_PER_SECOND_PER_CLIENT).isEqualTo(
-                resource.writeLimit("foo"));
+        assertThat(QosClientLimitsConfig.BYTES_WRITTEN_PER_SECOND_PER_CLIENT).isEqualTo(resource.writeLimit("foo"));
     }
 
     @Test
     public void canLiveReloadLimits() {
         when(config.get())
                 .thenReturn(configWithLimits(ImmutableMap.of("foo", 10L)))
-                .thenReturn(configWithLimits(ImmutableMap.of("foo", 10L)))
                 .thenReturn(configWithLimits(ImmutableMap.of("foo", 20L)));
-        resource = new QosResource(config);
+        resource = new QosResource(config, installConfig);
         assertEquals(10L, resource.readLimit("foo"));
         assertEquals(20L, resource.readLimit("foo"));
     }

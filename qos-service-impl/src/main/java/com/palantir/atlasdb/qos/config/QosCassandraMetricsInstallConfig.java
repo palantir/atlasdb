@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,21 @@
 
 package com.palantir.atlasdb.qos.config;
 
-import java.util.List;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
+import com.palantir.remoting.api.config.service.ServiceConfiguration;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableQosCassandraMetricsRuntimeConfig.class)
-@JsonDeserialize(as = ImmutableQosCassandraMetricsRuntimeConfig.class)
-public abstract class QosCassandraMetricsRuntimeConfig {
+@JsonSerialize(as = ImmutableQosCassandraMetricsInstallConfig.class)
+@JsonDeserialize(as = ImmutableQosCassandraMetricsInstallConfig.class)
+public abstract class QosCassandraMetricsInstallConfig {
+    @JsonProperty("cassandra-service-config")
+    public abstract ServiceConfiguration cassandraServiceConfig();
 
-    @JsonProperty("cassandra-health-metrics")
-    @Value.Default
-    public List<CassandraHealthMetric> cassandraHealthMetrics() {
-        return ImmutableList.of();
-    }
+    @JsonProperty("throttling-strategy")
+    public abstract ThrottlingStrategyEnum throttlingStrategy();
 }

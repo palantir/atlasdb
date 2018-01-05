@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.qos.config;
 
 import java.util.Map;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -29,12 +28,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableQosServiceRuntimeConfig.class)
 @Value.Immutable
 public abstract class QosServiceRuntimeConfig {
-    //live-reloadable
     @JsonProperty("client-limits")
     public abstract Map<String, QosClientLimitsConfig> clientLimits();
 
-    // non-live-reloadable (adding and removing this live is not supported)
-    // TODO(hsaraogi): make this per client?
     @JsonProperty("qos-cassandra-metrics")
-    public abstract Optional<QosCassandraMetricsRuntimeConfig> qosCassandraMetricsConfig();
+    @Value.Default
+    public QosCassandraMetricsRuntimeConfig qosCassandraMetricsConfig() {
+        return ImmutableQosCassandraMetricsRuntimeConfig.builder().build();
+    }
 }

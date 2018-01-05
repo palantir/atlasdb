@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,18 @@
 
 package com.palantir.atlasdb.qos.config;
 
-import java.util.List;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.ImmutableList;
 
+@JsonDeserialize(as = ImmutableQosServiceInstallConfig.class)
+@JsonSerialize(as = ImmutableQosServiceInstallConfig.class)
 @Value.Immutable
-@JsonSerialize(as = ImmutableQosCassandraMetricsRuntimeConfig.class)
-@JsonDeserialize(as = ImmutableQosCassandraMetricsRuntimeConfig.class)
-public abstract class QosCassandraMetricsRuntimeConfig {
-
-    @JsonProperty("cassandra-health-metrics")
-    @Value.Default
-    public List<CassandraHealthMetric> cassandraHealthMetrics() {
-        return ImmutableList.of();
-    }
+public abstract class QosServiceInstallConfig {
+    @JsonProperty("qos-cassandra-metrics")
+    public abstract Optional<QosCassandraMetricsInstallConfig> qosCassandraMetricsConfig();
 }

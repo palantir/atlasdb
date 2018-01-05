@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 
 import org.junit.Test;
 
@@ -37,9 +36,6 @@ import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.remoting3.ext.jackson.ShimJdk7Module;
 
 public class QosServerRuntimeConfigDeserializationTest {
@@ -70,10 +66,6 @@ public class QosServerRuntimeConfigDeserializationTest {
         assertThat(ImmutableQosServiceRuntimeConfig.builder()
                 .clientLimits(getTestClientLimits())
                 .qosCassandraMetricsConfig(ImmutableQosCassandraMetricsRuntimeConfig.builder()
-                        .cassandraServiceConfig(ServiceConfiguration.builder()
-                                .addUris("https://localhost:9161/cassandra-sidecar/api/")
-                                .security(SslConfiguration.of(Paths.get("trustStore.jks")))
-                                .build())
                         .cassandraHealthMetrics(ImmutableList.of(ImmutableCassandraHealthMetric.builder()
                                 .type("CommitLog")
                                 .name("PendingTasks")
@@ -81,7 +73,6 @@ public class QosServerRuntimeConfigDeserializationTest {
                                 .lowerLimit(0)
                                 .upperLimit(50)
                                 .build()))
-                        .throttlingStrategy(ThrottlingStrategyEnum.SIMPLE)
                         .build())
                 .build())
                 .isEqualTo(configuration);

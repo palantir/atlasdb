@@ -20,18 +20,21 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.QosResource;
+import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 
 public class QosAgent {
-    private final Supplier<QosServiceRuntimeConfig> config;
+    private final Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier;
+    private final QosServiceInstallConfig installConfig;
     private final Consumer<Object> registrar;
 
-    public QosAgent(Supplier<QosServiceRuntimeConfig> config, Consumer<Object> registrar) {
-        this.config = config;
+    public QosAgent(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier, QosServiceInstallConfig installConfig, Consumer<Object> registrar) {
+        this.runtimeConfigSupplier = runtimeConfigSupplier;
+        this.installConfig = installConfig;
         this.registrar = registrar;
     }
 
     public void createAndRegisterResources() {
-        registrar.accept(new QosResource(config));
+        registrar.accept(new QosResource(runtimeConfigSupplier, installConfig));
     }
 }

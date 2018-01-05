@@ -17,10 +17,13 @@
 package com.palantir.atlasdb.qos.ratelimit;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.palantir.atlasdb.qos.config.CassandraHealthMetric;
 import com.palantir.atlasdb.qos.config.CassandraHealthMetricMeasurement;
 import com.palantir.atlasdb.qos.config.ImmutableCassandraHealthMetricMeasurement;
+import com.palantir.atlasdb.qos.config.QosCassandraMetricsInstallConfig;
 import com.palantir.atlasdb.qos.config.QosCassandraMetricsRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.ThrottlingStrategy;
@@ -30,26 +33,28 @@ import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public final class CassandraMetricsClientLimitMultiplier implements ClientLimitMultiplier {
     private final CassandraMetricsService cassandraMetricClient;
-    private QosCassandraMetricsRuntimeConfig config;
     private ThrottlingStrategy throttlingStrategy;
+    private Supplier<List<CassandraHealthMetric>> cassandraHealthMetrics;
 
     private CassandraMetricsClientLimitMultiplier(
             CassandraMetricsService cassandraMetricsService,
-            QosCassandraMetricsRuntimeConfig config,
-            ThrottlingStrategy throttlingStrategy) {
+            ThrottlingStrategy throttlingStrategy,
+            Supplier<List<CassandraHealthMetric>> cassandraHealthMetrics) {
         this.cassandraMetricClient = cassandraMetricsService;
-        this.config = config;
         this.throttlingStrategy = throttlingStrategy;
+        this.cassandraHealthMetrics = cassandraHealthMetrics;
     }
 
-    public static ClientLimitMultiplier create(QosCassandraMetricsRuntimeConfig config) {
+    public static ClientLimitMultiplier create(Supplier<QosCassandraMetricsRuntimeConfig> runtimeConfig,
+            QosCassandraMetricsInstallConfig installConfig) {
         CassandraMetricsService metricsService = JaxRsClient.create(
                 CassandraMetricsService.class,
                 "qos-service",
-                ClientConfigurations.of(config.cassandraServiceConfig()));
+                ClientConfigurations.of(installConfig.cassandraServiceConfig()));
         ThrottlingStrategy throttlingStrategy = ThrottlingStrategyFactory.getThrottlingStrategy(
-                config.throttlingStrategy());
-        return new CassandraMetricsClientLimitMultiplier(metricsService, config, throttlingStrategy);
+                installConfig.throttlingStrategy());
+        return new CassandraMetricsClientLimitMultiplier(metricsService, throttlingStrategy,
+                () -> runtimeConfig.get().cassandraHealthMetrics());
     }
 
     public double getClientLimitMultiplier(QosPriority qosPriority) {
@@ -58,7 +63,7 @@ public final class CassandraMetricsClientLimitMultiplier implements ClientLimitM
         }
 
         List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
-                config.cassandraHealthMetrics().stream().map(metric ->
+                cassandraHealthMetrics.get().stream().map(metric ->
                         ImmutableCassandraHealthMetricMeasurement.builder()
                                 .currentValue(cassandraMetricClient.getMetric(
                                         metric.type(),
