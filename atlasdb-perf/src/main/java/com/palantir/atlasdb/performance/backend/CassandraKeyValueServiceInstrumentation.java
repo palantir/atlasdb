@@ -35,7 +35,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceInstrumentation.class);
 
     public CassandraKeyValueServiceInstrumentation() {
-        super(9160, "cassandra-docker-compose.yml");
+        super(9042, "cassandra-docker-compose.yml");
     }
 
     @Override
