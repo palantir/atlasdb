@@ -52,6 +52,7 @@ develop
 
     *    - |improved| |logs| |metrics|
          - Allow StreamStore table names to be marked as safe. This will make StreamStore tables appear correctly on our logs and metrics.
+           When building a StreamStore, please use `.tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)` to mark the table name as safe.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2835>`__)
 
     *    - |devbreak|
