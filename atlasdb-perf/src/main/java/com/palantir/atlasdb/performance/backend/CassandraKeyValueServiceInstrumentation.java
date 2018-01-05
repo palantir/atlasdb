@@ -42,12 +42,8 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
 
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
-        return getKeyValueServiceConfig(addr, true);
-    }
-
-    private KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr, boolean useCql) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(addr)
+                .addServers(new InetSocketAddress(addr.getHostString(), 9042))
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -60,7 +56,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
                 .autoRefreshNodes(false)
-                .useCql(useCql)
+                .useCql(true)
                 .build();
     }
 
