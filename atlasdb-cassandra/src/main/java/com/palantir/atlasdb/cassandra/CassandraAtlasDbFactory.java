@@ -15,11 +15,13 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import java.net.InetSocketAddress;
 import java.util.Optional;
 
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -93,9 +95,27 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             KeyValueService rawKvs,
             Optional<TableReference> timestampTable,
             boolean initializeAsync) {
+        CassandraKeyValueServiceConfig cqlConfig = (CassandraKeyValueServiceConfig) config;
+        InetSocketAddress addr = Iterators.get(cqlConfig.servers().iterator(), 0);
 
-        AtlasDbVersion.ensureVersionReported();
-        CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
+        CassandraKeyValueServiceConfig cConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .addServers(new InetSocketAddress(addr.getHostString(), 9160))
+                .poolSize(20)
+                .keyspace("atlasdb")
+                .credentials(ImmutableCassandraCredentialsConfig.builder()
+                        .username("cassandra")
+                        .password("cassandra")
+                        .build())
+                .ssl(false)
+                .replicationFactor(1)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
+                .autoRefreshNodes(false)
+                .useCql(true)
+                .build();
+
+        CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(cConfig, namespace);
         CassandraKeyValueServiceConfigManager cassandraConfigManager =
                 CassandraKeyValueServiceConfigManager.createSimpleManager(preprocessedConfig);
         rawKvs = CassandraKeyValueServiceImpl.create(
