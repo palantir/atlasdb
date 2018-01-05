@@ -23,6 +23,7 @@ import java.util.concurrent.Callable;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -71,6 +72,7 @@ public class TimeLockMigrationEteTest {
     }
 
     @Test
+    @Ignore
     public void automaticallyMigratesTimestampsAndFailsOnRestart() throws Exception {
         TimestampService timestampClient = createEteClientFor(TimestampService.class);
         TodoResource todoClient = createEteClientFor(TodoResource.class);
