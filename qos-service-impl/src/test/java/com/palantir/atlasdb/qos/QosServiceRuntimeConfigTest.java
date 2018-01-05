@@ -13,10 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos;
-
-import java.nio.file.Paths;
 
 import org.junit.Test;
 
@@ -28,9 +25,6 @@ import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
-import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 public class QosServiceRuntimeConfigTest {
     @Test
@@ -48,7 +42,7 @@ public class QosServiceRuntimeConfigTest {
     @Test
     public void canBuildFromSingleClientLimitWithoutCasandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(10, 10, QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW)))
                 .qosCassandraMetricsConfig(getCassandraMetricsConfig())
                 .build();
     }
@@ -56,33 +50,29 @@ public class QosServiceRuntimeConfigTest {
     @Test
     public void canBuildFromSingleClientLimitWithCasandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(10, 10, QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW)))
                 .build();
     }
 
     @Test
     public void canBuildFromMultipleClientLimitsWithoutCassandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(10, 10, QosPriority.LOW),
-                        "test_client2", getQosClientLimitsConfig(10, 10, QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW),
+                        "test_client2", getQosClientLimitsConfig(QosPriority.LOW)))
                 .build();
     }
 
     @Test
     public void canBuildFromMultipleClientLimitsWithCassandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(10, 10, QosPriority.LOW),
-                        "test_client2", getQosClientLimitsConfig(10, 10, QosPriority.LOW)))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW),
+                        "test_client2", getQosClientLimitsConfig(QosPriority.LOW)))
                 .qosCassandraMetricsConfig(getCassandraMetricsConfig())
                 .build();
     }
 
     private ImmutableQosCassandraMetricsRuntimeConfig getCassandraMetricsConfig() {
         return ImmutableQosCassandraMetricsRuntimeConfig.builder()
-                .cassandraServiceConfig(ServiceConfiguration.builder()
-                        .addUris("https://localhost:9161/cassandra-sidecar/api/")
-                        .security(SslConfiguration.of(Paths.get("trustStore.jks")))
-                        .build())
                 .cassandraHealthMetrics(ImmutableList.of(ImmutableCassandraHealthMetric.builder()
                         .type("CommitLog")
                         .name("PendingTasks")
@@ -90,17 +80,14 @@ public class QosServiceRuntimeConfigTest {
                         .lowerLimit(0)
                         .upperLimit(50)
                         .build()))
-                .throttlingStrategy(ThrottlingStrategyEnum.SIMPLE)
                 .build();
     }
 
-    private ImmutableQosClientLimitsConfig getQosClientLimitsConfig(long readLimit,
-            long writeLimit,
-            QosPriority priority) {
+    private ImmutableQosClientLimitsConfig getQosClientLimitsConfig(QosPriority priority) {
         return ImmutableQosClientLimitsConfig.builder()
                 .limits(ImmutableQosLimitsConfig.builder()
-                        .readBytesPerSecond(readLimit)
-                        .writeBytesPerSecond(writeLimit)
+                        .readBytesPerSecond(10L)
+                        .writeBytesPerSecond(10L)
                         .build())
                 .clientPriority(priority)
                 .build();

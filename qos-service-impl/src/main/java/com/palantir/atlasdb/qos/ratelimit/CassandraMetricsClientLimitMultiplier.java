@@ -62,19 +62,20 @@ public final class CassandraMetricsClientLimitMultiplier implements ClientLimitM
             return 1.0; // don't lower the limit for HIGH priority clients.
         }
 
-        List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
-                cassandraHealthMetrics.get().stream().map(metric ->
-                        ImmutableCassandraHealthMetricMeasurement.builder()
-                                .currentValue(cassandraMetricClient.getMetric(
-                                        metric.type(),
-                                        metric.name(),
-                                        metric.attribute(),
-                                        metric.additionalParams()))
-                                .lowerLimit(metric.lowerLimit())
-                                .upperLimit(metric.upperLimit())
-                                .build())
-                        .collect(Collectors.toList());
+        return throttlingStrategy.getClientLimitMultiplier(getCassandraHealthMetricMeasurements(), qosPriority);
+    }
 
-        return throttlingStrategy.getClientLimitMultiplier(cassandraHealthMetricMeasurements, qosPriority);
+    private Supplier<List<CassandraHealthMetricMeasurement>> getCassandraHealthMetricMeasurements() {
+        return () -> cassandraHealthMetrics.get().stream().map(metric ->
+                ImmutableCassandraHealthMetricMeasurement.builder()
+                        .currentValue(cassandraMetricClient.getMetric(
+                                metric.type(),
+                                metric.name(),
+                                metric.attribute(),
+                                metric.additionalParams()))
+                        .lowerLimit(metric.lowerLimit())
+                        .upperLimit(metric.upperLimit())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

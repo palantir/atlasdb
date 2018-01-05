@@ -1,8 +1,3 @@
-server:
-  applicationConnectors:
-  - type: http
-    port: 5080
-
 runtime:
   client-limits:
     test:
@@ -22,17 +17,8 @@ runtime:
       clientPriority: LOW
   qos-cassandra-metrics:
     cassandra-health-metrics:
-
       - type: CommitLog
         name: PendingTasks
         attribute: Value
         lowerLimit: 0
         upperLimit: 50
-install:
-  qos-cassandra-metrics:
-    cassandra-service-config:
-      uris:
-        - https://localhost:9161/cassandra-sidecar/api/
-      security:
-        trustStorePath: var/security/trustStore.jks
-    throttling-strategy: SIMPLE

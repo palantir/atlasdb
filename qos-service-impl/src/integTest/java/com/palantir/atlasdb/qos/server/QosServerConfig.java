@@ -27,7 +27,7 @@ public class QosServerConfig extends Configuration {
     private final QosServiceRuntimeConfig runtime;
     private final QosServiceInstallConfig install;
 
-    public QosServerConfig(@JsonProperty("runtime") QosServiceRuntimeConfig runtime, QosServiceInstallConfig install) {
+    public QosServerConfig(@JsonProperty("runtime") QosServiceRuntimeConfig runtime, @JsonProperty("install") QosServiceInstallConfig install) {
         this.runtime = runtime;
         this.install = install;
     }

@@ -16,30 +16,26 @@
 package com.palantir.atlasdb.qos.config;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
-import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
 
 public class SimpleThrottlingStrategy implements ThrottlingStrategy {
-    private static final double ONCE_EVERY_HUNDRED_SECONDS = 1 / 100;
 
+    private static final double ONCE_EVERY_HUNDRED_SECONDS = 0.01;
+    private final RateLimiter rateLimiter;
     private double multiplier;
-    private SmoothRateLimiter.SmoothBursty rateLimiter;
 
     public SimpleThrottlingStrategy() {
+        this.rateLimiter = RateLimiter.create(ONCE_EVERY_HUNDRED_SECONDS);
         this.multiplier = 1.0;
-
-        SmoothRateLimiter.SmoothBursty smoothBursty = new SmoothRateLimiter.SmoothBursty(
-                RateLimiter.SleepingStopwatch.createFromSystemTimer(), 1.0);
-        smoothBursty.setRate(ONCE_EVERY_HUNDRED_SECONDS);
-        rateLimiter = smoothBursty;
     }
 
     @Override
-    public double getClientLimitMultiplier(List<CassandraHealthMetricMeasurement> metricMeasurements,
+    public double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements,
             QosPriority unused) {
         if (rateLimiter.tryAcquire()) {
-            if (cassandraIsUnhealthy(metricMeasurements)) {
+            if (cassandraIsUnhealthy(metricMeasurements.get())) {
                 multiplier = halveTheRateMultiplier();
             } else {
                 multiplier = increaseTheRateMultiplier();

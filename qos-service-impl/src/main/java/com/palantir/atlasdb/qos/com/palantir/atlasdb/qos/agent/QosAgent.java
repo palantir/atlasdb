@@ -22,19 +22,34 @@ import java.util.function.Supplier;
 import com.palantir.atlasdb.qos.QosResource;
 import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
+import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
+import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosAgent {
     private final Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier;
     private final QosServiceInstallConfig installConfig;
     private final Consumer<Object> registrar;
 
-    public QosAgent(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier, QosServiceInstallConfig installConfig, Consumer<Object> registrar) {
+    public QosAgent(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier, QosServiceInstallConfig installConfig,
+            Consumer<Object> registrar) {
         this.runtimeConfigSupplier = runtimeConfigSupplier;
         this.installConfig = installConfig;
         this.registrar = registrar;
     }
 
     public void createAndRegisterResources() {
-        registrar.accept(new QosResource(runtimeConfigSupplier, installConfig));
+        QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(
+                () -> runtimeConfigSupplier.get().clientLimits());
+        ClientLimitMultiplier clientLimitMultiplier = createClientLimitMultiplier();
+        registrar.accept(new QosResource(qosClientConfigLoader, clientLimitMultiplier));
+    }
+
+    private ClientLimitMultiplier createClientLimitMultiplier() {
+        return installConfig.qosCassandraMetricsConfig().map(
+                config -> CassandraMetricsClientLimitMultiplier.create(
+                        () -> runtimeConfigSupplier.get().qosCassandraMetricsConfig(),
+                        config))
+                .orElseGet(OneReturningClientLimitMultiplier::create);
     }
 }

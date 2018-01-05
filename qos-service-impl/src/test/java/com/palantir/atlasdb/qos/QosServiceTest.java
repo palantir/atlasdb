@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -29,17 +30,17 @@ import java.util.stream.Collectors;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
 import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
-import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
-import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosServiceTest {
-    private Supplier<QosServiceRuntimeConfig> config = mock(Supplier.class);
     private QosResource resource;
     private static QosServiceInstallConfig installConfig = mock(QosServiceInstallConfig.class);
 
@@ -50,24 +51,37 @@ public class QosServiceTest {
 
     @Test
     public void defaultsToFixedLimit() {
-        when(config.get()).thenReturn(configWithLimits(ImmutableMap.of()));
-        resource = new QosResource(config, installConfig);
+        QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(ImmutableMap::of);
+        OneReturningClientLimitMultiplier oneReturningClientLimitMultiplier = new OneReturningClientLimitMultiplier();
+        resource = new QosResource(qosClientConfigLoader, oneReturningClientLimitMultiplier);
         assertThat(QosClientLimitsConfig.BYTES_READ_PER_SECOND_PER_CLIENT).isEqualTo(resource.readLimit("foo"));
         assertThat(QosClientLimitsConfig.BYTES_WRITTEN_PER_SECOND_PER_CLIENT).isEqualTo(resource.writeLimit("foo"));
     }
 
     @Test
     public void canLiveReloadLimits() {
-        when(config.get())
-                .thenReturn(configWithLimits(ImmutableMap.of("foo", 10L)))
-                .thenReturn(configWithLimits(ImmutableMap.of("foo", 20L)));
-        resource = new QosResource(config, installConfig);
+        QosClientConfigLoader qosClientConfigLoader = QosClientConfigLoader.create(
+                new Supplier<Map<String, QosClientLimitsConfig>>() {
+                    Iterator<Map<String, QosClientLimitsConfig>> configIterator =
+                            ImmutableList.of(
+                                    configWithLimits(ImmutableMap.of("foo", 10L)),
+                                    configWithLimits(ImmutableMap.of("foo", 20L)),
+                                    configWithLimits(ImmutableMap.of("foo", 30L)))
+                                    .iterator();
+
+                    @Override
+                    public Map<String, QosClientLimitsConfig> get() {
+                        return configIterator.next();
+                    }
+                });
+        resource = new QosResource(qosClientConfigLoader, OneReturningClientLimitMultiplier.create());
         assertEquals(10L, resource.readLimit("foo"));
         assertEquals(20L, resource.readLimit("foo"));
+        assertEquals(30L, resource.readLimit("foo"));
     }
 
-    private QosServiceRuntimeConfig configWithLimits(Map<String, Long> limits) {
-        Map<String, QosClientLimitsConfig> clientLimits = limits.entrySet().stream()
+    private Map<String, QosClientLimitsConfig> configWithLimits(Map<String, Long> limits) {
+        return limits.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         entry -> ImmutableQosClientLimitsConfig.builder()
                                 .limits(ImmutableQosLimitsConfig.builder()
@@ -77,9 +91,6 @@ public class QosServiceTest {
                                 .clientPriority(QosPriority.HIGH)
                                 .build()
                 ));
-        return ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(clientLimits)
-                .build();
     }
 }
 

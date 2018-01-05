@@ -13,59 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
-import com.palantir.atlasdb.qos.config.QosCassandraMetricsInstallConfig;
-import com.palantir.atlasdb.qos.config.QosCassandraMetricsRuntimeConfig;
+import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
-import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
-import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.atlasdb.qos.ratelimit.CassandraMetricsClientLimitMultiplier;
 import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
-import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosResource implements QosService {
-
-    private static final ImmutableQosClientLimitsConfig DEFAULT_CLIENT_LIMITS_CONFIG =
-            ImmutableQosClientLimitsConfig.builder().build();
-    private Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier;
-    private QosServiceInstallConfig installConfig;
+    private final QosClientConfigLoader qosClientConfigLoader;
     private final ClientLimitMultiplier clientLimitMultiplier;
 
-    public QosResource(Supplier<QosServiceRuntimeConfig> runtimeConfigSupplier, QosServiceInstallConfig installConfig) {
-        this.runtimeConfigSupplier = runtimeConfigSupplier;
-        this.installConfig = installConfig;
-        this.clientLimitMultiplier = getNonLiveReloadableClientLimitMultiplier();
-    }
-
-    private ClientLimitMultiplier getNonLiveReloadableClientLimitMultiplier() {
-        Optional<QosCassandraMetricsInstallConfig> qosCassandraMetricsInstallConfig = installConfig.qosCassandraMetricsConfig();
-        if (qosCassandraMetricsInstallConfig.isPresent()) {
-            return CassandraMetricsClientLimitMultiplier.create(
-                    () -> runtimeConfigSupplier.get().qosCassandraMetricsConfig(),
-                    qosCassandraMetricsInstallConfig.get());
-        } else {
-            return OneReturningClientLimitMultiplier.create();
-        }
+    public QosResource(QosClientConfigLoader qosClientConfigLoader, ClientLimitMultiplier clientLimitMultiplier) {
+        this.qosClientConfigLoader = qosClientConfigLoader;
+        this.clientLimitMultiplier = clientLimitMultiplier;
     }
 
     @Override
     public long readLimit(String client) {
-        QosClientLimitsConfig qosClientLimitsConfig = runtimeConfigSupplier.get().clientLimits().getOrDefault(client,
-                DEFAULT_CLIENT_LIMITS_CONFIG);
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
         return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
                 * qosClientLimitsConfig.limits().readBytesPerSecond();
     }
 
     @Override
     public long writeLimit(String client) {
-        QosClientLimitsConfig qosClientLimitsConfig = runtimeConfigSupplier.get().clientLimits().getOrDefault(client,
-                DEFAULT_CLIENT_LIMITS_CONFIG);
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
         return (long) clientLimitMultiplier.getClientLimitMultiplier(qosClientLimitsConfig.clientPriority())
                 * qosClientLimitsConfig.limits().writeBytesPerSecond();
     }
