@@ -48,6 +48,8 @@ public abstract class NameComponentDescription {
 
     public abstract LogSafety getLogSafety();
 
+    public abstract LogSafety valueLogSafety();
+
     @Value.Derived
     public ValueByteOrder getOrder() {
         return byteOrder();

@@ -220,6 +220,7 @@ public class TableDefinition extends AbstractDefinition {
                         .type(valueType)
                         .byteOrder(valueByteOrder)
                         .logSafety(rowNameLoggable)
+                        .valueLogSafety()
                         .build());
     }
 
