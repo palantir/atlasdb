@@ -54,6 +54,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
                 .autoRefreshNodes(false)
+                .useCql(true)
                 .build();
     }
 
