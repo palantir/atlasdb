@@ -19,7 +19,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import static uk.org.lidalia.slf4jtest.LoggingEvent.debug;
-import static uk.org.lidalia.slf4jtest.LoggingEvent.info;
+import static uk.org.lidalia.slf4jtest.LoggingEvent.warn;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,7 +56,7 @@ public final class LockServiceImplTest {
     public void setUpLoggers() {
         testSlowLogger = TestLoggerFactory.getTestLogger(SlowLockLogger.class);
         testLockServiceImplLogger = TestLoggerFactory.getTestLogger(LockServiceImpl.class);
-        testSlowLogger.setEnabledLevelsForAllThreads(Level.INFO);
+        testSlowLogger.setEnabledLevelsForAllThreads(Level.WARN, Level.ERROR);
         testLockServiceImplLogger.setEnabledLevelsForAllThreads(Level.DEBUG);
     }
 
@@ -92,7 +92,7 @@ public final class LockServiceImplTest {
 
         assertThat(testSlowLogger.getLoggingEvents().size(), is(1));
         assertContainsMatchingLoggingEvent(testSlowLogger.getLoggingEvents(),
-                info("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
+                warn("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
     }
 
     @Test

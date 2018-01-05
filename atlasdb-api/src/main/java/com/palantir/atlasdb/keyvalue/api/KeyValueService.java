@@ -29,6 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
@@ -655,8 +656,16 @@ public interface KeyValueService extends AutoCloseable {
     void compactInternally(TableReference tableRef);
 
     /**
-     * Checks if the KVS has a quorum available to successfully perform reads/writes.
-     *
+     * Provides a {@link ClusterAvailabilityStatus}, indicating the current availability of the key value store.
+     * This can be used to infer product health - in the usual, conservative case, products can call
+     * {@link ClusterAvailabilityStatus#isHealthy()}, which returns true only if all KVS nodes are up.
+     * <p>
+     * Products that use AtlasDB only for reads and writes (no schema mutations or deletes, including having sweep and
+     * scrub disabled) can also treat {@link ClusterAvailabilityStatus#QUORUM_AVAILABLE} as healthy.
+     * <p>
+     * If you have access to a {@link com.palantir.atlasdb.transaction.api.TransactionManager}, then it is recommended
+     * to use its availability indicator, {@link TransactionManager#getKeyValueServiceStatus()}, instead of this one.
+     * <p>
      * This call must be implemented so that it completes synchronously.
      */
     @POST
@@ -671,5 +680,13 @@ public interface KeyValueService extends AutoCloseable {
      */
     default boolean isInitialized() {
         return true;
+    }
+
+    /**
+     * Whether or not read performance degrades significantly when many deleted cells are in the requested range.
+     * This is used by sweep to determine if it should wait a while between runs after deleting a large number of cells.
+     */
+    default boolean performanceIsSensitiveToTombstones() {
+        return false;
     }
 }

@@ -19,8 +19,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.TokenRange;
@@ -38,8 +38,8 @@ final class CassandraLogHelper {
         return host.getHostString();
     }
 
-    static List<String> blacklistedHosts(Map<InetSocketAddress, Long> blacklistedHosts) {
-        return blacklistedHosts.entrySet().stream()
+    static List<String> blacklistedHosts(Blacklist blacklist) {
+        return blacklist.getBlacklistedHosts().entrySet().stream()
                 .map(blacklistedHostToBlacklistTime -> String.format("host: %s was blacklisted at %s",
                         host(blacklistedHostToBlacklistTime.getKey()),
                         blacklistedHostToBlacklistTime.getValue().longValue()))
@@ -58,9 +58,7 @@ final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    static List<String> tokenMap(
-            RangeMap<CassandraClientPoolImpl.LightweightOppToken, List<InetSocketAddress>> tokenMap) {
-
+    static List<String> tokenMap(RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
                 .map(rangeListToHostEntry -> String.format("range from %s to %s is on host %s",
                         getLowerEndpoint(rangeListToHostEntry.getKey()),
@@ -69,15 +67,24 @@ final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    private static String getLowerEndpoint(Range<CassandraClientPoolImpl.LightweightOppToken> range) {
-        if (range.hasLowerBound()) {
+    static List<String> tokenRangesToWrites(RangeMap<LightweightOppToken, AtomicLong> writes) {
+        return writes.asMapOfRanges().entrySet().stream()
+                .map(entry -> String.format("range from %s to %s has %d writes",
+                        getLowerEndpoint(entry.getKey()),
+                        getUpperEndpoint(entry.getKey()),
+                        entry.getValue().get()))
+                .collect(Collectors.toList());
+    }
+
+    private static String getLowerEndpoint(Range<LightweightOppToken> range) {
+        if (!range.hasLowerBound()) {
             return "(no lower bound)";
         }
         return range.lowerEndpoint().toString();
     }
 
-    private static String getUpperEndpoint(Range<CassandraClientPoolImpl.LightweightOppToken> range) {
-        if (range.hasUpperBound()) {
+    private static String getUpperEndpoint(Range<LightweightOppToken> range) {
+        if (!range.hasUpperBound()) {
             return "(no upper bound)";
         }
         return range.upperEndpoint().toString();

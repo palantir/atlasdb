@@ -41,7 +41,6 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -75,12 +74,12 @@ public class CassandraClientPoolIntegrationTest {
     // Pretty legit test if run manually or if we go back to multi-node tests
     @Test
     public void testTokenMapping() {
-        Map<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
+        Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
                 clientPool.tokenMap.asMapOfRanges();
 
-        for (Entry<Range<CassandraClientPoolImpl.LightweightOppToken>, List<InetSocketAddress>> entry :
+        for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry :
                 mapOfRanges.entrySet()) {
-            Range<CassandraClientPoolImpl.LightweightOppToken> tokenRange = entry.getKey();
+            Range<LightweightOppToken> tokenRange = entry.getKey();
             List<InetSocketAddress> hosts = entry.getValue();
 
             clientPool.getRandomHostForKey("A".getBytes(StandardCharsets.UTF_8));
@@ -160,15 +159,14 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        clientPool.blacklistedHosts.putAll(
-                Maps.transformValues(clientPool.getCurrentPools(), clientPoolContainer -> Long.MAX_VALUE));
+        clientPool.getBlacklist().addAll(clientPool.getCurrentPools().keySet());
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
             fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
-        clientPool.blacklistedHosts.clear();
+        clientPool.getBlacklist().removeAll();
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
