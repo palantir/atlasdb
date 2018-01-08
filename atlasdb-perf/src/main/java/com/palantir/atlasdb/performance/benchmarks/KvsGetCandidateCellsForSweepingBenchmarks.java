@@ -42,13 +42,14 @@ import com.palantir.common.base.ClosableIterator;
 
 @State(Scope.Benchmark)
 public class KvsGetCandidateCellsForSweepingBenchmarks {
+    private static final int DEFAULT_BATCH_SIZE = 1000;
 
     @Benchmark
     @Threads(1)
     @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object fullTableScanCleanConservative(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return fullTableScan(table, false);
+        return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
@@ -56,7 +57,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object fullTableScanCleanThorough(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return fullTableScan(table, true);
+        return fullTableScan(table, true, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
@@ -64,7 +65,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object fullTableScanDirtyConservative(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return fullTableScan(table, false);
+        return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
@@ -72,7 +73,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object fullTableScanDirtyThorough(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return fullTableScan(table, true);
+        return fullTableScan(table, true, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
@@ -80,22 +81,20 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public Object fullTableScanOneWideRowThorough(VeryWideRowTable table) {
-        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumCols(), true);
+        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumCols(), true, DEFAULT_BATCH_SIZE);
     }
 
-    private int fullTableScan(ConsecutiveNarrowTable table, boolean thorough) {
+    private int fullTableScan(ConsecutiveNarrowTable table, boolean thorough, int batchSizeHint) {
         // TODO(gsheasby): consider extracting a common interface for WideRowTable and ConsecutiveNarrowTable
         // to avoid unpacking here
-        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumRows(), thorough);
+        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumRows(), thorough, batchSizeHint);
     }
 
-    private int fullTableScan(TableReference tableRef,
-                              KeyValueService kvs,
-                              int numCellsExpected,
-                              boolean thorough) {
+    private int fullTableScan(TableReference tableRef, KeyValueService kvs, int numCellsExpected, boolean thorough,
+            int batchSizeHint) {
         CandidateCellForSweepingRequest request = ImmutableCandidateCellForSweepingRequest.builder()
                     .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
-                    .batchSizeHint(1000)
+                    .batchSizeHint(batchSizeHint)
                     .maxTimestampExclusive(Long.MAX_VALUE)
                     .shouldCheckIfLatestValueIsEmpty(thorough)
                     .timestampsToIgnore(thorough ? ImmutableSet.of() : ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP))
