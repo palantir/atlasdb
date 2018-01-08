@@ -31,6 +31,8 @@ import com.palantir.flake.fail.ExpectedFailure;
 import com.palantir.flake.fail.ExpectedFailureRule;
 
 public class FlakeRetryingRuleTest {
+    private static final Map<String, AtomicLong> counters = Maps.newHashMap();
+
     private final FlakeRetryingRule retryingRule = new FlakeRetryingRule();
     private final ExpectedFailureRule expectedFailureRule = new ExpectedFailureRule();
 
@@ -44,8 +46,6 @@ public class FlakeRetryingRuleTest {
     // ensure consistency of indexing into the counter-map for the runTestFailingUntilSpecifiedAttempt methods.
     @Rule
     public final TestName testName = new TestName();
-
-    private static final Map<String, AtomicLong> counters = Maps.newHashMap();
 
     @Test
     @ShouldRetry(numAttempts = 2)
