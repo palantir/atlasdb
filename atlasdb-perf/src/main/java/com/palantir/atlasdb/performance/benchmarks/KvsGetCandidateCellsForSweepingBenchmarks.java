@@ -43,12 +43,51 @@ import com.palantir.common.base.ClosableIterator;
 public class KvsGetCandidateCellsForSweepingBenchmarks {
     private static final int DEFAULT_BATCH_SIZE = 1000;
 
+    // Batch sizes for (temporary?) tests
+    private static final int TINY = 16; // 2^4
+    private static final int SMALL = 128; // 2^7
+    private static final int NORMAL_SIZE = DEFAULT_BATCH_SIZE; // close enough to 2^10
+    private static final int LARGE = 4096; // 2^12
+    private static final int HUGE = 16384; // 2^14
+
     @Benchmark
     @Threads(1)
     @Warmup(time = 20)
     @Measurement(time = 160)
-    public Object fullTableScanCleanConservative(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
+    public Object fullTableScanCleanConservative_Tiny(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, false, TINY);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanCleanConservative_Small(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, false, SMALL);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanCleanConservative_NormalSize(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, false, NORMAL_SIZE);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanCleanConservative_Large(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, false, LARGE);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanCleanConservative_Huge(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return fullTableScan(table, false, HUGE);
     }
 
     @Benchmark
@@ -63,8 +102,40 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Threads(1)
     @Warmup(time = 20)
     @Measurement(time = 160)
-    public Object fullTableScanDirtyConservative(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
+    public Object fullTableScanDirtyConservative_Tiny(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, false, TINY);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanDirtyConservative_Small(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, false, SMALL);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanDirtyConservative_NormalSize(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, false, NORMAL_SIZE);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanDirtyConservative_Large(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, false, LARGE);
+    }
+
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
+    public Object fullTableScanDirtyConservative_Huge(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, false, HUGE);
     }
 
     @Benchmark
