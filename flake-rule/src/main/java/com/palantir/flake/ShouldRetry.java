@@ -19,11 +19,20 @@ package com.palantir.flake;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
+/**
+ * An annotation signalling that a given test class or test method should be retried in the event of a test failure.
+ * In the event that both a test class and a test method are annotated with this
+ *
+ * Note that this annotation will only actually cause a test to be retried if it is run with the
+ * {@link FlakeRetryingRule} present as a test rule in the relevant class.
+ */
 @Retention(RetentionPolicy.RUNTIME) // The FlakeRetryingRule makes retry decisions based on this annotation at runtime.
 public @interface ShouldRetry {
     /**
      * The number of attempts to retry a test that fails, before declaring the test as failed.
      * This is useful for avoiding build failures whilst flaky tests still live in the codebase.
+     *
+     * Values provided should be strictly positive; behaviour when this value is nonpositive is undefined.
      */
-    int numAttempts() default 3;
+    int numAttempts() default 5;
 }

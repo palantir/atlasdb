@@ -27,6 +27,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
+/**
+ * A {@link TestRule} that retries methods and classes annotated with the {@link ShouldRetry} annotation.
+ *
+ * Note: Please be very careful about ordering when chaining this with other JUnit test rules.
+ */
 public class FlakeRetryingRule implements TestRule {
     private static final Logger log = LoggerFactory.getLogger(FlakeRetryingRule.class);
 
