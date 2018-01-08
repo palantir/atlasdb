@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableCassandraHealthMetric.class)
@@ -34,4 +35,11 @@ public abstract class CassandraHealthMetric {
 
     public abstract double lowerLimit();
     public abstract double upperLimit();
+
+    @Value.Check
+    public void check() {
+        Preconditions.checkState(lowerLimit() <= upperLimit(),
+                "Lower limit should be less than or equal to the upper limit. Found LowerLimit: %s and UpperLimit: %s.",
+                lowerLimit(), upperLimit());
+    }
 }

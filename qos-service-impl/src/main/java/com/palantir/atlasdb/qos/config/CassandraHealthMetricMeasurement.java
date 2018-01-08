@@ -18,16 +18,25 @@ package com.palantir.atlasdb.qos.config;
 
 import org.immutables.value.Value;
 
+import com.google.common.base.Preconditions;
+
 @Value.Immutable
 public abstract class CassandraHealthMetricMeasurement {
     abstract double lowerLimit();
     abstract double upperLimit();
     abstract Object currentValue();
 
+    @Value.Check
+    public void check() {
+        Preconditions.checkState(lowerLimit() <= upperLimit(),
+                "Lower limit should be less than or equal to the upper limit. Found LowerLimit: %s and UpperLimit: %s.",
+                lowerLimit(), upperLimit());
+    }
+
     boolean isMeasurementWithinLimits() {
         double measurement;
         try {
-            measurement = (double) currentValue();
+            measurement = Double.valueOf(currentValue().toString());
         } catch (ClassCastException ex) {
             // TODO(hsaraogi): The metric is not a number, should we throw here?
             return true;
