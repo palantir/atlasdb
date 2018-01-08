@@ -35,7 +35,7 @@ public class FlakeRetryingRuleTest {
     private final ExpectedFailureRule expectedFailureRule = new ExpectedFailureRule();
 
     // The ordering here is essential. We want to try the inner test multiple times and invert the output in some
-    // cases, not invert the output on each attempt.
+    // cases (because we're expecting to fail out), not invert the output on each attempt.
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(expectedFailureRule)
             .around(retryingRule);
@@ -50,35 +50,42 @@ public class FlakeRetryingRuleTest {
     @Test
     @ShouldRetry(numAttempts = 2)
     public void acceptsIfWePassOnTheFirstAttemptOfTwo() {
-        runMethodFailingUntilSpecifiedAttempt(1);
+        runTestFailingUntilSpecifiedAttempt(1);
     }
 
     @Test
     @ShouldRetry(numAttempts = 2)
     public void acceptsIfWePassOnTheSecondAttemptOfTwo() {
-        runMethodFailingUntilSpecifiedAttempt(2);
+        runTestFailingUntilSpecifiedAttempt(2);
     }
 
     @Test
     @ShouldRetry(numAttempts = 2)
     @ExpectedFailure
     public void doesNotRetryMoreThanSpecifiedNumberOfTimes() {
-        runMethodFailingUntilSpecifiedAttempt(3);
+        runTestFailingUntilSpecifiedAttempt(3);
     }
 
     @Test
     @ShouldRetry(numAttempts = 100)
     public void canConfigureNumberOfAttempts() {
-        runMethodFailingUntilSpecifiedAttempt(100);
+        runTestFailingUntilSpecifiedAttempt(100);
     }
 
     @Test
     @ExpectedFailure
     public void doesNotRetryIfMethodIsNotAnnotated() {
-        runMethodFailingUntilSpecifiedAttempt(2);
+        runTestFailingUntilSpecifiedAttempt(2);
     }
 
-    private void runMethodFailingUntilSpecifiedAttempt(long expected) {
+    @Test
+    @ShouldRetry(numAttempts = -5)
+    @ExpectedFailure // This should trigger, because the number of attempts should be positive.
+    public void cannotConfigureNegativeNumberOfAttempts() {
+        // pass
+    }
+
+    private void runTestFailingUntilSpecifiedAttempt(long expected) {
         AtomicLong counter = counters.getOrDefault(testName.getMethodName(), new AtomicLong());
         long value = counter.incrementAndGet();
         counters.put(testName.getMethodName(), counter);

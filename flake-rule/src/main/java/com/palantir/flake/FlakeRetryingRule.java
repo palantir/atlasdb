@@ -24,6 +24,7 @@ import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 public class FlakeRetryingRule implements TestRule {
@@ -53,6 +54,9 @@ public class FlakeRetryingRule implements TestRule {
     }
 
     private static void runStatementWithRetry(ShouldRetry retryAnnotation, Statement base, Description description) {
+        Preconditions.checkArgument(retryAnnotation.numAttempts() > 0,
+                "Number of attempts should be positive, but found %s", retryAnnotation.numAttempts());
+
         for (int attempt = 1; attempt <= retryAnnotation.numAttempts(); attempt++) {
             try {
                 base.evaluate();
