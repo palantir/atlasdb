@@ -16,6 +16,72 @@
 
 package com.palantir.flake;
 
-public class FlakeRetryingRuleTest {
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestName;
+
+import com.google.common.collect.Maps;
+import com.palantir.flake.fail.ExpectedFailure;
+import com.palantir.flake.fail.ExpectedFailureRule;
+
+public class FlakeRetryingRuleTest {
+    private final FlakeRetryingRule retryingRule = new FlakeRetryingRule();
+    private final ExpectedFailureRule expectedFailureRule = new ExpectedFailureRule();
+
+    // The ordering here is essential. We want to try the inner test multiple times and invert the output in some
+    // cases, not invert the output on each attempt.
+    @Rule
+    public final RuleChain ruleChain = RuleChain.outerRule(expectedFailureRule)
+            .around(retryingRule);
+
+    // The ordering of this rule with respect to the rule chain is not essential, as it is merely used to
+    // ensure consistency of indexing into the counter-map for the runTestFailingUntilSpecifiedAttempt methods.
+    @Rule
+    public final TestName testName = new TestName();
+
+    private static final Map<String, AtomicLong> counters = Maps.newHashMap();
+
+    @Test
+    @ShouldRetry(numAttempts = 2)
+    public void acceptsIfWePassOnTheFirstAttemptOfTwo() {
+        runMethodFailingUntilSpecifiedAttempt(1);
+    }
+
+    @Test
+    @ShouldRetry(numAttempts = 2)
+    public void acceptsIfWePassOnTheSecondAttemptOfTwo() {
+        runMethodFailingUntilSpecifiedAttempt(2);
+    }
+
+    @Test
+    @ShouldRetry(numAttempts = 2)
+    @ExpectedFailure
+    public void doesNotRetryMoreThanSpecifiedNumberOfTimes() {
+        runMethodFailingUntilSpecifiedAttempt(3);
+    }
+
+    @Test
+    @ShouldRetry(numAttempts = 100)
+    public void canConfigureNumberOfAttempts() {
+        runMethodFailingUntilSpecifiedAttempt(100);
+    }
+
+    @Test
+    @ExpectedFailure
+    public void doesNotRetryIfMethodIsNotAnnotated() {
+        runMethodFailingUntilSpecifiedAttempt(2);
+    }
+
+    private void runMethodFailingUntilSpecifiedAttempt(long expected) {
+        AtomicLong counter = counters.getOrDefault(testName.getMethodName(), new AtomicLong());
+        long value = counter.incrementAndGet();
+        counters.put(testName.getMethodName(), counter);
+        assertThat(value).isEqualTo(expected);
+    }
 }
