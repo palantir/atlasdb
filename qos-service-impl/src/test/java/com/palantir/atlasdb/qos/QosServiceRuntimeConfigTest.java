@@ -44,7 +44,6 @@ public class QosServiceRuntimeConfigTest {
         ImmutableQosServiceRuntimeConfig.builder()
                 .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(QosPriority.LOW)))
                 .qosCassandraMetricsConfig(getCassandraMetricsConfig());
-
     }
 
     @Test

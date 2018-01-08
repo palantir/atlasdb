@@ -18,16 +18,12 @@ package com.palantir.atlasdb.qos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -37,17 +33,10 @@ import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
-import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
 import com.palantir.atlasdb.qos.ratelimit.OneReturningClientLimitMultiplier;
 
 public class QosServiceTest {
     private QosResource resource;
-    private static QosServiceInstallConfig installConfig = mock(QosServiceInstallConfig.class);
-
-    @BeforeClass
-    public static void setUp() {
-        when(installConfig.qosCassandraMetricsConfig()).thenReturn(Optional.empty());
-    }
 
     @Test
     public void defaultsToFixedLimit() {
@@ -89,8 +78,7 @@ public class QosServiceTest {
                                         .readBytesPerSecond(entry.getValue())
                                         .build())
                                 .clientPriority(QosPriority.HIGH)
-                                .build()
-                ));
+                                .build()));
     }
 }
 

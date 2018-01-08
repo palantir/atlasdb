@@ -23,13 +23,13 @@ import java.nio.file.Paths;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
 
 public class QosServiceIntegrationTest {
-
     @ClassRule
     public static QosServerHolder serverHolder = new QosServerHolder("server.yml");
 
@@ -51,7 +51,15 @@ public class QosServiceIntegrationTest {
     @Test
     public void returnsConfiguredLimits() {
         assertThat(service.readLimit("test")).isEqualTo(10);
-        assertThat(service.readLimit("test2")).isEqualTo(20);
+        assertThat(service.writeLimit("test")).isEqualTo(20);
+        assertThat(service.readLimit("test2")).isEqualTo(30);
+        assertThat(service.writeLimit("test2")).isEqualTo(40);
+    }
+
+    @Test
+    public void returnsDefaultLimitsForNotConfiguredClients() {
+        assertThat(service.readLimit("unknown")).isEqualTo(QosClientLimitsConfig.BYTES_READ_PER_SECOND_PER_CLIENT);
+        assertThat(service.writeLimit("unknown")).isEqualTo(QosClientLimitsConfig.BYTES_WRITTEN_PER_SECOND_PER_CLIENT);
     }
 
 }

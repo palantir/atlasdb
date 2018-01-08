@@ -36,14 +36,12 @@ import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.config.QosPriority;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.remoting3.ext.jackson.ShimJdk7Module;
 
 public class QosServerRuntimeConfigDeserializationTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory())
             .registerModule(new GuavaModule())
-            .registerModule(new Jdk8Module())
-            .registerModule(new ShimJdk7Module());
+            .registerModule(new Jdk8Module());
 
     @Test
     public void canDeserializeQosServerConfiguration() throws IOException {

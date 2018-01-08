@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.qos.server;
 
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.palantir.atlasdb.qos.com.palantir.atlasdb.qos.agent.QosAgent;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 
@@ -33,11 +30,7 @@ public class QosServerLauncher extends Application<QosServerConfig> {
 
     @Override
     public void initialize(Bootstrap<QosServerConfig> bootstrap) {
-        bootstrap.getObjectMapper().registerModule(new Jdk7Module());
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
-        bootstrap.getObjectMapper().registerModule(new GuavaModule());
-        bootstrap.getObjectMapper().registerModule(new AfterburnerModule());
-
         super.initialize(bootstrap);
     }
 

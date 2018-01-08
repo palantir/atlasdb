@@ -15,16 +15,10 @@ client-limits:
       writeBytesPerSecond: 50
     clientPriority: LOW
 qos-cassandra-metrics:
-  cassandra-service-config:
-    uris:
-      - https://localhost:9161/cassandra-sidecar/api/
-    security:
-      trustStorePath: trustStore.jks
   cassandra-health-metrics:
     - type: CommitLog
       name: PendingTasks
       attribute: Value
       lowerLimit: 0
       upperLimit: 50
-  throttling-strategy: SIMPLE
 

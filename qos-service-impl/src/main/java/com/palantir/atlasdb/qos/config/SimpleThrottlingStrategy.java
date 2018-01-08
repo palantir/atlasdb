@@ -34,14 +34,19 @@ public class SimpleThrottlingStrategy implements ThrottlingStrategy {
     @Override
     public double getClientLimitMultiplier(Supplier<List<CassandraHealthMetricMeasurement>> metricMeasurements,
             QosPriority unused) {
-        if (rateLimiter.tryAcquire()) {
+        if (shouldAdjust()) {
             if (cassandraIsUnhealthy(metricMeasurements.get())) {
                 multiplier = halveTheRateMultiplier();
             } else {
+                // TODO(hsaraogi): increase only in the qosMetrics imply that the client is consuming its limit.
                 multiplier = increaseTheRateMultiplier();
             }
         }
         return multiplier;
+    }
+
+    private boolean shouldAdjust() {
+        return rateLimiter.tryAcquire();
     }
 
     private double increaseTheRateMultiplier() {

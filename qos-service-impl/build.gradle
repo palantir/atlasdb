@@ -35,6 +35,8 @@ dependencies {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
+    testCompile group: 'com.palantir.remoting-api', name: 'service-config'
+
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
