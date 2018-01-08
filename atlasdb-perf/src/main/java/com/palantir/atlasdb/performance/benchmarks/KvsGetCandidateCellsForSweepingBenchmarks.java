@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
@@ -46,40 +45,40 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
     public Object fullTableScanCleanConservative(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
     public Object fullTableScanCleanThorough(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return fullTableScan(table, true, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
     public Object fullTableScanDirtyConservative(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
     public Object fullTableScanDirtyThorough(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return fullTableScan(table, true, DEFAULT_BATCH_SIZE);
     }
 
     @Benchmark
     @Threads(1)
-    @Warmup(time = 20, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 20)
+    @Measurement(time = 160)
     public Object fullTableScanOneWideRowThorough(VeryWideRowTable table) {
         return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumCols(), true, DEFAULT_BATCH_SIZE);
     }
