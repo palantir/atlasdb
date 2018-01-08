@@ -70,7 +70,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
     *    - |fixed|
-         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep affects multiple batches.
+         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches. 
+           Previously, the result would only count cell-ts pairs examined in the last batch.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
 
 =======
