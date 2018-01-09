@@ -76,9 +76,17 @@ public class CqlExecutorBenchmarks {
 
     private CqlExecutor getCqlExecutor(ConsecutiveNarrowTable.AverageTable table) {
         KeyValueService kvs = table.getKvs();
-        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) kvs;
+        CassandraKeyValueServiceImpl ckvs = getCKVS(kvs);
         CassandraClientPool clientPool = ckvs.getClientPool();
         return new CqlExecutorImpl(clientPool, ConsistencyLevel.QUORUM);
+    }
+
+    private CassandraKeyValueServiceImpl getCKVS(KeyValueService kvs) {
+        return kvs.getDelegates().stream()
+                .filter(delegate -> delegate instanceof CassandraKeyValueServiceImpl)
+                .map(instance -> (CassandraKeyValueServiceImpl) instance)
+                .findAny()
+                .orElseThrow(() -> new NullPointerException("no CKVS impl!"));
     }
 
 }
