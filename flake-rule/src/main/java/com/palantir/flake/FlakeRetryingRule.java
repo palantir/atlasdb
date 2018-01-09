@@ -30,6 +30,27 @@ import com.google.common.base.Throwables;
 /**
  * A {@link TestRule} that retries methods and classes annotated with the {@link ShouldRetry} annotation.
  *
+ * Like other JUnit TestRules, these rules are applied around the {@link org.junit.Before}/Test/{@link org.junit.After}
+ * sequence. Thus, methods annotated @Before will run before *each* attempt at running a test, and methods annotated
+ * with @After will similarly run after each attempt. However, since retrying takes place at the method level,
+ * methods annotated with {@link org.junit.BeforeClass} and {@link org.junit.AfterClass} will NOT be re-run.
+ *
+ * To illustrate this, consider a test class with one flaky method that has been annotated with ShouldRetry.
+ * The order in which methods are run is as follows:
+ * <pre>
+ *     BeforeClass runs
+ *     Before runs
+ *     Test fails on attempt 1
+ *     After runs
+ *     Before runs
+ *     Test succeeds on attempt 2
+ *     After runs
+ *     AfterClass runs
+ * </pre>
+ *
+ * Retrying flaky implementations of BeforeClass and AfterClass isn't currently supported, but may be supported
+ * in a future release.
+ *
  * Note: Please be very careful about ordering when chaining this with other JUnit test rules.
  */
 public class FlakeRetryingRule implements TestRule {

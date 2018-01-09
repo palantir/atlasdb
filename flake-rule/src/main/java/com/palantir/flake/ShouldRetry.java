@@ -26,6 +26,9 @@ import java.lang.annotation.RetentionPolicy;
  *
  * Note that this annotation will only actually cause a test to be retried if it is run with the
  * {@link FlakeRetryingRule} present as a test rule in the relevant class.
+ *
+ * Please consult the documentation for {@link FlakeRetryingRule} for details concerning interactions between
+ * test retrying and other JUnit constructs.
  */
 @Retention(RetentionPolicy.RUNTIME) // The FlakeRetryingRule makes retry decisions based on this annotation at runtime.
 public @interface ShouldRetry {
