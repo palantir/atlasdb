@@ -61,7 +61,8 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     private int fullTableScan(ConsecutiveNarrowTable table, boolean thorough, int batchSizeHint) {
         // TODO(gsheasby): consider extracting a common interface for WideRowTable and ConsecutiveNarrowTable
         // to avoid unpacking here
-        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumRows(), thorough, batchSizeHint);
+        int numCellsExpected = table.getNumRows() * 10; // hack! AverageTable has 10 columns
+        return fullTableScan(table.getTableRef(), table.getKvs(), numCellsExpected, thorough, batchSizeHint);
     }
 
     private int fullTableScan(TableReference tableRef, KeyValueService kvs, int numCellsExpected, boolean thorough,
