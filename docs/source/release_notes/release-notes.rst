@@ -82,6 +82,11 @@ develop
          - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
+    *    - |fixed|
+         - SweepResults.getCellTsPairsExamined now returns the correct result when sweep is run over multiple batches. 
+           Previously, the result would only count cell-ts pairs examined in the last batch.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/2830>`__)
+
 =======
 v0.72.0
 =======
