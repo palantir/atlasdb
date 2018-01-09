@@ -44,6 +44,8 @@ public class SweepProgressStoreTest {
             .staleValuesDeleted(10L)
             .cellTsPairsExamined(200L)
             .tableRef(TableReference.createFromFullyQualifiedName("foo.bar"))
+            .timeInMillis(0L)
+            .startTimeInMillis(0L)
             .build();
     private static final SweepProgress OTHER_PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {4, 5, 6})
@@ -52,6 +54,8 @@ public class SweepProgressStoreTest {
             .staleValuesDeleted(11L)
             .cellTsPairsExamined(202L)
             .tableRef(TableReference.createFromFullyQualifiedName("qwe.rty"))
+            .timeInMillis(1L)
+            .startTimeInMillis(2L)
             .build();
 
     @Before

@@ -13,6 +13,6 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":leader-election-api-protobufs")
   compile group: 'org.apache.commons', name: 'commons-lang3'
-  compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+  compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
 }

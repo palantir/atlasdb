@@ -30,7 +30,6 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
-import com.palantir.atlasdb.sweep.priority.NextTableToSweepProviderImpl;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -78,8 +77,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             PersistentLockManager persistentLockManager,
             SpecificTableSweeper specificTableSweeper) {
-        NextTableToSweepProvider nextTableToSweepProvider = new NextTableToSweepProviderImpl(
-                specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
+        NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider
+                .create(specificTableSweeper.getKvs(), specificTableSweeper.getSweepPriorityStore());
+
         return new BackgroundSweeperImpl(
                 specificTableSweeper.getTxManager().getLockService(),
                 nextTableToSweepProvider,
@@ -144,7 +144,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         }
     }
 
-    // Returns milliseconds to sleep
     private void updateBatchSize(SweepOutcome outcome) {
         if (outcome == SweepOutcome.SUCCESS) {
             sweepBatchConfigSource.increaseMultiplier();
@@ -186,7 +185,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 return SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS;
             }
         } catch (RuntimeException e) {
-            specificTableSweeper.getSweepMetrics().sweepError();
+            specificTableSweeper.updateSweepErrorMetric();
 
             log.error("Sweep failed", e);
             return SweepOutcome.ERROR;
@@ -214,7 +213,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             log.warn("Could not sweep because not all nodes of the database are online.", e);
             return SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE;
         } catch (RuntimeException e) {
-            specificTableSweeper.getSweepMetrics().sweepError();
+            specificTableSweeper.updateSweepErrorMetric();
 
             return determineCauseOfFailure(e, tableToSweep.get());
         }
@@ -231,8 +230,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         if (progress.isPresent()) {
                             return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
                         } else {
-                            Optional<TableReference> nextTable = nextTableToSweepProvider.chooseNextTableToSweep(
-                                    tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
+                            Optional<TableReference> nextTable = getNextTableToSweep(tx);
                             if (nextTable.isPresent()) {
                                 return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
                             } else {
@@ -241,6 +239,11 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                         }
                     }
                 });
+    }
+
+    private Optional<TableReference> getNextTableToSweep(Transaction tx) {
+        return nextTableToSweepProvider
+                .getNextTableToSweep(tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp());
     }
 
     private SweepOutcome determineCauseOfFailure(Exception originalException, TableToSweep tableToSweep) {

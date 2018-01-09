@@ -62,7 +62,7 @@ public class SweepableCellFilter {
             numCellTsPairsExamined += candidate.sortedTimestamps().size();
             lastCellExamined = candidate.cell();
         }
-        return builder.numCellTsPairsExaminedSoFar(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();
+        return builder.numCellTsPairsExamined(numCellTsPairsExamined).lastCellExamined(lastCellExamined).build();
     }
 
     // Decide if the candidate cell needs to be swept, and if so, for which timestamps.

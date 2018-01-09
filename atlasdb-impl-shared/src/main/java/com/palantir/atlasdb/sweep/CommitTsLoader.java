@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.logsafe.SafeArg;
 
 import gnu.trove.TDecorators;
 import gnu.trove.map.TLongLongMap;
@@ -76,6 +77,15 @@ public final class CommitTsLoader {
                     new TransactionFailedRetriableException(msg, e));
         }
 
-        return transactionService.get(startTs);
+        Long commitTsAfterRollBack = transactionService.get(startTs);
+        if (commitTsAfterRollBack != null) {
+            return commitTsAfterRollBack;
+        } else {
+            // This can happen if the clean tx table CLI has rolled-back the transaction at the start ts.
+            log.warn("Did not find a commitTs for startTs {} after a rollback. "
+                    + "This is possibly due to a delete at the above startTs via the clean transaction table CLI.",
+                    SafeArg.of("startTs", startTs));
+            return TransactionConstants.FAILED_COMMIT_TS;
+        }
     }
 }

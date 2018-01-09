@@ -17,6 +17,7 @@ package com.palantir.leader;
 
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.net.HostAndPort;
 
@@ -68,4 +69,11 @@ public interface LeaderElectionService {
      */
     Optional<HostAndPort> getSuspectedLeaderInMemory();
 
+    /**
+     * Get the set of potential leaders known by this leader election service. This will not do any network
+     * calls and is meant to be callable without major performance implications.
+     *
+     * @return the set of potential leaders known by this leader election service, including itself
+     */
+    Set<PingableLeader> getPotentialLeaders();
 }

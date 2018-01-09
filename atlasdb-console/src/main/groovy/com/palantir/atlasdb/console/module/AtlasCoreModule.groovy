@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.console.module
 
+import com.codahale.metrics.MetricRegistry
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.common.collect.ImmutableSet
 import com.palantir.atlasdb.api.AtlasDbService
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.config.AtlasDbConfig
@@ -31,6 +31,7 @@ import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
@@ -216,9 +217,12 @@ class AtlasCoreModule implements AtlasConsoleModule {
     private setupConnection(AtlasDbConfig config) {
         SerializableTransactionManager tm = TransactionManagers.builder()
                 .config(config)
-                .allowHiddenTableAccess(true)
                 .userAgent("atlasdb console")
-                .buildSerializable();
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .allowHiddenTableAccess(true)
+                .build()
+                .serializable()
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService())
         AtlasDbService service = new AtlasDbServiceImpl(tm.getKeyValueService(), tm, cache)
         ObjectMapper serviceMapper = new ObjectMapper()

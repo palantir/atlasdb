@@ -70,7 +70,7 @@ class Blacklist {
             container.runWithPooledResource(CassandraUtils.getValidatePartitioner(config));
             return true;
         } catch (Exception e) {
-            log.warn("We tried to blacklist {} back into the pool, but got an exception"
+            log.warn("We tried to add blacklisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
                     SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),

@@ -10,7 +10,7 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check' ':atlasdb-cassandra-integration-tests:memorySensitiveTest')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 

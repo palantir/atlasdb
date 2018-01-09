@@ -19,12 +19,14 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -113,6 +115,7 @@ public class SweepTaskRunner {
             SweepBatchConfig batchConfig,
             byte[] startRow,
             RunType runType) {
+
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
@@ -122,17 +125,17 @@ public class SweepTaskRunner {
             // I did check and sweep.stats did contain the FQ table name for all of the tables,
             // so it is at least broken in some way that still allows namespaced tables to eventually be swept.
             log.warn("The sweeper should not be run on tables passed through namespace mapping.");
-            return SweepResults.createEmptySweepResult();
+            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.",
                     LoggingArgs.tableRef("tableRef", tableRef));
-            return SweepResults.createEmptySweepResult();
+            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
         Optional<Sweeper> sweeper = Sweeper.of(sweepStrategy);
         if (!sweeper.isPresent()) {
-            return SweepResults.createEmptySweepResult();
+            return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         return doRun(tableRef, batchConfig, startRow, runType, sweeper.get());
     }
@@ -142,10 +145,11 @@ public class SweepTaskRunner {
                                byte[] startRow,
                                RunType runType,
                                Sweeper sweeper) {
+        Stopwatch watch = Stopwatch.createStarted();
+        long timeSweepStarted = System.currentTimeMillis();
         log.info("Beginning iteration of sweep for table {} starting at row {}",
                 LoggingArgs.tableRef(tableRef),
                 UnsafeArg.of("startRow", PtBytes.encodeHexString(startRow)));
-
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions
@@ -188,7 +192,7 @@ public class SweepTaskRunner {
                 totalCellTsPairsDeleted += sweepBatch(tableRef, batch.cells(), runType,
                         2 * batchConfig.deleteBatchSize());
 
-                totalCellTsPairsExamined = batch.numCellTsPairsExaminedSoFar();
+                totalCellTsPairsExamined += batch.numCellTsPairsExamined();
                 lastRow = batch.lastCellExamined().getRowName();
             }
             return SweepResults.builder()
@@ -196,7 +200,9 @@ public class SweepTaskRunner {
                     .nextStartRow(Arrays.equals(startRow, lastRow) ? Optional.empty() : Optional.of(lastRow))
                     .cellTsPairsExamined(totalCellTsPairsExamined)
                     .staleValuesDeleted(totalCellTsPairsDeleted)
-                    .sweptTimestamp(sweepTs)
+                    .minSweptTimestamp(sweepTs)
+                    .timeInMillis(watch.elapsed(TimeUnit.MILLISECONDS))
+                    .timeSweepStarted(timeSweepStarted)
                     .build();
         }
     }
