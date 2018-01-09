@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
@@ -223,20 +222,14 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     // and try to lambda refactor this unless you live far enough in the future that this isn't an issue
     private Optional<TableToSweep> getTableToSweep() {
         return specificTableSweeper.getTxManager().runTaskWithRetry(
-                new TransactionTask<Optional<TableToSweep>, RuntimeException>() {
-                    @Override
-                    public Optional<TableToSweep> execute(Transaction tx) {
-                        Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
-                        if (progress.isPresent()) {
-                            return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
-                        } else {
-                            Optional<TableReference> nextTable = getNextTableToSweep(tx);
-                            if (nextTable.isPresent()) {
-                                return Optional.of(new TableToSweep(nextTable.get(), Optional.empty()));
-                            } else {
-                                return Optional.empty();
-                            }
-                        }
+                tx -> {
+                    Optional<SweepProgress> progress = specificTableSweeper.getSweepProgressStore().loadProgress();
+                    if (progress.isPresent()) {
+                        return Optional.of(new TableToSweep(progress.get().tableRef(), progress));
+                    } else {
+                        log.info("Sweep is choosing a new table to sweep.");
+                        Optional<TableReference> nextTable = getNextTableToSweep(tx);
+                        return nextTable.map(tableReference -> new TableToSweep(tableReference, Optional.empty()));
                     }
                 });
     }
