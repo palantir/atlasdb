@@ -18,6 +18,7 @@ package com.palantir.atlasdb.performance.schema;
 import java.io.File;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.OptionalType;
@@ -54,6 +55,7 @@ public final class StreamTestSchema implements AtlasSchema {
 
         schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("blob", "Value", ValueType.VAR_LONG)
                 .inMemoryThreshold(1024 * 1024)
+                .tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
                 .build());
 
         return schema;
