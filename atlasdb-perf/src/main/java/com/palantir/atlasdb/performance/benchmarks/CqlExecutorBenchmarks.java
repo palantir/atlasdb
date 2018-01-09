@@ -97,7 +97,7 @@ public class CqlExecutorBenchmarks {
             delegates.addAll(nextKvs.getDelegates());
         }
 
-        throw new NotFoundException("No KVS");
+        throw new RuntimeException("No KVS");
     }
 
 }
