@@ -19,6 +19,8 @@ package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -69,8 +71,10 @@ public class CoalescingSupplierTest {
 
         batch.await();
 
-        // once for initial task; once for batch
-        verify(delegate, times(2)).get();
+        // At least some of these requests should be batched. We can't guarantee it will always be 2 though, if
+        // we get really unlucky with scheduling.
+        verify(delegate, atLeast(2)).get();
+        verify(delegate, atMost(5)).get();
     }
 
     @Test
