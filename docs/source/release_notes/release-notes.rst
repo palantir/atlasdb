@@ -58,10 +58,6 @@ develop
     *    - |improved|
          - Tritium was upgraded to 0.9.0 (from 0.8.4), which provides functionality for de-registration of tagged metrics.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2823>`__)
-    *    - |fixed|
-         - Further reduced memory pressure on sweep for Cassandra KVS, by rewriting one of the CQL queries.
-           This removes a significant cause of occurrences of Cassandra OOMs that have been seen in the field recently.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2826>`__)
 
     *    - |improved|
          - Sweep stats are updated more often when large writes are being made.
@@ -73,9 +69,8 @@ develop
            Stream store value tables are now more likely to be chosen because they contain lots of data per write.  We ensure we sweep index tables before value tables, and allow a gap after sweeping index tables and before sweeping value tables.  Wait 3 days between sweeps of a value table to prevent unnecessary work, allow other tables to be swept and tombstones to be compacted away. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2793>`__)
 
-    *    - |logs|
-         - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
+    *    -
+         -
 
 =======
 v0.72.0

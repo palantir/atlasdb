@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.KeyRange;
@@ -95,24 +96,28 @@ public class GetCellTimestamps {
         byte[] rangeStart = startRowInclusive;
 
         while (timestamps.isEmpty()) {
-            List<byte[]> rows = getRows(rangeStart);
-            if (rows.isEmpty()) {
+            Optional<byte[]> rangeEnd = determineSafeRangeEndInclusive(rangeStart);
+            if (!rangeEnd.isPresent()) {
                 return;
             }
 
             // Note that both ends of this range are *inclusive*
-            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rows, batchHint);
+            List<CellWithTimestamp> batch = cqlExecutor.getTimestamps(tableRef, rangeStart, rangeEnd.get(), batchHint);
             timestamps.addAll(batch);
-            rangeStart = RangeRequests.nextLexicographicName(Iterables.getLast(rows));
+            rangeStart = RangeRequests.nextLexicographicName(rangeEnd.get());
         }
     }
 
-    private List<byte[]> getRows(byte[] rangeStart) {
+    private Optional<byte[]> determineSafeRangeEndInclusive(byte[] rangeStart) {
         KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
         SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
 
         List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
-        return rows.stream().map(KeySlice::getKey).collect(Collectors.toList());
+        if (rows.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(Iterables.getLast(rows).getKey());
+        }
     }
 
     private void fetchRemainingTimestampsForLastRow() {
