@@ -21,6 +21,8 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.flake.FlakeRetryingRule;
 
 /**
@@ -34,10 +36,12 @@ public class SchemaMutationLockReleasingRule implements TestRule {
         this.kvs = kvs;
     }
 
-    public static RuleChain createChainedReleaseAndRetry(CassandraKeyValueService kvs) {
+    public static RuleChain createChainedReleaseAndRetry(KeyValueService kvs) {
         // The ordering is important. If an attempt fails, we want to release the schema mutation lock BEFORE retrying.
+        Preconditions.checkArgument(kvs instanceof CassandraKeyValueService,
+                "SchemaMutationLockReleasingRule requires a Cassandra KVS");
         return RuleChain.outerRule(new FlakeRetryingRule())
-                .around(new SchemaMutationLockReleasingRule(kvs));
+                .around(new SchemaMutationLockReleasingRule((CassandraKeyValueService) kvs));
     }
 
     @Override

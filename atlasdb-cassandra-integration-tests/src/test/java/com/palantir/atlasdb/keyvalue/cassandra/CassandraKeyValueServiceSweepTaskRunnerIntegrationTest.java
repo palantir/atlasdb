@@ -23,7 +23,7 @@ import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
-import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 
 @RunWith(Parameterized.class)
@@ -48,7 +47,8 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
             .with(new CassandraContainer());
 
     @Rule
-    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+            getKeyValueService());
 
     @Parameterized.Parameter
     public boolean useColumnBatchSize;
@@ -57,7 +57,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     public static Iterable<?> parameters() {
         return Arrays.asList(true, false);
     }
-
 
     @Override
     protected KeyValueService getKeyValueService() {
