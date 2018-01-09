@@ -113,7 +113,8 @@ public class FlakeRetryingRule implements TestRule {
                 description.getClassName(),
                 description.getMethodName(),
                 attempt,
-                retryAnnotation.numAttempts());
+                retryAnnotation.numAttempts(),
+                e);
         if (attempt == retryAnnotation.numAttempts()) {
             throw Throwables.propagate(e);
         }

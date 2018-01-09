@@ -37,6 +37,7 @@ import com.palantir.flake.ShouldRetry;
 
 public class BeforeAndAfterTest {
     private static final AtomicInteger attemptCount = new AtomicInteger();
+    private static final int SEVENTY_SEVEN = 77;
 
     private static Runnable beforeRunnable = mock(Runnable.class);
     private static Runnable afterRunnable = mock(Runnable.class);
@@ -67,7 +68,7 @@ public class BeforeAndAfterTest {
     }
 
     @Test
-    @ShouldRetry(numAttempts = 3)
+    @ShouldRetry(numAttempts = SEVENTY_SEVEN)
     public void runsSetUpBeforeEachIteration() {
         int attemptNumber = attemptCount.incrementAndGet();
 
@@ -76,6 +77,6 @@ public class BeforeAndAfterTest {
         verify(afterRunnable, times(attemptNumber - 1)).run();
         verify(afterClassRunnable, never()).run();
 
-        assertThat(attemptNumber).isEqualTo(3);
+        assertThat(attemptNumber).isEqualTo(SEVENTY_SEVEN);
     }
 }
