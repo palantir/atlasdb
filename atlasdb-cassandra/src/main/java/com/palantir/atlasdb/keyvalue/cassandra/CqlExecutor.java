@@ -39,4 +39,14 @@ public interface CqlExecutor {
      * so may not return cells from all of the rows provided.
      */
     List<CellWithTimestamp> getTimestamps(TableReference tableRef, List<byte[]> rows, int limit);
+
+    /**
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
+     * {@code startRowInclusive}, potentially spanning across multiple rows.
+     */
+    List<CellWithTimestamp> getTimestamps(
+            TableReference tableRef,
+            byte[] startRowInclusive,
+            byte[] endRowInclusive,
+            int limit);
 }

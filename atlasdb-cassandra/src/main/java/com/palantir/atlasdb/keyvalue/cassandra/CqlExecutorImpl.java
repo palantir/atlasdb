@@ -49,7 +49,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
     }
 
-    CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
+    public CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
         this.queryExecutor = new QueryExecutorImpl(clientPool, consistency);
     }
 
@@ -66,6 +66,29 @@ public class CqlExecutorImpl implements CqlExecutor {
         String selQuery = "SELECT key, column1, column2 FROM %s WHERE key IN (%s) LIMIT %s;";
         CqlQuery query = new CqlQuery(selQuery, quotedTableName(tableRef), keys(rowsAscending), limit(limit));
         return executeAndGetCells(query, rowsAscending.get(0), CqlExecutorImpl::getCellFromRow);
+    }
+
+
+    /**
+     * Returns a list of {@link CellWithTimestamp}s within the given {@code row}, starting at the given
+     * {@code startRowInclusive}, potentially spanning across multiple rows.
+     */
+    @Override
+    public List<CellWithTimestamp> getTimestamps(
+            TableReference tableRef,
+            byte[] startRowInclusive,
+            byte[] endRowInclusive,
+            int limit) {
+        String selQuery = "SELECT key, column1, column2 FROM %s"
+                + " WHERE token(key) >= token(%s) AND token(key) <= token(%s) LIMIT %s;";
+        CqlQuery query = new CqlQuery(
+                selQuery,
+                quotedTableName(tableRef),
+                key(startRowInclusive),
+                key(endRowInclusive),
+                limit(limit));
+
+        return executeAndGetCells(query, startRowInclusive, CqlExecutorImpl::getCellFromRow);
     }
 
     private Arg<String> keys(List<byte[]> rowsAscending) {
