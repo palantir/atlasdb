@@ -23,7 +23,7 @@ public class StreamTestIndexCleanupTask implements OnCleanupTask {
         StreamTestStreamIdxTable usersIndex = tables.getStreamTestStreamIdxTable(t);
         Set<StreamTestStreamIdxTable.StreamTestStreamIdxRow> rows = Sets.newHashSetWithExpectedSize(cells.size());
         for (Cell cell : cells) {
-            rows.add(StreamTestStreamIdxTable.StreamTestStreamIdxRow.of((Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
+            rows.add(StreamTestStreamIdxTable.StreamTestStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue> rowsInDb = usersIndex.getRowsMultimap(rows);
         Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.keySet().size());

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -33,6 +34,11 @@ public class StreamStoreDefinitionBuilder {
     private int inMemoryThreshold = AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD;
     private boolean compressStream;
 
+    /**
+     * @param shortName The prefix of the table names in the DB.
+     * @param longName The prefix of the generated Java class names.
+     * @param valueType The type of the column that will store the stream ID internally. Usually a VAR_LONG.
+     */
     public StreamStoreDefinitionBuilder(String shortName, String longName, ValueType valueType) {
         for (StreamTableType tableType : StreamTableType.values()) {
             streamTables.put(tableType.getTableName(shortName),
@@ -72,11 +78,22 @@ public class StreamStoreDefinitionBuilder {
         return this;
     }
 
+    public StreamStoreDefinitionBuilder tableNameLogSafety(TableMetadataPersistence.LogSafety logSafety) {
+        streamTables.forEach((tableName, streamTableBuilder) ->
+                streamTableBuilder.tableNameLogSafety(logSafety));
+        return this;
+    }
+
     public StreamStoreDefinitionBuilder isAppendHeavyAndReadLight() {
         streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.appendHeavyAndReadLight());
         return this;
     }
 
+    /**
+     * @deprecated use {@link #compressStreamInClient()} instead, because that will compress before sending the data
+     * over the network to Cassandra.
+     */
+    @Deprecated
     public StreamStoreDefinitionBuilder compressBlocksInDb() {
         streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.compressBlocksInDb());
         return this;

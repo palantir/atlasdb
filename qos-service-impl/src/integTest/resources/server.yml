@@ -1,0 +1,9 @@
+server:
+  applicationConnectors:
+  - type: http
+    port: 5080
+
+runtime:
+  clientLimits:
+    test: 10
+    test2: 20

@@ -48,6 +48,7 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":atlasdb-api")
   compile project(":atlasdb-client-protobufs")
+  compile project(":qos-service-api")
   compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
     exclude group: 'junit'
   }
@@ -60,6 +61,16 @@ dependencies {
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
   compile group: 'com.palantir.remoting3', name: 'tracing'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
+    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
+    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
+  }
+  compile (group: 'com.palantir.tritium', name: 'tritium-metrics') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
+    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
+    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
+  }
   compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
     exclude (group: 'com.palantir.remoting3', module: 'tracing')
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
@@ -79,7 +90,7 @@ dependencies {
   testCompile group: 'org.assertj', name: 'assertj-core'
 
   integrationInputCompile project(":atlasdb-client")
-  
+
   integrationInputCompile group: 'org.immutables', name: 'value'
 
 }

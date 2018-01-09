@@ -77,4 +77,8 @@ public abstract class SweepConfig {
                 .deleteBatchHint(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
                 .build();
     }
+
+    public static SweepConfig disabled() {
+        return ImmutableSweepConfig.builder().enabled(false).build();
+    }
 }

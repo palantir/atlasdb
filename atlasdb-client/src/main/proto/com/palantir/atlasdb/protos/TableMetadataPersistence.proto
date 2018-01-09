@@ -125,11 +125,6 @@ enum SweepStrategy {
     THOROUGH = 2;
 }
 
-enum ExpirationStrategy {
-    NEVER = 0;
-    INDIVIDUALLY_SPECIFIED = 1;
-}
-
 enum LogSafety {
     SAFE = 0;
     UNSAFE = 1;

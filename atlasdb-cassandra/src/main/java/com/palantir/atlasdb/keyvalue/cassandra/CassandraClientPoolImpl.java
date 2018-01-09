@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -62,14 +61,17 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
-import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
+import com.palantir.atlasdb.qos.FakeQosClient;
+import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -94,9 +96,9 @@ import com.palantir.remoting3.tracing.Tracers;
  *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
  *   ... this is one of the reasons why there is a new system.
  **/
-@SuppressWarnings("VisibilityModifier")
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 @AutoDelegate(typeToExtend = CassandraClientPool.class)
-public final class CassandraClientPoolImpl implements CassandraClientPool {
+public class CassandraClientPoolImpl implements CassandraClientPool {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
         public CassandraClientPool delegate() {
@@ -144,9 +146,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     private final Blacklist blacklist;
 
+    final TokenRangeWritesLogger tokenRangeWritesLogger = TokenRangeWritesLogger.createUninitialized();
     private final CassandraKeyValueServiceConfig config;
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     private final StartupChecks startupChecks;
+    private final QosClient qosClient;
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics();
     private final InitializingWrapper wrapper = new InitializingWrapper();
@@ -156,23 +160,39 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks, Blacklist blacklist) {
-        return create(config, startupChecks, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, blacklist);
+            StartupChecks startupChecks,
+            Blacklist blacklist) {
+        return create(config,
+                startupChecks,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                FakeQosClient.INSTANCE,
+                blacklist);
     }
 
     public static CassandraClientPool create(CassandraKeyValueServiceConfig config) {
-        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, FakeQosClient.INSTANCE);
     }
 
-    public static CassandraClientPool create(CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+    public static CassandraClientPool create(CassandraKeyValueServiceConfig config,
+            boolean initializeAsync,
+            QosClient qosClient) {
         CassandraClientPoolImpl cassandraClientPool = create(config,
-                StartupChecks.RUN, initializeAsync, new Blacklist(config));
+                StartupChecks.RUN,
+                initializeAsync,
+                qosClient,
+                new Blacklist(config));
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
     private static CassandraClientPoolImpl create(CassandraKeyValueServiceConfig config,
-            StartupChecks startupChecks, boolean initializeAsync, Blacklist blacklist) {
-        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config, startupChecks, blacklist);
+            StartupChecks startupChecks,
+            boolean initializeAsync,
+            QosClient qosClient,
+            Blacklist blacklist) {
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(config,
+                startupChecks,
+                qosClient,
+                blacklist);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
     }
@@ -180,9 +200,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     private CassandraClientPoolImpl(
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
+            QosClient qosClient,
             Blacklist blacklist) {
         this.config = config;
         this.startupChecks = startupChecks;
+        this.qosClient = qosClient;
         this.refreshDaemon = Tracers.wrap(PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
@@ -234,6 +256,11 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         return currentPools;
     }
 
+    @Override
+    public <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef) {
+        tokenRangeWritesLogger.markWritesForTable(entries.keySet(), tableRef);
+    }
+
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(getCurrentPools());
 
@@ -274,7 +301,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        addPool(server, new CassandraClientPoolingContainer(server, config, currentPoolNumber));
+        addPool(server, new CassandraClientPoolingContainer(qosClient, server, config, currentPoolNumber));
     }
 
     @VisibleForTesting
@@ -496,6 +523,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 }
             }
             tokenMap = newTokenRing.build();
+            tokenRangeWritesLogger.updateTokenRanges(tokenMap.asMapOfRanges().keySet());
         } catch (Exception e) {
             log.error("Couldn't grab new token ranges for token aware cassandra mapping!", e);
         }
@@ -539,7 +567,7 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
                 if (isRetriableWithBackoffException(e)) {
                     // And value between -500 and +500ms to backoff to better spread load on failover
                     int sleepDuration = numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500);
-                    log.warn("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
+                    log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                             UnsafeArg.of("queryString", fn.toString()),
                             SafeArg.of("sleepDuration", sleepDuration),
                             SafeArg.of("hostName", CassandraLogHelper.host(hostPool.getHost())));
@@ -606,13 +634,13 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
             } else {
                 // Only log the actual exception the first time
                 if (numTries > 1) {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+                    log.info("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                             UnsafeArg.of("exceptionMessage", ex.getMessage()));
                 } else {
-                    log.warn("Error occurred talking to cassandra. Attempt {} of {}.",
+                    log.info("Error occurred talking to cassandra. Attempt {} of {}.",
                             SafeArg.of("numTries", numTries),
                             SafeArg.of("maxTotalTries", MAX_TRIES_TOTAL),
                             ex);
@@ -800,43 +828,6 @@ public final class CassandraClientPoolImpl implements CassandraClientPool {
         InetSocketAddress getRandomHostInternal(int index) {
             return hosts.higherEntry(index).getValue();
         }
-    }
-
-    public static class LightweightOppToken implements Comparable<LightweightOppToken> {
-
-        final byte[] bytes;
-
-        public LightweightOppToken(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public int compareTo(LightweightOppToken other) {
-            return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null || getClass() != obj.getClass()) {
-                return false;
-            }
-            LightweightOppToken that = (LightweightOppToken) obj;
-            return Arrays.equals(bytes, that.bytes);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(bytes);
-        }
-
-        @Override
-        public String toString() {
-            return BaseEncoding.base16().encode(bytes);
-        }
-
     }
 
     @VisibleForTesting

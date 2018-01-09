@@ -10,7 +10,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9"
+            "locked": "3.0.1"
         },
         "com.google.guava:guava": {
             "locked": "18.0"
@@ -25,11 +25,14 @@
             "locked": "3.2.3"
         },
         "javax.ws.rs:javax.ws.rs-api": {
-            "locked": "2.0.1",
-            "requested": "2.0.1"
+            "locked": "2.0.1"
         },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0"
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "requested": "3.2"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
@@ -49,7 +52,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "1.3.9"
+            "locked": "3.0.1"
         },
         "com.google.guava:guava": {
             "locked": "18.0"
@@ -64,11 +67,14 @@
             "locked": "3.2.3"
         },
         "javax.ws.rs:javax.ws.rs-api": {
-            "locked": "2.0.1",
-            "requested": "2.0.1"
+            "locked": "2.0.1"
         },
         "net.jpountz.lz4:lz4": {
             "locked": "1.3.0"
+        },
+        "org.apache.commons:commons-math3": {
+            "locked": "3.2",
+            "requested": "3.2"
         },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",

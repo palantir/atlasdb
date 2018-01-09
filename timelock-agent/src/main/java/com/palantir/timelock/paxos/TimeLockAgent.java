@@ -32,15 +32,16 @@ import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.JavaSuppliers;
 import com.palantir.lock.LockService;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
+@SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
     private static final Long SCHEMA_VERSION = 1L;
 
@@ -54,13 +55,18 @@ public class TimeLockAgent {
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
 
-    public TimeLockAgent(TimeLockInstallConfiguration install,
+    private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
+
+    public static TimeLockAgent create(TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
+            TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
-        this(install, runtime, ImmutableTimeLockDeprecatedConfiguration.builder().build(), registrar);
+        TimeLockAgent agent = new TimeLockAgent(install, runtime, deprecated, registrar);
+        agent.createAndRegisterResources();
+        return agent;
     }
 
-    public TimeLockAgent(TimeLockInstallConfiguration install,
+    private TimeLockAgent(TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
@@ -97,17 +103,23 @@ public class TimeLockAgent {
                 JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
     }
 
-    public void createAndRegisterResources() {
+    private void createAndRegisterResources() {
         registerPaxosResource();
         registerExceptionMappers();
         leadershipCreator.registerLeaderElectionService();
 
-        // Finally, register the endpoints associated with the clients.
+        // Finally, register the health check, and endpoints associated with the clients.
+        healthCheckSupplier = leadershipCreator.getHealthCheck();
         registrar.accept(
                 new TimeLockResource(this::createInvalidatingTimeLockServices,
                         JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime)));
 
         ClockSkewMonitorCreator.create(install, registrar).registerClockServices();
+    }
+
+    @SuppressWarnings("unused") // used by external health checks
+    public TimeLockStatus getStatus() {
+        return healthCheckSupplier.get().getStatus();
     }
 
     @SuppressWarnings("unused")
@@ -140,7 +152,7 @@ public class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
-        List<String> uris = install.cluster().cluster().uris();
+        List<String> uris = install.cluster().clusterMembers();
         ImmutableLeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[uris.size()]))
                 .localServer(install.cluster().localServer())

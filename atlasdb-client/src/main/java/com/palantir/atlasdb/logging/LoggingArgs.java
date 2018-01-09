@@ -47,7 +47,7 @@ public final class LoggingArgs {
     private static final String PLACEHOLDER_TABLE_NAME = "{table}";
 
     @VisibleForTesting
-    static final TableReference PLACEHOLDER_TABLE_REFERENCE =
+    public static final TableReference PLACEHOLDER_TABLE_REFERENCE =
             TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
 
     @Value.Immutable
