@@ -84,8 +84,8 @@ public final class LoggingArgs {
         }
 
         return ImmutableSafeAndUnsafeTableReferences.builder()
-                .safeTableRefs(SafeArg.of("tableRefs", safeTableRefs))
-                .unsafeTableRefs(UnsafeArg.of("tableRefs", unsafeTableRefs))
+                .safeTableRefs(SafeArg.of("safeTableRefs", safeTableRefs))
+                .unsafeTableRefs(UnsafeArg.of("unsafeTableRefs", unsafeTableRefs))
                 .build();
     }
 
