@@ -16,12 +16,15 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.NotFoundException;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
@@ -84,14 +87,17 @@ public class CqlExecutorBenchmarks {
     }
 
     private CassandraKeyValueServiceImpl getCKVS(KeyValueService kvs) {
-        Collection<? extends KeyValueService> delegates = kvs.getDelegates();
-        String delegateNames = delegates.stream().map(del -> del.getClass().getCanonicalName()).collect(
-                Collectors.joining(","));
-        return delegates.stream()
-                .filter(delegate -> delegate instanceof CassandraKeyValueServiceImpl)
-                .map(instance -> (CassandraKeyValueServiceImpl) instance)
-                .findAny()
-                .orElseThrow(() -> new NullPointerException(delegateNames));
+        List<KeyValueService> delegates = new ArrayList<>(kvs.getDelegates());
+
+        while (!delegates.isEmpty()) {
+            KeyValueService nextKvs = delegates.remove(0);
+            if (nextKvs instanceof CassandraKeyValueServiceImpl) {
+                return (CassandraKeyValueServiceImpl) nextKvs;
+            }
+            delegates.addAll(nextKvs.getDelegates());
+        }
+
+        throw new NotFoundException("No KVS");
     }
 
 }
