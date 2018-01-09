@@ -80,4 +80,18 @@ public final class Tables {
         return map;
     }
 
+    static Map<Cell, byte[]> generateContinuousBatchWithColumns(Random random, int startKey, int size, int numCols) {
+        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
+        for (int j = 0; j < size; j++) {
+            byte[] key = Ints.toByteArray(startKey + j);
+            for (int col = 0; col < numCols; col++) {
+                String columnName = COLUMN_NAME + col;
+                byte[] column = ByteBuffer.wrap(columnName.getBytes(StandardCharsets.UTF_8)).array();
+                byte[] value = Tables.generateValue(random);
+                map.put(Cell.create(key, column), value);
+            }
+        }
+        return map;
+    }
+
 }

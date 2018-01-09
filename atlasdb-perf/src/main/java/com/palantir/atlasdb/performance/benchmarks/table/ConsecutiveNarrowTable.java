@@ -126,6 +126,24 @@ public abstract class ConsecutiveNarrowTable {
     }
 
     @State(Scope.Benchmark)
+    public static class AverageTable extends ConsecutiveNarrowTable {
+        @Override
+        public TableReference getTableRef() {
+            return TableReference.createFromFullyQualifiedName("performance.persistent_table_average");
+        }
+
+        @Override
+        public int getNumRows() {
+            return DIRTY_NUM_ROWS;
+        }
+
+        @Override
+        protected void setupData() {
+            storeAverageDataInTable(this, 3);
+        }
+    }
+
+    @State(Scope.Benchmark)
     public static class RegeneratingCleanNarrowTable extends CleanNarrowTable {
         @TearDown(Level.Invocation)
         public void regenerateTable() {
@@ -218,6 +236,19 @@ public abstract class ConsecutiveNarrowTable {
                         txn -> {
                             Map<Cell, byte[]> values =
                                     Tables.generateContinuousBatch(table.getRandom(), 0, table.getNumRows());
+                            txn.put(table.getTableRef(), values);
+                            return null;
+                        }));
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static void storeAverageDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
+        IntStream.range(0, numOverwrites + 1).forEach(
+                $ -> table.getTransactionManager().runTaskThrowOnConflict(
+                        txn -> {
+                            Map<Cell, byte[]> values =
+                                    Tables.generateContinuousBatchWithColumns(table.getRandom(), 0,
+                                            table.getNumRows(), 10);
                             txn.put(table.getTableRef(), values);
                             return null;
                         }));

@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
-import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
 import com.palantir.common.base.ClosableIterator;
 
 @State(Scope.Benchmark)
@@ -47,7 +46,7 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Threads(1)
     @Warmup(time = 20)
     @Measurement(time = 160)
-    public Object fullTableScanCleanConservative(ConsecutiveNarrowTable.CleanNarrowTable table) {
+    public Object fullTableScanAverage_NormalSize(ConsecutiveNarrowTable.AverageTable table) {
         return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
     }
 
@@ -55,32 +54,8 @@ public class KvsGetCandidateCellsForSweepingBenchmarks {
     @Threads(1)
     @Warmup(time = 20)
     @Measurement(time = 160)
-    public Object fullTableScanCleanThorough(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return fullTableScan(table, true, DEFAULT_BATCH_SIZE);
-    }
-
-    @Benchmark
-    @Threads(1)
-    @Warmup(time = 20)
-    @Measurement(time = 160)
-    public Object fullTableScanDirtyConservative(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return fullTableScan(table, false, DEFAULT_BATCH_SIZE);
-    }
-
-    @Benchmark
-    @Threads(1)
-    @Warmup(time = 20)
-    @Measurement(time = 160)
-    public Object fullTableScanDirtyThorough(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return fullTableScan(table, true, DEFAULT_BATCH_SIZE);
-    }
-
-    @Benchmark
-    @Threads(1)
-    @Warmup(time = 20)
-    @Measurement(time = 160)
-    public Object fullTableScanOneWideRowThorough(VeryWideRowTable table) {
-        return fullTableScan(table.getTableRef(), table.getKvs(), table.getNumCols(), true, DEFAULT_BATCH_SIZE);
+    public Object fullTableScanAverage_Large(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return fullTableScan(table, false, 4096);
     }
 
     private int fullTableScan(ConsecutiveNarrowTable table, boolean thorough, int batchSizeHint) {
