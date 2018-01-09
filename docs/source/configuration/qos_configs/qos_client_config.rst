@@ -5,12 +5,13 @@ QoS Client Configuration
 
 .. warning::
 
-    If you are using Cassandra, then you can use the AtlasDB QoS to rate-limit requests to Cassandra. Note that this
-    service is under active development and testing, please contact the AtlasDB team before using this feature.
+    Note that this service is under active development and testing, please contact the AtlasDB team before using this feature.
 
+The Qos service is currently supported only for services deployed against Cassandra. The Qos service can be used by
+clients to rate-limit requests to Cassandra.
 
-You will need to update your AtlasDB configuration in order to have said clients limit the read and write requests to
-Cassandra.
+You will need to update your AtlasDB configuration with pre-determined limits in terms of the number of bytes for the
+reads and writes.
 
 .. note::
 
@@ -32,7 +33,7 @@ Optional parameters:
     *    - Property
          - Description
 
-    *    - maxBackoffSleepTime (HumanReadableDuration)
+    *    - maxBackoffSleepTime
          - The rate-limiter can cause the request processing thread to sleep for sometime if soft-limiting is being applied.
            This parameter configures the maximum time a client request can be made to wait by the rate limiter.
            This should definitely be less than the server idle timeout or jetty will cause the request to timeout and potentially retry.

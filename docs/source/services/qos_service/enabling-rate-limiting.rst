@@ -6,20 +6,20 @@ Enabling Rate Limiting
 Currently the QoS service allows a client to configure the read and write limits and enforces these limits.
 Detailed documentation is :ref:`here <qos-client-configuration>`.
 
-QoS also publishes client level metrics for the following:
+QoS also publishes client level metrics (meters) for the following:
 
-        - Meter readRequestCount
-        - Meter bytesRead
-        - Meter readTime
-        - Meter rowsRead
-        - Meter estimatedBytesRead
-        - Meter estimatedRowsRead
-        - Meter writeRequestCount
-        - Meter bytesWritten
-        - Meter writeTime
-        - Meter rowsWritten
-        - Meter backoffTime
-        - Meter rateLimitedExceptions
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.readRequestCount`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.bytesRead`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.readTime`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.rowsRead`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.estimatedBytesRead`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.estimatedRowsRead`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.writeRequestCount`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.bytesWritten`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.writeTime`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.rowsWritten`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.backoffTime`
+        `com.palantir.atlasdb.qos.metrics.QosMetrics.rateLimitedExceptions`
 
 A client should ideally look at the historical values of the ``bytesRead`` and ``bytesWritten`` metrics to determine the limits.
 
