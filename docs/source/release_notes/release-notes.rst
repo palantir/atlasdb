@@ -82,6 +82,10 @@ develop
          - Messages to the `slow-lock-log` now log at `WARN` rather than `INFO`, these messages can indicate a problem so we should be sure they are visible.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2828>`__)
 
+    *    - |new|
+         - The JDBC URL for Oracle can now be overridden in the configuration.
+         - (`Pull Request <https://github.com/palantir/atlasdb/pull/2837>`__)
+
 =======
 v0.72.0
 =======
