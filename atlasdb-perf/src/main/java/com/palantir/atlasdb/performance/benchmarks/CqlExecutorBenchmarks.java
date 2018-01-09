@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -82,11 +84,14 @@ public class CqlExecutorBenchmarks {
     }
 
     private CassandraKeyValueServiceImpl getCKVS(KeyValueService kvs) {
-        return kvs.getDelegates().stream()
+        Collection<? extends KeyValueService> delegates = kvs.getDelegates();
+        String delegateNames = delegates.stream().map(del -> del.getClass().getCanonicalName()).collect(
+                Collectors.joining(","));
+        return delegates.stream()
                 .filter(delegate -> delegate instanceof CassandraKeyValueServiceImpl)
                 .map(instance -> (CassandraKeyValueServiceImpl) instance)
                 .findAny()
-                .orElseThrow(() -> new NullPointerException("no CKVS impl!"));
+                .orElseThrow(() -> new NullPointerException(delegateNames));
     }
 
 }
