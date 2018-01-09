@@ -34,6 +34,8 @@ import org.slf4j.helpers.MessageFormatter;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.keyvalue.cassandra.qos.QosCassandraClient;
+import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -149,6 +151,8 @@ class CassandraRequestExceptionHandler {
                 && (ex instanceof NoSuchElementException
                 // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
                 || ex instanceof UnavailableException
+                // qos detected that this
+                || ex instanceof RateLimitExceededException
                 // tcp socket timeout, possibly indicating network flake, long GC, or restarting server
                 || isConnectionException(ex)
                 || isRetriableWithBackoffException(ex.getCause()));
